@@ -202,6 +202,70 @@ func (db *ProposalsDB) ProposalsAll(offset, rowsCount int,
 	return proposals, totalCount, nil
 }
 
+// ProposalsAll fetches the proposals data from the local db.
+// The argument filterByVoteStatus is optional.
+//
+// Satisfies the PoliteiaBackend interface.
+func (db *ProposalsDB) CountByStatus(countAll bool, filterByVoteStatus ...int) int {
+	// Sanity check
+	if db == nil || db.dbP == nil {
+		return 0
+	}
+
+	var query storm.Query
+
+	if len(filterByVoteStatus) > 0 {
+		query = db.dbP.Select(q.Eq("VoteStatus",
+			ticketvotev1.VoteStatusT(filterByVoteStatus[0])))
+	} else {
+		query = db.dbP.Select()
+	}
+
+	// Count the proposals based on the query created above.
+	totalCount, err := query.Count(&pitypes.ProposalRecord{})
+	if err != nil {
+		return 0
+	}
+
+	return totalCount
+}
+
+// Get proposal count map (by string for convert to json)
+func (db *ProposalsDB) CountProposals(votesStatus map[string]string) map[string]string {
+	// Sanity check
+	if db == nil || db.dbP == nil {
+		return nil
+	}
+
+	var proposals []*pitypes.ProposalRecord
+	var err = db.dbP.Select().OrderBy("VoteStatus").Find(&proposals)
+
+	if err != nil && !errors.Is(err, storm.ErrNotFound) {
+		return nil
+	}
+
+	var result = make(map[string]string)
+	var currentStatus = -1
+	var currentCount = 0
+	for _, proposal := range proposals {
+		var voteStatusInt = int(proposal.VoteStatus)
+		if voteStatusInt != currentStatus {
+			if currentStatus != -1 {
+				result[strconv.Itoa(currentStatus)] = strconv.Itoa(currentCount)
+			}
+			currentStatus = voteStatusInt
+			currentCount = 1
+		} else {
+			currentCount++
+		}
+	}
+	if currentStatus != -1 {
+		result[strconv.Itoa(currentStatus)] = strconv.Itoa(currentCount)
+	}
+
+	return result
+}
+
 // ProposalByToken retrieves the proposal for the given token argument.
 //
 // Satisfies the PoliteiaBackend interface.

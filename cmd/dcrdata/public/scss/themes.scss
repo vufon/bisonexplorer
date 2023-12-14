@@ -38,7 +38,7 @@ body.theme-simnet {
 
 /* dark theme */
 body.darkBG {
-  background: #3b3f45;
+  background: var(--c-black);
   color: #fdfdfd;
 
   .grayed {
@@ -88,7 +88,7 @@ body.darkBG {
     th,
     td {
       color: #fdfdfd; // Set this explicitly to prevent bootstrap > 4.3.1 override
-      border-bottom: 1px solid #2d2d2d;
+      border-bottom: 1px solid #bbb;
     }
   }
 
@@ -151,17 +151,17 @@ body.darkBG {
     }
   }
 
+  #menu {
+    background: #2a2a2a !important;
+    box-shadow: 0 0 0 1px hsl(0deg 0% 100% / 20%);
+  }
+
   #menu .menu-form:hover .menu-item {
     color: $dark-link-hover-color;
   }
 
-  #menu {
-    background: #2a2a2a;
-    box-shadow: 0 0 0 1px #fff3;
-  }
-
   .progress {
-    background-color: #757575;
+    background-color: #ebebeb;
   }
 
   select,
@@ -177,12 +177,12 @@ body.darkBG {
   }
 
   .dcrdata-logo {
-    background-image: url("/images/themes/night/logo.svg");
+    background-image: url("/images/logo-night.svg");
   }
 
   // bootstrap dark theme
   .bg-white {
-    background-color: $inverse-bg-white !important;
+    background-color: #33393b !important;
   }
 
   .text-secondary {
@@ -210,5 +210,9 @@ body.darkBG {
 
   .block-banner .text-secondary:hover {
     color: #fff !important;
+  }
+
+  .floatmenu-item {
+    color: #052f4b !important;
   }
 }

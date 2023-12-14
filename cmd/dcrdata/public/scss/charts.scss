@@ -33,7 +33,7 @@
   z-index: 10;
   line-height: normal;
   overflow: hidden;
-  color: black;
+  color: #78828d;
 }
 
 .tp-charts {
@@ -52,11 +52,7 @@
   bottom: 0;
   width: 100%;
   overflow: hidden;
-  background:
-    rgba(214 225 231 / 30%)
-    url("/images/loader.gif")
-    50% 50%
-    no-repeat;
+  background: rgba(214 225 231 / 30%) url("/images/loader.gif") 50% 50% no-repeat;
 }
 
 .loading .modal {
@@ -83,7 +79,9 @@
   background-image: url("/images/loader.svg");
   background-repeat: no-repeat;
   background-size: contain;
-  -webkit-animation: spin 0.8s ease-in-out infinite; /* Safari */
+  -webkit-animation: spin 0.8s ease-in-out infinite;
+
+  /* Safari */
   animation: spin 0.8s ease-in-out infinite;
   opacity: 0.6;
 }
@@ -269,13 +267,19 @@
 }
 
 .chartview {
-  width: 96%;
-  min-height: 73vh;
   margin: 0 2%;
+  min-height: 73vh;
+  width: 96%;
+}
+
+@media (max-width: 580px) {
+  .chartview {
+    width: 70% !important;
+  }
 }
 
 .chartview .dygraph-ylabel {
-  color: #2970ff;
+  color: #255595;
 }
 
 body.darkBG .chartview .dygraph-ylabel {
@@ -287,11 +291,11 @@ body.darkBG .chartview .dygraph-ylabel {
 }
 
 body.darkBG .chartview .dygraph-y2label {
-  color: #2970ff;
+  color: #255595;
 }
 
 #tickets-by-purchase-date .dygraph-ylabel {
-  color: #2971ff;
+  color: #255595;
   font-weight: bold;
 }
 
@@ -306,7 +310,7 @@ body.darkBG .chartview .dygraph-y2label {
   flex: auto;
   position: relative;
   min-height: 200px;
-  border: 1px solid rgba(128 128 128 / 50%);
+  border: 1px solid rgb(196 196 196 / 50%);
 }
 
 .address_chart {
@@ -320,6 +324,7 @@ body.darkBG .chartview .dygraph-y2label {
 /* chart theme */
 .chart-wrapper {
   position: relative;
+  padding-left: 0 !important;
 }
 
 .chart-wrapper.loading .spinner-wrapper {
@@ -330,33 +335,55 @@ body.darkBG .chartview .dygraph-y2label {
   border: 1px solid #e6eaed;
   border-left: 1px solid #e6eaed;
   font-size: 0.9rem;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .chart-control-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #8997a5;
+  font-size: 18px;
+  font-weight: 700;
+  height: 30px;
+  padding-top: 3px;
+  color: #565d64;
   text-align: center;
   border-bottom: 1px solid #e6eaed;
+  background-color: #cee5eb;
 }
 
 .chart-control {
-  padding: 2px;
   background: #fff;
-  width: max-content;
+  width: 100%;
 }
 
 .chart-form-control {
-  width: -moz-fit-content;
-  width: fit-content;
-  font-size: 0.9rem !important;
-  height: calc(1.5em + 0.5rem + 2px) !important;
+  font-size: 15px !important;
+  height: 35px !important;
   line-height: 1;
+}
+
+.chart-header {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.chart-header-row {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-right: 10px;
 }
 
 .chart-control select,
 .chart-control input {
   border: none;
+}
+
+.chart-filter-tools {
+  margin-top: 20px;
+}
+
+.chart-filter-selection {
+  height: 40px;
+  padding-top: 6px;
 }
 
 .chart-control input {
@@ -381,22 +408,31 @@ body.darkBG .chartview .dygraph-y2label {
 }
 
 .darkBG .chart-control {
-  background: #2b2b2b;
+  background: #1e2b39;
+}
+
+.darkBG .nav-link,
+.darkBG .nav-pills .nav-item {
+  color: white !important;
 }
 
 .darkBG .chart-control-label,
 .darkBG .chart-control-wrapper {
   color: #eeeeef;
-  border-color: #2b2b2b;
+  border-color: #4e565d;
+}
+
+.darkBG .chart-control-label {
+  background-color: #395157;
 }
 
 .darkBG .legend {
-  background: #2a2a2a;
+  background: #464747;
 }
 
 .darkBG .dygraph-legend {
-  background: #e6d9d9;
-  color: #2d2d2d;
+  background: #686868;
+  color: #c4cbd2;
 }
 
 .align-bottom {
@@ -416,7 +452,7 @@ body.darkBG .chartview .dygraph-y2label {
   position: relative;
   padding-left: 20px;
   margin: 0.3rem auto;
-  border: black;
+  border: c4cbd2;
   cursor: pointer;
   width: unset;
   -webkit-user-select: none;
@@ -451,7 +487,7 @@ input ~ .checkmark {
 }
 
 .customcheck input:checked ~ .received {
-  background-color: #2971ff;
+  background-color: #255595;
 }
 
 .customcheck input:checked ~ .sent {
@@ -464,7 +500,7 @@ input ~ .checkmark {
 
 .customcheck input:checked ~ .tickets-price,
 .customcheck input:checked ~ .coin-supply {
-  background-color: #2970ff;
+  background-color: #255595;
 }
 
 body.darkBG .customcheck input:checked ~ .tickets-price,
@@ -479,7 +515,7 @@ body.darkBG .customcheck input:checked ~ .coin-supply {
 
 body.darkBG .customcheck input:checked ~ .tickets-bought,
 body.darkBG .customcheck input:checked ~ .total-mixed {
-  background-color: #2970ff;
+  background-color: #255595;
 }
 
 .checkmark::after {
@@ -526,14 +562,20 @@ body.darkBG .customcheck input:checked ~ .total-mixed {
   display: block;
   float: right;
   margin: 20%;
-  -webkit-animation: spin 0.9s linear infinite; /* Safari */
+  -webkit-animation: spin 0.9s linear infinite;
+
+  /* Safari */
   animation: spin 0.9s linear infinite;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
+  0% {
+    transform: rotate(0deg);
+  }
 
-  100% { transform: rotate(480deg); }
+  100% {
+    transform: rotate(480deg);
+  }
 }
 
 .d-val {
@@ -633,7 +675,7 @@ body.darkBG {
 
   .market-chart-title,
   .proposal-chart-legend {
-    background-color: #333a;
+    background-color: #929292;
   }
 }
 

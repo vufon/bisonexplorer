@@ -597,9 +597,31 @@ export default class extends Controller {
   }
 
   async connect () {
+    this.isHomepage = !window.location.href.includes('/market')
     this.query = new TurboQuery()
     settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin'])
-    this.query.update(settings)
+    if (!this.isHomepage) {
+      this.query.update(settings)
+    } else {
+      settings.chart = 'history'
+      let hasBinance = false
+      if (this.exchangesTarget.options.length > 0) {
+        for (let i = 0; i < this.exchangesTarget.options.length; i++) {
+          const item = this.exchangesTarget.options[i]
+          // if exchange is binance, select
+          if (item.value === 'binance') {
+            hasBinance = true
+            settings.xc = item.value
+            settings.bin = '1mo'
+          }
+        }
+        if (!hasBinance) {
+          const defaultOption = this.exchangesTarget.options[0]
+          settings.xc = defaultOption.value
+          settings.bin = '1d'
+        }
+      }
+    }
     this.processors = {
       orders: this.processOrders,
       candlestick: this.processCandlesticks,
@@ -792,7 +814,9 @@ export default class extends Controller {
     }
     this.graph.updateOptions(chartResetOpts, true)
     this.graph.updateOptions(this.processors[chart](response))
-    this.query.replace(settings)
+    if (!this.isHomepage) {
+      this.query.replace(settings)
+    }
     if (isRefresh) this.graph.updateOptions({ dateWindow: oldZoom })
     else this.resetZoom()
     this.chartLoaderTarget.classList.remove('loading')

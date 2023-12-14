@@ -54,15 +54,15 @@
 }
 
 .dcricon-affirm::before {
-  content: "\1f3fb";
+  content: "\f058";
 }
 
 .dcricon-reject::before {
-  content: "\1f3fc";
+  content: "\f057";
 }
 
 .dcricon-missing::before {
-  content: "\1f3fd";
+  content: "\f056";
 }
 
 .dcricon-stack::before {
@@ -135,6 +135,26 @@
 
 .dcricon-info::before {
   content: "\e916";
+}
+
+.dcricon-setting::before {
+  content: "\e994";
+}
+
+.dcricon-close::before {
+  content: "\f2d4";
+}
+
+.dcricon-home::before {
+  content: "\e909";
+}
+
+.dcricon-mail::before {
+  content: "\e945";
+}
+
+.dcricon-file::before {
+  content: "\e924";
 }
 
 .exchange-logo {
