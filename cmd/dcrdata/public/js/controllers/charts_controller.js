@@ -1,15 +1,15 @@
 import { Controller } from '@hotwired/stimulus'
-import { map, assign, merge } from 'lodash-es'
-import Zoom from '../helpers/zoom_helper'
-import { darkEnabled } from '../services/theme_service'
+import dompurify from 'dompurify'
+import { assign, map, merge } from 'lodash-es'
 import { animationFrame } from '../helpers/animation_helper'
+import { isEqual } from '../helpers/chart_helper'
+import { requestJSON } from '../helpers/http'
+import humanize from '../helpers/humanize_helper'
 import { getDefault } from '../helpers/module_helper'
 import TurboQuery from '../helpers/turbolinks_helper'
+import Zoom from '../helpers/zoom_helper'
 import globalEventBus from '../services/event_bus_service'
-import { isEqual } from '../helpers/chart_helper'
-import dompurify from 'dompurify'
-import humanize from '../helpers/humanize_helper'
-import { requestJSON } from '../helpers/http'
+import { darkEnabled } from '../services/theme_service'
 
 let selectedChart
 let Dygraph // lazy loaded on connect
@@ -124,13 +124,13 @@ function nightModeOptions (nightModeOn) {
     return {
       rangeSelectorAlpha: 0.3,
       gridLineColor: '#596D81',
-      colors: ['#2DD8A3', '#2970FF', '#FFC84E']
+      colors: ['#2DD8A3', '#255595', '#FFC84E']
     }
   }
   return {
     rangeSelectorAlpha: 0.4,
     gridLineColor: '#C4CBD2',
-    colors: ['#2970FF', '#006600', '#FF0090']
+    colors: ['#255594', '#006600', '#FF0090']
   }
 }
 
@@ -357,11 +357,14 @@ export default class extends Controller {
       'legendMarker',
       'modeSelector',
       'modeOption',
-      'rawDataURL'
+      'rawDataURL',
+      'chartName',
+      'chartTitleName'
     ]
   }
 
   async connect () {
+    this.isHomepage = !window.location.href.includes('/charts')
     this.query = new TurboQuery()
     ticketPoolSizeTarget = parseInt(this.data.get('tps'))
     premine = parseInt(this.data.get('premine'))
@@ -392,8 +395,10 @@ export default class extends Controller {
       return node
     }
 
-    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'axis', 'visibility'])
-    this.query.update(this.settings)
+    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'axis', 'visibility', 'home'])
+    if (!this.isHomepage) {
+      this.query.update(this.settings)
+    }
     this.settings.chart = this.settings.chart || 'ticket-price'
     this.zoomCallback = this._zoomCallback.bind(this)
     this.drawCallback = this._drawCallback.bind(this)
@@ -431,7 +436,7 @@ export default class extends Controller {
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
       digitsAfterDecimal: 8,
       showRangeSelector: true,
-      rangeSelectorPlotFillColor: '#8997A5',
+      rangeSelectorPlotFillColor: '#C4CBD2',
       rangeSelectorAlpha: 0.4,
       rangeSelectorHeight: 40,
       drawPoints: true,
@@ -443,7 +448,8 @@ export default class extends Controller {
       highlightCircleSize: 4,
       ylabel: 'Ticket Price',
       y2label: 'Tickets Bought',
-      labelsUTC: true
+      labelsUTC: true,
+      axisLineColor: '#C4CBD2'
     }
 
     this.chartsView = new Dygraph(
@@ -511,7 +517,7 @@ export default class extends Controller {
             strokePattern: [5, 3],
             connectSeparatedPoints: true,
             strokeWidth: 2,
-            color: '#888'
+            color: '#C4CBD2'
           }
         }
         yFormatter = customYFormatter(y => `${intComma(y)} tickets &nbsp;&nbsp; (network target ${intComma(ticketPoolSizeTarget)})`)
@@ -569,7 +575,7 @@ export default class extends Controller {
         gOptions.series = {
           'Inflation Limit': {
             strokePattern: [5, 5],
-            color: '#888',
+            color: '#C4CBD2',
             strokeWidth: 1.5
           },
           'Mix Rate': {
@@ -649,6 +655,8 @@ export default class extends Controller {
 
   async selectChart () {
     const selection = this.settings.chart = this.chartSelectTarget.value
+    this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
+    this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
@@ -705,6 +713,43 @@ export default class extends Controller {
     }
   }
 
+  getChartName (chartValue) {
+    switch (chartValue) {
+      case 'ticket-price':
+        return 'Ticket Price'
+      case 'ticket-pool-size':
+        return 'Ticket Pool Size'
+      case 'ticket-pool-value':
+        return 'Ticket Pool Value'
+      case 'stake-participation':
+        return 'Stake Participation'
+      case 'privacy-participation':
+        return 'Privacy Participation'
+      case 'missed-votes':
+        return 'Missed Votes'
+      case 'block-size':
+        return 'Block Size'
+      case 'blockchain-size':
+        return 'Blockchain Size'
+      case 'tx-count':
+        return 'Transaction Count'
+      case 'duration-btw-blocks':
+        return 'Duration Between Blocks'
+      case 'pow-difficulty':
+        return 'PoW Difficulty'
+      case 'chainwork':
+        return 'Total Work'
+      case 'hashrate':
+        return 'Hashrate'
+      case 'coin-supply':
+        return 'Circulation'
+      case 'fees':
+        return 'Fees'
+      default:
+        return ''
+    }
+  }
+
   async validateZoom () {
     await animationFrame()
     this.chartWrapperTarget.classList.add('loading')
@@ -742,7 +787,9 @@ export default class extends Controller {
   _zoomCallback (start, end) {
     this.lastZoom = Zoom.object(start, end)
     this.settings.zoom = Zoom.encode(this.lastZoom)
-    this.query.replace(this.settings)
+    if (!this.isHomepage) {
+      this.query.replace(this.settings)
+    }
     const ex = this.chartsView.xAxisExtremes()
     const option = Zoom.mapKey(this.settings.zoom, ex, this.isTimeAxis() ? 1 : avgBlockTime)
     this.setActiveOptionBtn(option, this.zoomOptionTargets)
@@ -799,7 +846,9 @@ export default class extends Controller {
       this.chartsView.updateOptions({ logscale: option === 'log' })
     }
     this.settings.scale = option
-    this.query.replace(this.settings)
+    if (!this.isHomepage) {
+      this.query.replace(this.settings)
+    }
   }
 
   setMode (e) {
@@ -812,7 +861,9 @@ export default class extends Controller {
       this.chartsView.updateOptions({ stepPlot: option === 'stepped' })
     }
     this.settings.mode = option
-    this.query.replace(this.settings)
+    if (!this.isHomepage) {
+      this.query.replace(this.settings)
+    }
   }
 
   setAxis (e) {
@@ -876,7 +927,9 @@ export default class extends Controller {
         return
     }
     this.settings.visibility = this.visibility.join('-')
-    this.query.replace(this.settings)
+    if (!this.isHomepage) {
+      this.query.replace(this.settings)
+    }
   }
 
   setVisibility (e) {
@@ -899,7 +952,9 @@ export default class extends Controller {
     }
     this.chartsView.updateOptions({ visibility: this.visibility })
     this.settings.visibility = this.visibility.join('-')
-    this.query.replace(this.settings)
+    if (!this.isHomepage) {
+      this.query.replace(this.settings)
+    }
   }
 
   setActiveOptionBtn (opt, optTargets) {

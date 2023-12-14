@@ -120,6 +120,8 @@ type PoliteiaBackend interface {
 	ProposalsLastSync() int64
 	ProposalsSync() error
 	ProposalsAll(offset, rowsCount int, filterByVoteStatus ...int) ([]*pitypes.ProposalRecord, int, error)
+	CountByStatus(countAll bool, filterByVoteStatus ...int) int
+	CountProposals(votesStatus map[string]string) map[string]string
 	ProposalByToken(token string) (*pitypes.ProposalRecord, error)
 }
 

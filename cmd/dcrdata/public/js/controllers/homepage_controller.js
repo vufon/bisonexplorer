@@ -1,71 +1,41 @@
 import { Controller } from '@hotwired/stimulus'
-import { each } from 'lodash-es'
-import dompurify from 'dompurify'
 import humanize from '../helpers/humanize_helper'
 import ws from '../services/messagesocket_service'
 import { keyNav } from '../services/keyboard_navigation_service'
 import globalEventBus from '../services/event_bus_service'
-import { fadeIn } from '../helpers/animation_helper'
 import Mempool from '../helpers/mempool_helper'
-import { copyIcon, alertArea } from './clipboard_controller'
-
-function incrementValue (element) {
-  if (element) {
-    element.textContent = parseInt(element.textContent) + 1
-  }
-}
-
-function mempoolTableRow (tx) {
-  const tbody = document.createElement('tbody')
-  const link = `/tx/${tx.hash}`
-  tbody.innerHTML = `<tr>
-    <td class="text-start ps-1 clipboard">
-      ${humanize.hashElide(tx.hash, link)}
-      ${copyIcon()}
-      ${alertArea()}
-    </td>
-    <td class="text-start">${tx.Type}</td>
-    <td class="text-end">${humanize.threeSigFigs(tx.total || 0, false, 8)}</td>
-    <td class="text-nowrap text-end">${tx.size} B</td>
-    <td class="text-end pe-1 text-nowrap" data-time-target="age" data-age="${tx.time}">${humanize.timeSince(tx.time)}</td>
-  </tr>`
-  dompurify.sanitize(tbody, { IN_PLACE: true, FORBID_TAGS: ['svg', 'math'] })
-  return tbody.firstElementChild
-}
+import TurboQuery from '../helpers/turbolinks_helper'
 
 export default class extends Controller {
   static get targets () {
-    return ['transactions', 'difficulty',
+    return ['difficulty',
       'bsubsidyTotal', 'bsubsidyPow', 'bsubsidyPos', 'bsubsidyDev',
       'coinSupply', 'blocksdiff', 'devFund', 'windowIndex', 'posBar',
       'rewardIdx', 'powBar', 'poolSize', 'poolValue', 'ticketReward',
       'targetPct', 'poolSizePct', 'hashrate', 'hashrateDelta',
       'nextExpectedSdiff', 'nextExpectedMin', 'nextExpectedMax', 'mempool',
       'mpRegTotal', 'mpRegCount', 'mpTicketTotal', 'mpTicketCount', 'mpVoteTotal', 'mpVoteCount',
-      'mpRevTotal', 'mpRevCount', 'mpRegBar', 'mpVoteBar', 'mpTicketBar',
-      'mpRevBar', 'voteTally', 'blockVotes', 'blockHeight', 'blockSize',
+      'mpRevTotal', 'mpRevCount', 'voteTally', 'blockVotes', 'blockHeight', 'blockSize',
       'blockTotal', 'consensusMsg', 'powConverted', 'convertedDev',
       'convertedSupply', 'convertedDevSub', 'exchangeRate', 'convertedStake',
-      'mixedPct'
+      'mixedPct', 'searchKey'
     ]
   }
 
   connect () {
+    this.query = new TurboQuery()
     this.ticketsPerBlock = parseInt(this.mpVoteCountTarget.dataset.ticketsPerBlock)
     const mempoolData = this.mempoolTarget.dataset
     ws.send('getmempooltxs', mempoolData.id)
     this.mempool = new Mempool(mempoolData, this.voteTallyTargets)
-    this.setBars(this.mempool.totals())
     ws.registerEvtHandler('newtxs', (evt) => {
       const txs = JSON.parse(evt)
       this.mempool.mergeTxs(txs)
       this.setMempoolFigures()
-      this.renderLatestTransactions(txs, true)
       keyNav(evt, false, true)
     })
     ws.registerEvtHandler('mempool', (evt) => {
       const m = JSON.parse(evt)
-      this.renderLatestTransactions(m.latest, false)
       this.mempool.replace(m)
       this.setMempoolFigures()
       keyNav(evt, false, true)
@@ -75,7 +45,6 @@ export default class extends Controller {
       const m = JSON.parse(evt)
       this.mempool.replace(m)
       this.setMempoolFigures()
-      this.renderLatestTransactions(m.latest, true)
       keyNav(evt, false, true)
     })
     this.processBlock = this._processBlock.bind(this)
@@ -108,15 +77,7 @@ export default class extends Controller {
     this.mpRevCountTarget.textContent = counts.rev
 
     this.mempoolTarget.textContent = humanize.threeSigFigs(totals.total)
-    this.setBars(totals)
     this.setVotes()
-  }
-
-  setBars (totals) {
-    this.mpRegBarTarget.style.width = `${totals.regular / totals.total * 100}%`
-    this.mpVoteBarTarget.style.width = `${totals.vote / totals.total * 100}%`
-    this.mpTicketBarTarget.style.width = `${totals.ticket / totals.total * 100}%`
-    this.mpRevBarTarget.style.width = `${totals.rev / totals.total * 100}%`
   }
 
   setVotes () {
@@ -147,27 +108,26 @@ export default class extends Controller {
     }
   }
 
-  renderLatestTransactions (txs, incremental) {
-    each(txs, (tx) => {
-      if (incremental) {
-        const targetKey = `num${tx.Type}Target`
-        incrementValue(this[targetKey])
-      }
-      const rows = this.transactionsTarget.querySelectorAll('tr')
-      if (rows.length) {
-        const lastRow = rows[rows.length - 1]
-        this.transactionsTarget.removeChild(lastRow)
-      }
-      const row = mempoolTableRow(tx)
-      row.style.opacity = 0.05
-      this.transactionsTarget.insertBefore(row, this.transactionsTarget.firstChild)
-      fadeIn(row)
-    })
+  setBlockEx () {
+    console.log('set blockex')
+    this.searchKeyTarget.value = '820936'
+  }
+
+  setAddressEx () {
+    this.searchKeyTarget.value = 'DscnTjjf8dWBCzYD64sEWTGL6eqo1YdqJF8'
+  }
+
+  setTransactionEx () {
+    this.searchKeyTarget.value = 'c0f6b710abff9f0edc0418373e4343317a5163a50a3837919d4c74b0296da575'
+  }
+
+  setProposalEx () {
+    this.searchKeyTarget.value = 'b80040fe5fe69554'
   }
 
   _processBlock (blockData) {
     const ex = blockData.extra
-    this.difficultyTarget.innerHTML = humanize.decimalParts(ex.difficulty / 1000000, true, 0)
+    this.difficultyTarget.innerHTML = humanize.decimalParts(ex.difficulty, true, 0)
     this.bsubsidyPowTarget.innerHTML = humanize.decimalParts(ex.subsidy.pow / 100000000, false, 8, 2)
     this.bsubsidyPosTarget.innerHTML = humanize.decimalParts((ex.subsidy.pos / 500000000), false, 8, 2) // 5 votes per block (usually)
     this.bsubsidyDevTarget.innerHTML = humanize.decimalParts(ex.subsidy.dev / 100000000, false, 8, 2)
@@ -188,7 +148,12 @@ export default class extends Controller {
     this.poolSizePctTarget.textContent = parseFloat(ex.pool_info.percent).toFixed(2)
     const treasuryTotal = ex.dev_fund + ex.treasury_bal.balance
     this.devFundTarget.innerHTML = humanize.decimalParts(treasuryTotal / 100000000, true, 0)
-    this.hashrateTarget.innerHTML = humanize.decimalParts(ex.hash_rate, false, 8, 2)
+    if (ex.hash_rate > 0.001 && ex.hash_rate < 1) {
+      ex.hash_rate = ex.hash_rate * 1000
+    } else if (ex.hash_rate < 0.001) {
+      ex.hash_rate = ex.hash_rate * 1000000
+    }
+    this.hashrateTarget.innerHTML = humanize.decimalParts(ex.hash_rate, false, 3, 2)
     this.hashrateDeltaTarget.innerHTML = humanize.fmtPercentage(ex.hash_rate_change_month)
     this.blockVotesTarget.dataset.hash = blockData.block.hash
     this.setVotes()

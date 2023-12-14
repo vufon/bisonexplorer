@@ -16,9 +16,11 @@
   }
 }
 
-@media only screen and (max-width: 576px) {
+@media only screen and (max-width: 911px) {
   .home-link {
     width: 35px;
+    height: 45px;
+    object-fit: cover;
     overflow: hidden;
   }
 

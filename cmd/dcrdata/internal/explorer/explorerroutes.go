@@ -73,6 +73,7 @@ type CommonPageData struct {
 	BaseURL       string // scheme + "://" + "host"
 	Path          string
 	RequestURI    string // path?query
+	IsHomepage    bool
 }
 
 // FullURL constructs the page's complete URL.
@@ -195,7 +196,33 @@ func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	inv.RLock()
 	exp.pageData.RLock()
 
+	//get ticket pool size
+	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
 	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
+
+	//get vote statuses of proposals
+	votesStatus := map[string]string{
+		strconv.Itoa(int(ticketvotev1.VoteStatusUnauthorized)): "Unauthorized",
+		strconv.Itoa(int(ticketvotev1.VoteStatusAuthorized)):   "Authorized",
+		strconv.Itoa(int(ticketvotev1.VoteStatusStarted)):      "Started",
+		strconv.Itoa(int(ticketvotev1.VoteStatusFinished)):     "Finished",
+		strconv.Itoa(int(ticketvotev1.VoteStatusApproved)):     "Approved",
+		strconv.Itoa(int(ticketvotev1.VoteStatusRejected)):     "Rejected",
+		strconv.Itoa(int(ticketvotev1.VoteStatusIneligible)):   "Ineligible",
+	}
+
+	var proposalCountMap = exp.proposals.CountProposals(votesStatus)
+	var proposalCountJsonStr = ""
+	var voteStatusJsonStr = ""
+
+	proposalCountJson, err := json.Marshal(proposalCountMap)
+	if err == nil {
+		proposalCountJsonStr = string(proposalCountJson)
+	}
+	voteStatusJson, err := json.Marshal(votesStatus)
+	if err == nil {
+		voteStatusJsonStr = string(voteStatusJson)
+	}
 
 	// Get fiat conversions if available
 	homeInfo := exp.pageData.HomeInfo
@@ -212,30 +239,45 @@ func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	exp.pageData.RUnlock()
+	inv.RUnlock()
+
+	var commonData = exp.commonData(r)
+	commonData.IsHomepage = true
+
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
-		Info          *types.HomeInfo
-		Mempool       *types.MempoolInfo
-		BestBlock     *types.BlockBasic
-		BlockTally    []int
-		Consensus     int
-		Blocks        []*types.BlockBasic
-		Conversions   *homeConversions
-		PercentChange float64
+		Info             *types.HomeInfo
+		Mempool          *types.MempoolInfo
+		BestBlock        *types.BlockBasic
+		BlockTally       []int
+		Consensus        int
+		Blocks           []*types.BlockBasic
+		Conversions      *homeConversions
+		PercentChange    float64
+		Premine          int64
+		TargetPoolSize   uint32
+		XcState          *exchanges.ExchangeBotState
+		VotingSummary    *agendas.VoteSummary
+		ProposalCountMap string
+		VotesStatus      string
 	}{
-		CommonPageData: exp.commonData(r),
-		Info:           homeInfo,
-		Mempool:        inv,
-		BestBlock:      bestBlock,
-		BlockTally:     tallys,
-		Consensus:      consensus,
-		Blocks:         blocks,
-		Conversions:    conversions,
-		PercentChange:  homeInfo.PoolInfo.PercentTarget - 100,
+		CommonPageData:   commonData,
+		Info:             homeInfo,
+		Mempool:          inv,
+		BestBlock:        bestBlock,
+		BlockTally:       tallys,
+		Consensus:        consensus,
+		Blocks:           blocks,
+		Conversions:      conversions,
+		PercentChange:    homeInfo.PoolInfo.PercentTarget - 100,
+		Premine:          exp.premine,
+		TargetPoolSize:   tpSize,
+		XcState:          exp.getExchangeState(),
+		VotingSummary:    exp.voteTracker.Summary(),
+		ProposalCountMap: proposalCountJsonStr,
+		VotesStatus:      voteStatusJsonStr,
 	})
-
-	inv.RUnlock()
-	exp.pageData.RUnlock()
 
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
@@ -1881,7 +1923,6 @@ func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 	exp.pageData.RLock()
 	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
 	exp.pageData.RUnlock()
-
 	str, err := exp.templates.exec("charts", struct {
 		*CommonPageData
 		Premine        int64

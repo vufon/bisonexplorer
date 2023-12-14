@@ -171,6 +171,28 @@ func float64Formatting(v float64, numPlaces int, useCommas bool, boldNumPlaces .
 	return []string{integer, dec[:places], dec[places:], trailingZeros}
 }
 
+// within the limit of hashrate. Can be set from gigahash to Petahash
+func hashrateFormatting(v float64, numPlaces int, useCommas bool, boldNumPlaces ...int) []string {
+	if 0.001 <= v && v < 1 {
+		v = v * 1000
+	}
+	if v < 0.001 {
+		v = v * math.Pow(10, 6)
+	}
+
+	return float64Formatting(v, numPlaces, useCommas, boldNumPlaces...)
+}
+
+func hashratePostfix(v float64) string {
+	if 0.001 <= v && v < 1 {
+		return "TH/s"
+	}
+	if v < 0.001 {
+		return "GH/s"
+	}
+	return "PH/s"
+}
+
 func amountAsDecimalPartsTrimmed(v, numPlaces int64, useCommas bool) []string {
 	// Filter numPlaces to only allow up to 8 decimal places trimming (eg. 1.12345678)
 	if numPlaces > 8 {
@@ -401,6 +423,8 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			return p
 		},
 		"float64AsDecimalParts": float64Formatting,
+		"hashrateDecimalParts":  hashrateFormatting,
+		"hashratePostfix":       hashratePostfix,
 		"amountAsDecimalParts": func(v int64, useCommas bool) []string {
 			return float64Formatting(dcrutil.Amount(v).ToCoin(), 8, useCommas)
 		},

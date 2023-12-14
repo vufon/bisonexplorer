@@ -14,10 +14,18 @@ function closest (el, id) {
 
 export default class extends Controller {
   static get targets () {
-    return ['toggle', 'darkModeToggle', 'form']
+    return ['toggle', 'homeToggle', 'form', 'homeMenu', 'commonMenu']
   }
 
   connect () {
+    const isHomePage = this.checkHomePage()
+    if (isHomePage) {
+      this.homeMenuTarget.classList.remove('d-none')
+      this.commonMenuTarget.classList.add('d-none')
+    } else {
+      this.homeMenuTarget.classList.add('d-none')
+      this.commonMenuTarget.classList.remove('d-none')
+    }
     this.clickout = this._clickout.bind(this)
     this.formTargets.forEach(form => {
       form.addEventListener('submit', e => {
@@ -25,6 +33,19 @@ export default class extends Controller {
         return false
       })
     })
+  }
+
+  checkHomePage () {
+    const originUrl = window.location.origin
+    let href = window.location.href
+    if (href.includes(originUrl)) {
+      href = href.replace(originUrl, '')
+      if (href === '/' || href === '') {
+        return true
+      }
+      return false
+    }
+    return false
   }
 
   _clickout (e) {
@@ -37,6 +58,12 @@ export default class extends Controller {
 
   toggle (e) {
     if (this.toggleTarget.checked) {
+      document.addEventListener('click', this.clickout)
+    }
+  }
+
+  homeToggle (e) {
+    if (this.homeToggleTarget.checked) {
       document.addEventListener('click', this.clickout)
     }
   }
