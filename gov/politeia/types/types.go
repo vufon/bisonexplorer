@@ -95,6 +95,15 @@ type ProposalMetadata struct {
 	ProposalStatusDesc string
 }
 
+type ProposalReportData struct {
+	Token     string
+	Name      string
+	Amount    int
+	StartDate int
+	EndDate   int
+	Domain    string
+}
+
 // Metadata performs some common manipulations of the ProposalRecord data to
 // prepare figures for display. Many of these manipulations require a tip
 // height and a target block time for the network, so those must be provided
