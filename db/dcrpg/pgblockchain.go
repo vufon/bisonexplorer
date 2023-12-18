@@ -1340,6 +1340,21 @@ func (pgb *ChainDB) AgendaVoteCounts(agendaID string) (yes, abstain, no uint32, 
 		agendaInfo.VotingStarted, agendaInfo.VotingDone)
 }
 
+// Getting proposal tokens needs to be synchronized
+func (pgb *ChainDB) GetNeededSyncProposalTokens(tokens []string) (syncTokens []string, err error) {
+	return retrieveNeededSyncProposalTokens(pgb.db, tokens)
+}
+
+// Check exist or create a new proposal_meta table
+func (pgb *ChainDB) CheckCreateProposalMetaTable() (err error) {
+	return checkExistAndCreateProposalMetaTable(pgb.db)
+}
+
+// Add proposal meta data to table
+func (pgb *ChainDB) AddProposalMeta(proposalMetaData []map[string]string) (err error) {
+	return addNewProposalMetaData(pgb.db, proposalMetaData)
+}
+
 // AllAgendas returns all the agendas stored currently.
 func (pgb *ChainDB) AllAgendas() (map[string]dbtypes.MileStone, error) {
 	return retrieveAllAgendas(pgb.db)

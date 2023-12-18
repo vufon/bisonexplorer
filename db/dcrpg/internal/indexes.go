@@ -55,6 +55,10 @@ const (
 
 	IndexOfAgendasTableOnName = "uix_agendas_name"
 
+	// proposal_meta table
+
+	IndexOfProposalMetaTableOnToken = "uix_proposal_meta_token"
+
 	// agenda_votes table
 
 	IndexOfAgendaVotesTableOnRowIDs = "uix_agenda_votes"

@@ -334,6 +334,34 @@ const (
 
 	SelectMissCountForBlockRange = `SELECT count(1) FROM misses WHERE height >= $1 AND height <= $2;`
 
+	// proposal_meta table
+	CreateProposalMetaTable = `CREATE TABLE IF NOT EXISTS proposal_meta (
+		id SERIAL PRIMARY KEY,
+		token TEXT,
+		name TEXT,
+		amount FLOAT64,
+		start_date INT32,
+		end_date INT32,
+		domain TEXT
+	);`
+
+	// Insert
+	insertProposalMetaRow = `INSERT INTO proposal_meta (token, name, amount, start_date,
+		end_date, domain) VALUES ($1, $2, $3, $4, $5, $6) `
+
+	InsertProposalMetaRow = insertProposalMetaRow + `RETURNING id;`
+
+	UpsertProposalMetaRow = insertProposalMetaRow + `ON CONFLICT (token) DO UPDATE
+		SET name = $2, amount = $3, start_date = $4, end_date = $5, domain = $6 RETURNING id;`
+	IndexProposalMetaTableOnProposalToken = `CREATE UNIQUE INDEX ` + IndexOfProposalMetaTableOnToken +
+		` ON proposal_meta(token);`
+	DeindexProposalMetaTableOnProposalToken = `DROP INDEX ` + IndexOfProposalMetaTableOnToken + ` CASCADE;`
+
+	SelectAllProposalMeta = `SELECT id, token, name, amount, start_date, end_date, domain
+		FROM proposal_meta;`
+
+	SelectNotSyncProposalMeta = `SELECT token FROM proposal_meta;`
+
 	// agendas table
 
 	CreateAgendasTable = `CREATE TABLE IF NOT EXISTS agendas (

@@ -25,6 +25,10 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dcricon-double-file::before {
+  content: "\e925";
+}
+
 .dcricon-qrcode::before {
   content: "\e9f8";
 }

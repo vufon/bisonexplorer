@@ -24,6 +24,7 @@ var createTableStatements = [][2]string{
 	{"votes", internal.CreateVotesTable},
 	{"misses", internal.CreateMissesTable},
 	{"agendas", internal.CreateAgendasTable},
+	{"proposal_meta", internal.CreateProposalMetaTable},
 	{"agenda_votes", internal.CreateAgendaVotesTable},
 	{"testing", internal.CreateTestingTable},
 	{"stats", internal.CreateStatsTable},

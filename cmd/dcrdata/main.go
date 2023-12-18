@@ -790,6 +790,7 @@ func _main(ctx context.Context) error {
 		r.Get("/attack-cost", explore.AttackCost)
 		r.Get("/verify-message", explore.VerifyMessagePage)
 		r.Get("/stakingcalc", explore.StakeRewardCalcPage)
+		r.Get("/finance-report", explore.FinanceReportPage)
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
 
@@ -1003,6 +1004,43 @@ func _main(ctx context.Context) error {
 	go func() {
 		if err := proposalsDB.ProposalsSync(); err != nil {
 			log.Errorf("updating proposals db failed: %v", err)
+		}
+	}()
+
+	// Synchronize proposal Meta data
+	log.Info("Syncing proposals meta data with chain DB")
+	go func() {
+		//check exist and create proposal_meta table
+		err := chainDB.CheckCreateProposalMetaTable()
+		if err != nil {
+			log.Errorf("Check exist and create proposal_meta table failed: %v", err)
+			return
+		}
+		//get all tokens
+		tokens, err := proposalsDB.ProposalTokens()
+		if err != nil {
+			log.Errorf("Get proposals failed: %v", err)
+			return
+		}
+		//Get the tokens that need to be synchronized
+		neededTokens, err := chainDB.GetNeededSyncProposalTokens(tokens)
+		if err != nil {
+			log.Errorf("Get sync needed proposals failed: %v", err)
+			return
+		}
+		if len(neededTokens) > 0 {
+			//get meta data from file
+			proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens)
+			if err != nil {
+				log.Errorf("Get proposal metadata failed: %v", err)
+				return
+			}
+			//Add meta data to DB
+			addErr := chainDB.AddProposalMeta(proposalMetaDatas)
+			if addErr != nil {
+				log.Errorf("Add proposal meta to DB failed: %v", addErr)
+				return
+			}
 		}
 	}()
 

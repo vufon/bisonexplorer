@@ -123,6 +123,7 @@ type PoliteiaBackend interface {
 	CountByStatus(countAll bool, filterByVoteStatus ...int) int
 	CountProposals(votesStatus map[string]string) map[string]string
 	ProposalByToken(token string) (*pitypes.ProposalRecord, error)
+	ProposalsApprovedMetadata(tokens []string) ([]map[string]string, error)
 }
 
 // agendaBackend implements methods that manage agendas db data.
@@ -370,7 +371,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"rawtx", "status", "parameters", "agenda", "agendas", "charts",
 		"sidechains", "disapproved", "ticketpool", "visualblocks", "statistics",
 		"windows", "timelisting", "addresstable", "proposals", "proposal",
-		"market", "insight_root", "attackcost", "treasury", "treasurytable", "verify_message", "stakingreward"}
+		"market", "insight_root", "attackcost", "treasury", "treasurytable", "verify_message", "stakingreward", "finance_report"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

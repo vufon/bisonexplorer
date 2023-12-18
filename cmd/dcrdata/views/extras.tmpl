@@ -61,7 +61,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.a8ad5cacf88e5498.css" rel="stylesheet">
+	<link href="/dist/css/style.0b590fda4c0a6b0b.css" rel="stylesheet">
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
 {{end}}
@@ -98,7 +98,7 @@
 			data-turbolinks-permanent
 			data-menu-homepage="{{.IsHomepage}}">
             <div id="menu-toggle">
-			<div data-menu-target="homeMenu">
+			<div class="d-none" data-menu-target="homeMenu">
                <input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
                <span class="patty d-none"></span>
                <span class="patty d-none"></span>
@@ -120,7 +120,7 @@
                   </a>
                </div>
 			</div>
-			<div data-menu-target="commonMenu">
+			<div class="d-none" data-menu-target="commonMenu">
 				<input type="checkbox" id="common-menu-input" data-menu-target="toggle" data-action="change->menu#toggle"/>
 				<span class="patty"></span>
 				<span class="patty"></span>
@@ -133,6 +133,7 @@
 					<a class="menu-item jsonly" data-keynav-skip href="/charts" title="Decred charts">Charts</a>
 					<a class="menu-item" data-keynav-skip href="/agendas" title="Agendas">Agendas</a>
 					<a class="menu-item" data-keynav-skip href="/proposals" title="Proposals">Proposals</a>
+					<a class="menu-item" data-keynav-skip href="/finance-report" title="Finance Report">Finance Report</a>
 					<a class="menu-item" data-keynav-skip href="/market" title="Market">Market</a>
 					<a class="menu-item" data-keynav-skip href="/attack-cost" title="Decred Attack Cost">Attack Cost</a>
 					<a class="menu-item" data-keynav-skip href="/parameters" title="Chain Parameters">Parameters</a>
@@ -181,7 +182,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.0c5517d0f7e2a1ce.bundle.js"
+	src="/dist/js/app.ce26dd0a9db70fb3.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

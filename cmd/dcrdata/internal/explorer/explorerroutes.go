@@ -2820,6 +2820,28 @@ func (exp *explorerUI) AttackCost(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+// FinanceReportPage is the page handler for the "/finance-report" path.
+func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request) {
+	exp.pageData.RLock()
+	exp.pageData.RUnlock()
+
+	str, err := exp.templates.execTemplateToString("finance_report", struct {
+		*CommonPageData
+	}{
+		CommonPageData: exp.commonData(r),
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // StakeRewardCalcPage is the page handler for the "/stakingcalc" path.
 func (exp *explorerUI) StakeRewardCalcPage(w http.ResponseWriter, r *http.Request) {
 	price := 24.42

@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -764,6 +765,98 @@ func RetrieveMissForTicket(ctx context.Context, db *sql.DB, ticketHash string) (
 	err = db.QueryRowContext(ctx, internal.SelectMissesMainchainForTicket,
 		ticketHash).Scan(&blockHeight, &blockHash)
 	return
+}
+
+// Check exist and create proposal_meta table
+func checkExistAndCreateProposalMetaTable(db *sql.DB) error {
+	err := createTable(db, "proposal_meta", internal.CreateProposalMetaTable)
+	return err
+}
+
+// Add proposal meta data to table
+func addNewProposalMetaData(db *sql.DB, proposalMetaDatas []map[string]string) error {
+	// Start DB transaction.
+	dbtx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("unable to begin database transaction: %w", err)
+	}
+
+	log.Info("Start add proposal metadata")
+	// Prepare vote insert statement, optionally updating a row if it conflicts
+	proposalInsert := internal.InsertProposalMetaRow
+	for _, object := range proposalMetaDatas {
+		//Add metadata to db
+		var proposalId uint64
+		amount, err := strconv.ParseFloat(object["Amount"], 64)
+		if err != nil {
+			continue
+		}
+		startDate, err := strconv.ParseInt(object["StartDate"], 0, 32)
+		if err != nil {
+			continue
+		}
+
+		endDate, err := strconv.ParseInt(object["EndDate"], 0, 32)
+		if err != nil {
+			continue
+		}
+
+		proposalMetaStmt, err := dbtx.Prepare(proposalInsert)
+		if err != nil {
+			_ = dbtx.Rollback() // try, but we want the Prepare error back
+			proposalMetaStmt.Close()
+			continue
+		}
+		err = proposalMetaStmt.QueryRow(object["Token"], object["Name"], amount, startDate, endDate, object["Domain"]).Scan(&proposalId)
+		if err != nil {
+			if errRoll := dbtx.Rollback(); errRoll != nil {
+				log.Errorf("Rollback failed: %v", errRoll)
+			}
+			log.Errorf("Add proposal failed: %v", err)
+		}
+		proposalMetaStmt.Close()
+	}
+
+	log.Info("Finish add proposal metadata")
+
+	return dbtx.Commit()
+}
+
+// retrieveNeededSyncProposalTokens returns all proposal token which need sync data
+func retrieveNeededSyncProposalTokens(db *sql.DB, tokens []string) ([]string, error) {
+	rows, err := db.Query(internal.SelectNotSyncProposalMeta)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	proposalDbList := make([]string, 0)
+	for rows.Next() {
+		var token string
+		err = rows.Scan(&token)
+		if err != nil {
+			return nil, err
+		}
+		proposalDbList = append(proposalDbList, token)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Errorf("Proposal Meta Select prepare: %v", err)
+		return nil, err
+	}
+	result := make([]string, 0)
+	for _, token := range tokens {
+		var existToken = false
+		for _, dbToken := range proposalDbList {
+			if dbToken == token {
+				existToken = true
+				break
+			}
+		}
+		if !existToken {
+			result = append(result, token)
+		}
+	}
+	return result, nil
 }
 
 // retrieveAllAgendas returns all the current agendas in the db.

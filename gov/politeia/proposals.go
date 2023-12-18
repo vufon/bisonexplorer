@@ -202,6 +202,70 @@ func (db *ProposalsDB) ProposalsAll(offset, rowsCount int,
 	return proposals, totalCount, nil
 }
 
+// Get all proposal tokens
+func (db *ProposalsDB) ProposalTokens() ([]string, error) {
+	// Sanity check
+	if db == nil || db.dbP == nil {
+		return nil, errDef
+	}
+
+	var query storm.Query
+	query = db.dbP.Select(q.Eq("VoteStatus",
+		ticketvotev1.VoteStatusT(ticketvotev1.VoteStatusApproved)))
+
+	// Return the proposals listing starting with the newest.
+	var proposals []*pitypes.ProposalRecord
+	var err = query.OrderBy("Timestamp").Find(&proposals)
+
+	if err != nil && !errors.Is(err, storm.ErrNotFound) {
+		return nil, err
+	}
+	tokens := make([]string, 0, len(proposals))
+	for _, proposal := range proposals {
+		tokens = append(tokens, proposal.Token)
+	}
+
+	return tokens, nil
+}
+
+// Get Approved Proposals metadata
+func (db *ProposalsDB) ProposalsApprovedMetadata(tokens []string) ([]map[string]string, error) {
+	// Sanity check
+	if db == nil || db.dbP == nil {
+		return nil, errDef
+	}
+
+	log.Info("Start get approved Proposals meta data...")
+
+	proposalReportDatas := make([]map[string]string, 0, len(tokens))
+
+	// Fetch record details for each token from the inventory.
+	recordDetails, err := db.fetchRecordDetails(tokens)
+	if err != nil {
+		return nil, err
+	}
+	for key, record := range recordDetails {
+		// Proposal metadata
+		pm, err := proposalMetadataDecode(record.Files)
+		if err != nil {
+			return nil, fmt.Errorf("proposalMetadataDecode err: %w", err)
+		}
+		proposalMetaData := map[string]string{
+			"Token":     key,
+			"Name":      pm.Name,
+			"Amount":    fmt.Sprint(pm.Amount),
+			"StartDate": fmt.Sprint(pm.StartDate),
+			"EndDate":   fmt.Sprint(pm.EndDate),
+			"Domain":    pm.Domain,
+		}
+		proposalReportDatas = append(proposalReportDatas, proposalMetaData)
+	}
+
+	log.Info("Finish get approved Proposals meta data")
+
+	return proposalReportDatas, nil
+}
+
 // ProposalsAll fetches the proposals data from the local db.
 // The argument filterByVoteStatus is optional.
 //
