@@ -773,6 +773,42 @@ func checkExistAndCreateProposalMetaTable(db *sql.DB) error {
 	return err
 }
 
+// Get all proposal Meta Data
+func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
+	rows, err := db.Query(internal.SelectAllProposalMeta)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	proposalDbList := make([]map[string]string, 0)
+	for rows.Next() {
+		var id int
+		var token, name, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return nil, err
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		proposalDbList = append(proposalDbList, objectMap)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Errorf("Proposal Meta Select prepare: %v", err)
+		return nil, err
+	}
+	return proposalDbList, nil
+}
+
 // Add proposal meta data to table
 func addNewProposalMetaData(db *sql.DB, proposalMetaDatas []map[string]string) error {
 	// Start DB transaction.

@@ -1355,6 +1355,11 @@ func (pgb *ChainDB) AddProposalMeta(proposalMetaData []map[string]string) (err e
 	return addNewProposalMetaData(pgb.db, proposalMetaData)
 }
 
+// Get all proposal meta data
+func (pgb *ChainDB) GetAllProposalMeta() (list []map[string]string, err error) {
+	return getProposalMetaAll(pgb.db)
+}
+
 // AllAgendas returns all the agendas stored currently.
 func (pgb *ChainDB) AllAgendas() (map[string]dbtypes.MileStone, error) {
 	return retrieveAllAgendas(pgb.db)

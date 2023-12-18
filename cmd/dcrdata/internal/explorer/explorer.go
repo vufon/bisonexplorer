@@ -114,6 +114,9 @@ type explorerDataSource interface {
 	GetExplorerFullBlocks(start int, end int) []*types.BlockInfo
 	CurrentDifficulty() (float64, error)
 	Difficulty(timestamp int64) float64
+	GetNeededSyncProposalTokens(tokens []string) (syncTokens []string, err error)
+	AddProposalMeta(proposalMetaData []map[string]string) (err error)
+	GetAllProposalMeta() (list []map[string]string, err error)
 }
 
 type PoliteiaBackend interface {
@@ -124,6 +127,7 @@ type PoliteiaBackend interface {
 	CountProposals(votesStatus map[string]string) map[string]string
 	ProposalByToken(token string) (*pitypes.ProposalRecord, error)
 	ProposalsApprovedMetadata(tokens []string) ([]map[string]string, error)
+	ProposalTokens() ([]string, error)
 }
 
 // agendaBackend implements methods that manage agendas db data.
