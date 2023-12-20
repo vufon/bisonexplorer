@@ -339,9 +339,9 @@ const (
 		id SERIAL PRIMARY KEY,
 		token TEXT,
 		name TEXT,
-		amount FLOAT64,
-		start_date INT32,
-		end_date INT32,
+		amount FLOAT8,
+		start_date BIGINT,
+		end_date BIGINT,
 		domain TEXT
 	);`
 
@@ -358,7 +358,7 @@ const (
 	DeindexProposalMetaTableOnProposalToken = `DROP INDEX ` + IndexOfProposalMetaTableOnToken + ` CASCADE;`
 
 	SelectAllProposalMeta = `SELECT id, token, name, amount, start_date, end_date, domain
-		FROM proposal_meta;`
+		FROM proposal_meta ORDER BY start_date;`
 
 	SelectNotSyncProposalMeta = `SELECT token FROM proposal_meta;`
 

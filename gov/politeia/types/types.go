@@ -4,6 +4,8 @@
 package types
 
 import (
+	"fmt"
+
 	recordsv1 "github.com/decred/politeia/politeiawww/api/records/v1"
 	ticketvotev1 "github.com/decred/politeia/politeiawww/api/ticketvote/v1"
 )
@@ -95,6 +97,25 @@ type ProposalMetadata struct {
 	ProposalStatusDesc string
 }
 
+type MonthReportData struct {
+	Token   string
+	Name    string
+	Expense float64
+	Domain  string
+}
+
+type DomainReportData struct {
+	Domain  string
+	Expense float64
+}
+
+type MonthReportObject struct {
+	Month      string
+	Data       []MonthReportData
+	DomainData []DomainReportData
+	Total      float64
+}
+
 // Metadata performs some common manipulations of the ProposalRecord data to
 // prepare figures for display. Many of these manipulations require a tip
 // height and a target block time for the network, so those must be provided
@@ -132,4 +153,11 @@ func (pi *ProposalRecord) Metadata(tip, targetBlockTime int64) *ProposalMetadata
 	meta.ProposalStateDesc = recordsv1.RecordStates[pi.State]
 	meta.ProposalStatusDesc = recordsv1.RecordStatuses[pi.Status]
 	return meta
+}
+
+func GetFullMonthDisplay(month int) string {
+	if month < 10 {
+		return fmt.Sprintf("0%d", month)
+	}
+	return fmt.Sprintf("%d", month)
 }

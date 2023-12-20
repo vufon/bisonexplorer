@@ -14,6 +14,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -2850,13 +2851,169 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		log.Errorf("Get proposals all meta data failed: %v", err)
 	}
-	fmt.Println(len(proposalMetaList))
+
+	//create report data map
+	report := make(map[string][]pitypes.MonthReportData)
+	domainList := make([]string, 0)
+	now := time.Now()
+	var count = 0
+	minDate := time.Now()
+	for _, proposalMeta := range proposalMetaList {
+		var amount = proposalMeta["Amount"]
+		var token = proposalMeta["Token"]
+		var name = proposalMeta["Name"]
+		var startDate = proposalMeta["StartDate"]
+		var endDate = proposalMeta["EndDate"]
+		var domain = proposalMeta["Domain"]
+		//parse date time of startDate and endDate
+		startInt, err := strconv.ParseInt(startDate, 0, 32)
+		endInt, err2 := strconv.ParseInt(endDate, 0, 32)
+		amountFloat, err3 := strconv.ParseFloat(amount, 64)
+		if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
+			continue
+		}
+		if !slices.Contains(domainList, domain) {
+			domainList = append(domainList, domain)
+		}
+		amountFloat = amountFloat / 100
+		startTime := time.Unix(startInt, 0)
+		//If the proposal's starting month is after this month (including this month), then ignore it and not include it in the report
+		if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
+			continue
+		}
+		if minDate.After(startTime) {
+			minDate = startTime
+		}
+		count++
+		endTime := time.Unix(endInt, 0)
+		//count month from startTime to endTime
+		difference := endTime.Sub(startTime)
+		countMonths := int16(difference.Hours() / 24 / 30)
+		//count day from startTime to endTime
+		countDays := int16(difference.Hours() / 24)
+		costPerDay := amountFloat / float64(countDays)
+		tempTime := time.Unix(startInt, 0)
+
+		//if start month and end month are the same, month data is proposal data
+		if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
+			varMonthData := pitypes.MonthReportData{}
+			varMonthData.Token = token
+			varMonthData.Name = name
+			varMonthData.Expense = amountFloat
+			varMonthData.Domain = domain
+			key := fmt.Sprintf("%d-%s", startTime.Year(), pitypes.GetFullMonthDisplay(int(startTime.Month())))
+			val, ok := report[key]
+			//if map has month key
+			if ok {
+				val = append(val, varMonthData)
+				report[key] = val
+				//if don't have month key
+			} else {
+				newMonthDataArr := make([]pitypes.MonthReportData, 0)
+				newMonthDataArr = append(newMonthDataArr, varMonthData)
+				report[key] = newMonthDataArr
+			}
+		} else {
+			//calculate cost every month
+			for i := 0; i < int(countMonths); i++ {
+				handlerTime := tempTime.AddDate(0, i, 0)
+				//if month is this month or future months, break loop
+				if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
+					break
+				}
+				key := fmt.Sprintf("%d-%s", handlerTime.Year(), pitypes.GetFullMonthDisplay(int(handlerTime.Month())))
+				val, ok := report[key]
+				var costOfMonth float64
+				//if start month
+				if i == 0 {
+					//get end day of month
+					endDay := startTime.AddDate(0, 1, -startTime.Day())
+					countToEndMonth := int16(endDay.Sub(startTime).Hours() / 24)
+					costOfMonth = float64(countToEndMonth) * costPerDay
+				} else if i == int(countMonths)-1 {
+					//get start day of month
+					startDay := endTime.AddDate(0, 0, -endTime.Day()+1)
+					countFromStartMonth := int16(endTime.Sub(startDay).Hours() / 24)
+					costOfMonth = float64(countFromStartMonth) * costPerDay
+					//if other
+				} else {
+					startDay := handlerTime.AddDate(0, 0, -handlerTime.Day()+1)
+					endDay := handlerTime.AddDate(0, 1, -handlerTime.Day())
+					countDaysOfMonth := int16(endDay.Sub(startDay).Hours() / 24)
+					costOfMonth = float64(countDaysOfMonth) * costPerDay
+				}
+				costOfMonth = math.Ceil(costOfMonth*100) / 100
+				varMonthData := pitypes.MonthReportData{}
+				varMonthData.Token = token
+				varMonthData.Name = name
+				varMonthData.Expense = costOfMonth
+				varMonthData.Domain = domain
+
+				if ok {
+					val = append(val, varMonthData)
+					report[key] = val
+					//if don't have month key
+				} else {
+					newMonthDataArr := make([]pitypes.MonthReportData, 0)
+					newMonthDataArr = append(newMonthDataArr, varMonthData)
+					report[key] = newMonthDataArr
+				}
+			}
+		}
+	}
+
+	monthReportList := make([]pitypes.MonthReportObject, 0)
+	countMonthFromStart := int16(now.Sub(minDate).Hours() / 24 / 30)
+	for i := int(countMonthFromStart) - 1; i >= 0; i-- {
+		compareTime := minDate.AddDate(0, i, 0)
+		key := fmt.Sprintf("%d-%s", compareTime.Year(), pitypes.GetFullMonthDisplay(int(compareTime.Month())))
+		val, ok := report[key]
+		if ok {
+			//count by domain
+			domainMap := make(map[string]float64)
+			var total = 0.0
+			for _, data := range val {
+				dataObj, ok := domainMap[data.Domain]
+				total += data.Expense
+				if ok {
+					domainMap[data.Domain] = dataObj + data.Expense
+				} else {
+					domainMap[data.Domain] = data.Expense
+				}
+			}
+			domainDataArr := make([]pitypes.DomainReportData, 0)
+			for _, domain := range domainList {
+				domainValue, domainHas := domainMap[domain]
+				domainData := pitypes.DomainReportData{}
+				if domainHas {
+					domainData.Domain = domain
+					domainData.Expense = math.Ceil(domainValue*100) / 100
+				} else {
+					domainData.Domain = ""
+					domainData.Expense = 0.0
+				}
+				domainDataArr = append(domainDataArr, domainData)
+			}
+			reportMonthObj := pitypes.MonthReportObject{
+				Month:      key,
+				Data:       val,
+				DomainData: domainDataArr,
+				Total:      math.Ceil(total*100) / 100,
+			}
+			monthReportList = append(monthReportList, reportMonthObj)
+		}
+	}
+
 	exp.pageData.RUnlock()
 
 	str, err := exp.templates.execTemplateToString("finance_report", struct {
 		*CommonPageData
+		MonthReport []pitypes.MonthReportObject
+		DomainList  []string
 	}{
 		CommonPageData: exp.commonData(r),
+		MonthReport:    monthReportList,
+		DomainList:     domainList,
 	})
 
 	if err != nil {

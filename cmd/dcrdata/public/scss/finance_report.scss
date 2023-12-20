@@ -1,0 +1,26 @@
+.finance-report-page {
+  padding-left: 80px !important;
+  padding-right: 80px !important;
+}
+
+@media (max-width: 1450px) {
+  .finance-report-page {
+    padding-left: 30px !important;
+    padding-right: 30px !important;
+  }
+}
+
+@media (max-width: 1250px) {
+  .finance-report-page {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+}
+
+.month-col {
+  width: 80px;
+}
+
+.finance-table-header {
+  background-color: #dbdbdb;
+}
