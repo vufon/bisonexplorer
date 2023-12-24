@@ -117,6 +117,7 @@ type explorerDataSource interface {
 	GetNeededSyncProposalTokens(tokens []string) (syncTokens []string, err error)
 	AddProposalMeta(proposalMetaData []map[string]string) (err error)
 	GetAllProposalMeta() (list []map[string]string, err error)
+	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
 }
 
 type PoliteiaBackend interface {

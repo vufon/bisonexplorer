@@ -104,6 +104,16 @@ type MonthReportData struct {
 	Domain  string
 }
 
+type ProposalReportData struct {
+	Name           string
+	Token          string
+	Start          string
+	End            string
+	Budget         float64
+	TotalSpent     float64
+	TotalRemaining float64
+}
+
 type DomainReportData struct {
 	Domain  string
 	Expense float64
@@ -112,6 +122,7 @@ type DomainReportData struct {
 type MonthReportObject struct {
 	Month      string
 	Data       []MonthReportData
+	AllData    []MonthReportData
 	DomainData []DomainReportData
 	Total      float64
 }

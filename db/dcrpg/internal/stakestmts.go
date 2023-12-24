@@ -358,7 +358,7 @@ const (
 	DeindexProposalMetaTableOnProposalToken = `DROP INDEX ` + IndexOfProposalMetaTableOnToken + ` CASCADE;`
 
 	SelectAllProposalMeta = `SELECT id, token, name, amount, start_date, end_date, domain
-		FROM proposal_meta ORDER BY start_date;`
+		FROM proposal_meta ORDER BY start_date DESC;`
 
 	SelectNotSyncProposalMeta = `SELECT token FROM proposal_meta;`
 

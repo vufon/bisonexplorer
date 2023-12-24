@@ -2846,6 +2846,13 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
+	treasurySummary, err := exp.dataSource.GetTreasurySummary()
+	if err != nil {
+		log.Errorf("Get Treasury Summary data failed: %v", err)
+	}
+	for _, summary := range treasurySummary {
+		summary.Outvalue = 0 - summary.Outvalue
+	}
 	//Get All Proposal Metadata for Report
 	proposalMetaList, err := exp.dataSource.GetAllProposalMeta()
 	if err != nil {
@@ -2854,10 +2861,14 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 
 	//create report data map
 	report := make(map[string][]pitypes.MonthReportData)
+	proposalReportData := make([]pitypes.ProposalReportData, 0)
 	domainList := make([]string, 0)
+	proposalList := make([]string, 0)
 	now := time.Now()
 	var count = 0
 	minDate := time.Now()
+	var totalAllSpent = 0.0
+	var totalAllBudget = 0.0
 	for _, proposalMeta := range proposalMetaList {
 		var amount = proposalMeta["Amount"]
 		var token = proposalMeta["Token"]
@@ -2871,6 +2882,9 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 		amountFloat, err3 := strconv.ParseFloat(amount, 64)
 		if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
 			continue
+		}
+		if !slices.Contains(proposalList, name) {
+			proposalList = append(proposalList, name)
 		}
 		if !slices.Contains(domainList, domain) {
 			domainList = append(domainList, domain)
@@ -2888,11 +2902,19 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 		endTime := time.Unix(endInt, 0)
 		//count month from startTime to endTime
 		difference := endTime.Sub(startTime)
-		countMonths := int16(difference.Hours() / 24 / 30)
+		var countMonths = 12*(endTime.Year()-startTime.Year()) + (int(endTime.Month()) - int(startTime.Month())) + 1
 		//count day from startTime to endTime
-		countDays := int16(difference.Hours() / 24)
+		countDays := int16(difference.Hours()/24) + 1
 		costPerDay := amountFloat / float64(countDays)
 		tempTime := time.Unix(startInt, 0)
+		proposalInfo := pitypes.ProposalReportData{}
+		proposalInfo.Name = name
+		proposalInfo.Token = token
+		proposalInfo.Budget = amountFloat
+		totalAllBudget += amountFloat
+		proposalInfo.Start = startTime.Format("2006-01-02")
+		proposalInfo.End = endTime.Format("2006-01-02")
+		var totalSpent = 0.0
 
 		//if start month and end month are the same, month data is proposal data
 		if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
@@ -2901,7 +2923,8 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 			varMonthData.Name = name
 			varMonthData.Expense = amountFloat
 			varMonthData.Domain = domain
-			key := fmt.Sprintf("%d-%s", startTime.Year(), pitypes.GetFullMonthDisplay(int(startTime.Month())))
+			totalSpent += amountFloat
+			key := fmt.Sprintf("%d/%s", startTime.Year(), pitypes.GetFullMonthDisplay(int(startTime.Month())))
 			val, ok := report[key]
 			//if map has month key
 			if ok {
@@ -2921,25 +2944,25 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 				if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
 					break
 				}
-				key := fmt.Sprintf("%d-%s", handlerTime.Year(), pitypes.GetFullMonthDisplay(int(handlerTime.Month())))
+				key := fmt.Sprintf("%d/%s", handlerTime.Year(), pitypes.GetFullMonthDisplay(int(handlerTime.Month())))
 				val, ok := report[key]
 				var costOfMonth float64
 				//if start month
 				if i == 0 {
 					//get end day of month
 					endDay := startTime.AddDate(0, 1, -startTime.Day())
-					countToEndMonth := int16(endDay.Sub(startTime).Hours() / 24)
+					countToEndMonth := endDay.Day() - startTime.Day() + 1
 					costOfMonth = float64(countToEndMonth) * costPerDay
 				} else if i == int(countMonths)-1 {
 					//get start day of month
 					startDay := endTime.AddDate(0, 0, -endTime.Day()+1)
-					countFromStartMonth := int16(endTime.Sub(startDay).Hours() / 24)
+					countFromStartMonth := endTime.Day() - startDay.Day() + 1
 					costOfMonth = float64(countFromStartMonth) * costPerDay
 					//if other
 				} else {
 					startDay := handlerTime.AddDate(0, 0, -handlerTime.Day()+1)
 					endDay := handlerTime.AddDate(0, 1, -handlerTime.Day())
-					countDaysOfMonth := int16(endDay.Sub(startDay).Hours() / 24)
+					countDaysOfMonth := endDay.Day() - startDay.Day() + 1
 					costOfMonth = float64(countDaysOfMonth) * costPerDay
 				}
 				costOfMonth = math.Ceil(costOfMonth*100) / 100
@@ -2948,7 +2971,7 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 				varMonthData.Name = name
 				varMonthData.Expense = costOfMonth
 				varMonthData.Domain = domain
-
+				totalSpent += costOfMonth
 				if ok {
 					val = append(val, varMonthData)
 					report[key] = val
@@ -2960,14 +2983,23 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 				}
 			}
 		}
+		if now.After(endTime) {
+			totalSpent = amountFloat
+		}
+		totalAllSpent += totalSpent
+		proposalInfo.TotalSpent = math.Ceil(totalSpent*100) / 100
+		proposalInfo.TotalRemaining = math.Ceil((amountFloat-totalSpent)*100) / 100
+		proposalReportData = append(proposalReportData, proposalInfo)
 	}
 
 	monthReportList := make([]pitypes.MonthReportObject, 0)
-	countMonthFromStart := int16(now.Sub(minDate).Hours() / 24 / 30)
+
+	var countMonthFromStart = 12*(now.Year()-minDate.Year()) + (int(now.Month()) - int(minDate.Month())) + 1
 	for i := int(countMonthFromStart) - 1; i >= 0; i-- {
 		compareTime := minDate.AddDate(0, i, 0)
-		key := fmt.Sprintf("%d-%s", compareTime.Year(), pitypes.GetFullMonthDisplay(int(compareTime.Month())))
+		key := fmt.Sprintf("%d/%s", compareTime.Year(), pitypes.GetFullMonthDisplay(int(compareTime.Month())))
 		val, ok := report[key]
+		monthAllData := make([]pitypes.MonthReportData, 0)
 		if ok {
 			//count by domain
 			domainMap := make(map[string]float64)
@@ -2994,9 +3026,30 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 				}
 				domainDataArr = append(domainDataArr, domainData)
 			}
+
+			for _, proposal := range proposalList {
+				var hasData = false
+				var putData pitypes.MonthReportData
+				for _, data := range val {
+					if data.Name == proposal {
+						hasData = true
+						putData = data
+						break
+					}
+				}
+				if hasData {
+					monthAllData = append(monthAllData, putData)
+				} else {
+					tempData := pitypes.MonthReportData{
+						Expense: 0,
+					}
+					monthAllData = append(monthAllData, tempData)
+				}
+			}
 			reportMonthObj := pitypes.MonthReportObject{
 				Month:      key,
 				Data:       val,
+				AllData:    monthAllData,
 				DomainData: domainDataArr,
 				Total:      math.Ceil(total*100) / 100,
 			}
@@ -3008,12 +3061,22 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 
 	str, err := exp.templates.execTemplateToString("finance_report", struct {
 		*CommonPageData
-		MonthReport []pitypes.MonthReportObject
-		DomainList  []string
+		MonthReport    []pitypes.MonthReportObject
+		DomainList     []string
+		ProposalList   []string
+		TreasuryList   []*dbtypes.TreasurySummary
+		ProposalInfos  []pitypes.ProposalReportData
+		TotalAllBudget float64
+		TotalAllSpent  float64
 	}{
 		CommonPageData: exp.commonData(r),
 		MonthReport:    monthReportList,
 		DomainList:     domainList,
+		ProposalList:   proposalList,
+		TreasuryList:   treasurySummary,
+		ProposalInfos:  proposalReportData,
+		TotalAllBudget: totalAllBudget,
+		TotalAllSpent:  totalAllSpent,
 	})
 
 	if err != nil {

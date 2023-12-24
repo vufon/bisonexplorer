@@ -2062,6 +2062,12 @@ type TreasuryTx struct {
 	BlockTime   TimeDef
 }
 
+type TreasurySummary struct {
+	Month    string
+	Invalue  int64
+	Outvalue int64
+}
+
 // TreasuryBalance is the current balance, spent amount, and tx count for the
 // treasury.
 type TreasuryBalance struct {

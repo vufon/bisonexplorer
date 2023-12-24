@@ -71,6 +71,11 @@ const (
 		GROUP BY timestamp
 		ORDER BY timestamp;`
 
+	SelectTreasurySummaryByMonth = `SELECT ts1.month, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
+	FROM (SELECT SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type IN (4,6) GROUP BY month) ts1
+	FULL OUTER JOIN 
+	(SELECT SUM(value) as outvalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type = 5 GROUP BY month) ts2 
+	ON ts1.month = ts2.month ORDER BY ts1.month DESC;`
 	// TODO: CreateTreasuryVotesTable
 )
 

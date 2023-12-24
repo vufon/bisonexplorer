@@ -24,3 +24,95 @@
 .finance-table-header {
   background-color: #dbdbdb;
 }
+
+.proposal-name-col {
+  width: 20%;
+}
+
+.domain-group-report {
+  width: 50%;
+}
+
+@media (max-width: 1450px) {
+  .proposal-name-col {
+    width: 25%;
+  }
+}
+
+@media (max-width: 1200px) {
+  .proposal-name-col {
+    width: 30%;
+  }
+
+  .domain-group-report {
+    width: 70%;
+  }
+}
+
+@media (max-width: 650px) {
+  .domain-group-report {
+    width: 100%;
+  }
+}
+
+.proposal-report-table {
+  width: 1920px;
+}
+
+.headcol {
+  position: absolute;
+  width: 5em;
+  left: 0;
+  top: auto;
+  border-top-width: 1px;
+
+  /* only relevant for first row */
+  margin-top: -1px;
+
+  /* compensate for top border */
+}
+
+.headcol::before {
+  content: "Row ";
+}
+
+.report-first-header {
+  position: sticky;
+  left: 0;
+  z-index: 900;
+  background-color: #c3c3c3 !important;
+}
+
+.report-last-header {
+  position: sticky;
+  right: 0;
+  background-color: #c3c3c3 !important;
+}
+
+.report-first-data {
+  position: sticky;
+  left: 0;
+  background-color: #d7d7d7 !important;
+}
+
+.report-last-data {
+  position: sticky;
+  right: 0;
+  background-color: #d7d7d7 !important;
+}
+
+.report-tool-bar {
+  position: sticky;
+  left: 0;
+}
+
+.button-group-title {
+  position: sticky;
+  left: 100px;
+}
+
+.table-header-sticky {
+  position: sticky;
+  top: 5px;
+  background-color: #dbdbdb !important;
+}

@@ -99,12 +99,6 @@ button {
   padding-block: 0;
 }
 
-body,
-head,
-html {
-  overflow-x: hidden;
-}
-
 input,
 textarea {
   background-color: var(--c-bg-bright);
@@ -338,6 +332,10 @@ textarea::placeholder {
 
 .fs-15 {
   font-size: 15px;
+}
+
+.fs-15i {
+  font-size: 15px !important;
 }
 
 .fs-16 {
