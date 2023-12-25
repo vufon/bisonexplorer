@@ -1,9 +1,5 @@
 <template>
    {{define "finance_report"}}
-   {{- $PropoList := .ProposalList -}}
-   {{- $AllBudget := .TotalAllBudget -}}
-   {{- $AllSpent := .TotalAllSpent -}}
-   
    <!DOCTYPE html>
    <html lang="en">
       {{ template "html-head" headData .CommonPageData "Finance Report" }}
@@ -12,174 +8,17 @@
          <div class="px-0 main finance-report-page" data-controller="financereport">
             <label class="mt-4 report-tool-bar">Report Type :</label>
             <div class="btn-group button-group-title" data-toggle="buttons">
-               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal" name="proposal">
-               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Proposal All" name="proposal2">
-               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Summary" name="proposal3">
+               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal All" name="proposal">
+               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Summary" name="summary">
                <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domain" name="domain">
                <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury" name="treasury">
             </div>
-             <div class="mt-4 mb-3">
+            <div class="mt-4 mb-3">
                <span class="h2 pb-1 pe-2 report-tool-bar" data-financereport-target="reportTitle">
-                  Finance Report - Example 1
                </span>
             </div>
-         <div data-financereport-target="proposal">
-            {{range .MonthReport}}
-            <table class="table v3 border-grey proposal-report-table">
-               <thead>
-                  <tr class="text-secondary finance-table-header">
-                     <th class="text-center ps-0 month-col border-right-grey report-first-header"></th>
-                     {{range .Data}}
-                     <th class="text-center ps-0 fs-13i ps-3 pr-3">{{.Name}}</th>
-                     {{end}}
-                     <th class="text-right ps-0 fw-600 month-col ta-center border-left-grey report-last-header">Total</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  <tr>
-                     <td class="text-center fs-13i fw-600 border-right-grey report-first-data">{{.Month}}</td>
-                     {{range .Data}}
-                     <td class="text-center fs-13i">${{template "decimalParts" (float64AsDecimalParts .Expense 2 true)}}</td>
-                     {{end}}
-                     <td class="text-right fs-13i fw-600 border-left-grey report-last-data">${{template "decimalParts" (float64AsDecimalParts .Total 2 true)}}</td>
-                  </tr>
-               </tbody>
-            </table>
-            {{end}}
-            <div class="d-flex justify-content-between align-items-end mb-2 mt-3">
-               <span class="h2 d-flex pt-4 pb-1 pe-2">
-               Finance Report - Example 2
-               </span>
-            </div>
-            {{range .MonthReport}}
-            <div class="row border-grey">
-               <div class="col-2 border-right-1-grey ai-center d-flex pl-10 fw-600 fs-16">
-                  {{.Month}}
-               </div>
-               <div class="col-20">
-                  <div class="row">
-                     {{range .Data}}
-                     <div class="col-6 border-grey ta-center p-0">
-                        <div class="border-bottom-1-grey m-0 h-100">
-                           <p class="bg-grey h-50 m-0 p-2">{{.Name}}</p>
-                           <p class="d-inline-block">${{template "decimalParts" (float64AsDecimalParts .Expense 2 true)}}</p>
-                        </div>
-                     </div>
-                     {{end}}
-                  </div>
-               </div>
-               <div class="col-2 border-left-grey ai-center d-flex pl-10 fw-600 fs-16">
-                  ${{template "decimalParts" (float64AsDecimalParts .Total 2 true)}}
-               </div>
-            </div>
-            {{end}}
-          </div>
-          <div class="d-none" data-financereport-target="domain">
-            <table class="table v3 border-grey domain-group-report">
-               <thead>
-                  <tr class="text-secondary finance-table-header">
-                     <th class="text-center ps-0 month-col border-right-grey"></th>
-                     {{range $i,$v := .DomainList}}
-                     <th class="text-center ps-0 fs-13i ps-3 pr-3 fw-600">{{$v}}</th>
-                     {{end}}
-                     <th class="text-right ps-0 fw-600 month-col ta-center border-left-grey">Total</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {{range .MonthReport}}
-                  <tr>
-                     <td class="text-center fs-13i fw-600 border-right-grey">{{.Month}}</td>
-                     {{range .DomainData}}
-                     <td class="text-center fs-13i">${{template "decimalParts" (float64AsDecimalParts .Expense 2 true)}}</td>
-                     {{end}}
-                     <td class="text-right fs-13i fw-600 border-left-grey">${{template "decimalParts" (float64AsDecimalParts .Total 2 true)}}</td>
-                  </tr>
-                  {{end}}
-               </tbody>
-            </table>
-          </div>
-          <div class="d-none" data-financereport-target="treasury">
-             <table class="table v3 border-grey domain-group-report">
-               <thead>
-                  <tr class="text-secondary finance-table-header">
-                     <th class="text-center ps-0 month-col border-right-grey"></th>
-                     <th class="text-center ps-0 fs-13i ps-3 pr-3 fw-600">Incoming</th>
-                     <th class="text-center ps-0 fs-13i ps-3 pr-3 fw-600">Outgoing</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {{range .TreasuryList}}
-                  <tr>
-                     <td class="text-center fs-13i fw-600 border-right-grey">{{.Month}}</td>
-                     <td class="text-center fs-13i">{{template "decimalParts" (amountAsDecimalParts .Invalue false)}}</td>
-                     <td class="text-center fs-13i">{{template "decimalParts" (amountAsDecimalParts .Outvalue false)}}</td>
-                  </tr>
-                  {{end}}
-               </tbody>
-            </table>
-          </div>
-          <div class="d-none" data-financereport-target="proposal2">
-            <table class="table v3 border-grey">
-               <thead>
-                  <tr class="text-secondary finance-table-header">
-                     <th class="text-center ps-0 month-col border-right-grey report-first-header"></th>
-                     {{range $i,$v := $PropoList}}
-                        <th class="text-center ps-0 fs-13i ps-3 pr-3 table-header-sticky">{{$v}}</th>
-                     {{end}}
-                     <th class="text-right ps-0 fw-600 month-col ta-center border-left-grey report-last-header">Total</th>
-                  </tr>
-               </thead>
-               <tbody>
-               {{range .MonthReport}}
-                  <tr>
-                     <td class="text-center fs-13i fw-600 border-right-grey report-first-data">{{.Month}}</td>
-                     {{range .AllData}}
-                        <td class="text-center fs-13i">
-                        {{if gt .Expense 0.0}}
-                           ${{template "decimalParts" (float64AsDecimalParts .Expense 2 true)}}
-                        {{end}}
-                        </td>
-                     {{end}}
-                     <td class="text-right fs-13i fw-600 border-left-grey report-last-data">${{template "decimalParts" (float64AsDecimalParts .Total 2 true)}}</td>
-                  </tr>
-               {{end}}
-               </tbody>
-            </table>
-          </div>
-          <div class="d-none" data-financereport-target="proposal3">
-             <table class="table v3 border-grey">
-               <thead>
-                  <tr class="text-secondary finance-table-header">
-                     <th class="text-center ps-0 month-col fw-600 proposal-name-col">Name</th>
-                     <th class="text-center ps-0 ps-3 pr-3 fw-600">Start Date</th>
-                     <th class="text-center ps-0 ps-3 pr-3 fw-600">End Date</th>
-                     <th class="text-center ps-0 ps-3 pr-3 fw-600">Budget</th>
-                     <th class="text-center ps-0 ps-3 pr-3 fw-600">Total Spent (Est)</th>
-                     <th class="text-center ps-0 ps-3 pr-3 fw-600">Total Remaining</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {{range .ProposalInfos}}
-                  <tr>
-                     <td class="text-center fs-13i">{{.Name}}</td>
-                     <td class="text-center fs-13i">{{.Start}}</td>
-                     <td class="text-center fs-13i">{{.End}}</td>
-                     <td class="text-center fs-13i">
-                     ${{template "decimalParts" (float64AsDecimalParts .Budget 2 true)}}</td>
-                     <td class="text-center fs-13i">${{template "decimalParts" (float64AsDecimalParts .TotalSpent 2 true)}}</td>
-                     <td class="text-center fs-13i">${{template "decimalParts" (float64AsDecimalParts .TotalRemaining 2 true)}}</td>
-                  </tr>
-                  {{end}}
-                   <tr class="finance-table-header">
-                     <td class="text-center fw-600 fs-15i" colspan="3">Total</td>
-                     <td class="text-center fw-600 fs-15i">
-                     ${{template "decimalParts" (float64AsDecimalParts $AllBudget 2 true)}}</td>
-                     <td class="text-center fw-600 fs-15i">${{template "decimalParts" (float64AsDecimalParts $AllSpent 2 true)}}</td>
-                     <td class="text-center fw-600 fs-15i">${{template "decimalParts" (float64AsDecimalParts (floatsubtract $AllBudget $AllSpent) 2 true)}}</td>
-                  </tr>
-               </tbody>
-            </table>
-          </div>
+               <table class="table v3 border-grey" data-financereport-target="report">
+               </table>
          </div>
       </div>
       {{ template "footer". }}

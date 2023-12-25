@@ -243,6 +243,11 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		r.Get("/get-future-reward", app.getStakeRewardCalc)
 	})
 
+	mux.Route("/finance-report", func(r chi.Router) {
+		r.Get("/proposal", app.getProposalReport)
+		r.Get("/treasury", app.getTreasuryReport)
+	})
+
 	mux.Route("/ticketpool", func(r chi.Router) {
 		r.Get("/", app.getTicketPoolByDate)
 		r.With(m.TicketPoolCtx).Get("/bydate/{tp}", app.getTicketPoolByDate)

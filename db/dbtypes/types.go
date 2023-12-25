@@ -2063,9 +2063,9 @@ type TreasuryTx struct {
 }
 
 type TreasurySummary struct {
-	Month    string
-	Invalue  int64
-	Outvalue int64
+	Month    string `json:"month"`
+	Invalue  int64  `json:"invalue"`
+	Outvalue int64  `json:"outvalue"`
 }
 
 // TreasuryBalance is the current balance, spent amount, and tx count for the

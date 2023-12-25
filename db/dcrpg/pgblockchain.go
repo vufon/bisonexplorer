@@ -1803,6 +1803,33 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	return summaryList, nil
 }
 
+func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByMonth)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summaryList []*dbtypes.TreasurySummary
+	for rows.Next() {
+		var summary = dbtypes.TreasurySummary{}
+		var time dbtypes.TimeDef
+		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+		summary.Month = time.Format("2006-01")
+		summaryList = append(summaryList, &summary)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return summaryList, nil
+}
+
 // TreasuryTxns fetches filtered treasury transactions.
 func (pgb *ChainDB) TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error) {
 	var rows *sql.Rows

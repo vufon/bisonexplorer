@@ -895,3 +895,46 @@ type PriceCountTime struct {
 	Count int             `json:"count"`
 	Time  dbtypes.TimeDef `json:"time"`
 }
+
+// All struct for finance report
+type MonthReportData struct {
+	Token   string  `json:"token"`
+	Name    string  `json:"name"`
+	Expense float64 `json:"expense"`
+	Domain  string  `json:"domain"`
+}
+
+type ProposalReportData struct {
+	Name           string  `json:"name"`
+	Token          string  `json:"token"`
+	Start          string  `json:"start"`
+	End            string  `json:"end"`
+	Budget         float64 `json:"budget"`
+	TotalSpent     float64 `json:"totalSpent"`
+	TotalRemaining float64 `json:"totalRemaining"`
+}
+
+type DomainReportData struct {
+	Domain  string  `json:"domain"`
+	Expense float64 `json:"expense"`
+}
+
+type MonthReportObject struct {
+	Month      string             `json:"month"`
+	AllData    []MonthReportData  `json:"allData"`
+	DomainData []DomainReportData `json:"domainData"`
+	Total      float64            `json:"total"`
+}
+
+type TreasurySummary struct {
+	Month    string `json:"month"`
+	Invalue  int64  `json:"invalue"`
+	Outvalue int64  `json:"outvalue"`
+}
+
+func GetFullMonthDisplay(month int) string {
+	if month < 10 {
+		return fmt.Sprintf("0%d", month)
+	}
+	return fmt.Sprintf("%d", month)
+}
