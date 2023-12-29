@@ -24,8 +24,8 @@ const (
 // versioning 2.0.0 spec (http://semver.org/).
 const (
 	AppName  string = "dcrdata"
-	AppMajor uint   = 6
-	AppMinor uint   = 2
+	AppMajor uint   = 1
+	AppMinor uint   = 0
 	AppPatch uint   = 0
 )
 
@@ -52,19 +52,19 @@ func Version() string {
 	// by the semantic versioning spec is automatically appended and should
 	// not be contained in the pre-release string.  The pre-release version
 	// is not appended if it contains invalid characters.
-	preRelease := normalizePreRelString(appPreRelease)
-	if preRelease != "" {
-		version = fmt.Sprintf("%s-%s", version, preRelease)
-	}
+	// preRelease := normalizePreRelString(appPreRelease)
+	// if preRelease != "" {
+	// 	version = fmt.Sprintf("%s-%s", version, preRelease)
+	// }
 
 	// Append build metadata if there is any.  The plus called for
 	// by the semantic versioning spec is automatically appended and should
 	// not be contained in the build metadata string.  The build metadata
 	// string is not appended if it contains invalid characters.
-	build := normalizeBuildString(appBuild)
-	if build != "" {
-		version = fmt.Sprintf("%s+%s", version, build)
-	}
+	// build := normalizeBuildString(appBuild)
+	// if build != "" {
+	// 	version = fmt.Sprintf("%s+%s", version, build)
+	// }
 
 	return version
 }

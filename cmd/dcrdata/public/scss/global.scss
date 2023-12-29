@@ -693,6 +693,10 @@ textarea::placeholder {
   width: 100%;
 }
 
+.w-60px {
+  width: 60px;
+}
+
 .h-80 {
   height: 80%;
 }
@@ -1044,6 +1048,10 @@ textarea::placeholder {
   padding-right: 10px;
 }
 
+.pr-10i {
+  padding-right: 10px !important;
+}
+
 .plr-0 {
   padding-left: 0;
   padding-right: 0;
@@ -1120,6 +1128,14 @@ textarea::placeholder {
 
 .pb-20 {
   padding-bottom: 20px;
+}
+
+.pb-30 {
+  padding-bottom: 30px;
+}
+
+.pb-30i {
+  padding-bottom: 30px !important;
 }
 
 .pb-40 {
@@ -1684,4 +1700,64 @@ hr {
 .tooltip__cow {
   color: #bc6c62;
   box-shadow: 1px 1px 20px rgb(188 108 98 / 30%);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 54px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.legacy-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 25px;
+  background-color: #ccc;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+.legacy-slider::before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 2px;
+  background-color: #a5a5a5;
+  -webkit-transition: 0.4s;
+  transition: 0.4s;
+}
+
+input:checked + .legacy-slider {
+  background-color: #1a86b1;
+}
+
+input:focus + .legacy-slider {
+  box-shadow: 0 0 1px #1d93b8;
+}
+
+input:checked + .legacy-slider::before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.legacy-slider.round {
+  border-radius: 34px;
+}
+
+.legacy-slider.round::before {
+  border-radius: 50%;
 }

@@ -163,6 +163,12 @@ const (
 		WHERE address = ANY($1) AND valid_mainchain
 		ORDER BY block_time DESC, tx_hash ASC;`
 
+	SelectLegacySummaryByMonth = `SELECT ts1.month, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
+		FROM (SELECT address, tx_type, SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM addresses GROUP BY month,address,tx_type) ts1
+		FULL OUTER JOIN 
+		(SELECT address, tx_type, SUM(value) as outvalue, DATE_TRUNC('month',block_time) as month FROM addresses WHERE is_funding = true GROUP BY month,address,tx_type) ts2 
+		ON ts1.month = ts2.month AND ts1.address = ts2.address AND ts1.tx_type = ts2.tx_type AND ts1.address = $1 AND ts1.tx_type = $2 ORDER BY ts1.month DESC;`
+
 	// selectAddressTimeGroupingCount return the count of record groups,
 	// where grouping is done by a specified time interval, for an addresses.
 	selectAddressTimeGroupingCount = `SELECT COUNT(DISTINCT %s) FROM addresses WHERE address=$1;`

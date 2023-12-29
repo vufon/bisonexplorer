@@ -194,6 +194,12 @@ const humanize = {
   capitalize: function (s) {
     if (typeof s !== 'string') return ''
     return s.charAt(0).toUpperCase() + s.slice(1)
+  },
+  formatToLocalString: function (number, minFracDigit, maxFracDigit) {
+    return number.toLocaleString('en-US', {
+      minimumFractionDigits: minFracDigit,
+      maximumFractionDigits: maxFracDigit
+    })
   }
 }
 

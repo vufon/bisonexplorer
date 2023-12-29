@@ -116,6 +116,7 @@ type DataSource interface {
 	GetMempoolPriceCountTime() *apitypes.PriceCountTime
 	GetAllProposalMeta() (list []map[string]string, err error)
 	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
+	GetLegacySummary() ([]*dbtypes.TreasurySummary, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -727,17 +728,18 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 		if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
 			continue
 		}
-		if !slices.Contains(proposalList, name) {
-			proposalList = append(proposalList, name)
-		}
-		if !slices.Contains(domainList, domain) {
-			domainList = append(domainList, domain)
-		}
 		amountFloat = amountFloat / 100
 		startTime := time.Unix(startInt, 0)
 		//If the proposal's starting month is after this month (including this month), then ignore it and not include it in the report
 		if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
 			continue
+		}
+
+		if !slices.Contains(proposalList, name) {
+			proposalList = append(proposalList, name)
+		}
+		if !slices.Contains(domainList, domain) {
+			domainList = append(domainList, domain)
 		}
 		if minDate.After(startTime) {
 			minDate = startTime
@@ -922,12 +924,21 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
-	treasurySummary, err := c.DataSource.GetTreasurySummary()
+	legacyFlg := r.URL.Query().Get("legacy")
+	fmt.Println(legacyFlg)
+	var treasurySummary []*dbtypes.TreasurySummary
+	var err error
+	if legacyFlg != "true" {
+		treasurySummary, err = c.DataSource.GetTreasurySummary()
+		for _, summary := range treasurySummary {
+			summary.Outvalue = 0 - summary.Outvalue
+		}
+	} else {
+		treasurySummary, err = c.DataSource.GetLegacySummary()
+	}
+
 	if err != nil {
 		log.Errorf("Get Treasury Summary data failed: %v", err)
-	}
-	for _, summary := range treasurySummary {
-		summary.Outvalue = 0 - summary.Outvalue
 	}
 
 	//Get coin supply value

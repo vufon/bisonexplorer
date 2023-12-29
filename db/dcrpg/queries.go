@@ -1868,6 +1868,24 @@ func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, off
 	}
 }
 
+func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64,
+	statement string, queryType int) ([]*dbtypes.AddressRow, error) {
+	rows, err := db.QueryContext(ctx, statement, address, N, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	switch queryType {
+	case mergedCreditQuery, mergedDebitQuery, mergedQuery:
+		onlyValidMainchain := true
+		addr, err := scanAddressMergedRows(rows, address, queryType, onlyValidMainchain)
+		return addr, err
+	default:
+		return scanAddressQueryRows(rows, queryType)
+	}
+}
+
 func scanAddressMergedRows(rows *sql.Rows, addr string, queryType int, onlyValidMainchain bool) (addressRows []*dbtypes.AddressRow, err error) {
 	for rows.Next() {
 		addr := dbtypes.AddressRow{Address: addr}
