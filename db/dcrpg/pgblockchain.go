@@ -9,9 +9,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
+	"net/http"
 	"sort"
 	"strings"
 	"sync"
@@ -1350,6 +1353,11 @@ func (pgb *ChainDB) CheckCreateProposalMetaTable() (err error) {
 	return checkExistAndCreateProposalMetaTable(pgb.db)
 }
 
+// Check exist or create a new address_summary table
+func (pgb *ChainDB) CheckCreateAddressSummaryTable() (err error) {
+	return checkExistAndCreateAddressSummaryTable(pgb.db)
+}
+
 // Add proposal meta data to table
 func (pgb *ChainDB) AddProposalMeta(proposalMetaData []map[string]string) (err error) {
 	return addNewProposalMetaData(pgb.db, proposalMetaData)
@@ -1786,12 +1794,20 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	defer rows.Close()
 
 	var summaryList []*dbtypes.TreasurySummary
+	minDate := time.Now()
+	maxDate := time.Time{}
 	for rows.Next() {
 		var summary = dbtypes.TreasurySummary{}
 		var time dbtypes.TimeDef
 		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
 		if err != nil {
 			return nil, err
+		}
+		if time.T.After(maxDate) {
+			maxDate = time.T
+		}
+		if time.T.Before(minDate) {
+			minDate = time.T
 		}
 		summary.Month = time.Format("2006-01")
 		summaryList = append(summaryList, &summary)
@@ -1800,44 +1816,112 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
+	currencyResponse := pgb.GetUSDExchangeValue(minDate.Unix(), maxDate.Unix())
+	monthPriceMap := pgb.GetCurrencyPrice(*currencyResponse)
+
+	for _, summary := range summaryList {
+		monthPrice := monthPriceMap[summary.Month]
+		summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
+		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
+	}
 	return summaryList, nil
+}
+
+func (pgb *ChainDB) GetCurrencyPrice(res dbtypes.CurrencyResponse) map[string]float64 {
+	result := make(map[string]float64)
+	countMap := make(map[string]int)
+	for _, resItem := range res.Prices {
+		date := time.Unix(int64(resItem[0])/1000, 0)
+		key := fmt.Sprintf("%d-%s", date.Year(), dbtypes.GetFullMonthDisplay(int(date.Month())))
+		// fmt.Println("Month: ", key)
+		val, ok := result[key]
+		if ok {
+			result[key] = val + resItem[1]
+			countMap[key] = countMap[key] + 1
+		} else {
+			result[key] = resItem[1]
+			countMap[key] = 1
+		}
+	}
+
+	for k, v := range result {
+		result[k] = v / float64(countMap[k])
+	}
+	return result
+}
+
+func (pgb *ChainDB) GetUSDExchangeValue(from int64, to int64) *dbtypes.CurrencyResponse {
+	result := dbtypes.CurrencyResponse{}
+	dcrUsdURL := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/decred/market_chart/range?vs_currency=usd&from=%d&to=%d", from, to)
+	dcrUsdData, err := pgb.FetchCurrency(dcrUsdURL)
+	if err != nil {
+		return &result
+	}
+	return dcrUsdData
+}
+
+func (pgb *ChainDB) FetchCurrency(apiURL string) (*dbtypes.CurrencyResponse, error) {
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP request failed with status: %s", resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var items *dbtypes.CurrencyResponse
+	if err := json.Unmarshal(body, &items); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 // Get legacy summary data
 func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
-	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
-	if addErr != nil {
-		log.Warnf("ChainDB.NewChainDB: %v", addErr)
-	}
-	fmt.Println(projectFundAddress)
-	_, err := stdaddr.DecodeAddress(projectFundAddress, pgb.chainParams)
-	if err != nil {
-		return nil, err
-	}
 	var rows *sql.Rows
 	// rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectLegacySummaryByMonth, projectFundAddress, dbtypes.AddrMergedTxnCredit)
-	rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByMonth)
+	rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataRows)
 	if queryErr != nil {
 		return nil, queryErr
 	}
 	defer rows.Close()
 
 	var summaryList []*dbtypes.TreasurySummary
+	minDate := time.Now()
+	maxDate := time.Time{}
 	for rows.Next() {
 		var summary = dbtypes.TreasurySummary{}
 		var time dbtypes.TimeDef
-		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		err := rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
 		if err != nil {
 			return nil, err
+		}
+		if time.T.After(maxDate) {
+			maxDate = time.T
+		}
+		if time.T.Before(minDate) {
+			minDate = time.T
 		}
 		summary.Month = time.Format("2006-01")
 		summaryList = append(summaryList, &summary)
 	}
 
-	fmt.Println("number: ", len(summaryList))
-
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	currencyResponse := pgb.GetUSDExchangeValue(minDate.Unix(), maxDate.Unix())
+	monthPriceMap := pgb.GetCurrencyPrice(*currencyResponse)
+
+	for _, summary := range summaryList {
+		monthPrice := monthPriceMap[summary.Month]
+		summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
 	}
 	return summaryList, nil
 }

@@ -925,13 +925,13 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 	legacyFlg := r.URL.Query().Get("legacy")
-	fmt.Println(legacyFlg)
 	var treasurySummary []*dbtypes.TreasurySummary
 	var err error
 	if legacyFlg != "true" {
 		treasurySummary, err = c.DataSource.GetTreasurySummary()
 		for _, summary := range treasurySummary {
 			summary.Outvalue = 0 - summary.Outvalue
+			summary.OutvalueUSD = 0 - summary.OutvalueUSD
 		}
 	} else {
 		treasurySummary, err = c.DataSource.GetLegacySummary()

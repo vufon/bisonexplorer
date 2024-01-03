@@ -361,8 +361,10 @@ export default class extends Controller {
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
       `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortVertical" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
-      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">Incoming (DCR)</th>' +
-      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">Outgoing (DCR)</th>' +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (DCR)</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (USD)</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (DCR)</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (USD)</th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
@@ -370,10 +372,14 @@ export default class extends Controller {
     for (let i = 0; i < data.treasurySummary.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (data.treasurySummary.length - i - 1)
       const treasury = data.treasurySummary[index]
+      const invalue = this.settings.legacy ? humanize.formatToLocalString((treasury.invalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.invalue / 500000000), 3, 3)
+      const outvalue = this.settings.legacy ? humanize.formatToLocalString((treasury.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.outvalue / 500000000), 3, 3)
       bodyList += '<tr>' +
         `<td class="text-center fs-13i fw-600 border-right-grey">${treasury.month}</td>` +
-        `<td class="text-right-i fs-13i domain-content-cell">${humanize.formatToLocalString((treasury.invalue / 500000000), 3, 3)}</td>` +
-        `<td class="text-right-i fs-13i domain-content-cell">${humanize.formatToLocalString((treasury.outvalue / 500000000), 3, 3)}</td>` +
+        `<td class="text-right-i fs-13i domain-content-cell">${invalue}</td>` +
+        `<td class="text-right-i fs-13i domain-content-cell">${humanize.formatToLocalString((treasury.invalueUSD), 2, 2)}</td>` +
+        `<td class="text-right-i fs-13i domain-content-cell">${outvalue}</td>` +
+        `<td class="text-right-i fs-13i domain-content-cell">${humanize.formatToLocalString((treasury.outvalueUSD), 2, 2)}</td>` +
         '</tr>'
     }
     tbody = tbody.replace('###', bodyList)

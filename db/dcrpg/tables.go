@@ -20,6 +20,7 @@ var createTableStatements = [][2]string{
 	{"vouts", internal.CreateVoutTable},
 	{"block_chain", internal.CreateBlockPrevNextTable},
 	{"addresses", internal.CreateAddressTable},
+	{"address_summary", internal.CreateAddressSummaryTable},
 	{"tickets", internal.CreateTicketsTable},
 	{"votes", internal.CreateVotesTable},
 	{"misses", internal.CreateMissesTable},

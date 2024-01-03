@@ -1050,6 +1050,13 @@ type AddressRow struct {
 	AtomsDebit  uint64
 }
 
+type AddressSummaryRow struct {
+	Id         uint64
+	Time       TimeDef
+	TotalValue uint64
+	SpentValue uint64
+}
+
 // IsMerged indicates if the AddressRow represents data for a "merged" address
 // table view by checking the MergedCount.
 func (ar *AddressRow) IsMerged() bool {
@@ -2063,9 +2070,17 @@ type TreasuryTx struct {
 }
 
 type TreasurySummary struct {
-	Month    string `json:"month"`
-	Invalue  int64  `json:"invalue"`
-	Outvalue int64  `json:"outvalue"`
+	Month       string  `json:"month"`
+	Invalue     int64   `json:"invalue"`
+	InvalueUSD  float64 `json:"invalueUSD"`
+	Outvalue    int64   `json:"outvalue"`
+	OutvalueUSD float64 `json:"outvalueUSD"`
+}
+
+type CurrencyResponse struct {
+	Prices       [][]float64 `json:"prices"`
+	MarketCaps   [][]float64 `json:"market_caps"`
+	TotalVolumes [][]float64 `json:"total_volumes"`
 }
 
 // TreasuryBalance is the current balance, spent amount, and tx count for the
@@ -2252,4 +2267,11 @@ func (a *AddressInfo) PostProcess(tipHeight uint32) {
 		tx := a.Transactions[i]
 		tx.BlockHeight = tipHeight - uint32(tx.Confirmations) + 1
 	}
+}
+
+func GetFullMonthDisplay(month int) string {
+	if month < 10 {
+		return fmt.Sprintf("0%d", month)
+	}
+	return fmt.Sprintf("%d", month)
 }

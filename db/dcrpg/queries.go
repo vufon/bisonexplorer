@@ -773,6 +773,12 @@ func checkExistAndCreateProposalMetaTable(db *sql.DB) error {
 	return err
 }
 
+// Check exist and create address_summary table
+func checkExistAndCreateAddressSummaryTable(db *sql.DB) error {
+	err := createTable(db, "address_summary", internal.CreateAddressSummaryTable)
+	return err
+}
+
 // Get all proposal Meta Data
 func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
 	rows, err := db.Query(internal.SelectAllProposalMeta)
@@ -1849,24 +1855,6 @@ func RetrieveAddressMergedTxns(ctx context.Context, db *sql.DB, address string, 
 }
 
 // Address transaction query helpers.
-
-func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64,
-	statement string, queryType int) ([]*dbtypes.AddressRow, error) {
-	rows, err := db.QueryContext(ctx, statement, address, N, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer closeRows(rows)
-
-	switch queryType {
-	case mergedCreditQuery, mergedDebitQuery, mergedQuery:
-		onlyValidMainchain := true
-		addr, err := scanAddressMergedRows(rows, address, queryType, onlyValidMainchain)
-		return addr, err
-	default:
-		return scanAddressQueryRows(rows, queryType)
-	}
-}
 
 func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64,
 	statement string, queryType int) ([]*dbtypes.AddressRow, error) {

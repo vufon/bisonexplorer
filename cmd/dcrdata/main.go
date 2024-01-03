@@ -852,6 +852,22 @@ func _main(ctx context.Context) error {
 		return err
 	}
 
+	log.Infof("Starting address summary sync...")
+
+	syncAdressSummaryData := func() error {
+		err := chainDB.SyncAddressSummary(ctx)
+		if err != nil {
+			log.Errorf("dcrpg.SyncAddressSummary failed")
+			return err
+		}
+		return nil
+	}
+
+	err = syncAdressSummaryData()
+	if err != nil {
+		return err
+	}
+
 	// After sync and indexing, must use upsert statement, which checks for
 	// duplicate entries and updates instead of erroring. SyncChainDB should
 	// set this on successful sync, but do it again anyway.

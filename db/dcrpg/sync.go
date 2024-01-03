@@ -6,6 +6,7 @@ package dcrpg
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"regexp"
 	"strings"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/txscript/v4/stdaddr"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/rpcutils"
 )
@@ -24,6 +27,150 @@ const (
 	initialLoadSyncStatusMsg = "Syncing stake and chain DBs..."
 	addressesSyncStatusMsg   = "Syncing addresses table with spending info..."
 )
+
+func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
+	err := pgb.CheckCreateAddressSummaryTable()
+	if err != nil {
+		log.Errorf("Check exist and create address summary table failed: %v", err)
+		return err
+	}
+
+	//check synchronized month
+	var summaryRows = make([]*dbtypes.AddressSummaryRow, 0)
+	sumRows, _ := pgb.db.QueryContext(ctx, internal.SelectAddressSummaryRows)
+	for sumRows.Next() {
+		var addrSum dbtypes.AddressSummaryRow
+		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.TotalValue, &addrSum.SpentValue)
+		if err == nil {
+			summaryRows = append(summaryRows, &addrSum)
+		}
+	}
+
+	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
+	if addErr != nil {
+		log.Warnf("ChainDB.NewChainDB: %v", addErr)
+	}
+	_, decodeErr := stdaddr.DecodeAddress(projectFundAddress, pgb.chainParams)
+	if decodeErr != nil {
+		return decodeErr
+	}
+
+	//get firt address item to get next time
+	frows, _ := pgb.db.QueryContext(ctx, internal.SelectAddressCreditsLimitNByAddressFromOldest, projectFundAddress, 1, 0)
+	firstRows := pgb.ConvertToAddressObj(frows)
+	if len(firstRows) < 1 {
+		return nil
+	}
+	startTime := firstRows[0].TxBlockTime.T
+	now := time.Now()
+
+	stopFlg := false
+	for !stopFlg {
+		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
+			stopFlg = true
+		}
+
+		exist, allSpentFlg, summaryRow := pgb.CheckAllSpentSummary(summaryRows, startTime)
+		if exist && allSpentFlg {
+			startTime = startTime.AddDate(0, 1, 0)
+			continue
+		}
+		//get start of month
+		startDay := startTime.AddDate(0, 0, -startTime.Day()+1)
+		startDay = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, startDay.Location())
+		//get end of month
+		endDay := startTime.AddDate(0, 1, -startTime.Day())
+		endDay = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, endDay.Location())
+		//get data by month
+		rows, err := pgb.db.QueryContext(ctx, internal.SelectAddressCreditsLimitNByAddressByPeriod, projectFundAddress, startDay, endDay)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		addressRows := pgb.ConvertToAddressObj(rows)
+		total := uint64(0)
+		spent := uint64(0)
+		for _, addressRow := range addressRows {
+			total += addressRow.Value
+			if addressRow.MatchingTxHash != "" {
+				spent += addressRow.Value
+			}
+		}
+		//next month
+		var nextMonth = startTime.AddDate(0, 1, 0)
+		if total == 0 {
+			startTime = nextMonth
+			continue
+		}
+		if summaryRow == nil {
+			//insert new row
+			newSumRow := dbtypes.AddressSummaryRow{
+				Time:       dbtypes.NewTimeDef(startDay),
+				TotalValue: total,
+				SpentValue: spent,
+			}
+			var id uint64
+			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.TotalValue, newSumRow.SpentValue).Scan(&id)
+			startTime = nextMonth
+			continue
+		}
+		if total == summaryRow.TotalValue && spent == summaryRow.SpentValue {
+			startTime = nextMonth
+			continue
+		}
+		summaryRow.SpentValue = spent
+		summaryRow.TotalValue = total
+		//update row
+		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, total, spent, summaryRow.Id)
+		startTime = nextMonth
+	}
+
+	return nil
+}
+
+func (pgb *ChainDB) CheckAllSpentSummary(summaryRows []*dbtypes.AddressSummaryRow, compareTime time.Time) (hasData bool, allSpent bool, sumRow *dbtypes.AddressSummaryRow) {
+	for _, summaryRow := range summaryRows {
+		if summaryRow.Time.T.Month() == compareTime.Month() && summaryRow.Time.T.Year() == compareTime.Year() {
+			var exist = true
+			var allSpentFlg bool
+			if summaryRow.SpentValue == summaryRow.TotalValue {
+				allSpentFlg = true
+			}
+			return exist, allSpentFlg, summaryRow
+		}
+	}
+	return false, false, nil
+}
+
+func (pgb *ChainDB) ConvertToAddressObj(rows *sql.Rows) []*dbtypes.AddressRow {
+	addressRows := make([]*dbtypes.AddressRow, 0)
+	for rows.Next() {
+		var id uint64
+		var addr dbtypes.AddressRow
+		var matchingTxHash sql.NullString
+		var txVinIndex, vinDbID sql.NullInt64
+
+		err := rows.Scan(&id, &addr.Address, &matchingTxHash, &addr.TxHash, &addr.TxType,
+			&addr.ValidMainChain, &txVinIndex, &addr.TxBlockTime, &vinDbID,
+			&addr.Value, &addr.IsFunding)
+
+		if err != nil {
+			return addressRows
+		}
+
+		if matchingTxHash.Valid {
+			addr.MatchingTxHash = matchingTxHash.String
+		}
+		if txVinIndex.Valid {
+			addr.TxVinVoutIndex = uint32(txVinIndex.Int64)
+		}
+		if vinDbID.Valid {
+			addr.VinVoutDbID = uint64(vinDbID.Int64)
+		}
+
+		addressRows = append(addressRows, &addr)
+	}
+	return addressRows
+}
 
 // SyncChainDB stores in the DB all blocks on the main chain available from the
 // RPC client. The table indexes may be force-dropped and recreated by setting

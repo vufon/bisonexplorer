@@ -18,6 +18,27 @@ const (
 		tx_type INT4
 	);`
 
+	// monthly address summary table
+	CreateAddressSummaryTable = `CREATE TABLE IF NOT EXISTS address_summary (
+		id SERIAL PRIMARY KEY,
+		time TIMESTAMPTZ NOT NULL,
+		total_value BIGINT,
+		spent_value BIGINT
+	);`
+
+	//insert to address summary table
+	InsertAddressSummaryRow = `INSERT INTO address_summary (time, total_value, spent_value)
+		VALUES ($1, $2, $3)`
+
+	//select first from summary table
+	SelectAddressSummaryRows = `SELECT * FROM address_summary ORDER BY time`
+
+	//select only data from summary table
+	SelectAddressSummaryDataRows = `SELECT time,total_value,spent_value FROM address_summary ORDER BY time`
+
+	//update spent and total value
+	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET total_value = $1, spent_value = $2 WHERE id = $3`
+
 	// insertAddressRow is the basis for several address insert/upsert
 	// statements.
 	insertAddressRow = `INSERT INTO addresses (address, matching_tx_hash, tx_hash,
@@ -284,6 +305,15 @@ const (
 		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
 		ORDER BY block_time DESC, tx_hash ASC
 		LIMIT $2 OFFSET $3;`
+
+	SelectAddressCreditsLimitNByAddressFromOldest = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
+		ORDER BY block_time, tx_hash ASC
+		LIMIT $2 OFFSET $3;`
+
+	SelectAddressCreditsLimitNByAddressByPeriod = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain AND block_time >= $2 AND block_time <= $3
+		ORDER BY block_time, tx_hash ASC;`
 
 	SelectAddressIDsByFundingOutpoint = `SELECT id, address, value
 		FROM addresses
