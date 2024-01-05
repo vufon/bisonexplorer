@@ -48,6 +48,9 @@ const (
 		ORDER BY block_height DESC
 		LIMIT $1 OFFSET $2;`
 
+	SelectTreasuryOldestTime = `SELECT block_time FROM treasury 
+		WHERE is_mainchain ORDER BY block_time LIMIT 1;`
+
 	SelectTypedTreasuryTxns = `SELECT * FROM treasury 
 		WHERE is_mainchain
 			AND tx_type = $1

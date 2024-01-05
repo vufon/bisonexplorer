@@ -26,30 +26,40 @@ function hasCache (k) {
 
 export default class extends Controller {
   static get targets () {
-    return ['type', 'report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription', 'legacySwitch']
+    return ['type', 'report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription', 'legacySwitch', 'interval', 'groupBy']
   }
 
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'type', 'tsort', 'psort', 'legacy'
+      'type', 'tsort', 'psort', 'legacy', 'interval'
     ])
 
     this.defaultSettings = {
       type: 'proposal',
       tsort: 'oldest',
       psort: 'newest',
-      legacy: false
+      legacy: false,
+      interval: 'month'
     }
 
     this.query.update(this.settings)
     if (!this.settings.type) {
       this.settings.type = this.defaultSettings.type
     }
+    if (!this.settings.interval) {
+      this.settings.interval = this.defaultSettings.interval
+    }
     this.typeTargets.forEach((typeTarget) => {
       typeTarget.classList.remove('btn-active')
       if (typeTarget.name === this.settings.type) {
         typeTarget.classList.add('btn-active')
+      }
+    })
+    this.intervalTargets.forEach((intervalTarget) => {
+      intervalTarget.classList.remove('btn-active')
+      if (intervalTarget.name === this.settings.interval) {
+        intervalTarget.classList.add('btn-active')
       }
     })
     this.setReportTitle(this.settings.type)
@@ -79,6 +89,19 @@ export default class extends Controller {
       case 'treasury':
         this.reportTitleTarget.innerHTML = treasuryTitle
     }
+  }
+
+  intervalChange (e) {
+    if (e.target.name === this.settings.interval) {
+      return
+    }
+    const target = e.srcElement || e.target
+    this.intervalTargets.forEach((intervalTarget) => {
+      intervalTarget.classList.remove('btn-active')
+    })
+    target.classList.add('btn-active')
+    this.settings.interval = e.target.name
+    this.calculate()
   }
 
   typeChange (e) {
@@ -121,10 +144,16 @@ export default class extends Controller {
     } else {
       this.colorNoteRowTarget.classList.add('d-none')
     }
-    if (this.settings.type === 'treasury' || this.settings.type === 'domain') {
+    if (this.settings.type === 'domain' || (this.settings.type === 'proposal' && this.settings.interval === 'year')) {
       this.reportTarget.classList.add('domain-group-report')
     } else {
       this.reportTarget.classList.remove('domain-group-report')
+    }
+
+    if (this.settings.type === 'treasury') {
+      this.reportTarget.classList.add('treasury-group-report')
+    } else {
+      this.reportTarget.classList.remove('treasury-group-report')
     }
 
     if (this.settings.type === 'treasury') {
@@ -144,8 +173,10 @@ export default class extends Controller {
 
     if (this.settings.type === 'summary') {
       this.reportTarget.classList.add('summary-group-report')
+      this.groupByTarget.classList.add('d-none')
     } else {
       this.reportTarget.classList.remove('summary-group-report')
+      this.groupByTarget.classList.remove('d-none')
     }
     this.reportTarget.innerHTML = this.createTableContent()
   }
@@ -159,7 +190,7 @@ export default class extends Controller {
       case 'treasury':
         return this.createTreasuryTable(responseData)
       default:
-        return this.createProposalTable2(responseData)
+        return this.createProposalTable(responseData)
     }
   }
 
@@ -173,62 +204,117 @@ export default class extends Controller {
     this.createReportTable()
   }
 
+  getTreasuryYearlyData (data) {
+    const dataMap = new Map()
+    const yearArr = []
+    for (let i = 0; i < data.treasurySummary.length; i++) {
+      const item = data.treasurySummary[i]
+      const month = item.month
+      if (month && month !== '') {
+        const year = month.split('-')[0]
+        if (!yearArr.includes(year)) {
+          yearArr.push(year)
+        }
+        let monthObj = {}
+        if (dataMap.has(year)) {
+          monthObj = dataMap.get(year)
+          monthObj.invalue += item.invalue
+          monthObj.invalueUSD += item.invalueUSD
+          monthObj.outvalue += item.outvalue
+          monthObj.outvalueUSD += item.outvalueUSD
+          monthObj.difference += item.difference
+          monthObj.differenceUSD += item.differenceUSD
+          monthObj.total += item.total
+          monthObj.totalUSD += item.totalUSD
+        } else {
+          monthObj.month = year
+          monthObj.invalue = item.invalue
+          monthObj.invalueUSD = item.invalueUSD
+          monthObj.outvalue = item.outvalue
+          monthObj.outvalueUSD = item.outvalueUSD
+          monthObj.difference = item.difference
+          monthObj.differenceUSD = item.differenceUSD
+          monthObj.total = item.total
+          monthObj.totalUSD = item.totalUSD
+        }
+        dataMap.set(year, monthObj)
+      }
+    }
+    const result = []
+    yearArr.forEach((year) => {
+      result.push(dataMap.get(year))
+    })
+    const mapResult = {}
+    mapResult.treasurySummary = result
+    return mapResult
+  }
+
+  getProposalYearlyData (data) {
+    const result = {}
+    result.allSpent = data.allSpent
+    result.allBudget = data.allBudget
+    result.proposalList = data.proposalList
+    result.domainList = data.domainList
+    result.summary = data.summary
+
+    const dataMap = new Map()
+    const yearArr = []
+    data.report.forEach((report) => {
+      const month = report.month
+      if (month && month !== '') {
+        const year = month.split('/')[0]
+        if (!yearArr.includes(year)) {
+          yearArr.push(year)
+        }
+        let monthObj = {}
+        if (dataMap.has(year)) {
+          monthObj = dataMap.get(year)
+          monthObj.total += report.total
+          for (let i = 0; i < monthObj.allData.length; i++) {
+            monthObj.allData[i].expense += report.allData[i].expense
+          }
+          for (let i = 0; i < monthObj.domainData.length; i++) {
+            monthObj.domainData[i].expense += report.domainData[i].expense
+          }
+        } else {
+          monthObj.total = report.total
+          monthObj.month = year
+          monthObj.allData = []
+          monthObj.domainData = []
+          for (let i = 0; i < report.allData.length; i++) {
+            const item = report.allData[i]
+            const allDataItem = {}
+            allDataItem.token = item.token
+            allDataItem.name = item.name
+            allDataItem.expense = item.expense
+            allDataItem.domain = item.domain
+            monthObj.allData.push(allDataItem)
+          }
+          for (let i = 0; i < report.domainData.length; i++) {
+            const item = report.domainData[i]
+            const domainDataItem = {}
+            domainDataItem.domain = item.domain
+            domainDataItem.expense = item.expense
+            monthObj.domainData.push(domainDataItem)
+          }
+          dataMap.set(year, monthObj)
+        }
+      }
+    })
+    result.report = []
+    yearArr.forEach((year) => {
+      result.report.push(dataMap.get(year))
+    })
+    return result
+  }
+
   createProposalTable (data) {
     if (!data.report) {
       return ''
     }
-    let thead = '<thead><tr class="text-secondary finance-table-header">' +
-      '<th class="text-center ps-0 month-col border-right-grey report-first-header head-first-cell">' +
-      '<div class="c1"><span data-action="click->financereport#sortVertical" class="homeicon-swap vertical-sort"></span></div><div class="c2"><span data-action="click->financereport#sortHorizontal" class="homeicon-swap horizontal-sort"></span></div></th>' +
-      '###' +
-      '<th class="text-right ps-0 fw-600 month-col ta-center border-left-grey report-last-header">Total</th>' +
-      '</tr></thead>'
-    let tbody = '<tbody>###</tbody>'
-
-    let headList = ''
-    for (let i = 0; i < data.proposalList.length; i++) {
-      const index = this.settings.psort === 'newest' ? i : (data.proposalList.length - i - 1)
-      const proposal = data.proposalList[index]
-      headList += `<th class="text-center ps-0 fs-13i ps-3 pr-3 table-header-sticky">${proposal}</th>`
-    }
-    thead = thead.replace('###', headList)
-
-    let bodyList = ''
-    // create tbody content
-    for (let i = 0; i < data.report.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (data.report.length - i - 1)
-      const report = data.report[index]
-      bodyList += `<tr><td class="text-center fs-13i fw-600 border-right-grey report-first-data"><span class="d-block w-60px">${report.month.replace('/', '-')}</span></td>`
-      for (let j = 0; j < report.allData.length; j++) {
-        const pindex = this.settings.psort === 'newest' ? j : (report.allData.length - j - 1)
-        const allData = report.allData[pindex]
-        if (allData.expense > 0) {
-          bodyList += '<td class="text-right fs-13i proposal-content-td">'
-          bodyList += `$${humanize.formatToLocalString(allData.expense, 2, 2)}`
-        } else {
-          bodyList += '<td class="text-center fs-13i">'
-        }
-        bodyList += '</td>'
-      }
-      bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data">$${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
-    }
-    bodyList += '<tr class="finance-table-header">' +
-      '<td class="text-center fw-600 fs-13i report-first-header">Total</td>'
-
-    for (let i = 0; i < data.summary.length; i++) {
-      const index = this.settings.psort === 'newest' ? i : (data.summary.length - i - 1)
-      const summary = data.summary[index]
-      bodyList += `<td class="text-right fw-600 fs-13i">$${humanize.formatToLocalString(summary.totalSpent, 2, 2)}</td>`
-    }
-    bodyList += `<td class="text-right fw-600 fs-13i report-last-header">$${humanize.formatToLocalString(data.allSpent, 2, 2)}</td></tr>`
-
-    tbody = tbody.replace('###', bodyList)
-    return thead + tbody
-  }
-
-  createProposalTable2 (data) {
-    if (!data.report) {
-      return ''
+    let handlerData = data
+    if (this.settings.interval === 'year') {
+      handlerData = this.getProposalYearlyData(data)
     }
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
       '<th class="text-center ps-0 month-col border-right-grey report-first-header head-first-cell">' +
@@ -239,21 +325,21 @@ export default class extends Controller {
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
-    for (let i = 0; i < data.report.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (data.report.length - i - 1)
-      const report = data.report[index]
-      headList += `<th class="text-center fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky"><span class="d-block w-60px">${report.month.replace('/', '-')}</span></th>`
+    for (let i = 0; i < handlerData.report.length; i++) {
+      const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
+      const report = handlerData.report[index]
+      headList += `<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></th>`
     }
     thead = thead.replace('###', headList)
 
     let bodyList = ''
-    for (let i = 0; i < data.proposalList.length; i++) {
-      const index = this.settings.psort === 'oldest' ? (data.proposalList.length - i - 1) : i
-      const proposal = data.proposalList[index]
+    for (let i = 0; i < handlerData.proposalList.length; i++) {
+      const index = this.settings.psort === 'oldest' ? (handlerData.proposalList.length - i - 1) : i
+      const proposal = handlerData.proposalList[index]
       bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><span class="d-block proposal-title-col">${proposal}</span></td>`
-      for (let j = 0; j < data.report.length; j++) {
-        const tindex = this.settings.tsort === 'newest' ? j : (data.report.length - j - 1)
-        const report = data.report[tindex]
+      for (let j = 0; j < handlerData.report.length; j++) {
+        const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
+        const report = handlerData.report[tindex]
         const allData = report.allData[index]
         if (allData.expense > 0) {
           bodyList += '<td class="text-right fs-13i proposal-content-td">'
@@ -263,18 +349,18 @@ export default class extends Controller {
         }
         bodyList += '</td>'
       }
-      bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data">$${humanize.formatToLocalString(data.summary[index].totalSpent, 2, 2)}</td></tr>`
+      bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data">$${humanize.formatToLocalString(handlerData.summary[index].totalSpent, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header">' +
       '<td class="text-center fw-600 fs-13i report-first-header">Total</td>'
-    for (let i = 0; i < data.report.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (data.report.length - i - 1)
-      const report = data.report[index]
+    for (let i = 0; i < handlerData.report.length; i++) {
+      const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
+      const report = handlerData.report[index]
       bodyList += `<td class="text-right fw-600 fs-13i">$${humanize.formatToLocalString(report.total, 2, 2)}</td>`
     }
 
-    bodyList += `<td class="text-right fw-600 fs-13i report-last-header">$${humanize.formatToLocalString(data.allSpent, 2, 2)}</td></tr>`
+    bodyList += `<td class="text-right fw-600 fs-13i report-last-header">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -325,6 +411,10 @@ export default class extends Controller {
     if (!data.report) {
       return ''
     }
+    let handlerData = data
+    if (this.settings.interval === 'year') {
+      handlerData = this.getProposalYearlyData(data)
+    }
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
       `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortVertical" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
       '###' +
@@ -333,16 +423,16 @@ export default class extends Controller {
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
-    data.domainList.forEach((domain) => {
+    handlerData.domainList.forEach((domain) => {
       headList += `<th class="text-right-i domain-content-cell ps-0 fs-13i ps-3 pr-3 fw-600">${domain.charAt(0).toUpperCase() + domain.slice(1)}</th>`
     })
     thead = thead.replace('###', headList)
 
     let bodyList = ''
     // create tbody content
-    for (let i = 0; i < data.report.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (data.report.length - i - 1)
-      const report = data.report[index]
+    for (let i = 0; i < handlerData.report.length; i++) {
+      const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
+      const report = handlerData.report[index]
       bodyList += `<tr><td class="text-center fs-13i fw-600 border-right-grey">${report.month.replace('/', '-')}</td>`
       report.domainData.forEach((domainData) => {
         bodyList += `<td class="text-right-i domain-content-cell fs-13i">$${humanize.formatToLocalString(domainData.expense, 2, 2)}</td>`
@@ -358,28 +448,42 @@ export default class extends Controller {
     if (!data.treasurySummary) {
       return ''
     }
+    let handlerData = data
+    if (this.settings.interval === 'year') {
+      handlerData = this.getTreasuryYearlyData(data)
+    }
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
       `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortVertical" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (DCR)</th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (USD)</th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (DCR)</th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 domain-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (USD)</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (DCR)</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (USD)</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (DCR)</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (USD)</th>` +
+      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Difference (DCR)</th>' +
+      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Difference (USD)</th>' +
+      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Total (DCR)</th>' +
+      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Total (USD)</th>' +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     // create tbody content
-    for (let i = 0; i < data.treasurySummary.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (data.treasurySummary.length - i - 1)
-      const treasury = data.treasurySummary[index]
+    for (let i = 0; i < handlerData.treasurySummary.length; i++) {
+      const index = this.settings.tsort === 'newest' ? i : (handlerData.treasurySummary.length - i - 1)
+      const treasury = handlerData.treasurySummary[index]
       const invalue = this.settings.legacy ? humanize.formatToLocalString((treasury.invalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.invalue / 500000000), 3, 3)
       const outvalue = this.settings.legacy ? humanize.formatToLocalString((treasury.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.outvalue / 500000000), 3, 3)
+      const difference = this.settings.legacy ? humanize.formatToLocalString((treasury.difference / 100000000), 3, 3) : humanize.formatToLocalString((treasury.difference / 500000000), 3, 3)
+      const total = this.settings.legacy ? humanize.formatToLocalString((treasury.total / 100000000), 3, 3) : humanize.formatToLocalString((treasury.total / 500000000), 3, 3)
       bodyList += '<tr>' +
         `<td class="text-center fs-13i fw-600 border-right-grey">${treasury.month}</td>` +
-        `<td class="text-right-i fs-13i domain-content-cell">${invalue}</td>` +
-        `<td class="text-right-i fs-13i domain-content-cell">${humanize.formatToLocalString((treasury.invalueUSD), 2, 2)}</td>` +
-        `<td class="text-right-i fs-13i domain-content-cell">${outvalue}</td>` +
-        `<td class="text-right-i fs-13i domain-content-cell">${humanize.formatToLocalString((treasury.outvalueUSD), 2, 2)}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${invalue}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString((treasury.invalueUSD), 2, 2)}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${outvalue}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString((treasury.outvalueUSD), 2, 2)}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${difference}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString((treasury.differenceUSD), 2, 2)}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${total}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString((treasury.totalUSD), 2, 2)}</td>` +
         '</tr>'
     }
     tbody = tbody.replace('###', bodyList)
@@ -403,6 +507,7 @@ export default class extends Controller {
         haveResponseData = true
       }
     } else if (proposalResponse !== null) {
+      console.log('has proposal response')
       responseData = proposalResponse
       haveResponseData = true
     }

@@ -6,13 +6,22 @@
       {{ template "navbar". }}
       <div class="content pb-40">
          <div class="px-0 main finance-report-page" data-controller="financereport">
-            <label class="mt-4 report-tool-bar">Report Type :</label>
+         <div class="position-relative">
+         <label class="mt-4 report-tool-bar">Report Type :</label>
             <div class="btn-group button-group-title" data-toggle="buttons">
                <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal All" name="proposal">
                <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Summary" name="summary">
                <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domain" name="domain">
                <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury" name="treasury">
             </div>
+            <div class="d-none d-inline button-group-area" data-financereport-target="groupBy">
+            <label class="mt-4 ms-4 report-tool-bar">Group By :</label>
+            <div class="btn-group button-group-title" data-toggle="buttons">
+               <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm btn-active" value="Monthly" name="month">
+               <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm" value="Yearly" name="year">
+            </div>
+            </div>
+         </div>
             <div class="mt-4 mb-3">
                <span class="h2 pb-1 pe-2 report-tool-bar" data-financereport-target="reportTitle">
                </span>

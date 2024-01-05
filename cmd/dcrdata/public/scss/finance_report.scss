@@ -37,8 +37,16 @@
   width: 70%;
 }
 
+.treasury-group-report {
+  width: 80%;
+}
+
 .domain-content-cell {
   padding-right: 150px !important;
+}
+
+.treasury-content-cell {
+  padding-right: 20px !important;
 }
 
 @media (max-width: 1450px) {
@@ -52,6 +60,10 @@
 
   .domain-content-cell {
     padding-right: 80px !important;
+  }
+
+  .treasury-content-cell {
+    padding-right: 15px !important;
   }
 }
 
@@ -70,6 +82,14 @@
 
   .domain-content-cell {
     padding-right: 100px !important;
+  }
+
+  .treasury-group-report {
+    width: 100%;
+  }
+
+  .treasury-content-cell {
+    padding-right: 10px !important;
   }
 }
 
@@ -96,6 +116,10 @@
 
   .domain-content-cell {
     padding-right: 30px !important;
+  }
+
+  .treasury-content-cell {
+    padding-right: 5px !important;
   }
 }
 
@@ -148,6 +172,11 @@
 .report-tool-bar {
   position: sticky;
   left: 0;
+}
+
+.button-group-area {
+  position: sticky;
+  left: 400px;
 }
 
 .button-group-title {

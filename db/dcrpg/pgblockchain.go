@@ -1794,8 +1794,6 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	defer rows.Close()
 
 	var summaryList []*dbtypes.TreasurySummary
-	minDate := time.Now()
-	maxDate := time.Time{}
 	for rows.Next() {
 		var summary = dbtypes.TreasurySummary{}
 		var time dbtypes.TimeDef
@@ -1803,33 +1801,37 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		if err != nil {
 			return nil, err
 		}
-		if time.T.After(maxDate) {
-			maxDate = time.T
-		}
-		if time.T.Before(minDate) {
-			minDate = time.T
-		}
 		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
+		total := summary.Invalue - summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
 		summaryList = append(summaryList, &summary)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-	currencyResponse := pgb.GetUSDExchangeValue(minDate.Unix(), maxDate.Unix())
+	//get min date
+	var oldestTime dbtypes.TimeDef
+	err = pgb.db.QueryRow(internal.SelectTreasuryOldestTime).Scan(&oldestTime)
+	if err != nil {
+		return nil, err
+	}
+	currencyResponse := pgb.GetUSDExchangeValue(oldestTime.T, time.Now())
 	monthPriceMap := pgb.GetCurrencyPrice(*currencyResponse)
 
 	for _, summary := range summaryList {
 		monthPrice := monthPriceMap[summary.Month]
 		summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
 		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
+		summary.DifferenceUSD = monthPrice * float64(summary.Difference/5) / 1e8
+		summary.TotalUSD = monthPrice * float64(summary.Total/5) / 1e8
 	}
 	return summaryList, nil
 }
 
-func (pgb *ChainDB) GetCurrencyPrice(res dbtypes.CurrencyResponse) map[string]float64 {
-	result := make(map[string]float64)
-	countMap := make(map[string]int)
+func (pgb *ChainDB) GetHandlerCurrencyPrice(res dbtypes.CurrencyResponse, result map[string]float64, countMap map[string]int) {
 	for _, resItem := range res.Prices {
 		date := time.Unix(int64(resItem[0])/1000, 0)
 		key := fmt.Sprintf("%d-%s", date.Year(), dbtypes.GetFullMonthDisplay(int(date.Month())))
@@ -1843,16 +1845,49 @@ func (pgb *ChainDB) GetCurrencyPrice(res dbtypes.CurrencyResponse) map[string]fl
 			countMap[key] = 1
 		}
 	}
+}
 
+func (pgb *ChainDB) GetCurrencyPrice(res dbtypes.CurrencyResponse) map[string]float64 {
+	result := make(map[string]float64)
+	countMap := make(map[string]int)
+	pgb.GetHandlerCurrencyPrice(res, result, countMap)
 	for k, v := range result {
 		result[k] = v / float64(countMap[k])
 	}
 	return result
 }
 
-func (pgb *ChainDB) GetUSDExchangeValue(from int64, to int64) *dbtypes.CurrencyResponse {
+// Get Decred - USd Exchange map value
+func (pgb *ChainDB) GetLegacyCurrencyPriceMap(from time.Time, to time.Time) map[string]float64 {
+	//if period less then or equal 2 years
+	var period = ((to.Year()-from.Year())*12 + int(to.Month()) - int(from.Month()) + 1)
+	if period <= 24 {
+		usdExchangeValue := pgb.GetUSDExchangeValue(from, to)
+		return pgb.GetCurrencyPrice(*usdExchangeValue)
+	}
+	var tmpFrom = from
+	result := make(map[string]float64)
+	countMap := make(map[string]int)
+	for period > 24 {
+		var tmpTo = tmpFrom.AddDate(2, 0, 0)
+		tmpRes := pgb.GetUSDExchangeValue(tmpFrom, tmpTo)
+		pgb.GetHandlerCurrencyPrice(*tmpRes, result, countMap)
+		tmpFrom = tmpTo.AddDate(0, 0, 1)
+		period = ((to.Year()-tmpFrom.Year())*12 + int(to.Month()) - int(tmpFrom.Month()) + 1)
+	}
+	res := pgb.GetUSDExchangeValue(tmpFrom, to)
+	pgb.GetHandlerCurrencyPrice(*res, result, countMap)
+	for k, v := range result {
+		result[k] = v / float64(countMap[k])
+	}
+	return result
+}
+
+// If the distance between from and to is less than or equal to 2 years, then get the data directly from the api without dividing it.
+func (pgb *ChainDB) GetUSDExchangeValue(from time.Time, to time.Time) *dbtypes.CurrencyResponse {
 	result := dbtypes.CurrencyResponse{}
-	dcrUsdURL := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/decred/market_chart/range?vs_currency=usd&from=%d&to=%d", from, to)
+	dcrUsdURL := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/decred/market_chart/range?vs_currency=usd&from=%d&to=%d", from.Unix(), to.Unix())
+	fmt.Println(dcrUsdURL)
 	dcrUsdData, err := pgb.FetchCurrency(dcrUsdURL)
 	if err != nil {
 		return &result
@@ -1893,8 +1928,6 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 	defer rows.Close()
 
 	var summaryList []*dbtypes.TreasurySummary
-	minDate := time.Now()
-	maxDate := time.Time{}
 	for rows.Next() {
 		var summary = dbtypes.TreasurySummary{}
 		var time dbtypes.TimeDef
@@ -1902,26 +1935,37 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		if err != nil {
 			return nil, err
 		}
-		if time.T.After(maxDate) {
-			maxDate = time.T
-		}
-		if time.T.Before(minDate) {
-			minDate = time.T
-		}
 		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
 		summaryList = append(summaryList, &summary)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	currencyResponse := pgb.GetUSDExchangeValue(minDate.Unix(), maxDate.Unix())
-	monthPriceMap := pgb.GetCurrencyPrice(*currencyResponse)
+	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
+	if addErr != nil {
+		log.Warnf("ChainDB.GetLegacySummary: %v", addErr)
+		return nil, addErr
+	}
+	//get min date
+	var oldestTime dbtypes.TimeDef
+	err := pgb.db.QueryRow(internal.SelectOldestAddressCreditTime, projectFundAddress).Scan(&oldestTime)
+	if err != nil {
+		return nil, err
+	}
+
+	monthPriceMap := pgb.GetLegacyCurrencyPriceMap(oldestTime.T, time.Now())
 
 	for _, summary := range summaryList {
 		monthPrice := monthPriceMap[summary.Month]
 		summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
 		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+		summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
 	}
 	return summaryList, nil
 }

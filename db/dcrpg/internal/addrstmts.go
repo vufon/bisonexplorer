@@ -311,6 +311,11 @@ const (
 		ORDER BY block_time, tx_hash ASC
 		LIMIT $2 OFFSET $3;`
 
+	SelectOldestAddressCreditTime = `SELECT block_time
+		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
+		ORDER BY block_time, tx_hash ASC
+		LIMIT 1;`
+
 	SelectAddressCreditsLimitNByAddressByPeriod = `SELECT ` + addrsColumnNames + `
 		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain AND block_time >= $2 AND block_time <= $3
 		ORDER BY block_time, tx_hash ASC;`
