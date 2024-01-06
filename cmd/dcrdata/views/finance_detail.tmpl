@@ -1,0 +1,23 @@
+<template>
+   {{define "finance_detail"}}
+   <!DOCTYPE html>
+   <html lang="en">
+      {{ template "html-head" headData .CommonPageData "Finance Report Detail" }}
+      {{ template "navbar". }}
+      <div class="content pb-40" data-controller="financedetail">
+         <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
+         <div class="d-none" data-financedetail-target="reportArea">
+            <p class="fw-600 fs-24">Report for: <span data-financedetail-target="timeInfo"></span></p>
+            <p class="fw-600 fs-20">Proposal List</p>
+               <table class="table v3 border-grey" data-financedetail-target="proposalReport">
+               </table>
+            <p class="fw-600 fs-20 mt-4">Domain List</p>
+            <table class="table v3 border-grey" data-financedetail-target="domainReport">
+            </table>
+         </div>
+      </div>
+      {{ template "footer". }}
+      </body>
+   </html>
+   {{ end }}
+</template>

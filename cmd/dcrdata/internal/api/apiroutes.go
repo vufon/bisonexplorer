@@ -117,6 +117,7 @@ type DataSource interface {
 	GetAllProposalMeta() (list []map[string]string, err error)
 	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
 	GetLegacySummary() ([]*dbtypes.TreasurySummary, error)
+	GetProposalMetaByMonth(time string) (list []map[string]string, err error)
 }
 
 // dcrdata application context used by all route handlers
@@ -921,6 +922,101 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		AllSpent:     allSpent,
 		AllBudget:    allBudget,
 	}, m.GetIndentCtx(r))
+}
+
+func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
+	detailType := r.URL.Query().Get("type")
+	timeStr := r.URL.Query().Get("time")
+	if detailType == "month" {
+		timeArr := strings.Split(timeStr, "_")
+		proposalMetaList, err := c.DataSource.GetProposalMetaByMonth(timeStr)
+		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
+		month, monthErr := strconv.ParseInt(timeArr[1], 0, 32)
+		if err != nil || len(timeArr) != 2 || yearErr != nil || monthErr != nil {
+			writeJSON(w, nil, m.GetIndentCtx(r))
+		}
+		report := make([]apitypes.MonthReportData, 0)
+		domainList := make([]string, 0)
+		proposalList := make([]string, 0)
+		now := time.Now()
+		var count = 0
+		total := float64(0)
+		for _, proposalMeta := range proposalMetaList {
+			var amount = proposalMeta["Amount"]
+			var token = proposalMeta["Token"]
+			var name = proposalMeta["Name"]
+			var startDate = proposalMeta["StartDate"]
+			var endDate = proposalMeta["EndDate"]
+			var domain = proposalMeta["Domain"]
+			//parse date time of startDate and endDate
+			startInt, err := strconv.ParseInt(startDate, 0, 32)
+			endInt, err2 := strconv.ParseInt(endDate, 0, 32)
+			amountFloat, err3 := strconv.ParseFloat(amount, 64)
+			if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
+				continue
+			}
+			amountFloat = amountFloat / 100
+			startTime := time.Unix(startInt, 0)
+			//If the proposal's starting month is after this month (including this month), then ignore it and not include it in the report
+			if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
+				continue
+			}
+
+			if !slices.Contains(proposalList, name) {
+				proposalList = append(proposalList, name)
+			}
+			if !slices.Contains(domainList, domain) {
+				domainList = append(domainList, domain)
+			}
+			count++
+			endTime := time.Unix(endInt, 0)
+			//count month from startTime to endTime
+			difference := endTime.Sub(startTime)
+			//count day from startTime to endTime
+			countDays := int16(difference.Hours()/24) + 1
+			costPerDay := amountFloat / float64(countDays)
+
+			//if start month and end month are the same, month data is proposal data
+			varMonthData := apitypes.MonthReportData{}
+			varMonthData.Token = token
+			varMonthData.Name = name
+			varMonthData.Domain = domain
+			if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
+				varMonthData.Expense = amountFloat
+			} else {
+				var costOfMonth float64
+				if startTime.Year() == int(year) && int(startTime.Month()) == int(month) {
+					endDay := startTime.AddDate(0, 1, -startTime.Day())
+					countToEndMonth := endDay.Day() - startTime.Day() + 1
+					costOfMonth = float64(countToEndMonth) * costPerDay
+				} else if endTime.Year() == int(year) && int(endTime.Month()) == int(month) {
+					startDay := endTime.AddDate(0, 0, -endTime.Day()+1)
+					countFromStartMonth := endTime.Day() - startDay.Day() + 1
+					costOfMonth = float64(countFromStartMonth) * costPerDay
+				} else {
+					startDay := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.Local)
+					endDay := startDay.AddDate(0, 1, -startDay.Day())
+					countDaysOfMonth := endDay.Day() - startDay.Day() + 1
+					costOfMonth = float64(countDaysOfMonth) * costPerDay
+				}
+				varMonthData.Expense = costOfMonth
+			}
+			total += varMonthData.Expense
+			report = append(report, varMonthData)
+		}
+		//Get coin supply value
+		writeJSON(w, struct {
+			ReportDetail  []apitypes.MonthReportData `json:"reportDetail"`
+			ProposalList  []string                   `json:"proposalList"`
+			DomainList    []string                   `json:"domainList"`
+			ProposalTotal float64                    `json:"proposalTotal"`
+		}{
+			ReportDetail:  report,
+			ProposalList:  proposalList,
+			DomainList:    domainList,
+			ProposalTotal: total,
+		}, m.GetIndentCtx(r))
+	}
 }
 
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {

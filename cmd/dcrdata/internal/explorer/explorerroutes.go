@@ -2820,6 +2820,31 @@ func (exp *explorerUI) AttackCost(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+func (exp *explorerUI) FinanceDetailPage(w http.ResponseWriter, r *http.Request) {
+	rtype := r.URL.Query().Get("type")
+	time := r.URL.Query().Get("time")
+
+	str, err := exp.templates.execTemplateToString("finance_detail", struct {
+		*CommonPageData
+		Type string
+		Time string
+	}{
+		CommonPageData: exp.commonData(r),
+		Type:           rtype,
+		Time:           time,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // FinanceReportPage is the page handler for the "/finance-report" path.
 func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request) {
 	exp.pageData.RLock()

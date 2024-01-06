@@ -374,7 +374,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"rawtx", "status", "parameters", "agenda", "agendas", "charts",
 		"sidechains", "disapproved", "ticketpool", "visualblocks", "statistics",
 		"windows", "timelisting", "addresstable", "proposals", "proposal",
-		"market", "insight_root", "attackcost", "treasury", "treasurytable", "verify_message", "stakingreward", "finance_report"}
+		"market", "insight_root", "attackcost", "treasury", "treasurytable", "verify_message", "stakingreward", "finance_report", "finance_detail"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

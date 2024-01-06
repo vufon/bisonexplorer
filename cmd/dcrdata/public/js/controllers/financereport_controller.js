@@ -328,7 +328,9 @@ export default class extends Controller {
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
-      headList += `<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></th>`
+      headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky proposal-header-th" ' +
+      `id="${this.settings.interval + ';' + report.month}" data-action="click->financereport#proposalReportTimeDetail">` +
+      `<span class="d-block pr-5">${report.month.replace('/', '-')}</span></th>`
     }
     thead = thead.replace('###', headList)
 
@@ -424,7 +426,7 @@ export default class extends Controller {
 
     let headList = ''
     handlerData.domainList.forEach((domain) => {
-      headList += `<th class="text-right-i domain-content-cell ps-0 fs-13i ps-3 pr-3 fw-600">${domain.charAt(0).toUpperCase() + domain.slice(1)}</th>`
+      headList += `<th class="text-right-i domain-content-cell ps-0 fs-13i ps-3 pr-3 fw-600 proposal-header-th">${domain.charAt(0).toUpperCase() + domain.slice(1)}</th>`
     })
     thead = thead.replace('###', headList)
 
@@ -552,5 +554,13 @@ export default class extends Controller {
     const switchCheck = document.getElementById('legacySwitchInput').checked
     this.settings.legacy = switchCheck
     this.calculate()
+  }
+
+  proposalReportTimeDetail (e) {
+    const idArr = e.target.id.split(';')
+    if (idArr.length !== 2) {
+      return
+    }
+    window.location.href = '/finance-report/detail?type=' + idArr[0] + '&time=' + idArr[1].replace('/', '_')
   }
 }

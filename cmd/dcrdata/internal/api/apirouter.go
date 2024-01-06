@@ -246,6 +246,7 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 	mux.Route("/finance-report", func(r chi.Router) {
 		r.Get("/proposal", app.getProposalReport)
 		r.Get("/treasury", app.getTreasuryReport)
+		r.Get("/detail", app.getReportDetail)
 	})
 
 	mux.Route("/ticketpool", func(r chi.Router) {

@@ -253,3 +253,11 @@
 .summary-note-color {
   background-color: #ddf4dd;
 }
+
+.proposal-header-th {
+  cursor: pointer;
+}
+
+.proposal-header-th:hover {
+  background-color: #cbcbcb !important;
+}

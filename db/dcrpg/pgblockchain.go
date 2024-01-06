@@ -1368,6 +1368,11 @@ func (pgb *ChainDB) GetAllProposalMeta() (list []map[string]string, err error) {
 	return getProposalMetaAll(pgb.db)
 }
 
+// Get all proposal meta data
+func (pgb *ChainDB) GetProposalMetaByMonth(time string) (list []map[string]string, err error) {
+	return getProposalMetaGroupByMonth(pgb.db, time)
+}
+
 // AllAgendas returns all the agendas stored currently.
 func (pgb *ChainDB) AllAgendas() (map[string]dbtypes.MileStone, error) {
 	return retrieveAllAgendas(pgb.db)

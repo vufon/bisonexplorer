@@ -359,7 +359,10 @@ const (
 
 	SelectAllProposalMeta = `SELECT id, token, name, amount, start_date, end_date, domain
 		FROM proposal_meta ORDER BY start_date DESC;`
-
+	SelectProposalMetaByMonth = `SELECT id,token,name,amount,start_date,end_date,domain FROM proposal_meta 
+	WHERE (EXTRACT(YEAR FROM TO_TIMESTAMP(start_date))*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(start_date))) <= $1 
+	AND (EXTRACT(YEAR FROM TO_TIMESTAMP(end_date))*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(end_date))) >= $2 
+	AND start_date<>0 AND end_date<>0 ORDER BY start_date DESC;`
 	SelectNotSyncProposalMeta = `SELECT token FROM proposal_meta;`
 
 	// agendas table
