@@ -7,6 +7,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -937,4 +938,18 @@ func GetFullMonthDisplay(month int) string {
 		return fmt.Sprintf("0%d", month)
 	}
 	return fmt.Sprintf("%d", month)
+}
+
+func GetMonthFromString(month string) int64 {
+	var monthStr string
+	if month[0] == '0' {
+		monthStr = month[1:len(month)]
+	} else {
+		monthStr = month
+	}
+	monthParse, err := strconv.ParseInt(monthStr, 0, 32)
+	if err != nil {
+		return 0
+	}
+	return monthParse
 }

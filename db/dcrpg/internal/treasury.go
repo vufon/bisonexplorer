@@ -94,6 +94,7 @@ const (
 	FULL OUTER JOIN 
 	(SELECT SUM(value) as outvalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type = 5 GROUP BY month) ts2 
 	ON ts1.month = ts2.month ORDER BY ts1.month DESC;`
+	SelectOldestTreasuryTime = `SELECT block_time FROM treasury ORDER BY block_time LIMIT 1;`
 )
 
 // MakeTreasuryInsertStatement returns the appropriate treasury insert statement

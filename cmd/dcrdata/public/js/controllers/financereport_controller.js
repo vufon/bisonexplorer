@@ -135,7 +135,7 @@ export default class extends Controller {
       this.colorNoteRowTarget.classList.remove('d-none')
       this.colorLabelTarget.classList.remove('summary-note-color')
       this.colorLabelTarget.classList.add('proposal-note-color')
-      this.colorDescriptionTarget.textContent = 'Valid payment month'
+      this.colorDescriptionTarget.textContent = this.settings.interval === 'year' ? 'Valid payment year' : 'Valid payment month'
     } else if (this.settings.type === 'summary') {
       this.colorNoteRowTarget.classList.remove('d-none')
       this.colorLabelTarget.classList.remove('proposal-note-color')
@@ -339,9 +339,17 @@ export default class extends Controller {
           timeParam += timeArr[1]
         }
       }
-      headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky" ' +
+
+      if (this.settings.interval === 'year') {
+        headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky" id="${this.settings.interval + ';' + report.month}">`
+        headList += '<div class="d-flex justify-content-center">'
+        headList += `<a class="link-hover-underline fs-13i c-black" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
+        headList += '</a></div></th>'
+      } else {
+        headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky" ' +
         `id="${this.settings.interval + ';' + report.month}" ` +
         `><a class="link-hover-underline fs-13i c-black" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
+      }
     }
     thead = thead.replace('###', headList)
 
@@ -349,14 +357,21 @@ export default class extends Controller {
     for (let i = 0; i < handlerData.proposalList.length; i++) {
       const index = this.settings.psort === 'oldest' ? (handlerData.proposalList.length - i - 1) : i
       const proposal = handlerData.proposalList[index]
-      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><span class="d-block proposal-title-col">${proposal}</span></td>`
+      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><span class="d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${proposal}</span></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
         const allData = report.allData[index]
         if (allData.expense > 0) {
-          bodyList += '<td class="text-right fs-13i proposal-content-td">'
-          bodyList += `$${humanize.formatToLocalString(allData.expense, 2, 2)}`
+          if (this.settings.interval === 'year') {
+            bodyList += `<td class="${this.settings.interval === 'year' ? 'text-center' : 'text-right'} fs-13i proposal-content-td">`
+            bodyList += '<div class="d-flex justify-content-center">'
+            bodyList += `<span style="text-align: right; width: 80px;">$${humanize.formatToLocalString(allData.expense, 2, 2)}</span>`
+            bodyList += '</div>'
+          } else {
+            bodyList += '<td class="text-right fs-13i proposal-content-td">'
+            bodyList += `$${humanize.formatToLocalString(allData.expense, 2, 2)}`
+          }
         } else {
           bodyList += '<td class="text-center fs-13i">'
         }
@@ -370,7 +385,15 @@ export default class extends Controller {
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
-      bodyList += `<td class="text-right fw-600 fs-13i">$${humanize.formatToLocalString(report.total, 2, 2)}</td>`
+      if (this.settings.interval === 'year') {
+        bodyList += '<td class="text-center fw-600 fs-13i>"'
+        bodyList += '<div class="d-flex justify-content-center">'
+        bodyList += `<span style="text-align: right; width: 80px;">$${humanize.formatToLocalString(report.total, 2, 2)}</span>`
+        bodyList += '</div>'
+        bodyList += '</td>'
+      } else {
+        bodyList += `<td class="text-right fw-600 fs-13i">$${humanize.formatToLocalString(report.total, 2, 2)}</td>`
+      }
     }
 
     bodyList += `<td class="text-right fw-600 fs-13i report-last-header">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`

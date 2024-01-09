@@ -779,6 +779,12 @@ func checkExistAndCreateAddressSummaryTable(db *sql.DB) error {
 	return err
 }
 
+// Check exist and create monthly_price table
+func checkExistAndCreateMonthlyPriceTable(db *sql.DB) error {
+	err := createTable(db, "monthly_price", internal.CreateMonthlyPriceTable)
+	return err
+}
+
 // Get all proposal Meta Data
 func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
 	rows, err := db.Query(internal.SelectAllProposalMeta)
@@ -854,14 +860,18 @@ func getProposalMetaGroupByYear(db *sql.DB, year int) ([]map[string]string, erro
 // Get all proposal Meta Data
 func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]string, error) {
 	timeCompare := year*12 + month
-
+	fmt.Println("year, month: ", year, ", ", month, ", ", timeCompare)
+	proposalDbList := make([]map[string]string, 0)
+	now := time.Now()
+	nowCurrentCompare := now.Year()*12 + int(now.Month())
+	if timeCompare >= nowCurrentCompare {
+		return proposalDbList, nil
+	}
 	rows, err := db.Query(internal.SelectProposalMetaByMonth, timeCompare, timeCompare)
 	if err != nil {
-		fmt.Println("err query: ", err)
-		return nil, err
+		return proposalDbList, nil
 	}
 	defer closeRows(rows)
-	proposalDbList := make([]map[string]string, 0)
 	for rows.Next() {
 		var id int
 		var token, name, domain string
@@ -869,7 +879,7 @@ func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]
 		var startDate, endDate int32
 		err = rows.Scan(&id, &token, &name, &amount, &startDate, &endDate, &domain)
 		if err != nil {
-			return nil, err
+			return proposalDbList, nil
 		}
 		objectMap := map[string]string{
 			"Id":        fmt.Sprint(id),
@@ -882,11 +892,10 @@ func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]
 		}
 		proposalDbList = append(proposalDbList, objectMap)
 	}
-	fmt.Println("length: ", len(proposalDbList))
 	err = rows.Err()
 	if err != nil {
 		log.Errorf("Proposal Meta Select prepare: %v", err)
-		return nil, err
+		return proposalDbList, nil
 	}
 	return proposalDbList, nil
 }

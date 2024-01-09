@@ -49,7 +49,7 @@ const (
 	// statements.
 	insertAddressRow = `INSERT INTO addresses (address, matching_tx_hash, tx_hash,
 		tx_vin_vout_index, tx_vin_vout_row_id, value, block_time, is_funding, valid_mainchain, tx_type)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) `
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
 	// InsertAddressRow inserts a address block row without checking for unique
 	// index conflicts. This should only be used before the unique indexes are

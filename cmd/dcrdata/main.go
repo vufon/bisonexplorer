@@ -853,6 +853,7 @@ func _main(ctx context.Context) error {
 		return err
 	}
 
+	//synchronize legacy address data
 	log.Infof("Starting address summary sync...")
 
 	syncAdressSummaryData := func() error {
@@ -868,6 +869,27 @@ func _main(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	log.Infof("Finished address summary sync")
+
+	//Synchronize DCR's price by month
+	log.Infof("Starting DCR monthly price sync...")
+
+	syncMonthlyPriceData := func() error {
+		err := chainDB.SyncMonthlyPrice(ctx)
+		if err != nil {
+			log.Errorf("dcrpg.SyncMonthlyPrice failed")
+			return err
+		}
+		return nil
+	}
+
+	err = syncMonthlyPriceData()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Finished DCR monthly price sync")
 
 	// After sync and indexing, must use upsert statement, which checks for
 	// duplicate entries and updates instead of erroring. SyncChainDB should

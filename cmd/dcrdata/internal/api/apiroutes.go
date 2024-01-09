@@ -953,7 +953,6 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 		legacyData, legacyErr := c.DataSource.GetLegacySummaryByMonth(int(year), int(month))
 		treasurySummary = *treasuryData
 		legacySummary = *legacyData
-
 		if proposalErr != nil || treasuryErr != nil || legacyErr != nil {
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
@@ -1024,7 +1023,8 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	if detailType == "year" {
 		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
-		if yearErr != nil {
+		now := time.Now()
+		if yearErr != nil || year > int64(now.Year()) {
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
 		}
@@ -1072,27 +1072,43 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			varYearData.Token = token
 			varYearData.Name = name
 			varYearData.Domain = domain
-			if startTime.Year() == endTime.Year() {
-				varYearData.Expense = amountFloat
-			} else {
-				var costOfYear float64
-				if startTime.Year() == int(year) {
-					lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
-					countDaysToEndYear := int(lastDateOfYear.Sub(startTime).Hours() / 24)
-					costOfYear = float64(countDaysToEndYear) * costPerDay
-				} else if endTime.Year() == int(year) {
-					startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
-					countDaysFromStartYear := int(endTime.Sub(startDayOfYear).Hours() / 24)
-					costOfYear = float64(countDaysFromStartYear) * costPerDay
-				} else {
-					costOfYear = 365 * costPerDay
+			//if current year
+			var costOfYear float64
+			if year == int64(now.Year()) {
+				var nowTemp = time.Now()
+				nowTemp = nowTemp.AddDate(0, 0, -nowTemp.Day())
+				fmt.Println(nowTemp)
+				if nowTemp.Year() != int(year) {
+					fmt.Println("ignore : ", name)
+					continue
 				}
+				startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
+				countDaysToTemp := int(nowTemp.Sub(startDayOfYear).Hours() / 24)
+				costOfYear = float64(countDaysToTemp) * costPerDay
 				varYearData.Expense = costOfYear
+			} else {
+				if startTime.Year() == endTime.Year() {
+					varYearData.Expense = amountFloat
+				} else {
+					if startTime.Year() == int(year) {
+						lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
+						countDaysToEndYear := int(lastDateOfYear.Sub(startTime).Hours() / 24)
+						costOfYear = float64(countDaysToEndYear) * costPerDay
+					} else if endTime.Year() == int(year) {
+						startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
+						countDaysFromStartYear := int(endTime.Sub(startDayOfYear).Hours() / 24)
+						costOfYear = float64(countDaysFromStartYear) * costPerDay
+					} else {
+						costOfYear = 365 * costPerDay
+					}
+					varYearData.Expense = costOfYear
+				}
 			}
 			total += varYearData.Expense
 			report = append(report, varYearData)
 		}
 	}
+
 	//Get coin supply value
 	writeJSON(w, struct {
 		ReportDetail    []apitypes.MonthReportData `json:"reportDetail"`

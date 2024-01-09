@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,63 @@ const (
 	initialLoadSyncStatusMsg = "Syncing stake and chain DBs..."
 	addressesSyncStatusMsg   = "Syncing addresses table with spending info..."
 )
+
+func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
+	projectFundAddress, addressErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
+	if addressErr != nil {
+		log.Warnf("ChainDB.GetLegacySummary: %v", addressErr)
+		return addressErr
+	}
+	//get oldest time of legacy address
+	var oldestTime dbtypes.TimeDef
+	err := pgb.db.QueryRow(internal.SelectOldestAddressCreditTime, projectFundAddress).Scan(&oldestTime)
+	if err != nil {
+		return err
+	}
+
+	//get oldest time of treasury record
+	var treasuryOldestTime dbtypes.TimeDef
+	treasuryErr := pgb.db.QueryRow(internal.SelectOldestTreasuryTime).Scan(&treasuryOldestTime)
+	if treasuryErr != nil {
+		return treasuryErr
+	}
+	var oldest dbtypes.TimeDef
+	if oldestTime.T.After(treasuryOldestTime.T) {
+		oldest = treasuryOldestTime
+	} else {
+		oldest = oldestTime
+	}
+	monthPriceMap := pgb.GetCurrencyPriceMap(oldest.T, time.Now())
+
+	createTableErr := pgb.CheckCreateMonthlyPriceTable()
+	if createTableErr != nil {
+		log.Errorf("Check exist and create monthly_price table failed: %v", err)
+		return err
+	}
+
+	for month, price := range monthPriceMap {
+		timeArr := strings.Split(month, "-")
+		if len(timeArr) != 2 {
+			continue
+		}
+		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
+		month := dbtypes.GetMonthFromString(timeArr[1])
+		now := time.Now()
+		if yearErr != nil || (int(now.Month()) == int(month) && now.Year() == int(year)) {
+			continue
+		}
+		startOfMonth := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.Local)
+		//check exist month
+		var checkExist bool
+		existErr := pgb.db.QueryRowContext(pgb.ctx, internal.CheckExistMonth, startOfMonth).Scan(&checkExist)
+		if existErr == nil && checkExist {
+			continue
+		}
+		pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), price)
+	}
+
+	return nil
+}
 
 func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 	err := pgb.CheckCreateAddressSummaryTable()

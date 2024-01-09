@@ -8,6 +8,28 @@
     padding-left: 30px !important;
     padding-right: 30px !important;
   }
+
+  .report-year-text {
+    padding-right: 30px !important;
+  }
+}
+
+@media (max-width: 950px) {
+  .report-year-text {
+    padding-right: 15px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .report-year-text {
+    padding-right: 20px !important;
+  }
+}
+
+@media (max-width: 650px) {
+  .report-year-text {
+    padding-right: 10px !important;
+  }
 }
 
 @media (max-width: 1250px) {
@@ -15,10 +37,18 @@
     padding-left: 5px !important;
     padding-right: 5px !important;
   }
+
+  .report-year-text {
+    padding-right: 10px !important;
+  }
 }
 
 .month-col {
   width: 80px;
+}
+
+.year-col {
+  width: 120px;
 }
 
 .finance-table-header {
@@ -97,6 +127,10 @@
   .domain-content-cell {
     padding-right: 130px !important;
   }
+
+  .report-year-text {
+    padding-right: 40px !important;
+  }
 }
 
 @media (max-width: 1024px) {
@@ -120,6 +154,10 @@
 
   .treasury-content-cell {
     padding-right: 5px !important;
+  }
+
+  .report-year-text {
+    padding-right: 10px !important;
   }
 }
 
@@ -238,6 +276,14 @@
 
 .proposal-title-col {
   width: 120px !important;
+}
+
+.proposal-year-title {
+  width: 150px !important;
+}
+
+.report-year-text {
+  padding-right: 50px;
 }
 
 .color-note-label {

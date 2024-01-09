@@ -101,6 +101,14 @@
   content: "\e910";
 }
 
+.dcricon-arrow-simple-right::before {
+  content: "\f054";
+}
+
+.dcricon-arrow-simple-left::before {
+  content: "\f053";
+}
+
 .dcricon-arrow-right {
   transform: rotate(90deg);
 }
