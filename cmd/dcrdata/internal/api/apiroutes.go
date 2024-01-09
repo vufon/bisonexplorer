@@ -117,7 +117,12 @@ type DataSource interface {
 	GetAllProposalMeta() (list []map[string]string, err error)
 	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
 	GetLegacySummary() ([]*dbtypes.TreasurySummary, error)
-	GetProposalMetaByMonth(time string) (list []map[string]string, err error)
+	GetProposalMetaByMonth(year int, month int) (list []map[string]string, err error)
+	GetProposalMetaByYear(year int) (list []map[string]string, err error)
+	GetTreasurySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error)
+	GetLegacySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error)
+	GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
+	GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -927,20 +932,33 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 	detailType := r.URL.Query().Get("type")
 	timeStr := r.URL.Query().Get("time")
+	report := make([]apitypes.MonthReportData, 0)
+	domainList := make([]string, 0)
+	proposalList := make([]string, 0)
+	total := float64(0)
+
+	var treasurySummary dbtypes.TreasurySummary
+	var legacySummary dbtypes.TreasurySummary
+
 	if detailType == "month" {
 		timeArr := strings.Split(timeStr, "_")
-		proposalMetaList, err := c.DataSource.GetProposalMetaByMonth(timeStr)
 		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
 		month, monthErr := strconv.ParseInt(timeArr[1], 0, 32)
-		if err != nil || len(timeArr) != 2 || yearErr != nil || monthErr != nil {
+		if len(timeArr) != 2 || yearErr != nil || monthErr != nil {
 			writeJSON(w, nil, m.GetIndentCtx(r))
+			return
 		}
-		report := make([]apitypes.MonthReportData, 0)
-		domainList := make([]string, 0)
-		proposalList := make([]string, 0)
+		proposalMetaList, proposalErr := c.DataSource.GetProposalMetaByMonth(int(year), int(month))
+		treasuryData, treasuryErr := c.DataSource.GetTreasurySummaryByMonth(int(year), int(month))
+		legacyData, legacyErr := c.DataSource.GetLegacySummaryByMonth(int(year), int(month))
+		treasurySummary = *treasuryData
+		legacySummary = *legacyData
+
+		if proposalErr != nil || treasuryErr != nil || legacyErr != nil {
+			writeJSON(w, nil, m.GetIndentCtx(r))
+			return
+		}
 		now := time.Now()
-		var count = 0
-		total := float64(0)
 		for _, proposalMeta := range proposalMetaList {
 			var amount = proposalMeta["Amount"]
 			var token = proposalMeta["Token"]
@@ -968,7 +986,6 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			if !slices.Contains(domainList, domain) {
 				domainList = append(domainList, domain)
 			}
-			count++
 			endTime := time.Unix(endInt, 0)
 			//count month from startTime to endTime
 			difference := endTime.Sub(startTime)
@@ -1004,19 +1021,94 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			total += varMonthData.Expense
 			report = append(report, varMonthData)
 		}
-		//Get coin supply value
-		writeJSON(w, struct {
-			ReportDetail  []apitypes.MonthReportData `json:"reportDetail"`
-			ProposalList  []string                   `json:"proposalList"`
-			DomainList    []string                   `json:"domainList"`
-			ProposalTotal float64                    `json:"proposalTotal"`
-		}{
-			ReportDetail:  report,
-			ProposalList:  proposalList,
-			DomainList:    domainList,
-			ProposalTotal: total,
-		}, m.GetIndentCtx(r))
 	}
+	if detailType == "year" {
+		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
+		if yearErr != nil {
+			writeJSON(w, nil, m.GetIndentCtx(r))
+			return
+		}
+		proposalMetaList, proposalErr := c.DataSource.GetProposalMetaByYear(int(year))
+		treasuryData, treasuryErr := c.DataSource.GetTreasurySummaryByYear(int(year))
+		legacyData, legacyErr := c.DataSource.GetLegacySummaryByYear(int(year))
+		treasurySummary = *treasuryData
+		legacySummary = *legacyData
+		if proposalErr != nil || treasuryErr != nil || legacyErr != nil {
+			writeJSON(w, nil, m.GetIndentCtx(r))
+			return
+		}
+		for _, proposalMeta := range proposalMetaList {
+			var amount = proposalMeta["Amount"]
+			var token = proposalMeta["Token"]
+			var name = proposalMeta["Name"]
+			var startDate = proposalMeta["StartDate"]
+			var endDate = proposalMeta["EndDate"]
+			var domain = proposalMeta["Domain"]
+			//parse date time of startDate and endDate
+			startInt, err := strconv.ParseInt(startDate, 0, 32)
+			endInt, err2 := strconv.ParseInt(endDate, 0, 32)
+			amountFloat, err3 := strconv.ParseFloat(amount, 64)
+			if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
+				continue
+			}
+			amountFloat = amountFloat / 100
+			startTime := time.Unix(startInt, 0)
+
+			if !slices.Contains(proposalList, name) {
+				proposalList = append(proposalList, name)
+			}
+			if !slices.Contains(domainList, domain) {
+				domainList = append(domainList, domain)
+			}
+			endTime := time.Unix(endInt, 0)
+			//count month from startTime to endTime
+			difference := endTime.Sub(startTime)
+			//count day from startTime to endTime
+			countDays := int16(difference.Hours()/24) + 1
+			costPerDay := amountFloat / float64(countDays)
+
+			//if start month and end month are the same, month data is proposal data
+			varYearData := apitypes.MonthReportData{}
+			varYearData.Token = token
+			varYearData.Name = name
+			varYearData.Domain = domain
+			if startTime.Year() == endTime.Year() {
+				varYearData.Expense = amountFloat
+			} else {
+				var costOfYear float64
+				if startTime.Year() == int(year) {
+					lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
+					countDaysToEndYear := int(lastDateOfYear.Sub(startTime).Hours() / 24)
+					costOfYear = float64(countDaysToEndYear) * costPerDay
+				} else if endTime.Year() == int(year) {
+					startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
+					countDaysFromStartYear := int(endTime.Sub(startDayOfYear).Hours() / 24)
+					costOfYear = float64(countDaysFromStartYear) * costPerDay
+				} else {
+					costOfYear = 365 * costPerDay
+				}
+				varYearData.Expense = costOfYear
+			}
+			total += varYearData.Expense
+			report = append(report, varYearData)
+		}
+	}
+	//Get coin supply value
+	writeJSON(w, struct {
+		ReportDetail    []apitypes.MonthReportData `json:"reportDetail"`
+		ProposalList    []string                   `json:"proposalList"`
+		DomainList      []string                   `json:"domainList"`
+		ProposalTotal   float64                    `json:"proposalTotal"`
+		TreasurySummary dbtypes.TreasurySummary    `json:"treasurySummary"`
+		LegacySummary   dbtypes.TreasurySummary    `json:"legacySummary"`
+	}{
+		ReportDetail:    report,
+		ProposalList:    proposalList,
+		DomainList:      domainList,
+		ProposalTotal:   total,
+		TreasurySummary: treasurySummary,
+		LegacySummary:   legacySummary,
+	}, m.GetIndentCtx(r))
 }
 
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {

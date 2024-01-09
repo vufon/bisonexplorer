@@ -4,15 +4,21 @@
    <html lang="en">
       {{ template "html-head" headData .CommonPageData "Finance Report Detail" }}
       {{ template "navbar". }}
-      <div class="content pb-40" data-controller="financedetail">
+      <div class="content pb-40 container" data-controller="financedetail">
          <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
          <div class="d-none" data-financedetail-target="reportArea">
             <p class="fw-600 fs-24">Report for: <span data-financedetail-target="timeInfo"></span></p>
             <p class="fw-600 fs-20">Proposal List</p>
-               <table class="table v3 border-grey" data-financedetail-target="proposalReport">
+               <table class="table v3 border-grey w-auto" data-financedetail-target="proposalReport">
                </table>
             <p class="fw-600 fs-20 mt-4">Domain List</p>
-            <table class="table v3 border-grey" data-financedetail-target="domainReport">
+            <table class="table v3 border-grey w-auto" data-financedetail-target="domainReport">
+            </table>
+             <p class="fw-600 fs-20 mt-4">Treasury Summary</p>
+            <table class="table v3 border-grey w-auto" data-financedetail-target="treasuryReport">
+            </table>
+              <p class="fw-600 fs-20 mt-4">Legacy Summary</p>
+            <table class="table v3 border-grey w-auto" data-financedetail-target="legacyReport">
             </table>
          </div>
       </div>

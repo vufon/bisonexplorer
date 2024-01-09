@@ -36,6 +36,12 @@ const (
 	//select only data from summary table
 	SelectAddressSummaryDataRows = `SELECT time,total_value,spent_value FROM address_summary ORDER BY time`
 
+	SelectAddressSummaryDataByMonth = `SELECT time,total_value,spent_value FROM address_summary 
+	WHERE EXTRACT(YEAR FROM time) = $1 AND EXTRACT(MONTH FROM time) = $2`
+
+	SelectAddressSummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(total_value) as total_value,SUM(spent_value) as spent_value FROM address_summary
+	WHERE EXTRACT(YEAR FROM time) = $1 GROUP BY tx_year;`
+
 	//update spent and total value
 	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET total_value = $1, spent_value = $2 WHERE id = $3`
 

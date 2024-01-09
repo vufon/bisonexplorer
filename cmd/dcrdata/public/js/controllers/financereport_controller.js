@@ -328,9 +328,20 @@ export default class extends Controller {
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
-      headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky proposal-header-th" ' +
-      `id="${this.settings.interval + ';' + report.month}" data-action="click->financereport#proposalReportTimeDetail">` +
-      `<span class="d-block pr-5">${report.month.replace('/', '-')}</span></th>`
+      const timeArr = report.month.split('/')
+      let timeParam = ''
+      if (timeArr.length === 2) {
+        timeParam = timeArr[0] + '_'
+        // if month < 10
+        if (timeArr[1].charAt(0) === '0') {
+          timeParam += timeArr[1].substring(1, timeArr[1].length)
+        } else {
+          timeParam += timeArr[1]
+        }
+      }
+      headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky" ' +
+        `id="${this.settings.interval + ';' + report.month}" ` +
+        `><a class="link-hover-underline fs-13i c-black" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
     }
     thead = thead.replace('###', headList)
 

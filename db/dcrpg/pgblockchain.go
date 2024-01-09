@@ -16,6 +16,7 @@ import (
 	"math"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1369,8 +1370,13 @@ func (pgb *ChainDB) GetAllProposalMeta() (list []map[string]string, err error) {
 }
 
 // Get all proposal meta data
-func (pgb *ChainDB) GetProposalMetaByMonth(time string) (list []map[string]string, err error) {
-	return getProposalMetaGroupByMonth(pgb.db, time)
+func (pgb *ChainDB) GetProposalMetaByMonth(year int, month int) (list []map[string]string, err error) {
+	return getProposalMetaGroupByMonth(pgb.db, year, month)
+}
+
+// Get all proposal meta data
+func (pgb *ChainDB) GetProposalMetaByYear(year int) (list []map[string]string, err error) {
+	return getProposalMetaGroupByYear(pgb.db, year)
 }
 
 // AllAgendas returns all the agendas stored currently.
@@ -1788,10 +1794,250 @@ func (pgb *ChainDB) TreasuryBalance() (*dbtypes.TreasuryBalance, error) {
 	}, nil
 }
 
+func (pgb *ChainDB) GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataByYear, year)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfYear time.Time
+	var endOfYear time.Time
+	var hasData = false
+	for rows.Next() {
+		hasData = true
+		var yearTime dbtypes.TimeDef
+		err = rows.Scan(&yearTime, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+
+		startOfYear = time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+		var now = time.Now()
+		endOfYear = time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
+		if now.Year() == year {
+			endOfYear = now
+		}
+		summary.Month = strconv.Itoa(year)
+
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         strconv.Itoa(year),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	currencyResponse := pgb.GetUSDExchangeValue(startOfYear, endOfYear)
+	var total = float64(0)
+	var count = 0
+	for _, resItem := range currencyResponse.Prices {
+		total += resItem[1]
+		count++
+	}
+
+	var average = total / float64(count)
+	summary.InvalueUSD = average * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = average * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = average * float64(summary.Difference) / 1e8
+	summary.TotalUSD = average * float64(summary.Total) / 1e8
+	return &summary, nil
+}
+
+func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByYear, year)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfYear time.Time
+	var endOfYear time.Time
+	var hasData = false
+
+	for rows.Next() {
+		hasData = true
+		var yearTime dbtypes.TimeDef
+		err = rows.Scan(&yearTime, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+
+		startOfYear = time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+		var now = time.Now()
+		endOfYear = time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
+		if now.Year() == year {
+			endOfYear = now
+		}
+		summary.Month = strconv.Itoa(year)
+		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
+		total := summary.Invalue - summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         strconv.Itoa(year),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	currencyResponse := pgb.GetUSDExchangeValue(startOfYear, endOfYear)
+	var total = float64(0)
+	var count = 0
+	for _, resItem := range currencyResponse.Prices {
+		total += resItem[1]
+		count++
+	}
+
+	var average = total / float64(count)
+	summary.Outvalue = -summary.Outvalue
+	summary.InvalueUSD = average * float64(summary.Invalue/5) / 1e8
+	summary.OutvalueUSD = average * float64(summary.Outvalue/5) / 1e8
+	summary.DifferenceUSD = average * float64(summary.Difference/5) / 1e8
+	summary.TotalUSD = average * float64(summary.Total/5) / 1e8
+	return &summary, nil
+}
+
+func (pgb *ChainDB) GetLegacySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataByMonth, year, month)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfMonth time.Time
+	var endOfMonth time.Time
+	var hasData = false
+
+	for rows.Next() {
+		hasData = true
+		var time dbtypes.TimeDef
+		err := rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+		startOfMonth = time.T.AddDate(0, 0, -time.T.Day()+1)
+		endOfMonth = time.T.AddDate(0, 1, -time.T.Day())
+		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         fmt.Sprintf("%d-%d", year, month),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	currencyResponse := pgb.GetUSDExchangeValue(startOfMonth, endOfMonth)
+	monthPriceMap := pgb.GetCurrencyPrice(*currencyResponse)
+
+	monthPrice := monthPriceMap[summary.Month]
+	summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
+	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
+	summary.DifferenceUSD = monthPrice * float64(summary.Difference/5) / 1e8
+	summary.TotalUSD = monthPrice * float64(summary.Total/5) / 1e8
+
+	return &summary, nil
+}
+
+func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByMonth, year, month)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfMonth time.Time
+	var endOfMonth time.Time
+	var hasData = false
+	for rows.Next() {
+		hasData = true
+		var time dbtypes.TimeDef
+		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+		startOfMonth = time.T.AddDate(0, 0, -time.T.Day()+1)
+		endOfMonth = time.T.AddDate(0, 1, -time.T.Day())
+		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
+		total := summary.Invalue - summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         fmt.Sprintf("%d-%d", year, month),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	currencyResponse := pgb.GetUSDExchangeValue(startOfMonth, endOfMonth)
+	monthPriceMap := pgb.GetCurrencyPrice(*currencyResponse)
+	summary.Outvalue = -summary.Outvalue
+	monthPrice := monthPriceMap[summary.Month]
+	summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
+	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
+	summary.DifferenceUSD = monthPrice * float64(summary.Difference/5) / 1e8
+	summary.TotalUSD = monthPrice * float64(summary.Total/5) / 1e8
+	return &summary, nil
+}
+
 // Get treasury summary data
 func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByMonth)
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryGroupByMonth)
 
 	if err != nil {
 		return nil, err
@@ -1840,7 +2086,6 @@ func (pgb *ChainDB) GetHandlerCurrencyPrice(res dbtypes.CurrencyResponse, result
 	for _, resItem := range res.Prices {
 		date := time.Unix(int64(resItem[0])/1000, 0)
 		key := fmt.Sprintf("%d-%s", date.Year(), dbtypes.GetFullMonthDisplay(int(date.Month())))
-		// fmt.Println("Month: ", key)
 		val, ok := result[key]
 		if ok {
 			result[key] = val + resItem[1]

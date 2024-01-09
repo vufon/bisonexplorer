@@ -816,18 +816,43 @@ func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
 }
 
 // Get all proposal Meta Data
-func getProposalMetaGroupByMonth(db *sql.DB, time string) ([]map[string]string, error) {
-	timeArr := strings.Split(time, "_")
-	if len(timeArr) != 2 {
-		return nil, dbtypes.Error{}
+func getProposalMetaGroupByYear(db *sql.DB, year int) ([]map[string]string, error) {
+	rows, err := db.Query(internal.SelectProposalMetaByYear, year, year)
+	if err != nil {
+		return nil, err
 	}
-	year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
-	month, monthErr := strconv.ParseInt(timeArr[1], 0, 32)
-	fmt.Println("year, month: ", year, month)
-	if yearErr != nil || monthErr != nil {
-		return nil, yearErr
+	defer closeRows(rows)
+	proposalDbList := make([]map[string]string, 0)
+	for rows.Next() {
+		var id int
+		var token, name, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return nil, err
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		proposalDbList = append(proposalDbList, objectMap)
 	}
+	err = rows.Err()
+	if err != nil {
+		log.Errorf("Proposal Meta Select prepare: %v", err)
+		return nil, err
+	}
+	return proposalDbList, nil
+}
 
+// Get all proposal Meta Data
+func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]string, error) {
 	timeCompare := year*12 + month
 
 	rows, err := db.Query(internal.SelectProposalMetaByMonth, timeCompare, timeCompare)
