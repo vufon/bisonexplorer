@@ -1374,6 +1374,36 @@ func (pgb *ChainDB) GetAllProposalMeta() (list []map[string]string, err error) {
 	return getProposalMetaAll(pgb.db)
 }
 
+// Get proposal meta by token
+func (pgb *ChainDB) GetProposalByToken(token string) (proposalMeta map[string]string, err error) {
+	return getProposalMetaByToken(pgb.db, token)
+}
+
+// Get proposal meta list by domain
+func (pgb *ChainDB) GetProposalByDomain(domain string) (proposalMetaList []map[string]string, err error) {
+	return getProposalMetasByDomain(pgb.db, domain)
+}
+
+// Get proposal meta list by owner
+func (pgb *ChainDB) GetProposalByOwner(name string) (proposalMetaList []map[string]string, err error) {
+	return getProposalMetasByOwner(pgb.db, name)
+}
+
+// Get all proposal domains
+func (pgb *ChainDB) GetAllProposalDomains() []string {
+	return getProposalDomainList(pgb.db)
+}
+
+// Get all proposal owner
+func (pgb *ChainDB) GetAllProposalOwners() []string {
+	return getProposalOwnerList(pgb.db)
+}
+
+// Get all proposal domains
+func (pgb *ChainDB) GetAllProposalTokens() []string {
+	return getAllProposalTokens(pgb.db)
+}
+
 // Get all proposal meta data
 func (pgb *ChainDB) GetProposalMetaByMonth(year int, month int) (list []map[string]string, err error) {
 	return getProposalMetaGroupByMonth(pgb.db, year, month)

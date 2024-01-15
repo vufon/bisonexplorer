@@ -1055,11 +1055,15 @@ func _main(ctx context.Context) error {
 			log.Errorf("Check exist and create proposal_meta table failed: %v", err)
 			return
 		}
-		//get all tokens
-		tokens, err := proposalsDB.ProposalTokens()
+		//get all proposals
+		proposals, err := proposalsDB.GetAllProposals()
 		if err != nil {
 			log.Errorf("Get proposals failed: %v", err)
 			return
+		}
+		tokens := make([]string, 0, len(proposals))
+		for _, proposal := range proposals {
+			tokens = append(tokens, proposal.Token)
 		}
 		//Get the tokens that need to be synchronized
 		neededTokens, err := chainDB.GetNeededSyncProposalTokens(tokens)
@@ -1069,7 +1073,7 @@ func _main(ctx context.Context) error {
 		}
 		if len(neededTokens) > 0 {
 			//get meta data from file
-			proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens)
+			proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens, proposals)
 			if err != nil {
 				log.Errorf("Get proposal metadata failed: %v", err)
 				return

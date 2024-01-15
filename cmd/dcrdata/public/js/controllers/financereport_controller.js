@@ -114,6 +114,10 @@ export default class extends Controller {
     })
     target.classList.add('btn-active')
     this.settings.type = e.target.name
+    this.settings.tsort = this.defaultSettings.tsort
+    this.settings.psort = this.defaultSettings.psort
+    this.settings.legacy = this.defaultSettings.legacy
+
     this.setReportTitle(e.target.name)
     this.calculate()
   }
@@ -325,30 +329,21 @@ export default class extends Controller {
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
+    const proposalTokenMap = data.proposalTokenMap
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
-      const timeArr = report.month.split('/')
-      let timeParam = ''
-      if (timeArr.length === 2) {
-        timeParam = timeArr[0] + '_'
-        // if month < 10
-        if (timeArr[1].charAt(0) === '0') {
-          timeParam += timeArr[1].substring(1, timeArr[1].length)
-        } else {
-          timeParam += timeArr[1]
-        }
-      }
+      const timeParam = this.getFullTimeParam(report.month, '/')
 
       if (this.settings.interval === 'year') {
         headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky" id="${this.settings.interval + ';' + report.month}">`
         headList += '<div class="d-flex justify-content-center">'
-        headList += `<a class="link-hover-underline fs-13i c-black" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
+        headList += `<a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
         headList += '</a></div></th>'
       } else {
         headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky" ' +
         `id="${this.settings.interval + ';' + report.month}" ` +
-        `><a class="link-hover-underline fs-13i c-black" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
+        `><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
     }
     thead = thead.replace('###', headList)
@@ -357,7 +352,11 @@ export default class extends Controller {
     for (let i = 0; i < handlerData.proposalList.length; i++) {
       const index = this.settings.psort === 'oldest' ? (handlerData.proposalList.length - i - 1) : i
       const proposal = handlerData.proposalList[index]
-      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><span class="d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${proposal}</span></td>`
+      let token = ''
+      if (proposalTokenMap[proposal] && proposalTokenMap[proposal] !== '') {
+        token = proposalTokenMap[proposal]
+      }
+      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${proposal}</a></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
@@ -409,6 +408,7 @@ export default class extends Controller {
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
       '<th class="text-center ps-0 month-col fw-600 proposal-name-col">Name</th>' +
+      '<th class="text-center ps-0 month-col fw-600">Author</th>' +
       '<th class="text-center ps-0 ps-3 pr-3 fw-600">Start Date' +
       `<span data-action="click->financereport#sortHorizontal" class="${this.settings.psort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort ms-1"></span></th>` +
       '<th class="text-center ps-0 ps-3 pr-3 fw-600">End Date</th>' +
@@ -418,12 +418,18 @@ export default class extends Controller {
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
+    const proposalTokenMap = data.proposalTokenMap
     // create tbody content
     for (let i = 0; i < data.summary.length; i++) {
       const index = this.settings.psort === 'newest' ? i : (data.summary.length - i - 1)
       const summary = data.summary[index]
+      let token = ''
+      if (proposalTokenMap[summary.name] && proposalTokenMap[summary.name] !== '') {
+        token = proposalTokenMap[summary.name]
+      }
       bodyList += `<tr${summary.totalRemaining === 0.0 ? '' : ' class="summary-active-row"'}>` +
-        `<td class="text-center fs-13i">${summary.name}</td>` +
+        `<td class="text-center fs-13i"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
+        `<td class="text-center fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" class="link-hover-underline fs-13i">${summary.author}</a></td>` +
         `<td class="text-center fs-13i">${summary.start}</td>` +
         `<td class="text-center fs-13i">${summary.end}</td>` +
         `<td class="text-right fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
@@ -433,7 +439,7 @@ export default class extends Controller {
     }
 
     bodyList += '<tr class="finance-table-header">' +
-      '<td class="text-center fw-600 fs-15i" colspan="3">Total</td>' +
+      '<td class="text-center fw-600 fs-15i" colspan="4">Total</td>' +
       `<td class="text-right fw-600 fs-15i">$${humanize.formatToLocalString(data.allBudget, 2, 2)}</td>` +
       `<td class="text-right fw-600 fs-15i">$${humanize.formatToLocalString(data.allSpent, 2, 2)}</td>` +
       `<td class="text-right fw-600 fs-15i pr-10i">$${humanize.formatToLocalString(data.allBudget - data.allSpent, 2, 2)}</td>` +
@@ -460,7 +466,7 @@ export default class extends Controller {
 
     let headList = ''
     handlerData.domainList.forEach((domain) => {
-      headList += `<th class="text-right-i domain-content-cell ps-0 fs-13i ps-3 pr-3 fw-600 proposal-header-th">${domain.charAt(0).toUpperCase() + domain.slice(1)}</th>`
+      headList += `<th class="text-right-i domain-content-cell ps-0 fs-13i ps-3 pr-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)}</a></th>`
     })
     thead = thead.replace('###', headList)
 
@@ -469,7 +475,8 @@ export default class extends Controller {
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
-      bodyList += `<tr><td class="text-center fs-13i fw-600 border-right-grey">${report.month.replace('/', '-')}</td>`
+      const timeParam = this.getFullTimeParam(report.month, '/')
+      bodyList += `<tr><td class="text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
         bodyList += `<td class="text-right-i domain-content-cell fs-13i">$${humanize.formatToLocalString(domainData.expense, 2, 2)}</td>`
       })
@@ -478,6 +485,21 @@ export default class extends Controller {
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
+  }
+
+  getFullTimeParam (timeInput, splitChar) {
+    const timeArr = timeInput.split(splitChar)
+    let timeParam = ''
+    if (timeArr.length === 2) {
+      timeParam = timeArr[0] + '_'
+      // if month < 10
+      if (timeArr[1].charAt(0) === '0') {
+        timeParam += timeArr[1].substring(1, timeArr[1].length)
+      } else {
+        timeParam += timeArr[1]
+      }
+    }
+    return timeParam
   }
 
   createTreasuryTable (data) {
@@ -510,8 +532,10 @@ export default class extends Controller {
       const outvalue = this.settings.legacy ? humanize.formatToLocalString((treasury.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.outvalue / 500000000), 3, 3)
       const difference = this.settings.legacy ? humanize.formatToLocalString((treasury.difference / 100000000), 3, 3) : humanize.formatToLocalString((treasury.difference / 500000000), 3, 3)
       const total = this.settings.legacy ? humanize.formatToLocalString((treasury.total / 100000000), 3, 3) : humanize.formatToLocalString((treasury.total / 500000000), 3, 3)
+      const timeParam = this.getFullTimeParam(treasury.month, '-')
+
       bodyList += '<tr>' +
-        `<td class="text-center fs-13i fw-600 border-right-grey">${treasury.month}</td>` +
+        `<td class="text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? treasury.month : timeParam)}">${treasury.month}</a></td>` +
         `<td class="text-right-i fs-13i treasury-content-cell">${invalue}</td>` +
         `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString((treasury.invalueUSD), 2, 2)}</td>` +
         `<td class="text-right-i fs-13i treasury-content-cell">${outvalue}</td>` +
@@ -528,28 +552,27 @@ export default class extends Controller {
 
   // Calculate and response
   async calculate () {
+    // disabled group button for loading
+    this.disabledGroupButton()
     // if got report. ignore get by api
     let haveResponseData
     if (this.settings.type === 'treasury') {
-      console.log('legacy: type ' + typeof this.settings.legacy + ' : value ' + this.settings.legacy)
       if (this.settings.legacy && legacyResponse !== null) {
-        console.log('legacey true')
         responseData = legacyResponse
         haveResponseData = true
       }
       if (!this.settings.legacy && treasuryResponse !== null) {
-        console.log('legacey false')
         responseData = treasuryResponse
         haveResponseData = true
       }
     } else if (proposalResponse !== null) {
-      console.log('has proposal response')
       responseData = proposalResponse
       haveResponseData = true
     }
 
     if (haveResponseData) {
       this.createReportTable()
+      this.enabledGroupButton()
       return
     }
 
@@ -582,6 +605,27 @@ export default class extends Controller {
       proposalResponse = response
     }
     this.createReportTable()
+    this.enabledGroupButton()
+  }
+
+  enabledGroupButton () {
+    // enabled group button after loading
+    this.typeTargets.forEach((typeTarget) => {
+      typeTarget.disabled = false
+    })
+    this.intervalTargets.forEach((intervalTarget) => {
+      intervalTarget.disabled = false
+    })
+  }
+
+  disabledGroupButton () {
+    // disabled group button after loading
+    this.typeTargets.forEach((typeTarget) => {
+      typeTarget.disabled = true
+    })
+    this.intervalTargets.forEach((intervalTarget) => {
+      intervalTarget.disabled = true
+    })
   }
 
   legacyReportChange (e) {

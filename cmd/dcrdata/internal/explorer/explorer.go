@@ -125,8 +125,8 @@ type PoliteiaBackend interface {
 	CountByStatus(countAll bool, filterByVoteStatus ...int) int
 	CountProposals(votesStatus map[string]string) map[string]string
 	ProposalByToken(token string) (*pitypes.ProposalRecord, error)
-	ProposalsApprovedMetadata(tokens []string) ([]map[string]string, error)
-	ProposalTokens() ([]string, error)
+	ProposalsApprovedMetadata(tokens []string, proposalList []*pitypes.ProposalRecord) ([]map[string]string, error)
+	GetAllProposals() ([]*pitypes.ProposalRecord, error)
 }
 
 // agendaBackend implements methods that manage agendas db data.

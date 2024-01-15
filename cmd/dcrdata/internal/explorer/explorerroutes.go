@@ -2849,15 +2849,19 @@ func (exp *explorerUI) FinanceDetailPage(w http.ResponseWriter, r *http.Request)
 func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request) {
 	exp.pageData.RLock()
 	//Get all proposal token to check sync
-	allTokens, err := exp.proposals.ProposalTokens()
+	allProposals, err := exp.proposals.GetAllProposals()
 	if err == nil {
 		//Get proposal tokens need to sync
-		neededTokens, err := exp.dataSource.GetNeededSyncProposalTokens(allTokens)
+		tokens := make([]string, 0, len(allProposals))
+		for _, proposal := range allProposals {
+			tokens = append(tokens, proposal.Token)
+		}
+		neededTokens, err := exp.dataSource.GetNeededSyncProposalTokens(tokens)
 		if err != nil {
 			log.Errorf("Get sync needed proposals failed: %v", err)
 		} else if len(neededTokens) > 0 {
 			//get meta data from file
-			proposalMetaDatas, err := exp.proposals.ProposalsApprovedMetadata(neededTokens)
+			proposalMetaDatas, err := exp.proposals.ProposalsApprovedMetadata(neededTokens, allProposals)
 			if err != nil {
 				log.Errorf("Get proposal metadata failed: %v", err)
 			} else {

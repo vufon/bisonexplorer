@@ -901,6 +901,7 @@ type PriceCountTime struct {
 type MonthReportData struct {
 	Token   string  `json:"token"`
 	Name    string  `json:"name"`
+	Author  string  `json:"author"`
 	Expense float64 `json:"expense"`
 	Domain  string  `json:"domain"`
 }
@@ -908,6 +909,8 @@ type MonthReportData struct {
 type ProposalReportData struct {
 	Name           string  `json:"name"`
 	Token          string  `json:"token"`
+	Author         string  `json:"author"`
+	Domain         string  `json:"domain"`
 	Start          string  `json:"start"`
 	End            string  `json:"end"`
 	Budget         float64 `json:"budget"`
@@ -917,6 +920,11 @@ type ProposalReportData struct {
 
 type DomainReportData struct {
 	Domain  string  `json:"domain"`
+	Expense float64 `json:"expense"`
+}
+
+type MonthDataObject struct {
+	Month   string  `json:"month"`
 	Expense float64 `json:"expense"`
 }
 

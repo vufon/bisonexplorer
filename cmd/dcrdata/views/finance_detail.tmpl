@@ -8,34 +8,57 @@
          <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
          <div class="d-none" data-financedetail-target="reportArea">
             <div class="d-flex justify-content-between mt-4">
-            <button class="btn btn-primary c-white-important" data-action="click->financedetail#prevReport">
+            <button class="btn btn-primary c-white-important" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">
                <span class="dcricon-arrow-simple-left mr-5"></span><span data-financedetail-target="prevButton"></span>
             </button>
-             <p class="fw-600 fs-24 m-0">Detail of: <span data-financedetail-target="timeInfo"></span></p>
-             <button class="btn btn-primary c-white-important" data-action="click->financedetail#nextReport">
+             <p class="fw-600 fs-24 m-0" data-financedetail-target="timeInfo"></p>
+             <button class="btn btn-primary c-white-important" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">
                <span data-financedetail-target="nextButton"></span><span class="dcricon-arrow-simple-right ms-1"></span>
              </button>
             </div>
+            <div class="mt-1 d-none" data-financedetail-target="proposalSpanRow">
+            </div>
+            <div class="d-flex justify-content-center mt-1 d-none" data-financedetail-target="totalSpanRow">
+              <p class="fs-16">Total expenditure on proposals: <span class="fw-600" data-financedetail-target="totalSpan"></span></p>
+            </div>
+            <div class="d-flex justify-content-center d-none" data-financedetail-target="treasurySpanRow">
+               <p class="fs-16">Treasury Income: <span class="fw-600" data-financedetail-target="incomeSpan"></span>, Outgoing: <span class="fw-600"  data-financedetail-target="outgoingSpan"></span></p>
+            </div>
             <p class="d-none mt-3" data-financedetail-target="noReport">Data does not exist. Let's move on to another time!</p>
-            <div data-financedetail-target="domainArea" class="d-none">
-               <p class="fw-600 fs-20 mt-4">Domain Data</p>
-               <table class="table v3 border-grey w-auto" data-financedetail-target="domainReport"></table>
+            <div class="d-flex">
+                  <div data-financedetail-target="domainArea" class="d-none">
+                     <p class="fw-600 fs-20 mt-4">Domain Data</p>
+                     <table class="table v3 border-grey-2 w-auto" data-financedetail-target="domainReport"></table>
+                  </div>
+                  <div data-financedetail-target="proposalArea" class="d-none ms-5">
+                  <p class="fw-600 fs-20 mt-4">Proposal Data</p>
+                  <table class="table v3 border-grey-2 w-auto" data-financedetail-target="proposalReport">
+                  </table>
+               </div>
+                  <div data-financedetail-target="legacyArea" class="d-none ms-5">
+                     <p class="fw-600 fs-20 mt-4">Legacy Summary</p>
+                     <table class="table v3 border-grey-2 w-auto" data-financedetail-target="legacyReport">
+                     </table>
+                  </div>
+                 <div data-financedetail-target="monthlyArea" class="d-none">
+                     <p class="fw-600 fs-20 mt-4">Monthly Summary</p>
+                     <div class="d-flex" data-financedetail-target="monthlyReport">
+                     </div>
+                  </div>
+                <div data-financedetail-target="yearlyArea" class="d-none ms-5">
+                     <p class="fw-600 fs-20 mt-4">Yearly Summary</p>
+                     <div class="d-flex" data-financedetail-target="yearlyReport">
+                     </div>
+               </div>
             </div>
-            <div data-financedetail-target="proposalArea" class="d-none">
-            <p class="fw-600 fs-20 mt-4">Proposal Data</p>
-            <table class="table v3 border-grey w-auto" data-financedetail-target="proposalReport">
-            </table>
+            <div data-financedetail-target="summaryArea" class="d-none">
+                  <p class="fw-600 fs-20 mt-4">Proposals Info</p>
+                  <div class="mt-2" data-financereport-target="colorNoteRow">
+                  <label class="color-note-label summary-note-color"></label>
+                  <span class="c-grey-2 fw-600">The proposals are still active</span></div>
+                  <table class="table v3 border-grey-2 w-auto mt-3" data-financedetail-target="summaryReport">
+                  </table>
             </div>
-            <div data-financedetail-target="treasuryArea" class="d-none">
-             <p class="fw-600 fs-20 mt-4">Treasury Summary</p>
-            <table class="table v3 border-grey w-auto" data-financedetail-target="treasuryReport">
-            </table>
-            </div>
-            <div data-financedetail-target="legacyArea" class="d-none">
-               <p class="fw-600 fs-20 mt-4">Legacy Summary</p>
-               <table class="table v3 border-grey w-auto" data-financedetail-target="legacyReport">
-            </div>
-            </table>
          </div>
       </div>
       {{ template "footer". }}

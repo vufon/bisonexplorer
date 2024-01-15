@@ -785,6 +785,111 @@ func checkExistAndCreateMonthlyPriceTable(db *sql.DB) error {
 	return err
 }
 
+// Get proposal Meta by owner
+func getProposalMetasByOwner(db *sql.DB, name string) ([]map[string]string, error) {
+	return queryProposalMetaList(db, internal.SelectProposalMetasByOwner, name)
+}
+
+func queryProposalMetaList(db *sql.DB, sqlQuery string, param string) ([]map[string]string, error) {
+	rows, err := db.Query(sqlQuery, param)
+	result := make([]map[string]string, 0)
+	if err != nil {
+		return result, nil
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var id int
+		var token, name, username, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return result, nil
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Username":  username,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		result = append(result, objectMap)
+	}
+	return result, nil
+}
+
+// Get proposal Meta by token
+func getProposalMetasByDomain(db *sql.DB, domain string) ([]map[string]string, error) {
+	return queryProposalMetaList(db, internal.SelectProposalMetasByDomain, domain)
+}
+
+// get all proposal tokens
+func getAllProposalTokens(db *sql.DB) []string {
+	return getProposalListByParam(db, internal.SelectAllProposalTokens)
+}
+
+func getProposalListByParam(db *sql.DB, paramQuery string) []string {
+	rows, err := db.Query(paramQuery)
+	result := make([]string, 0)
+	if err != nil {
+		return result
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var str string
+		err = rows.Scan(&str)
+		if err == nil {
+			result = append(result, str)
+		}
+	}
+	return result
+}
+
+// get all owner list of proposal
+func getProposalOwnerList(db *sql.DB) []string {
+	return getProposalListByParam(db, internal.SelectAllProposalOwners)
+}
+
+// get all domain list of proposal
+func getProposalDomainList(db *sql.DB) []string {
+	return getProposalListByParam(db, internal.SelectAllProposalDomains)
+}
+
+// Get proposal Meta by token
+func getProposalMetaByToken(db *sql.DB, token string) (map[string]string, error) {
+	rows, err := db.Query(internal.SelectProposalMetaByToken, token)
+	result := make(map[string]string)
+	if err != nil {
+		return result, nil
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var id int
+		var token, name, username, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return result, nil
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Username":  username,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		return objectMap, nil
+	}
+	return result, nil
+}
+
 // Get all proposal Meta Data
 func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
 	rows, err := db.Query(internal.SelectAllProposalMeta)
@@ -795,10 +900,10 @@ func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
 	proposalDbList := make([]map[string]string, 0)
 	for rows.Next() {
 		var id int
-		var token, name, domain string
+		var token, name, username, domain string
 		var amount float64
 		var startDate, endDate int32
-		err = rows.Scan(&id, &token, &name, &amount, &startDate, &endDate, &domain)
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
 		if err != nil {
 			return nil, err
 		}
@@ -806,6 +911,7 @@ func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
 			"Id":        fmt.Sprint(id),
 			"Token":     token,
 			"Name":      name,
+			"Username":  username,
 			"Amount":    fmt.Sprint(amount),
 			"StartDate": fmt.Sprint(startDate),
 			"EndDate":   fmt.Sprint(endDate),
@@ -831,10 +937,10 @@ func getProposalMetaGroupByYear(db *sql.DB, year int) ([]map[string]string, erro
 	proposalDbList := make([]map[string]string, 0)
 	for rows.Next() {
 		var id int
-		var token, name, domain string
+		var token, name, username, domain string
 		var amount float64
 		var startDate, endDate int32
-		err = rows.Scan(&id, &token, &name, &amount, &startDate, &endDate, &domain)
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
 		if err != nil {
 			return nil, err
 		}
@@ -842,6 +948,7 @@ func getProposalMetaGroupByYear(db *sql.DB, year int) ([]map[string]string, erro
 			"Id":        fmt.Sprint(id),
 			"Token":     token,
 			"Name":      name,
+			"Username":  username,
 			"Amount":    fmt.Sprint(amount),
 			"StartDate": fmt.Sprint(startDate),
 			"EndDate":   fmt.Sprint(endDate),
@@ -860,7 +967,6 @@ func getProposalMetaGroupByYear(db *sql.DB, year int) ([]map[string]string, erro
 // Get all proposal Meta Data
 func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]string, error) {
 	timeCompare := year*12 + month
-	fmt.Println("year, month: ", year, ", ", month, ", ", timeCompare)
 	proposalDbList := make([]map[string]string, 0)
 	now := time.Now()
 	nowCurrentCompare := now.Year()*12 + int(now.Month())
@@ -874,10 +980,10 @@ func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]
 	defer closeRows(rows)
 	for rows.Next() {
 		var id int
-		var token, name, domain string
+		var token, name, username, domain string
 		var amount float64
 		var startDate, endDate int32
-		err = rows.Scan(&id, &token, &name, &amount, &startDate, &endDate, &domain)
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
 		if err != nil {
 			return proposalDbList, nil
 		}
@@ -885,6 +991,7 @@ func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]
 			"Id":        fmt.Sprint(id),
 			"Token":     token,
 			"Name":      name,
+			"Username":  username,
 			"Amount":    fmt.Sprint(amount),
 			"StartDate": fmt.Sprint(startDate),
 			"EndDate":   fmt.Sprint(endDate),
@@ -934,7 +1041,7 @@ func addNewProposalMetaData(db *sql.DB, proposalMetaDatas []map[string]string) e
 			proposalMetaStmt.Close()
 			continue
 		}
-		err = proposalMetaStmt.QueryRow(object["Token"], object["Name"], amount, startDate, endDate, object["Domain"]).Scan(&proposalId)
+		err = proposalMetaStmt.QueryRow(object["Token"], object["Name"], object["Username"], amount, startDate, endDate, object["Domain"]).Scan(&proposalId)
 		if err != nil {
 			if errRoll := dbtx.Rollback(); errRoll != nil {
 				log.Errorf("Rollback failed: %v", errRoll)

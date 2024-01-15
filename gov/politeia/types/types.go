@@ -100,6 +100,7 @@ type ProposalMetadata struct {
 type MonthReportData struct {
 	Token   string
 	Name    string
+	Author  string
 	Expense float64
 	Domain  string
 }
@@ -107,6 +108,7 @@ type MonthReportData struct {
 type ProposalReportData struct {
 	Name           string
 	Token          string
+	Author         string
 	Start          string
 	End            string
 	Budget         float64

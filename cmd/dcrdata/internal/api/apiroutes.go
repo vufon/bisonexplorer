@@ -115,6 +115,8 @@ type DataSource interface {
 	GetAddressTransactionsRawWithSkip(addr string, count, skip int) []*apitypes.AddressTxRaw
 	GetMempoolPriceCountTime() *apitypes.PriceCountTime
 	GetAllProposalMeta() (list []map[string]string, err error)
+	GetProposalByToken(token string) (proposalMeta map[string]string, err error)
+	GetProposalByDomain(domain string) (proposalMetaList []map[string]string, err error)
 	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
 	GetLegacySummary() ([]*dbtypes.TreasurySummary, error)
 	GetProposalMetaByMonth(year int, month int) (list []map[string]string, err error)
@@ -123,6 +125,10 @@ type DataSource interface {
 	GetLegacySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error)
 	GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
 	GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
+	GetAllProposalDomains() []string
+	GetAllProposalOwners() []string
+	GetAllProposalTokens() []string
+	GetProposalByOwner(name string) (proposalMetaList []map[string]string, err error)
 }
 
 // dcrdata application context used by all route handlers
@@ -702,12 +708,12 @@ func (c *appContext) getTransactionHex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, hex)
 }
 
-func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, float64, float64) {
+func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, map[string]string, float64, float64) {
 	//Get All Proposal Metadata for Report
 	proposalMetaList, err := c.DataSource.GetAllProposalMeta()
 	if err != nil {
 		log.Errorf("Get proposals all meta data failed: %v", err)
-		return nil, nil, nil, nil, 0.0, 0.0
+		return nil, nil, nil, nil, nil, 0.0, 0.0
 	}
 
 	// create report data map
@@ -715,6 +721,7 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 	proposalReportData := make([]apitypes.ProposalReportData, 0)
 	domainList := make([]string, 0)
 	proposalList := make([]string, 0)
+	proposalTokenMap := make(map[string]string)
 	now := time.Now()
 	var count = 0
 	minDate := time.Now()
@@ -724,6 +731,7 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 		var amount = proposalMeta["Amount"]
 		var token = proposalMeta["Token"]
 		var name = proposalMeta["Name"]
+		var author = proposalMeta["Username"]
 		var startDate = proposalMeta["StartDate"]
 		var endDate = proposalMeta["EndDate"]
 		var domain = proposalMeta["Domain"]
@@ -741,6 +749,7 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 			continue
 		}
 
+		proposalTokenMap[name] = token
 		if !slices.Contains(proposalList, name) {
 			proposalList = append(proposalList, name)
 		}
@@ -762,6 +771,7 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 		proposalInfo := apitypes.ProposalReportData{}
 		proposalInfo.Name = name
 		proposalInfo.Token = token
+		proposalInfo.Author = author
 		proposalInfo.Budget = amountFloat
 		totalAllBudget += amountFloat
 		proposalInfo.Start = startTime.Format("2006-01-02")
@@ -773,6 +783,7 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 			varMonthData := apitypes.MonthReportData{}
 			varMonthData.Token = token
 			varMonthData.Name = name
+			varMonthData.Author = author
 			varMonthData.Expense = amountFloat
 			varMonthData.Domain = domain
 			totalSpent += amountFloat
@@ -821,6 +832,7 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 				varMonthData := apitypes.MonthReportData{}
 				varMonthData.Token = token
 				varMonthData.Name = name
+				varMonthData.Author = author
 				varMonthData.Expense = costOfMonth
 				varMonthData.Domain = domain
 				totalSpent += costOfMonth
@@ -906,32 +918,356 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 			monthReportList = append(monthReportList, reportMonthObj)
 		}
 	}
-	return monthReportList, proposalReportData, domainList, proposalList, totalAllSpent, totalAllBudget
+	return monthReportList, proposalReportData, domainList, proposalList, proposalTokenMap, totalAllSpent, totalAllBudget
 }
 
 func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
-	report, summary, domainList, proposalList, allSpent, allBudget := c.getProposalReportData()
+	report, summary, domainList, proposalList, proposalTokenMap, allSpent, allBudget := c.getProposalReportData()
 	//Get coin supply value
 	writeJSON(w, struct {
-		Report       []apitypes.MonthReportObject  `json:"report"`
-		Summary      []apitypes.ProposalReportData `json:"summary"`
-		DomainList   []string                      `json:"domainList"`
-		ProposalList []string                      `json:"proposalList"`
-		AllSpent     float64                       `json:"allSpent"`
-		AllBudget    float64                       `json:"allBudget"`
+		Report           []apitypes.MonthReportObject  `json:"report"`
+		Summary          []apitypes.ProposalReportData `json:"summary"`
+		DomainList       []string                      `json:"domainList"`
+		ProposalList     []string                      `json:"proposalList"`
+		ProposalTokenMap map[string]string             `json:"proposalTokenMap"`
+		AllSpent         float64                       `json:"allSpent"`
+		AllBudget        float64                       `json:"allBudget"`
 	}{
-		Report:       report,
-		Summary:      summary,
-		DomainList:   domainList,
-		ProposalList: proposalList,
-		AllSpent:     allSpent,
-		AllBudget:    allBudget,
+		Report:           report,
+		Summary:          summary,
+		DomainList:       domainList,
+		ProposalList:     proposalList,
+		ProposalTokenMap: proposalTokenMap,
+		AllSpent:         allSpent,
+		AllBudget:        allBudget,
 	}, m.GetIndentCtx(r))
 }
 
 func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 	detailType := r.URL.Query().Get("type")
-	timeStr := r.URL.Query().Get("time")
+	var timeStr string
+	var token string
+	var name string
+	if detailType == "month" || detailType == "year" {
+		timeStr = r.URL.Query().Get("time")
+		c.HandlerDetailReportByMonthYear(w, r, detailType, timeStr)
+	} else if detailType == "proposal" {
+		token = r.URL.Query().Get("token")
+		c.HandlerDetailReportByProposal(w, r, token)
+	} else if detailType == "domain" {
+		name = r.URL.Query().Get("name")
+		c.HandlerDetailReportByDomain(w, r, name)
+	} else if detailType == "owner" {
+		name = r.URL.Query().Get("name")
+		c.HandlerDetailReportByOwner(w, r, name)
+	}
+}
+
+func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *http.Request, token string) {
+	//get proposal meta data by token
+	proposalMeta, err := c.DataSource.GetProposalByToken(token)
+	if err != nil {
+		log.Errorf("Get proposals by token failed: %v", err)
+		writeJSON(w, nil, m.GetIndentCtx(r))
+		return
+	}
+	proposalTokens := c.DataSource.GetAllProposalTokens()
+	now := time.Now()
+	proposalInfo := apitypes.ProposalReportData{}
+	var amount = proposalMeta["Amount"]
+	var tokenRst = proposalMeta["Token"]
+	var name = proposalMeta["Name"]
+	var author = proposalMeta["Username"]
+	var startDate = proposalMeta["StartDate"]
+	var endDate = proposalMeta["EndDate"]
+	var domain = proposalMeta["Domain"]
+	startInt, err := strconv.ParseInt(startDate, 0, 32)
+	endInt, err2 := strconv.ParseInt(endDate, 0, 32)
+	amountFloat, err3 := strconv.ParseFloat(amount, 64)
+	if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
+		log.Errorf("Proposal meta data failed: %v", err)
+		writeJSON(w, nil, m.GetIndentCtx(r))
+		return
+	}
+	amountFloat = amountFloat / 100
+	startTime := time.Unix(startInt, 0)
+	endTime := time.Unix(endInt, 0)
+	if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
+		log.Errorf("There are no payments because the first payment for the project has not yet arrived")
+		writeJSON(w, nil, m.GetIndentCtx(r))
+		return
+	}
+	proposalInfo.Name = name
+	proposalInfo.Author = author
+	proposalInfo.Token = tokenRst
+	proposalInfo.Budget = amountFloat
+	proposalInfo.Start = startTime.Format("2006-01-02")
+	proposalInfo.End = endTime.Format("2006-01-02")
+	proposalInfo.Domain = domain
+	totalSpent := 0.0
+	//count month from startTime to endTime
+	difference := endTime.Sub(startTime)
+	var countMonths = 12*(endTime.Year()-startTime.Year()) + (int(endTime.Month()) - int(startTime.Month())) + 1
+	//count day from startTime to endTime
+	countDays := int16(difference.Hours()/24) + 1
+	costPerDay := amountFloat / float64(countDays)
+	monthDatas := make([]apitypes.MonthDataObject, 0)
+	tempTime := time.Unix(startInt, 0)
+	//if start month and end month are the same, month data is proposal data
+	if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
+		key := fmt.Sprintf("%d-%s", startTime.Year(), apitypes.GetFullMonthDisplay(int(startTime.Month())))
+		itemData := apitypes.MonthDataObject{
+			Month:   key,
+			Expense: amountFloat,
+		}
+		totalSpent += amountFloat
+		monthDatas = append(monthDatas, itemData)
+	} else {
+		//calculate cost every month
+		for i := 0; i < int(countMonths); i++ {
+			handlerTime := tempTime.AddDate(0, i, 0)
+			//if month is this month or future months, break loop
+			if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
+				break
+			}
+			key := fmt.Sprintf("%d-%s", handlerTime.Year(), apitypes.GetFullMonthDisplay(int(handlerTime.Month())))
+			var costOfMonth float64
+			//if start month
+			if i == 0 {
+				//get end day of month
+				endDay := startTime.AddDate(0, 1, -startTime.Day())
+				countToEndMonth := endDay.Day() - startTime.Day() + 1
+				costOfMonth = float64(countToEndMonth) * costPerDay
+			} else if i == int(countMonths)-1 {
+				//get start day of month
+				startDay := endTime.AddDate(0, 0, -endTime.Day()+1)
+				countFromStartMonth := endTime.Day() - startDay.Day() + 1
+				costOfMonth = float64(countFromStartMonth) * costPerDay
+				//if other
+			} else {
+				startDay := handlerTime.AddDate(0, 0, -handlerTime.Day()+1)
+				endDay := handlerTime.AddDate(0, 1, -handlerTime.Day())
+				countDaysOfMonth := endDay.Day() - startDay.Day() + 1
+				costOfMonth = float64(countDaysOfMonth) * costPerDay
+			}
+			costOfMonth = math.Ceil(costOfMonth*100) / 100
+			itemData := apitypes.MonthDataObject{
+				Month:   key,
+				Expense: costOfMonth,
+			}
+			totalSpent += costOfMonth
+			monthDatas = append(monthDatas, itemData)
+		}
+	}
+
+	if now.After(endTime) {
+		totalSpent = amountFloat
+	}
+
+	proposalInfo.TotalSpent = math.Ceil(totalSpent*100) / 100
+	proposalInfo.TotalRemaining = math.Ceil((amountFloat-totalSpent)*100) / 100
+
+	writeJSON(w, struct {
+		ProposalInfo apitypes.ProposalReportData `json:"proposalInfo"`
+		MonthData    []apitypes.MonthDataObject  `json:"monthData"`
+		TokenList    []string                    `json:"tokenList"`
+	}{
+		ProposalInfo: proposalInfo,
+		MonthData:    monthDatas,
+		TokenList:    proposalTokens,
+	}, m.GetIndentCtx(r))
+}
+
+func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.Request, proposals []map[string]string, paramType string) {
+	var allParamList []string
+	if paramType == "domain" {
+		allParamList = c.DataSource.GetAllProposalDomains()
+	} else if paramType == "owner" {
+		allParamList = c.DataSource.GetAllProposalOwners()
+	}
+	now := time.Now()
+	proposalSummaryList := make([]apitypes.ProposalReportData, 0)
+	monthDatas := make([]apitypes.MonthDataObject, 0)
+	monthExpenseMap := make(map[string]float64)
+	monthWeightMap := make(map[string]int)
+	for _, proposalMeta := range proposals {
+		proposalInfo := apitypes.ProposalReportData{}
+		var amount = proposalMeta["Amount"]
+		var tokenRst = proposalMeta["Token"]
+		var name = proposalMeta["Name"]
+		var author = proposalMeta["Username"]
+		var startDate = proposalMeta["StartDate"]
+		var endDate = proposalMeta["EndDate"]
+		var domain = proposalMeta["Domain"]
+		startInt, err := strconv.ParseInt(startDate, 0, 32)
+		endInt, err2 := strconv.ParseInt(endDate, 0, 32)
+		amountFloat, err3 := strconv.ParseFloat(amount, 64)
+		if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
+			log.Errorf("Proposal meta data failed")
+			continue
+		}
+		amountFloat = amountFloat / 100
+		startTime := time.Unix(startInt, 0)
+		endTime := time.Unix(endInt, 0)
+		if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
+			log.Errorf("There are no payments because the first payment for the project has not yet arrived")
+			continue
+		}
+		proposalInfo.Name = name
+		proposalInfo.Author = author
+		proposalInfo.Token = tokenRst
+		proposalInfo.Budget = amountFloat
+		proposalInfo.Start = startTime.Format("2006-01-02")
+		proposalInfo.End = endTime.Format("2006-01-02")
+		proposalInfo.Domain = domain
+		totalSpent := 0.0
+		//count month from startTime to endTime
+		difference := endTime.Sub(startTime)
+		var countMonths = 12*(endTime.Year()-startTime.Year()) + (int(endTime.Month()) - int(startTime.Month())) + 1
+		//count day from startTime to endTime
+		countDays := int16(difference.Hours()/24) + 1
+		costPerDay := amountFloat / float64(countDays)
+		tempTime := time.Unix(startInt, 0)
+		//if start month and end month are the same, month data is proposal data
+		if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
+			key := fmt.Sprintf("%d-%s", startTime.Year(), apitypes.GetFullMonthDisplay(int(startTime.Month())))
+			totalSpent += amountFloat
+			if _, ok := monthWeightMap[key]; !ok {
+				monthWeightMap[key] = startTime.Year()*12 + int(startTime.Month())
+			}
+			value, ok := monthExpenseMap[key]
+			if ok {
+				monthExpenseMap[key] = value + amountFloat
+			} else {
+				monthExpenseMap[key] = amountFloat
+			}
+		} else {
+			//calculate cost every month
+			for i := 0; i < int(countMonths); i++ {
+				handlerTime := tempTime.AddDate(0, i, 0)
+				//if month is this month or future months, break loop
+				if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
+					break
+				}
+				key := fmt.Sprintf("%d-%s", handlerTime.Year(), apitypes.GetFullMonthDisplay(int(handlerTime.Month())))
+				var costOfMonth float64
+				//if start month
+				if i == 0 {
+					//get end day of month
+					endDay := startTime.AddDate(0, 1, -startTime.Day())
+					countToEndMonth := endDay.Day() - startTime.Day() + 1
+					costOfMonth = float64(countToEndMonth) * costPerDay
+				} else if i == int(countMonths)-1 {
+					//get start day of month
+					startDay := endTime.AddDate(0, 0, -endTime.Day()+1)
+					countFromStartMonth := endTime.Day() - startDay.Day() + 1
+					costOfMonth = float64(countFromStartMonth) * costPerDay
+					//if other
+				} else {
+					startDay := handlerTime.AddDate(0, 0, -handlerTime.Day()+1)
+					endDay := handlerTime.AddDate(0, 1, -handlerTime.Day())
+					countDaysOfMonth := endDay.Day() - startDay.Day() + 1
+					costOfMonth = float64(countDaysOfMonth) * costPerDay
+				}
+				costOfMonth = math.Ceil(costOfMonth*100) / 100
+				totalSpent += costOfMonth
+				if _, ok := monthWeightMap[key]; !ok {
+					monthWeightMap[key] = startTime.Year()*12 + int(startTime.Month())
+				}
+				value, ok := monthExpenseMap[key]
+				if ok {
+					monthExpenseMap[key] = value + costOfMonth
+				} else {
+					monthExpenseMap[key] = costOfMonth
+				}
+			}
+		}
+		if now.After(endTime) {
+			totalSpent = amountFloat
+		}
+		proposalInfo.TotalSpent = math.Ceil(totalSpent*100) / 100
+		proposalInfo.TotalRemaining = math.Ceil((amountFloat-totalSpent)*100) / 100
+		proposalSummaryList = append(proposalSummaryList, proposalInfo)
+	}
+
+	monthStringArr := make([]string, 0)
+	monthValueArr := make([]int, 0)
+	for key, value := range monthWeightMap {
+		monthStringArr = append(monthStringArr, key)
+		monthValueArr = append(monthValueArr, value)
+	}
+
+	//sort by month value
+	for i := 0; i < len(monthValueArr); i++ {
+		for j := i + 1; j < len(monthValueArr); j++ {
+			if monthValueArr[j] < monthValueArr[i] {
+				var tmpKey = monthStringArr[i]
+				var tmpValue = monthValueArr[i]
+				monthStringArr[i] = monthStringArr[j]
+				monthValueArr[i] = monthValueArr[j]
+				monthStringArr[j] = tmpKey
+				monthValueArr[j] = tmpValue
+			}
+		}
+	}
+
+	for _, key := range monthStringArr {
+		v, ok := monthExpenseMap[key]
+		if !ok {
+			continue
+		}
+		itemData := apitypes.MonthDataObject{
+			Month:   key,
+			Expense: v,
+		}
+		monthDatas = append(monthDatas, itemData)
+	}
+	if paramType == "domain" {
+		writeJSON(w, struct {
+			ProposalInfos []apitypes.ProposalReportData `json:"proposalInfos"`
+			MonthData     []apitypes.MonthDataObject    `json:"monthData"`
+			DomainList    []string                      `json:"domainList"`
+		}{
+			ProposalInfos: proposalSummaryList,
+			MonthData:     monthDatas,
+			DomainList:    allParamList,
+		}, m.GetIndentCtx(r))
+	} else if paramType == "owner" {
+		writeJSON(w, struct {
+			ProposalInfos []apitypes.ProposalReportData `json:"proposalInfos"`
+			MonthData     []apitypes.MonthDataObject    `json:"monthData"`
+			OwnerList     []string                      `json:"ownerList"`
+		}{
+			ProposalInfos: proposalSummaryList,
+			MonthData:     monthDatas,
+			OwnerList:     allParamList,
+		}, m.GetIndentCtx(r))
+	}
+}
+
+func (c *appContext) HandlerDetailReportByOwner(w http.ResponseWriter, r *http.Request, name string) {
+	//get proposal meta data by owner name
+	proposalMetaList, err := c.DataSource.GetProposalByOwner(name)
+	if err != nil {
+		log.Errorf("Get proposals by owner failed: %v", err)
+		writeJSON(w, nil, m.GetIndentCtx(r))
+		return
+	}
+	c.MainHandlerForReportByParam(w, r, proposalMetaList, "owner")
+}
+
+func (c *appContext) HandlerDetailReportByDomain(w http.ResponseWriter, r *http.Request, domain string) {
+	//get proposal meta data by domain
+	proposalMetaList, err := c.DataSource.GetProposalByDomain(domain)
+	if err != nil {
+		log.Errorf("Get proposals by domain failed: %v", err)
+		writeJSON(w, nil, m.GetIndentCtx(r))
+		return
+	}
+	c.MainHandlerForReportByParam(w, r, proposalMetaList, "domain")
+}
+
+func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *http.Request, timeType string, timeStr string) {
 	report := make([]apitypes.MonthReportData, 0)
 	domainList := make([]string, 0)
 	proposalList := make([]string, 0)
@@ -940,7 +1276,7 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 	var treasurySummary dbtypes.TreasurySummary
 	var legacySummary dbtypes.TreasurySummary
 
-	if detailType == "month" {
+	if timeType == "month" {
 		timeArr := strings.Split(timeStr, "_")
 		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
 		month, monthErr := strconv.ParseInt(timeArr[1], 0, 32)
@@ -962,6 +1298,7 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			var amount = proposalMeta["Amount"]
 			var token = proposalMeta["Token"]
 			var name = proposalMeta["Name"]
+			var author = proposalMeta["Username"]
 			var startDate = proposalMeta["StartDate"]
 			var endDate = proposalMeta["EndDate"]
 			var domain = proposalMeta["Domain"]
@@ -995,6 +1332,7 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			//if start month and end month are the same, month data is proposal data
 			varMonthData := apitypes.MonthReportData{}
 			varMonthData.Token = token
+			varMonthData.Author = author
 			varMonthData.Name = name
 			varMonthData.Domain = domain
 			if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
@@ -1021,7 +1359,7 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			report = append(report, varMonthData)
 		}
 	}
-	if detailType == "year" {
+	if timeType == "year" {
 		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
 		now := time.Now()
 		if yearErr != nil || year > int64(now.Year()) {
@@ -1040,6 +1378,7 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 		for _, proposalMeta := range proposalMetaList {
 			var amount = proposalMeta["Amount"]
 			var token = proposalMeta["Token"]
+			var author = proposalMeta["Username"]
 			var name = proposalMeta["Name"]
 			var startDate = proposalMeta["StartDate"]
 			var endDate = proposalMeta["EndDate"]
@@ -1070,6 +1409,7 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			//if start month and end month are the same, month data is proposal data
 			varYearData := apitypes.MonthReportData{}
 			varYearData.Token = token
+			varYearData.Author = author
 			varYearData.Name = name
 			varYearData.Domain = domain
 			//if current year
@@ -1077,9 +1417,7 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			if year == int64(now.Year()) {
 				var nowTemp = time.Now()
 				nowTemp = nowTemp.AddDate(0, 0, -nowTemp.Day())
-				fmt.Println(nowTemp)
 				if nowTemp.Year() != int(year) {
-					fmt.Println("ignore : ", name)
 					continue
 				}
 				startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
@@ -1108,8 +1446,6 @@ func (c *appContext) getReportDetail(w http.ResponseWriter, r *http.Request) {
 			report = append(report, varYearData)
 		}
 	}
-
-	//Get coin supply value
 	writeJSON(w, struct {
 		ReportDetail    []apitypes.MonthReportData `json:"reportDetail"`
 		ProposalList    []string                   `json:"proposalList"`

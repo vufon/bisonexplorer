@@ -203,7 +203,7 @@ func (db *ProposalsDB) ProposalsAll(offset, rowsCount int,
 }
 
 // Get all proposal tokens
-func (db *ProposalsDB) ProposalTokens() ([]string, error) {
+func (db *ProposalsDB) GetAllProposals() ([]*pitypes.ProposalRecord, error) {
 	// Sanity check
 	if db == nil || db.dbP == nil {
 		return nil, errDef
@@ -220,16 +220,11 @@ func (db *ProposalsDB) ProposalTokens() ([]string, error) {
 	if err != nil && !errors.Is(err, storm.ErrNotFound) {
 		return nil, err
 	}
-	tokens := make([]string, 0, len(proposals))
-	for _, proposal := range proposals {
-		tokens = append(tokens, proposal.Token)
-	}
-
-	return tokens, nil
+	return proposals, nil
 }
 
 // Get Approved Proposals metadata
-func (db *ProposalsDB) ProposalsApprovedMetadata(tokens []string) ([]map[string]string, error) {
+func (db *ProposalsDB) ProposalsApprovedMetadata(tokens []string, proposalList []*pitypes.ProposalRecord) ([]map[string]string, error) {
 	// Sanity check
 	if db == nil || db.dbP == nil {
 		return nil, errDef
@@ -250,6 +245,12 @@ func (db *ProposalsDB) ProposalsApprovedMetadata(tokens []string) ([]map[string]
 		if err != nil {
 			return nil, fmt.Errorf("proposalMetadataDecode err: %w", err)
 		}
+		var username string
+		for _, pRecord := range proposalList {
+			if pRecord.Token == key {
+				username = pRecord.Username
+			}
+		}
 		proposalMetaData := map[string]string{
 			"Token":     key,
 			"Name":      pm.Name,
@@ -257,6 +258,7 @@ func (db *ProposalsDB) ProposalsApprovedMetadata(tokens []string) ([]map[string]
 			"StartDate": fmt.Sprint(pm.StartDate),
 			"EndDate":   fmt.Sprint(pm.EndDate),
 			"Domain":    pm.Domain,
+			"Username":  username,
 		}
 		proposalReportDatas = append(proposalReportDatas, proposalMetaData)
 	}
