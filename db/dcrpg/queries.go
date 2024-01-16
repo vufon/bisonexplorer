@@ -891,8 +891,19 @@ func getProposalMetaByToken(db *sql.DB, token string) (map[string]string, error)
 }
 
 // Get all proposal Meta Data
-func getProposalMetaAll(db *sql.DB) ([]map[string]string, error) {
-	rows, err := db.Query(internal.SelectAllProposalMeta)
+func getProposalMetaAll(db *sql.DB, searchKey string) ([]map[string]string, error) {
+	queryBuilder := ""
+	if searchKey != "" {
+		queryBuilder = fmt.Sprintf("SELECT id, token, name, username, amount, start_date, end_date, domain FROM proposal_meta "+
+			"WHERE name ILIKE '%s%s%s' OR name ILIKE '%s%s' OR name ILIKE '%s%s' "+
+			"OR username ILIKE '%s%s%s' OR username ILIKE '%s%s' OR username ILIKE '%s%s' "+
+			"OR domain ILIKE '%s%s%s' OR domain ILIKE '%s%s' OR domain ILIKE '%s%s' "+
+			"ORDER BY start_date DESC;", "%", searchKey, "%", searchKey, "%", "%", searchKey, "%", searchKey, "%", searchKey, "%", "%", searchKey, "%", searchKey, "%", searchKey, "%", "%", searchKey)
+	} else {
+		queryBuilder = internal.SelectAllProposalMeta
+	}
+
+	rows, err := db.Query(queryBuilder)
 	if err != nil {
 		return nil, err
 	}

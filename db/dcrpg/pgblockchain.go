@@ -1370,8 +1370,8 @@ func (pgb *ChainDB) AddProposalMeta(proposalMetaData []map[string]string) (err e
 }
 
 // Get all proposal meta data
-func (pgb *ChainDB) GetAllProposalMeta() (list []map[string]string, err error) {
-	return getProposalMetaAll(pgb.db)
+func (pgb *ChainDB) GetAllProposalMeta(searchKey string) (list []map[string]string, err error) {
+	return getProposalMetaAll(pgb.db, searchKey)
 }
 
 // Get proposal meta by token

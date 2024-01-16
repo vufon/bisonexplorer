@@ -6,40 +6,55 @@
       {{ template "navbar". }}
       <div class="content pb-40">
          <div class="px-0 main finance-report-page" data-controller="financereport">
-         <div class="position-relative">
-         <label class="mt-4 report-tool-bar">Report Type :</label>
-            <div class="btn-group button-group-title" data-toggle="buttons">
-               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal All" name="proposal">
-               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Summary" name="summary">
-               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domain" name="domain">
-               <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury" name="treasury">
+            <div class="position-relative">
+               <label class="mt-4 report-tool-bar">Report Type :</label>
+               <div class="btn-group button-group-title" data-toggle="buttons">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal All" name="proposal">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Summary" name="summary">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domain" name="domain">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury" name="treasury">
+               </div>
+               <div class="d-none d-inline button-group-area" data-financereport-target="groupBy">
+                  <label class="mt-4 ms-4 report-tool-bar">Group By :</label>
+                  <div class="btn-group button-group-title" data-toggle="buttons">
+                     <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm btn-active" value="Monthly" name="month">
+                     <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm" value="Yearly" name="year">
+                  </div>
+               </div>
+               <div data-financereport-target="searchBox" class="d-iblock report-search-box ms-3 px-1 pt-1 ps-2">
+                  <input
+                     tabindex="0"
+                     type="text"
+                     name="search"
+                     class="report-search-input mousetrap pb-1"
+                     placeholder="proposals, author, domain"
+                     spellcheck="false"
+                     autocomplete="off"
+                     data-financereport-target="searchInput"
+                     data-action="keyup->financereport#searchInputKeypress input->financereport#onTypeChange"
+                     />
+                  <button class="report-search" data-financereport-target="searchBtn" data-action="click->financereport#searchProposal"><i class="dcricon-search"></i></button>
+                  <button class="report-search d-none" data-financereport-target="clearSearchBtn" data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
+                  </div>
             </div>
-            <div class="d-none d-inline button-group-area" data-financereport-target="groupBy">
-            <label class="mt-4 ms-4 report-tool-bar">Group By :</label>
-            <div class="btn-group button-group-title" data-toggle="buttons">
-               <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm btn-active" value="Monthly" name="month">
-               <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm" value="Yearly" name="year">
-            </div>
-            </div>
-         </div>
             <div class="mt-4 mb-3">
                <span class="h2 pb-1 pe-2 report-tool-bar" data-financereport-target="reportTitle">
                </span>
                <div class="mt-2" data-financereport-target="colorNoteRow">
                   <label class="color-note-label" data-financereport-target="colorLabel"></label>
-                  <span class="c-grey-2 fw-600" data-financereport-target="colorDescription">Valid payment month<span>
+                  <span class="c-grey-2 fw-600" data-financereport-target="colorDescription">Valid payment month</span>
                </div>
-               <div data-financereport-target="colorLabel">
-               <br />
-               <label class="switch d-none" data-financereport-target="legacySwitch">
+               <div>
+                  <label class="switch mt-3 d-none" data-financereport-target="legacySwitch">
                   <input type="checkbox" data-action="change->financereport#legacyReportChange" id="legacySwitchInput">
                   <span class="legacy-slider round"></span>
-               </label>
-               <span class="d-none" id="legacyLabel">Treasury</span>
+                  </label>
+                  <span class="d-none" id="legacyLabel">Treasury</span>
                </div>
             </div>
-               <table class="table v3 border-grey" data-financereport-target="report">
-               </table>
+            <table class="table v3 border-grey" data-financereport-target="report">
+            </table>
+            <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
          </div>
       </div>
       {{ template "footer". }}

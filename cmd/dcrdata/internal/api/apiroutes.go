@@ -114,7 +114,7 @@ type DataSource interface {
 	GetMempoolSSTxDetails(N int) *apitypes.MempoolTicketDetails
 	GetAddressTransactionsRawWithSkip(addr string, count, skip int) []*apitypes.AddressTxRaw
 	GetMempoolPriceCountTime() *apitypes.PriceCountTime
-	GetAllProposalMeta() (list []map[string]string, err error)
+	GetAllProposalMeta(searchKey string) (list []map[string]string, err error)
 	GetProposalByToken(token string) (proposalMeta map[string]string, err error)
 	GetProposalByDomain(domain string) (proposalMetaList []map[string]string, err error)
 	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
@@ -708,9 +708,9 @@ func (c *appContext) getTransactionHex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, hex)
 }
 
-func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, map[string]string, float64, float64) {
+func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, map[string]string, float64, float64) {
 	//Get All Proposal Metadata for Report
-	proposalMetaList, err := c.DataSource.GetAllProposalMeta()
+	proposalMetaList, err := c.DataSource.GetAllProposalMeta(searchKey)
 	if err != nil {
 		log.Errorf("Get proposals all meta data failed: %v", err)
 		return nil, nil, nil, nil, nil, 0.0, 0.0
@@ -922,7 +922,8 @@ func (c *appContext) getProposalReportData() ([]apitypes.MonthReportObject, []ap
 }
 
 func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
-	report, summary, domainList, proposalList, proposalTokenMap, allSpent, allBudget := c.getProposalReportData()
+	searchKey := r.URL.Query().Get("search")
+	report, summary, domainList, proposalList, proposalTokenMap, allSpent, allBudget := c.getProposalReportData(searchKey)
 	//Get coin supply value
 	writeJSON(w, struct {
 		Report           []apitypes.MonthReportObject  `json:"report"`
