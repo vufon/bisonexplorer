@@ -19,10 +19,10 @@ export default class extends Controller {
   static get targets () {
     return ['noData', 'reportArea', 'timeInfo', 'proposalReport',
       'domainReport', 'legacyReport', 'prevButton',
-      'nextButton', 'domainArea', 'proposalArea', 'legacyArea', 'noReport',
-      'totalSpan', 'incomeSpan', 'outgoingSpan', 'monthlyArea', 'yearlyArea',
-      'monthlyReport', 'yearlyReport', 'summaryArea', 'summaryReport', 'totalSpanRow',
-      'treasurySpanRow', 'proposalSpanRow', 'prevBtn', 'nextBtn']
+      'nextButton', 'domainArea', 'proposalArea', 'noReport',
+      'totalSpanRow', 'monthlyArea', 'yearlyArea',
+      'monthlyReport', 'yearlyReport', 'summaryArea', 'summaryReport',
+      'proposalSpanRow', 'prevBtn', 'nextBtn', 'toMain', 'upLevel', 'upLabel', 'toVote']
   }
 
   async initialize () {
@@ -211,10 +211,23 @@ export default class extends Controller {
   }
 
   async proposalCalculate () {
+    this.upLevelTarget.classList.add('d-none')
     if (this.settings.type === 'domain') {
       this.timeInfoTarget.textContent = 'Domain: ' + this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
+      // set main report url
+      this.toMainTarget.href = '/finance-report?type=domain'
     } else if (this.settings.type === 'owner') {
       this.timeInfoTarget.textContent = 'Author: ' + this.settings.name
+      this.toMainTarget.href = '/finance-report?type=summary'
+    } else {
+      this.toMainTarget.href = '/finance-report'
+    }
+    if (this.settings.type === 'domain') {
+      this.prevBtnTarget.classList.add('d-none')
+      this.nextBtnTarget.classList.add('d-none')
+    } else {
+      this.prevBtnTarget.classList.remove('d-none')
+      this.nextBtnTarget.classList.remove('d-none')
     }
     const url = `/api/finance-report/detail?type=${this.settings.type}&${this.settings.type === 'proposal' ? 'token=' + this.settings.token : 'name=' + this.settings.name}`
     let response
@@ -253,6 +266,8 @@ export default class extends Controller {
       this.handlerNextPrevButton(this.settings.type === 'domain' ? 'domain' : 'owner', this.settings.name)
     }
     if (this.settings.type === 'proposal') {
+      this.toVoteTarget.classList.remove('d-none')
+      this.toVoteTarget.href = `/proposal/${this.settings.token}`
       tokenList = response.tokenList
       this.handlerNextPrevButton('proposal', this.settings.token)
       this.timeInfoTarget.textContent = response.proposalInfo ? response.proposalInfo.name : ''
@@ -263,11 +278,25 @@ export default class extends Controller {
       `<p>End Date: <span class="fw-600">${response.proposalInfo.end}</span></p>` +
       `<p>Budget: <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.budget, 2, 2)}</span></p>` +
       `<p>Total Spent (Est): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalSpent, 2, 2)}</span></p>` + remainingStr
+    } else {
+      this.toVoteTarget.classList.add('d-none')
     }
     // Create info of
     // create monthly table
-    this.monthlyReportTarget.innerHTML = this.createMonthYearTable(response, 'month')
-    this.yearlyReportTarget.innerHTML = this.createMonthYearTable(response, 'year')
+    if (this.settings.type === 'owner') {
+      this.monthlyAreaTarget.classList.add('d-none')
+      this.yearlyAreaTarget.classList.add('d-none')
+    } else {
+      if (this.settings.type === 'proposal') {
+        // if proposal, hide yearly summary
+        this.yearlyAreaTarget.classList.add('d-none')
+      } else {
+        this.yearlyAreaTarget.classList.remove('d-none')
+        this.yearlyReportTarget.innerHTML = this.createMonthYearTable(response, 'year')
+      }
+      this.monthlyAreaTarget.classList.remove('d-none')
+      this.monthlyReportTarget.innerHTML = this.createMonthYearTable(response, 'month')
+    }
   }
 
   setDomainGeneralInfo (data, type) {
@@ -280,7 +309,7 @@ export default class extends Controller {
         totalRemaining += proposal.totalRemaining
       })
     }
-    this.proposalSpanRowTarget.innerHTML = '<p class="fs-20 mt-3 fw-600">Domain Infomation</p>' +
+    this.proposalSpanRowTarget.innerHTML = '<p class="fs-20 mt-3 fw-600">Infomation</p>' +
     `<p>Total Budget: <span class="fw-600">$${humanize.formatToLocalString(totalBudget, 2, 2)}</span></p>` +
     `<p>Total ${type === 'owner' ? 'Received: ' : 'Spent: '}<span class="fw-600">$${humanize.formatToLocalString(totalSpent, 2, 2)}</span></p>` +
     `<p>Total Remaining: <span class="fw-600">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</span></p>`
@@ -399,6 +428,14 @@ export default class extends Controller {
     if (type === 'year') {
       handlerData = this.getYearDataFromMonthData(data)
     }
+    let breakTable = 7
+    if (type === 'year' || this.settings.type === 'proposal') {
+      breakTable = 3
+    }
+    return this.createTableDetailForMonthYear(handlerData, breakTable, type)
+  }
+
+  createTableDetailForMonthYear (handlerData, breakTable, type) {
     let allTable = ''
     let count = 0
     for (let i = 0; i < handlerData.length; i++) {
@@ -413,7 +450,7 @@ export default class extends Controller {
       allTable += `<td class="text-left fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
       allTable += `<td class="text-right fs-13i">$${humanize.formatToLocalString(dataMonth.expense, 2, 2)}</td>`
       allTable += '</tr>'
-      if (count === 7) {
+      if (count === breakTable) {
         allTable += '</tbody>'
         allTable += '</table>'
         count = 0
@@ -421,7 +458,7 @@ export default class extends Controller {
         count++
       }
     }
-    if (count !== 7) {
+    if (count !== breakTable) {
       allTable += '</tbody>'
       allTable += '</table>'
     }
@@ -430,6 +467,23 @@ export default class extends Controller {
 
   // Calculate and response
   async yearMonthCalculate () {
+    // set up navigative to main report and up level of time
+    if (this.settings.type === 'year') {
+      this.toMainTarget.href = '/finance-report?interval=year'
+      this.upLevelTarget.classList.add('d-none')
+    } else {
+      this.toMainTarget.href = '/finance-report'
+      this.upLevelTarget.classList.remove('d-none')
+      if (this.settings.time) {
+        const timeArr = this.settings.time.trim().split('_')
+        if (timeArr.length >= 2) {
+          const year = parseInt(timeArr[0])
+          this.upLevelTarget.href = '/finance-report/detail?type=year&time=' + year
+          this.upLabelTarget.textContent = year
+        }
+      }
+    }
+
     this.updatePrevNextButton()
     this.timeInfoTarget.textContent = 'Detail of: ' + this.settings.time.toString().replace('_', '-')
     const url = `/api/finance-report/detail?type=${this.settings.type}&time=${this.settings.time}`
@@ -448,29 +502,30 @@ export default class extends Controller {
       }
     }
 
-    this.totalSpanRowTarget.classList.remove('d-none')
-    this.treasurySpanRowTarget.classList.remove('d-none')
-
     if (!response) {
       this.proposalAreaTarget.classList.add('d-none')
       this.domainAreaTarget.classList.add('d-none')
-      this.legacyAreaTarget.classList.add('d-none')
-      this.totalSpanTarget.textContent = '$0'
-      this.incomeSpanTarget.textContent = '0 DCR'
-      this.outgoingSpanTarget.textContent = '0 DCR'
       return
     }
     this.proposalReportTarget.innerHTML = this.createProposalDetailReport(response)
     this.domainReportTarget.innerHTML = this.createDomainDetailReport(response)
-    this.createTreasuryDetailReport(response, true)
-    this.legacyReportTarget.innerHTML = this.createTreasuryDetailReport(response, false)
-    if (this.proposalAreaTarget.classList.contains('d-none') &&
-      this.domainAreaTarget.classList.contains('d-none') &&
-      this.legacyAreaTarget.classList.contains('d-none')) {
-      this.noReportTarget.classList.remove('d-none')
-    } else {
-      this.noReportTarget.classList.add('d-none')
+    this.createYearMonthTopSummary(response)
+    // create month data list if type is year
+    if (this.settings.type === 'year') {
+      if (response.monthlyResultData && response.monthlyResultData.length > 0) {
+        this.monthlyAreaTarget.classList.remove('d-none')
+        this.monthlyAreaTarget.classList.add('ms-5')
+        this.monthlyReportTarget.innerHTML = this.createTableDetailForMonthYear(response.monthlyResultData, 5, 'month')
+      } else {
+        this.monthlyAreaTarget.classList.add('d-none')
+      }
     }
+    // if (this.proposalAreaTarget.classList.contains('d-none') &&
+    //   this.domainAreaTarget.classList.contains('d-none')) {
+    //   this.noReportTarget.classList.remove('d-none')
+    // } else {
+    //   this.noReportTarget.classList.add('d-none')
+    // }
   }
 
   createDomainDetailReport (data) {
@@ -502,54 +557,28 @@ export default class extends Controller {
     return tbody
   }
 
-  createTreasuryDetailReport (data, isTreasury) {
-    const handlerData = isTreasury ? data.treasurySummary : data.legacySummary
-    if (handlerData.invalue === 0 && handlerData.outvalue === 0 && handlerData.difference === 0 && handlerData.total === 0) {
-      if (isTreasury) {
-        this.incomeSpanTarget.textContent = '0 DCR'
-        this.outgoingSpanTarget.textContent = '0 DCR'
-      } else {
-        this.legacyAreaTarget.classList.add('d-none')
-      }
-      return ''
-    }
-    const invalue = !isTreasury ? humanize.formatToLocalString((handlerData.invalue / 100000000), 3, 3) : humanize.formatToLocalString((handlerData.invalue / 500000000), 3, 3)
-    const outvalue = !isTreasury ? humanize.formatToLocalString((handlerData.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((handlerData.outvalue / 500000000), 3, 3)
-    if (isTreasury) {
-      this.incomeSpanTarget.textContent = humanize.formatToLocalString((handlerData.invalue / 500000000), 3, 3) + ' DCR'
-      this.outgoingSpanTarget.textContent = humanize.formatToLocalString((handlerData.outvalue / 500000000), 3, 3) + ' DCR'
-      return ''
-    } else {
-      this.legacyAreaTarget.classList.remove('d-none')
-    }
-    let tbody = '<tbody>###</tbody>'
-    let bodyList = ''
-    const difference = !isTreasury ? humanize.formatToLocalString((handlerData.difference / 100000000), 3, 3) : humanize.formatToLocalString((handlerData.difference / 500000000), 3, 3)
-    const total = !isTreasury ? humanize.formatToLocalString((handlerData.total / 100000000), 3, 3) : humanize.formatToLocalString((handlerData.total / 500000000), 3, 3)
-    // legacy credit row
-    bodyList += '<tr><td class="text-left fs-13i">Credit</td>' +
-      `<td class="text-right-i fs-13i treasury-content-cell">${invalue} DCR</td>` +
-      `<td class="text-right-i fs-13i treasury-content-cell">~ $${humanize.formatToLocalString((handlerData.invalueUSD), 2, 2)}</td></tr>`
-    // legacy spent row
-    bodyList += '<tr><td class="text-left fs-13i">Spent</td>' +
-    `<td class="text-right-i fs-13i treasury-content-cell">${outvalue} DCR</td>` +
-    `<td class="text-right-i fs-13i treasury-content-cell">~ $${humanize.formatToLocalString((handlerData.outvalueUSD), 2, 2)}</td></tr>`
-    // Difference row
-    bodyList += '<tr><td class="text-left fs-13i">Difference</td>' +
-    `<td class="text-right-i fs-13i treasury-content-cell">${difference} DCR</td>` +
-    `<td class="text-right-i fs-13i treasury-content-cell">~ $${humanize.formatToLocalString((handlerData.differenceUSD), 2, 2)}</td></tr>`
-    // Total row
-    bodyList += '<tr><td class="text-left fs-13i">Total</td>' +
-    `<td class="text-right-i fs-13i treasury-content-cell">${total} DCR</td>` +
-    `<td class="text-right-i fs-13i treasury-content-cell">~ $${humanize.formatToLocalString((handlerData.totalUSD), 2, 2)}</td></tr>`
-    tbody = tbody.replace('###', bodyList)
-    return tbody
+  createYearMonthTopSummary (data) {
+    this.totalSpanRowTarget.classList.remove('d-none')
+
+    let innerHtml = '<p class="fs-20 mt-3 fw-600">Summary</p>' +
+    `<p>Total expenditure on proposals: <span class="fw-600">$${humanize.formatToLocalString((data.proposalTotal), 2, 2)}</span></p>`
+
+    innerHtml += `<p>Treasury Income: <span class="fw-600">${humanize.formatToLocalString((data.treasurySummary.invalue / 500000000), 3, 3) + ' DCR'}` +
+    `</span> (~$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)})</p><p>Treasury Outgoing: ` +
+    `<span class="fw-600">${humanize.formatToLocalString((data.treasurySummary.outvalue / 500000000), 3, 3) + ' DCR'}</span>` +
+    ` (~$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)})</p>`
+
+    innerHtml += `<p>Legacy Credit: <span class="fw-600">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}` +
+    `</span> (~$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)})</p><p>Legacy Spent: ` +
+    `<span class="fw-600">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</span>` +
+    ` (~$${humanize.formatToLocalString((data.legacySummary.outvalueUSD), 2, 2)})</p>`
+
+    this.totalSpanRowTarget.innerHTML = innerHtml
   }
 
   createProposalDetailReport (data) {
     if (!data.reportDetail || data.reportDetail.length === 0) {
       this.proposalAreaTarget.classList.add('d-none')
-      this.totalSpanTarget.textContent = '$0'
       return ''
     }
     this.proposalAreaTarget.classList.remove('d-none')
@@ -565,8 +594,6 @@ export default class extends Controller {
       bodyList += `$${humanize.formatToLocalString(report.expense, 2, 2)}</td>`
       bodyList += '</tr>'
     }
-    // set total on top header
-    this.totalSpanTarget.textContent = `$${humanize.formatToLocalString(data.proposalTotal, 2, 2)}`
     tbody = tbody.replace('###', bodyList)
     return tbody
   }

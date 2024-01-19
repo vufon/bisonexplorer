@@ -790,6 +790,7 @@ func _main(ctx context.Context) error {
 		r.Get("/attack-cost", explore.AttackCost)
 		r.Get("/verify-message", explore.VerifyMessagePage)
 		r.Get("/stakingcalc", explore.StakeRewardCalcPage)
+		r.Get("/home-report", explore.HomeReportPage)
 		r.Get("/finance-report", explore.FinanceReportPage)
 		r.Get("/finance-report/detail", explore.FinanceDetailPage)
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)

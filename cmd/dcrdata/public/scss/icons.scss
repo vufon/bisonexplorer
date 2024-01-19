@@ -130,15 +130,15 @@
 }
 
 .dcricon-back::before {
-  content: "\e913";
-}
-
-.dcricon-expand::before {
   content: "\e914";
 }
 
-.dcricon-collapse::before {
+.dcricon-expand::before {
   content: "\e915";
+}
+
+.dcricon-collapse::before {
+  content: "\e916";
 }
 
 .dcricon-copy::before {
@@ -146,7 +146,7 @@
 }
 
 .dcricon-info::before {
-  content: "\e916";
+  content: "\e917";
 }
 
 .dcricon-setting::before {
@@ -171,6 +171,14 @@
 
 .dcricon-closenb::before {
   content: "\ea0f";
+}
+
+.dcricon-calendar::before {
+  content: "\e953";
+}
+
+.dcricon-check::before {
+  content: "\f046";
 }
 
 .exchange-logo {

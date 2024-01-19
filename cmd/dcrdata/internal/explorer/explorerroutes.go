@@ -2846,6 +2846,25 @@ func (exp *explorerUI) FinanceDetailPage(w http.ResponseWriter, r *http.Request)
 }
 
 // FinanceReportPage is the page handler for the "/finance-report" path.
+func (exp *explorerUI) HomeReportPage(w http.ResponseWriter, r *http.Request) {
+	str, err := exp.templates.execTemplateToString("home_report", struct {
+		*CommonPageData
+	}{
+		CommonPageData: exp.commonData(r),
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+// FinanceReportPage is the page handler for the "/finance-report" path.
 func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request) {
 	exp.pageData.RLock()
 	//Get all proposal token to check sync

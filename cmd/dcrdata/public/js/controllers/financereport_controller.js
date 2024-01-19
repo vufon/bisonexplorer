@@ -27,23 +27,26 @@ function hasCache (k) {
 
 export default class extends Controller {
   static get targets () {
-    return ['type', 'report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription', 'legacySwitch',
-      'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata']
+    return ['type', 'report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription',
+      'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata', 'treasuryToggleArea']
   }
 
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'type', 'tsort', 'psort', 'legacy', 'interval', 'search'
+      'type', 'tsort', 'psort', 'stype', 'order', 'legacy', 'interval', 'search', 'usd'
     ])
 
     this.defaultSettings = {
       type: 'proposal',
       tsort: 'oldest',
       psort: 'newest',
+      stype: 'startdt',
+      order: 'desc',
       legacy: false,
       interval: 'month',
-      search: ''
+      search: '',
+      usd: false
     }
 
     this.query.update(this.settings)
@@ -170,6 +173,8 @@ export default class extends Controller {
     this.settings.type = e.target.name
     this.settings.tsort = this.defaultSettings.tsort
     this.settings.psort = this.defaultSettings.psort
+    this.settings.stype = this.defaultSettings.stype
+    this.settings.order = this.defaultSettings.order
     this.settings.legacy = this.defaultSettings.legacy
     this.setReportTitle(e.target.name)
     this.calculate()
@@ -212,26 +217,27 @@ export default class extends Controller {
     }
 
     if (this.settings.type === 'treasury') {
-      this.legacySwitchTarget.classList.remove('d-none')
-      document.getElementById('legacyLabel').classList.remove('d-none')
+      this.treasuryToggleAreaTarget.classList.remove('d-none')
       if (!this.settings.legacy || this.settings.legacy === 'false') {
         document.getElementById('legacySwitchInput').checked = false
-        document.getElementById('legacyLabel').textContent = 'Treasury Report'
       } else {
         document.getElementById('legacySwitchInput').checked = true
-        document.getElementById('legacyLabel').textContent = 'Legacy Report'
+      }
+      if (!this.settings.usd || this.settings.usd === 'false') {
+        document.getElementById('usdSwitchInput').checked = false
+      } else {
+        document.getElementById('usdSwitchInput').checked = true
       }
     } else {
-      this.legacySwitchTarget.classList.add('d-none')
-      document.getElementById('legacyLabel').classList.add('d-none')
+      this.treasuryToggleAreaTarget.classList.add('d-none')
     }
 
-    if (this.settings.type === 'summary') {
-      this.reportTarget.classList.add('summary-group-report')
-      this.groupByTarget.classList.add('d-none')
-    } else {
+    if (this.settings.type === 'domain' || this.settings.type === 'treasury') {
       this.reportTarget.classList.remove('summary-group-report')
       this.groupByTarget.classList.remove('d-none')
+    } else {
+      this.reportTarget.classList.add('summary-group-report')
+      this.groupByTarget.classList.add('d-none')
     }
     this.reportTarget.innerHTML = this.createTableContent()
   }
@@ -249,13 +255,55 @@ export default class extends Controller {
     }
   }
 
-  sortVertical () {
+  sortByCreateDate () {
     this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
     this.createReportTable()
   }
 
-  sortHorizontal () {
+  sortByDate () {
     this.settings.psort = (this.settings.psort === 'newest' || !this.settings.psort || this.settings.psort === '') ? 'oldest' : 'newest'
+    this.createReportTable()
+  }
+
+  sortByStartDate () {
+    this.settings.stype = 'startdt'
+    this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
+    this.createReportTable()
+  }
+
+  sortByPName () {
+    this.settings.stype = 'pname'
+    this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
+    this.createReportTable()
+  }
+
+  sortByAuthor () {
+    this.settings.stype = 'author'
+    this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
+    this.createReportTable()
+  }
+
+  sortByBudget () {
+    this.settings.stype = 'budget'
+    this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
+    this.createReportTable()
+  }
+
+  sortByTotalSpent () {
+    this.settings.stype = 'spent'
+    this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
+    this.createReportTable()
+  }
+
+  sortByRemaining () {
+    this.settings.stype = 'remaining'
+    this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
+    this.createReportTable()
+  }
+
+  sortByEndDate () {
+    this.settings.stype = 'enddt'
+    this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
     this.createReportTable()
   }
 
@@ -383,7 +431,7 @@ export default class extends Controller {
 
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
       '<th class="text-center ps-0 month-col border-right-grey report-first-header head-first-cell">' +
-      '<div class="c1"><span data-action="click->financereport#sortHorizontal" class="homeicon-swap vertical-sort"></span></div><div class="c2"><span data-action="click->financereport#sortVertical" class="homeicon-swap horizontal-sort"></span></div></th>' +
+      '<div class="c1"><span data-action="click->financereport#sortByDate" class="homeicon-swap vertical-sort"></span></div><div class="c2"><span data-action="click->financereport#sortByCreateDate" class="homeicon-swap horizontal-sort"></span></div></th>' +
       '###' +
       '<th class="text-right ps-0 fw-600 month-col ta-center border-left-grey report-last-header">Total</th>' +
       '</tr></thead>'
@@ -476,22 +524,30 @@ export default class extends Controller {
 
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      '<th class="text-center ps-0 month-col fw-600 proposal-name-col">Name</th>' +
-      '<th class="text-center ps-0 month-col fw-600">Author</th>' +
-      '<th class="text-center ps-0 ps-3 pr-3 fw-600">Start Date' +
-      `<span data-action="click->financereport#sortHorizontal" class="${this.settings.psort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort ms-1"></span></th>` +
-      '<th class="text-center ps-0 ps-3 pr-3 fw-600">End Date</th>' +
-      '<th class="text-right ps-0 ps-3 pr-3 fw-600">Budget</th>' +
-      '<th class="text-right ps-0 ps-3 pr-3 fw-600">Total Spent (Est)</th>' +
-      '<th class="text-right ps-0 ps-3 pr-3 fw-600 pr-10i">Total Remaining</th>' +
+      '<th class="text-center ps-0 month-col fw-600 proposal-name-col"><label class="cursor-pointer" data-action="click->financereport#sortByPName">Name</label>' +
+      `<span data-action="click->financereport#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="text-center ps-0 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
+      `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="text-center ps-0 ps-3 pr-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByStartDate">Start Date</label>' +
+      `<span data-action="click->financereport#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-3'} col-sort ms-1"></span></th>` +
+      '<th class="text-center ps-0 ps-3 pr-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByEndDate">End Date</label>' +
+      `<span data-action="click->financereport#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="text-right ps-0 ps-3 pr-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
+      `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="text-right ps-0 ps-3 pr-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByTotalSpent">Total Spent (Est)</label>' +
+      `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="text-right ps-0 ps-3 pr-3 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financereport#sortByRemaining">Total Remaining</label>' +
+      `<span data-action="click->financereport#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     const proposalTokenMap = data.proposalTokenMap
+    // Handler sort before display data
+    // sort by startdt
+    const summaryList = this.sortSummary(data.summary)
     // create tbody content
-    for (let i = 0; i < data.summary.length; i++) {
-      const index = this.settings.psort === 'newest' ? i : (data.summary.length - i - 1)
-      const summary = data.summary[index]
+    for (let i = 0; i < summaryList.length; i++) {
+      const summary = summaryList[i]
       let token = ''
       if (proposalTokenMap[summary.name] && proposalTokenMap[summary.name] !== '') {
         token = proposalTokenMap[summary.name]
@@ -518,6 +574,152 @@ export default class extends Controller {
     return thead + tbody
   }
 
+  sortSummary (summary) {
+    switch (this.settings.stype) {
+      case 'pname':
+        return this.sortSummaryByName(summary)
+      case 'author':
+        return this.sortSummaryByAuthor(summary)
+      case 'budget':
+        return this.sortSummaryByBudget(summary)
+      case 'spent':
+        return this.sortSummaryBySpent(summary)
+      case 'remaining':
+        return this.sortSummaryByRemaining(summary)
+      case 'enddt':
+        return this.sortSummaryByEnddt(summary)
+      default:
+        return this.sortByStartdt(summary)
+    }
+  }
+
+  sortSummaryByEnddt (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      const date1 = Date.parse(a.end)
+      const date2 = Date.parse(b.end)
+      if (date1 > date2) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (date1 < date2) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  sortSummaryByRemaining (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      if (a.totalRemaining > b.totalRemaining) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (a.totalRemaining < b.totalRemaining) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  sortSummaryBySpent (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      if (a.totalSpent > b.totalSpent) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (a.totalSpent < b.totalSpent) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  sortSummaryByBudget (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      if (a.budget > b.budget) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (a.budget < b.budget) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  sortByStartdt (summary) {
+    if (this.settings.order !== 'esc') {
+      return summary
+    }
+    const result = []
+    for (let i = summary.length - 1; i >= 0; i--) {
+      result.push(summary[i])
+    }
+    return result
+  }
+
+  sortSummaryByName (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      if (a.name > b.name) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (a.name < b.name) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  sortSummaryByAuthor (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      if (a.author > b.author) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (a.author < b.author) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  swapItemOnArray (array, index1, index2) {
+    const temp = array[index1]
+    array[index1] = index2
+    array[index2] = temp
+  }
+
   createDomainTable (data) {
     if (!data.report) {
       return ''
@@ -536,7 +738,7 @@ export default class extends Controller {
     this.reportTarget.classList.remove('d-none')
 
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
-      `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortVertical" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
+      `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
       '###' +
       '<th class="text-right ps-0 fw-600 month-col ta-center border-left-grey">Total</th>' +
       '</tr></thead>'
@@ -603,61 +805,53 @@ export default class extends Controller {
     if (this.settings.interval === 'year') {
       handlerData = this.getTreasuryYearlyData(data)
     }
-    const thead = '<thead>' +
+    let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortVertical" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (DCR)</th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (USD)</th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (DCR)</th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (USD)</th>` +
-      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Difference (DCR)</th>' +
-      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Difference (USD)</th>' +
-      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Total (DCR)</th>' +
-      '<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Total (USD)</th>' +
+      `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
+    const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
+    thead += `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (${usdDisp ? 'USD' : 'DCR'})</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (${usdDisp ? 'USD' : 'DCR'})</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Difference (${usdDisp ? 'USD' : 'DCR'})</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Total (${usdDisp ? 'USD' : 'DCR'})</th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     // create tbody content
-    let incomeTotal = 0; let incomeUsdTotal = 0; let outTotal = 0; let outUsdTotal = 0; let diffTotal = 0; let diffUsdTotal = 0; let totalAll = 0; let totalUsdAll = 0
+    let incomeTotal = 0; let outTotal = 0; let diffTotal = 0; let totalAll = 0
     for (let i = 0; i < handlerData.treasurySummary.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.treasurySummary.length - i - 1)
       const treasury = handlerData.treasurySummary[index]
-      const invalue = this.settings.legacy ? humanize.formatToLocalString((treasury.invalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.invalue / 500000000), 3, 3)
-      const outvalue = this.settings.legacy ? humanize.formatToLocalString((treasury.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.outvalue / 500000000), 3, 3)
-      const difference = this.settings.legacy ? humanize.formatToLocalString((treasury.difference / 100000000), 3, 3) : humanize.formatToLocalString((treasury.difference / 500000000), 3, 3)
-      const total = this.settings.legacy ? humanize.formatToLocalString((treasury.total / 100000000), 3, 3) : humanize.formatToLocalString((treasury.total / 500000000), 3, 3)
       const timeParam = this.getFullTimeParam(treasury.month, '-')
 
-      incomeTotal += treasury.invalue
-      incomeUsdTotal += treasury.invalueUSD
-      outTotal += treasury.outvalue
-      outUsdTotal += treasury.outvalueUSD
-      diffTotal += treasury.difference
-      diffUsdTotal += treasury.differenceUSD
-      totalAll += treasury.total
-      totalUsdAll += treasury.totalUSD
+      incomeTotal += usdDisp ? treasury.invalueUSD : treasury.invalue
+      outTotal += usdDisp ? treasury.outvalueUSD : treasury.outvalue
+      diffTotal += usdDisp ? treasury.differenceUSD : treasury.difference
+      totalAll += usdDisp ? treasury.totalUSD : treasury.total
+
+      const incomDisplay = usdDisp ? humanize.formatToLocalString(treasury.invalueUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.invalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.invalue / 500000000), 3, 3))
+      const outcomeDisplay = usdDisp ? humanize.formatToLocalString(treasury.outvalueUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.outvalue / 500000000), 3, 3))
+      const differenceDisplay = usdDisp ? humanize.formatToLocalString(treasury.differenceUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.difference / 100000000), 3, 3) : humanize.formatToLocalString((treasury.difference / 500000000), 3, 3))
+      const totalDisplay = usdDisp ? humanize.formatToLocalString(treasury.totalUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.total / 100000000), 3, 3) : humanize.formatToLocalString((treasury.total / 500000000), 3, 3))
 
       bodyList += '<tr>' +
         `<td class="text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? treasury.month : timeParam)}">${treasury.month}</a></td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">${invalue}</td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString(treasury.invalueUSD, 2, 2)}</td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">${outvalue}</td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString(treasury.outvalueUSD, 2, 2)}</td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">${difference}</td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString(treasury.differenceUSD, 2, 2)}</td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">${total}</td>` +
-        `<td class="text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString(treasury.totalUSD, 2, 2)}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${incomDisplay}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${outcomeDisplay}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${differenceDisplay}</td>` +
+        `<td class="text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalDisplay}</td>` +
         '</tr>'
     }
+
+    const totalIncomDisplay = usdDisp ? humanize.formatToLocalString(incomeTotal, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((incomeTotal / 100000000), 3, 3) : humanize.formatToLocalString((incomeTotal / 500000000), 3, 3))
+    const totalOutcomeDisplay = usdDisp ? humanize.formatToLocalString(outTotal, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((outTotal / 100000000), 3, 3) : humanize.formatToLocalString((outTotal / 500000000), 3, 3))
+    const totalDifferenceDisplay = usdDisp ? humanize.formatToLocalString(diffTotal, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((diffTotal / 100000000), 3, 3) : humanize.formatToLocalString((diffTotal / 500000000), 3, 3))
+    const totalAllDisplay = usdDisp ? humanize.formatToLocalString(totalAll, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((totalAll / 100000000), 3, 3) : humanize.formatToLocalString((totalAll / 500000000), 3, 3))
+
     bodyList += '<tr class="finance-table-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>'
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${this.settings.legacy ? humanize.formatToLocalString((incomeTotal / 100000000), 3, 3) : humanize.formatToLocalString((incomeTotal / 500000000), 3, 3)}</td>`
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">$${humanize.formatToLocalString(incomeUsdTotal, 2, 2)}</td>`
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${this.settings.legacy ? humanize.formatToLocalString((outTotal / 100000000), 3, 3) : humanize.formatToLocalString((outTotal / 500000000), 3, 3)}</td>`
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">$${humanize.formatToLocalString(outUsdTotal, 2, 2)}</td>`
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${this.settings.legacy ? humanize.formatToLocalString((diffTotal / 100000000), 3, 3) : humanize.formatToLocalString((diffTotal / 500000000), 3, 3)}</td>`
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">$${humanize.formatToLocalString(diffUsdTotal, 2, 2)}</td>`
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${this.settings.legacy ? humanize.formatToLocalString((totalAll / 100000000), 3, 3) : humanize.formatToLocalString((totalAll / 500000000), 3, 3)}</td>`
-    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">$${humanize.formatToLocalString(totalUsdAll, 2, 2)}</td>`
+    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalIncomDisplay}</td>`
+    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalOutcomeDisplay}</td>`
+    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalDifferenceDisplay}</td>`
+    bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalAllDisplay}</td>`
     bodyList += '</tr>'
 
     tbody = tbody.replace('###', bodyList)
@@ -672,6 +866,7 @@ export default class extends Controller {
       this.settings.search = this.defaultSettings.search
     } else {
       this.searchBoxTarget.classList.remove('d-none')
+      this.settings.usd = false
     }
     // disabled group button for loading
     this.disabledGroupButton()
@@ -756,6 +951,12 @@ export default class extends Controller {
   legacyReportChange (e) {
     const switchCheck = document.getElementById('legacySwitchInput').checked
     this.settings.legacy = switchCheck
+    this.calculate()
+  }
+
+  treasuryUsdChange (e) {
+    const switchCheck = document.getElementById('usdSwitchInput').checked
+    this.settings.usd = switchCheck
     this.calculate()
   }
 

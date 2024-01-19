@@ -44,12 +44,17 @@
                   <label class="color-note-label" data-financereport-target="colorLabel"></label>
                   <span class="c-grey-2 fw-600" data-financereport-target="colorDescription">Valid payment month</span>
                </div>
-               <div>
-                  <label class="switch mt-3 d-none" data-financereport-target="legacySwitch">
+               <div class="d-none" data-financereport-target="treasuryToggleArea">
+                  <label class="switch mt-3">
                   <input type="checkbox" data-action="change->financereport#legacyReportChange" id="legacySwitchInput">
                   <span class="legacy-slider round"></span>
                   </label>
-                  <span class="d-none" id="legacyLabel">Treasury</span>
+                  <span>Legacy Report</span>
+                  <label class="switch mt-3 ms-5">
+                  <input type="checkbox" data-action="change->financereport#treasuryUsdChange" id="usdSwitchInput">
+                  <span class="legacy-slider round"></span>
+                  </label>
+                  <span>USD</span>
                </div>
             </div>
             <table class="table v3 border-grey" data-financereport-target="report">

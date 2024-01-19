@@ -1079,13 +1079,7 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 	}, m.GetIndentCtx(r))
 }
 
-func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.Request, proposals []map[string]string, paramType string) {
-	var allParamList []string
-	if paramType == "domain" {
-		allParamList = c.DataSource.GetAllProposalDomains()
-	} else if paramType == "owner" {
-		allParamList = c.DataSource.GetAllProposalOwners()
-	}
+func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string) ([]apitypes.ProposalReportData, []apitypes.MonthDataObject) {
 	now := time.Now()
 	proposalSummaryList := make([]apitypes.ProposalReportData, 0)
 	monthDatas := make([]apitypes.MonthDataObject, 0)
@@ -1173,7 +1167,7 @@ func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.
 				costOfMonth = math.Ceil(costOfMonth*100) / 100
 				totalSpent += costOfMonth
 				if _, ok := monthWeightMap[key]; !ok {
-					monthWeightMap[key] = startTime.Year()*12 + int(startTime.Month())
+					monthWeightMap[key] = handlerTime.Year()*12 + int(handlerTime.Month())
 				}
 				value, ok := monthExpenseMap[key]
 				if ok {
@@ -1223,6 +1217,19 @@ func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.
 		}
 		monthDatas = append(monthDatas, itemData)
 	}
+	return proposalSummaryList, monthDatas
+}
+
+func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.Request, proposals []map[string]string, paramType string) {
+	var allParamList []string
+	if paramType == "domain" {
+		allParamList = c.DataSource.GetAllProposalDomains()
+	} else if paramType == "owner" {
+		allParamList = c.DataSource.GetAllProposalOwners()
+	}
+
+	proposalSummaryList, monthDatas := c.GetReportDataFromProposalList(proposals)
+
 	if paramType == "domain" {
 		writeJSON(w, struct {
 			ProposalInfos []apitypes.ProposalReportData `json:"proposalInfos"`
@@ -1276,7 +1283,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 
 	var treasurySummary dbtypes.TreasurySummary
 	var legacySummary dbtypes.TreasurySummary
-
+	monthResultData := make([]apitypes.MonthDataObject, 0)
 	if timeType == "month" {
 		timeArr := strings.Split(timeStr, "_")
 		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
@@ -1446,21 +1453,38 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			total += varYearData.Expense
 			report = append(report, varYearData)
 		}
+		//get month data from proposal list
+		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList)
+		for _, monthData := range monthDatas {
+			monthArr := strings.Split(monthData.Month, "-")
+			if len(monthArr) < 2 {
+				continue
+			}
+			tmpYear, parseErr := strconv.ParseInt(monthArr[0], 0, 32)
+			if parseErr != nil {
+				continue
+			}
+			if tmpYear == year {
+				monthResultData = append(monthResultData, monthData)
+			}
+		}
 	}
 	writeJSON(w, struct {
-		ReportDetail    []apitypes.MonthReportData `json:"reportDetail"`
-		ProposalList    []string                   `json:"proposalList"`
-		DomainList      []string                   `json:"domainList"`
-		ProposalTotal   float64                    `json:"proposalTotal"`
-		TreasurySummary dbtypes.TreasurySummary    `json:"treasurySummary"`
-		LegacySummary   dbtypes.TreasurySummary    `json:"legacySummary"`
+		ReportDetail      []apitypes.MonthReportData `json:"reportDetail"`
+		ProposalList      []string                   `json:"proposalList"`
+		DomainList        []string                   `json:"domainList"`
+		ProposalTotal     float64                    `json:"proposalTotal"`
+		TreasurySummary   dbtypes.TreasurySummary    `json:"treasurySummary"`
+		LegacySummary     dbtypes.TreasurySummary    `json:"legacySummary"`
+		MonthlyResultData []apitypes.MonthDataObject `json:"monthlyResultData"`
 	}{
-		ReportDetail:    report,
-		ProposalList:    proposalList,
-		DomainList:      domainList,
-		ProposalTotal:   total,
-		TreasurySummary: treasurySummary,
-		LegacySummary:   legacySummary,
+		ReportDetail:      report,
+		ProposalList:      proposalList,
+		DomainList:        domainList,
+		ProposalTotal:     total,
+		TreasurySummary:   treasurySummary,
+		LegacySummary:     legacySummary,
+		MonthlyResultData: monthResultData,
 	}, m.GetIndentCtx(r))
 }
 
