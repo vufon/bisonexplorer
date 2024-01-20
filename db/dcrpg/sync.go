@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -55,34 +54,14 @@ func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
 		oldest = oldestTime
 	}
 	monthPriceMap := pgb.GetCurrencyPriceMap(oldest.T, time.Now())
-
 	createTableErr := pgb.CheckCreateMonthlyPriceTable()
 	if createTableErr != nil {
 		log.Errorf("Check exist and create monthly_price table failed: %v", err)
 		return err
 	}
 
-	for month, price := range monthPriceMap {
-		timeArr := strings.Split(month, "-")
-		if len(timeArr) != 2 {
-			continue
-		}
-		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
-		month := dbtypes.GetMonthFromString(timeArr[1])
-		now := time.Now()
-		if yearErr != nil || (int(now.Month()) == int(month) && now.Year() == int(year)) {
-			continue
-		}
-		startOfMonth := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.Local)
-		//check exist month
-		var checkExist bool
-		existErr := pgb.db.QueryRowContext(pgb.ctx, internal.CheckExistMonth, startOfMonth).Scan(&checkExist)
-		if existErr == nil && checkExist {
-			continue
-		}
-		pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), price)
-	}
-
+	lastMonth, _ := pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
+	log.Infof("Completed synchronization of price data by month. Last Month: %s", lastMonth)
 	return nil
 }
 

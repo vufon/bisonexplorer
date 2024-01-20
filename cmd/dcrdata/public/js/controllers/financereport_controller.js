@@ -34,12 +34,13 @@ export default class extends Controller {
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'type', 'tsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd'
+      'type', 'tsort', 'lsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd'
     ])
 
     this.defaultSettings = {
       type: 'proposal',
       tsort: 'oldest',
+      lsort: 'oldest',
       psort: 'newest',
       stype: 'startdt',
       order: 'desc',
@@ -171,6 +172,7 @@ export default class extends Controller {
     target.classList.add('btn-active')
     this.settings.type = e.target.name
     this.settings.tsort = this.defaultSettings.tsort
+    this.settings.lsort = this.defaultSettings.lsort
     this.settings.psort = this.defaultSettings.psort
     this.settings.stype = this.defaultSettings.stype
     this.settings.order = this.defaultSettings.order
@@ -253,6 +255,11 @@ export default class extends Controller {
 
   sortByCreateDate () {
     this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
+    this.createReportTable()
+  }
+
+  sortByLegacyMonth () {
+    this.settings.lsort = (this.settings.lsort === 'oldest' || !this.settings.lsort || this.settings.lsort === '') ? 'newest' : 'oldest'
     this.createReportTable()
   }
 
@@ -581,20 +588,20 @@ export default class extends Controller {
       case 'remaining':
         return this.sortSummaryByRemaining(summary)
       case 'enddt':
-        return this.sortSummaryByEnddt(summary)
+        return this.sortSummaryByDate(summary, false)
       default:
-        return this.sortByStartdt(summary)
+        return this.sortSummaryByDate(summary, true)
     }
   }
 
-  sortSummaryByEnddt (summary) {
+  sortSummaryByDate (summary, isStart) {
     if (!summary) {
       return
     }
     const _this = this
     summary.sort(function (a, b) {
-      const date1 = Date.parse(a.end)
-      const date2 = Date.parse(b.end)
+      const date1 = Date.parse(isStart ? a.start : a.end)
+      const date2 = Date.parse(isStart ? b.start : b.end)
       if (date1 > date2) {
         return _this.settings.order === 'desc' ? -1 : 1
       }
@@ -807,8 +814,12 @@ export default class extends Controller {
 
   createTreasuryLegacyTableContent (summary, isLegacy) {
     let thead = '<thead>' +
-      '<tr class="text-secondary finance-table-header">' +
-      `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
+      '<tr class="text-secondary finance-table-header">'
+    if (isLegacy) {
+      thead += `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByLegacyMonth" class="${this.settings.lsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
+    } else {
+      thead += `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
+    }
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     thead += `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Incoming (${usdDisp ? 'USD' : 'DCR'})</th>` +
       `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Outgoing (${usdDisp ? 'USD' : 'DCR'})</th>` +
@@ -820,7 +831,8 @@ export default class extends Controller {
     // create tbody content
     let incomeTotal = 0; let outTotal = 0; let diffTotal = 0; let totalAll = 0
     for (let i = 0; i < summary.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (summary.length - i - 1)
+      const sort = isLegacy ? this.settings.lsort : this.settings.tsort
+      const index = sort === 'newest' ? i : (summary.length - i - 1)
       const item = summary[index]
       const timeParam = this.getFullTimeParam(item.month, '-')
 

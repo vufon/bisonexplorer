@@ -21,14 +21,12 @@
                   Voting Detail
                 </a>
             </div>
-            <div class="d-flex justify-content-between mt-2">
-               <button class="btn btn-primary c-white-important" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">
-                  <span class="dcricon-arrow-simple-left mr-5"></span><span data-financedetail-target="prevButton"></span>
-               </button>
-               <p class="fw-600 fs-24 m-0" data-financedetail-target="timeInfo"></p>
-               <button class="btn btn-primary c-white-important" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">
-                  <span data-financedetail-target="nextButton"></span><span class="dcricon-arrow-simple-right ms-1"></span>
-               </button>
+            <div class="d-flex mt-2">
+               <p class="fw-600 fs-24" data-financedetail-target="timeInfo"></p>
+               <p class="ms-4 d-flex ai-center">
+                  <a class="fs13 cursor-pointer" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
+					   <a class="fs13 cursor-pointer" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">&nbsp;next </a>
+               </p>
             </div>
             <div class="mt-1 d-none" data-financedetail-target="proposalSpanRow">
             </div>

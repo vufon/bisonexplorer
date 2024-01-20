@@ -34,7 +34,7 @@ const (
 	SelectAddressSummaryRows = `SELECT * FROM address_summary ORDER BY time`
 
 	//select only data from summary table
-	SelectAddressSummaryDataRows = `SELECT time,total_value,spent_value FROM address_summary ORDER BY time`
+	SelectAddressSummaryDataRows = `SELECT time,total_value,spent_value FROM address_summary ORDER BY time DESC`
 
 	SelectAddressSummaryDataByMonth = `SELECT time,total_value,spent_value FROM address_summary 
 	WHERE EXTRACT(YEAR FROM time) = $1 AND EXTRACT(MONTH FROM time) = $2`

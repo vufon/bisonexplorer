@@ -18,7 +18,7 @@ function hasCache (k) {
 export default class extends Controller {
   static get targets () {
     return ['noData', 'reportArea', 'timeInfo', 'proposalReport',
-      'domainReport', 'legacyReport', 'prevButton',
+      'domainReport', 'legacyReport',
       'nextButton', 'domainArea', 'proposalArea', 'noReport',
       'totalSpanRow', 'monthlyArea', 'yearlyArea',
       'monthlyReport', 'yearlyReport', 'summaryArea', 'summaryReport',
@@ -82,43 +82,6 @@ export default class extends Controller {
       query[k] = settings[k]
     }
     this.query.replace(query)
-  }
-
-  updatePrevNextButton () {
-    // if not month or year. Then the next and previous buttons will be displayed differently
-    if (this.settings.type !== 'month' && this.settings.type !== 'year') {
-      return
-    }
-    if (this.settings.type === 'year') {
-      this.prevButtonTarget.innerHTML = (this.settings.time - 1).toString()
-      this.nextButtonTarget.innerHTML = (this.settings.time + 1).toString()
-    } else if (this.settings.type === 'month') {
-      const timeArr = this.settings.time.trim().split('_')
-      const year = parseInt(timeArr[0])
-      const month = parseInt(timeArr[1])
-      let prevMonth = 0
-      let nextMonth = 0
-      let nextYear = 0
-      let prevYear = 0
-      if (month === 1) {
-        prevYear = year - 1
-        nextYear = year
-        prevMonth = 12
-        nextMonth = month + 1
-      } else if (month === 12) {
-        prevYear = year
-        nextYear = year + 1
-        prevMonth = month - 1
-        nextMonth = 1
-      } else {
-        prevYear = year
-        nextYear = year
-        prevMonth = month - 1
-        nextMonth = month + 1
-      }
-      this.prevButtonTarget.innerHTML = prevYear + '-' + prevMonth
-      this.nextButtonTarget.innerHTML = nextYear + '-' + nextMonth
-    }
   }
 
   prevReport (e) {
@@ -334,14 +297,14 @@ export default class extends Controller {
     }
     if (indexOfNow === 0) {
       // disable left array button
-      this.prevBtnTarget.disabled = true
+      this.prevBtnTarget.classList.add('d-none')
     } else {
-      this.prevBtnTarget.disabled = false
+      this.prevBtnTarget.classList.remove('d-none')
     }
     if (indexOfNow === handlerList.length - 1) {
-      this.nextBtnTarget.disabled = true
+      this.nextBtnTarget.classList.add('d-none')
     } else {
-      this.nextBtnTarget.disabled = false
+      this.nextBtnTarget.classList.remove('d-none')
     }
   }
 
@@ -485,7 +448,6 @@ export default class extends Controller {
       }
     }
 
-    this.updatePrevNextButton()
     this.timeInfoTarget.textContent = 'Detail of: ' + this.settings.time.toString().replace('_', '-')
     const url = `/api/finance-report/detail?type=${this.settings.type}&time=${this.settings.time}`
     let response
