@@ -8,7 +8,6 @@ let requestCounter = 0
 let responseData
 let proposalResponse = null
 let treasuryResponse = null
-let legacyResponse = null
 let isSearching = false
 
 const proposalNote = '<br /><span class="fs-15">*The data is the daily cost estimate based on the total budget divided by the total number of proposals days</span>'
@@ -28,13 +27,14 @@ function hasCache (k) {
 export default class extends Controller {
   static get targets () {
     return ['type', 'report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription',
-      'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata', 'treasuryToggleArea']
+      'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
+      'treasuryToggleArea', 'legacyTable', 'legacyTitle']
   }
 
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'type', 'tsort', 'psort', 'stype', 'order', 'legacy', 'interval', 'search', 'usd'
+      'type', 'tsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd'
     ])
 
     this.defaultSettings = {
@@ -43,7 +43,6 @@ export default class extends Controller {
       psort: 'newest',
       stype: 'startdt',
       order: 'desc',
-      legacy: false,
       interval: 'month',
       search: '',
       usd: false
@@ -175,7 +174,6 @@ export default class extends Controller {
     this.settings.psort = this.defaultSettings.psort
     this.settings.stype = this.defaultSettings.stype
     this.settings.order = this.defaultSettings.order
-    this.settings.legacy = this.defaultSettings.legacy
     this.setReportTitle(e.target.name)
     this.calculate()
   }
@@ -183,7 +181,7 @@ export default class extends Controller {
   getApiUrlByType () {
     switch (this.settings.type) {
       case 'treasury':
-        return `/api/finance-report/treasury?legacy=${this.settings.legacy}`
+        return '/api/finance-report/treasury'
       default:
         return `/api/finance-report/proposal?search=${!this.settings.search ? '' : this.settings.search}`
     }
@@ -212,24 +210,20 @@ export default class extends Controller {
 
     if (this.settings.type === 'treasury') {
       this.reportTarget.classList.add('treasury-group-report')
-    } else {
-      this.reportTarget.classList.remove('treasury-group-report')
-    }
-
-    if (this.settings.type === 'treasury') {
+      this.legacyTableTarget.classList.remove('d-none')
+      this.legacyTitleTarget.classList.remove('d-none')
       this.treasuryToggleAreaTarget.classList.remove('d-none')
-      if (!this.settings.legacy || this.settings.legacy === 'false') {
-        document.getElementById('legacySwitchInput').checked = false
-      } else {
-        document.getElementById('legacySwitchInput').checked = true
-      }
       if (!this.settings.usd || this.settings.usd === 'false') {
         document.getElementById('usdSwitchInput').checked = false
       } else {
         document.getElementById('usdSwitchInput').checked = true
       }
+      this.createTreasuryTable(responseData)
     } else {
       this.treasuryToggleAreaTarget.classList.add('d-none')
+      this.legacyTableTarget.classList.add('d-none')
+      this.legacyTitleTarget.classList.add('d-none')
+      this.reportTarget.classList.remove('treasury-group-report')
     }
 
     if (this.settings.type === 'domain' || this.settings.type === 'treasury') {
@@ -239,7 +233,11 @@ export default class extends Controller {
       this.reportTarget.classList.add('summary-group-report')
       this.groupByTarget.classList.add('d-none')
     }
-    this.reportTarget.innerHTML = this.createTableContent()
+
+    // if treasury, get table content in other area
+    if (this.settings.type !== 'treasury') {
+      this.reportTarget.innerHTML = this.createTableContent()
+    }
   }
 
   createTableContent () {
@@ -248,8 +246,6 @@ export default class extends Controller {
         return this.createSummaryTable(responseData)
       case 'domain':
         return this.createDomainTable(responseData)
-      case 'treasury':
-        return this.createTreasuryTable(responseData)
       default:
         return this.createProposalTable(responseData)
     }
@@ -307,11 +303,11 @@ export default class extends Controller {
     this.createReportTable()
   }
 
-  getTreasuryYearlyData (data) {
+  getTreasuryYearlyData (summary) {
     const dataMap = new Map()
     const yearArr = []
-    for (let i = 0; i < data.treasurySummary.length; i++) {
-      const item = data.treasurySummary[i]
+    for (let i = 0; i < summary.length; i++) {
+      const item = summary[i]
       const month = item.month
       if (month && month !== '') {
         const year = month.split('-')[0]
@@ -347,9 +343,7 @@ export default class extends Controller {
     yearArr.forEach((year) => {
       result.push(dataMap.get(year))
     })
-    const mapResult = {}
-    mapResult.treasurySummary = result
-    return mapResult
+    return result
   }
 
   getProposalYearlyData (data) {
@@ -801,16 +795,23 @@ export default class extends Controller {
     if (!data.treasurySummary) {
       return ''
     }
-    let handlerData = data
+    let treasuryData = data.treasurySummary
+    let legacyData = data.legacySummary
     if (this.settings.interval === 'year') {
-      handlerData = this.getTreasuryYearlyData(data)
+      treasuryData = this.getTreasuryYearlyData(treasuryData)
+      legacyData = this.getTreasuryYearlyData(legacyData)
     }
+    this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData, false)
+    this.legacyTableTarget.innerHTML = this.createTreasuryLegacyTableContent(legacyData, true)
+  }
+
+  createTreasuryLegacyTableContent (summary, isLegacy) {
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
       `<th class="text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
-    thead += `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Credit' : 'Incoming'} (${usdDisp ? 'USD' : 'DCR'})</th>` +
-      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">${this.settings.legacy ? 'Spent' : 'Outgoing'} (${usdDisp ? 'USD' : 'DCR'})</th>` +
+    thead += `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Incoming (${usdDisp ? 'USD' : 'DCR'})</th>` +
+      `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Outgoing (${usdDisp ? 'USD' : 'DCR'})</th>` +
       `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Difference (${usdDisp ? 'USD' : 'DCR'})</th>` +
       `<th class="text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Total (${usdDisp ? 'USD' : 'DCR'})</th>` +
       '</tr></thead>'
@@ -818,23 +819,23 @@ export default class extends Controller {
     let bodyList = ''
     // create tbody content
     let incomeTotal = 0; let outTotal = 0; let diffTotal = 0; let totalAll = 0
-    for (let i = 0; i < handlerData.treasurySummary.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (handlerData.treasurySummary.length - i - 1)
-      const treasury = handlerData.treasurySummary[index]
-      const timeParam = this.getFullTimeParam(treasury.month, '-')
+    for (let i = 0; i < summary.length; i++) {
+      const index = this.settings.tsort === 'newest' ? i : (summary.length - i - 1)
+      const item = summary[index]
+      const timeParam = this.getFullTimeParam(item.month, '-')
 
-      incomeTotal += usdDisp ? treasury.invalueUSD : treasury.invalue
-      outTotal += usdDisp ? treasury.outvalueUSD : treasury.outvalue
-      diffTotal += usdDisp ? treasury.differenceUSD : treasury.difference
-      totalAll += usdDisp ? treasury.totalUSD : treasury.total
+      incomeTotal += usdDisp ? item.invalueUSD : item.invalue
+      outTotal += usdDisp ? item.outvalueUSD : item.outvalue
+      diffTotal += usdDisp ? item.differenceUSD : item.difference
+      totalAll += usdDisp ? item.totalUSD : item.total
 
-      const incomDisplay = usdDisp ? humanize.formatToLocalString(treasury.invalueUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.invalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.invalue / 500000000), 3, 3))
-      const outcomeDisplay = usdDisp ? humanize.formatToLocalString(treasury.outvalueUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((treasury.outvalue / 500000000), 3, 3))
-      const differenceDisplay = usdDisp ? humanize.formatToLocalString(treasury.differenceUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.difference / 100000000), 3, 3) : humanize.formatToLocalString((treasury.difference / 500000000), 3, 3))
-      const totalDisplay = usdDisp ? humanize.formatToLocalString(treasury.totalUSD, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((treasury.total / 100000000), 3, 3) : humanize.formatToLocalString((treasury.total / 500000000), 3, 3))
+      const incomDisplay = usdDisp ? humanize.formatToLocalString(item.invalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.invalue / 100000000), 3, 3) : humanize.formatToLocalString((item.invalue / 500000000), 3, 3))
+      const outcomeDisplay = usdDisp ? humanize.formatToLocalString(item.outvalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((item.outvalue / 500000000), 3, 3))
+      const differenceDisplay = usdDisp ? humanize.formatToLocalString(item.differenceUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.difference / 100000000), 3, 3) : humanize.formatToLocalString((item.difference / 500000000), 3, 3))
+      const totalDisplay = usdDisp ? humanize.formatToLocalString(item.totalUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.total / 100000000), 3, 3) : humanize.formatToLocalString((item.total / 500000000), 3, 3))
 
       bodyList += '<tr>' +
-        `<td class="text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? treasury.month : timeParam)}">${treasury.month}</a></td>` +
+        `<td class="text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${incomDisplay}</td>` +
         `<td class="text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${outcomeDisplay}</td>` +
         `<td class="text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${differenceDisplay}</td>` +
@@ -842,10 +843,10 @@ export default class extends Controller {
         '</tr>'
     }
 
-    const totalIncomDisplay = usdDisp ? humanize.formatToLocalString(incomeTotal, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((incomeTotal / 100000000), 3, 3) : humanize.formatToLocalString((incomeTotal / 500000000), 3, 3))
-    const totalOutcomeDisplay = usdDisp ? humanize.formatToLocalString(outTotal, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((outTotal / 100000000), 3, 3) : humanize.formatToLocalString((outTotal / 500000000), 3, 3))
-    const totalDifferenceDisplay = usdDisp ? humanize.formatToLocalString(diffTotal, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((diffTotal / 100000000), 3, 3) : humanize.formatToLocalString((diffTotal / 500000000), 3, 3))
-    const totalAllDisplay = usdDisp ? humanize.formatToLocalString(totalAll, 2, 2) : (this.settings.legacy ? humanize.formatToLocalString((totalAll / 100000000), 3, 3) : humanize.formatToLocalString((totalAll / 500000000), 3, 3))
+    const totalIncomDisplay = usdDisp ? humanize.formatToLocalString(incomeTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((incomeTotal / 100000000), 3, 3) : humanize.formatToLocalString((incomeTotal / 500000000), 3, 3))
+    const totalOutcomeDisplay = usdDisp ? humanize.formatToLocalString(outTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((outTotal / 100000000), 3, 3) : humanize.formatToLocalString((outTotal / 500000000), 3, 3))
+    const totalDifferenceDisplay = usdDisp ? humanize.formatToLocalString(diffTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((diffTotal / 100000000), 3, 3) : humanize.formatToLocalString((diffTotal / 500000000), 3, 3))
+    const totalAllDisplay = usdDisp ? humanize.formatToLocalString(totalAll, 2, 2) : (isLegacy ? humanize.formatToLocalString((totalAll / 100000000), 3, 3) : humanize.formatToLocalString((totalAll / 500000000), 3, 3))
 
     bodyList += '<tr class="finance-table-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>'
     bodyList += `<td class="text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalIncomDisplay}</td>`
@@ -874,11 +875,7 @@ export default class extends Controller {
       let haveResponseData
       // if got report. ignore get by api
       if (this.settings.type === 'treasury') {
-        if (this.settings.legacy && legacyResponse !== null) {
-          responseData = legacyResponse
-          haveResponseData = true
-        }
-        if (!this.settings.legacy && treasuryResponse !== null) {
+        if (treasuryResponse !== null) {
           responseData = treasuryResponse
           haveResponseData = true
         }
@@ -915,11 +912,7 @@ export default class extends Controller {
     responseData = response
     if (!this.settings.search || this.settings.search === '') {
       if (this.settings.type === 'treasury') {
-        if (this.settings.legacy) {
-          legacyResponse = response
-        } else {
-          treasuryResponse = response
-        }
+        treasuryResponse = response
       } else {
         proposalResponse = response
       }
@@ -946,12 +939,6 @@ export default class extends Controller {
     this.intervalTargets.forEach((intervalTarget) => {
       intervalTarget.disabled = true
     })
-  }
-
-  legacyReportChange (e) {
-    const switchCheck = document.getElementById('legacySwitchInput').checked
-    this.settings.legacy = switchCheck
-    this.calculate()
   }
 
   treasuryUsdChange (e) {

@@ -222,7 +222,7 @@ export default class extends Controller {
     } else {
       this.toMainTarget.href = '/finance-report'
     }
-    if (this.settings.type === 'domain') {
+    if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
       this.nextBtnTarget.classList.add('d-none')
     } else {
@@ -273,7 +273,7 @@ export default class extends Controller {
       this.timeInfoTarget.textContent = response.proposalInfo ? response.proposalInfo.name : ''
       this.proposalSpanRowTarget.classList.remove('d-none')
       const remainingStr = response.proposalInfo.totalRemaining === 0.0 ? '<p>Status: <span class="fw-600">Finished</span></p>' : `<p>Total Remaining: <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalRemaining, 2, 2)}</span></p>`
-      this.proposalSpanRowTarget.innerHTML = '<p class="fs-20 mt-3 fw-600">Proposal Infomation</p>' +
+      this.proposalSpanRowTarget.innerHTML = '<p class="fs-20 mt-2 fw-600">Proposal Information</p>' +
       `<p>Start Date: <span class="fw-600">${response.proposalInfo.start}</span></p>` +
       `<p>End Date: <span class="fw-600">${response.proposalInfo.end}</span></p>` +
       `<p>Budget: <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.budget, 2, 2)}</span></p>` +
@@ -430,7 +430,8 @@ export default class extends Controller {
     }
     let breakTable = 7
     if (type === 'year' || this.settings.type === 'proposal') {
-      breakTable = 3
+      // No break
+      breakTable = 50
     }
     return this.createTableDetailForMonthYear(handlerData, breakTable, type)
   }

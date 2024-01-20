@@ -1489,28 +1489,24 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 }
 
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
-	legacyFlg := r.URL.Query().Get("legacy")
-	var treasurySummary []*dbtypes.TreasurySummary
-	var err error
-	if legacyFlg != "true" {
-		treasurySummary, err = c.DataSource.GetTreasurySummary()
-		for _, summary := range treasurySummary {
-			summary.Outvalue = 0 - summary.Outvalue
-			summary.OutvalueUSD = 0 - summary.OutvalueUSD
-		}
-	} else {
-		treasurySummary, err = c.DataSource.GetLegacySummary()
+	treasurySummary, err := c.DataSource.GetTreasurySummary()
+	for _, summary := range treasurySummary {
+		summary.Outvalue = 0 - summary.Outvalue
+		summary.OutvalueUSD = 0 - summary.OutvalueUSD
 	}
+	legacySummary, legacyErr := c.DataSource.GetLegacySummary()
 
-	if err != nil {
-		log.Errorf("Get Treasury Summary data failed: %v", err)
+	if err != nil || legacyErr != nil {
+		log.Errorf("Get Treasury/Legacy Summary data failed")
 	}
 
 	//Get coin supply value
 	writeJSON(w, struct {
 		TreasurySummary []*dbtypes.TreasurySummary `json:"treasurySummary"`
+		LegacySummary   []*dbtypes.TreasurySummary `json:"legacySummary"`
 	}{
 		TreasurySummary: treasurySummary,
+		LegacySummary:   legacySummary,
 	}, m.GetIndentCtx(r))
 }
 

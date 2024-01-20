@@ -46,11 +46,6 @@
                </div>
                <div class="d-none" data-financereport-target="treasuryToggleArea">
                   <label class="switch mt-3">
-                  <input type="checkbox" data-action="change->financereport#legacyReportChange" id="legacySwitchInput">
-                  <span class="legacy-slider round"></span>
-                  </label>
-                  <span>Legacy Report</span>
-                  <label class="switch mt-3 ms-5">
                   <input type="checkbox" data-action="change->financereport#treasuryUsdChange" id="usdSwitchInput">
                   <span class="legacy-slider round"></span>
                   </label>
@@ -58,6 +53,11 @@
                </div>
             </div>
             <table class="table v3 border-grey" data-financereport-target="report">
+            </table>
+            <p class="d-none h2 pb-2 mt-4 report-tool-bar" data-financereport-target="legacyTitle">
+               Legacy Summary
+            </p>
+            <table class="d-none table v3 border-grey treasury-group-report" data-financereport-target="legacyTable">
             </table>
             <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
          </div>
