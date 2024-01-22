@@ -53,15 +53,15 @@ func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
 	} else {
 		oldest = oldestTime
 	}
-	monthPriceMap := pgb.GetCurrencyPriceMap(oldest.T, time.Now())
 	createTableErr := pgb.CheckCreateMonthlyPriceTable()
 	if createTableErr != nil {
 		log.Errorf("Check exist and create monthly_price table failed: %v", err)
 		return err
 	}
 
-	lastMonth, _ := pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
-	log.Infof("Completed synchronization of price data by month. Last Month: %s", lastMonth)
+	monthPriceMap := pgb.GetCurrencyPriceMap(oldest.T, time.Now())
+
+	pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
 	return nil
 }
 

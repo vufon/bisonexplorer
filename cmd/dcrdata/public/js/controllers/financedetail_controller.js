@@ -235,12 +235,12 @@ export default class extends Controller {
       this.handlerNextPrevButton('proposal', this.settings.token)
       this.timeInfoTarget.textContent = response.proposalInfo ? response.proposalInfo.name : ''
       this.proposalSpanRowTarget.classList.remove('d-none')
-      const remainingStr = response.proposalInfo.totalRemaining === 0.0 ? '<p>Status: <span class="fw-600">Finished</span></p>' : `<p>Total Remaining: <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalRemaining, 2, 2)}</span></p>`
-      this.proposalSpanRowTarget.innerHTML = '<p class="fs-20 mt-2 fw-600">Proposal Information</p>' +
+      const remainingStr = response.proposalInfo.totalRemaining === 0.0 ? '<p>Status: <span class="fw-600">Finished</span></p>' : `<p>Total Remaining (Estimate): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalRemaining, 2, 2)}</span></p>`
+      this.proposalSpanRowTarget.innerHTML = `<p>Owner: <span class="fw-600">${response.proposalInfo.author}</span></p>` +
       `<p>Start Date: <span class="fw-600">${response.proposalInfo.start}</span></p>` +
       `<p>End Date: <span class="fw-600">${response.proposalInfo.end}</span></p>` +
       `<p>Budget: <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.budget, 2, 2)}</span></p>` +
-      `<p>Total Spent (Est): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalSpent, 2, 2)}</span></p>` + remainingStr
+      `<p>Total Spent (Estimate): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalSpent, 2, 2)}</span></p>` + remainingStr
     } else {
       this.toVoteTarget.classList.add('d-none')
     }
@@ -272,10 +272,9 @@ export default class extends Controller {
         totalRemaining += proposal.totalRemaining
       })
     }
-    this.proposalSpanRowTarget.innerHTML = '<p class="fs-20 mt-3 fw-600">Infomation</p>' +
-    `<p>Total Budget: <span class="fw-600">$${humanize.formatToLocalString(totalBudget, 2, 2)}</span></p>` +
-    `<p>Total ${type === 'owner' ? 'Received: ' : 'Spent: '}<span class="fw-600">$${humanize.formatToLocalString(totalSpent, 2, 2)}</span></p>` +
-    `<p>Total Remaining: <span class="fw-600">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</span></p>`
+    this.proposalSpanRowTarget.innerHTML = `<p>Total Budget: <span class="fw-600">$${humanize.formatToLocalString(totalBudget, 2, 2)}</span></p>` +
+    `<p>Total ${type === 'owner' ? 'Received' : 'Spent'} (Estimate):<span class="fw-600">$${humanize.formatToLocalString(totalSpent, 2, 2)}</span></p>` +
+    `<p>Total Remaining (Estimate): <span class="fw-600">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</span></p>`
   }
 
   handlerNextPrevButton (type, currentValue) {
@@ -320,7 +319,7 @@ export default class extends Controller {
       '<th class="text-center ps-0 ps-3 pr-3 fw-600">End Date</th>' +
       '<th class="text-right ps-0 ps-3 pr-3 fw-600">Budget</th>' +
       '<th class="text-right ps-0 ps-3 pr-3 fw-600">Total Spent (Est)</th>' +
-      '<th class="text-right ps-0 ps-3 pr-3 fw-600 pr-10i">Total Remaining</th>' +
+      '<th class="text-right ps-0 ps-3 pr-3 fw-600 pr-10i">Total Remaining (Est)</th>' +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
@@ -523,8 +522,7 @@ export default class extends Controller {
   createYearMonthTopSummary (data) {
     this.totalSpanRowTarget.classList.remove('d-none')
 
-    let innerHtml = '<p class="fs-20 mt-3 fw-600">Summary</p>' +
-    `<p>Total expenditure on proposals: <span class="fw-600">$${humanize.formatToLocalString((data.proposalTotal), 2, 2)}</span></p>`
+    let innerHtml = `<p>Total expenditure on proposals (Estimate): <span class="fw-600">$${humanize.formatToLocalString((data.proposalTotal), 2, 2)}</span></p>`
 
     innerHtml += `<p>Treasury Income: <span class="fw-600">${humanize.formatToLocalString((data.treasurySummary.invalue / 500000000), 3, 3) + ' DCR'}` +
     `</span> (~$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)})</p><p>Treasury Outgoing: ` +

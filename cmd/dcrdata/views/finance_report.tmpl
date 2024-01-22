@@ -5,14 +5,16 @@
       {{ template "html-head" headData .CommonPageData "Finance Report" }}
       {{ template "navbar". }}
       <div class="content pb-40">
-         <div class="px-0 main finance-report-page" data-controller="financereport">
+         <div class="px-0 main finance-report-page pt-3" data-controller="financereport">
+            <span class="h3 pe-2 report-tool-bar" data-financereport-target="reportTitle">
+            </span>
             <div class="position-relative">
                <label class="mt-4 report-tool-bar">Report Type :</label>
                <div class="btn-group button-group-title" data-toggle="buttons">
-                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal All" name="proposal">
-                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Summary" name="summary">
-                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domain" name="domain">
-                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury" name="treasury">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal Matrix" name="proposal">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Proposal List" name="summary">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domains" name="domain">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury Spending" name="treasury">
                </div>
                <div class="d-none d-inline button-group-area" data-financereport-target="groupBy">
                   <label class="mt-4 ms-4 report-tool-bar">Group By :</label>
@@ -37,12 +39,13 @@
                   <button class="report-search d-none" data-financereport-target="clearSearchBtn" data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
                   </div>
             </div>
-            <div class="mt-4 mb-3">
-               <span class="h2 pb-1 pe-2 report-tool-bar" data-financereport-target="reportTitle">
-               </span>
+            <div class="mt-2 mb-3">
+               <div>
+                  <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
+               </div>
                <div class="mt-2" data-financereport-target="colorNoteRow">
-                  <label class="color-note-label" data-financereport-target="colorLabel"></label>
-                  <span class="c-grey-2 fw-600" data-financereport-target="colorDescription">Valid payment month</span>
+                  <label class="color-note-label report-tool-bar" data-financereport-target="colorLabel"></label>
+                  <span class="c-grey-2 fw-600 color-description" data-financereport-target="colorDescription">Valid payment month</span>
                </div>
                <div class="d-none" data-financereport-target="treasuryToggleArea">
                   <label class="switch mt-3">
@@ -52,12 +55,12 @@
                   <span>USD</span>
                </div>
             </div>
-            <table class="table v3 border-grey" data-financereport-target="report">
+            <table class="table report v3 border-grey" data-financereport-target="report">
             </table>
             <p class="d-none h2 pb-2 mt-4 report-tool-bar" data-financereport-target="legacyTitle">
                Legacy Summary
             </p>
-            <table class="d-none table v3 border-grey treasury-group-report" data-financereport-target="legacyTable">
+            <table class="d-none table report v3 border-grey treasury-group-report" data-financereport-target="legacyTable">
             </table>
             <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
          </div>

@@ -80,6 +80,19 @@ table th.addr-hash-column {
   width: 20em;
 }
 
+table.report.v3 {
+  tr,
+  th,
+  td {
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  th {
+    padding-bottom: 13px 0 !important;
+  }
+}
+
 table.table.v3 {
   margin-bottom: 0;
 

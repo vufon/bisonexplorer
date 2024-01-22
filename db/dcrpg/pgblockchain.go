@@ -1878,7 +1878,7 @@ func (pgb *ChainDB) GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, 
 		}, nil
 	}
 
-	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear)
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
 	var total = float64(0)
 	var count = 0
 	for _, val := range monthPriceMap {
@@ -1943,7 +1943,7 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 		}, nil
 	}
 
-	currencyMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear)
+	currencyMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
 	var total = float64(0)
 	var count = 0
 	for _, v := range currencyMap {
@@ -2007,8 +2007,7 @@ func (pgb *ChainDB) GetLegacySummaryByMonth(year int, month int) (*dbtypes.Treas
 		}, nil
 	}
 
-	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth)
-
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
 	monthPrice := monthPriceMap[summary.Month]
 	summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
 	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
@@ -2060,7 +2059,7 @@ func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.Tre
 		}, nil
 	}
 
-	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth)
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
 	summary.Outvalue = -summary.Outvalue
 	monthPrice := monthPriceMap[summary.Month]
 	summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
@@ -2106,7 +2105,7 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		return nil, err
 	}
 
-	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now())
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now(), true)
 
 	for _, summary := range summaryList {
 		monthPrice := monthPriceMap[summary.Month]
@@ -2143,32 +2142,31 @@ func (pgb *ChainDB) GetCurrencyPrice(res dbtypes.CurrencyResponse) map[string]fl
 	return result
 }
 
-func (pgb *ChainDB) SyncTreasuryMonthlyPrice() (string, float64, error) {
+func (pgb *ChainDB) SyncTreasuryMonthlyPrice() {
 	//check last month in database
 	var lastestMonthly time.Time
-	err := pgb.db.QueryRow(internal.SelectLastMonthlyPrice).Scan(&lastestMonthly)
+	var lastestUpdateTime time.Time
+	err := pgb.db.QueryRow(internal.SelectLastMonthlyPrice).Scan(&lastestMonthly, &lastestUpdateTime)
 	now := time.Now()
-	if err != nil || (lastestMonthly.Year() == now.Year() && lastestMonthly.Month() == now.Month()) || lastestMonthly.After(now) {
-		return "", 0, err
+	//if error or lastest day same with today, return
+	if err != nil || lastestUpdateTime.After(now) || (lastestUpdateTime.Year() == now.Year() && lastestUpdateTime.Month() == now.Month() && lastestUpdateTime.Day() == now.Day()) {
+		return
 	}
 
 	//sync from first day of next month of last month
-	nextMonth := lastestMonthly.AddDate(0, 1, 0)
-	fistOfNextMonth := nextMonth.AddDate(0, 0, -nextMonth.Day()+1)
-	currencyPriceMap := pgb.GetCurrencyPriceMap(fistOfNextMonth, now)
+	fistOfLastMonth := lastestMonthly.AddDate(0, 0, -lastestMonthly.Day()+1)
+	currencyPriceMap := pgb.GetCurrencyPriceMap(fistOfLastMonth, now)
 	createTableErr := pgb.CheckCreateMonthlyPriceTable()
 	if createTableErr != nil {
 		log.Errorf("Check exist and create monthly_price table failed: %v", err)
-		return "", 0, createTableErr
+		return
 	}
 
-	lastMonth, lastPrice := pgb.CheckAndInsertToMonthlyPriceTable(currencyPriceMap)
-	return lastMonth, lastPrice, nil
+	pgb.CheckAndInsertToMonthlyPriceTable(currencyPriceMap)
 }
 
-func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[string]float64) (string, float64) {
-	var lastMonth = ""
-	var lastPrice = 0.0
+func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[string]float64) {
+	now := time.Now()
 	for month, price := range currencyPriceMap {
 		timeArr := strings.Split(month, "-")
 		if len(timeArr) < 2 {
@@ -2176,25 +2174,38 @@ func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[strin
 		}
 		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
 		monthInt := dbtypes.GetMonthFromString(timeArr[1])
-		now := time.Now()
 		if yearErr != nil {
 			continue
 		}
-		if int(now.Month()) == int(monthInt) && now.Year() == int(year) {
-			lastMonth = month
-			lastPrice = price
-			continue
-		}
+		var isCompleted bool
+		var lastUpdated dbtypes.TimeDef
+		existErr := pgb.db.QueryRowContext(pgb.ctx, internal.GetMonthlyPriceInfoByMonth, year*12+monthInt).Scan(&isCompleted, &lastUpdated)
+		//if error, continue
 		startOfMonth := time.Date(int(year), time.Month(monthInt), 1, 0, 0, 0, 0, time.Local)
-		//check exist month
-		var checkExist bool
-		existErr := pgb.db.QueryRowContext(pgb.ctx, internal.CheckExistMonth, year, month).Scan(&checkExist)
-		if existErr == nil && checkExist {
-			continue
+		if existErr != nil {
+			if !errors.Is(existErr, sql.ErrNoRows) {
+				continue
+			} else {
+				//if this month, save with not complete
+				if now.Year() == int(year) && now.Month() == time.Month(monthInt) {
+					pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), price, false, dbtypes.NewTimeDef(now))
+				} else {
+					pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), price, true, dbtypes.NewTimeDef(now))
+				}
+			}
+		} else {
+			if isCompleted {
+				continue
+			}
+			//if exist but not complete, update row
+			if now.Year() != int(year) || now.Month() != time.Month(monthInt) {
+				pgb.db.QueryRow(internal.UpdateMonthlyPriceRow, price, true, dbtypes.NewTimeDef(now), year*12+monthInt)
+			} else {
+				//if this month, update with not complete
+				pgb.db.QueryRow(internal.UpdateMonthlyPriceRow, price, false, dbtypes.NewTimeDef(now), year*12+monthInt)
+			}
 		}
-		pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), price)
 	}
-	return lastMonth, lastPrice
 }
 
 // Get Decred - USd Exchange map value
@@ -2297,7 +2308,7 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		return nil, err
 	}
 
-	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now())
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now(), false)
 
 	for _, summary := range summaryList {
 		monthPrice := monthPriceMap[summary.Month]
@@ -2309,17 +2320,21 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 	return summaryList, nil
 }
 
-func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time) map[string]float64 {
+func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, isSync bool) map[string]float64 {
 	//get start day on month of from
 	startDayOfFromMonth := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, time.Local)
 	endDayOfToMonth := time.Date(to.Year(), to.Month(), 1, 23, 59, 59, 0, time.Local)
 	endDayOfToMonth = endDayOfToMonth.AddDate(0, 1, -1)
 	//Synchronize price data by month before retrieving data
-	lastMonth, lastPrice, _ := pgb.SyncTreasuryMonthlyPrice()
+	lastMonth := ""
+	lastPrice := 0.0
+	if isSync {
+		pgb.SyncTreasuryMonthlyPrice()
+	}
 	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectMonthlyPriceRowsByPeriod, startDayOfFromMonth.Unix(), endDayOfToMonth.Unix())
 
 	priceMap := make(map[string]float64, 0)
-	if lastMonth != "" {
+	if isSync && lastMonth != "" {
 		priceMap[lastMonth] = lastPrice
 	}
 	if err == nil {

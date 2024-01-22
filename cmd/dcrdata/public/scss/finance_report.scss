@@ -7,6 +7,10 @@
   width: 50%;
 }
 
+.proposal-title-col {
+  width: 200px !important;
+}
+
 @media (max-width: 1780px) {
   .domain-content-cell {
     padding-right: 130px !important;
@@ -14,6 +18,10 @@
 
   .report-year-text {
     padding-right: 40px !important;
+  }
+
+  .proposal-title-col {
+    width: 180px !important;
   }
 }
 
@@ -42,6 +50,10 @@
   .report-year-text {
     padding-right: 30px !important;
   }
+
+  .proposal-title-col {
+    width: 160px !important;
+  }
 }
 
 @media (max-width: 1250px) {
@@ -56,6 +68,10 @@
 
   .treasury-group-report {
     width: 70%;
+  }
+
+  .proposal-title-col {
+    width: 140px !important;
   }
 }
 
@@ -96,6 +112,10 @@
 
   .report-year-text {
     padding-right: 20px !important;
+  }
+
+  .proposal-title-col {
+    width: 120px !important;
   }
 }
 
@@ -201,6 +221,7 @@
   position: sticky;
   left: 0;
   background-color: #d7d7d7 !important;
+  padding: 10px 0.5em !important;
 }
 
 .report-last-data {
@@ -212,6 +233,11 @@
 .report-tool-bar {
   position: sticky;
   left: 0;
+}
+
+.color-description {
+  position: sticky;
+  left: 60px;
 }
 
 .button-group-area {
@@ -228,6 +254,7 @@
   position: sticky;
   top: 5px;
   background-color: #dbdbdb !important;
+  padding-bottom: 20px !important;
 }
 
 .head-first-cell {
@@ -247,15 +274,15 @@
 }
 
 .head-first-cell .c1 {
-  -webkit-transform: translate(20px, 35px);
-  -ms-transform: rotate(90deg) translate(20px, 35px);
-  transform: rotate(90deg) translate(20px, 35px);
+  -webkit-transform: translate(20px, 50px);
+  -ms-transform: rotate(90deg) translate(20px, 50px);
+  transform: rotate(90deg) translate(20px, 50px);
 }
 
 .head-first-cell .c2 {
-  -webkit-transform: translate(26px, -30px);
-  -ms-transform: translate(26px, -30px);
-  transform: translate(26px, -30px);
+  -webkit-transform: translate(40px, -20px);
+  -ms-transform: translate(40px, -20px);
+  transform: translate(40px, -20px);
 }
 
 .col-sort {
@@ -274,10 +301,6 @@
 
 .summary-active-row {
   background-color: #ddf4dd;
-}
-
-.proposal-title-col {
-  width: 120px !important;
 }
 
 .proposal-year-title {
@@ -320,10 +343,16 @@
   display: inline-block;
   border: 1px solid #c3c3c3;
   border-radius: 5px;
+  position: sticky;
+  left: 550px;
 }
 
 .report-search {
   color: rgb(182 182 182);
   font-size: 17px;
   cursor: pointer;
+}
+
+.home-report-card {
+  grid-row-gap: 0 !important;
 }
