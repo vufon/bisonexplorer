@@ -2075,15 +2075,18 @@ type TreasuryTx struct {
 }
 
 type TreasurySummary struct {
-	Month         string  `json:"month"`
-	Invalue       int64   `json:"invalue"`
-	InvalueUSD    float64 `json:"invalueUSD"`
-	Outvalue      int64   `json:"outvalue"`
-	OutvalueUSD   float64 `json:"outvalueUSD"`
-	Difference    int64   `json:"difference"`
-	DifferenceUSD float64 `json:"differenceUSD"`
-	Total         int64   `json:"total"`
-	TotalUSD      float64 `json:"totalUSD"`
+	Month          string  `json:"month"`
+	Invalue        int64   `json:"invalue"`
+	InvalueUSD     float64 `json:"invalueUSD"`
+	Outvalue       int64   `json:"outvalue"`
+	OutvalueUSD    float64 `json:"outvalueUSD"`
+	Difference     int64   `json:"difference"`
+	DifferenceUSD  float64 `json:"differenceUSD"`
+	Total          int64   `json:"total"`
+	TotalUSD       float64 `json:"totalUSD"`
+	OutEstimate    float64 `json:"outEstimate"`
+	OutEstimateUsd float64 `json:"outEstimateUsd"`
+	MonthPrice     float64 `json:"monthPrice"`
 }
 
 type CurrencyResponse struct {

@@ -2113,6 +2113,7 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
 		summary.DifferenceUSD = monthPrice * float64(summary.Difference/5) / 1e8
 		summary.TotalUSD = monthPrice * float64(summary.Total/5) / 1e8
+		summary.MonthPrice = monthPrice
 	}
 	return summaryList, nil
 }
@@ -2316,6 +2317,7 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
 		summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
 		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
+		summary.MonthPrice = monthPrice
 	}
 	return summaryList, nil
 }

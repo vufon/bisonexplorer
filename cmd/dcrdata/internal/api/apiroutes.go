@@ -708,12 +708,12 @@ func (c *appContext) getTransactionHex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, hex)
 }
 
-func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, map[string]string, float64, float64) {
+func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, map[string]string, float64, float64, []apitypes.AuthorDataObject) {
 	//Get All Proposal Metadata for Report
 	proposalMetaList, err := c.DataSource.GetAllProposalMeta(searchKey)
 	if err != nil {
 		log.Errorf("Get proposals all meta data failed: %v", err)
-		return nil, nil, nil, nil, nil, 0.0, 0.0
+		return nil, nil, nil, nil, nil, 0.0, 0.0, nil
 	}
 
 	// create report data map
@@ -727,6 +727,8 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 	minDate := time.Now()
 	var totalAllSpent = 0.0
 	var totalAllBudget = 0.0
+	//author report map
+	authorReportMap := make(map[string]apitypes.AuthorDataObject)
 	for _, proposalMeta := range proposalMetaList {
 		var amount = proposalMeta["Amount"]
 		var token = proposalMeta["Token"]
@@ -773,6 +775,7 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 		proposalInfo.Token = token
 		proposalInfo.Author = author
 		proposalInfo.Budget = amountFloat
+		proposalInfo.Domain = domain
 		totalAllBudget += amountFloat
 		proposalInfo.Start = startTime.Format("2006-01-02")
 		proposalInfo.End = endTime.Format("2006-01-02")
@@ -854,6 +857,28 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 		proposalInfo.TotalSpent = math.Ceil(totalSpent*100) / 100
 		proposalInfo.TotalRemaining = math.Ceil((amountFloat-totalSpent)*100) / 100
 		proposalReportData = append(proposalReportData, proposalInfo)
+		authorInfo, authorExist := authorReportMap[author]
+		if authorExist {
+			authorInfo.Budget += amountFloat
+			authorInfo.Proposals += 1
+			authorInfo.TotalReceived += proposalInfo.TotalSpent
+			authorInfo.TotalRemaining += proposalInfo.TotalRemaining
+		} else {
+			authorInfo = apitypes.AuthorDataObject{
+				Name:           author,
+				Proposals:      1,
+				Budget:         amountFloat,
+				TotalReceived:  proposalInfo.TotalSpent,
+				TotalRemaining: proposalInfo.TotalRemaining,
+			}
+		}
+		authorReportMap[author] = authorInfo
+	}
+
+	//recalc author report array
+	authorReportArray := make([]apitypes.AuthorDataObject, 0)
+	for _, authorInfo := range authorReportMap {
+		authorReportArray = append(authorReportArray, authorInfo)
 	}
 
 	monthReportList := make([]apitypes.MonthReportObject, 0)
@@ -918,12 +943,12 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 			monthReportList = append(monthReportList, reportMonthObj)
 		}
 	}
-	return monthReportList, proposalReportData, domainList, proposalList, proposalTokenMap, totalAllSpent, totalAllBudget
+	return monthReportList, proposalReportData, domainList, proposalList, proposalTokenMap, totalAllSpent, totalAllBudget, authorReportArray
 }
 
 func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 	searchKey := r.URL.Query().Get("search")
-	report, summary, domainList, proposalList, proposalTokenMap, allSpent, allBudget := c.getProposalReportData(searchKey)
+	report, summary, domainList, proposalList, proposalTokenMap, allSpent, allBudget, authorReport := c.getProposalReportData(searchKey)
 	//Get coin supply value
 	writeJSON(w, struct {
 		Report           []apitypes.MonthReportObject  `json:"report"`
@@ -933,6 +958,7 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		ProposalTokenMap map[string]string             `json:"proposalTokenMap"`
 		AllSpent         float64                       `json:"allSpent"`
 		AllBudget        float64                       `json:"allBudget"`
+		AuthorReport     []apitypes.AuthorDataObject   `json:"authorReport"`
 	}{
 		Report:           report,
 		Summary:          summary,
@@ -941,6 +967,7 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		ProposalTokenMap: proposalTokenMap,
 		AllSpent:         allSpent,
 		AllBudget:        allBudget,
+		AuthorReport:     authorReport,
 	}, m.GetIndentCtx(r))
 }
 
@@ -986,7 +1013,6 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 	endInt, err2 := strconv.ParseInt(endDate, 0, 32)
 	amountFloat, err3 := strconv.ParseFloat(amount, 64)
 	if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
-		log.Errorf("Proposal meta data failed: %v", err)
 		writeJSON(w, nil, m.GetIndentCtx(r))
 		return
 	}
@@ -1068,14 +1094,30 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 	proposalInfo.TotalSpent = math.Ceil(totalSpent*100) / 100
 	proposalInfo.TotalRemaining = math.Ceil((amountFloat-totalSpent)*100) / 100
 
+	//Get other proposal with the same owner
+	proposalMetaList, err := c.DataSource.GetProposalByOwner(author)
+	proposalSummaryList := make([]apitypes.ProposalReportData, 0)
+	if err == nil {
+		handlerProposals := make([]map[string]string, 0)
+		for _, proposalMetaData := range proposalMetaList {
+			if proposalMetaData["Token"] != token {
+				handlerProposals = append(handlerProposals, proposalMetaData)
+			}
+		}
+		//remove this owner from proposalMetaList
+		proposalSummaryList, _ = c.GetReportDataFromProposalList(handlerProposals)
+	}
+
 	writeJSON(w, struct {
-		ProposalInfo apitypes.ProposalReportData `json:"proposalInfo"`
-		MonthData    []apitypes.MonthDataObject  `json:"monthData"`
-		TokenList    []string                    `json:"tokenList"`
+		ProposalInfo       apitypes.ProposalReportData   `json:"proposalInfo"`
+		MonthData          []apitypes.MonthDataObject    `json:"monthData"`
+		TokenList          []string                      `json:"tokenList"`
+		OtherProposalInfos []apitypes.ProposalReportData `json:"otherProposalInfos"`
 	}{
-		ProposalInfo: proposalInfo,
-		MonthData:    monthDatas,
-		TokenList:    proposalTokens,
+		ProposalInfo:       proposalInfo,
+		MonthData:          monthDatas,
+		TokenList:          proposalTokens,
+		OtherProposalInfos: proposalSummaryList,
 	}, m.GetIndentCtx(r))
 }
 
@@ -1098,14 +1140,12 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 		endInt, err2 := strconv.ParseInt(endDate, 0, 32)
 		amountFloat, err3 := strconv.ParseFloat(amount, 64)
 		if amountFloat == 0.0 || err != nil || err2 != nil || err3 != nil {
-			log.Errorf("Proposal meta data failed")
 			continue
 		}
 		amountFloat = amountFloat / 100
 		startTime := time.Unix(startInt, 0)
 		endTime := time.Unix(endInt, 0)
 		if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
-			log.Errorf("There are no payments because the first payment for the project has not yet arrived")
 			continue
 		}
 		proposalInfo.Name = name
@@ -1276,7 +1316,7 @@ func (c *appContext) HandlerDetailReportByDomain(w http.ResponseWriter, r *http.
 }
 
 func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *http.Request, timeType string, timeStr string) {
-	report := make([]apitypes.MonthReportData, 0)
+	report := make([]apitypes.ProposalReportData, 0)
 	domainList := make([]string, 0)
 	proposalList := make([]string, 0)
 	total := float64(0)
@@ -1338,13 +1378,16 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			costPerDay := amountFloat / float64(countDays)
 
 			//if start month and end month are the same, month data is proposal data
-			varMonthData := apitypes.MonthReportData{}
+			varMonthData := apitypes.ProposalReportData{}
+			varMonthData.Budget = amountFloat
 			varMonthData.Token = token
 			varMonthData.Author = author
 			varMonthData.Name = name
 			varMonthData.Domain = domain
+			varMonthData.Start = startTime.Format("2006-01-02")
+			varMonthData.End = endTime.Format("2006-01-02")
 			if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
-				varMonthData.Expense = amountFloat
+				varMonthData.TotalSpent = amountFloat
 			} else {
 				var costOfMonth float64
 				if startTime.Year() == int(year) && int(startTime.Month()) == int(month) {
@@ -1361,9 +1404,9 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 					countDaysOfMonth := endDay.Day() - startDay.Day() + 1
 					costOfMonth = float64(countDaysOfMonth) * costPerDay
 				}
-				varMonthData.Expense = costOfMonth
+				varMonthData.TotalSpent = costOfMonth
 			}
-			total += varMonthData.Expense
+			total += varMonthData.TotalSpent
 			report = append(report, varMonthData)
 		}
 	}
@@ -1415,11 +1458,14 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			costPerDay := amountFloat / float64(countDays)
 
 			//if start month and end month are the same, month data is proposal data
-			varYearData := apitypes.MonthReportData{}
+			varYearData := apitypes.ProposalReportData{}
 			varYearData.Token = token
 			varYearData.Author = author
 			varYearData.Name = name
 			varYearData.Domain = domain
+			varYearData.Start = startTime.Format("2006-01-02")
+			varYearData.End = endTime.Format("2006-01-02")
+			varYearData.Budget = amountFloat
 			//if current year
 			var costOfYear float64
 			if year == int64(now.Year()) {
@@ -1431,10 +1477,10 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 				startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
 				countDaysToTemp := int(nowTemp.Sub(startDayOfYear).Hours() / 24)
 				costOfYear = float64(countDaysToTemp) * costPerDay
-				varYearData.Expense = costOfYear
+				varYearData.TotalSpent = costOfYear
 			} else {
 				if startTime.Year() == endTime.Year() {
-					varYearData.Expense = amountFloat
+					varYearData.TotalSpent = amountFloat
 				} else {
 					if startTime.Year() == int(year) {
 						lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
@@ -1447,10 +1493,10 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 					} else {
 						costOfYear = 365 * costPerDay
 					}
-					varYearData.Expense = costOfYear
+					varYearData.TotalSpent = costOfYear
 				}
 			}
-			total += varYearData.Expense
+			total += varYearData.TotalSpent
 			report = append(report, varYearData)
 		}
 		//get month data from proposal list
@@ -1470,13 +1516,13 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		}
 	}
 	writeJSON(w, struct {
-		ReportDetail      []apitypes.MonthReportData `json:"reportDetail"`
-		ProposalList      []string                   `json:"proposalList"`
-		DomainList        []string                   `json:"domainList"`
-		ProposalTotal     float64                    `json:"proposalTotal"`
-		TreasurySummary   dbtypes.TreasurySummary    `json:"treasurySummary"`
-		LegacySummary     dbtypes.TreasurySummary    `json:"legacySummary"`
-		MonthlyResultData []apitypes.MonthDataObject `json:"monthlyResultData"`
+		ReportDetail      []apitypes.ProposalReportData `json:"reportDetail"`
+		ProposalList      []string                      `json:"proposalList"`
+		DomainList        []string                      `json:"domainList"`
+		ProposalTotal     float64                       `json:"proposalTotal"`
+		TreasurySummary   dbtypes.TreasurySummary       `json:"treasurySummary"`
+		LegacySummary     dbtypes.TreasurySummary       `json:"legacySummary"`
+		MonthlyResultData []apitypes.MonthDataObject    `json:"monthlyResultData"`
 	}{
 		ReportDetail:      report,
 		ProposalList:      proposalList,
@@ -1498,6 +1544,32 @@ func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil || legacyErr != nil {
 		log.Errorf("Get Treasury/Legacy Summary data failed")
+	}
+
+	//calculate summary by proposal to display estimate outgoing
+	//Get All Proposal Metadata for Report
+	proposalMetaList, err := c.DataSource.GetAllProposalMeta("")
+	if err == nil {
+		monthDataMap := make(map[string]float64)
+		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList)
+		for _, monthData := range monthDatas {
+			monthDataMap[monthData.Month] = monthData.Expense
+		}
+		//merge with summary report data
+		for _, treasuryItem := range treasurySummary {
+			monthProposalData, exist := monthDataMap[treasuryItem.Month]
+			if exist {
+				treasuryItem.OutEstimateUsd = monthProposalData
+				if treasuryItem.MonthPrice <= 0 {
+					treasuryItem.OutEstimate = 0.0
+				} else {
+					treasuryItem.OutEstimate = monthProposalData / treasuryItem.MonthPrice
+				}
+			} else {
+				treasuryItem.OutEstimate = 0.0
+				treasuryItem.OutEstimateUsd = 0.0
+			}
+		}
 	}
 
 	//Get coin supply value

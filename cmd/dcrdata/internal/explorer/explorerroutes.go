@@ -2826,12 +2826,14 @@ func (exp *explorerUI) FinanceDetailPage(w http.ResponseWriter, r *http.Request)
 
 	str, err := exp.templates.execTemplateToString("finance_detail", struct {
 		*CommonPageData
-		Type string
-		Time string
+		Type        string
+		Time        string
+		PoliteiaURL string
 	}{
 		CommonPageData: exp.commonData(r),
 		Type:           rtype,
 		Time:           time,
+		PoliteiaURL:    exp.politeiaURL,
 	})
 
 	if err != nil {

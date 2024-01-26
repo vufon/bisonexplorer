@@ -4,8 +4,13 @@
    <html lang="en">
       {{ template "html-head" headData .CommonPageData "Finance Report" }}
       {{ template "navbar". }}
-      <div class="content pb-40">
-         <div class="px-0 main finance-report-page pt-3" data-controller="financereport">
+      <div class="content pb-40" 
+         data-controller="financereport"
+         data-financereport-dev-address="{{$.DevAddress}}">
+         <div class="px-0 main finance-report-page pt-3" data-financereport-target="reportAllPage">
+            <div class="fullscreen d-none" data-address-target="fullscreen" data-action="click->financereport#exitFullscreen">
+               <div class="secondary-card d-inline-block w-100 h-100 p-4" data-address-target="bigchart"></div>
+            </div>
             <span class="h3 pe-2 report-tool-bar" data-financereport-target="reportTitle">
             </span>
             <div class="position-relative">
@@ -14,6 +19,7 @@
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal Matrix" name="proposal">
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Proposal List" name="summary">
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domains" name="domain">
+                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Authors" name="author">
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury Spending" name="treasury">
                </div>
                <div class="d-none d-inline button-group-area" data-financereport-target="groupBy">
@@ -37,12 +43,14 @@
                      />
                   <button class="report-search" data-financereport-target="searchBtn" data-action="click->financereport#searchProposal"><i class="dcricon-search"></i></button>
                   <button class="report-search d-none" data-financereport-target="clearSearchBtn" data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
-                  </div>
+               </div>
             </div>
             <div class="mt-2 mb-3">
                <div>
                   <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
                </div>
+               <!-- Start treasury chart -->
+               <!-- Finish treasury chart -->
                <div class="mt-2" data-financereport-target="colorNoteRow">
                   <label class="color-note-label report-tool-bar" data-financereport-target="colorLabel"></label>
                   <span class="c-grey-2 fw-600 color-description" data-financereport-target="colorDescription">Valid payment month</span>
@@ -54,10 +62,17 @@
                   </label>
                   <span>USD</span>
                </div>
+               <div class="d-none" data-financereport-target="activeProposalSwitchArea">
+                  <label class="switch mt-3">
+                  <input type="checkbox" data-action="change->financereport#activeProposalSwitch" id="activeProposalInput">
+                  <span class="legacy-slider round"></span>
+                  </label>
+                  <span>Active Proposal</span>
+               </div>
             </div>
             <table class="table report v3 border-grey" data-financereport-target="report">
             </table>
-            <p class="d-none h2 pb-2 mt-4 report-tool-bar" data-financereport-target="legacyTitle">
+            <p class="d-none h3 pb-2 mt-4 report-tool-bar" data-financereport-target="legacyTitle">
                Legacy Summary
             </p>
             <table class="d-none table report v3 border-grey treasury-group-report" data-financereport-target="legacyTable">

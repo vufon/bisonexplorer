@@ -918,6 +918,14 @@ type ProposalReportData struct {
 	TotalRemaining float64 `json:"totalRemaining"`
 }
 
+type AuthorDataObject struct {
+	Name           string  `json:"name"`
+	Proposals      int     `json:"proposals"`
+	Budget         float64 `json:"budget"`
+	TotalReceived  float64 `json:"totalReceived"`
+	TotalRemaining float64 `json:"totalRemaining"`
+}
+
 type DomainReportData struct {
 	Domain  string  `json:"domain"`
 	Expense float64 `json:"expense"`
