@@ -5,14 +5,18 @@
       {{ template "html-head" headData .CommonPageData "Finance Report Detail" }}
       {{ template "navbar". }}
       <div class="content pb-40 container" 
-      data-controller="financedetail"
-      data-financedetail-politeia-url="{{.PoliteiaURL}}">
+         data-controller="financedetail"
+         data-financedetail-politeia-url="{{.PoliteiaURL}}">
          <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
          <div class="d-none" data-financedetail-target="reportArea">
             <div class="d-flex w-100 pb-1 fs-17 mt-3">
-               <a data-financedetail-target="toMain" class="d-block" href="/finance-report">
+               <a class="d-block" href="/home-report">
+               <span class="dcricon-home me-1 pt-1"></span>
+               Main Report
+               </a>
+               <a data-financedetail-target="toUpReport" class="d-block ms-4" href="#">
                <span class="dcricon-back me-1 pt-1"></span>
-               Main Menu
+               Back
                </a>
                <a data-financedetail-target="upLevel" class="d-block ms-4" href="#">
                <span class="dcricon-calendar me-1 pt-1"></span>

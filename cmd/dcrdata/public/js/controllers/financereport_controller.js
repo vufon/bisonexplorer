@@ -2,6 +2,10 @@ import { Controller } from '@hotwired/stimulus'
 import TurboQuery from '../helpers/turbolinks_helper'
 import { requestJSON } from '../helpers/http'
 import humanize from '../helpers/humanize_helper'
+import { isEmpty } from 'lodash-es'
+import { getDefault } from '../helpers/module_helper'
+import { padPoints, sizedBarPlotter } from '../helpers/chart_helper'
+import Zoom from '../helpers/zoom_helper'
 
 const responseCache = {}
 let requestCounter = 0
@@ -9,36 +13,6 @@ let responseData
 let proposalResponse = null
 let treasuryResponse = null
 let isSearching = false
-
-// // Cannot set these until DyGraph is fetched.
-// function createOptions () {
-//   commonOptions = {
-//     digitsAfterDecimal: 8,
-//     showRangeSelector: true,
-//     rangeSelectorHeight: 20,
-//     rangeSelectorForegroundStrokeColor: '#999',
-//     rangeSelectorBackgroundStrokeColor: '#777',
-//     legend: 'follow',
-//     fillAlpha: 0.9,
-//     labelsKMB: true,
-//     labelsUTC: true,
-//     stepPlot: false,
-//     rangeSelectorPlotFillColor: 'rgba(128, 128, 128, 0.3)',
-//     rangeSelectorPlotFillGradientColor: 'transparent',
-//     rangeSelectorPlotStrokeColor: 'rgba(128, 128, 128, 0.7)',
-//     rangeSelectorPlotLineWidth: 2
-//   }
-
-//   chartOptions = {
-//     labels: ['Month', 'Incoming', 'Outgoing'],
-//     colors: ['#69D3F5', '#186CBB', '#F7AF21'],
-//     ylabel: 'Treasury Values',
-//     visibility: [true, true, true, true, true],
-//     legendFormatter: formatter,
-//     stackedGraph: true,
-//     fillGraph: false
-//   }
-// }
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days'
 let treasuryNote = ''
@@ -55,18 +29,508 @@ function hasCache (k) {
   return expiration > new Date()
 }
 
+// start function and variable for chart
+const blockDuration = 5 * 60000
+let Dygraph // lazy loaded on connect
+
+function txTypesFunc (d, binSize) {
+  const p = []
+
+  d.time.map((n, i) => {
+    p.push([new Date(n), d.sentRtx[i], d.receivedRtx[i], d.tickets[i], d.votes[i], d.revokeTx[i]])
+  })
+
+  padPoints(p, binSize)
+
+  return p
+}
+
+function amountFlowProcessor (d, binSize) {
+  const flowData = []
+  const balanceData = []
+  let balance = 0
+
+  d.time.map((n, i) => {
+    const v = d.net[i]
+    let netReceived = 0
+    let netSent = 0
+
+    v > 0 ? (netReceived = v) : (netSent = (v * -1))
+    flowData.push([new Date(n), d.received[i], d.sent[i], netReceived, netSent])
+    balance += v
+    balanceData.push([new Date(n), balance])
+  })
+
+  padPoints(flowData, binSize)
+  padPoints(balanceData, binSize, true)
+
+  return {
+    flow: flowData,
+    balance: balanceData
+  }
+}
+
+function customizedFormatter (data) {
+  let xHTML = ''
+  if (data.xHTML !== undefined) {
+    xHTML = humanize.date(data.x, false, true)
+  }
+  let html = this.getLabels()[0] + ': ' + xHTML
+  data.series.map((series) => {
+    if (series.color === undefined) return ''
+    // Skip display of zeros
+    if (series.y === 0) return ''
+    const l = '<span style="color: ' + series.color + ';"> ' + series.labelHTML
+    html = '<span style="color:#2d2d2d;">' + html + '</span>'
+    html += '<br>' + series.dashHTML + l + ': ' + (isNaN(series.y) ? '' : series.y + ' DCR') + '</span> '
+  })
+  return html
+}
+
+let commonOptions, amountFlowGraphOptions, balanceGraphOptions
+// Cannot set these until DyGraph is fetched.
+function createOptions () {
+  commonOptions = {
+    digitsAfterDecimal: 8,
+    showRangeSelector: true,
+    rangeSelectorHeight: 20,
+    rangeSelectorForegroundStrokeColor: '#999',
+    rangeSelectorBackgroundStrokeColor: '#777',
+    legend: 'follow',
+    fillAlpha: 0.9,
+    labelsKMB: true,
+    labelsUTC: true,
+    stepPlot: false,
+    rangeSelectorPlotFillColor: 'rgba(128, 128, 128, 0.3)',
+    rangeSelectorPlotFillGradientColor: 'transparent',
+    rangeSelectorPlotStrokeColor: 'rgba(128, 128, 128, 0.7)',
+    rangeSelectorPlotLineWidth: 2
+  }
+
+  amountFlowGraphOptions = {
+    labels: ['Date', 'Income', 'Outgoing', 'Net Received', 'Net Spent'],
+    colors: ['#2971FF', '#2ED6A1', '#41BF53', '#FF0090'],
+    ylabel: 'Total (DCR)',
+    visibility: [true, false, false, false],
+    legendFormatter: customizedFormatter,
+    stackedGraph: true,
+    fillGraph: false
+  }
+
+  balanceGraphOptions = {
+    labels: ['Date', 'Balance'],
+    colors: ['#41BF53'],
+    ylabel: 'Balance (DCR)',
+    plotter: [Dygraph.Plotters.linePlotter, Dygraph.Plotters.fillPlotter],
+    legendFormatter: customizedFormatter,
+    stackedGraph: false,
+    visibility: [true],
+    fillGraph: true,
+    stepPlot: true
+  }
+}
+
+let ctrl = null
+// end function and varibable for chart
+
 export default class extends Controller {
   static get targets () {
     return ['type', 'report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription',
       'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
       'treasuryToggleArea', 'legacyTable', 'legacyTitle', 'reportDescription', 'reportAllPage',
-      'activeProposalSwitchArea']
+      'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
+      'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle']
+  }
+
+  async connect () {
+    ctrl = this
+    ctrl.retrievedData = {}
+    ctrl.ajaxing = false
+    ctrl.requestedChart = false
+    // Bind functions that are passed as callbacks
+    ctrl.zoomCallback = ctrl._zoomCallback.bind(ctrl)
+    ctrl.drawCallback = ctrl._drawCallback.bind(ctrl)
+    ctrl.lastEnd = 0
+    ctrl.bindElements()
+    // These two are templates for query parameter sets.
+    // When url query parameters are set, these will also be updated.
+    ctrl.state = Object.assign({}, ctrl.settings)
+
+    // Parse stimulus data
+    const cdata = ctrl.data
+    ctrl.dcrAddress = cdata.get('dcraddress')
+    ctrl.balance = cdata.get('balance')
+
+    // Get initial view settings from the url
+    ctrl.setChartType()
+    if (ctrl.settings.flow) {
+      ctrl.setFlowChecks()
+    } else {
+      ctrl.settings.flow = ctrl.defaultSettings.flow
+      ctrl.setFlowChecks()
+    }
+    if (ctrl.settings.zoom !== null) {
+      ctrl.zoomButtons.forEach((button) => {
+        button.classList.remove('btn-selected')
+      })
+    }
+    if (ctrl.settings.bin == null) {
+      ctrl.settings.bin = ctrl.getBin()
+    }
+    if (ctrl.settings.chart == null || !ctrl.validChartType(ctrl.settings.chart)) {
+      ctrl.settings.chart = ctrl.chartType
+    }
+
+    Dygraph = await getDefault(
+      import('../vendor/dygraphs.min.js')
+    )
+    this.setReportTitle(this.settings.type)
+    this.calculate()
+  }
+
+  _drawCallback (graph, first) {
+    if (first) return
+    const [start, end] = ctrl.graph.xAxisRange()
+    if (start === end) return
+    if (end === this.lastEnd) return // Only handle slide event.
+    this.lastEnd = end
+    ctrl.settings.zoom = Zoom.encode(start, end)
+    ctrl.updateQueryString()
+    ctrl.setSelectedZoom(Zoom.mapKey(ctrl.settings.zoom, ctrl.graph.xAxisExtremes()))
+  }
+
+  _zoomCallback (start, end) {
+    ctrl.zoomButtons.forEach((button) => {
+      button.classList.remove('btn-selected')
+    })
+    ctrl.settings.zoom = Zoom.encode(start, end)
+    ctrl.updateQueryString()
+    ctrl.setSelectedZoom(Zoom.mapKey(ctrl.settings.zoom, ctrl.graph.xAxisExtremes()))
+  }
+
+  setSelectedZoom (zoomKey) {
+    this.zoomButtons.forEach(function (button) {
+      if (button.name === zoomKey) {
+        button.classList.add('btn-selected')
+      } else {
+        button.classList.remove('btn-selected')
+      }
+    })
+  }
+
+  drawGraph () {
+    const settings = ctrl.settings
+    ctrl.noconfirmsTarget.classList.add('d-hide')
+    ctrl.chartTarget.classList.remove('d-hide')
+    // Check for invalid view parameters
+    if (!ctrl.validChartType(settings.chart) || !ctrl.validGraphInterval()) return
+
+    if (settings.chart === ctrl.state.chart && settings.bin === ctrl.state.bin) {
+      // Only the zoom has changed.
+      const zoom = Zoom.decode(settings.zoom)
+      if (zoom) {
+        ctrl.setZoom(zoom.start, zoom.end)
+      }
+      return
+    }
+
+    // Set the current view to prevent unnecessary reloads.
+    Object.assign(ctrl.state, settings)
+    ctrl.fetchGraphData(settings.chart, settings.bin)
+  }
+
+  setIntervalButton (interval) {
+    const button = ctrl.validGraphInterval(interval)
+    if (!button) return false
+    ctrl.binputs.forEach((button) => {
+      button.classList.remove('btn-selected')
+    })
+    button.classList.add('btn-selected')
+  }
+
+  validGraphInterval (interval) {
+    const bin = interval || this.settings.bin || this.activeBin
+    let b = false
+    this.binputs.forEach((button) => {
+      if (button.name === bin) b = button
+    })
+    return b
+  }
+
+  getBin () {
+    let bin = ctrl.query.get('bin')
+    if (!ctrl.setIntervalButton(bin)) {
+      bin = ctrl.activeBin
+    }
+    return bin
+  }
+
+  setFlowChecks () {
+    const bitmap = this.settings.flow
+    this.flowBoxes.forEach((box) => {
+      box.checked = bitmap & parseInt(box.value)
+    })
+  }
+
+  disconnect () {
+    if (this.graph !== undefined) {
+      this.graph.destroy()
+    }
+    this.retrievedData = {}
+  }
+
+  validChartType (chart) {
+    return this.optionsTarget.namedItem(chart) || false
+  }
+
+  setChartType () {
+    const chart = this.settings.chart
+    if (this.validChartType(chart)) {
+      this.optionsTarget.value = chart
+    }
+  }
+
+  // Request the initial chart data, grabbing the Dygraph script if necessary.
+  initializeChart () {
+    createOptions()
+    // If no chart data has been requested, e.g. when initially on the
+    // list tab, then fetch the initial chart data.
+    if (!this.requestedChart) {
+      this.fetchGraphData(this.chartType, this.getBin())
+    }
+  }
+
+  async fetchGraphData (chart, bin) {
+    const cacheKey = chart + '-' + bin
+    if (ctrl.ajaxing === cacheKey) {
+      return
+    }
+    ctrl.requestedChart = cacheKey
+    ctrl.ajaxing = cacheKey
+
+    ctrl.chartLoaderTarget.classList.add('loading')
+
+    // Check for cached data
+    if (ctrl.retrievedData[cacheKey]) {
+      // Queue the function to allow the loader to display.
+      setTimeout(() => {
+        ctrl.popChartCache(chart, bin)
+        ctrl.chartLoaderTarget.classList.remove('loading')
+        ctrl.ajaxing = false
+      }, 10) // 0 should work but doesn't always
+      return
+    }
+
+    let url = `/api/treasury/io/${bin}`
+    if (this.dcrAddress !== 'treasury') {
+      const chartKey = chart === 'balance' ? 'amountflow' : chart
+      url = '/api/address/' + ctrl.dcrAddress + '/' + chartKey + '/' + bin
+    }
+
+    const graphDataResponse = await requestJSON(url)
+    ctrl.processData(chart, bin, graphDataResponse)
+    ctrl.ajaxing = false
+    ctrl.chartLoaderTarget.classList.remove('loading')
+  }
+
+  processData (chart, bin, data) {
+    if (isEmpty(data)) {
+      ctrl.noDataAvailable()
+      return
+    }
+
+    const binSize = Zoom.mapValue(bin) || blockDuration
+    if (chart === 'types') {
+      ctrl.retrievedData['types-' + bin] = txTypesFunc(data, binSize)
+    } else if (chart === 'amountflow' || chart === 'balance') {
+      const processed = amountFlowProcessor(data, binSize)
+      ctrl.retrievedData['amountflow-' + bin] = processed.flow
+      ctrl.retrievedData['balance-' + bin] = processed.balance
+    } else return
+    setTimeout(() => {
+      ctrl.popChartCache(chart, bin)
+    }, 0)
+  }
+
+  noDataAvailable () {
+    this.noconfirmsTarget.classList.remove('d-hide')
+    this.chartTarget.classList.add('d-hide')
+    this.chartLoaderTarget.classList.remove('loading')
+  }
+
+  popChartCache (chart, bin) {
+    const cacheKey = chart + '-' + bin
+    const binSize = Zoom.mapValue(bin) || blockDuration
+    if (!ctrl.retrievedData[cacheKey] ||
+        ctrl.requestedChart !== cacheKey
+    ) {
+      return
+    }
+    const data = ctrl.retrievedData[cacheKey]
+    let options = null
+    ctrl.flowTarget.classList.add('d-hide')
+    switch (chart) {
+      case 'amountflow':
+        options = amountFlowGraphOptions
+        options.plotter = sizedBarPlotter(binSize)
+        ctrl.flowTarget.classList.remove('d-hide')
+        break
+      case 'balance':
+        options = balanceGraphOptions
+        break
+    }
+    options.zoomCallback = null
+    options.drawCallback = null
+    if (ctrl.graph === undefined) {
+      ctrl.graph = ctrl.createGraph(data, options)
+    } else {
+      ctrl.graph.updateOptions({
+        ...{ file: data },
+        ...options
+      })
+    }
+    if (chart === 'amountflow') {
+      ctrl.updateFlow()
+    }
+    ctrl.chartLoaderTarget.classList.remove('loading')
+    ctrl.xRange = ctrl.graph.xAxisExtremes()
+    ctrl.validateZoom(binSize)
+  }
+
+  changeBin (e) {
+    const target = e.srcElement || e.target
+    if (target.nodeName !== 'BUTTON') return
+    ctrl.settings.bin = target.name
+    ctrl.setIntervalButton(target.name)
+    this.updateQueryString()
+    this.drawGraph()
+  }
+
+  changeGraph (e) {
+    this.settings.chart = this.chartType
+    this.updateQueryString()
+    this.drawGraph()
+  }
+
+  validateZoom (binSize) {
+    ctrl.setButtonVisibility()
+    const zoom = Zoom.validate(ctrl.activeZoomKey || ctrl.settings.zoom, ctrl.xRange, binSize)
+    ctrl.setZoom(zoom.start, zoom.end)
+    ctrl.graph.updateOptions({
+      zoomCallback: ctrl.zoomCallback,
+      drawCallback: ctrl.drawCallback
+    })
+  }
+
+  setZoom (start, end) {
+    ctrl.chartLoaderTarget.classList.add('loading')
+    ctrl.graph.updateOptions({
+      dateWindow: [start, end]
+    })
+    ctrl.settings.zoom = Zoom.encode(start, end)
+    ctrl.lastEnd = end
+    ctrl.updateQueryString()
+    ctrl.chartLoaderTarget.classList.remove('loading')
+  }
+
+  onZoom (e) {
+    const target = e.srcElement || e.target
+    if (target.nodeName !== 'BUTTON') return
+    ctrl.zoomButtons.forEach((button) => {
+      button.classList.remove('btn-selected')
+    })
+    target.classList.add('btn-selected')
+    if (ctrl.graph === undefined) {
+      return
+    }
+    const duration = ctrl.activeZoomDuration
+
+    const end = ctrl.xRange[1]
+    const start = duration === 0 ? ctrl.xRange[0] : end - duration
+    ctrl.setZoom(start, end)
+  }
+
+  toggleExpand (e) {
+    const btn = this.expandoTarget
+    if (btn.classList.contains('dcricon-expand')) {
+      btn.classList.remove('dcricon-expand')
+      btn.classList.add('dcricon-collapse')
+      this.bigchartTarget.appendChild(this.chartboxTarget)
+      this.fullscreenTarget.classList.remove('d-none')
+    } else {
+      this.putChartBack()
+    }
+    if (this.graph) this.graph.resize()
+  }
+
+  putChartBack () {
+    const btn = this.expandoTarget
+    btn.classList.add('dcricon-expand')
+    btn.classList.remove('dcricon-collapse')
+    this.littlechartTarget.appendChild(this.chartboxTarget)
+    this.fullscreenTarget.classList.add('d-none')
+    if (this.graph) this.graph.resize()
+  }
+
+  exitFullscreen (e) {
+    if (e.target !== this.fullscreenTarget) return
+    this.putChartBack()
+  }
+
+  setButtonVisibility () {
+    const duration = ctrl.chartDuration
+    const buttonSets = [ctrl.zoomButtons, ctrl.binputs]
+    buttonSets.forEach((buttonSet) => {
+      buttonSet.forEach((button) => {
+        if (button.dataset.fixed) return
+        if (duration > Zoom.mapValue(button.name)) {
+          button.classList.remove('d-hide')
+        } else {
+          button.classList.remove('btn-selected')
+          button.classList.add('d-hide')
+        }
+      })
+    })
+  }
+
+  updateFlow () {
+    const bitmap = ctrl.flow
+    if (bitmap === 0) {
+      // If all boxes are unchecked, just leave the last view
+      // in place to prevent chart errors with zero visible datasets
+      return
+    }
+    ctrl.settings.flow = bitmap
+    ctrl.updateQueryString()
+    // Set the graph dataset visibility based on the bitmap
+    // Dygraph dataset indices: 0 received, 1 sent, 2 & 3 net
+    const visibility = {}
+    visibility[0] = bitmap & 1
+    visibility[1] = bitmap & 2
+    visibility[2] = visibility[3] = bitmap & 4
+    Object.keys(visibility).forEach((idx) => {
+      ctrl.graph.setVisibility(idx, visibility[idx])
+    })
+  }
+
+  createGraph (processedData, otherOptions) {
+    return new Dygraph(
+      this.chartTarget,
+      processedData,
+      { ...commonOptions, ...otherOptions }
+    )
+  }
+
+  bindElements () {
+    this.flowBoxes = this.flowTarget.querySelectorAll('input')
+    this.zoomButtons = this.zoomTarget.querySelectorAll('button')
+    this.binputs = this.cintervalTarget.querySelectorAll('button')
   }
 
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'type', 'tsort', 'lsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd', 'active'
+      'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'lsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd', 'active'
     ])
 
     this.defaultSettings = {
@@ -79,7 +543,11 @@ export default class extends Controller {
       interval: 'month',
       search: '',
       usd: false,
-      active: false
+      active: false,
+      chart: 'amountflow',
+      zoom: '',
+      bin: 'month',
+      flow: 7
     }
 
     this.query.update(this.settings)
@@ -115,9 +583,6 @@ export default class extends Controller {
     }
     const devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${devAddress}">legacy</a> data`
-
-    this.setReportTitle(this.settings.type)
-    this.calculate()
   }
 
   searchInputKeypress (e) {
@@ -287,11 +752,24 @@ export default class extends Controller {
         document.getElementById('usdSwitchInput').checked = true
       }
       this.createTreasuryTable(responseData)
+      this.treasuryChartTarget.classList.remove('d-none')
+      this.treasuryChartTitleTarget.classList.remove('d-none')
+      this.initializeChart()
+      this.drawGraph()
+      if (ctrl.zoomButtons) {
+        ctrl.zoomButtons.forEach((button) => {
+          if (button.name === 'year') {
+            button.click()
+          }
+        })
+      }
     } else {
       this.reportTarget.classList.add('treasury-group-report')
       this.treasuryToggleAreaTarget.classList.add('d-none')
       this.legacyTableTarget.classList.add('d-none')
       this.legacyTitleTarget.classList.add('d-none')
+      this.treasuryChartTarget.classList.add('d-none')
+      this.treasuryChartTitleTarget.classList.add('d-none')
     }
 
     if (this.settings.type === 'author') {
@@ -1156,6 +1634,10 @@ export default class extends Controller {
     } else {
       this.searchBoxTarget.classList.remove('d-none')
       this.settings.usd = false
+      this.settings.zoom = ''
+      this.settings.bin = this.defaultSettings.bin
+      this.settings.flow = this.defaultSettings.flow
+      this.settings.chart = this.defaultSettings.chart
     }
     // disabled group button for loading
     this.disabledGroupButton()
@@ -1249,7 +1731,33 @@ export default class extends Controller {
     window.location.href = '/finance-report/detail?type=' + idArr[0] + '&time=' + idArr[1].replace('/', '_')
   }
 
+  get chartType () {
+    return this.optionsTarget.value
+  }
+
+  get activeZoomDuration () {
+    return this.activeZoomKey ? Zoom.mapValue(this.activeZoomKey) : false
+  }
+
+  get activeZoomKey () {
+    const activeButtons = this.zoomTarget.getElementsByClassName('btn-selected')
+    if (activeButtons.length === 0) return null
+    return activeButtons[0].name
+  }
+
   get chartDuration () {
     return this.xRange[1] - this.xRange[0]
+  }
+
+  get activeBin () {
+    return this.cintervalTarget.getElementsByClassName('btn-selected')[0].name
+  }
+
+  get flow () {
+    let base10 = 0
+    this.flowBoxes.forEach((box) => {
+      if (box.checked) base10 += parseInt(box.value)
+    })
+    return base10
   }
 }

@@ -4,12 +4,23 @@
    <html lang="en">
       {{ template "html-head" headData .CommonPageData "Finance Report" }}
       {{ template "navbar". }}
+      {{- $treasuryBalance := .TreasuryBalance -}}
+      {{- $TxnCount := $treasuryBalance.TxCount}}
       <div class="content pb-40" 
          data-controller="financereport"
-         data-financereport-dev-address="{{$.DevAddress}}">
+         data-financereport-dev-address="{{$.DevAddress}}"
+         data-financereport-dcraddress="treasury"
+         data-financereport-txn-count="{{$TxnCount}}"
+         data-financereport-balance="{{toFloat64Amount $treasuryBalance.Balance}}">
          <div class="px-0 main finance-report-page pt-3" data-financereport-target="reportAllPage">
-            <div class="fullscreen d-none" data-address-target="fullscreen" data-action="click->financereport#exitFullscreen">
-               <div class="secondary-card d-inline-block w-100 h-100 p-4" data-address-target="bigchart"></div>
+            <div class="fullscreen d-none" data-financereport-target="fullscreen" data-action="click->financereport#exitFullscreen">
+               <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
+            </div>
+            <div class="pb-1 fs-17 mt-1">
+               <a class="return-to-main" href="/home-report">
+               <span class="dcricon-home me-1 pt-1"></span>
+               Main Report
+               </a>
             </div>
             <span class="h3 pe-2 report-tool-bar" data-financereport-target="reportTitle">
             </span>
@@ -19,7 +30,7 @@
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm btn-active" value="Proposal Matrix" name="proposal">
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Proposal List" name="summary">
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Domains" name="domain">
-                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Authors" name="author">
+                  <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Authors" name="author">
                   <input data-financereport-target="type" data-action="click->financereport#typeChange" type="button" class="btn btn_sm" value="Treasury Spending" name="treasury">
                </div>
                <div class="d-none d-inline button-group-area" data-financereport-target="groupBy">
@@ -45,18 +56,92 @@
                   <button class="report-search d-none" data-financereport-target="clearSearchBtn" data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
                </div>
             </div>
-            <div class="mt-2 mb-3">
+            <div class="mt-3 mb-3">
                <div>
                   <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
                </div>
                <!-- Start treasury chart -->
+               <p class="h4 pb-2 mt-2 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
+                  Treasury IO Chart
+               </p>
+               <div class="d-none secondary-card p-2 treasury-group-report" data-financereport-target="treasuryChart">
+                  <noscript>
+                     <div class="text-center pt-5 fs15">Enable Javascript to see charts</div>
+                  </noscript>
+                  <div class="jsonly h-100" data-financereport-target="littlechart">
+                     <div class="d-flex flex-column h-100" data-financereport-target="chartbox">
+                        <div class="d-flex flex-wrap justify-content-around align-items-start">
+                           <div class="loader-v2 loading" data-financereport-target="chartLoader"></div>
+                           <div class="btn-set secondary-card d-inline-flex flex-nowrap mx-2">
+                              <label>Chart</label>
+                              <select
+                                 class="chart-box d-inline-flex"
+                                 data-financereport-target="options"
+                                 data-action="change->financereport#changeGraph"
+                                 >
+                                 <option name="amountflow" value="amountflow">Sent/Received</option>
+                                 <option name="balance" value="balance">Balance</option>
+                              </select>
+                           </div>
+                           <div
+                              class="btn-set secondary-card d-inline-flex flex-nowrap mx-2"
+                              data-toggle="buttons"
+                              data-financereport-target="zoom"
+                              data-action="click->financereport#onZoom"
+                              >
+                              <label>Zoom</label>
+                              <button name="all" data-fixed="1">All</button>
+                              <button name="year">Year</button>
+                              <button name="month">Month</button>
+                              <button name="week">Week</button>
+                              <button name="day">Day</button>
+                           </div>
+                           <div
+                              class="btn-set secondary-card d-inline-flex flex-nowrap mx-2"
+                              data-toggle="buttons"
+                              data-txcount="{{$TxnCount}}"
+                              data-financereport-target="cinterval"
+                              data-action="click->financereport#changeBin"
+                              >
+                              <label class="d-inline-flex pe-1">Group By </label>
+                              <button name="year">Year</button>
+                              <button class="btn-selected" name="month">Month</button>
+                              <button name="week">Week</button>
+                              <button name="day" data-fixed="1">Day</button>
+                              <button name="all" data-fixed="1">Block</button>
+                           </div>
+                           <div class="row flex-nowrap d-inline-flex d-hide mx-2 mb-2" data-financereport-target="flow"
+                              data-action="change->financereport#updateFlow">
+                              <label class="customcheck ms-2 d-inline-flex">Sent
+                              <input type="checkbox" value="2">
+                              <span class="checkmark sent"></span>
+                              </label>
+                              <label class="customcheck ms-2 d-inline-flex">Received
+                              <input type="checkbox" checked="checked" value="1">
+                              <span class="checkmark received"></span>
+                              </label>
+                              <label class="customcheck mx-2 d-inline-flex">Net
+                              <input type="checkbox" value="4">
+                              <span class="checkmark net"></span>
+                              </label>
+                           </div>
+                        </div>
+                        <div class="p-3 address_chart_wrap">
+                           <div class="expando dcricon-expand" data-financereport-target="expando" data-action="click->financereport#toggleExpand"></div>
+                           <div class="py-5 fs16 d-none" data-financereport-target="noconfirms"></div>
+                           <div data-financereport-target="chart" class="address_chart"></div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
                <!-- Finish treasury chart -->
                <div class="mt-2" data-financereport-target="colorNoteRow">
                   <label class="color-note-label report-tool-bar" data-financereport-target="colorLabel"></label>
-                  <span class="c-grey-2 fw-600 color-description" data-financereport-target="colorDescription">Valid payment month</span>
+                  <span class="c-grey-2 ps-2 fw-600 color-description" data-financereport-target="colorDescription">Valid payment month</span>
                </div>
                <div class="d-none" data-financereport-target="treasuryToggleArea">
-                  <label class="switch mt-3">
+                  <span>USD Display Mode</span>
+                  <label class="switch mt-3 ms-1">
                   <input type="checkbox" data-action="change->financereport#treasuryUsdChange" id="usdSwitchInput">
                   <span class="legacy-slider round"></span>
                   </label>

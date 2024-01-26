@@ -2894,13 +2894,16 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
+	treasuryBalance := exp.pageData.HomeInfo.TreasuryBalance
 	//End sync Data
 	exp.pageData.RUnlock()
 
 	str, err := exp.templates.execTemplateToString("finance_report", struct {
 		*CommonPageData
+		TreasuryBalance *dbtypes.TreasuryBalance
 	}{
-		CommonPageData: exp.commonData(r),
+		CommonPageData:  exp.commonData(r),
+		TreasuryBalance: treasuryBalance,
 	})
 
 	if err != nil {

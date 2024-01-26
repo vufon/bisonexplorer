@@ -23,9 +23,9 @@ export default class extends Controller {
       'nextButton', 'proposalArea', 'noReport',
       'totalSpanRow', 'monthlyArea', 'yearlyArea',
       'monthlyReport', 'yearlyReport', 'summaryArea', 'summaryReport',
-      'proposalSpanRow', 'prevBtn', 'nextBtn', 'toMain', 'upLevel', 'upLabel',
+      'proposalSpanRow', 'prevBtn', 'nextBtn', 'upLevel', 'upLabel',
       'toVote', 'toDiscussion', 'sameOwnerProposalArea', 'otherProposalSummary',
-      'expendiduteValue', 'toAuthorList', 'prevNextButtons']
+      'expendiduteValue', 'toAuthorList', 'prevNextButtons', 'toUpReport']
   }
 
   async initialize () {
@@ -188,7 +188,11 @@ export default class extends Controller {
   }
 
   proposalDetailsListUpdate () {
-    this.summaryReportTarget.innerHTML = this.createSummaryTable(responseData.proposalInfos, false, this.settings.type === 'domain')
+    if (this.settings.type === 'domain' || this.settings.type === 'owner') {
+      this.summaryReportTarget.innerHTML = this.createSummaryTable(responseData.proposalInfos, this.settings.type === 'owner', this.settings.type === 'domain')
+    } else if (this.settings.type === 'proposal') {
+      this.otherProposalSummaryTarget.innerHTML = this.createSummaryTable(responseData.otherProposalInfos, true, false)
+    }
   }
 
   yearMonthProposalListUpdate () {
@@ -200,12 +204,12 @@ export default class extends Controller {
     if (this.settings.type === 'domain') {
       this.timeInfoTarget.innerHTML = '<span class="fw-400 fs-20">Domain: </span>' + this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
-      this.toMainTarget.href = '/finance-report?type=domain'
+      this.toUpReportTarget.href = '/finance-report?type=domain'
     } else if (this.settings.type === 'owner') {
       this.timeInfoTarget.innerHTML = '<span class="fw-400 fs-20">Author: </span>' + this.settings.name
-      this.toMainTarget.href = '/finance-report?type=summary'
+      this.toUpReportTarget.href = '/finance-report?type=author'
     } else {
-      this.toMainTarget.href = '/finance-report'
+      this.toUpReportTarget.href = '/finance-report'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -242,7 +246,7 @@ export default class extends Controller {
     this.yearlyAreaTarget.classList.remove('d-none')
     if (this.settings.type === 'domain' || this.settings.type === 'owner') {
       this.summaryAreaTarget.classList.remove('d-none')
-      this.summaryReportTarget.innerHTML = this.createSummaryTable(response.proposalInfos, false, this.settings.type === 'domain')
+      this.summaryReportTarget.innerHTML = this.createSummaryTable(response.proposalInfos, this.settings.type === 'owner', this.settings.type === 'domain')
       this.setDomainGeneralInfo(response, this.settings.type)
       if (this.settings.type === 'domain') {
         domainList = response.domainList
@@ -267,13 +271,13 @@ export default class extends Controller {
       this.handlerNextPrevButton('proposal', this.settings.token)
       this.timeInfoTarget.textContent = response.proposalInfo ? response.proposalInfo.name : ''
       this.proposalSpanRowTarget.classList.remove('d-none')
-      const remainingStr = response.proposalInfo.totalRemaining === 0.0 ? '<p>Status: <span class="fw-600">Finished</span></p>' : `<p>Total Remaining (Estimate): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalRemaining, 2, 2)}</span></p>`
-      this.proposalSpanRowTarget.innerHTML = `<p>Owner: <span class="fw-600">${response.proposalInfo.author}</span></p>` +
-      `<p>Domain: <span class="fw-600">${response.proposalInfo.domain.charAt(0).toUpperCase() + response.proposalInfo.domain.slice(1)}</span></p>` +
+      const remainingStr = response.proposalInfo.totalRemaining === 0.0 ? '<p>Status: <span class="fw-600">Finished</span></p>' : `<p>Total Remaining (Est): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalRemaining, 2, 2)}</span></p>`
+      this.proposalSpanRowTarget.innerHTML = `<p>Owner: <a href="${'/finance-report/detail?type=owner&name=' + response.proposalInfo.author}" class="fw-600 link-hover-underline">${response.proposalInfo.author}</a></p>` +
+      `<p>Domain: <a href="${'/finance-report/detail?type=domain&name=' + response.proposalInfo.domain}" class="link-hover-underline fw-600">${response.proposalInfo.domain.charAt(0).toUpperCase() + response.proposalInfo.domain.slice(1)}</a></p>` +
       `<p>Start Date: <span class="fw-600">${response.proposalInfo.start}</span></p>` +
       `<p>End Date: <span class="fw-600">${response.proposalInfo.end}</span></p>` +
       `<p>Budget: <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.budget, 2, 2)}</span></p>` +
-      `<p>Total Spent (Estimate): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalSpent, 2, 2)}</span></p>` + remainingStr
+      `<p>Total Spent (Est): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalSpent, 2, 2)}</span></p>` + remainingStr
     } else {
       this.toVoteTarget.classList.add('d-none')
       this.toDiscussionTarget.classList.add('d-none')
@@ -351,11 +355,11 @@ export default class extends Controller {
       '<tr class="text-secondary finance-table-header">' +
       '<th class="va-mid text-center month-col fw-600 proposal-name-col"><label class="cursor-pointer" data-action="click->financedetail#sortByPName">Name</label>' +
       `<span data-action="click->financedetail#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
-    if (hideDomain) {
+    if (!hideDomain) {
       thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
         `<span data-action="click->financedetail#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     }
-    if (hideAuthor) {
+    if (!hideAuthor) {
       thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAuthor">Author</label>' +
         `<span data-action="click->financedetail#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     }
@@ -520,11 +524,10 @@ export default class extends Controller {
   async yearMonthCalculate () {
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
+    this.toUpReportTarget.href = '/finance-report'
     if (this.settings.type === 'year') {
-      this.toMainTarget.href = '/finance-report?interval=year'
       this.upLevelTarget.classList.add('d-none')
     } else {
-      this.toMainTarget.href = '/finance-report'
       this.upLevelTarget.classList.remove('d-none')
       if (this.settings.time) {
         const timeArr = this.settings.time.trim().split('_')
@@ -537,8 +540,6 @@ export default class extends Controller {
       const myArr = this.settings.time.toString().split('_')
       if (myArr.length >= 2) {
         const monthNumber = Number(myArr[1])
-        console.log(monthNumber)
-        console.log(myArr[0])
         const date = new Date()
         date.setMonth(monthNumber - 1)
         monthYearDisplay = date.toLocaleString('en-US', { month: 'long' }) + ' ' + myArr[0]
