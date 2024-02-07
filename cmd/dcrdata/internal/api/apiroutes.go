@@ -708,6 +708,7 @@ func (c *appContext) getTransactionHex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, hex)
 }
 
+// updated: 27/01/2024 - Algorithm change. Displays all months containing that proposal, excluding future months
 func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, map[string]string, float64, float64, []apitypes.AuthorDataObject) {
 	//Get All Proposal Metadata for Report
 	proposalMetaList, err := c.DataSource.GetAllProposalMeta(searchKey)
@@ -723,10 +724,12 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 	proposalList := make([]string, 0)
 	proposalTokenMap := make(map[string]string)
 	now := time.Now()
+	var nowCompare = now.Year()*12 + int(now.Month())
 	var count = 0
 	minDate := time.Now()
 	var totalAllSpent = 0.0
 	var totalAllBudget = 0.0
+	var lastTime = time.Now()
 	//author report map
 	authorReportMap := make(map[string]apitypes.AuthorDataObject)
 	for _, proposalMeta := range proposalMetaList {
@@ -747,9 +750,10 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 		amountFloat = amountFloat / 100
 		startTime := time.Unix(startInt, 0)
 		//If the proposal's starting month is after this month (including this month), then ignore it and not include it in the report
-		if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
-			continue
-		}
+		//comment at 27/01/2024
+		// if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
+		// 	continue
+		// }
 
 		proposalTokenMap[name] = token
 		if !slices.Contains(proposalList, name) {
@@ -763,6 +767,9 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 		}
 		count++
 		endTime := time.Unix(endInt, 0)
+		if endTime.After(lastTime) {
+			lastTime = endTime
+		}
 		//count month from startTime to endTime
 		difference := endTime.Sub(startTime)
 		var countMonths = 12*(endTime.Year()-startTime.Year()) + (int(endTime.Month()) - int(startTime.Month())) + 1
@@ -789,7 +796,10 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 			varMonthData.Author = author
 			varMonthData.Expense = amountFloat
 			varMonthData.Domain = domain
-			totalSpent += amountFloat
+			var timeCompare = startTime.Year()*12 + int(startTime.Month())
+			if timeCompare < nowCompare {
+				totalSpent += amountFloat
+			}
 			key := fmt.Sprintf("%d/%s", startTime.Year(), apitypes.GetFullMonthDisplay(int(startTime.Month())))
 			val, ok := report[key]
 			//if map has month key
@@ -807,9 +817,10 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 			for i := 0; i < int(countMonths); i++ {
 				handlerTime := tempTime.AddDate(0, i, 0)
 				//if month is this month or future months, break loop
-				if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
-					break
-				}
+				//comment at 27/01/2024
+				// if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
+				// 	break
+				// }
 				key := fmt.Sprintf("%d/%s", handlerTime.Year(), apitypes.GetFullMonthDisplay(int(handlerTime.Month())))
 				val, ok := report[key]
 				var costOfMonth float64
@@ -838,7 +849,10 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 				varMonthData.Author = author
 				varMonthData.Expense = costOfMonth
 				varMonthData.Domain = domain
-				totalSpent += costOfMonth
+				var timeCompare = handlerTime.Year()*12 + int(handlerTime.Month())
+				if timeCompare < nowCompare {
+					totalSpent += costOfMonth
+				}
 				if ok {
 					val = append(val, varMonthData)
 					report[key] = val
@@ -883,7 +897,7 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 
 	monthReportList := make([]apitypes.MonthReportObject, 0)
 
-	var countMonthFromStart = 12*(now.Year()-minDate.Year()) + (int(now.Month()) - int(minDate.Month())) + 1
+	var countMonthFromStart = 12*(lastTime.Year()-minDate.Year()) + (int(lastTime.Month()) - int(minDate.Month())) + 1
 	for i := int(countMonthFromStart) - 1; i >= 0; i-- {
 		compareTime := minDate.AddDate(0, i, 0)
 		key := fmt.Sprintf("%d/%s", compareTime.Year(), apitypes.GetFullMonthDisplay(int(compareTime.Month())))
@@ -1342,6 +1356,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			return
 		}
 		now := time.Now()
+		var nowCompare = now.Year()*12 + int(now.Month())
 		for _, proposalMeta := range proposalMetaList {
 			var amount = proposalMeta["Amount"]
 			var token = proposalMeta["Token"]
@@ -1360,9 +1375,9 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			amountFloat = amountFloat / 100
 			startTime := time.Unix(startInt, 0)
 			//If the proposal's starting month is after this month (including this month), then ignore it and not include it in the report
-			if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
-				continue
-			}
+			// if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
+			// 	continue
+			// }
 
 			if !slices.Contains(proposalList, name) {
 				proposalList = append(proposalList, name)
@@ -1386,8 +1401,12 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			varMonthData.Domain = domain
 			varMonthData.Start = startTime.Format("2006-01-02")
 			varMonthData.End = endTime.Format("2006-01-02")
+			varMonthData.TotalSpent = 0.0
 			if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
-				varMonthData.TotalSpent = amountFloat
+				var timeCompare = startTime.Year()*12 + int(startTime.Month())
+				if timeCompare < nowCompare {
+					varMonthData.TotalSpent = amountFloat
+				}
 			} else {
 				var costOfMonth float64
 				if startTime.Year() == int(year) && int(startTime.Month()) == int(month) {
@@ -1404,7 +1423,10 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 					countDaysOfMonth := endDay.Day() - startDay.Day() + 1
 					costOfMonth = float64(countDaysOfMonth) * costPerDay
 				}
-				varMonthData.TotalSpent = costOfMonth
+				var timeCompare = year*12 + month
+				if timeCompare < int64(nowCompare) {
+					varMonthData.TotalSpent = costOfMonth
+				}
 			}
 			total += varMonthData.TotalSpent
 			report = append(report, varMonthData)
@@ -1413,7 +1435,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 	if timeType == "year" {
 		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
 		now := time.Now()
-		if yearErr != nil || year > int64(now.Year()) {
+		if yearErr != nil {
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
 		}

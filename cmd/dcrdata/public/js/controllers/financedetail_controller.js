@@ -45,6 +45,10 @@ export default class extends Controller {
       order: 'desc'
     }
 
+    if (!this.settings.order) {
+      this.settings.order = this.defaultSettings.order
+    }
+
     this.query.update(this.settings)
 
     if (!this.settings.type) {
@@ -71,7 +75,7 @@ export default class extends Controller {
     this.noDataTarget.classList.add('d-none')
     this.reportAreaTarget.classList.remove('d-none')
 
-    if (this.settings.type === 'proposal' || this.settings.type === 'domain') {
+    if (this.settings.type === 'proposal' || this.settings.type === 'domain' || this.settings.type === 'owner') {
       this.prevNextButtonsTarget.classList.add('d-none')
     } else {
       this.prevNextButtonsTarget.classList.remove('d-none')
@@ -363,7 +367,6 @@ export default class extends Controller {
       thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAuthor">Author</label>' +
         `<span data-action="click->financedetail#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     }
-
     thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByStartDate">Start Date</label>' +
       `<span data-action="click->financedetail#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-3'} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByEndDate">End Date</label>' +
@@ -671,6 +674,11 @@ export default class extends Controller {
       this.proposalAreaTarget.classList.add('d-none')
       return ''
     }
+
+    if (!this.settings.stype) {
+      this.settings.stype = 'startdt'
+    }
+
     this.proposalAreaTarget.classList.remove('d-none')
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
@@ -681,12 +689,12 @@ export default class extends Controller {
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAuthor">Author</label>' +
     `<span data-action="click->financedetail#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByStartDate">Start Date</label>' +
-    `<span data-action="click->financedetail#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-3'} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financedetail#sortByStartDate" class="${((!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-3'} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByEndDate">End Date</label>' +
     `<span data-action="click->financedetail#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByBudget">Budget</label>' +
     `<span data-action="click->financedetail#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">Spent (Est)</label>' +
+    '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">This Month (Est)</label>' +
     `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '</tr></thead>'
 

@@ -979,11 +979,11 @@ func getProposalMetaGroupByYear(db *sql.DB, year int) ([]map[string]string, erro
 func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]string, error) {
 	timeCompare := year*12 + month
 	proposalDbList := make([]map[string]string, 0)
-	now := time.Now()
-	nowCurrentCompare := now.Year()*12 + int(now.Month())
-	if timeCompare >= nowCurrentCompare {
-		return proposalDbList, nil
-	}
+	// now := time.Now()
+	// nowCurrentCompare := now.Year()*12 + int(now.Month())
+	// if timeCompare >= nowCurrentCompare {
+	// 	return proposalDbList, nil
+	// }
 	rows, err := db.Query(internal.SelectProposalMetaByMonth, timeCompare, timeCompare)
 	if err != nil {
 		return proposalDbList, nil

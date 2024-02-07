@@ -17,11 +17,11 @@ let isSearching = false
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days'
 let treasuryNote = ''
 
-const proposalTitle = 'Finance Report - Proposal Matrix'
-const summaryTitle = 'Finance Report - Proposal List'
-const domainTitle = 'Finance Report - Domains'
-const treasuryTitle = 'Finance Report - Treasury Spending'
-const authorTitle = 'Finance Report - Author List'
+const proposalTitle = 'Proposal Matrix'
+const summaryTitle = 'Proposal List'
+const domainTitle = 'Domains'
+const treasuryTitle = 'Treasury Spending'
+const authorTitle = 'Author List'
 
 function hasCache (k) {
   if (!responseCache[k]) return false
@@ -135,11 +135,12 @@ let ctrl = null
 
 export default class extends Controller {
   static get targets () {
-    return ['type', 'report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription',
+    return ['report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription',
       'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
-      'treasuryToggleArea', 'legacyTable', 'legacyTitle', 'reportDescription', 'reportAllPage',
+      'treasuryToggleArea', 'treasuryTitle', 'reportDescription', 'reportAllPage',
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
-      'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle']
+      'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
+      'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector']
   }
 
   async connect () {
@@ -402,6 +403,7 @@ export default class extends Controller {
     if (target.nodeName !== 'BUTTON') return
     ctrl.settings.bin = target.name
     ctrl.setIntervalButton(target.name)
+    this.handlerBinSelectorWhenChange()
     this.updateQueryString()
     this.drawGraph()
   }
@@ -443,11 +445,95 @@ export default class extends Controller {
     if (ctrl.graph === undefined) {
       return
     }
+
+    this.handlerAllowChartSelector()
     const duration = ctrl.activeZoomDuration
 
     const end = ctrl.xRange[1]
     const start = duration === 0 ? ctrl.xRange[0] : end - duration
     ctrl.setZoom(start, end)
+  }
+
+  handlerBinSelectorWhenChange () {
+    switch (this.activeBin) {
+      case 'all':
+        this.handlerZoomDisabledBySelector(['all'])
+        break
+      default:
+        this.handlerZoomDisabledBySelector([])
+    }
+  }
+
+  handlerZoomDisabledBySelector (disabledTypes) {
+    this.zoomButtons.forEach((button) => {
+      if (disabledTypes.includes(button.name)) {
+        button.disabled = true
+      } else {
+        button.disabled = false
+      }
+    })
+  }
+
+  handlerAllowChartSelector () {
+    const activeButtons = this.zoomTarget.getElementsByClassName('btn-selected')
+    if (activeButtons.length === 0) return
+    const activeZoomType = activeButtons[0].name
+    switch (activeZoomType) {
+      case 'all':
+        if (this.activeBin === 'all') {
+          ctrl.binputs.forEach((button) => {
+            if (button.name === 'year') {
+              button.click()
+            }
+          })
+        }
+        this.handlerGroupDisabledBySelector(['all'])
+        break
+      case 'year':
+        this.handlerGroupDisabledBySelector([])
+        break
+      case 'month':
+        // if current group type is year, change to month
+        if (this.activeBin === 'year') {
+          ctrl.binputs.forEach((button) => {
+            if (button.name === 'month') {
+              button.click()
+            }
+          })
+        }
+        this.handlerGroupDisabledBySelector(['year'])
+        break
+      case 'week':
+        if (this.activeBin === 'year' || this.activeBin === 'month') {
+          ctrl.binputs.forEach((button) => {
+            if (button.name === 'week') {
+              button.click()
+            }
+          })
+        }
+        this.handlerGroupDisabledBySelector(['year', 'month'])
+        break
+      case 'day':
+        if (this.activeBin === 'year' || this.activeBin === 'month' || this.activeBin === 'week') {
+          ctrl.binputs.forEach((button) => {
+            if (button.name === 'day') {
+              button.click()
+            }
+          })
+        }
+        this.handlerGroupDisabledBySelector(['year', 'month', 'week'])
+        break
+    }
+  }
+
+  handlerGroupDisabledBySelector (disabledTypes) {
+    this.binputs.forEach((button) => {
+      if (disabledTypes.includes(button.name)) {
+        button.disabled = true
+      } else {
+        button.disabled = false
+      }
+    })
   }
 
   toggleExpand (e) {
@@ -530,13 +616,13 @@ export default class extends Controller {
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'lsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd', 'active'
+      'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'lsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd', 'active', 'year', 'ttype'
     ])
 
     this.defaultSettings = {
       type: 'proposal',
-      tsort: 'oldest',
-      lsort: 'oldest',
+      tsort: 'newest',
+      lsort: 'newest',
       psort: 'newest',
       stype: 'startdt',
       order: 'desc',
@@ -547,15 +633,23 @@ export default class extends Controller {
       chart: 'amountflow',
       zoom: '',
       bin: 'month',
-      flow: 7
+      flow: 7,
+      year: 0, // 0 when display all year
+      ttype: 'combined'
     }
 
     this.query.update(this.settings)
+    if (!this.settings.type || this.settings.type === 'proposal') {
+      this.defaultSettings.tsort = 'oldest'
+    }
     if (!this.settings.type) {
       this.settings.type = this.defaultSettings.type
     }
     if (!this.settings.interval) {
       this.settings.interval = this.defaultSettings.interval
+    }
+    if (!this.settings.ttype) {
+      this.settings.ttype = this.defaultSettings.ttype
     }
     if (this.settings.search) {
       this.searchInputTarget.value = this.settings.search
@@ -567,17 +661,17 @@ export default class extends Controller {
       this.clearSearchBtnTarget.classList.add('d-none')
     }
 
-    this.typeTargets.forEach((typeTarget) => {
-      typeTarget.classList.remove('btn-active')
-      if (typeTarget.name === this.settings.type) {
-        typeTarget.classList.add('btn-active')
-      }
-    })
     if (this.settings.type !== 'proposal') {
       this.intervalTargets.forEach((intervalTarget) => {
         intervalTarget.classList.remove('btn-active')
         if (intervalTarget.name === this.settings.interval) {
           intervalTarget.classList.add('btn-active')
+        }
+      })
+      this.ttypeTargets.forEach((ttypeTarget) => {
+        ttypeTarget.classList.remove('btn-active')
+        if ((ttypeTarget.name === this.settings.ttype) || (ttypeTarget.name === 'current' && !this.settings.ttype)) {
+          ttypeTarget.classList.add('btn-active')
         }
       })
     }
@@ -666,6 +760,19 @@ export default class extends Controller {
     }
   }
 
+  treasuryTypeChange (e) {
+    if (e.target.name === this.settings.ttype) {
+      return
+    }
+    const target = e.srcElement || e.target
+    this.ttypeTargets.forEach((ttypeTarget) => {
+      ttypeTarget.classList.remove('btn-active')
+    })
+    target.classList.add('btn-active')
+    this.settings.ttype = e.target.name
+    this.calculate()
+  }
+
   intervalChange (e) {
     if (e.target.name === this.settings.interval) {
       return
@@ -676,25 +783,6 @@ export default class extends Controller {
     })
     target.classList.add('btn-active')
     this.settings.interval = e.target.name
-    this.calculate()
-  }
-
-  typeChange (e) {
-    if (e.target.name === this.settings.type) {
-      return
-    }
-    const target = e.srcElement || e.target
-    this.typeTargets.forEach((typeTarget) => {
-      typeTarget.classList.remove('btn-active')
-    })
-    target.classList.add('btn-active')
-    this.settings.type = e.target.name
-    this.settings.tsort = this.defaultSettings.tsort
-    this.settings.lsort = this.defaultSettings.lsort
-    this.settings.psort = this.defaultSettings.psort
-    this.settings.stype = this.defaultSettings.stype
-    this.settings.order = this.defaultSettings.order
-    this.setReportTitle(e.target.name)
     this.calculate()
   }
 
@@ -742,9 +830,15 @@ export default class extends Controller {
     this.updateQueryString()
 
     if (this.settings.type === 'treasury') {
-      this.reportTarget.classList.add('treasury-group-report')
-      this.legacyTableTarget.classList.remove('d-none')
-      this.legacyTitleTarget.classList.remove('d-none')
+      if (this.settings.ttype === 'legacy' || this.settings.ttype === 'combined') {
+        this.reportTarget.classList.add('legacy-group-report')
+        this.reportTarget.classList.remove('treasury-group-report')
+      } else {
+        this.reportTarget.classList.add('treasury-group-report')
+        this.reportTarget.classList.remove('legacy-group-report')
+      }
+      this.treasuryTitleTarget.classList.remove('d-none')
+      this.groupByLabelTarget.classList.add('ms-3')
       this.treasuryToggleAreaTarget.classList.remove('d-none')
       if (!this.settings.usd || this.settings.usd === 'false') {
         document.getElementById('usdSwitchInput').checked = false
@@ -764,10 +858,9 @@ export default class extends Controller {
         })
       }
     } else {
-      this.reportTarget.classList.add('treasury-group-report')
+      this.reportTarget.classList.remove('treasury-group-report')
       this.treasuryToggleAreaTarget.classList.add('d-none')
-      this.legacyTableTarget.classList.add('d-none')
-      this.legacyTitleTarget.classList.add('d-none')
+      this.treasuryTitleTarget.classList.add('d-none')
       this.treasuryChartTarget.classList.add('d-none')
       this.treasuryChartTitleTarget.classList.add('d-none')
     }
@@ -781,6 +874,13 @@ export default class extends Controller {
     if (this.settings.type === 'domain' || this.settings.type === 'treasury') {
       this.reportTarget.classList.remove('summary-group-report')
       this.groupByTarget.classList.remove('d-none')
+      if (this.settings.type === 'treasury') {
+        this.typeLabelTarget.classList.remove('d-none')
+        this.typeSelectorTarget.classList.remove('d-none')
+      } else {
+        this.typeLabelTarget.classList.add('d-none')
+        this.typeSelectorTarget.classList.add('d-none')
+      }
     } else {
       if (this.settings.type !== 'author') {
         this.reportTarget.classList.add('summary-group-report')
@@ -1071,7 +1171,7 @@ export default class extends Controller {
         }
         bodyList += '</td>'
       }
-      bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data va-mid">$${humanize.formatToLocalString(handlerData.summary[index].totalSpent, 2, 2)}</td></tr>`
+      bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data va-mid">$${humanize.formatToLocalString(handlerData.summary[index].budget, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header">' +
@@ -1107,6 +1207,14 @@ export default class extends Controller {
     }
     this.nodataTarget.classList.add('d-none')
     this.reportTarget.classList.remove('d-none')
+
+    if (!this.settings.stype || this.settings.stype === '') {
+      this.settings.stype = this.defaultSettings.stype
+    }
+
+    if (!this.settings.order || this.settings.order === '') {
+      this.settings.order = this.defaultSettings.order
+    }
 
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
@@ -1148,11 +1256,11 @@ export default class extends Controller {
       const lengthInDays = this.getLengthInDay(summary)
       const monthlyAverage = (summary.budget / lengthInDays) * 30
       bodyList += `<tr${summary.totalRemaining === 0.0 ? '' : ' class="summary-active-row"'}>` +
-        `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
+        `<td class="va-mid text-center fs-13i proposal-name-column"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" class="link-hover-underline fs-13i">${summary.author}</a></td>` +
-        `<td class="va-mid text-center px-3 fs-13i">${summary.start}</td>` +
-        `<td class="va-mid text-center px-3 fs-13i">${summary.end}</td>` +
+        `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.start}</label></td>` +
+        `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.end}</label></td>` +
         `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
         `<td class="va-mid text-right px-3 fs-13i">${lengthInDays}</td>` +
         `<td class="va-mid text-right px-3 fs-13i">${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
@@ -1171,6 +1279,14 @@ export default class extends Controller {
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
+  }
+
+  changeYear (e) {
+    if (!e.target.value || e.target.value === '') {
+      return
+    }
+    this.settings.year = e.target.value
+    this.calculate()
   }
 
   getLengthInDay (summary) {
@@ -1426,6 +1542,15 @@ export default class extends Controller {
     if (!data.authorReport) {
       return ''
     }
+
+    if (!this.settings.stype || this.settings.stype === '') {
+      this.settings.stype = 'pname'
+    }
+
+    if (!this.settings.order || this.settings.order === '') {
+      this.settings.order = this.defaultSettings.order
+    }
+
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
     '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
@@ -1550,20 +1675,144 @@ export default class extends Controller {
   }
 
   createTreasuryTable (data) {
-    if (!data.treasurySummary) {
-      return ''
+    this.treasuryTypeTitleTarget.textContent = this.settings.ttype === 'legacy' ? 'Legacy' : this.settings.ttype === 'combined' ? 'Combined' : 'Current'
+    if (!data.treasurySummary && !data.legacySummary) {
+      return
     }
-    let treasuryData = data.treasurySummary
-    let legacyData = data.legacySummary
+
+    let treasuryData = this.getTreasuryDataWithType(data)
+    if (treasuryData === null) {
+      return
+    }
+
     if (this.settings.interval === 'year') {
       treasuryData = this.getTreasuryYearlyData(treasuryData)
-      legacyData = this.getTreasuryYearlyData(legacyData)
+      this.yearSelectTitleTarget.classList.add('d-none')
+      this.yearSelectTarget.classList.add('d-none')
+    } else {
+      this.yearSelectTitleTarget.classList.remove('d-none')
+      this.yearSelectTarget.classList.remove('d-none')
+      // init year select options
+      this.initYearSelectOptions(treasuryData)
     }
-    this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData, false)
-    this.legacyTableTarget.innerHTML = this.createTreasuryLegacyTableContent(legacyData, true)
+
+    // filter by year
+    if (this.settings.interval !== 'year' && this.settings.year && this.settings.year.toString() !== '0') {
+      const tmpData = []
+      treasuryData.forEach((treasury) => {
+        const yearArr = treasury.month.split('-')
+        if (yearArr.length < 2) {
+          return
+        }
+        if (this.settings.year.toString() !== yearArr[0].trim()) {
+          return
+        }
+        tmpData.push(treasury)
+      })
+      treasuryData = tmpData
+    }
+
+    this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData)
   }
 
-  createTreasuryLegacyTableContent (summary, isLegacy) {
+  initYearSelectOptions (treasuryData) {
+    const yearArr = []
+    if (!treasuryData) {
+      return
+    }
+    treasuryData.forEach((treasury) => {
+      const timeArr = treasury.month.split('-')
+      if (timeArr.length > 1) {
+        const year = timeArr[0].trim()
+        if (!yearArr.includes(year)) {
+          yearArr.push(year)
+        }
+      }
+    })
+    let options = `<option name="all" value="0" ${!this.settings.year || this.settings.year === 0 ? 'selected' : ''}>All</option>`
+    yearArr.forEach((year) => {
+      options += `<option name="name_${year}" value="${year}" ${this.settings.year && this.settings.year.toString() === year ? 'selected' : ''}>${year}</option>`
+    })
+    this.yearSelectTarget.innerHTML = options
+  }
+
+  getTreasuryDataWithType (data) {
+    if (!this.settings.ttype || this.settings.ttype === 'current') {
+      return data.treasurySummary
+    }
+    if (this.settings.ttype === 'legacy') {
+      return data.legacySummary
+    }
+    // create time map
+    const timeArr = []
+    // return combined data
+    const combinedDataMap = new Map()
+    if (data.treasurySummary) {
+      data.treasurySummary.forEach((treasury) => {
+        timeArr.push(treasury.month)
+        // create object and insert to map
+        const item = {
+          month: treasury.month,
+          invalue: treasury.invalue,
+          invalueUSD: treasury.invalueUSD,
+          outvalue: treasury.outvalue,
+          outvalueUSD: treasury.outvalueUSD,
+          difference: treasury.difference,
+          differenceUSD: treasury.differenceUSD,
+          total: treasury.total,
+          totalUSD: treasury.totalUSD,
+          outEstimate: treasury.outEstimate,
+          outEstimateUsd: treasury.outEstimateUsd
+        }
+        combinedDataMap.set(treasury.month, item)
+      })
+    }
+    if (data.legacySummary) {
+      data.legacySummary.forEach((legacy) => {
+        if (!timeArr.includes(legacy.month)) {
+          timeArr.push(legacy.month)
+          // create object and insert to map
+          const item = {
+            month: legacy.month,
+            invalue: legacy.invalue * 5,
+            invalueUSD: legacy.invalueUSD,
+            outvalue: legacy.outvalue * 5,
+            outvalueUSD: legacy.outvalueUSD,
+            difference: legacy.difference * 5,
+            differenceUSD: legacy.differenceUSD,
+            total: legacy.total * 5,
+            totalUSD: legacy.totalUSD,
+            outEstimate: legacy.outEstimate,
+            outEstimateUsd: legacy.outEstimateUsd
+          }
+          combinedDataMap.set(legacy.month, item)
+        } else if (combinedDataMap.has(legacy.month)) {
+          // if has in array (in map)
+          const item = combinedDataMap.get(legacy.month)
+          item.invalue += legacy.invalue * 5
+          item.invalueUSD += legacy.invalueUSD
+          item.outvalue += legacy.outvalue * 5
+          item.outvalueUSD += legacy.outvalueUSD
+          item.difference = Math.abs(item.invalue - item.outvalue)
+          item.differenceUSD = Math.abs(item.invalueUSD - item.outvalueUSD)
+          item.total += legacy.total * 5
+          item.totalUSD += legacy.totalUSD
+          combinedDataMap.set(legacy.month, item)
+        }
+      })
+    }
+
+    const result = []
+    timeArr.forEach((month) => {
+      if (combinedDataMap.has(month)) {
+        result.push(combinedDataMap.get(month))
+      }
+    })
+    return result
+  }
+
+  createTreasuryLegacyTableContent (summary) {
+    const isLegacy = this.settings.ttype === 'legacy'
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">'
     if (isLegacy) {
@@ -1575,7 +1824,7 @@ export default class extends Controller {
     thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Incoming (${usdDisp ? 'USD' : 'DCR'})</th>` +
       `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Outgoing (${usdDisp ? 'USD' : 'DCR'})</th>` +
       `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Net Income (${usdDisp ? 'USD' : 'DCR'})</th>`
-    if (!isLegacy) {
+    if (!isLegacy && this.settings.ttype !== 'combined') {
       thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"> Outgoing (Est)(${usdDisp ? 'USD' : 'DCR'})</th>`
     }
     thead += '</tr></thead>'
@@ -1593,30 +1842,31 @@ export default class extends Controller {
       outTotal += usdDisp ? item.outvalueUSD : item.outvalue
       diffTotal += usdDisp ? item.differenceUSD : item.difference
       estimateOutTotal += usdDisp ? item.outEstimateUsd : item.outEstimate
-
-      const incomDisplay = usdDisp ? humanize.formatToLocalString(item.invalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.invalue / 100000000), 3, 3) : humanize.formatToLocalString((item.invalue / 500000000), 3, 3))
-      const outcomeDisplay = usdDisp ? humanize.formatToLocalString(item.outvalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.outvalue / 100000000), 3, 3) : humanize.formatToLocalString((item.outvalue / 500000000), 3, 3))
-      const differenceDisplay = usdDisp ? humanize.formatToLocalString(item.differenceUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.difference / 100000000), 3, 3) : humanize.formatToLocalString((item.difference / 500000000), 3, 3))
+      const netNegative = item.outvalue > item.invalue
+      const incomDisplay = usdDisp ? humanize.formatToLocalString(item.invalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.invalue / 100000000), 2, 2) : humanize.formatToLocalString((item.invalue / 500000000), 2, 2))
+      const outcomeDisplay = usdDisp ? humanize.formatToLocalString(item.outvalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.outvalue / 100000000), 2, 2) : humanize.formatToLocalString((item.outvalue / 500000000), 2, 2))
+      const differenceDisplay = usdDisp ? humanize.formatToLocalString(item.differenceUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.difference / 100000000), 2, 2) : humanize.formatToLocalString((item.difference / 500000000), 2, 2))
       bodyList += '<tr>' +
         `<td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${incomDisplay}</td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${outcomeDisplay}</td>` +
-        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${differenceDisplay}</td>`
-      if (!isLegacy) {
-        bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${usdDisp ? humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : humanize.formatToLocalString(item.outEstimate, 3, 3)}</td>`
+        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${netNegative ? '-' : ''}${usdDisp ? '$' : ''}${differenceDisplay}</td>`
+      if (!isLegacy && this.settings.ttype !== 'combined') {
+        bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${usdDisp ? humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>`
       }
       bodyList += '</tr>'
     }
 
-    const totalIncomDisplay = usdDisp ? humanize.formatToLocalString(incomeTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((incomeTotal / 100000000), 3, 3) : humanize.formatToLocalString((incomeTotal / 500000000), 3, 3))
-    const totalOutcomeDisplay = usdDisp ? humanize.formatToLocalString(outTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((outTotal / 100000000), 3, 3) : humanize.formatToLocalString((outTotal / 500000000), 3, 3))
-    const totalDifferenceDisplay = usdDisp ? humanize.formatToLocalString(diffTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((diffTotal / 100000000), 3, 3) : humanize.formatToLocalString((diffTotal / 500000000), 3, 3))
-    const totalEstimateOutgoing = usdDisp ? humanize.formatToLocalString(estimateOutTotal, 2, 2) : humanize.formatToLocalString(estimateOutTotal, 3, 3)
+    const totalIncomDisplay = usdDisp ? humanize.formatToLocalString(incomeTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((incomeTotal / 100000000), 2, 2) : humanize.formatToLocalString((incomeTotal / 500000000), 2, 2))
+    const totalOutcomeDisplay = usdDisp ? humanize.formatToLocalString(outTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((outTotal / 100000000), 2, 2) : humanize.formatToLocalString((outTotal / 500000000), 2, 2))
+    const totalDifferenceDisplay = usdDisp ? humanize.formatToLocalString(diffTotal, 2, 2) : (isLegacy ? humanize.formatToLocalString((diffTotal / 100000000), 2, 2) : humanize.formatToLocalString((diffTotal / 500000000), 2, 2))
+    const totalEstimateOutgoing = usdDisp ? humanize.formatToLocalString(estimateOutTotal, 2, 2) : humanize.formatToLocalString(estimateOutTotal, 2, 2)
+    const totalNetNegative = outTotal > incomeTotal
     bodyList += '<tr class="va-mid finance-table-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>'
     bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalIncomDisplay}</td>`
     bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalOutcomeDisplay}</td>`
-    bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalDifferenceDisplay}</td>`
-    if (!isLegacy) {
+    bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${totalNetNegative ? '-' : ''}${usdDisp ? '$' : ''}${totalDifferenceDisplay}</td>`
+    if (!isLegacy && this.settings.ttype !== 'combined') {
       bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalEstimateOutgoing}</td>`
     }
     bodyList += '</tr>'
@@ -1629,10 +1879,16 @@ export default class extends Controller {
   async calculate () {
     if (this.settings.type === 'treasury') {
       this.searchBoxTarget.classList.add('d-none')
+      this.searchBoxTarget.classList.remove('report-search-box')
       this.searchInputTarget.value = ''
       this.settings.search = this.defaultSettings.search
     } else {
       this.searchBoxTarget.classList.remove('d-none')
+      if (this.settings.type === 'author' || this.settings.type === 'proposal') {
+        this.searchBoxTarget.classList.remove('ms-3')
+      } else {
+        this.searchBoxTarget.classList.add('ms-3')
+      }
       this.settings.usd = false
       this.settings.zoom = ''
       this.settings.bin = this.defaultSettings.bin
@@ -1693,9 +1949,6 @@ export default class extends Controller {
 
   enabledGroupButton () {
     // enabled group button after loading
-    this.typeTargets.forEach((typeTarget) => {
-      typeTarget.disabled = false
-    })
     this.intervalTargets.forEach((intervalTarget) => {
       intervalTarget.disabled = false
     })
@@ -1703,9 +1956,6 @@ export default class extends Controller {
 
   disabledGroupButton () {
     // disabled group button after loading
-    this.typeTargets.forEach((typeTarget) => {
-      typeTarget.disabled = true
-    })
     this.intervalTargets.forEach((intervalTarget) => {
       intervalTarget.disabled = true
     })
