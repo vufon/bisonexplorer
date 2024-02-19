@@ -140,7 +140,7 @@ export default class extends Controller {
       'treasuryToggleArea', 'treasuryTitle', 'reportDescription', 'reportAllPage',
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
-      'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector']
+      'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector', 'bcname']
   }
 
   async connect () {
@@ -186,7 +186,7 @@ export default class extends Controller {
       import('../vendor/dygraphs.min.js')
     )
     this.setReportTitle(this.settings.type)
-    this.calculate()
+    this.calculate(true)
   }
 
   _drawCallback (graph, first) {
@@ -616,13 +616,12 @@ export default class extends Controller {
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'lsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd', 'active', 'year', 'ttype'
+      'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd', 'active', 'year', 'ttype'
     ])
 
     this.defaultSettings = {
       type: 'proposal',
       tsort: 'newest',
-      lsort: 'newest',
       psort: 'newest',
       stype: 'startdt',
       order: 'desc',
@@ -701,14 +700,14 @@ export default class extends Controller {
       if (isSearching) {
         this.settings.search = this.defaultSettings.search
         isSearching = false
-        this.calculate()
+        this.calculate(false)
       }
       return
     }
     this.searchBtnTarget.classList.add('d-none')
     this.clearSearchBtnTarget.classList.remove('d-none')
     this.settings.search = this.searchInputTarget.value
-    this.calculate()
+    this.calculate(false)
   }
 
   clearSearch (e) {
@@ -717,7 +716,7 @@ export default class extends Controller {
     this.searchBtnTarget.classList.remove('d-none')
     this.clearSearchBtnTarget.classList.add('d-none')
     isSearching = false
-    this.calculate()
+    this.calculate(false)
   }
 
   updateQueryString () {
@@ -733,6 +732,7 @@ export default class extends Controller {
     switch (type) {
       case 'proposal':
         this.reportTitleTarget.innerHTML = proposalTitle
+        this.bcnameTarget.textContent = ' > ' + proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         this.settings.interval = this.defaultSettings.interval
         this.intervalTargets.forEach((intervalTarget) => {
@@ -744,18 +744,22 @@ export default class extends Controller {
         break
       case 'summary':
         this.reportTitleTarget.innerHTML = summaryTitle
+        this.bcnameTarget.textContent = ' > ' + summaryTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'domain':
         this.reportTitleTarget.innerHTML = domainTitle
+        this.bcnameTarget.textContent = ' > ' + domainTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'treasury':
         this.reportTitleTarget.innerHTML = treasuryTitle
+        this.bcnameTarget.textContent = ' > ' + treasuryTitle
         this.reportDescriptionTarget.innerHTML = treasuryNote
         break
       case 'author':
         this.reportTitleTarget.innerHTML = authorTitle
+        this.bcnameTarget.textContent = ' > ' + authorTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
     }
   }
@@ -770,7 +774,7 @@ export default class extends Controller {
     })
     target.classList.add('btn-active')
     this.settings.ttype = e.target.name
-    this.calculate()
+    this.calculate(false)
   }
 
   intervalChange (e) {
@@ -783,7 +787,7 @@ export default class extends Controller {
     })
     target.classList.add('btn-active')
     this.settings.interval = e.target.name
-    this.calculate()
+    this.calculate(false)
   }
 
   getApiUrlByType () {
@@ -795,7 +799,7 @@ export default class extends Controller {
     }
   }
 
-  createReportTable () {
+  createReportTable (redrawFlg) {
     if (this.settings.type === 'proposal') {
       this.colorNoteRowTarget.classList.remove('d-none')
       this.colorLabelTarget.classList.remove('summary-note-color')
@@ -848,14 +852,16 @@ export default class extends Controller {
       this.createTreasuryTable(responseData)
       this.treasuryChartTarget.classList.remove('d-none')
       this.treasuryChartTitleTarget.classList.remove('d-none')
-      this.initializeChart()
-      this.drawGraph()
-      if (ctrl.zoomButtons) {
-        ctrl.zoomButtons.forEach((button) => {
-          if (button.name === 'year') {
-            button.click()
-          }
-        })
+      if (redrawFlg) {
+        this.initializeChart()
+        this.drawGraph()
+        if (ctrl.zoomButtons) {
+          ctrl.zoomButtons.forEach((button) => {
+            if (button.name === 'year') {
+              button.click()
+            }
+          })
+        }
       }
     } else {
       this.reportTarget.classList.remove('treasury-group-report')
@@ -936,17 +942,12 @@ export default class extends Controller {
 
   sortByCreateDate () {
     this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
-    this.createReportTable()
-  }
-
-  sortByLegacyMonth () {
-    this.settings.lsort = (this.settings.lsort === 'oldest' || !this.settings.lsort || this.settings.lsort === '') ? 'newest' : 'oldest'
-    this.createReportTable()
+    this.createReportTable(false)
   }
 
   sortByDate () {
     this.settings.psort = (this.settings.psort === 'newest' || !this.settings.psort || this.settings.psort === '') ? 'oldest' : 'newest'
-    this.createReportTable()
+    this.createReportTable(false)
   }
 
   sortByStartDate () {
@@ -973,6 +974,14 @@ export default class extends Controller {
     this.sortByType('budget')
   }
 
+  sortByDays () {
+    this.sortByType('days')
+  }
+
+  sortByAvg () {
+    this.sortByType('avg')
+  }
+
   sortByTotalSpent () {
     this.sortByType('spent')
   }
@@ -988,7 +997,7 @@ export default class extends Controller {
   sortByType (type) {
     this.settings.stype = type
     this.settings.order = this.settings.order === 'esc' ? 'desc' : 'esc'
-    this.createReportTable()
+    this.createReportTable(false)
   }
 
   getTreasuryYearlyData (summary) {
@@ -1230,8 +1239,10 @@ export default class extends Controller {
       `<span data-action="click->financereport#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
       `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fw-600">Days</th>' +
-      '<th class="va-mid text-right px-3 fw-600">Monthly Avg (Est)</th>' +
+      '<th class="va-mid text-center fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByDays">Days</label>' +
+      `<span data-action="click->financereport#sortByDays" class="${(this.settings.stype === 'days' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'days' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-center fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAvg">Monthly Avg (Est)</label>' +
+      `<span data-action="click->financereport#sortByAvg" class="${(this.settings.stype === 'avg' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'avg' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByTotalSpent">Total Spent (Est)</label>' +
       `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-3 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financereport#sortByRemaining">Total Remaining (Est)</label>' +
@@ -1263,9 +1274,9 @@ export default class extends Controller {
         `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.end}</label></td>` +
         `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
         `<td class="va-mid text-right px-3 fs-13i">${lengthInDays}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i">${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.totalSpent, 2, 2)}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i pr-10i">$${humanize.formatToLocalString(summary.totalRemaining, 2, 2)}</td>` +
+        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${humanize.formatToLocalString(monthlyAverage, 2, 2)}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">$${humanize.formatToLocalString(summary.totalSpent, 2, 2)}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">$${humanize.formatToLocalString(summary.totalRemaining, 2, 2)}</p></td>` +
         '</tr>'
     }
 
@@ -1286,7 +1297,7 @@ export default class extends Controller {
       return
     }
     this.settings.year = e.target.value
-    this.calculate()
+    this.calculate(false)
   }
 
   getLengthInDay (summary) {
@@ -1380,6 +1391,10 @@ export default class extends Controller {
         return this.sortSummaryBySpent(summary)
       case 'remaining':
         return this.sortSummaryByRemaining(summary)
+      case 'days':
+        return this.sortSummaryByDays(summary)
+      case 'avg':
+        return this.sortSummaryByAvg(summary)
       case 'enddt':
         return this.sortSummaryByDate(summary, false)
       default:
@@ -1399,6 +1414,46 @@ export default class extends Controller {
         return _this.settings.order === 'desc' ? -1 : 1
       }
       if (date1 < date2) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  sortSummaryByDays (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      const lengtha = _this.getLengthInDay(a)
+      const lengthb = _this.getLengthInDay(b)
+      if (lengtha > lengthb) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (lengtha < lengthb) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return summary
+  }
+
+  sortSummaryByAvg (summary) {
+    if (!summary) {
+      return
+    }
+    const _this = this
+    summary.sort(function (a, b) {
+      const avga = (a.budget / _this.getLengthInDay(a)) * 30
+      const avgb = (b.budget / _this.getLengthInDay(b)) * 30
+      if (avga > avgb) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (avga < avgb) {
         return _this.settings.order === 'desc' ? 1 : -1
       }
       return 0
@@ -1814,12 +1869,8 @@ export default class extends Controller {
   createTreasuryLegacyTableContent (summary) {
     const isLegacy = this.settings.ttype === 'legacy'
     let thead = '<thead>' +
-      '<tr class="text-secondary finance-table-header">'
-    if (isLegacy) {
-      thead += `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByLegacyMonth" class="${this.settings.lsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
-    } else {
-      thead += `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
-    }
+      '<tr class="text-secondary finance-table-header">' +
+      `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Incoming (${usdDisp ? 'USD' : 'DCR'})</th>` +
       `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Outgoing (${usdDisp ? 'USD' : 'DCR'})</th>` +
@@ -1833,7 +1884,7 @@ export default class extends Controller {
     // create tbody content
     let incomeTotal = 0; let outTotal = 0; let diffTotal = 0; let estimateOutTotal = 0
     for (let i = 0; i < summary.length; i++) {
-      const sort = isLegacy ? this.settings.lsort : this.settings.tsort
+      const sort = this.settings.tsort
       const index = sort === 'newest' ? i : (summary.length - i - 1)
       const item = summary[index]
       const timeParam = this.getFullTimeParam(item.month, '-')
@@ -1843,14 +1894,14 @@ export default class extends Controller {
       diffTotal += usdDisp ? item.differenceUSD : item.difference
       estimateOutTotal += usdDisp ? item.outEstimateUsd : item.outEstimate
       const netNegative = item.outvalue > item.invalue
-      const incomDisplay = usdDisp ? humanize.formatToLocalString(item.invalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.invalue / 100000000), 2, 2) : humanize.formatToLocalString((item.invalue / 500000000), 2, 2))
-      const outcomeDisplay = usdDisp ? humanize.formatToLocalString(item.outvalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.outvalue / 100000000), 2, 2) : humanize.formatToLocalString((item.outvalue / 500000000), 2, 2))
-      const differenceDisplay = usdDisp ? humanize.formatToLocalString(item.differenceUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.difference / 100000000), 2, 2) : humanize.formatToLocalString((item.difference / 500000000), 2, 2))
+      const incomDisplay = item.invalue <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.invalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.invalue / 100000000), 2, 2) : humanize.formatToLocalString((item.invalue / 500000000), 2, 2))
+      const outcomeDisplay = item.outvalue <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.outvalueUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.outvalue / 100000000), 2, 2) : humanize.formatToLocalString((item.outvalue / 500000000), 2, 2))
+      const differenceDisplay = item.difference <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.differenceUSD, 2, 2) : (isLegacy ? humanize.formatToLocalString((item.difference / 100000000), 2, 2) : humanize.formatToLocalString((item.difference / 500000000), 2, 2))
       bodyList += '<tr>' +
         `<td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
-        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${incomDisplay}</td>` +
-        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${outcomeDisplay}</td>` +
-        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${netNegative ? '-' : ''}${usdDisp ? '$' : ''}${differenceDisplay}</td>`
+        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && incomDisplay !== '' ? '$' : ''}${incomDisplay}</td>` +
+        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && outcomeDisplay !== '' ? '$' : ''}${outcomeDisplay}</td>` +
+        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${netNegative ? '-' : ''}${usdDisp && differenceDisplay !== '' ? '$' : ''}${differenceDisplay}</td>`
       if (!isLegacy && this.settings.ttype !== 'combined') {
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${usdDisp ? humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>`
       }
@@ -1876,7 +1927,7 @@ export default class extends Controller {
   }
 
   // Calculate and response
-  async calculate () {
+  async calculate (redrawFlg) {
     if (this.settings.type === 'treasury') {
       this.searchBoxTarget.classList.add('d-none')
       this.searchBoxTarget.classList.remove('report-search-box')
@@ -1911,7 +1962,7 @@ export default class extends Controller {
       }
 
       if (haveResponseData) {
-        this.createReportTable()
+        this.createReportTable(redrawFlg)
         this.enabledGroupButton()
         return
       }
@@ -1943,7 +1994,7 @@ export default class extends Controller {
         proposalResponse = response
       }
     }
-    this.createReportTable()
+    this.createReportTable(redrawFlg)
     this.enabledGroupButton()
   }
 
@@ -1964,13 +2015,13 @@ export default class extends Controller {
   treasuryUsdChange (e) {
     const switchCheck = document.getElementById('usdSwitchInput').checked
     this.settings.usd = switchCheck
-    this.calculate()
+    this.calculate(false)
   }
 
   activeProposalSwitch (e) {
     const switchCheck = document.getElementById('activeProposalInput').checked
     this.settings.active = switchCheck
-    this.calculate()
+    this.calculate(false)
   }
 
   proposalReportTimeDetail (e) {

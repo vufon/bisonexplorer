@@ -10,18 +10,22 @@
          <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
          <div class="d-none" data-financedetail-target="reportArea">
             <div class="d-flex w-100 pb-1 fs-17 mt-3">
-               <a class="d-block link-hover-underline" href="/home-report">
+               <span class="me-2">
+               <a class="link-hover-underline" href="/home-report">
                   Financial Reports
-               </a>
-               <a data-financedetail-target="toUpReport" class="d-block ms-4" href="#">
-               <span class="dcricon-back me-1 pt-1"></span>
-               Back
-               </a>
-               <a data-financedetail-target="upLevel" class="d-block ms-4" href="#">
-               <span class="dcricon-calendar me-1 pt-1"></span>
-               <span data-financedetail-target="upLabel"></span>
-               </a>
-               <a data-financedetail-target="toVote" class="d-none d-block ms-4" href="#">
+               </a></span>
+               > <span class="ms-2 me-2" data-financedetail-target="toUpReport"></span>
+               <span class="me-2" data-financedetail-target="yearBreadcumb">
+               <a data-financedetail-target="upLevel" class="link-hover-underline" href="#">
+               </a> > </span>
+               <span data-financedetail-target="currentDetail"></span>
+               <p class="ms-3 d-flex mt-0" data-financedetail-target="prevNextButtons">
+                  <a class="fs13 cursor-pointer" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
+                  <a class="fs13 cursor-pointer" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">&nbsp;next </a>
+               </p>
+            </div>
+            <div class="d-flex">
+               <a data-financedetail-target="toVote" class="d-none d-block" href="#">
                <span class="dcricon-check me-1 pt-1"></span>
                Voting Details
                </a>
@@ -29,22 +33,11 @@
                <span class="dcricon-discussion me-1 pt-1"></span>
                Proposal Details
                </a>
-               <a data-financedetail-target="toAuthorList" class="d-none d-block ms-4" href="/finance-report?type=author">
-               <span class="dcricon-user me-1 pt-1"></span>
-               Author List
-               </a>
-            </div>
-            <div class="d-flex mt-2">
-               <p class="fw-600 mb-0 fs-20" data-financedetail-target="timeInfo"></p>
-               <p class="ms-4 d-flex ai-center" data-financedetail-target="prevNextButtons">
-                  <a class="fs13 cursor-pointer" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
-                  <a class="fs13 cursor-pointer" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">&nbsp;next </a>
-               </p>
             </div>
             <div class="mt-1 d-none" data-financedetail-target="proposalSpanRow">
             </div>
             <div class="mt-1 d-none" data-financedetail-target="totalSpanRow">
-               <p class="fw-600 fs-15">Proposals Expendidute (Est): $<span class="fs-18" data-financedetail-target="expendiduteValue"></span></p>
+               <p class="fw-600 fs-15">Proposals Expenditures (Est): $<span class="fs-18" data-financedetail-target="expendiduteValue"></span></p>
                <table class="table report v3 border-grey-2 w-auto" data-financedetail-target="yearMonthInfoTable"></table>
             </div>
             <p class="d-none mt-3" data-financedetail-target="noReport">Data does not exist. Let's move on to another time!</p>
@@ -53,7 +46,7 @@
                <table class="table report v3 border-grey-2 w-auto" data-financedetail-target="domainReport"></table>
             </div>
             <div data-financedetail-target="proposalArea" class="d-none">
-               <p class="fw-600 fs-20 mt-4">Proposal Data (Est)</p>
+               <p class="fw-600 fs-20 mt-4">Proposal Data</p>
                <table class="table report v3 border-grey-2 w-auto" data-financedetail-target="proposalReport">
                </table>
             </div>

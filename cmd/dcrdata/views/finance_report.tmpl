@@ -16,10 +16,10 @@
             <div class="fullscreen d-none" data-financereport-target="fullscreen" data-action="click->financereport#exitFullscreen">
                <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
             </div>
-            <div class="pb-1 fs-17 mt-1">
+            <div class="pb-1 fs-15 mt-1">
                <a class="return-to-main link-hover-underline" href="/home-report">
                   Financial Reports
-               </a>
+               </a> <span class="step1-breadcumb" data-financereport-target="bcname"></span>
             </div>
             <span class="fs-22 pe-2 report-tool-bar" data-financereport-target="reportTitle">
             </span>
@@ -127,11 +127,12 @@
                   </div>
                </div>
                <div class="d-none" data-financereport-target="activeProposalSwitchArea">
+                  <span class="me-1">All</span>
                   <label class="switch mt-3">
                   <input type="checkbox" data-action="change->financereport#activeProposalSwitch" id="activeProposalInput">
                   <span class="legacy-slider round"></span>
                   </label>
-                  <span>Active Proposal</span>
+                  <span class="ms-1">Active</span>
                </div>
                <div data-financereport-target="searchBox" class="d-iblock report-search-box px-1 pt-1 ps-2">
                   <input

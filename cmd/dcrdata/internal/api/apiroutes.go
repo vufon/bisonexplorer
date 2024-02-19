@@ -124,6 +124,7 @@ type DataSource interface {
 	GetTreasurySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error)
 	GetLegacySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error)
 	GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
+	GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasuryMonthDataObject, error)
 	GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
 	GetAllProposalDomains() []string
 	GetAllProposalOwners() []string
@@ -1432,6 +1433,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			report = append(report, varMonthData)
 		}
 	}
+	var treasuryGroupByMonth []dbtypes.TreasuryMonthDataObject
 	if timeType == "year" {
 		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
 		now := time.Now()
@@ -1441,6 +1443,9 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		}
 		proposalMetaList, proposalErr := c.DataSource.GetProposalMetaByYear(int(year))
 		treasuryData, treasuryErr := c.DataSource.GetTreasurySummaryByYear(int(year))
+		treasuryGroupByMonth, _ = c.DataSource.GetTreasurySummaryGroupByMonth(int(year))
+		b, _ := json.Marshal(treasuryGroupByMonth)
+		fmt.Println(string(b))
 		legacyData, legacyErr := c.DataSource.GetLegacySummaryByYear(int(year))
 		treasurySummary = *treasuryData
 		legacySummary = *legacyData
@@ -1536,7 +1541,27 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 				monthResultData = append(monthResultData, monthData)
 			}
 		}
+		summaryDataObjList := make([]apitypes.MonthDataObject, 0)
+		timeTemp := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
+		for timeTemp.Year() == int(year) {
+			monthStr := timeTemp.Format("2006-01")
+			expense := c.getExpenseFromList(monthResultData, monthStr)
+			actualExpense := c.getActualExpenseFromList(treasuryGroupByMonth, monthStr)
+			if expense == 0 && actualExpense == 0 {
+				timeTemp = timeTemp.AddDate(0, 1, 0)
+				continue
+			}
+			dataObj := apitypes.MonthDataObject{
+				Month:         monthStr,
+				Expense:       expense,
+				ActualExpense: actualExpense,
+			}
+			summaryDataObjList = append(summaryDataObjList, dataObj)
+			timeTemp = timeTemp.AddDate(0, 1, 0)
+		}
+		monthResultData = summaryDataObjList
 	}
+
 	writeJSON(w, struct {
 		ReportDetail      []apitypes.ProposalReportData `json:"reportDetail"`
 		ProposalList      []string                      `json:"proposalList"`
@@ -1554,6 +1579,24 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		LegacySummary:     legacySummary,
 		MonthlyResultData: monthResultData,
 	}, m.GetIndentCtx(r))
+}
+
+func (c *appContext) getActualExpenseFromList(list []dbtypes.TreasuryMonthDataObject, month string) float64 {
+	for _, item := range list {
+		if item.Month == month {
+			return item.Expense
+		}
+	}
+	return 0
+}
+
+func (c *appContext) getExpenseFromList(list []apitypes.MonthDataObject, month string) float64 {
+	for _, item := range list {
+		if item.Month == month {
+			return item.Expense
+		}
+	}
+	return 0
 }
 
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {

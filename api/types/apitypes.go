@@ -932,8 +932,9 @@ type DomainReportData struct {
 }
 
 type MonthDataObject struct {
-	Month   string  `json:"month"`
-	Expense float64 `json:"expense"`
+	Month         string  `json:"month"`
+	Expense       float64 `json:"expense"`
+	ActualExpense float64 `json:"actualExpense"`
 }
 
 type MonthReportObject struct {

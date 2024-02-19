@@ -2089,6 +2089,12 @@ type TreasurySummary struct {
 	MonthPrice     float64 `json:"monthPrice"`
 }
 
+type TreasuryMonthDataObject struct {
+	Month      string  `json:"month"`
+	ExpenseDCR int64   `json:"expenseDCR"`
+	Expense    float64 `json:"expense"`
+}
+
 type CurrencyResponse struct {
 	Prices       [][]float64 `json:"prices"`
 	MarketCaps   [][]float64 `json:"market_caps"`

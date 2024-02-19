@@ -1964,6 +1964,46 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 	return &summary, nil
 }
 
+func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasuryMonthDataObject, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectYearlyTreasuryGroupByMonth, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dataObjList = make([]dbtypes.TreasuryMonthDataObject, 0)
+	startOfYear := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+	var now = time.Now()
+	endOfYear := time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
+	if now.Year() == year {
+		endOfYear = now
+	}
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
+	for rows.Next() {
+		var time dbtypes.TimeDef
+		var outValue int64
+		err = rows.Scan(&time, &outValue)
+		if err != nil {
+			return nil, err
+		}
+		month := time.Format("2006-01")
+		monthPrice := monthPriceMap[month]
+		dataObj := dbtypes.TreasuryMonthDataObject{
+			Month:      month,
+			ExpenseDCR: -outValue,
+			Expense:    monthPrice * float64(-outValue/5) / 1e8,
+		}
+		dataObjList = append(dataObjList, dataObj)
+	}
+
+	if rows.Err() != nil {
+		return dataObjList, nil
+	}
+
+	return dataObjList, nil
+}
+
 func (pgb *ChainDB) GetLegacySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error) {
 	var rows *sql.Rows
 	rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataByMonth, year, month)

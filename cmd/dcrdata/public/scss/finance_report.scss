@@ -480,7 +480,7 @@
 }
 
 .date-column {
-  min-width: 80px;
+  min-width: 100px;
 }
 
 .proposal-name-column {
@@ -489,4 +489,17 @@
 
 .report-menu-button {
   width: 300px;
+}
+
+.est-column {
+  width: 130px;
+}
+
+.remaining-est-column {
+  width: 170px;
+}
+
+.step1-breadcumb {
+  position: sticky;
+  left: 140px;
 }
