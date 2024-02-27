@@ -17,9 +17,7 @@
                <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
             </div>
             <div class="pb-1 fs-15 mt-1">
-               <a class="return-to-main link-hover-underline" href="/home-report">
-                  Financial Reports
-               </a> <span class="step1-breadcumb" data-financereport-target="bcname"></span>
+               <a class="return-to-main link-hover-underline me-2" href="/home-report">Financial Reports</a><span class="narrow-breadcumb">></span><span class="step1-breadcumb ms-2" data-financereport-target="bcname"></span>
             </div>
             <span class="fs-22 pe-2 report-tool-bar" data-financereport-target="reportTitle">
             </span>
@@ -37,7 +35,7 @@
                   </noscript>
                   <div class="jsonly h-100" data-financereport-target="littlechart">
                      <div class="d-flex flex-column h-100" data-financereport-target="chartbox">
-                        <div class="d-flex flex-wrap justify-content-around align-items-start">
+                        <div class="d-flex flex-wrap justify-content-around align-items-start" data-financereport-target="chartHeader">
                            <div class="loader-v2 loading" data-financereport-target="chartLoader"></div>
                            <div class="btn-set secondary-card d-inline-flex flex-nowrap mx-2">
                               <label>Chart</label>
@@ -46,8 +44,8 @@
                                  data-financereport-target="options"
                                  data-action="change->financereport#changeGraph"
                                  >
-                                 <option name="amountflow" value="amountflow">Sent/Received</option>
-                                 <option name="balance" value="balance">Balance</option>
+                                 <option name="amountflow" data-financereport-target="amountFlowOption" value="amountflow">Sent/Received</option>
+                                 <option name="balance" data-financereport-target="balanceOption" value="balance">Balance</option>
                               </select>
                            </div>
                            <div
@@ -110,14 +108,13 @@
             <p class="fs-20 mb-1 mt-1 report-tool-bar" data-financereport-target="treasuryTypeTitle">
                Current Treasury
             </p>
-            <span>*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets</span>
             </div>
                <div class="d-flex ai-center mt-2">
                  <div class="d-none d-inline" data-financereport-target="groupBy">
                   <label data-financereport-target="typeLabel">Type: </label>
                   <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
-                     <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm btn-active" value="Current" name="current">
-                     <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Legacy" name="legacy">
+                     <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm btn-active" value="Decentralized Treasury" name="current">
+                     <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Admin Treasury" name="legacy">
                      <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Combined" name="combined">
                   </div>
                   <label data-financereport-target="groupByLabel">Group By: </label>
@@ -166,7 +163,8 @@
                   </label>
                   <span>USD</span>
                </div>
-            <table class="table report v3 border-grey" data-financereport-target="report">
+             <span class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets</span>
+            <table class="table report v3 border-grey d-table-cell" data-financereport-target="report">
             </table>
             <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
          </div>

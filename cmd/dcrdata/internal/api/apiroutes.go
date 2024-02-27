@@ -1120,7 +1120,7 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 			}
 		}
 		//remove this owner from proposalMetaList
-		proposalSummaryList, _ = c.GetReportDataFromProposalList(handlerProposals)
+		proposalSummaryList, _ = c.GetReportDataFromProposalList(handlerProposals, false)
 	}
 
 	writeJSON(w, struct {
@@ -1136,7 +1136,7 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 	}, m.GetIndentCtx(r))
 }
 
-func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string) ([]apitypes.ProposalReportData, []apitypes.MonthDataObject) {
+func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string, containAllTime bool) ([]apitypes.ProposalReportData, []apitypes.MonthDataObject) {
 	now := time.Now()
 	proposalSummaryList := make([]apitypes.ProposalReportData, 0)
 	monthDatas := make([]apitypes.MonthDataObject, 0)
@@ -1160,7 +1160,7 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 		amountFloat = amountFloat / 100
 		startTime := time.Unix(startInt, 0)
 		endTime := time.Unix(endInt, 0)
-		if startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year()) {
+		if !containAllTime && (startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year())) {
 			continue
 		}
 		proposalInfo.Name = name
@@ -1196,7 +1196,7 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 			for i := 0; i < int(countMonths); i++ {
 				handlerTime := tempTime.AddDate(0, i, 0)
 				//if month is this month or future months, break loop
-				if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
+				if !containAllTime && (handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year())) {
 					break
 				}
 				key := fmt.Sprintf("%d-%s", handlerTime.Year(), apitypes.GetFullMonthDisplay(int(handlerTime.Month())))
@@ -1283,7 +1283,7 @@ func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.
 		allParamList = c.DataSource.GetAllProposalOwners()
 	}
 
-	proposalSummaryList, monthDatas := c.GetReportDataFromProposalList(proposals)
+	proposalSummaryList, monthDatas := c.GetReportDataFromProposalList(proposals, false)
 
 	if paramType == "domain" {
 		writeJSON(w, struct {
@@ -1444,8 +1444,6 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		proposalMetaList, proposalErr := c.DataSource.GetProposalMetaByYear(int(year))
 		treasuryData, treasuryErr := c.DataSource.GetTreasurySummaryByYear(int(year))
 		treasuryGroupByMonth, _ = c.DataSource.GetTreasurySummaryGroupByMonth(int(year))
-		b, _ := json.Marshal(treasuryGroupByMonth)
-		fmt.Println(string(b))
 		legacyData, legacyErr := c.DataSource.GetLegacySummaryByYear(int(year))
 		treasurySummary = *treasuryData
 		legacySummary = *legacyData
@@ -1527,7 +1525,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			report = append(report, varYearData)
 		}
 		//get month data from proposal list
-		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList)
+		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList, false)
 		for _, monthData := range monthDatas {
 			monthArr := strings.Split(monthData.Month, "-")
 			if len(monthArr) < 2 {
@@ -1616,7 +1614,7 @@ func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 	proposalMetaList, err := c.DataSource.GetAllProposalMeta("")
 	if err == nil {
 		monthDataMap := make(map[string]float64)
-		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList)
+		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList, true)
 		for _, monthData := range monthDatas {
 			monthDataMap[monthData.Month] = monthData.Expense
 		}

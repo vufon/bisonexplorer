@@ -1051,10 +1051,11 @@ type AddressRow struct {
 }
 
 type AddressSummaryRow struct {
-	Id         uint64
-	Time       TimeDef
-	TotalValue uint64
-	SpentValue uint64
+	Id            uint64
+	Time          TimeDef
+	SpentValue    uint64
+	ReceivedValue uint64
+	Saved         bool
 }
 
 // IsMerged indicates if the AddressRow represents data for a "merged" address
@@ -1848,6 +1849,8 @@ type ChartsData struct {
 	Net         []float64 `json:"net,omitempty"`
 	ChainWork   []uint64  `json:"chainwork,omitempty"`
 	NetHash     []uint64  `json:"nethash,omitempty"`
+	Marketing   []uint64  `json:"marketing,omitempty"`
+	Development []uint64  `json:"development,omitempty"`
 }
 
 // ScriptPubKeyData is part of the result of decodescript(ScriptPubKeyHex)
@@ -2082,6 +2085,8 @@ type TreasurySummary struct {
 	OutvalueUSD    float64 `json:"outvalueUSD"`
 	Difference     int64   `json:"difference"`
 	DifferenceUSD  float64 `json:"differenceUSD"`
+	Balance        int64   `json:"balance"`
+	BalanceUSD     float64 `json:"balanceUSD"`
 	Total          int64   `json:"total"`
 	TotalUSD       float64 `json:"totalUSD"`
 	OutEstimate    float64 `json:"outEstimate"`

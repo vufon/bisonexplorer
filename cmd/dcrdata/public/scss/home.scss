@@ -1459,6 +1459,10 @@ body.darkBG {
   .ticket-pool-card {
     background: linear-gradient(107.34deg, #186269, #063333);
   }
+
+  .function-feature-card:hover {
+    background-color: #4b4b4b !important;
+  }
 }
 
 .navbar-portfolio__nav-wrap {

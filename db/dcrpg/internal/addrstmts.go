@@ -22,28 +22,29 @@ const (
 	CreateAddressSummaryTable = `CREATE TABLE IF NOT EXISTS address_summary (
 		id SERIAL PRIMARY KEY,
 		time TIMESTAMPTZ NOT NULL,
-		total_value BIGINT,
-		spent_value BIGINT
+		spent_value BIGINT,
+		received_value BIGINT,
+		saved BOOLEAN
 	);`
 
 	//insert to address summary table
-	InsertAddressSummaryRow = `INSERT INTO address_summary (time, total_value, spent_value)
-		VALUES ($1, $2, $3)`
+	InsertAddressSummaryRow = `INSERT INTO address_summary (time, spent_value, received_value,  saved)
+		VALUES ($1, $2, $3, $4)`
 
 	//select first from summary table
 	SelectAddressSummaryRows = `SELECT * FROM address_summary ORDER BY time`
 
 	//select only data from summary table
-	SelectAddressSummaryDataRows = `SELECT time,total_value,spent_value FROM address_summary ORDER BY time DESC`
+	SelectAddressSummaryDataRows = `SELECT time,spent_value,received_value FROM address_summary ORDER BY time DESC`
 
-	SelectAddressSummaryDataByMonth = `SELECT time,total_value,spent_value FROM address_summary 
+	SelectAddressSummaryDataByMonth = `SELECT time,spent_value,received_value FROM address_summary 
 	WHERE EXTRACT(YEAR FROM time) = $1 AND EXTRACT(MONTH FROM time) = $2`
 
-	SelectAddressSummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(total_value) as total_value,SUM(spent_value) as spent_value FROM address_summary
+	SelectAddressSummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(spent_value) as spent_value,SUM(received_value) as received_value FROM address_summary
 	WHERE EXTRACT(YEAR FROM time) = $1 GROUP BY tx_year;`
 
 	//update spent and total value
-	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET total_value = $1, spent_value = $2 WHERE id = $3`
+	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET spent_value = $1, received_value = $2, saved = $3 WHERE id = $4`
 
 	// insertAddressRow is the basis for several address insert/upsert
 	// statements.
@@ -313,7 +314,7 @@ const (
 		LIMIT $2 OFFSET $3;`
 
 	SelectAddressCreditsLimitNByAddressFromOldest = `SELECT ` + addrsColumnNames + `
-		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
+		FROM addresses WHERE address=$1 AND valid_mainchain
 		ORDER BY block_time, tx_hash ASC
 		LIMIT $2 OFFSET $3;`
 
@@ -323,7 +324,7 @@ const (
 		LIMIT 1;`
 
 	SelectAddressCreditsLimitNByAddressByPeriod = `SELECT ` + addrsColumnNames + `
-		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain AND block_time >= $2 AND block_time <= $3
+		FROM addresses WHERE address=$1 AND valid_mainchain AND block_time >= $2 AND block_time <= $3
 		ORDER BY block_time, tx_hash ASC;`
 
 	SelectAddressIDsByFundingOutpoint = `SELECT id, address, value

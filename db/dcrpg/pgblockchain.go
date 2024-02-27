@@ -1845,7 +1845,7 @@ func (pgb *ChainDB) GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, 
 	for rows.Next() {
 		hasData = true
 		var yearTime dbtypes.TimeDef
-		err = rows.Scan(&yearTime, &summary.Invalue, &summary.Outvalue)
+		err = rows.Scan(&yearTime, &summary.Outvalue, &summary.Invalue)
 		if err != nil {
 			return nil, err
 		}
@@ -1957,10 +1957,10 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 		average = total / float64(count)
 	}
 	summary.Outvalue = -summary.Outvalue
-	summary.InvalueUSD = average * float64(summary.Invalue/5) / 1e8
-	summary.OutvalueUSD = average * float64(summary.Outvalue/5) / 1e8
-	summary.DifferenceUSD = average * float64(summary.Difference/5) / 1e8
-	summary.TotalUSD = average * float64(summary.Total/5) / 1e8
+	summary.InvalueUSD = average * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = average * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = average * float64(summary.Difference) / 1e8
+	summary.TotalUSD = average * float64(summary.Total) / 1e8
 	return &summary, nil
 }
 
@@ -1992,7 +1992,7 @@ func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.Treasury
 		dataObj := dbtypes.TreasuryMonthDataObject{
 			Month:      month,
 			ExpenseDCR: -outValue,
-			Expense:    monthPrice * float64(-outValue/5) / 1e8,
+			Expense:    monthPrice * float64(-outValue) / 1e8,
 		}
 		dataObjList = append(dataObjList, dataObj)
 	}
@@ -2020,7 +2020,7 @@ func (pgb *ChainDB) GetLegacySummaryByMonth(year int, month int) (*dbtypes.Treas
 	for rows.Next() {
 		hasData = true
 		var time time.Time
-		err := rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		err := rows.Scan(&time, &summary.Outvalue, &summary.Invalue)
 		if err != nil {
 			return nil, err
 		}
@@ -2049,10 +2049,10 @@ func (pgb *ChainDB) GetLegacySummaryByMonth(year int, month int) (*dbtypes.Treas
 
 	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
 	monthPrice := monthPriceMap[summary.Month]
-	summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
-	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
-	summary.DifferenceUSD = monthPrice * float64(summary.Difference/5) / 1e8
-	summary.TotalUSD = monthPrice * float64(summary.Total/5) / 1e8
+	summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+	summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
 
 	return &summary, nil
 }
@@ -2102,10 +2102,10 @@ func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.Tre
 	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
 	summary.Outvalue = -summary.Outvalue
 	monthPrice := monthPriceMap[summary.Month]
-	summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
-	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
-	summary.DifferenceUSD = monthPrice * float64(summary.Difference/5) / 1e8
-	summary.TotalUSD = monthPrice * float64(summary.Total/5) / 1e8
+	summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+	summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
 	return &summary, nil
 }
 
@@ -2135,6 +2135,14 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		summaryList = append(summaryList, &summary)
 	}
 
+	//create balance data for treasury summary
+	balance := int64(0)
+	for i := len(summaryList) - 1; i >= 0; i-- {
+		summary := summaryList[i]
+		balance += summary.Invalue + summary.Outvalue
+		summary.Balance = balance
+	}
+
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
@@ -2149,10 +2157,11 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 
 	for _, summary := range summaryList {
 		monthPrice := monthPriceMap[summary.Month]
-		summary.InvalueUSD = monthPrice * float64(summary.Invalue/5) / 1e8
-		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue/5) / 1e8
-		summary.DifferenceUSD = monthPrice * float64(summary.Difference/5) / 1e8
-		summary.TotalUSD = monthPrice * float64(summary.Total/5) / 1e8
+		summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+		summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+		summary.BalanceUSD = monthPrice * float64(summary.Balance) / 1e8
+		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
 		summary.MonthPrice = monthPrice
 	}
 	return summaryList, nil
@@ -2322,7 +2331,7 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 	for rows.Next() {
 		var summary = dbtypes.TreasurySummary{}
 		var time dbtypes.TimeDef
-		err := rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		err := rows.Scan(&time, &summary.Outvalue, &summary.Invalue)
 		if err != nil {
 			return nil, err
 		}
@@ -2337,6 +2346,15 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+
+	//create balance data for treasury summary
+	balance := int64(0)
+	for i := len(summaryList) - 1; i >= 0; i-- {
+		summary := summaryList[i]
+		balance += summary.Invalue - summary.Outvalue
+		summary.Balance = balance
+	}
+
 	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
 	if addErr != nil {
 		log.Warnf("ChainDB.Get Legacy address failed: %v", addErr)
@@ -2356,6 +2374,7 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
 		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
 		summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+		summary.BalanceUSD = monthPrice * float64(summary.Balance) / 1e8
 		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
 		summary.MonthPrice = monthPrice
 	}

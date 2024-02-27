@@ -3,20 +3,8 @@
   padding-right: 80px !important;
 }
 
-.treasury-group-report {
-  width: 45%;
-}
-
 .treasury-report-chart {
   width: 60%;
-}
-
-.legacy-group-report {
-  width: 35%;
-}
-
-.author-group-report {
-  width: 55%;
 }
 
 .proposal-title-col {
@@ -29,18 +17,6 @@
   padding-right: 10px !important;
 }
 
-.domain-group-report {
-  width: 40%;
-}
-
-.domain-content-cell {
-  padding-right: 90px !important;
-}
-
-.summary-group-report {
-  width: 100%;
-}
-
 .year-month-info {
   display: flex;
   width: 300px;
@@ -51,10 +27,6 @@
 }
 
 @media (max-width: 1780px) {
-  .domain-content-cell {
-    padding-right: 60px !important;
-  }
-
   .report-year-text {
     padding-right: 40px !important;
   }
@@ -63,28 +35,12 @@
     width: 180px !important;
   }
 
-  .treasury-group-report {
-    width: 55%;
-  }
-
   .treasury-report-chart {
     width: 70%;
-  }
-
-  .legacy-group-report {
-    width: 45%;
-  }
-
-  .author-group-report {
-    width: 65%;
   }
 }
 
 @media (max-width: 1600px) {
-  .domain-content-cell {
-    padding-right: 40px !important;
-  }
-
   .proposal-report-page {
     width: 220%;
   }
@@ -93,10 +49,6 @@
 @media (max-width: 1450px) {
   .proposal-name-col {
     width: 25%;
-  }
-
-  .domain-content-cell {
-    padding-right: 25px !important;
   }
 
   .treasury-content-cell {
@@ -131,20 +83,8 @@
     padding-right: 10px !important;
   }
 
-  .treasury-group-report {
-    width: 65%;
-  }
-
   .treasury-report-chart {
     width: 75%;
-  }
-
-  .legacy-group-report {
-    width: 55%;
-  }
-
-  .author-group-report {
-    width: 80%;
   }
 
   .proposal-title-col {
@@ -161,40 +101,16 @@
     width: 30%;
   }
 
-  .domain-group-report {
-    width: 60%;
-  }
-
-  .domain-content-cell {
-    padding-right: 60px !important;
-  }
-
-  .treasury-group-report {
-    width: 70%;
-  }
-
   .treasury-report-chart {
     width: 85%;
-  }
-
-  .legacy-group-report {
-    width: 60%;
   }
 
   .treasury-content-cell {
     padding-right: 10px !important;
   }
-
-  .author-group-report {
-    width: 90%;
-  }
 }
 
 @media (max-width: 1024px) {
-  .domain-content-cell {
-    padding-right: 40px !important;
-  }
-
   .report-year-text {
     padding-right: 20px !important;
   }
@@ -213,20 +129,8 @@
     padding-right: 15px !important;
   }
 
-  .treasury-group-report {
-    width: 100%;
-  }
-
   .treasury-report-chart {
     width: 100%;
-  }
-
-  .legacy-group-report {
-    width: 80%;
-  }
-
-  .author-group-report {
-    width: 95%;
   }
 
   .proposal-report-page {
@@ -251,14 +155,6 @@
 }
 
 @media (max-width: 650px) {
-  .domain-group-report {
-    width: 100%;
-  }
-
-  .domain-content-cell {
-    padding-right: 30px !important;
-  }
-
   .treasury-content-cell {
     padding-right: 5px !important;
   }
@@ -267,16 +163,8 @@
     padding-right: 10px !important;
   }
 
-  .author-group-report {
-    width: 100%;
-  }
-
   .proposal-report-page {
     width: 750%;
-  }
-
-  .legacy-group-report {
-    width: 100%;
   }
 }
 
@@ -477,10 +365,11 @@
 
 .home-report-card {
   grid-row-gap: 0 !important;
+  color: #4f5052;
 }
 
 .date-column {
-  min-width: 100px;
+  min-width: 85px;
 }
 
 .proposal-name-column {
@@ -501,5 +390,48 @@
 
 .step1-breadcumb {
   position: sticky;
-  left: 140px;
+  left: 152px;
+}
+
+.narrow-breadcumb {
+  position: sticky;
+  left: 135px;
+}
+
+body.darkBG {
+  .finance-table-header {
+    background-color: #494848;
+  }
+
+  .proposal-note-color,
+  .summary-note-color,
+  .summary-active-row,
+  .proposal-content-td {
+    background-color: #1558a7 !important;
+  }
+
+  .report-first-data,
+  .report-last-data,
+  .table-header-sticky,
+  .report-first-header,
+  .report-last-header {
+    background-color: #494848 !important;
+  }
+
+  .head-first-cell {
+    background-image: linear-gradient(to bottom left, #777 49%, #000 50%, #3a3a3a 51%);
+  }
+
+  .report-search-input {
+    background-color: var(--c-black) !important;
+  }
+
+  .color-description,
+  .description-text {
+    color: white !important;
+  }
+
+  .home-report-card:hover {
+    background-color: #696969;
+  }
 }

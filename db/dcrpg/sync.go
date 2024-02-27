@@ -77,7 +77,7 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 	sumRows, _ := pgb.db.QueryContext(ctx, internal.SelectAddressSummaryRows)
 	for sumRows.Next() {
 		var addrSum dbtypes.AddressSummaryRow
-		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.TotalValue, &addrSum.SpentValue)
+		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.SpentValue, &addrSum.ReceivedValue, &addrSum.Saved)
 		if err == nil {
 			summaryRows = append(summaryRows, &addrSum)
 		}
@@ -107,72 +107,79 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 			stopFlg = true
 		}
 
-		exist, allSpentFlg, summaryRow := pgb.CheckAllSpentSummary(summaryRows, startTime)
-		if exist && allSpentFlg {
+		exist, isSavedFlg, summaryRow := pgb.CheckSavedSummary(summaryRows, startTime)
+		if exist && isSavedFlg {
 			startTime = startTime.AddDate(0, 1, 0)
 			continue
 		}
 		//get start of month
 		startDay := startTime.AddDate(0, 0, -startTime.Day()+1)
-		startDay = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, startDay.Location())
+		startDay = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, time.Local)
 		//get end of month
 		endDay := startTime.AddDate(0, 1, -startTime.Day())
-		endDay = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 0, 0, 0, 0, endDay.Location())
+		endDay = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 23, 59, 59, 999999999, time.Local)
 		//get data by month
 		rows, err := pgb.db.QueryContext(ctx, internal.SelectAddressCreditsLimitNByAddressByPeriod, projectFundAddress, startDay, endDay)
 		if err != nil && err != sql.ErrNoRows {
 			return err
 		}
 		addressRows := pgb.ConvertToAddressObj(rows)
-		total := uint64(0)
+		received := uint64(0)
 		spent := uint64(0)
 		for _, addressRow := range addressRows {
-			total += addressRow.Value
-			if addressRow.MatchingTxHash != "" {
+			if addressRow.IsFunding {
+				received += addressRow.Value
+			} else {
 				spent += addressRow.Value
 			}
 		}
 		//next month
 		var nextMonth = startTime.AddDate(0, 1, 0)
-		if total == 0 {
+		if spent == 0 && received == 0 {
 			startTime = nextMonth
 			continue
+		}
+		var thisMonth = false
+		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
+			thisMonth = true
 		}
 		if summaryRow == nil {
 			//insert new row
 			newSumRow := dbtypes.AddressSummaryRow{
-				Time:       dbtypes.NewTimeDef(startDay),
-				TotalValue: total,
-				SpentValue: spent,
+				Time:          dbtypes.NewTimeDef(startDay),
+				SpentValue:    spent,
+				ReceivedValue: received,
+				Saved:         !thisMonth,
 			}
 			var id uint64
-			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.TotalValue, newSumRow.SpentValue).Scan(&id)
+			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved).Scan(&id)
 			startTime = nextMonth
 			continue
 		}
-		if total == summaryRow.TotalValue && spent == summaryRow.SpentValue {
+		if received == summaryRow.ReceivedValue && spent == summaryRow.SpentValue {
 			startTime = nextMonth
 			continue
 		}
 		summaryRow.SpentValue = spent
-		summaryRow.TotalValue = total
+		summaryRow.ReceivedValue = received
+		summaryRow.Saved = !thisMonth
 		//update row
-		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, total, spent, summaryRow.Id)
+		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, spent, received, !thisMonth, summaryRow.Id)
 		startTime = nextMonth
 	}
 
 	return nil
 }
 
-func (pgb *ChainDB) CheckAllSpentSummary(summaryRows []*dbtypes.AddressSummaryRow, compareTime time.Time) (hasData bool, allSpent bool, sumRow *dbtypes.AddressSummaryRow) {
+func (pgb *ChainDB) CheckSavedSummary(summaryRows []*dbtypes.AddressSummaryRow, compareTime time.Time) (hasData bool, isSaved bool, sumRow *dbtypes.AddressSummaryRow) {
 	for _, summaryRow := range summaryRows {
 		if summaryRow.Time.T.Month() == compareTime.Month() && summaryRow.Time.T.Year() == compareTime.Year() {
 			var exist = true
-			var allSpentFlg bool
-			if summaryRow.SpentValue == summaryRow.TotalValue {
-				allSpentFlg = true
+			var isSavedFlg bool
+			if summaryRow.Saved {
+				isSavedFlg = true
 			}
-			return exist, allSpentFlg, summaryRow
+			return exist, isSavedFlg, summaryRow
 		}
 	}
 	return false, false, nil

@@ -209,12 +209,12 @@ export default class extends Controller {
     if (this.settings.type === 'domain') {
       this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline" href="/finance-report?type=domain">Domains</a> > '
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2" href="/finance-report?type=domain">Domains</a>>'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline" href="/finance-report?type=author">Authors</a> > '
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2" href="/finance-report?type=author">Authors</a>>'
     } else {
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline" href="/finance-report">Proposals</a> > '
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2" href="/finance-report">Proposals</a>>'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -497,16 +497,20 @@ export default class extends Controller {
         allTable += '<table class="table monthly v3 border-grey-2 w-auto" style="height: 40px;"><thead>' +
         '<tr class="text-secondary finance-table-header">' +
         `<th class="text-left px-3 fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
-        '<th class="text-right px-3 fw-600">Spent (Est)</th><th class="text-right px-3 fw-600">Actual Spent</th></tr></thead>'
+        '<th class="text-right px-3 fw-600">Spent (Est)</th>'
+        if (this.settings.type === 'year') {
+          allTable += '<th class="text-right px-3 fw-600">Actual Spent</th></tr></thead>'
+        }
         allTable += '<tbody>'
       }
       const dataMonth = handlerData[i]
       allTable += '<tr>'
-      // td domain name
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
       allTable += `<td class="text-left px-3 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
-      allTable += `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString(dataMonth.expense, 2, 2)}</td>`
-      allTable += `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString(dataMonth.actualExpense, 2, 2)}</td>`
+      allTable += `<td class="text-right px-3 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : ''}</td>`
+      if (this.settings.type === 'year') {
+        allTable += `<td class="text-right px-3 fs-13i">${dataMonth.actualExpense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.actualExpense, 2, 2) : ''}</td>`
+      }
       allTable += '</tr>'
       if (count === breakTable) {
         allTable += '</tbody>'
@@ -576,7 +580,7 @@ export default class extends Controller {
     if (this.settings.type === 'year') {
       if (response.monthlyResultData && response.monthlyResultData.length > 0) {
         this.monthlyAreaTarget.classList.remove('d-none')
-        this.monthlyReportTarget.innerHTML = this.createTableDetailForMonthYear(response.monthlyResultData, 5, 'month')
+        this.monthlyReportTarget.innerHTML = this.createTableDetailForMonthYear(response.monthlyResultData, 12, 'month')
       } else {
         this.monthlyAreaTarget.classList.add('d-none')
       }
@@ -615,9 +619,9 @@ export default class extends Controller {
     this.expendiduteValueTarget.textContent = humanize.formatToLocalString((data.proposalTotal), 2, 2)
     const innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Type</th>' +
     '<th class="text-left px-3 fw-600">Value (DCR)</th><th class="text-left px-3 fw-600">Value (USD)</th></tr></thead>' +
-    `<tbody><tr><td class="text-left px-3 fs-13i">Treasury Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 500000000), 3, 3) + ' DCR'}</td>` +
+    `<tbody><tr><td class="text-left px-3 fs-13i">Treasury Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>` +
-    `<tr><td class="text-left px-3 fs-13i">Treasury Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 500000000), 3, 3) + ' DCR'}</td>` +
+    `<tr><td class="text-left px-3 fs-13i">Treasury Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)}</td></tr>` +
     `<tr><td class="text-left px-3 fs-13i">Legacy Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)}</td></tr>` +
