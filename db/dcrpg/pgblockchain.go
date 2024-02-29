@@ -1485,8 +1485,7 @@ func (pgb *ChainDB) AddressTransactions(address string, N, offset int64,
 	if err != nil {
 		return
 	}
-
-	var addrFunc func(context.Context, *sql.DB, string, int64, int64) ([]*dbtypes.AddressRow, error)
+	var addrFunc func(context.Context, *sql.DB, string, int64, int64, int64, int64) ([]*dbtypes.AddressRow, error)
 	switch txnType {
 	case dbtypes.AddrTxnCredit:
 		addrFunc = RetrieveAddressCreditTxns
@@ -1507,7 +1506,7 @@ func (pgb *ChainDB) AddressTransactions(address string, N, offset int64,
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 
-	addressRows, err = addrFunc(ctx, pgb.db, address, N, offset)
+	addressRows, err = addrFunc(ctx, pgb.db, address, N, offset, 0, 0)
 	err = pgb.replaceCancelError(err)
 	return
 }
@@ -1516,12 +1515,12 @@ func (pgb *ChainDB) AddressTransactions(address string, N, offset int64,
 // rows for the given address. There is presently a hard limit of 3 million rows
 // that may be returned, which is more than 4x the count for the treasury
 // adddress as of mainnet block 521900.
-func (pgb *ChainDB) AddressTransactionsAll(address string) (addressRows []*dbtypes.AddressRow, err error) {
+func (pgb *ChainDB) AddressTransactionsAll(address string, year int64, month int64) (addressRows []*dbtypes.AddressRow, err error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 
 	const limit = 3000000
-	addressRows, err = RetrieveAddressTxns(ctx, pgb.db, address, limit, 0)
+	addressRows, err = RetrieveAddressTxns(ctx, pgb.db, address, limit, 0, year, month)
 	// addressRows, err = RetrieveAllMainchainAddressTxns(ctx, pgb.db, address)
 	err = pgb.replaceCancelError(err)
 	return
@@ -1531,12 +1530,12 @@ func (pgb *ChainDB) AddressTransactionsAll(address string) (addressRows []*dbtyp
 // mainchain only) addresses table rows for the given address. There is
 // presently a hard limit of 3 million rows that may be returned, which is more
 // than 4x the count for the treasury adddress as of mainnet block 521900.
-func (pgb *ChainDB) AddressTransactionsAllMerged(address string) (addressRows []*dbtypes.AddressRow, err error) {
+func (pgb *ChainDB) AddressTransactionsAllMerged(address string, year int64, month int64) (addressRows []*dbtypes.AddressRow, err error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 
 	const limit = 3000000
-	addressRows, err = RetrieveAddressMergedTxns(ctx, pgb.db, address, limit, 0)
+	addressRows, err = RetrieveAddressMergedTxns(ctx, pgb.db, address, limit, 0, year, month)
 	// const onlyValidMainchain = true
 	// _, addressRows, err = RetrieveAllAddressMergedTxns(ctx, pgb.db, address,
 	// 	onlyValidMainchain)
@@ -1547,7 +1546,7 @@ func (pgb *ChainDB) AddressTransactionsAllMerged(address string) (addressRows []
 // AddressHistoryAll retrieves N address rows of type AddrTxnAll, skipping over
 // offset rows first, in order of block time.
 func (pgb *ChainDB) AddressHistoryAll(address string, N, offset int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error) {
-	return pgb.AddressHistory(address, N, offset, dbtypes.AddrTxnAll)
+	return pgb.AddressHistory(address, N, offset, dbtypes.AddrTxnAll, 0, 0)
 }
 
 // TicketPoolBlockMaturity returns the block at which all tickets with height
@@ -1772,12 +1771,24 @@ func (pgb *ChainDB) TSpendVotes(tspendID *chainhash.Hash) (*dbtypes.TreasurySpen
 
 // TreasuryBalance calculates the *dbtypes.TreasuryBalance.
 func (pgb *ChainDB) TreasuryBalance() (*dbtypes.TreasuryBalance, error) {
+	return pgb.TreasuryBalanceWithPeriod(0, 0)
+}
+
+// TreasuryBalance calculates the *dbtypes.TreasuryBalance.
+func (pgb *ChainDB) TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error) {
 	var addCount, added, immatureCount, immature, spendCount, spent, baseCount, base int64
 
 	_, tipHeight := pgb.BestBlock()
 	maturityHeight := tipHeight - int64(pgb.chainParams.CoinbaseMaturity)
-
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalance, maturityHeight)
+	var rows *sql.Rows
+	var err error
+	if year == 0 {
+		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalance, maturityHeight)
+	} else if month == 0 {
+		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalanceYear, maturityHeight, year)
+	} else {
+		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalanceYearMonth, maturityHeight, year, month)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -2452,15 +2463,31 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 	return priceMap
 }
 
-// TreasuryTxns fetches filtered treasury transactions.
 func (pgb *ChainDB) TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error) {
+	return pgb.TreasuryTxnsWithPeriod(n, offset, txType, 0, 0)
+}
+
+// TreasuryTxns fetches filtered treasury transactions.
+func (pgb *ChainDB) TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error) {
 	var rows *sql.Rows
 	var err error
 	switch txType {
 	case -1:
-		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxns, n, offset)
+		if year == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxns, n, offset)
+		} else if month == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxnsYear, year, n, offset)
+		} else {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxnsYearMonth, year, month, n, offset)
+		}
 	default:
-		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxns, txType, n, offset)
+		if year == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxns, txType, n, offset)
+		} else if month == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxnsYear, txType, year, n, offset)
+		} else {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxnsYearMonth, txType, year, month, n, offset)
+		}
 	}
 
 	if err != nil {
@@ -2614,7 +2641,7 @@ func (pgb *ChainDB) AddressBalance(address string) (bal *dbtypes.AddressBalance,
 // ongoing query. On completion, the cache should be ready, although it must be
 // checked again. The returned []*dbtypes.AddressRow contains ALL non-merged
 // address transaction rows that were stored in the cache.
-func (pgb *ChainDB) updateAddressRows(address string) (rows []*dbtypes.AddressRow, err error) {
+func (pgb *ChainDB) updateAddressRows(address string, year int64, month int64) (rows []*dbtypes.AddressRow, err error) {
 	busy, wait, done := pgb.CacheLocks.rows.TryLock(address)
 	if busy {
 		// Just wait until the updater is finished.
@@ -2635,7 +2662,7 @@ func (pgb *ChainDB) updateAddressRows(address string) (rows []*dbtypes.AddressRo
 	blockID := cache.NewBlockID(hash, height)
 
 	// Retrieve all non-merged address transaction rows.
-	rows, err = pgb.AddressTransactionsAll(address)
+	rows, err = pgb.AddressTransactionsAll(address, year, month)
 	if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
 		return
 	}
@@ -2673,7 +2700,7 @@ func (pgb *ChainDB) AddressRowsMerged(address string) ([]*dbtypes.AddressRowMerg
 	log.Tracef("AddressRowsMerged: rows cache MISS for %s.", address)
 
 	// Update or wait for an update to the cached AddressRows.
-	rows, err := pgb.updateAddressRows(address)
+	rows, err := pgb.updateAddressRows(address, 0, 0)
 	if err != nil {
 		if IsRetryError(err) {
 			// Try again, starting with cache.
@@ -2714,7 +2741,7 @@ func (pgb *ChainDB) AddressRowsCompact(address string) ([]*dbtypes.AddressRowCom
 	log.Tracef("AddressRowsCompact: rows cache MISS for %s.", address)
 
 	// Update or wait for an update to the cached AddressRows.
-	rows, err := pgb.updateAddressRows(address)
+	rows, err := pgb.updateAddressRows(address, 0, 0)
 	if err != nil {
 		if IsRetryError(err) {
 			// Try again, starting with cache.
@@ -2810,7 +2837,7 @@ func (pgb *ChainDB) CountTransactions(addr string, txnView dbtypes.AddrTxnViewTy
 // containing values for a certain type of transaction (all, credits, or debits)
 // for the given address.
 func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
-	txnView dbtypes.AddrTxnViewType) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error) {
+	txnView dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error) {
 	_, err := stdaddr.DecodeAddress(address, pgb.chainParams)
 	if err != nil {
 		return nil, nil, err
@@ -2818,7 +2845,7 @@ func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
 
 	// Try the address rows cache.
 	hash, height := pgb.BestBlock()
-	addressRows, validBlock, err := pgb.AddressCache.Transactions(address, N, offset, txnView)
+	addressRows, validBlock, err := pgb.AddressCache.TransactionsYearMonth(address, N, offset, txnView, year, month)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2831,14 +2858,14 @@ func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
 
 		// Update or wait for an update to the cached AddressRows, returning ALL
 		// NON-MERGED address transaction rows.
-		addressRows, err = pgb.updateAddressRows(address)
+		addressRows, err = pgb.updateAddressRows(address, year, month)
 		if err != nil && !errors.Is(err, dbtypes.ErrNoResult) && !errors.Is(err, sql.ErrNoRows) {
 			// See if another caller ran the update, in which case we were just
 			// waiting to avoid a simultaneous query. With luck the cache will
 			// be updated with this data, although it may not be. Try again.
 			if IsRetryError(err) {
 				// Try again, starting with cache.
-				return pgb.AddressHistory(address, N, offset, txnView)
+				return pgb.AddressHistory(address, N, offset, txnView, year, month)
 			}
 			return nil, nil, fmt.Errorf("failed to updateAddressRows: %w", err)
 		}
@@ -2912,7 +2939,7 @@ func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
 
 // AddressData returns comprehensive, paginated information for an address.
 func (pgb *ChainDB) AddressData(address string, limitN, offsetAddrOuts int64,
-	txnType dbtypes.AddrTxnViewType) (addrData *dbtypes.AddressInfo, err error) {
+	txnType dbtypes.AddrTxnViewType, year int64, month int64) (addrData *dbtypes.AddressInfo, err error) {
 	_, addrType, addrErr := txhelpers.AddressValidation(address, pgb.chainParams)
 	if addrErr != nil && !errors.Is(err, txhelpers.AddressErrorNoError) {
 		return nil, err
@@ -2923,7 +2950,11 @@ func (pgb *ChainDB) AddressData(address string, limitN, offsetAddrOuts int64,
 		return nil, err
 	}
 
-	addrHist, balance, err := pgb.AddressHistory(address, limitN, offsetAddrOuts, txnType)
+	addrHist, balance, err := pgb.AddressHistory(address, limitN, offsetAddrOuts, txnType, year, month)
+	//if have period, get separator balance
+	if year != 0 {
+		balance, err = RetrieveAddressBalancePeriod(pgb.ctx, pgb.db, address, year, month)
+	}
 	if dbtypes.IsTimeoutErr(err) {
 		return nil, err
 	}
@@ -3264,7 +3295,7 @@ func (pgb *ChainDB) addressInfo(addr string, count, skip int64, txnType dbtypes.
 	}
 
 	// Get rows from the addresses table for the address
-	addrHist, balance, err := pgb.AddressHistory(addr, count, skip, txnType)
+	addrHist, balance, err := pgb.AddressHistory(addr, count, skip, txnType, 0, 0)
 	if err != nil {
 		log.Errorf("Unable to get address %s history: %v", address, err)
 		return nil, nil, err

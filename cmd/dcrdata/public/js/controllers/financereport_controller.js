@@ -724,8 +724,8 @@ export default class extends Controller {
         }
       })
     }
-    const devAddress = this.data.get('devAddress')
-    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${devAddress}">legacy</a> data`
+    this.devAddress = this.data.get('devAddress')
+    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data`
   }
 
   searchInputKeypress (e) {
@@ -2018,10 +2018,19 @@ export default class extends Controller {
       const outcomeDisplay = item.outvalue <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.outvalueUSD, 2, 2) : humanize.formatToLocalString((item.outvalue / 100000000), 2, 2)
       const differenceDisplay = item.difference <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.differenceUSD, 2, 2) : humanize.formatToLocalString((item.difference / 100000000), 2, 2)
       const balanceDisplay = item.balance <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.balanceUSD, 2, 2) : humanize.formatToLocalString((item.balance / 100000000), 2, 2)
+      let incomeHref = ''
+      let outcomeHref = ''
+      if (isLegacy) {
+        incomeHref = '/address/' + this.devAddress + '?txntype=credit&time=' + (timeParam === '' ? item.month : timeParam)
+        outcomeHref = '/address/' + this.devAddress + '?txntype=debit&time=' + (timeParam === '' ? item.month : timeParam)
+      } else if (this.settings.ttype === 'current') {
+        incomeHref = '/treasury?txntype=treasurybase&time=' + (timeParam === '' ? item.month : timeParam)
+        outcomeHref = '/treasury?txntype=tspend&time=' + (timeParam === '' ? item.month : timeParam)
+      }
       bodyList += '<tr>' +
         `<td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
-        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && incomDisplay !== '' ? '$' : ''}${incomDisplay}</td>` +
-        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && outcomeDisplay !== '' ? '$' : ''}${outcomeDisplay}</td>` +
+        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + incomeHref + '">' : ''}${usdDisp && incomDisplay !== '' ? '$' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
+        `<td class="va-mid text-right-i fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + outcomeHref + '">' : ''}${usdDisp && outcomeDisplay !== '' ? '$' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${netNegative ? '-' : ''}${usdDisp && differenceDisplay !== '' ? '$' : ''}${differenceDisplay}</td>`
       bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && balanceDisplay !== '' ? '$' : ''}${balanceDisplay}</td>`
       if (!isLegacy) {

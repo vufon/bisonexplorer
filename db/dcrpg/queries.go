@@ -1727,11 +1727,15 @@ func retrieveAddressTxsCount(ctx context.Context, db *sql.DB, address, interval 
 	return
 }
 
+func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
+	return RetrieveAddressBalancePeriod(ctx, db, address, 0, 0)
+}
+
 // RetrieveAddressBalance gets the numbers of spent and unspent outpoints
 // for the given address, the total amounts spent and unspent, the number of
 // distinct spending transactions, and the fraction spent to and received from
 // stake-related transactions.
-func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
+func RetrieveAddressBalancePeriod(ctx context.Context, db *sql.DB, address string, year int64, month int64) (balance *dbtypes.AddressBalance, err error) {
 	// Never return nil *AddressBalance.
 	balance = &dbtypes.AddressBalance{Address: address}
 
@@ -1748,7 +1752,14 @@ func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (ba
 
 	// Query for spent and unspent totals.
 	var rows *sql.Rows
-	rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValue, address)
+	if year == 0 {
+		rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValue, address)
+	} else if month == 0 {
+		rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValueYear, address, year)
+	} else {
+		rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValueYearMonth, address, year, month)
+	}
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			_ = dbtx.Commit()
@@ -2025,43 +2036,101 @@ func RetrieveAllAddressMergedTxns(ctx context.Context, db *sql.DB, address strin
 
 // Regular (non-merged) address transactions queries.
 
-func RetrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressLimitNByAddress
+	} else if month == 0 {
+		statement = internal.SelectAddressLimitNByAddressYear
+	} else {
+		statement = internal.SelectAddressLimitNByAddressYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressLimitNByAddress, creditDebitQuery)
+		statement, creditDebitQuery, year, month)
 }
 
-func RetrieveAddressDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressDebitsLimitNByAddress
+	} else if month == 0 {
+		statement = internal.SelectAddressDebitsLimitNByAddressYear
+	} else {
+		statement = internal.SelectAddressDebitsLimitNByAddressYearMonth
+	}
+
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressDebitsLimitNByAddress, creditQuery)
+		statement, creditQuery, year, month)
 }
 
-func RetrieveAddressCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressCreditsLimitNByAddress
+	} else if month == 0 {
+		statement = internal.SelectAddressCreditsLimitNByAddressYear
+	} else {
+		statement = internal.SelectAddressCreditsLimitNByAddressYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressCreditsLimitNByAddress, debitQuery)
+		statement, debitQuery, year, month)
 }
 
 // Merged address transactions queries.
 
-func RetrieveAddressMergedDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressMergedDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressMergedDebitView
+	} else if month == 0 {
+		statement = internal.SelectAddressMergedDebitViewYear
+	} else {
+		statement = internal.SelectAddressMergedDebitViewYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressMergedDebitView, mergedDebitQuery)
+		statement, mergedDebitQuery, year, month)
 }
 
-func RetrieveAddressMergedCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressMergedCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressMergedCreditView
+	} else if month == 0 {
+		statement = internal.SelectAddressMergedCreditViewYear
+	} else {
+		statement = internal.SelectAddressMergedCreditViewYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressMergedCreditView, mergedCreditQuery)
+		statement, mergedCreditQuery, year, month)
 }
 
-func RetrieveAddressMergedTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressMergedTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressMergedView
+	} else if month == 0 {
+		statement = internal.SelectAddressMergedViewYear
+	} else {
+		statement = internal.SelectAddressMergedViewYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressMergedView, mergedQuery)
+		statement, mergedQuery, year, month)
 }
 
 // Address transaction query helpers.
 
 func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64,
-	statement string, queryType int) ([]*dbtypes.AddressRow, error) {
-	rows, err := db.QueryContext(ctx, statement, address, N, offset)
+	statement string, queryType int, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var rows *sql.Rows
+	var err error
+	if year == 0 {
+		rows, err = db.QueryContext(ctx, statement, address, N, offset)
+	} else if month == 0 {
+		rows, err = db.QueryContext(ctx, statement, address, N, offset, year)
+	} else {
+		rows, err = db.QueryContext(ctx, statement, address, N, offset, year, month)
+	}
+
 	if err != nil {
 		return nil, err
 	}

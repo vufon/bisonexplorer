@@ -7,6 +7,7 @@
   {{- $bal := .Balance -}}
   {{- $TxnCount := $bal.TxCount}}
   {{- $txType := .TxnType -}}
+  {{- $Time := .Time -}}
   <div class="container main"
     data-controller="address"
     data-address-dcraddress="treasury"
@@ -192,7 +193,7 @@
         {{if ne .Offset 0}}
         <a class="d-inline-block dcricon-arrow-left m-1 fz20"
            data-action="click->address#pageNumberLink"
-           href="/treasury?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
+           href="/treasury?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}{{if ne $Time ""}}&time={{$Time}}{{end}}"></a>
         {{end}}
         {{range $.Pages}}
           {{if eq .Link ""}}
@@ -206,7 +207,7 @@
         {{if gt (subtract .TypeCount .Offset) .Limit}}
         <a class="d-inline-block dcricon-arrow-right m-1 fs20"
             data-action="click->address#pageNumberLink"
-            href="/treasury?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
+            href="/treasury?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}{{if ne $Time ""}}&time={{$Time}}{{end}}"></a>
         {{end}}
       </div>
       <div class="d-flex align-items-center justify-content-between">

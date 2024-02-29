@@ -48,6 +48,16 @@ const (
 		ORDER BY block_height DESC
 		LIMIT $1 OFFSET $2;`
 
+	SelectTreasuryTxnsYear = `SELECT * FROM treasury 
+		WHERE is_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $1
+		ORDER BY block_height DESC
+		LIMIT $2 OFFSET $3;`
+
+	SelectTreasuryTxnsYearMonth = `SELECT * FROM treasury 
+		WHERE is_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $2
+		ORDER BY block_height DESC
+		LIMIT $3 OFFSET $4;`
+
 	SelectTreasuryOldestTime = `SELECT block_time FROM treasury 
 		WHERE is_mainchain ORDER BY block_time LIMIT 1;`
 
@@ -57,6 +67,18 @@ const (
 		ORDER BY block_height DESC
 		LIMIT $2 OFFSET $3;`
 
+	SelectTypedTreasuryTxnsYear = `SELECT * FROM treasury 
+		WHERE is_mainchain
+			AND tx_type = $1 AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2
+		ORDER BY block_height DESC
+		LIMIT $3 OFFSET $4;`
+
+	SelectTypedTreasuryTxnsYearMonth = `SELECT * FROM treasury 
+		WHERE is_mainchain
+			AND tx_type = $1 AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3
+		ORDER BY block_height DESC
+		LIMIT $4 OFFSET $5;`
+
 	SelectTreasuryBalance = `SELECT
 		tx_type,
 		COUNT(CASE WHEN block_height <= $1 THEN 1 END),
@@ -65,6 +87,26 @@ const (
 		SUM(value)
 		FROM treasury
 		WHERE is_mainchain
+		GROUP BY tx_type;`
+
+	SelectTreasuryBalanceYear = `SELECT
+		tx_type,
+		COUNT(CASE WHEN block_height <= $1 THEN 1 END),
+		COUNT(1),
+		SUM(CASE WHEN block_height <= $1 THEN value ELSE 0 END),
+		SUM(value)
+		FROM treasury
+		WHERE is_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2
+		GROUP BY tx_type;`
+
+	SelectTreasuryBalanceYearMonth = `SELECT
+		tx_type,
+		COUNT(CASE WHEN block_height <= $1 THEN 1 END),
+		COUNT(1),
+		SUM(CASE WHEN block_height <= $1 THEN value ELSE 0 END),
+		SUM(value)
+		FROM treasury
+		WHERE is_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3
 		GROUP BY tx_type;`
 
 	selectBinnedIO = `SELECT %s as timestamp,
