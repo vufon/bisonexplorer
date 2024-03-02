@@ -18,7 +18,7 @@ const (
 		tx_type INT4
 	);`
 
-	// monthly address summary table
+	// monthly legacy address summary table
 	CreateAddressSummaryTable = `CREATE TABLE IF NOT EXISTS address_summary (
 		id SERIAL PRIMARY KEY,
 		time TIMESTAMPTZ NOT NULL,
@@ -27,7 +27,7 @@ const (
 		saved BOOLEAN
 	);`
 
-	//insert to address summary table
+	//insert to legacy  address summary table
 	InsertAddressSummaryRow = `INSERT INTO address_summary (time, spent_value, received_value,  saved)
 		VALUES ($1, $2, $3, $4)`
 
@@ -38,10 +38,10 @@ const (
 	SelectAddressSummaryDataRows = `SELECT time,spent_value,received_value FROM address_summary ORDER BY time DESC`
 
 	SelectAddressSummaryDataByMonth = `SELECT time,spent_value,received_value FROM address_summary 
-	WHERE EXTRACT(YEAR FROM time) = $1 AND EXTRACT(MONTH FROM time) = $2`
+	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
 
 	SelectAddressSummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(spent_value) as spent_value,SUM(received_value) as received_value FROM address_summary
-	WHERE EXTRACT(YEAR FROM time) = $1 GROUP BY tx_year;`
+	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 
 	//update spent and total value
 	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET spent_value = $1, received_value = $2, saved = $3 WHERE id = $4`

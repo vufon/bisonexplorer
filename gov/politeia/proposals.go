@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -220,7 +221,22 @@ func (db *ProposalsDB) GetAllProposals() ([]*pitypes.ProposalRecord, error) {
 	if err != nil && !errors.Is(err, storm.ErrNotFound) {
 		return nil, err
 	}
-	return proposals, nil
+	return db.FilterProposals(proposals), nil
+}
+
+func (db *ProposalsDB) FilterProposals(proposals []*pitypes.ProposalRecord) []*pitypes.ProposalRecord {
+	result := make([]*pitypes.ProposalRecord, 0)
+	if proposals == nil || len(proposals) <= 0 {
+		return result
+	}
+	savedTokens := make([]string, 0)
+	for _, proposal := range proposals {
+		if !slices.Contains(savedTokens, proposal.Token) {
+			savedTokens = append(savedTokens, proposal.Token)
+			result = append(result, proposal)
+		}
+	}
+	return result
 }
 
 // Get Approved Proposals metadata

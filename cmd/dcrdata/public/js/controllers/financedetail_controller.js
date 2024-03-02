@@ -209,12 +209,12 @@ export default class extends Controller {
     if (this.settings.type === 'domain') {
       this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2" href="/finance-report?type=domain">Domains</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=domain">Domains</a>>'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2" href="/finance-report?type=author">Authors</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=author">Authors</a>>'
     } else {
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2" href="/finance-report">Proposals</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=summary">Proposals</a>>'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -531,7 +531,7 @@ export default class extends Controller {
   async yearMonthCalculate () {
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
-    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline" href="/finance-report">Proposals</a> > '
+    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-18" href="/finance-report?type=summary">Proposals</a> > '
     if (this.settings.type === 'year') {
       this.yearBreadcumbTarget.classList.add('d-none')
     } else {
@@ -690,14 +690,6 @@ export default class extends Controller {
     `<span data-action="click->financedetail#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
     `<span data-action="click->financedetail#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAuthor">Author</label>' +
-    `<span data-action="click->financedetail#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByStartDate">Start Date</label>' +
-    `<span data-action="click->financedetail#sortByStartDate" class="${((!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-3'} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByEndDate">End Date</label>' +
-    `<span data-action="click->financedetail#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByBudget">Budget</label>' +
-    `<span data-action="click->financedetail#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">This Month (Est)</label>' +
     `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '</tr></thead>'
@@ -705,7 +697,6 @@ export default class extends Controller {
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     let totalExpense = 0
-    let totalBudget = 0
     // sort by startdt
     const summaryList = this.sortSummary(data.reportDetail)
     for (let i = 0; i < summaryList.length; i++) {
@@ -715,19 +706,13 @@ export default class extends Controller {
       bodyList += '<td class="va-mid px-3 text-left fs-13i">' +
       `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
       `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
-      `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + report.author}" class="link-hover-underline fs-13i">${report.author}</a></td>` +
-      `<td class="va-mid text-center px-3 fs-13i">${report.start}</td>` +
-        `<td class="va-mid text-center px-3 fs-13i">${report.end}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(report.budget, 2, 2)}</td>` +
         '<td class="va-mid text-right px-3 fs-13i">' +
         `$${humanize.formatToLocalString(report.totalSpent, 2, 2)}</td></tr>`
       totalExpense += report.totalSpent
-      totalBudget += report.budget
     }
 
     bodyList += '<tr class="finance-table-header">' +
-    '<td class="va-mid text-center fw-600 fs-15i" colspan="5">Total</td>' +
-    `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
+    '<td class="va-mid text-center fw-600 fs-15i" colspan="2">Total</td>' +
     `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalExpense, 2, 2)}</td>` +
     '</tr>'
     tbody = tbody.replace('###', bodyList)

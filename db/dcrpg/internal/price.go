@@ -21,10 +21,10 @@ const (
 	SelectLastMonthlyPrice = `SELECT month,last_updated FROM monthly_price WHERE is_complete = false ORDER BY month DESC LIMIT 1`
 
 	//select rows by period of month
-	SelectMonthlyPriceRowsByPeriod = `SELECT month,price FROM monthly_price WHERE EXTRACT(EPOCH FROM month) >= $1 AND EXTRACT(EPOCH FROM month) <= $2 ORDER BY month`
+	SelectMonthlyPriceRowsByPeriod = `SELECT month,price FROM monthly_price WHERE EXTRACT(EPOCH FROM month AT TIME ZONE 'UTC') >= $1 AND EXTRACT(EPOCH FROM month AT TIME ZONE 'UTC') <= $2 ORDER BY month`
 
 	//check exist month
-	CheckExistMonth            = `SELECT EXISTS(SELECT 1 FROM monthly_price WHERE (EXTRACT(YEAR from month)*12 + EXTRACT(MONTH from month)) = $1)`
-	GetMonthlyPriceInfoByMonth = `SELECT is_complete,last_updated FROM monthly_price WHERE (EXTRACT(YEAR from month)*12 + EXTRACT(MONTH from month)) = $1 LIMIT 1`
-	UpdateMonthlyPriceRow      = `UPDATE monthly_price SET price = $1, is_complete = $2, last_updated = $3 WHERE (EXTRACT(YEAR from month)*12 + EXTRACT(MONTH from month)) = $4`
+	CheckExistMonth            = `SELECT EXISTS(SELECT 1 FROM monthly_price WHERE (EXTRACT(YEAR from month AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH from month AT TIME ZONE 'UTC')) = $1)`
+	GetMonthlyPriceInfoByMonth = `SELECT is_complete,last_updated FROM monthly_price WHERE (EXTRACT(YEAR from month AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH from month AT TIME ZONE 'UTC')) = $1 LIMIT 1`
+	UpdateMonthlyPriceRow      = `UPDATE monthly_price SET price = $1, is_complete = $2, last_updated = $3 WHERE (EXTRACT(YEAR from month AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH from month AT TIME ZONE 'UTC')) = $4`
 )

@@ -523,6 +523,16 @@ textarea::placeholder {
   }
 }
 
+@media (max-width: 690px) {
+  html {
+    padding-top: 150px !important;
+  }
+
+  .top-nav {
+    height: 150px !important;
+  }
+}
+
 .d-iblock {
   display: inline-block;
 }
@@ -1839,6 +1849,18 @@ input:checked + .legacy-slider::before {
   li {
     float: none;
     width: 200px;
+  }
+}
+
+.info-menu-column {
+  li {
+    width: 130px !important;
+  }
+}
+
+.other-menu-column {
+  li {
+    width: 180px !important;
   }
 }
 

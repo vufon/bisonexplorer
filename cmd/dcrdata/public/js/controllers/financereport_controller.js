@@ -14,8 +14,9 @@ let proposalResponse = null
 let treasuryResponse = null
 let isSearching = false
 let domainChartData = null
+let combinedChartData = null
 
-const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days'
+const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
 
 const proposalTitle = 'Proposal Matrix'
@@ -228,7 +229,8 @@ export default class extends Controller {
     Dygraph = await getDefault(
       import('../vendor/dygraphs.min.js')
     )
-
+    ctrl.currentTType = ctrl.settings.ttype
+    ctrl.changedTType = null
     this.setReportTitle(this.settings.type)
     this.calculate(true)
   }
@@ -269,7 +271,6 @@ export default class extends Controller {
     ctrl.chartTarget.classList.remove('d-hide')
     // Check for invalid view parameters
     if (!ctrl.validChartType(settings.chart) || !ctrl.validGraphInterval()) return
-
     if (settings.chart === ctrl.state.chart && settings.bin === ctrl.state.bin) {
       // Only the zoom has changed.
       const zoom = Zoom.decode(settings.zoom)
@@ -278,7 +279,6 @@ export default class extends Controller {
       }
       return
     }
-
     // Set the current view to prevent unnecessary reloads.
     Object.assign(ctrl.state, settings)
     ctrl.fetchGraphData(settings.chart, settings.bin)
@@ -340,9 +340,7 @@ export default class extends Controller {
     createOptions()
     // If no chart data has been requested, e.g. when initially on the
     // list tab, then fetch the initial chart data.
-    if (!this.requestedChart) {
-      this.fetchGraphData(this.chartType, this.getBin())
-    }
+    this.fetchGraphData(this.chartType, this.getBin())
   }
 
   async fetchGraphData (chart, bin) {
@@ -354,25 +352,28 @@ export default class extends Controller {
     ctrl.ajaxing = cacheKey
 
     ctrl.chartLoaderTarget.classList.add('loading')
-
+    // if not change type
+    if (this.settings.type === 'domain' || (!ctrl.currentTType && ctrl.currentTType === ctrl.changedTType)) {
     // Check for cached data
-    if (ctrl.retrievedData[cacheKey]) {
+      if (ctrl.retrievedData[cacheKey]) {
       // Queue the function to allow the loader to display.
-      setTimeout(() => {
-        ctrl.popChartCache(chart, bin)
-        ctrl.chartLoaderTarget.classList.remove('loading')
-        ctrl.ajaxing = false
-      }, 10) // 0 should work but doesn't always
-      return
+        setTimeout(() => {
+          ctrl.popChartCache(chart, bin)
+          ctrl.chartLoaderTarget.classList.remove('loading')
+          ctrl.ajaxing = false
+        }, 10) // 0 should work but doesn't always
+        return
+      }
     }
+    // if else, get data from api
 
     let url = `/api/treasury/io/${bin}`
-    if (this.settings.type !== 'domain' && this.dcrAddress !== 'treasury') {
-      const chartKey = chart === 'balance' ? 'amountflow' : chart
-      url = '/api/address/' + ctrl.dcrAddress + '/' + chartKey + '/' + bin
+    if (this.settings.type !== 'domain' && this.settings.ttype === 'legacy') {
+      url = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
     }
-    const graphDataResponse = this.settings.type === 'domain' ? domainChartData : await requestJSON(url)
+    const graphDataResponse = this.settings.type === 'domain' ? domainChartData : (this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') ? combinedChartData : await requestJSON(url)
     ctrl.processData(chart, bin, graphDataResponse)
+    this.currentTType = this.changedTType
     ctrl.ajaxing = false
     ctrl.chartLoaderTarget.classList.remove('loading')
   }
@@ -725,7 +726,7 @@ export default class extends Controller {
       })
     }
     this.devAddress = this.data.get('devAddress')
-    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data`
+    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
   }
 
   searchInputKeypress (e) {
@@ -824,7 +825,8 @@ export default class extends Controller {
     })
     target.classList.add('btn-active')
     this.settings.ttype = e.target.name
-    this.calculate(false)
+    this.changedTType = e.target.name
+    this.calculate(true)
   }
 
   intervalChange (e) {
@@ -1005,6 +1007,10 @@ export default class extends Controller {
     this.sortByType('incoming')
   }
 
+  sortByRate () {
+    this.sortByType('rate')
+  }
+
   sortByOutgoing () {
     this.sortByType('outgoing')
   }
@@ -1066,10 +1072,18 @@ export default class extends Controller {
       const item = summary[i]
       const month = item.month
       if (month && month !== '') {
-        const year = month.split('-')[0]
+        const timeArr = month.split('-')
+        const year = timeArr[0]
         if (!yearArr.includes(year)) {
           yearArr.push(year)
         }
+        let monthStr = ''
+        if (timeArr[1].charAt(0) === '0') {
+          monthStr = timeArr[1].substring(1, timeArr[1].length)
+        } else {
+          monthStr = timeArr[1]
+        }
+        const monthInt = parseInt(monthStr, 0)
         let monthObj = {}
         if (dataMap.has(year)) {
           monthObj = dataMap.get(year)
@@ -1083,6 +1097,13 @@ export default class extends Controller {
           monthObj.totalUSD += item.totalUSD
           monthObj.outEstimate += item.outEstimate
           monthObj.outEstimateUsd += item.outEstimateUsd
+          monthObj.monthPrice += item.monthPrice
+          monthObj.count += 1
+          if (monthInt > monthObj.monthInt) {
+            monthObj.monthInt = monthInt
+            monthObj.balance = item.balance
+            monthObj.balanceUSD = item.balanceUSD
+          }
         } else {
           monthObj.month = year
           monthObj.invalue = item.invalue
@@ -1095,13 +1116,22 @@ export default class extends Controller {
           monthObj.totalUSD = item.totalUSD
           monthObj.outEstimate = item.outEstimate
           monthObj.outEstimateUsd = item.outEstimateUsd
+          monthObj.monthPrice = item.monthPrice
+          monthObj.count = 1
+          monthObj.monthInt = monthInt
+          monthObj.balance = item.balance
+          monthObj.balanceUSD = item.balanceUSD
         }
         dataMap.set(year, monthObj)
       }
     }
     const result = []
     yearArr.forEach((year) => {
-      result.push(dataMap.get(year))
+      const tempResultItem = dataMap.get(year)
+      if (tempResultItem.count > 0) {
+        tempResultItem.monthPrice = tempResultItem.monthPrice / tempResultItem.count
+      }
+      result.push(tempResultItem)
     })
     return result
   }
@@ -1467,6 +1497,10 @@ export default class extends Controller {
         case 'outest':
           aData = a.outEstimate
           bData = b.outEstimate
+          break
+        case 'rate':
+          aData = a.monthPrice
+          bData = b.monthPrice
           break
         default:
           aData = a.invalue
@@ -1848,6 +1882,10 @@ export default class extends Controller {
     }
 
     let treasuryData = this.getTreasuryDataWithType(data)
+    // if not init combined, hanlder data
+    if (!combinedChartData) {
+      this.handlerDataForCombinedChart(treasuryData)
+    }
     if (treasuryData === null) {
       return
     }
@@ -1910,10 +1948,17 @@ export default class extends Controller {
     if (this.settings.ttype === 'legacy') {
       return data.legacySummary
     }
+    const _this = this
     // create time map
     const timeArr = []
     // return combined data
     const combinedDataMap = new Map()
+    const treasuryAddDataMap = new Map()
+    if (data.treasuryAddSummary) {
+      data.treasuryAddSummary.forEach((treasuryAdd) => {
+        treasuryAddDataMap.set(treasuryAdd.month, treasuryAdd.invalue)
+      })
+    }
     if (data.treasurySummary) {
       data.treasurySummary.forEach((treasury) => {
         timeArr.push(treasury.month)
@@ -1930,8 +1975,15 @@ export default class extends Controller {
           totalUSD: treasury.totalUSD,
           outEstimate: treasury.outEstimate,
           outEstimateUsd: treasury.outEstimateUsd,
-          balance: treasury.balance,
-          balanceUSD: treasury.balanceUSD
+          monthPrice: treasury.monthPrice
+        }
+        // if has treasury add data, subtract from invalue
+        if (treasuryAddDataMap.has(treasury.month)) {
+          const addData = treasuryAddDataMap.get(treasury.month)
+          item.invalue = addData > item.invalue ? 0 : item.invalue - addData
+          item.difference = Math.abs(item.invalue - item.outvalue)
+          item.differenceUSD = (item.difference / 100000000) * item.monthPrice
+          item.invalueUSD = (item.invalue / 100000000) * item.monthPrice
         }
         combinedDataMap.set(treasury.month, item)
       })
@@ -1953,8 +2005,15 @@ export default class extends Controller {
             totalUSD: legacy.totalUSD,
             outEstimate: legacy.outEstimate,
             outEstimateUsd: legacy.outEstimateUsd,
-            balance: legacy.balance,
-            balanceUSD: legacy.balanceUSD
+            monthPrice: legacy.monthPrice
+          }
+          // if has treasury add data, subtract from outvalue
+          if (treasuryAddDataMap.has(legacy.month)) {
+            const addData = treasuryAddDataMap.get(legacy.month)
+            item.outvalue = addData > item.outvalue ? 0 : item.outvalue - addData
+            item.difference = Math.abs(item.invalue - item.outvalue)
+            item.differenceUSD = (item.difference / 100000000) * item.monthPrice
+            item.outvalueUSD = (item.outvalue / 100000000) * item.monthPrice
           }
           combinedDataMap.set(legacy.month, item)
         } else if (combinedDataMap.has(legacy.month)) {
@@ -1962,26 +2021,71 @@ export default class extends Controller {
           const item = combinedDataMap.get(legacy.month)
           item.invalue += legacy.invalue
           item.invalueUSD += legacy.invalueUSD
-          item.outvalue += legacy.outvalue
-          item.outvalueUSD += legacy.outvalueUSD
-          item.difference = Math.abs(item.invalue - item.outvalue)
-          item.differenceUSD = Math.abs(item.invalueUSD - item.outvalueUSD)
           item.total += legacy.total
           item.totalUSD += legacy.totalUSD
-          item.balance += legacy.balance
-          item.balanceUSD += legacy.balanceUSD
+
+          if (treasuryAddDataMap.has(legacy.month)) {
+            const addData = treasuryAddDataMap.get(legacy.month)
+            item.outValue += legacy.outvalue - addData
+            if (item.outValue < 0) {
+              item.outValue = 0.0
+            }
+            item.outvalueUSD = (item.outvalue / 100000000) * item.monthPrice
+          } else {
+            item.outvalue += legacy.outvalue
+            item.outvalueUSD += legacy.outvalueUSD
+          }
+          item.difference = Math.abs(item.invalue - item.outvalue)
+          item.differenceUSD = (item.difference / 100000000) * item.monthPrice
           combinedDataMap.set(legacy.month, item)
         }
       })
     }
 
+    timeArr.sort(function (a, b) {
+      const aTimeCompare = _this.getTimeCompare(a)
+      const bTimeCompare = _this.getTimeCompare(b)
+      if (aTimeCompare > bTimeCompare) {
+        return 1
+      }
+      if (aTimeCompare < bTimeCompare) {
+        return -1
+      }
+      return 0
+    })
+
     const result = []
+    let balanceTotal = 0.0
     timeArr.forEach((month) => {
       if (combinedDataMap.has(month)) {
-        result.push(combinedDataMap.get(month))
+        const dataItem = combinedDataMap.get(month)
+        balanceTotal += dataItem.invalue - dataItem.outvalue
+        dataItem.balance = balanceTotal
+        dataItem.balanceUSD = (balanceTotal / 100000000) * dataItem.monthPrice
+        result.push(dataItem)
       }
     })
     return result
+  }
+
+  getTimeCompare (timStr) {
+    const aTimeSplit = timStr.split('-')
+    let year = 0
+    let month = 0
+    if (aTimeSplit.length >= 2) {
+      // year
+      year = parseInt(aTimeSplit[0])
+      // if month < 10
+      if (aTimeSplit[1].charAt(0) === '0') {
+        month = parseInt(aTimeSplit[1].substring(1, aTimeSplit[1].length))
+      } else {
+        month = parseInt(aTimeSplit[1])
+      }
+    } else {
+      return 0
+    }
+
+    return year * 12 + month
   }
 
   createTreasuryLegacyTableContent (summary) {
@@ -1994,12 +2098,16 @@ export default class extends Controller {
     `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Outgoing (${usdDisp ? 'USD' : 'DCR'})</label>` +
     `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-    `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net Income (${usdDisp ? 'USD' : 'DCR'})</label>` +
+    `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net (${usdDisp ? 'USD' : 'DCR'})</label>` +
     `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Balance (${usdDisp ? 'USD' : 'DCR'})</th>`
     if (!isLegacy) {
       thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst">Outgoing (Est)(${usdDisp ? 'USD' : 'DCR'})</label>` +
       `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
+    }
+    if (usdDisp) {
+      thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
+      `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     }
     thead += '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
@@ -2036,6 +2144,9 @@ export default class extends Controller {
       if (!isLegacy) {
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && item.outEstimate !== 0.0 ? '$' : ''}${item.outEstimate === 0.0 ? '' : usdDisp ? humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>`
       }
+      if (usdDisp) {
+        bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>`
+      }
       bodyList += '</tr>'
     })
     const totalIncomDisplay = usdDisp ? humanize.formatToLocalString(incomeTotal, 2, 2) : humanize.formatToLocalString((incomeTotal / 100000000), 2, 2)
@@ -2050,6 +2161,9 @@ export default class extends Controller {
     bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'
     if (!isLegacy) {
       bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalEstimateOutgoing}</td>`
+    }
+    if (usdDisp) {
+      bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'
     }
     bodyList += '</tr>'
 
@@ -2131,6 +2245,29 @@ export default class extends Controller {
     }
     this.createReportTable(redrawFlg)
     this.enabledGroupButton()
+  }
+
+  handlerDataForCombinedChart (data) {
+    if (!data || data.length === 0) {
+      combinedChartData = {}
+      return
+    }
+    const timeArr = []
+    const spentArr = []
+    const receivedArr = []
+    const netArr = []
+    data.forEach((item) => {
+      timeArr.push(item.month + '-01T07:00:00Z')
+      spentArr.push(item.outvalue / 100000000)
+      receivedArr.push(item.invalue / 100000000)
+      netArr.push((item.invalue - item.outvalue) / 100000000)
+    })
+    combinedChartData = {
+      time: timeArr,
+      received: receivedArr,
+      sent: spentArr,
+      net: netArr
+    }
   }
 
   handlerDataForDomainChart (data) {

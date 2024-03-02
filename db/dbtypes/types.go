@@ -2077,6 +2077,11 @@ type TreasuryTx struct {
 	BlockTime   TimeDef
 }
 
+type TreasuryAddSummary struct {
+	Month   string `json:"month"`
+	Invalue int64  `json:"invalue"`
+}
+
 type TreasurySummary struct {
 	Month          string  `json:"month"`
 	Invalue        int64   `json:"invalue"`

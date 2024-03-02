@@ -20,9 +20,9 @@
     width: 210px;
   }
 
-  @media only screen and (max-width: 576px) {
+  @media (max-width: 750px) {
     .home-link {
-      width: 170px;
+      width: 0;
     }
   }
 

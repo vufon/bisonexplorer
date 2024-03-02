@@ -1009,7 +1009,6 @@ func (exp *explorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 			exp.StatusPage(w, defaultErrorCode, "VinsForTx failed", "", ExpStatusError)
 			return
 		}
-
 		// Convert to explorer.Vin from dbtypes.VinTxProperty.
 		for iv := range vins {
 			// Decode all addresses from previous outpoint's pkScript.

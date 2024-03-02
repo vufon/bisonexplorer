@@ -61,6 +61,11 @@ const (
 	SelectTreasuryOldestTime = `SELECT block_time FROM treasury 
 		WHERE is_mainchain ORDER BY block_time LIMIT 1;`
 
+	SelectTypedTreasuryTxnsAll = `SELECT * FROM treasury 
+		WHERE is_mainchain
+			AND tx_type = $1
+		ORDER BY block_height DESC;`
+
 	SelectTypedTreasuryTxns = `SELECT * FROM treasury 
 		WHERE is_mainchain
 			AND tx_type = $1
@@ -116,12 +121,14 @@ const (
 		GROUP BY timestamp
 		ORDER BY timestamp;`
 
+	SelectTreasuryAddSummaryByMonth = `SELECT SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type = 4 GROUP BY month`
+
 	SelectTreasurySummaryByMonth = `SELECT ts1.month, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
 	FROM (SELECT SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type IN (4,6) GROUP BY month) ts1
 	FULL OUTER JOIN 
 	(SELECT SUM(value) as outvalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type = 5 GROUP BY month) ts2 
 	ON ts1.month = ts2.month 
-	WHERE EXTRACT(YEAR FROM ts1.month) = $1 AND EXTRACT(MONTH FROM ts1.month) = $2
+	WHERE EXTRACT(YEAR FROM ts1.month AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM ts1.month AT TIME ZONE 'UTC') = $2
 	ORDER BY ts1.month DESC;`
 
 	SelectTreasurySummaryByYear = `SELECT ts1.year, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
@@ -129,14 +136,14 @@ const (
 	FULL OUTER JOIN 
 	(SELECT SUM(value) as outvalue, DATE_TRUNC('year',block_time) as year FROM treasury WHERE tx_type = 5 GROUP BY year) ts2 
 	ON ts1.year = ts2.year
-	WHERE EXTRACT(YEAR FROM ts1.year) = $1;`
+	WHERE EXTRACT(YEAR FROM ts1.year AT TIME ZONE 'UTC') = $1;`
 
 	SelectYearlyTreasuryGroupByMonth = `SELECT ts1.month , coalesce(ts2.outvalue, 0) as outvalue
 	FROM (SELECT SUM(value) as invalue, DATE_TRUNC('month',block_time) as month,DATE_TRUNC('year',block_time) as year  FROM treasury WHERE tx_type IN (4,6) GROUP BY month, year) ts1
 	FULL OUTER JOIN 
 	(SELECT SUM(value) as outvalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type = 5 GROUP BY month) ts2 
 	ON ts1.month = ts2.month
-	WHERE EXTRACT(YEAR FROM ts1.year) = $1;`
+	WHERE EXTRACT(YEAR FROM ts1.year AT TIME ZONE 'UTC') = $1;`
 
 	SelectTreasurySummaryGroupByMonth = `SELECT ts1.month, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
 	FROM (SELECT SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type IN (4,6) GROUP BY month) ts1

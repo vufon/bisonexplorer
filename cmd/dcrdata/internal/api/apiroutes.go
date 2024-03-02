@@ -118,6 +118,7 @@ type DataSource interface {
 	GetProposalByToken(token string) (proposalMeta map[string]string, err error)
 	GetProposalByDomain(domain string) (proposalMetaList []map[string]string, err error)
 	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
+	GetTreasuryAddSummary() ([]*dbtypes.TreasuryAddSummary, error)
 	GetLegacySummary() ([]*dbtypes.TreasurySummary, error)
 	GetProposalMetaByMonth(year int, month int) (list []map[string]string, err error)
 	GetProposalMetaByYear(year int) (list []map[string]string, err error)
@@ -717,7 +718,6 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 		log.Errorf("Get proposals all meta data failed: %v", err)
 		return nil, nil, nil, nil, nil, 0.0, 0.0, nil
 	}
-
 	// create report data map
 	report := make(map[string][]apitypes.MonthReportData)
 	proposalReportData := make([]apitypes.ProposalReportData, 0)
@@ -1604,8 +1604,9 @@ func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 		summary.OutvalueUSD = 0 - summary.OutvalueUSD
 	}
 	legacySummary, legacyErr := c.DataSource.GetLegacySummary()
+	treasuryAddSummary, treasuryAddErr := c.DataSource.GetTreasuryAddSummary()
 
-	if err != nil || legacyErr != nil {
+	if err != nil || legacyErr != nil || treasuryAddErr != nil {
 		log.Errorf("Get Treasury/Legacy Summary data failed")
 	}
 
@@ -1637,11 +1638,13 @@ func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 
 	//Get coin supply value
 	writeJSON(w, struct {
-		TreasurySummary []*dbtypes.TreasurySummary `json:"treasurySummary"`
-		LegacySummary   []*dbtypes.TreasurySummary `json:"legacySummary"`
+		TreasurySummary    []*dbtypes.TreasurySummary    `json:"treasurySummary"`
+		LegacySummary      []*dbtypes.TreasurySummary    `json:"legacySummary"`
+		TreasuryAddSummary []*dbtypes.TreasuryAddSummary `json:"treasuryAddSummary"`
 	}{
-		TreasurySummary: treasurySummary,
-		LegacySummary:   legacySummary,
+		TreasurySummary:    treasurySummary,
+		LegacySummary:      legacySummary,
+		TreasuryAddSummary: treasuryAddSummary,
 	}, m.GetIndentCtx(r))
 }
 

@@ -2178,6 +2178,35 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	return summaryList, nil
 }
 
+// Get treasury summary data
+func (pgb *ChainDB) GetTreasuryAddSummary() ([]*dbtypes.TreasuryAddSummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryAddSummaryByMonth)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summaryList []*dbtypes.TreasuryAddSummary
+	for rows.Next() {
+		var summary = dbtypes.TreasuryAddSummary{}
+		var time dbtypes.TimeDef
+		err = rows.Scan(&summary.Invalue, &time)
+		if err != nil {
+			return nil, err
+		}
+		summary.Month = time.Format("2006-01")
+		summaryList = append(summaryList, &summary)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return summaryList, nil
+}
+
 func (pgb *ChainDB) GetHandlerCurrencyPrice(res dbtypes.CurrencyResponse, result map[string]float64, countMap map[string]int) {
 	for _, resItem := range res.Prices {
 		date := time.Unix(int64(resItem[0])/1000, 0)
