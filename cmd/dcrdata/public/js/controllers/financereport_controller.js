@@ -1832,7 +1832,7 @@ export default class extends Controller {
       const timeParam = this.getFullTimeParam(report.month, '/')
       bodyList += `<tr><td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
-        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-3 fs-13i">$${humanize.formatToLocalString(domainData.expense, 2, 2)}</td>`
+        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-3 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : ''}</td>`
         if (domainDataMap.has(domainData.domain)) {
           domainDataMap.set(domainData.domain, domainDataMap.get(domainData.domain) + domainData.expense)
         } else {
