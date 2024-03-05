@@ -984,7 +984,7 @@ export default class extends Controller {
 
   sortByCreateDate () {
     this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
-    if (this.settings.type === 'treasury') {
+    if (this.settings.type === 'treasury' || this.settings.type === 'domain') {
       this.settings.stype = ''
     }
     this.createReportTable(false)
@@ -1049,6 +1049,14 @@ export default class extends Controller {
 
   sortByAvg () {
     this.sortByType('avg')
+  }
+
+  sortByDomainItem (e) {
+    this.sortByType(e.params.domain)
+  }
+
+  sortByDomainTotal () {
+    this.sortByType('total')
   }
 
   sortByTotalSpent () {
@@ -1470,6 +1478,53 @@ export default class extends Controller {
     return authorList
   }
 
+  sortDomains (domainDataList) {
+    let result = []
+    if (!domainDataList || domainDataList.length === 0) {
+      return result
+    }
+
+    // if not sort by data column, sort by month, year
+    if (!this.settings.stype || this.settings.stype === '') {
+      for (let i = 0; i < domainDataList.length; i++) {
+        const sort = this.settings.tsort
+        result.push(sort === 'newest' ? domainDataList[i] : domainDataList[domainDataList.length - i - 1])
+      }
+      return result
+    }
+
+    result = Array.from(domainDataList)
+    const _this = this
+    result.sort(function (a, b) {
+      let aData = null
+      let bData = null
+      if (_this.settings.stype === 'total') {
+        aData = a.total
+        bData = b.total
+      } else {
+        a.domainData.forEach((aDomainData) => {
+          if (_this.settings.stype === aDomainData.domain) {
+            aData = aDomainData.expense
+          }
+        })
+        b.domainData.forEach((bDomainData) => {
+          if (_this.settings.stype === bDomainData.domain) {
+            bData = bDomainData.expense
+          }
+        })
+      }
+      if (aData > bData) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (aData < bData) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return result
+  }
+
   sortTreasury (treasuryList) {
     let result = []
     if (!treasuryList) {
@@ -1748,7 +1803,7 @@ export default class extends Controller {
     }
 
     if (!this.settings.stype || this.settings.stype === '') {
-      this.settings.stype = 'pname'
+      this.settings.stype = 'author'
     }
 
     if (!this.settings.order || this.settings.order === '') {
@@ -1758,7 +1813,7 @@ export default class extends Controller {
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
     '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
-    `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByPNum">Proposals</label>' +
     `<span data-action="click->financereport#sortByPNum" class="${(this.settings.stype === 'pnum' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pnum' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
@@ -1819,24 +1874,27 @@ export default class extends Controller {
     this.reportTarget.classList.remove('d-none')
 
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
+      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>` +
       '###' +
-      '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey">Total</th>' +
+      '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey"><label class="cursor-pointer" data-action="click->financereport#sortByDomainTotal">Total</label>' +
+      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
     handlerData.domainList.forEach((domain) => {
-      headList += `<th class="va-mid text-right-i domain-content-cell ps-0 fs-13i ps-5 pe-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a></th>`
+      headList += `<th class="va-mid text-right-i domain-content-cell ps-0 fs-13i ps-5 pe-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a>` +
+      `<span data-action="click->financereport#sortByDomainItem" data-financereport-domain-param="${domain}" class="${(this.settings.stype === domain && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== domain ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     })
     thead = thead.replace('###', headList)
 
     let bodyList = ''
     const domainDataMap = new Map()
+    // sort before display on table
+    const domainList = this.sortDomains(handlerData.report)
     // create tbody content
-    for (let i = 0; i < handlerData.report.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
-      const report = handlerData.report[index]
+    for (let i = 0; i < domainList.length; i++) {
+      const report = domainList[i]
       const timeParam = this.getFullTimeParam(report.month, '/')
       bodyList += `<tr><td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
@@ -2100,7 +2158,7 @@ export default class extends Controller {
     const isLegacy = this.settings.ttype === 'legacy'
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>`
+      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Incoming (${usdDisp ? 'USD' : 'DCR'})</label>` +
     `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
