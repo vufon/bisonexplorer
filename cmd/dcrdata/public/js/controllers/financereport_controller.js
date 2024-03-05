@@ -1876,7 +1876,7 @@ export default class extends Controller {
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
       `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>` +
       '###' +
-      '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey"><label class="cursor-pointer" data-action="click->financereport#sortByDomainTotal">Total</label>' +
+      '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey"><label class="cursor-pointer" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
       `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
@@ -1905,7 +1905,7 @@ export default class extends Controller {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
-      bodyList += `<td class="va-mid text-right fs-13i fw-600 border-left-grey">${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
+      bodyList += `<td class="va-mid text-right fs-13i fw-600 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header"><td class="text-center fw-600 fs-15i border-right-grey">Total (Est)</td>'
