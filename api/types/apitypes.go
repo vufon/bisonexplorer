@@ -7,6 +7,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -894,4 +895,78 @@ type PriceCountTime struct {
 	Price float64         `json:"price"`
 	Count int             `json:"count"`
 	Time  dbtypes.TimeDef `json:"time"`
+}
+
+// All struct for finance report
+type MonthReportData struct {
+	Token   string  `json:"token"`
+	Name    string  `json:"name"`
+	Author  string  `json:"author"`
+	Expense float64 `json:"expense"`
+	Domain  string  `json:"domain"`
+}
+
+type ProposalReportData struct {
+	Name           string  `json:"name"`
+	Token          string  `json:"token"`
+	Author         string  `json:"author"`
+	Domain         string  `json:"domain"`
+	Start          string  `json:"start"`
+	End            string  `json:"end"`
+	Budget         float64 `json:"budget"`
+	TotalSpent     float64 `json:"totalSpent"`
+	TotalRemaining float64 `json:"totalRemaining"`
+}
+
+type AuthorDataObject struct {
+	Name           string  `json:"name"`
+	Proposals      int     `json:"proposals"`
+	Budget         float64 `json:"budget"`
+	TotalReceived  float64 `json:"totalReceived"`
+	TotalRemaining float64 `json:"totalRemaining"`
+}
+
+type DomainReportData struct {
+	Domain  string  `json:"domain"`
+	Expense float64 `json:"expense"`
+}
+
+type MonthDataObject struct {
+	Month         string  `json:"month"`
+	Expense       float64 `json:"expense"`
+	ActualExpense float64 `json:"actualExpense"`
+}
+
+type MonthReportObject struct {
+	Month      string             `json:"month"`
+	AllData    []MonthReportData  `json:"allData"`
+	DomainData []DomainReportData `json:"domainData"`
+	Total      float64            `json:"total"`
+}
+
+type TreasurySummary struct {
+	Month    string `json:"month"`
+	Invalue  int64  `json:"invalue"`
+	Outvalue int64  `json:"outvalue"`
+}
+
+func GetFullMonthDisplay(month int) string {
+	if month < 10 {
+		return fmt.Sprintf("0%d", month)
+	}
+	return fmt.Sprintf("%d", month)
+}
+
+func GetMonthFromString(month string) int64 {
+	var monthStr string
+	if month[0] == '0' {
+		monthStr = month[1:len(month)]
+	} else {
+		monthStr = month
+	}
+	monthParse, err := strconv.ParseInt(monthStr, 0, 32)
+	if err != nil {
+		return 0
+	}
+	return monthParse
 }

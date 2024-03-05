@@ -9,10 +9,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
+	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1340,6 +1344,76 @@ func (pgb *ChainDB) AgendaVoteCounts(agendaID string) (yes, abstain, no uint32, 
 		agendaInfo.VotingStarted, agendaInfo.VotingDone)
 }
 
+// Getting proposal tokens needs to be synchronized
+func (pgb *ChainDB) GetNeededSyncProposalTokens(tokens []string) (syncTokens []string, err error) {
+	return retrieveNeededSyncProposalTokens(pgb.db, tokens)
+}
+
+// Check exist or create a new proposal_meta table
+func (pgb *ChainDB) CheckCreateProposalMetaTable() (err error) {
+	return checkExistAndCreateProposalMetaTable(pgb.db)
+}
+
+// Check exist or create a new address_summary table
+func (pgb *ChainDB) CheckCreateAddressSummaryTable() (err error) {
+	return checkExistAndCreateAddressSummaryTable(pgb.db)
+}
+
+// Check exist or create a new monthly_price table
+func (pgb *ChainDB) CheckCreateMonthlyPriceTable() (err error) {
+	return checkExistAndCreateMonthlyPriceTable(pgb.db)
+}
+
+// Add proposal meta data to table
+func (pgb *ChainDB) AddProposalMeta(proposalMetaData []map[string]string) (err error) {
+	return addNewProposalMetaData(pgb.db, proposalMetaData)
+}
+
+// Get all proposal meta data
+func (pgb *ChainDB) GetAllProposalMeta(searchKey string) (list []map[string]string, err error) {
+	return getProposalMetaAll(pgb.db, searchKey)
+}
+
+// Get proposal meta by token
+func (pgb *ChainDB) GetProposalByToken(token string) (proposalMeta map[string]string, err error) {
+	return getProposalMetaByToken(pgb.db, token)
+}
+
+// Get proposal meta list by domain
+func (pgb *ChainDB) GetProposalByDomain(domain string) (proposalMetaList []map[string]string, err error) {
+	return getProposalMetasByDomain(pgb.db, domain)
+}
+
+// Get proposal meta list by owner
+func (pgb *ChainDB) GetProposalByOwner(name string) (proposalMetaList []map[string]string, err error) {
+	return getProposalMetasByOwner(pgb.db, name)
+}
+
+// Get all proposal domains
+func (pgb *ChainDB) GetAllProposalDomains() []string {
+	return getProposalDomainList(pgb.db)
+}
+
+// Get all proposal owner
+func (pgb *ChainDB) GetAllProposalOwners() []string {
+	return getProposalOwnerList(pgb.db)
+}
+
+// Get all proposal domains
+func (pgb *ChainDB) GetAllProposalTokens() []string {
+	return getAllProposalTokens(pgb.db)
+}
+
+// Get all proposal meta data
+func (pgb *ChainDB) GetProposalMetaByMonth(year int, month int) (list []map[string]string, err error) {
+	return getProposalMetaGroupByMonth(pgb.db, year, month)
+}
+
+// Get all proposal meta data
+func (pgb *ChainDB) GetProposalMetaByYear(year int) (list []map[string]string, err error) {
+	return getProposalMetaGroupByYear(pgb.db, year)
+}
+
 // AllAgendas returns all the agendas stored currently.
 func (pgb *ChainDB) AllAgendas() (map[string]dbtypes.MileStone, error) {
 	return retrieveAllAgendas(pgb.db)
@@ -1411,8 +1485,7 @@ func (pgb *ChainDB) AddressTransactions(address string, N, offset int64,
 	if err != nil {
 		return
 	}
-
-	var addrFunc func(context.Context, *sql.DB, string, int64, int64) ([]*dbtypes.AddressRow, error)
+	var addrFunc func(context.Context, *sql.DB, string, int64, int64, int64, int64) ([]*dbtypes.AddressRow, error)
 	switch txnType {
 	case dbtypes.AddrTxnCredit:
 		addrFunc = RetrieveAddressCreditTxns
@@ -1433,7 +1506,7 @@ func (pgb *ChainDB) AddressTransactions(address string, N, offset int64,
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 
-	addressRows, err = addrFunc(ctx, pgb.db, address, N, offset)
+	addressRows, err = addrFunc(ctx, pgb.db, address, N, offset, 0, 0)
 	err = pgb.replaceCancelError(err)
 	return
 }
@@ -1442,12 +1515,12 @@ func (pgb *ChainDB) AddressTransactions(address string, N, offset int64,
 // rows for the given address. There is presently a hard limit of 3 million rows
 // that may be returned, which is more than 4x the count for the treasury
 // adddress as of mainnet block 521900.
-func (pgb *ChainDB) AddressTransactionsAll(address string) (addressRows []*dbtypes.AddressRow, err error) {
+func (pgb *ChainDB) AddressTransactionsAll(address string, year int64, month int64) (addressRows []*dbtypes.AddressRow, err error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 
 	const limit = 3000000
-	addressRows, err = RetrieveAddressTxns(ctx, pgb.db, address, limit, 0)
+	addressRows, err = RetrieveAddressTxns(ctx, pgb.db, address, limit, 0, year, month)
 	// addressRows, err = RetrieveAllMainchainAddressTxns(ctx, pgb.db, address)
 	err = pgb.replaceCancelError(err)
 	return
@@ -1457,12 +1530,12 @@ func (pgb *ChainDB) AddressTransactionsAll(address string) (addressRows []*dbtyp
 // mainchain only) addresses table rows for the given address. There is
 // presently a hard limit of 3 million rows that may be returned, which is more
 // than 4x the count for the treasury adddress as of mainnet block 521900.
-func (pgb *ChainDB) AddressTransactionsAllMerged(address string) (addressRows []*dbtypes.AddressRow, err error) {
+func (pgb *ChainDB) AddressTransactionsAllMerged(address string, year int64, month int64) (addressRows []*dbtypes.AddressRow, err error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 
 	const limit = 3000000
-	addressRows, err = RetrieveAddressMergedTxns(ctx, pgb.db, address, limit, 0)
+	addressRows, err = RetrieveAddressMergedTxns(ctx, pgb.db, address, limit, 0, year, month)
 	// const onlyValidMainchain = true
 	// _, addressRows, err = RetrieveAllAddressMergedTxns(ctx, pgb.db, address,
 	// 	onlyValidMainchain)
@@ -1473,7 +1546,7 @@ func (pgb *ChainDB) AddressTransactionsAllMerged(address string) (addressRows []
 // AddressHistoryAll retrieves N address rows of type AddrTxnAll, skipping over
 // offset rows first, in order of block time.
 func (pgb *ChainDB) AddressHistoryAll(address string, N, offset int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error) {
-	return pgb.AddressHistory(address, N, offset, dbtypes.AddrTxnAll)
+	return pgb.AddressHistory(address, N, offset, dbtypes.AddrTxnAll, 0, 0)
 }
 
 // TicketPoolBlockMaturity returns the block at which all tickets with height
@@ -1698,12 +1771,24 @@ func (pgb *ChainDB) TSpendVotes(tspendID *chainhash.Hash) (*dbtypes.TreasurySpen
 
 // TreasuryBalance calculates the *dbtypes.TreasuryBalance.
 func (pgb *ChainDB) TreasuryBalance() (*dbtypes.TreasuryBalance, error) {
+	return pgb.TreasuryBalanceWithPeriod(0, 0)
+}
+
+// TreasuryBalance calculates the *dbtypes.TreasuryBalance.
+func (pgb *ChainDB) TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error) {
 	var addCount, added, immatureCount, immature, spendCount, spent, baseCount, base int64
 
 	_, tipHeight := pgb.BestBlock()
 	maturityHeight := tipHeight - int64(pgb.chainParams.CoinbaseMaturity)
-
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalance, maturityHeight)
+	var rows *sql.Rows
+	var err error
+	if year == 0 {
+		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalance, maturityHeight)
+	} else if month == 0 {
+		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalanceYear, maturityHeight, year)
+	} else {
+		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryBalanceYearMonth, maturityHeight, year, month)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1755,15 +1840,683 @@ func (pgb *ChainDB) TreasuryBalance() (*dbtypes.TreasuryBalance, error) {
 	}, nil
 }
 
-// TreasuryTxns fetches filtered treasury transactions.
+func (pgb *ChainDB) GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataByYear, year)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfYear time.Time
+	var endOfYear time.Time
+	var hasData = false
+	for rows.Next() {
+		hasData = true
+		var yearTime dbtypes.TimeDef
+		err = rows.Scan(&yearTime, &summary.Outvalue, &summary.Invalue)
+		if err != nil {
+			return nil, err
+		}
+
+		startOfYear = time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+		var now = time.Now()
+		endOfYear = time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
+		if now.Year() == year {
+			endOfYear = now
+		}
+		summary.Month = strconv.Itoa(year)
+
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         strconv.Itoa(year),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
+	var total = float64(0)
+	var count = 0
+	for _, val := range monthPriceMap {
+		total += val
+		count++
+	}
+
+	var average = total / float64(count)
+	summary.InvalueUSD = average * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = average * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = average * float64(summary.Difference) / 1e8
+	summary.TotalUSD = average * float64(summary.Total) / 1e8
+	return &summary, nil
+}
+
+func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByYear, year)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfYear time.Time
+	var endOfYear time.Time
+	var hasData = false
+
+	for rows.Next() {
+		hasData = true
+		var yearTime dbtypes.TimeDef
+		err = rows.Scan(&yearTime, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+
+		startOfYear = time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+		var now = time.Now()
+		endOfYear = time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
+		if now.Year() == year {
+			endOfYear = now
+		}
+		summary.Month = strconv.Itoa(year)
+		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
+		total := summary.Invalue - summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         strconv.Itoa(year),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	currencyMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
+	var total = float64(0)
+	var count = 0
+	for _, v := range currencyMap {
+		total += v
+		count++
+	}
+	var average float64
+	if count == 0 {
+		average = 0
+	} else {
+		average = total / float64(count)
+	}
+	summary.Outvalue = -summary.Outvalue
+	summary.InvalueUSD = average * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = average * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = average * float64(summary.Difference) / 1e8
+	summary.TotalUSD = average * float64(summary.Total) / 1e8
+	return &summary, nil
+}
+
+func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasuryMonthDataObject, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectYearlyTreasuryGroupByMonth, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dataObjList = make([]dbtypes.TreasuryMonthDataObject, 0)
+	startOfYear := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+	var now = time.Now()
+	endOfYear := time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
+	if now.Year() == year {
+		endOfYear = now
+	}
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
+	for rows.Next() {
+		var time dbtypes.TimeDef
+		var outValue int64
+		err = rows.Scan(&time, &outValue)
+		if err != nil {
+			return nil, err
+		}
+		month := time.Format("2006-01")
+		monthPrice := monthPriceMap[month]
+		dataObj := dbtypes.TreasuryMonthDataObject{
+			Month:      month,
+			ExpenseDCR: -outValue,
+			Expense:    monthPrice * float64(-outValue) / 1e8,
+		}
+		dataObjList = append(dataObjList, dataObj)
+	}
+
+	if rows.Err() != nil {
+		return dataObjList, nil
+	}
+
+	return dataObjList, nil
+}
+
+func (pgb *ChainDB) GetLegacySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataByMonth, year, month)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfMonth time.Time
+	var endOfMonth time.Time
+	var hasData = false
+
+	for rows.Next() {
+		hasData = true
+		var time time.Time
+		err := rows.Scan(&time, &summary.Outvalue, &summary.Invalue)
+		if err != nil {
+			return nil, err
+		}
+		startOfMonth = time.AddDate(0, 0, -time.Day()+1)
+		endOfMonth = time.AddDate(0, 1, -time.Day())
+		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         fmt.Sprintf("%d-%d", year, month),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
+	monthPrice := monthPriceMap[summary.Month]
+	summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+	summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
+
+	return &summary, nil
+}
+
+func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByMonth, year, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summary = dbtypes.TreasurySummary{}
+	var startOfMonth time.Time
+	var endOfMonth time.Time
+	var hasData = false
+	for rows.Next() {
+		hasData = true
+		var time dbtypes.TimeDef
+		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+		startOfMonth = time.T.AddDate(0, 0, -time.T.Day()+1)
+		endOfMonth = time.T.AddDate(0, 1, -time.T.Day())
+		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
+		total := summary.Invalue - summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+	}
+
+	if rows.Err() != nil || !hasData {
+		return &dbtypes.TreasurySummary{
+			Month:         fmt.Sprintf("%d-%d", year, month),
+			Invalue:       0,
+			InvalueUSD:    0,
+			Outvalue:      0,
+			OutvalueUSD:   0,
+			Difference:    0,
+			DifferenceUSD: 0,
+			Total:         0,
+			TotalUSD:      0,
+		}, nil
+	}
+
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
+	summary.Outvalue = -summary.Outvalue
+	monthPrice := monthPriceMap[summary.Month]
+	summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+	summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+	summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
+	return &summary, nil
+}
+
+// Get treasury summary data
+func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryGroupByMonth)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summaryList []*dbtypes.TreasurySummary
+	for rows.Next() {
+		var summary = dbtypes.TreasurySummary{}
+		var time dbtypes.TimeDef
+		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		if err != nil {
+			return nil, err
+		}
+		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
+		total := summary.Invalue - summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+		summaryList = append(summaryList, &summary)
+	}
+
+	//create balance data for treasury summary
+	balance := int64(0)
+	for i := len(summaryList) - 1; i >= 0; i-- {
+		summary := summaryList[i]
+		balance += summary.Invalue + summary.Outvalue
+		summary.Balance = balance
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	//get min date
+	var oldestTime dbtypes.TimeDef
+	err = pgb.db.QueryRow(internal.SelectTreasuryOldestTime).Scan(&oldestTime)
+	if err != nil {
+		return nil, err
+	}
+
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now(), true)
+
+	for _, summary := range summaryList {
+		monthPrice := monthPriceMap[summary.Month]
+		summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+		summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+		summary.BalanceUSD = monthPrice * float64(summary.Balance) / 1e8
+		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
+		summary.MonthPrice = monthPrice
+	}
+	return summaryList, nil
+}
+
+// Get treasury summary data
+func (pgb *ChainDB) GetTreasuryAddSummary() ([]*dbtypes.TreasuryAddSummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryAddSummaryByMonth)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var summaryList []*dbtypes.TreasuryAddSummary
+	for rows.Next() {
+		var summary = dbtypes.TreasuryAddSummary{}
+		var time dbtypes.TimeDef
+		err = rows.Scan(&summary.Invalue, &time)
+		if err != nil {
+			return nil, err
+		}
+		summary.Month = time.Format("2006-01")
+		summaryList = append(summaryList, &summary)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return summaryList, nil
+}
+
+func (pgb *ChainDB) GetHandlerCurrencyPrice(res dbtypes.CurrencyResponse, result map[string]float64, countMap map[string]int) {
+	for _, resItem := range res.Prices {
+		date := time.Unix(int64(resItem[0])/1000, 0)
+		key := fmt.Sprintf("%d-%s", date.Year(), dbtypes.GetFullMonthDisplay(int(date.Month())))
+		val, ok := result[key]
+		if ok {
+			result[key] = val + resItem[1]
+			countMap[key] = countMap[key] + 1
+		} else {
+			result[key] = resItem[1]
+			countMap[key] = 1
+		}
+	}
+}
+
+func (pgb *ChainDB) GetCurrencyPrice(res dbtypes.CurrencyResponse) map[string]float64 {
+	result := make(map[string]float64)
+	countMap := make(map[string]int)
+	pgb.GetHandlerCurrencyPrice(res, result, countMap)
+	for k, v := range result {
+		result[k] = v / float64(countMap[k])
+	}
+	return result
+}
+
+func (pgb *ChainDB) SyncTreasuryMonthlyPrice() {
+	//check last month in database
+	var lastestMonthly time.Time
+	var lastestUpdateTime time.Time
+	err := pgb.db.QueryRow(internal.SelectLastMonthlyPrice).Scan(&lastestMonthly, &lastestUpdateTime)
+	now := time.Now()
+	//if error or lastest day same with today, return
+	if err != nil || lastestUpdateTime.After(now) || (lastestUpdateTime.Year() == now.Year() && lastestUpdateTime.Month() == now.Month() && lastestUpdateTime.Day() == now.Day()) {
+		return
+	}
+
+	//sync from first day of next month of last month
+	fistOfLastMonth := lastestMonthly.AddDate(0, 0, -lastestMonthly.Day()+1)
+	currencyPriceMap := pgb.GetCurrencyPriceMap(fistOfLastMonth, now)
+	createTableErr := pgb.CheckCreateMonthlyPriceTable()
+	if createTableErr != nil {
+		log.Errorf("Check exist and create monthly_price table failed: %v", err)
+		return
+	}
+
+	pgb.CheckAndInsertToMonthlyPriceTable(currencyPriceMap)
+}
+
+func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[string]float64) {
+	now := time.Now()
+	for month, price := range currencyPriceMap {
+		timeArr := strings.Split(month, "-")
+		if len(timeArr) < 2 {
+			continue
+		}
+		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
+		monthInt := dbtypes.GetMonthFromString(timeArr[1])
+		if yearErr != nil {
+			continue
+		}
+		var isCompleted bool
+		var lastUpdated dbtypes.TimeDef
+		existErr := pgb.db.QueryRowContext(pgb.ctx, internal.GetMonthlyPriceInfoByMonth, year*12+monthInt).Scan(&isCompleted, &lastUpdated)
+		//if error, continue
+		startOfMonth := time.Date(int(year), time.Month(monthInt), 1, 0, 0, 0, 0, time.Local)
+		if existErr != nil {
+			if !errors.Is(existErr, sql.ErrNoRows) {
+				continue
+			} else {
+				//if this month, save with not complete
+				if now.Year() == int(year) && now.Month() == time.Month(monthInt) {
+					pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), price, false, dbtypes.NewTimeDef(now))
+				} else {
+					pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), price, true, dbtypes.NewTimeDef(now))
+				}
+			}
+		} else {
+			if isCompleted {
+				continue
+			}
+			//if exist but not complete, update row
+			if now.Year() != int(year) || now.Month() != time.Month(monthInt) {
+				pgb.db.QueryRow(internal.UpdateMonthlyPriceRow, price, true, dbtypes.NewTimeDef(now), year*12+monthInt)
+			} else {
+				//if this month, update with not complete
+				pgb.db.QueryRow(internal.UpdateMonthlyPriceRow, price, false, dbtypes.NewTimeDef(now), year*12+monthInt)
+			}
+		}
+	}
+}
+
+// Get Decred - USd Exchange map value
+func (pgb *ChainDB) GetCurrencyPriceMap(from time.Time, to time.Time) map[string]float64 {
+	//if period less then or equal 2 years
+	var period = ((to.Year()-from.Year())*12 + int(to.Month()) - int(from.Month()) + 1)
+	if period <= 24 {
+		usdExchangeValue := pgb.GetUSDExchangeValue(from, to)
+		return pgb.GetCurrencyPrice(*usdExchangeValue)
+	}
+	var tmpFrom = from
+	result := make(map[string]float64)
+	countMap := make(map[string]int)
+	for period > 24 {
+		var tmpTo = tmpFrom.AddDate(2, 0, 0)
+		tmpRes := pgb.GetUSDExchangeValue(tmpFrom, tmpTo)
+		pgb.GetHandlerCurrencyPrice(*tmpRes, result, countMap)
+		tmpFrom = tmpTo.AddDate(0, 0, 1)
+		period = ((to.Year()-tmpFrom.Year())*12 + int(to.Month()) - int(tmpFrom.Month()) + 1)
+	}
+	res := pgb.GetUSDExchangeValue(tmpFrom, to)
+	pgb.GetHandlerCurrencyPrice(*res, result, countMap)
+	for k, v := range result {
+		result[k] = v / float64(countMap[k])
+	}
+	return result
+}
+
+// If the distance between from and to is less than or equal to 2 years, then get the data directly from the api without dividing it.
+func (pgb *ChainDB) GetUSDExchangeValue(from time.Time, to time.Time) *dbtypes.CurrencyResponse {
+	result := dbtypes.CurrencyResponse{}
+	dcrUsdURL := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/decred/market_chart/range?vs_currency=usd&from=%d&to=%d", from.Unix(), to.Unix())
+	dcrUsdData, err := pgb.FetchCurrency(dcrUsdURL)
+	if err != nil {
+		return &result
+	}
+	return dcrUsdData
+}
+
+func (pgb *ChainDB) FetchCurrency(apiURL string) (*dbtypes.CurrencyResponse, error) {
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP request failed with status: %s", resp.Status)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var items *dbtypes.CurrencyResponse
+	if err := json.Unmarshal(body, &items); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+// Get legacy summary data
+func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	// rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectLegacySummaryByMonth, projectFundAddress, dbtypes.AddrMergedTxnCredit)
+	rows, queryErr := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataRows)
+	if queryErr != nil {
+		return nil, queryErr
+	}
+	defer rows.Close()
+
+	var summaryList []*dbtypes.TreasurySummary
+	for rows.Next() {
+		var summary = dbtypes.TreasurySummary{}
+		var time dbtypes.TimeDef
+		err := rows.Scan(&time, &summary.Outvalue, &summary.Invalue)
+		if err != nil {
+			return nil, err
+		}
+		summary.Month = time.Format("2006-01")
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
+		summary.Difference = int64(difference)
+		summary.Total = int64(total)
+		summaryList = append(summaryList, &summary)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	//create balance data for treasury summary
+	balance := int64(0)
+	for i := len(summaryList) - 1; i >= 0; i-- {
+		summary := summaryList[i]
+		balance += summary.Invalue - summary.Outvalue
+		summary.Balance = balance
+	}
+
+	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
+	if addErr != nil {
+		log.Warnf("ChainDB.Get Legacy address failed: %v", addErr)
+		return nil, addErr
+	}
+	//get min date
+	var oldestTime dbtypes.TimeDef
+	err := pgb.db.QueryRow(internal.SelectOldestAddressCreditTime, projectFundAddress).Scan(&oldestTime)
+	if err != nil {
+		return nil, err
+	}
+
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now(), false)
+
+	for _, summary := range summaryList {
+		monthPrice := monthPriceMap[summary.Month]
+		summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
+		summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
+		summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
+		summary.BalanceUSD = monthPrice * float64(summary.Balance) / 1e8
+		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
+		summary.MonthPrice = monthPrice
+	}
+	return summaryList, nil
+}
+
+func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, isSync bool) map[string]float64 {
+	//get start day on month of from
+	startDayOfFromMonth := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, time.Local)
+	endDayOfToMonth := time.Date(to.Year(), to.Month(), 1, 23, 59, 59, 0, time.Local)
+	endDayOfToMonth = endDayOfToMonth.AddDate(0, 1, -1)
+	//Synchronize price data by month before retrieving data
+	lastMonth := ""
+	lastPrice := 0.0
+	if isSync {
+		pgb.SyncTreasuryMonthlyPrice()
+	}
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectMonthlyPriceRowsByPeriod, startDayOfFromMonth.Unix(), endDayOfToMonth.Unix())
+
+	priceMap := make(map[string]float64, 0)
+	if isSync && lastMonth != "" {
+		priceMap[lastMonth] = lastPrice
+	}
+	if err == nil {
+		for rows.Next() {
+			var month time.Time
+			var price float64
+			err = rows.Scan(&month, &price)
+			if err != nil {
+				return priceMap
+			}
+			key := fmt.Sprintf("%d-%s", month.Year(), dbtypes.GetFullMonthDisplay(int(month.Month())))
+			_, ok := priceMap[key]
+			if !ok {
+				priceMap[key] = price
+			}
+		}
+	}
+	var currentTime = from
+	var breakFlg = false
+	for !breakFlg {
+		key := fmt.Sprintf("%d-%s", currentTime.Year(), dbtypes.GetFullMonthDisplay(int(currentTime.Month())))
+		_, ok := priceMap[key]
+		//if not exist on monthly price table, get value from api
+		if !ok {
+			startOfMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.Local)
+			//if last month, get from api
+			if endDayOfToMonth.Month() == currentTime.Month() && endDayOfToMonth.Year() == currentTime.Year() {
+				mapData := pgb.GetCurrencyPriceMap(startOfMonth, endDayOfToMonth)
+				for k, v := range mapData {
+					if _, keyOk := priceMap[k]; !keyOk {
+						priceMap[k] = v
+					}
+				}
+				breakFlg = true
+			} else {
+				endOfMonth := time.Date(currentTime.Year(), currentTime.Month()+1, 1, 0, 0, 0, -1, time.Local)
+				mapData := pgb.GetCurrencyPriceMap(startOfMonth, endOfMonth)
+				for k, v := range mapData {
+					if _, keyOk := priceMap[k]; !keyOk {
+						priceMap[k] = v
+						//insert to table
+						pgb.db.QueryRow(internal.InsertMonthlyPriceRow, dbtypes.NewTimeDef(startOfMonth), v)
+					}
+				}
+			}
+		}
+
+		if endDayOfToMonth.Month() == currentTime.Month() && endDayOfToMonth.Year() == currentTime.Year() {
+			breakFlg = true
+			continue
+		}
+		currentTime = currentTime.AddDate(0, 1, 0)
+	}
+	return priceMap
+}
+
 func (pgb *ChainDB) TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error) {
+	return pgb.TreasuryTxnsWithPeriod(n, offset, txType, 0, 0)
+}
+
+// TreasuryTxns fetches filtered treasury transactions.
+func (pgb *ChainDB) TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error) {
 	var rows *sql.Rows
 	var err error
 	switch txType {
 	case -1:
-		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxns, n, offset)
+		if year == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxns, n, offset)
+		} else if month == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxnsYear, year, n, offset)
+		} else {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryTxnsYearMonth, year, month, n, offset)
+		}
 	default:
-		rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxns, txType, n, offset)
+		if year == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxns, txType, n, offset)
+		} else if month == 0 {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxnsYear, txType, year, n, offset)
+		} else {
+			rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxnsYearMonth, txType, year, month, n, offset)
+		}
 	}
 
 	if err != nil {
@@ -1917,7 +2670,7 @@ func (pgb *ChainDB) AddressBalance(address string) (bal *dbtypes.AddressBalance,
 // ongoing query. On completion, the cache should be ready, although it must be
 // checked again. The returned []*dbtypes.AddressRow contains ALL non-merged
 // address transaction rows that were stored in the cache.
-func (pgb *ChainDB) updateAddressRows(address string) (rows []*dbtypes.AddressRow, err error) {
+func (pgb *ChainDB) updateAddressRows(address string, year int64, month int64) (rows []*dbtypes.AddressRow, err error) {
 	busy, wait, done := pgb.CacheLocks.rows.TryLock(address)
 	if busy {
 		// Just wait until the updater is finished.
@@ -1938,7 +2691,7 @@ func (pgb *ChainDB) updateAddressRows(address string) (rows []*dbtypes.AddressRo
 	blockID := cache.NewBlockID(hash, height)
 
 	// Retrieve all non-merged address transaction rows.
-	rows, err = pgb.AddressTransactionsAll(address)
+	rows, err = pgb.AddressTransactionsAll(address, year, month)
 	if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
 		return
 	}
@@ -1976,7 +2729,7 @@ func (pgb *ChainDB) AddressRowsMerged(address string) ([]*dbtypes.AddressRowMerg
 	log.Tracef("AddressRowsMerged: rows cache MISS for %s.", address)
 
 	// Update or wait for an update to the cached AddressRows.
-	rows, err := pgb.updateAddressRows(address)
+	rows, err := pgb.updateAddressRows(address, 0, 0)
 	if err != nil {
 		if IsRetryError(err) {
 			// Try again, starting with cache.
@@ -2017,7 +2770,7 @@ func (pgb *ChainDB) AddressRowsCompact(address string) ([]*dbtypes.AddressRowCom
 	log.Tracef("AddressRowsCompact: rows cache MISS for %s.", address)
 
 	// Update or wait for an update to the cached AddressRows.
-	rows, err := pgb.updateAddressRows(address)
+	rows, err := pgb.updateAddressRows(address, 0, 0)
 	if err != nil {
 		if IsRetryError(err) {
 			// Try again, starting with cache.
@@ -2113,7 +2866,7 @@ func (pgb *ChainDB) CountTransactions(addr string, txnView dbtypes.AddrTxnViewTy
 // containing values for a certain type of transaction (all, credits, or debits)
 // for the given address.
 func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
-	txnView dbtypes.AddrTxnViewType) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error) {
+	txnView dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error) {
 	_, err := stdaddr.DecodeAddress(address, pgb.chainParams)
 	if err != nil {
 		return nil, nil, err
@@ -2121,7 +2874,7 @@ func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
 
 	// Try the address rows cache.
 	hash, height := pgb.BestBlock()
-	addressRows, validBlock, err := pgb.AddressCache.Transactions(address, N, offset, txnView)
+	addressRows, validBlock, err := pgb.AddressCache.TransactionsYearMonth(address, N, offset, txnView, year, month)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2134,14 +2887,14 @@ func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
 
 		// Update or wait for an update to the cached AddressRows, returning ALL
 		// NON-MERGED address transaction rows.
-		addressRows, err = pgb.updateAddressRows(address)
+		addressRows, err = pgb.updateAddressRows(address, year, month)
 		if err != nil && !errors.Is(err, dbtypes.ErrNoResult) && !errors.Is(err, sql.ErrNoRows) {
 			// See if another caller ran the update, in which case we were just
 			// waiting to avoid a simultaneous query. With luck the cache will
 			// be updated with this data, although it may not be. Try again.
 			if IsRetryError(err) {
 				// Try again, starting with cache.
-				return pgb.AddressHistory(address, N, offset, txnView)
+				return pgb.AddressHistory(address, N, offset, txnView, year, month)
 			}
 			return nil, nil, fmt.Errorf("failed to updateAddressRows: %w", err)
 		}
@@ -2215,7 +2968,7 @@ func (pgb *ChainDB) AddressHistory(address string, N, offset int64,
 
 // AddressData returns comprehensive, paginated information for an address.
 func (pgb *ChainDB) AddressData(address string, limitN, offsetAddrOuts int64,
-	txnType dbtypes.AddrTxnViewType) (addrData *dbtypes.AddressInfo, err error) {
+	txnType dbtypes.AddrTxnViewType, year int64, month int64) (addrData *dbtypes.AddressInfo, err error) {
 	_, addrType, addrErr := txhelpers.AddressValidation(address, pgb.chainParams)
 	if addrErr != nil && !errors.Is(err, txhelpers.AddressErrorNoError) {
 		return nil, err
@@ -2226,7 +2979,11 @@ func (pgb *ChainDB) AddressData(address string, limitN, offsetAddrOuts int64,
 		return nil, err
 	}
 
-	addrHist, balance, err := pgb.AddressHistory(address, limitN, offsetAddrOuts, txnType)
+	addrHist, balance, err := pgb.AddressHistory(address, limitN, offsetAddrOuts, txnType, year, month)
+	//if have period, get separator balance
+	if year != 0 {
+		balance, err = RetrieveAddressBalancePeriod(pgb.ctx, pgb.db, address, year, month)
+	}
 	if dbtypes.IsTimeoutErr(err) {
 		return nil, err
 	}
@@ -2567,7 +3324,7 @@ func (pgb *ChainDB) addressInfo(addr string, count, skip int64, txnType dbtypes.
 	}
 
 	// Get rows from the addresses table for the address
-	addrHist, balance, err := pgb.AddressHistory(addr, count, skip, txnType)
+	addrHist, balance, err := pgb.AddressHistory(addr, count, skip, txnType, 0, 0)
 	if err != nil {
 		log.Errorf("Unable to get address %s history: %v", address, err)
 		return nil, nil, err

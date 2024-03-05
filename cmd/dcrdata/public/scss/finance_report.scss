@@ -1,0 +1,438 @@
+.finance-report-page {
+  padding-left: 80px !important;
+  padding-right: 80px !important;
+}
+
+.treasury-report-chart {
+  width: 60%;
+}
+
+.proposal-title-col {
+  width: 200px !important;
+}
+
+.proposal-report-page {
+  width: 140%;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+.year-month-info {
+  display: flex;
+  width: 300px;
+  height: 70px;
+  border: 1px solid;
+  text-align: center;
+  align-items: center;
+}
+
+@media (max-width: 1780px) {
+  .report-year-text {
+    padding-right: 40px !important;
+  }
+
+  .proposal-title-col {
+    width: 180px !important;
+  }
+
+  .treasury-report-chart {
+    width: 70%;
+  }
+}
+
+@media (max-width: 1600px) {
+  .proposal-report-page {
+    width: 220%;
+  }
+}
+
+@media (max-width: 1450px) {
+  .proposal-name-col {
+    width: 25%;
+  }
+
+  .treasury-content-cell {
+    padding-right: 15px !important;
+  }
+
+  .finance-report-page {
+    padding-left: 30px !important;
+    padding-right: 30px !important;
+  }
+
+  .report-year-text {
+    padding-right: 30px !important;
+  }
+
+  .proposal-title-col {
+    width: 160px !important;
+  }
+
+  .proposal-report-page {
+    width: 240%;
+  }
+}
+
+@media (max-width: 1250px) {
+  .finance-report-page {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+
+  .report-year-text {
+    padding-right: 10px !important;
+  }
+
+  .treasury-report-chart {
+    width: 75%;
+  }
+
+  .proposal-title-col {
+    width: 140px !important;
+  }
+
+  .proposal-report-page {
+    width: 300%;
+  }
+}
+
+@media (max-width: 1200px) {
+  .proposal-name-col {
+    width: 30%;
+  }
+
+  .treasury-report-chart {
+    width: 85%;
+  }
+
+  .treasury-content-cell {
+    padding-right: 10px !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .report-year-text {
+    padding-right: 20px !important;
+  }
+
+  .proposal-title-col {
+    width: 120px !important;
+  }
+
+  .proposal-report-page {
+    width: 400%;
+  }
+}
+
+@media (max-width: 950px) {
+  .report-year-text {
+    padding-right: 15px !important;
+  }
+
+  .treasury-report-chart {
+    width: 100%;
+  }
+
+  .proposal-report-page {
+    width: 400%;
+  }
+}
+
+@media (max-width: 830px) {
+  .proposal-report-page {
+    width: 500%;
+  }
+
+  .report-search-box {
+    display: table-cell !important;
+  }
+}
+
+@media (max-width: 750px) {
+  .proposal-report-page {
+    width: 550%;
+  }
+}
+
+@media (max-width: 650px) {
+  .treasury-content-cell {
+    padding-right: 5px !important;
+  }
+
+  .report-year-text {
+    padding-right: 10px !important;
+  }
+
+  .proposal-report-page {
+    width: 750%;
+  }
+}
+
+.month-col {
+  width: 80px;
+}
+
+.year-col {
+  width: 120px;
+}
+
+.finance-table-header {
+  background-color: #dbdbdb;
+}
+
+.proposal-name-col {
+  width: 20%;
+}
+
+.treasury-content-cell {
+  padding-right: 20px !important;
+}
+
+.proposal-report-table {
+  width: 1920px;
+}
+
+.headcol {
+  position: absolute;
+  width: 5em;
+  left: 0;
+  top: auto;
+  border-top-width: 1px;
+
+  /* only relevant for first row */
+  margin-top: -1px;
+
+  /* compensate for top border */
+}
+
+.headcol::before {
+  content: "Row ";
+}
+
+.report-first-header {
+  position: sticky;
+  left: 0;
+  z-index: 900;
+  background-color: #c3c3c3 !important;
+}
+
+.return-to-main {
+  position: sticky;
+  left: 10px;
+}
+
+.report-last-header {
+  position: sticky;
+  right: 0;
+  background-color: #c3c3c3 !important;
+}
+
+.report-first-data {
+  position: sticky;
+  left: 0;
+  background-color: #d7d7d7 !important;
+  padding: 10px 0.5em !important;
+}
+
+.report-last-data {
+  position: sticky;
+  right: 0;
+  background-color: #d7d7d7 !important;
+}
+
+.report-tool-bar {
+  position: sticky;
+  left: 10px;
+}
+
+.color-description {
+  position: sticky;
+  left: 65px;
+}
+
+.button-group-area {
+  position: sticky;
+  left: 400px;
+}
+
+.button-group-title {
+  position: sticky;
+  left: 100px;
+}
+
+.table-header-sticky {
+  position: sticky;
+  top: 5px;
+  background-color: #dbdbdb !important;
+  padding-bottom: 20px !important;
+}
+
+.head-first-cell {
+  padding: 50px;
+  background-image:
+    -webkit-gradient(
+      linear,
+      right top,
+      left bottom,
+      color-stop(49%, white),
+      color-stop(50%, black),
+      color-stop(51%, white)
+    );
+  background-image: -webkit-linear-gradient(top right, #e5e5e5  49%, black 50%, #c5c5c5  51%);
+  background-image: -o-linear-gradient(top right, #e5e5e5 49%, black 50%, #c5c5c5 51%);
+  background-image: linear-gradient(to bottom left, #e5e5e5 49%, black 50%, #c5c5c5 51%);
+}
+
+.head-first-cell .c1 {
+  -webkit-transform: translate(20px, 50px);
+  -ms-transform: rotate(90deg) translate(20px, 50px);
+  transform: rotate(90deg) translate(20px, 50px);
+}
+
+.head-first-cell .c2 {
+  -webkit-transform: translate(40px, -20px);
+  -ms-transform: translate(40px, -20px);
+  transform: translate(40px, -20px);
+}
+
+.col-sort {
+  transform: rotate(90deg);
+  cursor: pointer;
+}
+
+.homeicon-swap {
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.proposal-content-td {
+  background-color: #ffebd7 !important;
+}
+
+.summary-active-row {
+  background-color: #ddf4dd;
+}
+
+.proposal-year-title {
+  width: 150px !important;
+}
+
+.report-year-text {
+  padding-right: 50px;
+}
+
+.color-note-label {
+  width: 50px;
+  height: 20px;
+  border: 1px solid #c1c1c1;
+}
+
+.proposal-note-color {
+  background-color: #ffebd7;
+}
+
+.summary-note-color {
+  background-color: #ddf4dd;
+}
+
+.border-grey-2 {
+  border: 1px solid #dee2e6;
+}
+
+.report-search-input {
+  width: 250px;
+  border-radius: 5px;
+  height: 30px;
+}
+
+.report-search-input::placeholder {
+  color: #c9c8c8;
+}
+
+.report-search-box {
+  display: inline-block;
+  border: 1px solid #c3c3c3;
+  border-radius: 5px;
+  position: sticky;
+  left: 10px;
+}
+
+.report-search {
+  color: rgb(182 182 182);
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.home-report-card {
+  grid-row-gap: 0 !important;
+  color: #4f5052;
+}
+
+.date-column {
+  min-width: 85px;
+}
+
+.proposal-name-column {
+  min-width: 250px;
+}
+
+.report-menu-button {
+  width: 300px;
+}
+
+.est-column {
+  width: 130px;
+}
+
+.remaining-est-column {
+  width: 170px;
+}
+
+.step1-breadcumb {
+  position: sticky;
+  left: 180px;
+}
+
+.narrow-breadcumb {
+  position: sticky;
+  left: 160px;
+  font-size: 18px;
+}
+
+body.darkBG {
+  .finance-table-header {
+    background-color: #494848;
+  }
+
+  .proposal-note-color,
+  .summary-note-color,
+  .summary-active-row,
+  .proposal-content-td {
+    background-color: #1558a7 !important;
+  }
+
+  .report-first-data,
+  .report-last-data,
+  .table-header-sticky,
+  .report-first-header,
+  .report-last-header {
+    background-color: #494848 !important;
+  }
+
+  .head-first-cell {
+    background-image: linear-gradient(to bottom left, #777 49%, #000 50%, #3a3a3a 51%);
+  }
+
+  .report-search-input {
+    background-color: var(--c-black) !important;
+  }
+
+  .color-description,
+  .description-text {
+    color: white !important;
+  }
+
+  .home-report-card:hover {
+    background-color: #696969;
+  }
+}

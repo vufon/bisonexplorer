@@ -790,6 +790,9 @@ func _main(ctx context.Context) error {
 		r.Get("/attack-cost", explore.AttackCost)
 		r.Get("/verify-message", explore.VerifyMessagePage)
 		r.Get("/stakingcalc", explore.StakeRewardCalcPage)
+		r.Get("/home-report", explore.HomeReportPage)
+		r.Get("/finance-report", explore.FinanceReportPage)
+		r.Get("/finance-report/detail", explore.FinanceDetailPage)
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
 
@@ -850,6 +853,44 @@ func _main(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	//synchronize legacy address data
+	log.Infof("Starting address summary sync...")
+
+	syncAdressSummaryData := func() error {
+		err := chainDB.SyncAddressSummary(ctx)
+		if err != nil {
+			log.Errorf("dcrpg.SyncAddressSummary failed")
+			return err
+		}
+		return nil
+	}
+
+	err = syncAdressSummaryData()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Finished address summary sync")
+
+	//Synchronize DCR's price by month
+	log.Infof("Starting DCR monthly price sync...")
+
+	syncMonthlyPriceData := func() error {
+		err := chainDB.SyncMonthlyPrice(ctx)
+		if err != nil {
+			log.Errorf("dcrpg.SyncMonthlyPrice failed")
+			return err
+		}
+		return nil
+	}
+
+	err = syncMonthlyPriceData()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Finished DCR monthly price sync")
 
 	// After sync and indexing, must use upsert statement, which checks for
 	// duplicate entries and updates instead of erroring. SyncChainDB should
@@ -1003,6 +1044,47 @@ func _main(ctx context.Context) error {
 	go func() {
 		if err := proposalsDB.ProposalsSync(); err != nil {
 			log.Errorf("updating proposals db failed: %v", err)
+		}
+	}()
+
+	// Synchronize proposal Meta data
+	log.Info("Syncing proposals meta data with chain DB")
+	go func() {
+		//check exist and create proposal_meta table
+		err := chainDB.CheckCreateProposalMetaTable()
+		if err != nil {
+			log.Errorf("Check exist and create proposal_meta table failed: %v", err)
+			return
+		}
+		//get all proposals
+		proposals, err := proposalsDB.GetAllProposals()
+		if err != nil {
+			log.Errorf("Get proposals failed: %v", err)
+			return
+		}
+		tokens := make([]string, 0, len(proposals))
+		for _, proposal := range proposals {
+			tokens = append(tokens, proposal.Token)
+		}
+		//Get the tokens that need to be synchronized
+		neededTokens, err := chainDB.GetNeededSyncProposalTokens(tokens)
+		if err != nil {
+			log.Errorf("Get sync needed proposals failed: %v", err)
+			return
+		}
+		if len(neededTokens) > 0 {
+			//get meta data from file
+			proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens, proposals)
+			if err != nil {
+				log.Errorf("Get proposal metadata failed: %v", err)
+				return
+			}
+			//Add meta data to DB
+			addErr := chainDB.AddProposalMeta(proposalMetaDatas)
+			if addErr != nil {
+				log.Errorf("Add proposal meta to DB failed: %v", addErr)
+				return
+			}
 		}
 	}()
 

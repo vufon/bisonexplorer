@@ -334,6 +334,53 @@ const (
 
 	SelectMissCountForBlockRange = `SELECT count(1) FROM misses WHERE height >= $1 AND height <= $2;`
 
+	// proposal_meta table
+	CreateProposalMetaTable = `CREATE TABLE IF NOT EXISTS proposal_meta (
+		id SERIAL PRIMARY KEY,
+		token TEXT,
+		name TEXT,
+		username TEXT,
+		amount FLOAT8,
+		start_date BIGINT,
+		end_date BIGINT,
+		domain TEXT
+	);`
+
+	// Insert
+	insertProposalMetaRow = `INSERT INTO proposal_meta (token, name, username, amount, start_date,
+		end_date, domain) VALUES ($1, $2, $3, $4, $5, $6, $7) `
+
+	InsertProposalMetaRow = insertProposalMetaRow + `RETURNING id;`
+
+	UpsertProposalMetaRow = insertProposalMetaRow + `ON CONFLICT (token) DO UPDATE
+		SET name = $2, username = $3, amount = $4, start_date = $5, end_date = $6, domain = $7 RETURNING id;`
+	IndexProposalMetaTableOnProposalToken = `CREATE UNIQUE INDEX ` + IndexOfProposalMetaTableOnToken +
+		` ON proposal_meta(token);`
+	DeindexProposalMetaTableOnProposalToken = `DROP INDEX ` + IndexOfProposalMetaTableOnToken + ` CASCADE;`
+
+	SelectAllProposalMeta = `SELECT id, token, name, username, amount, start_date, end_date, domain
+		FROM proposal_meta ORDER BY start_date DESC;`
+	SelectProposalMetaByToken = `SELECT id, token, name, username, amount, start_date, end_date, domain
+		FROM proposal_meta WHERE token = $1;`
+	SelectProposalMetasByDomain = `SELECT id, token, name, username, amount, start_date, end_date, domain
+		FROM proposal_meta WHERE domain = $1 ORDER BY start_date DESC;`
+	SelectProposalMetasByOwner = `SELECT id, token, name, username, amount, start_date, end_date, domain
+		FROM proposal_meta WHERE username = $1 ORDER BY start_date DESC;`
+
+	SelectAllProposalDomains = `SELECT domain FROM public.proposal_meta WHERE domain <> '' GROUP BY domain;`
+	SelectAllProposalOwners  = `SELECT username FROM public.proposal_meta WHERE domain <> '' GROUP BY username;`
+	SelectAllProposalTokens  = `SELECT token FROM public.proposal_meta WHERE amount > 0 GROUP BY token;`
+
+	SelectProposalMetaByMonth = `SELECT id,token,name,username,amount,start_date,end_date,domain FROM proposal_meta 
+	WHERE (EXTRACT(YEAR FROM TO_TIMESTAMP(start_date) AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(start_date) AT TIME ZONE 'UTC')) <= $1 
+	AND (EXTRACT(YEAR FROM TO_TIMESTAMP(end_date) AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(end_date) AT TIME ZONE 'UTC')) >= $2 
+	AND start_date<>0 AND end_date<>0 ORDER BY start_date DESC;`
+	SelectProposalMetaByYear = `SELECT id,token,name,username,amount,start_date,end_date,domain FROM proposal_meta 
+	WHERE EXTRACT(YEAR FROM TO_TIMESTAMP(start_date) AT TIME ZONE 'UTC') <= $1
+	AND EXTRACT(YEAR FROM TO_TIMESTAMP(end_date) AT TIME ZONE 'UTC') >= $2
+	AND start_date<>0 AND end_date<>0 ORDER BY start_date DESC;`
+	SelectNotSyncProposalMeta = `SELECT token FROM proposal_meta;`
+
 	// agendas table
 
 	CreateAgendasTable = `CREATE TABLE IF NOT EXISTS agendas (

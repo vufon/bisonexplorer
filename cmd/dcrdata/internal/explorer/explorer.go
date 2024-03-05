@@ -74,9 +74,11 @@ type explorerDataSource interface {
 	SpendingTransactions(fundingTxID string) ([]string, []uint32, []uint32, error)
 	PoolStatusForTicket(txid string) (dbtypes.TicketSpendType, dbtypes.TicketPoolStatus, error)
 	TreasuryBalance() (*dbtypes.TreasuryBalance, error)
+	TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error)
 	TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error)
-	AddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error)
-	AddressData(address string, N, offset int64, txnType dbtypes.AddrTxnViewType) (*dbtypes.AddressInfo, error)
+	TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error)
+	AddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error)
+	AddressData(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) (*dbtypes.AddressInfo, error)
 	DevBalance() (*dbtypes.AddressBalance, error)
 	FillAddressTransactions(addrInfo *dbtypes.AddressInfo) error
 	BlockMissedVotes(blockHash string) ([]string, error)
@@ -114,6 +116,8 @@ type explorerDataSource interface {
 	GetExplorerFullBlocks(start int, end int) []*types.BlockInfo
 	CurrentDifficulty() (float64, error)
 	Difficulty(timestamp int64) float64
+	GetNeededSyncProposalTokens(tokens []string) (syncTokens []string, err error)
+	AddProposalMeta(proposalMetaData []map[string]string) (err error)
 }
 
 type PoliteiaBackend interface {
@@ -123,6 +127,8 @@ type PoliteiaBackend interface {
 	CountByStatus(countAll bool, filterByVoteStatus ...int) int
 	CountProposals(votesStatus map[string]string) map[string]string
 	ProposalByToken(token string) (*pitypes.ProposalRecord, error)
+	ProposalsApprovedMetadata(tokens []string, proposalList []*pitypes.ProposalRecord) ([]map[string]string, error)
+	GetAllProposals() ([]*pitypes.ProposalRecord, error)
 }
 
 // agendaBackend implements methods that manage agendas db data.
@@ -370,7 +376,8 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"rawtx", "status", "parameters", "agenda", "agendas", "charts",
 		"sidechains", "disapproved", "ticketpool", "visualblocks", "statistics",
 		"windows", "timelisting", "addresstable", "proposals", "proposal",
-		"market", "insight_root", "attackcost", "treasury", "treasurytable", "verify_message", "stakingreward"}
+		"market", "insight_root", "attackcost", "treasury", "treasurytable",
+		"verify_message", "stakingreward", "finance_report", "finance_detail", "home_report"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

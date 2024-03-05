@@ -1,0 +1,50 @@
+<template>
+   {{define "home_report"}}
+   <!DOCTYPE html>
+   <html lang="en">
+      {{ template "html-head" headData .CommonPageData "Finance report Homepage" }}
+      {{ template "navbar". }}
+      <div class="container pb-40 main">
+         <section>
+            <div class="d-flex justify-content-center my-4">
+               <div class="ta-center">
+                  <h3 class="fw-600">Financial Reports</h3>
+                  <p class="fs-17">Synthesize financial reports for treasury revenues and expenditures</p>
+               </div>
+            </div>
+            <div class="d-flex justify-content-center ai-center">
+               <div>
+                  <div class="d-flex justify-content-center my-3">
+                     <a class="explore-card-wrap report-menu-button home-report-card" href="/finance-report?type=treasury&tsort=newest">
+                        <h5 class="explore-card__header__text__name fs-18i py-2 ta-center">Treasury Spending</h5>
+                     </a>
+                  </div>
+                  <div class="d-flex justify-content-center my-3 mt-0">
+                     <a class="explore-card-wrap report-menu-button home-report-card" href="/finance-report">
+                        <h5 class="explore-card__header__text__name fs-18i py-2 ta-center">Proposal Matrix</h5>
+                     </a>
+                  </div>
+                  <div class="d-flex justify-content-center my-3">
+                     <a class="explore-card-wrap report-menu-button home-report-card" href="/finance-report?type=summary">
+                        <h5 class="explore-card__header__text__name fs-18i py-2 ta-center">Proposal List</h5>
+                     </a>
+                  </div>
+                  <div class="d-flex justify-content-center my-3">
+                     <a class="explore-card-wrap report-menu-button home-report-card" href="/finance-report?type=domain">
+                        <h5 class="explore-card__header__text__name fs-18i py-2 ta-center">Domains</h5>
+                     </a>
+                  </div>
+                  <div class="d-flex justify-content-center my-3">
+                     <a class="explore-card-wrap report-menu-button home-report-card" href="/finance-report?type=author">
+                        <h5 class="explore-card__header__text__name fs-18i py-2 ta-center">Author List</h5>
+                     </a>
+                  </div>
+               </div>
+            </div>
+         </section>
+      </div>
+      {{ template "footer". }}
+      </body>
+   </html>
+   {{ end }}
+</template>

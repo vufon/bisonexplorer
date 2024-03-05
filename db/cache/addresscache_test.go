@@ -55,7 +55,7 @@ func TestAddressCacheItem_Transactions(t *testing.T) {
 		dbtypes.AddrTxnCredit, dbtypes.AddrTxnDebit, dbtypes.AddrUnspentTxn}
 
 	for _, v := range nonMergedViews {
-		rows, blockID, err := aci.Transactions(1, 0, v)
+		rows, blockID, err := aci.Transactions(1, 0, v, 0, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -75,7 +75,7 @@ func TestAddressCacheItem_Transactions(t *testing.T) {
 		dbtypes.AddrMergedTxnCredit, dbtypes.AddrMergedTxnDebit}
 
 	for _, v := range mergedViews {
-		rows, blockID, err := aci.Transactions(1, 0, v)
+		rows, blockID, err := aci.Transactions(1, 0, v, 0, 0)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -111,7 +111,7 @@ func TestAddressCacheItem_Transactions(t *testing.T) {
 	}
 
 	for _, v := range allTypeViews {
-		rows, blockID, err := aci.Transactions(100, 0, v.view)
+		rows, blockID, err := aci.Transactions(100, 0, v.view, 0, 0)
 		if err != nil {
 			t.Fatal(err)
 		}

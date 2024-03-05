@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"time"
 
@@ -766,6 +767,343 @@ func RetrieveMissForTicket(ctx context.Context, db *sql.DB, ticketHash string) (
 	return
 }
 
+// Check exist and create proposal_meta table
+func checkExistAndCreateProposalMetaTable(db *sql.DB) error {
+	err := createTable(db, "proposal_meta", internal.CreateProposalMetaTable)
+	return err
+}
+
+// Check exist and create address_summary table
+func checkExistAndCreateAddressSummaryTable(db *sql.DB) error {
+	err := createTable(db, "address_summary", internal.CreateAddressSummaryTable)
+	return err
+}
+
+// Check exist and create monthly_price table
+func checkExistAndCreateMonthlyPriceTable(db *sql.DB) error {
+	err := createTable(db, "monthly_price", internal.CreateMonthlyPriceTable)
+	return err
+}
+
+// Get proposal Meta by owner
+func getProposalMetasByOwner(db *sql.DB, name string) ([]map[string]string, error) {
+	return queryProposalMetaList(db, internal.SelectProposalMetasByOwner, name)
+}
+
+func queryProposalMetaList(db *sql.DB, sqlQuery string, param string) ([]map[string]string, error) {
+	rows, err := db.Query(sqlQuery, param)
+	result := make([]map[string]string, 0)
+	if err != nil {
+		return result, nil
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var id int
+		var token, name, username, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return result, nil
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Username":  username,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		result = append(result, objectMap)
+	}
+	return result, nil
+}
+
+// Get proposal Meta by token
+func getProposalMetasByDomain(db *sql.DB, domain string) ([]map[string]string, error) {
+	return queryProposalMetaList(db, internal.SelectProposalMetasByDomain, domain)
+}
+
+// get all proposal tokens
+func getAllProposalTokens(db *sql.DB) []string {
+	return getProposalListByParam(db, internal.SelectAllProposalTokens)
+}
+
+func getProposalListByParam(db *sql.DB, paramQuery string) []string {
+	rows, err := db.Query(paramQuery)
+	result := make([]string, 0)
+	if err != nil {
+		return result
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var str string
+		err = rows.Scan(&str)
+		if err == nil {
+			result = append(result, str)
+		}
+	}
+	return result
+}
+
+// get all owner list of proposal
+func getProposalOwnerList(db *sql.DB) []string {
+	return getProposalListByParam(db, internal.SelectAllProposalOwners)
+}
+
+// get all domain list of proposal
+func getProposalDomainList(db *sql.DB) []string {
+	return getProposalListByParam(db, internal.SelectAllProposalDomains)
+}
+
+// Get proposal Meta by token
+func getProposalMetaByToken(db *sql.DB, token string) (map[string]string, error) {
+	rows, err := db.Query(internal.SelectProposalMetaByToken, token)
+	result := make(map[string]string)
+	if err != nil {
+		return result, nil
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var id int
+		var token, name, username, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return result, nil
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Username":  username,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		return objectMap, nil
+	}
+	return result, nil
+}
+
+// Get all proposal Meta Data
+func getProposalMetaAll(db *sql.DB, searchKey string) ([]map[string]string, error) {
+	queryBuilder := ""
+	if searchKey != "" {
+		queryBuilder = fmt.Sprintf("SELECT id, token, name, username, amount, start_date, end_date, domain FROM proposal_meta "+
+			"WHERE name ILIKE '%s%s%s' OR name ILIKE '%s%s' OR name ILIKE '%s%s' "+
+			"OR username ILIKE '%s%s%s' OR username ILIKE '%s%s' OR username ILIKE '%s%s' "+
+			"OR domain ILIKE '%s%s%s' OR domain ILIKE '%s%s' OR domain ILIKE '%s%s' "+
+			"ORDER BY start_date DESC;", "%", searchKey, "%", searchKey, "%", "%", searchKey, "%", searchKey, "%", searchKey, "%", "%", searchKey, "%", searchKey, "%", searchKey, "%", "%", searchKey)
+	} else {
+		queryBuilder = internal.SelectAllProposalMeta
+	}
+
+	rows, err := db.Query(queryBuilder)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	proposalDbList := make([]map[string]string, 0)
+	for rows.Next() {
+		var id int
+		var token, name, username, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return nil, err
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Username":  username,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		proposalDbList = append(proposalDbList, objectMap)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Errorf("Proposal Meta Select prepare: %v", err)
+		return nil, err
+	}
+	return proposalDbList, nil
+}
+
+// Get all proposal Meta Data
+func getProposalMetaGroupByYear(db *sql.DB, year int) ([]map[string]string, error) {
+	rows, err := db.Query(internal.SelectProposalMetaByYear, year, year)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	proposalDbList := make([]map[string]string, 0)
+	for rows.Next() {
+		var id int
+		var token, name, username, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return nil, err
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Username":  username,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		proposalDbList = append(proposalDbList, objectMap)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Errorf("Proposal Meta Select prepare: %v", err)
+		return nil, err
+	}
+	return proposalDbList, nil
+}
+
+// Get all proposal Meta Data
+func getProposalMetaGroupByMonth(db *sql.DB, year int, month int) ([]map[string]string, error) {
+	timeCompare := year*12 + month
+	proposalDbList := make([]map[string]string, 0)
+	// now := time.Now()
+	// nowCurrentCompare := now.Year()*12 + int(now.Month())
+	// if timeCompare >= nowCurrentCompare {
+	// 	return proposalDbList, nil
+	// }
+	rows, err := db.Query(internal.SelectProposalMetaByMonth, timeCompare, timeCompare)
+	if err != nil {
+		return proposalDbList, nil
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var id int
+		var token, name, username, domain string
+		var amount float64
+		var startDate, endDate int32
+		err = rows.Scan(&id, &token, &name, &username, &amount, &startDate, &endDate, &domain)
+		if err != nil {
+			return proposalDbList, nil
+		}
+		objectMap := map[string]string{
+			"Id":        fmt.Sprint(id),
+			"Token":     token,
+			"Name":      name,
+			"Username":  username,
+			"Amount":    fmt.Sprint(amount),
+			"StartDate": fmt.Sprint(startDate),
+			"EndDate":   fmt.Sprint(endDate),
+			"Domain":    domain,
+		}
+		proposalDbList = append(proposalDbList, objectMap)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Errorf("Proposal Meta Select prepare: %v", err)
+		return proposalDbList, nil
+	}
+	return proposalDbList, nil
+}
+
+// Add proposal meta data to table
+func addNewProposalMetaData(db *sql.DB, proposalMetaDatas []map[string]string) error {
+	// Start DB transaction.
+	dbtx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("unable to begin database transaction: %w", err)
+	}
+
+	log.Info("Start add proposal metadata")
+	// Prepare vote insert statement, optionally updating a row if it conflicts
+	proposalInsert := internal.InsertProposalMetaRow
+	for _, object := range proposalMetaDatas {
+		//Add metadata to db
+		var proposalId uint64
+		amount, err := strconv.ParseFloat(object["Amount"], 64)
+		if err != nil {
+			continue
+		}
+		startDate, err := strconv.ParseInt(object["StartDate"], 0, 32)
+		if err != nil {
+			continue
+		}
+
+		endDate, err := strconv.ParseInt(object["EndDate"], 0, 32)
+		if err != nil {
+			continue
+		}
+
+		proposalMetaStmt, err := dbtx.Prepare(proposalInsert)
+		if err != nil {
+			_ = dbtx.Rollback() // try, but we want the Prepare error back
+			proposalMetaStmt.Close()
+			continue
+		}
+		err = proposalMetaStmt.QueryRow(object["Token"], object["Name"], object["Username"], amount, startDate, endDate, object["Domain"]).Scan(&proposalId)
+		if err != nil {
+			if errRoll := dbtx.Rollback(); errRoll != nil {
+				log.Errorf("Rollback failed: %v", errRoll)
+			}
+			log.Errorf("Add proposal failed: %v", err)
+		}
+		proposalMetaStmt.Close()
+	}
+
+	log.Info("Finish add proposal metadata")
+
+	return dbtx.Commit()
+}
+
+// retrieveNeededSyncProposalTokens returns all proposal token which need sync data
+func retrieveNeededSyncProposalTokens(db *sql.DB, tokens []string) ([]string, error) {
+	rows, err := db.Query(internal.SelectNotSyncProposalMeta)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	proposalDbList := make([]string, 0)
+	for rows.Next() {
+		var token string
+		err = rows.Scan(&token)
+		if err != nil {
+			return nil, err
+		}
+		proposalDbList = append(proposalDbList, token)
+	}
+	err = rows.Err()
+	if err != nil {
+		log.Errorf("Proposal Meta Select prepare: %v", err)
+		return nil, err
+	}
+	result := make([]string, 0)
+	for _, token := range tokens {
+		var existToken = false
+		for _, dbToken := range proposalDbList {
+			if dbToken == token {
+				existToken = true
+				break
+			}
+		}
+		if !existToken {
+			result = append(result, token)
+		}
+	}
+	return result, nil
+}
+
 // retrieveAllAgendas returns all the current agendas in the db.
 func retrieveAllAgendas(db *sql.DB) (map[string]dbtypes.MileStone, error) {
 	rows, err := db.Query(internal.SelectAllAgendas)
@@ -1389,11 +1727,15 @@ func retrieveAddressTxsCount(ctx context.Context, db *sql.DB, address, interval 
 	return
 }
 
+func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
+	return RetrieveAddressBalancePeriod(ctx, db, address, 0, 0)
+}
+
 // RetrieveAddressBalance gets the numbers of spent and unspent outpoints
 // for the given address, the total amounts spent and unspent, the number of
 // distinct spending transactions, and the fraction spent to and received from
 // stake-related transactions.
-func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
+func RetrieveAddressBalancePeriod(ctx context.Context, db *sql.DB, address string, year int64, month int64) (balance *dbtypes.AddressBalance, err error) {
 	// Never return nil *AddressBalance.
 	balance = &dbtypes.AddressBalance{Address: address}
 
@@ -1410,7 +1752,14 @@ func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (ba
 
 	// Query for spent and unspent totals.
 	var rows *sql.Rows
-	rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValue, address)
+	if year == 0 {
+		rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValue, address)
+	} else if month == 0 {
+		rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValueYear, address, year)
+	} else {
+		rows, err = db.QueryContext(ctx, internal.SelectAddressSpentUnspentCountAndValueYearMonth, address, year, month)
+	}
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			_ = dbtx.Commit()
@@ -1687,43 +2036,101 @@ func RetrieveAllAddressMergedTxns(ctx context.Context, db *sql.DB, address strin
 
 // Regular (non-merged) address transactions queries.
 
-func RetrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressLimitNByAddress
+	} else if month == 0 {
+		statement = internal.SelectAddressLimitNByAddressYear
+	} else {
+		statement = internal.SelectAddressLimitNByAddressYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressLimitNByAddress, creditDebitQuery)
+		statement, creditDebitQuery, year, month)
 }
 
-func RetrieveAddressDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressDebitsLimitNByAddress
+	} else if month == 0 {
+		statement = internal.SelectAddressDebitsLimitNByAddressYear
+	} else {
+		statement = internal.SelectAddressDebitsLimitNByAddressYearMonth
+	}
+
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressDebitsLimitNByAddress, creditQuery)
+		statement, creditQuery, year, month)
 }
 
-func RetrieveAddressCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressCreditsLimitNByAddress
+	} else if month == 0 {
+		statement = internal.SelectAddressCreditsLimitNByAddressYear
+	} else {
+		statement = internal.SelectAddressCreditsLimitNByAddressYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressCreditsLimitNByAddress, debitQuery)
+		statement, debitQuery, year, month)
 }
 
 // Merged address transactions queries.
 
-func RetrieveAddressMergedDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressMergedDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressMergedDebitView
+	} else if month == 0 {
+		statement = internal.SelectAddressMergedDebitViewYear
+	} else {
+		statement = internal.SelectAddressMergedDebitViewYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressMergedDebitView, mergedDebitQuery)
+		statement, mergedDebitQuery, year, month)
 }
 
-func RetrieveAddressMergedCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressMergedCreditTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressMergedCreditView
+	} else if month == 0 {
+		statement = internal.SelectAddressMergedCreditViewYear
+	} else {
+		statement = internal.SelectAddressMergedCreditViewYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressMergedCreditView, mergedCreditQuery)
+		statement, mergedCreditQuery, year, month)
 }
 
-func RetrieveAddressMergedTxns(ctx context.Context, db *sql.DB, address string, N, offset int64) ([]*dbtypes.AddressRow, error) {
+func RetrieveAddressMergedTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var statement string
+	if year == 0 {
+		statement = internal.SelectAddressMergedView
+	} else if month == 0 {
+		statement = internal.SelectAddressMergedViewYear
+	} else {
+		statement = internal.SelectAddressMergedViewYearMonth
+	}
 	return retrieveAddressTxns(ctx, db, address, N, offset,
-		internal.SelectAddressMergedView, mergedQuery)
+		statement, mergedQuery, year, month)
 }
 
 // Address transaction query helpers.
 
 func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64,
-	statement string, queryType int) ([]*dbtypes.AddressRow, error) {
-	rows, err := db.QueryContext(ctx, statement, address, N, offset)
+	statement string, queryType int, year int64, month int64) ([]*dbtypes.AddressRow, error) {
+	var rows *sql.Rows
+	var err error
+	if year == 0 {
+		rows, err = db.QueryContext(ctx, statement, address, N, offset)
+	} else if month == 0 {
+		rows, err = db.QueryContext(ctx, statement, address, N, offset, year)
+	} else {
+		rows, err = db.QueryContext(ctx, statement, address, N, offset, year, month)
+	}
+
 	if err != nil {
 		return nil, err
 	}

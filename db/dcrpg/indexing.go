@@ -318,6 +318,19 @@ func DeindexAgendasTableOnAgendaID(db *sql.DB) (err error) {
 	return
 }
 
+// Proposal_meta indexes
+
+func IndexProposalMetaTableOnProposalToken(db *sql.DB) (err error) {
+	_, err = db.Exec(internal.IndexProposalMetaTableOnProposalToken)
+	return
+}
+
+// Proposal_meta deindex
+func DeindexProposalMetaTableOnProposalToken(db *sql.DB) (err error) {
+	_, err = db.Exec(internal.DeindexProposalMetaTableOnProposalToken)
+	return
+}
+
 // agenda votes table indexes
 
 func IndexAgendaVotesTableOnAgendaID(db *sql.DB) (err error) {
@@ -480,6 +493,9 @@ func (pgb *ChainDB) DeindexAll() error {
 		// agendas table
 		{DeindexAgendasTableOnAgendaID},
 
+		// proposal_meta table
+		{DeindexProposalMetaTableOnProposalToken},
+
 		// agenda votes table
 		{DeindexAgendaVotesTableOnAgendaID},
 
@@ -546,6 +562,9 @@ func (pgb *ChainDB) IndexAll(barLoad chan *dbtypes.ProgressBarLoad) error {
 
 		// agendas table
 		{Msg: "agendas table on Agenda ID", IndexFunc: IndexAgendasTableOnAgendaID},
+
+		// proposal_meta table
+		{Msg: "proposal_meta table on Proposal Token", IndexFunc: IndexProposalMetaTableOnProposalToken},
 
 		// agenda votes table
 		{Msg: "agenda votes table on Agenda ID", IndexFunc: IndexAgendaVotesTableOnAgendaID},

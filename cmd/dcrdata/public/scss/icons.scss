@@ -25,6 +25,10 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dcricon-double-file::before {
+  content: "\e925";
+}
+
 .dcricon-qrcode::before {
   content: "\e9f8";
 }
@@ -97,6 +101,14 @@
   content: "\e910";
 }
 
+.dcricon-arrow-simple-right::before {
+  content: "\f054";
+}
+
+.dcricon-arrow-simple-left::before {
+  content: "\f053";
+}
+
 .dcricon-arrow-right {
   transform: rotate(90deg);
 }
@@ -118,15 +130,15 @@
 }
 
 .dcricon-back::before {
-  content: "\e913";
-}
-
-.dcricon-expand::before {
   content: "\e914";
 }
 
-.dcricon-collapse::before {
+.dcricon-expand::before {
   content: "\e915";
+}
+
+.dcricon-collapse::before {
+  content: "\e916";
 }
 
 .dcricon-copy::before {
@@ -134,7 +146,7 @@
 }
 
 .dcricon-info::before {
-  content: "\e916";
+  content: "\e917";
 }
 
 .dcricon-setting::before {
@@ -155,6 +167,22 @@
 
 .dcricon-file::before {
   content: "\e924";
+}
+
+.dcricon-closenb::before {
+  content: "\ea0f";
+}
+
+.dcricon-calendar::before {
+  content: "\e953";
+}
+
+.dcricon-check::before {
+  content: "\f046";
+}
+
+.dcricon-user::before {
+  content: "\e971";
 }
 
 .exchange-logo {

@@ -1050,6 +1050,14 @@ type AddressRow struct {
 	AtomsDebit  uint64
 }
 
+type AddressSummaryRow struct {
+	Id            uint64
+	Time          TimeDef
+	SpentValue    uint64
+	ReceivedValue uint64
+	Saved         bool
+}
+
 // IsMerged indicates if the AddressRow represents data for a "merged" address
 // table view by checking the MergedCount.
 func (ar *AddressRow) IsMerged() bool {
@@ -1841,6 +1849,8 @@ type ChartsData struct {
 	Net         []float64 `json:"net,omitempty"`
 	ChainWork   []uint64  `json:"chainwork,omitempty"`
 	NetHash     []uint64  `json:"nethash,omitempty"`
+	Marketing   []uint64  `json:"marketing,omitempty"`
+	Development []uint64  `json:"development,omitempty"`
 }
 
 // ScriptPubKeyData is part of the result of decodescript(ScriptPubKeyHex)
@@ -2023,6 +2033,11 @@ type AddressTx struct {
 	BlockHeight    uint32
 }
 
+type MonthlyUsdPrice struct {
+	Month TimeDef
+	Price float64
+}
+
 // IOID formats an identification string for the transaction input (or output)
 // represented by the AddressTx.
 func (a *AddressTx) IOID(txType ...string) string {
@@ -2060,6 +2075,40 @@ type TreasuryTx struct {
 	BlockHash   string
 	BlockHeight int64
 	BlockTime   TimeDef
+}
+
+type TreasuryAddSummary struct {
+	Month   string `json:"month"`
+	Invalue int64  `json:"invalue"`
+}
+
+type TreasurySummary struct {
+	Month          string  `json:"month"`
+	Invalue        int64   `json:"invalue"`
+	InvalueUSD     float64 `json:"invalueUSD"`
+	Outvalue       int64   `json:"outvalue"`
+	OutvalueUSD    float64 `json:"outvalueUSD"`
+	Difference     int64   `json:"difference"`
+	DifferenceUSD  float64 `json:"differenceUSD"`
+	Balance        int64   `json:"balance"`
+	BalanceUSD     float64 `json:"balanceUSD"`
+	Total          int64   `json:"total"`
+	TotalUSD       float64 `json:"totalUSD"`
+	OutEstimate    float64 `json:"outEstimate"`
+	OutEstimateUsd float64 `json:"outEstimateUsd"`
+	MonthPrice     float64 `json:"monthPrice"`
+}
+
+type TreasuryMonthDataObject struct {
+	Month      string  `json:"month"`
+	ExpenseDCR int64   `json:"expenseDCR"`
+	Expense    float64 `json:"expense"`
+}
+
+type CurrencyResponse struct {
+	Prices       [][]float64 `json:"prices"`
+	MarketCaps   [][]float64 `json:"market_caps"`
+	TotalVolumes [][]float64 `json:"total_volumes"`
 }
 
 // TreasuryBalance is the current balance, spent amount, and tx count for the
@@ -2246,4 +2295,25 @@ func (a *AddressInfo) PostProcess(tipHeight uint32) {
 		tx := a.Transactions[i]
 		tx.BlockHeight = tipHeight - uint32(tx.Confirmations) + 1
 	}
+}
+
+func GetFullMonthDisplay(month int) string {
+	if month < 10 {
+		return fmt.Sprintf("0%d", month)
+	}
+	return fmt.Sprintf("%d", month)
+}
+
+func GetMonthFromString(month string) int64 {
+	var monthStr string
+	if month[0] == '0' {
+		monthStr = month[1:len(month)]
+	} else {
+		monthStr = month
+	}
+	monthParse, err := strconv.ParseInt(monthStr, 0, 32)
+	if err != nil {
+		return 0
+	}
+	return monthParse
 }

@@ -20,15 +20,18 @@ var createTableStatements = [][2]string{
 	{"vouts", internal.CreateVoutTable},
 	{"block_chain", internal.CreateBlockPrevNextTable},
 	{"addresses", internal.CreateAddressTable},
+	{"address_summary", internal.CreateAddressSummaryTable},
 	{"tickets", internal.CreateTicketsTable},
 	{"votes", internal.CreateVotesTable},
 	{"misses", internal.CreateMissesTable},
 	{"agendas", internal.CreateAgendasTable},
+	{"proposal_meta", internal.CreateProposalMetaTable},
 	{"agenda_votes", internal.CreateAgendaVotesTable},
 	{"testing", internal.CreateTestingTable},
 	{"stats", internal.CreateStatsTable},
 	{"treasury", internal.CreateTreasuryTable},
 	{"swaps", internal.CreateAtomicSwapTable},
+	{"monthly_price", internal.CreateMonthlyPriceTable},
 }
 
 func createTableMap() map[string]string {

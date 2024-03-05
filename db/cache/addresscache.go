@@ -507,7 +507,7 @@ func (d *AddressCacheItem) NumRows() (int, *BlockID) {
 // or not, debit/credit/all). Like the DB queries, the number of transactions to
 // retrieve, N, and the number of transactions to skip, offset, are also
 // specified.
-func (d *AddressCacheItem) Transactions(N, offset int, txnView dbtypes.AddrTxnViewType) (interface{}, *BlockID, error) {
+func (d *AddressCacheItem) Transactions(N, offset int, txnView dbtypes.AddrTxnViewType, year int64, month int64) (interface{}, *BlockID, error) {
 	if offset < 0 || N < 0 {
 		return nil, nil, fmt.Errorf("invalid offset (%d) or N (%d)", offset, N)
 	}
@@ -544,20 +544,38 @@ func (d *AddressCacheItem) Transactions(N, offset int, txnView dbtypes.AddrTxnVi
 		}
 		return []*dbtypes.AddressRowCompact{}, blockID, nil
 	}
+	rowData := make([]*dbtypes.AddressRowCompact, 0)
+	if year == 0 {
+		rowData = d.rows
+	} else if month == 0 {
+		for _, row := range d.rows {
+			txBlockTime := dbtypes.NewTimeDefFromUNIX(row.TxBlockTime)
+			if txBlockTime.T.Year() == int(year) {
+				rowData = append(rowData, row)
+			}
+		}
+	} else {
+		for _, row := range d.rows {
+			txBlockTime := dbtypes.NewTimeDefFromUNIX(row.TxBlockTime)
+			if txBlockTime.T.Year() == int(year) && int(txBlockTime.T.Month()) == int(month) {
+				rowData = append(rowData, row)
+			}
+		}
+	}
 
 	switch txnView {
 	case dbtypes.AddrTxnAll:
 		// []*dbtypes.AddressRowCompact
-		return addressRows(d.rows, N, offset), blockID, nil
+		return addressRows(rowData, N, offset), blockID, nil
 	case dbtypes.AddrTxnCredit:
-		return creditAddressRows(d.rows, N, offset), blockID, nil
+		return creditAddressRows(rowData, N, offset), blockID, nil
 	case dbtypes.AddrTxnDebit:
-		return debitAddressRows(d.rows, N, offset), blockID, nil
+		return debitAddressRows(rowData, N, offset), blockID, nil
 	case dbtypes.AddrMergedTxn, dbtypes.AddrMergedTxnCredit, dbtypes.AddrMergedTxnDebit:
 		// []*dbtypes.AddressRowMerged
-		return dbtypes.MergeRowsCompactRange(d.rows, N, offset, txnView), blockID, nil
+		return dbtypes.MergeRowsCompactRange(rowData, N, offset, txnView), blockID, nil
 	case dbtypes.AddrUnspentTxn:
-		return unspentCreditAddressRows(d.rows, N, offset), blockID, nil
+		return unspentCreditAddressRows(rowData, N, offset), blockID, nil
 	default:
 		// This should already be caught by IsMerged err check.
 		return nil, nil, fmt.Errorf("unrecognized address transaction view: %v", txnView)
@@ -902,18 +920,22 @@ func (ac *AddressCache) NumRows(addr string) (int, *BlockID) {
 // transactions to retrieve, N, and the number of transactions to skip, offset,
 // are also specified.
 func (ac *AddressCache) Transactions(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType) ([]*dbtypes.AddressRow, *BlockID, error) {
+	return ac.TransactionsYearMonth(addr, N, offset, txnType, 0, 0)
+}
+
+func (ac *AddressCache) TransactionsYearMonth(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *BlockID, error) {
 	merged, err := txnType.IsMerged()
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if merged {
-		rowsMerged, blockID, err := ac.TransactionsMerged(addr, N, offset, txnType)
+		rowsMerged, blockID, err := ac.TransactionsMerged(addr, N, offset, txnType, year, month)
 		rows := dbtypes.UncompactMergedRows(rowsMerged)
 		return rows, blockID, err
 	}
 
-	rowsCompact, blockID, err := ac.TransactionsCompact(addr, N, offset, txnType)
+	rowsCompact, blockID, err := ac.TransactionsCompact(addr, N, offset, txnType, year, month)
 	rows := dbtypes.UncompactRows(rowsCompact)
 	return rows, blockID, err
 }
@@ -922,7 +944,7 @@ func (ac *AddressCache) Transactions(addr string, N, offset int64, txnType dbtyp
 // AddrTxnViewType, and it returns a []dbtypes.AddressRowMerged. A cache miss is
 // indicated by (*BlockID)==nil. The returned rows may be nil or an empty slice
 // for a cache hit if the address has no history.
-func (ac *AddressCache) TransactionsMerged(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType) ([]*dbtypes.AddressRowMerged, *BlockID, error) {
+func (ac *AddressCache) TransactionsMerged(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRowMerged, *BlockID, error) {
 	aci := ac.addressCacheItem(addr)
 	if aci == nil {
 		ac.cacheMetrics.rowMiss()
@@ -930,7 +952,7 @@ func (ac *AddressCache) TransactionsMerged(addr string, N, offset int64, txnType
 	}
 	ac.cacheMetrics.rowHit()
 
-	rows, blockID, err := aci.Transactions(int(N), int(offset), txnType)
+	rows, blockID, err := aci.Transactions(int(N), int(offset), txnType, year, month)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -948,7 +970,7 @@ func (ac *AddressCache) TransactionsMerged(addr string, N, offset int64, txnType
 // non-merged AddrTxnViewType, and it returns a []dbtypes.AddressRowCompact. A
 // cache miss is indicated by (*BlockID)==nil. The returned rows may be nil or
 // an empty slice for a cache hit if the address has no history.
-func (ac *AddressCache) TransactionsCompact(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType) ([]*dbtypes.AddressRowCompact, *BlockID, error) {
+func (ac *AddressCache) TransactionsCompact(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRowCompact, *BlockID, error) {
 	aci := ac.addressCacheItem(addr)
 	if aci == nil {
 		ac.cacheMetrics.rowMiss()
@@ -956,7 +978,7 @@ func (ac *AddressCache) TransactionsCompact(addr string, N, offset int64, txnTyp
 	}
 	ac.cacheMetrics.rowHit()
 
-	rows, blockID, err := aci.Transactions(int(N), int(offset), txnType)
+	rows, blockID, err := aci.Transactions(int(N), int(offset), txnType, year, month)
 	if err != nil {
 		return nil, nil, err
 	}

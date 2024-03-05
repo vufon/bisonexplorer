@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -200,6 +201,87 @@ func (db *ProposalsDB) ProposalsAll(offset, rowsCount int,
 	}
 
 	return proposals, totalCount, nil
+}
+
+// Get all proposal tokens
+func (db *ProposalsDB) GetAllProposals() ([]*pitypes.ProposalRecord, error) {
+	// Sanity check
+	if db == nil || db.dbP == nil {
+		return nil, errDef
+	}
+
+	var query storm.Query
+	query = db.dbP.Select(q.Eq("VoteStatus",
+		ticketvotev1.VoteStatusT(ticketvotev1.VoteStatusApproved)))
+
+	// Return the proposals listing starting with the newest.
+	var proposals []*pitypes.ProposalRecord
+	var err = query.OrderBy("Timestamp").Find(&proposals)
+
+	if err != nil && !errors.Is(err, storm.ErrNotFound) {
+		return nil, err
+	}
+	return db.FilterProposals(proposals), nil
+}
+
+func (db *ProposalsDB) FilterProposals(proposals []*pitypes.ProposalRecord) []*pitypes.ProposalRecord {
+	result := make([]*pitypes.ProposalRecord, 0)
+	if proposals == nil || len(proposals) <= 0 {
+		return result
+	}
+	savedTokens := make([]string, 0)
+	for _, proposal := range proposals {
+		if !slices.Contains(savedTokens, proposal.Token) {
+			savedTokens = append(savedTokens, proposal.Token)
+			result = append(result, proposal)
+		}
+	}
+	return result
+}
+
+// Get Approved Proposals metadata
+func (db *ProposalsDB) ProposalsApprovedMetadata(tokens []string, proposalList []*pitypes.ProposalRecord) ([]map[string]string, error) {
+	// Sanity check
+	if db == nil || db.dbP == nil {
+		return nil, errDef
+	}
+
+	log.Info("Start get approved Proposals meta data...")
+
+	proposalReportDatas := make([]map[string]string, 0, len(tokens))
+
+	// Fetch record details for each token from the inventory.
+	recordDetails, err := db.fetchRecordDetails(tokens)
+	if err != nil {
+		return nil, err
+	}
+	for key, record := range recordDetails {
+		// Proposal metadata
+		pm, err := proposalMetadataDecode(record.Files)
+		if err != nil {
+			return nil, fmt.Errorf("proposalMetadataDecode err: %w", err)
+		}
+		var username string
+		for _, pRecord := range proposalList {
+			if pRecord.Token == key {
+				username = pRecord.Username
+			}
+		}
+		proposalMetaData := map[string]string{
+			"Token":     key,
+			"Name":      pm.Name,
+			"Amount":    fmt.Sprint(pm.Amount),
+			"StartDate": fmt.Sprint(pm.StartDate),
+			"EndDate":   fmt.Sprint(pm.EndDate),
+			"Domain":    pm.Domain,
+			"Username":  username,
+		}
+		proposalReportDatas = append(proposalReportDatas, proposalMetaData)
+	}
+
+	log.Info("Finish get approved Proposals meta data")
+
+	return proposalReportDatas, nil
 }
 
 // ProposalsAll fetches the proposals data from the local db.

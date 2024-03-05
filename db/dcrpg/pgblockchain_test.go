@@ -70,7 +70,7 @@ func TestInsertSwap(t *testing.T) {
 func TestChainDB_AddressTransactionsAll(t *testing.T) {
 	// address with no transactions.
 	address := "DsUBCQWJsW8raht1i4gXTv7xPu3ySpUxxxx"
-	rows, err := db.AddressTransactionsAll(address)
+	rows, err := db.AddressTransactionsAll(address, 0, 0)
 	if err != nil {
 		t.Errorf("err should have been nil, was: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestChainDB_AddressTransactionsAll(t *testing.T) {
 func TestMergeRows(t *testing.T) {
 	address := "Dcur2mcGjmENx4DhNqDctW5wJCVyT3Qeqkx"
 
-	rows, err := db.AddressTransactionsAll(address)
+	rows, err := db.AddressTransactionsAll(address, 0, 0)
 	if err != nil {
 		t.Errorf("err should have been nil, was: %v", err)
 	}
@@ -115,7 +115,7 @@ func TestMergeRows(t *testing.T) {
 	t.Logf("%d rows combined to %d merged rows in %v", len(rows),
 		len(mergedRows), time.Since(tStart))
 
-	mergedRows0, err := db.AddressTransactionsAllMerged(address)
+	mergedRows0, err := db.AddressTransactionsAllMerged(address, 0, 0)
 	if err != nil {
 		t.Errorf("err should have been nil, was: %v", err)
 	}

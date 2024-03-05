@@ -17,12 +17,12 @@
   }
 
   .home-link {
-    width: 200px;
+    width: 210px;
   }
 
-  @media only screen and (max-width: 576px) {
+  @media (max-width: 750px) {
     .home-link {
-      width: 170px;
+      width: 0;
     }
   }
 
@@ -491,7 +491,7 @@
   border-bottom: 2px solid #e6eaed;
 }
 
-.\ {
+.border-bottom-1-grey {
   border-bottom: 1px solid #e6eaed;
 }
 
@@ -501,6 +501,10 @@
 
 .border-right-1-grey {
   border-right: 1px solid #e6eaed;
+}
+
+.border-left-1-grey {
+  border-left: 1px solid #e6eaed;
 }
 
 .border-left-1-white {
@@ -1454,6 +1458,10 @@ body.darkBG {
 
   .ticket-pool-card {
     background: linear-gradient(107.34deg, #186269, #063333);
+  }
+
+  .function-feature-card:hover {
+    background-color: #4b4b4b !important;
   }
 }
 

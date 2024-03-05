@@ -18,14 +18,6 @@ export default class extends Controller {
   }
 
   connect () {
-    const isHomePage = this.checkHomePage()
-    if (isHomePage) {
-      this.homeMenuTarget.classList.remove('d-none')
-      this.commonMenuTarget.classList.add('d-none')
-    } else {
-      this.homeMenuTarget.classList.add('d-none')
-      this.commonMenuTarget.classList.remove('d-none')
-    }
     this.clickout = this._clickout.bind(this)
     this.formTargets.forEach(form => {
       form.addEventListener('submit', e => {

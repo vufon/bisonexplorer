@@ -18,11 +18,39 @@ const (
 		tx_type INT4
 	);`
 
+	// monthly legacy address summary table
+	CreateAddressSummaryTable = `CREATE TABLE IF NOT EXISTS address_summary (
+		id SERIAL PRIMARY KEY,
+		time TIMESTAMPTZ NOT NULL,
+		spent_value BIGINT,
+		received_value BIGINT,
+		saved BOOLEAN
+	);`
+
+	//insert to legacy  address summary table
+	InsertAddressSummaryRow = `INSERT INTO address_summary (time, spent_value, received_value,  saved)
+		VALUES ($1, $2, $3, $4)`
+
+	//select first from summary table
+	SelectAddressSummaryRows = `SELECT * FROM address_summary ORDER BY time`
+
+	//select only data from summary table
+	SelectAddressSummaryDataRows = `SELECT time,spent_value,received_value FROM address_summary ORDER BY time DESC`
+
+	SelectAddressSummaryDataByMonth = `SELECT time,spent_value,received_value FROM address_summary 
+	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+
+	SelectAddressSummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(spent_value) as spent_value,SUM(received_value) as received_value FROM address_summary
+	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
+
+	//update spent and total value
+	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET spent_value = $1, received_value = $2, saved = $3 WHERE id = $4`
+
 	// insertAddressRow is the basis for several address insert/upsert
 	// statements.
 	insertAddressRow = `INSERT INTO addresses (address, matching_tx_hash, tx_hash,
 		tx_vin_vout_index, tx_vin_vout_row_id, value, block_time, is_funding, valid_mainchain, tx_type)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) `
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 
 	// InsertAddressRow inserts a address block row without checking for unique
 	// index conflicts. This should only be used before the unique indexes are
@@ -163,6 +191,12 @@ const (
 		WHERE address = ANY($1) AND valid_mainchain
 		ORDER BY block_time DESC, tx_hash ASC;`
 
+	SelectLegacySummaryByMonth = `SELECT ts1.month, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
+		FROM (SELECT address, tx_type, SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM addresses GROUP BY month,address,tx_type) ts1
+		FULL OUTER JOIN 
+		(SELECT address, tx_type, SUM(value) as outvalue, DATE_TRUNC('month',block_time) as month FROM addresses WHERE is_funding = true GROUP BY month,address,tx_type) ts2 
+		ON ts1.month = ts2.month AND ts1.address = ts2.address AND ts1.tx_type = ts2.tx_type AND ts1.address = $1 AND ts1.tx_type = $2 ORDER BY ts1.month DESC;`
+
 	// selectAddressTimeGroupingCount return the count of record groups,
 	// where grouping is done by a specified time interval, for an addresses.
 	selectAddressTimeGroupingCount = `SELECT COUNT(DISTINCT %s) FROM addresses WHERE address=$1;`
@@ -216,6 +250,32 @@ const (
 			matching_tx_hash=''  -- separate spent and unspent
 		ORDER BY count, is_funding;`
 
+	SelectAddressSpentUnspentCountAndValueYear = `SELECT
+		(tx_type = 0) AS is_regular,
+		COUNT(*),
+		SUM(value),
+		is_funding,
+		(matching_tx_hash = '') AS all_empty_matching
+		-- NOT BOOL_AND(matching_tx_hash = '') AS no_empty_matching
+	FROM addresses
+	WHERE address = $1 AND valid_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2
+	GROUP BY tx_type=0, is_funding, 
+		matching_tx_hash=''  -- separate spent and unspent
+	ORDER BY count, is_funding;`
+
+	SelectAddressSpentUnspentCountAndValueYearMonth = `SELECT
+	(tx_type = 0) AS is_regular,
+	COUNT(*),
+	SUM(value),
+	is_funding,
+	(matching_tx_hash = '') AS all_empty_matching
+	-- NOT BOOL_AND(matching_tx_hash = '') AS no_empty_matching
+FROM addresses
+WHERE address = $1 AND valid_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3
+GROUP BY tx_type=0, is_funding, 
+	matching_tx_hash=''  -- separate spent and unspent
+ORDER BY count, is_funding;`
+
 	SelectAddressUnspentWithTxn = `SELECT
 			addresses.address,
 			addresses.tx_hash,
@@ -238,6 +298,16 @@ const (
 		ORDER BY block_time DESC, tx_hash ASC
 		LIMIT $2 OFFSET $3;`
 
+	SelectAddressLimitNByAddressYear = `SELECT ` + addrsColumnNames + ` FROM addresses
+		WHERE address=$1 AND valid_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2
+		ORDER BY block_time DESC, tx_hash ASC
+		LIMIT $3 OFFSET $4;`
+
+	SelectAddressLimitNByAddressYearMonth = `SELECT ` + addrsColumnNames + ` FROM addresses
+		WHERE address=$1 AND valid_mainchain AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3
+		ORDER BY block_time DESC, tx_hash ASC
+		LIMIT $4 OFFSET $5;`
+
 	// SelectAddressLimitNByAddressSubQry was used in certain cases prior to
 	// sorting the block_time_index.
 	// SelectAddressLimitNByAddressSubQry = `WITH these AS (SELECT ` + addrsColumnNames +
@@ -251,11 +321,35 @@ const (
 		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
 		ORDER BY block_time DESC LIMIT $2 OFFSET $3;`
 
+	SelectAddressMergedDebitViewYear = `SELECT tx_hash, valid_mainchain, block_time, sum(value), COUNT(*)
+		FROM addresses
+		WHERE address=$1 AND is_funding = FALSE AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2          -- spending transactions
+		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
+		ORDER BY block_time DESC LIMIT $3 OFFSET $4;`
+
+	SelectAddressMergedDebitViewYearMonth = `SELECT tx_hash, valid_mainchain, block_time, sum(value), COUNT(*)
+		FROM addresses
+		WHERE address=$1 AND is_funding = FALSE AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3          -- spending transactions
+		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
+		ORDER BY block_time DESC LIMIT $4 OFFSET $5;`
+
 	SelectAddressMergedCreditView = `SELECT tx_hash, valid_mainchain, block_time, sum(value), COUNT(*)
 		FROM addresses
 		WHERE address=$1 AND is_funding = TRUE           -- funding transactions
 		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
 		ORDER BY block_time DESC LIMIT $2 OFFSET $3;`
+
+	SelectAddressMergedCreditViewYear = `SELECT tx_hash, valid_mainchain, block_time, sum(value), COUNT(*)
+		FROM addresses
+		WHERE address=$1 AND is_funding = TRUE AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2          -- funding transactions
+		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
+		ORDER BY block_time DESC LIMIT $3 OFFSET $4;`
+
+	SelectAddressMergedCreditViewYearMonth = `SELECT tx_hash, valid_mainchain, block_time, sum(value), COUNT(*)
+		FROM addresses
+		WHERE address=$1 AND is_funding = TRUE AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3           -- funding transactions
+		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
+		ORDER BY block_time DESC LIMIT $4 OFFSET $5;`
 
 	SelectAddressMergedViewAll = `SELECT tx_hash, valid_mainchain, block_time, sum(CASE WHEN is_funding = TRUE THEN value ELSE 0 END),
 		sum(CASE WHEN is_funding = FALSE THEN value ELSE 0 END), COUNT(*)
@@ -264,7 +358,23 @@ const (
 		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
 		ORDER BY block_time DESC`
 
-	SelectAddressMergedView = SelectAddressMergedViewAll + ` LIMIT $2 OFFSET $3;`
+	SelectAddressMergedViewAllYear = `SELECT tx_hash, valid_mainchain, block_time, sum(CASE WHEN is_funding = TRUE THEN value ELSE 0 END),
+		sum(CASE WHEN is_funding = FALSE THEN value ELSE 0 END), COUNT(*)
+		FROM addresses
+		WHERE address=$1 AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2                                -- spending and funding transactions
+		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
+		ORDER BY block_time DESC`
+
+	SelectAddressMergedViewAllYearMonth = `SELECT tx_hash, valid_mainchain, block_time, sum(CASE WHEN is_funding = TRUE THEN value ELSE 0 END),
+		sum(CASE WHEN is_funding = FALSE THEN value ELSE 0 END), COUNT(*)
+		FROM addresses
+		WHERE address=$1 AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3                               -- spending and funding transactions
+		GROUP BY (tx_hash, valid_mainchain, block_time)  -- merging common transactions in same valid mainchain block
+		ORDER BY block_time DESC`
+
+	SelectAddressMergedView          = SelectAddressMergedViewAll + ` LIMIT $2 OFFSET $3;`
+	SelectAddressMergedViewYear      = SelectAddressMergedViewAllYear + ` LIMIT $2 OFFSET $3;`
+	SelectAddressMergedViewYearMonth = SelectAddressMergedViewAllYearMonth + ` LIMIT $2 OFFSET $3;`
 
 	SelectAddressCsvView = "SELECT tx_hash, valid_mainchain, matching_tx_hash, value, block_time, is_funding, " +
 		"tx_vin_vout_index, tx_type FROM addresses WHERE address=$1 ORDER BY block_time DESC"
@@ -274,10 +384,48 @@ const (
 		ORDER BY block_time DESC, tx_hash ASC
 		LIMIT $2 OFFSET $3;`
 
+	SelectAddressDebitsLimitNByAddressYear = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND is_funding = FALSE AND valid_mainchain
+		AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2
+		ORDER BY block_time DESC, tx_hash ASC
+		LIMIT $3 OFFSET $4;`
+
+	SelectAddressDebitsLimitNByAddressYearMonth = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND is_funding = FALSE AND valid_mainchain
+		AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3
+		ORDER BY block_time DESC, tx_hash ASC
+		LIMIT $4 OFFSET $5;`
+
 	SelectAddressCreditsLimitNByAddress = `SELECT ` + addrsColumnNames + `
 		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
 		ORDER BY block_time DESC, tx_hash ASC
 		LIMIT $2 OFFSET $3;`
+
+	SelectAddressCreditsLimitNByAddressYear = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
+		AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2
+		ORDER BY block_time DESC, tx_hash ASC
+		LIMIT $3 OFFSET $4;`
+
+	SelectAddressCreditsLimitNByAddressYearMonth = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
+		AND EXTRACT(YEAR FROM block_time AT TIME ZONE 'UTC') = $2 AND EXTRACT(MONTH FROM block_time AT TIME ZONE 'UTC') = $3
+		ORDER BY block_time DESC, tx_hash ASC
+		LIMIT $4 OFFSET $5;`
+
+	SelectAddressCreditsLimitNByAddressFromOldest = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND valid_mainchain
+		ORDER BY block_time, tx_hash ASC
+		LIMIT $2 OFFSET $3;`
+
+	SelectOldestAddressCreditTime = `SELECT block_time
+		FROM addresses WHERE address=$1 AND is_funding AND valid_mainchain
+		ORDER BY block_time, tx_hash ASC
+		LIMIT 1;`
+
+	SelectAddressCreditsLimitNByAddressByPeriod = `SELECT ` + addrsColumnNames + `
+		FROM addresses WHERE address=$1 AND valid_mainchain AND block_time >= $2 AND block_time <= $3
+		ORDER BY block_time, tx_hash ASC;`
 
 	SelectAddressIDsByFundingOutpoint = `SELECT id, address, value
 		FROM addresses
