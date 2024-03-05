@@ -19,8 +19,7 @@ let combinedChartData = null
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
 
-const proposalTitle = 'Proposal Matrix'
-const summaryTitle = 'Proposal List'
+const proposalTitle = 'Proposals'
 const domainTitle = 'Domains'
 const treasuryTitle = 'Treasury Spending'
 const authorTitle = 'Author List'
@@ -178,13 +177,13 @@ let ctrl = null
 
 export default class extends Controller {
   static get targets () {
-    return ['report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription',
+    return ['report', 'colorNoteRow', 'colorLabel', 'colorDescription',
       'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
       'treasuryToggleArea', 'treasuryTitle', 'reportDescription', 'reportAllPage',
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
-      'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp']
+      'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch']
   }
 
   async connect () {
@@ -231,7 +230,6 @@ export default class extends Controller {
     )
     ctrl.currentTType = ctrl.settings.ttype
     ctrl.changedTType = null
-    this.setReportTitle(this.settings.type)
     this.calculate(true)
   }
 
@@ -665,7 +663,7 @@ export default class extends Controller {
     ])
 
     this.defaultSettings = {
-      type: 'proposal',
+      type: 'summary',
       tsort: 'newest',
       psort: 'newest',
       stype: 'startdt',
@@ -779,10 +777,9 @@ export default class extends Controller {
     this.query.replace(query)
   }
 
-  setReportTitle (type) {
-    switch (type) {
+  setReportTitle () {
+    switch (this.settings.type) {
       case 'proposal':
-        this.reportTitleTarget.innerHTML = proposalTitle
         this.bcnameTarget.textContent = proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         this.settings.interval = this.defaultSettings.interval
@@ -794,22 +791,18 @@ export default class extends Controller {
         })
         break
       case 'summary':
-        this.reportTitleTarget.innerHTML = summaryTitle
-        this.bcnameTarget.textContent = summaryTitle
+        this.bcnameTarget.textContent = proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'domain':
-        this.reportTitleTarget.innerHTML = domainTitle
         this.bcnameTarget.textContent = domainTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'treasury':
-        this.reportTitleTarget.innerHTML = treasuryTitle
         this.bcnameTarget.textContent = treasuryTitle
         this.reportDescriptionTarget.innerHTML = treasuryNote
         break
       case 'author':
-        this.reportTitleTarget.innerHTML = authorTitle
         this.bcnameTarget.textContent = authorTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
     }
@@ -2248,6 +2241,7 @@ export default class extends Controller {
 
   // Calculate and response
   async calculate (redrawFlg) {
+    this.setReportTitle()
     if (this.settings.type === 'treasury') {
       this.searchBoxTarget.classList.add('d-none')
       this.searchBoxTarget.classList.remove('report-search-box')
@@ -2267,6 +2261,17 @@ export default class extends Controller {
         this.searchBoxTarget.classList.add('ms-3')
       }
       this.settings.usd = false
+    }
+
+    if (!this.settings.type || this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      this.nameMatrixSwitchTarget.classList.remove('d-none')
+      if (this.settings.type === 'proposal') {
+        document.getElementById('nameMonthSwitchInput').checked = true
+      } else {
+        document.getElementById('nameMonthSwitchInput').checked = false
+      }
+    } else {
+      this.nameMatrixSwitchTarget.classList.add('d-none')
     }
     // disabled group button for loading
     this.disabledGroupButton()
@@ -2397,6 +2402,12 @@ export default class extends Controller {
   activeProposalSwitch (e) {
     const switchCheck = document.getElementById('activeProposalInput').checked
     this.settings.active = switchCheck
+    this.calculate(false)
+  }
+
+  nameMatrixSwitchEvent (e) {
+    const switchCheck = document.getElementById('nameMonthSwitchInput').checked
+    this.settings.type = !switchCheck || switchCheck === 'false' ? 'summary' : 'proposal'
     this.calculate(false)
   }
 

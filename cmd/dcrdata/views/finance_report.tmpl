@@ -19,8 +19,14 @@
             <div class="pb-1 fs-15 mt-1">
                <a class="return-to-main link-hover-underline me-2 fs-18" href="/home-report">Financial Reports</a><span class="narrow-breadcumb">></span><span class="step1-breadcumb ms-2 fs-18" data-financereport-target="bcname"></span>
             </div>
-            <span class="fs-22 pe-2 report-tool-bar" data-financereport-target="reportTitle">
-            </span>
+            <div class="d-none" data-financereport-target="nameMatrixSwitch">
+                  <span class="me-1" style="position:sticky;left:10px;">Name</span>
+                  <label class="switch mt-3" style="position:sticky;left:60px;">
+                  <input type="checkbox" data-action="change->financereport#nameMatrixSwitchEvent" id="nameMonthSwitchInput">
+                  <span class="legacy-slider round"></span>
+                  </label>
+                  <span class="ms-1" style="position:sticky;left:125px;">Month</span>
+            </div>
             <div class="mt-2 mb-2">
                <div class="mb-2">
                   <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
