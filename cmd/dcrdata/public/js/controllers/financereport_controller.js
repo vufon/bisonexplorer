@@ -983,7 +983,11 @@ export default class extends Controller {
   }
 
   sortByCreateDate () {
-    this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
+    if (this.settings.type === 'treasury' || this.settings.type === 'domain') {
+      this.settings.tsort = this.settings.tsort === 'oldest' ? 'newest' : 'oldest'
+    } else {
+      this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
+    }
     if (this.settings.type === 'treasury' || this.settings.type === 'domain') {
       this.settings.stype = ''
     }
@@ -1488,7 +1492,7 @@ export default class extends Controller {
     if (!this.settings.stype || this.settings.stype === '') {
       for (let i = 0; i < domainDataList.length; i++) {
         const sort = this.settings.tsort
-        result.push(sort === 'newest' ? domainDataList[i] : domainDataList[domainDataList.length - i - 1])
+        result.push(sort === 'oldest' ? domainDataList[domainDataList.length - i - 1] : domainDataList[i])
       }
       return result
     }
@@ -1874,7 +1878,7 @@ export default class extends Controller {
     this.reportTarget.classList.remove('d-none')
 
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>` +
+      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>` +
       '###' +
       '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey"><label class="cursor-pointer" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
       `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
@@ -2131,7 +2135,11 @@ export default class extends Controller {
         result.push(dataItem)
       }
     })
-    return result
+    const mainResult = []
+    for (let i = result.length - 1; i >= 0; i--) {
+      mainResult.push(result[i])
+    }
+    return mainResult
   }
 
   getTimeCompare (timStr) {
@@ -2323,12 +2331,13 @@ export default class extends Controller {
     const spentArr = []
     const receivedArr = []
     const netArr = []
-    data.forEach((item) => {
+    for (let i = data.length - 1; i >= 0; i--) {
+      const item = data[i]
       timeArr.push(item.month + '-01T07:00:00Z')
       spentArr.push(item.outvalue / 100000000)
       receivedArr.push(item.invalue / 100000000)
       netArr.push((item.invalue - item.outvalue) / 100000000)
-    })
+    }
     combinedChartData = {
       time: timeArr,
       received: receivedArr,
