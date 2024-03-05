@@ -372,8 +372,10 @@ export default class extends Controller {
       `<span data-action="click->financedetail#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByBudget">Budget</label>' +
       `<span data-action="click->financedetail#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600">Days</th>' +
-      '<th class="va-mid text-right px-2 fw-600">Monthly Avg (Est)</th>' +
+      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDays">Days</label>' +
+      `<span data-action="click->financedetail#sortByDays" class="${(this.settings.stype === 'days' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'days' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAvg">Monthly Avg (Est)</label>' +
+      `<span data-action="click->financedetail#sortByAvg" class="${(this.settings.stype === 'avg' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'avg' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">Total Spent (Est)</label>' +
       `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-2 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financedetail#sortByRemaining">Total Remaining (Est)</label>' +
@@ -659,6 +661,14 @@ export default class extends Controller {
     this.proposalSort('budget')
   }
 
+  sortByDays () {
+    this.proposalSort('days')
+  }
+
+  sortByAvg () {
+    this.proposalSort('avg')
+  }
+
   sortByRemaining () {
     this.proposalSort('remaining')
   }
@@ -679,8 +689,8 @@ export default class extends Controller {
       return ''
     }
 
-    if (!this.settings.stype) {
-      this.settings.stype = 'startdt'
+    if (!this.settings.stype || this.settings.stype === '') {
+      this.settings.stype = 'pname'
     }
 
     this.proposalAreaTarget.classList.remove('d-none')
@@ -720,127 +730,69 @@ export default class extends Controller {
   }
 
   sortSummary (summary) {
-    switch (this.settings.stype) {
-      case 'pname':
-        return this.sortSummaryByName(summary)
-      case 'domain':
-        return this.sortSummaryByDomain(summary)
-      case 'author':
-        return this.sortSummaryByAuthor(summary)
-      case 'budget':
-        return this.sortSummaryByBudget(summary)
-      case 'spent':
-        return this.sortSummaryBySpent(summary)
-      case 'remaining':
-        return this.sortSummaryByRemaining(summary)
-      case 'enddt':
-        return this.sortSummaryByDate(summary, false)
-      default:
-        return this.sortSummaryByDate(summary, true)
-    }
-  }
-
-  sortSummaryByDate (summary, isStart) {
-    if (!summary) {
+    if (!summary || summary.length === 0) {
       return
     }
     const _this = this
+    if (this.settings.stype === 'domain') {
+      return this.sortSummaryByDomain(summary)
+    }
     summary.sort(function (a, b) {
-      const date1 = Date.parse(isStart ? a.start : a.end)
-      const date2 = Date.parse(isStart ? b.start : b.end)
-      if (date1 > date2) {
+      let aData = null
+      let bData = null
+      let alength
+      let blength
+      switch (_this.settings.stype) {
+        case 'pname':
+          aData = a.name
+          bData = b.name
+          break
+        case 'author':
+          aData = a.author
+          bData = b.author
+          break
+        case 'budget':
+          aData = a.budget
+          bData = b.budget
+          break
+        case 'spent':
+          aData = a.totalSpent
+          bData = b.totalSpent
+          break
+        case 'remaining':
+          aData = a.totalRemaining
+          bData = b.totalRemaining
+          break
+        case 'days':
+          aData = _this.getLengthInDay(a)
+          bData = _this.getLengthInDay(b)
+          break
+        case 'avg':
+          alength = _this.getLengthInDay(a)
+          blength = _this.getLengthInDay(b)
+          aData = (a.budget / alength) * 30
+          bData = (b.budget / blength) * 30
+          break
+        case 'enddt':
+          aData = Date.parse(a.end)
+          bData = Date.parse(b.end)
+          break
+        default:
+          aData = Date.parse(a.start)
+          bData = Date.parse(b.start)
+          break
+      }
+
+      if (aData > bData) {
         return _this.settings.order === 'desc' ? -1 : 1
       }
-      if (date1 < date2) {
+      if (aData < bData) {
         return _this.settings.order === 'desc' ? 1 : -1
       }
       return 0
     })
 
     return summary
-  }
-
-  sortSummaryByRemaining (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.totalRemaining > b.totalRemaining) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.totalRemaining < b.totalRemaining) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByMonthSpent (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.totalSpent > b.totalSpent) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.totalSpent < b.totalSpent) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryBySpent (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.totalSpent > b.totalSpent) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.totalSpent < b.totalSpent) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByBudget (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.budget > b.budget) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.budget < b.budget) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortByStartdt (summary) {
-    if (this.settings.order !== 'esc') {
-      return summary
-    }
-    const result = []
-    for (let i = summary.length - 1; i >= 0; i--) {
-      result.push(summary[i])
-    }
-    return result
   }
 
   sortSummaryByDomain (summary) {
@@ -860,42 +812,6 @@ export default class extends Controller {
         if (a.name < b.name) {
           return _this.settings.order === 'desc' ? 1 : -1
         }
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByName (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.name > b.name) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.name < b.name) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByAuthor (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.author > b.author) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.author < b.author) {
-        return _this.settings.order === 'desc' ? 1 : -1
       }
       return 0
     })
