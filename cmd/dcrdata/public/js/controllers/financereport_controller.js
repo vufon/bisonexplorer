@@ -1019,6 +1019,10 @@ export default class extends Controller {
     this.sortByType('net')
   }
 
+  sortByBalance () {
+    this.sortByType('balance')
+  }
+
   sortByOutgoingEst () {
     this.sortByType('outest')
   }
@@ -1501,6 +1505,10 @@ export default class extends Controller {
         case 'rate':
           aData = a.monthPrice
           bData = b.monthPrice
+          break
+        case 'balance':
+          aData = a.balance
+          bData = b.balance
           break
         default:
           aData = a.invalue
@@ -2092,15 +2100,16 @@ export default class extends Controller {
     const isLegacy = this.settings.ttype === 'legacy'
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
+      `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Incoming (${usdDisp ? 'USD' : 'DCR'})</label>` +
     `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Outgoing (${usdDisp ? 'USD' : 'DCR'})</label>` +
     `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net (${usdDisp ? 'USD' : 'DCR'})</label>` +
-    `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
-    thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Balance (${usdDisp ? 'USD' : 'DCR'})</th>`
+    `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByBalance">Balance (${usdDisp ? 'USD' : 'DCR'})</label>` +
+    `<span data-action="click->financereport#sortByBalance" class="${(this.settings.stype === 'balance' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'balance' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     if (!isLegacy) {
       thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst">Outgoing (Est)(${usdDisp ? 'USD' : 'DCR'})</label>` +
       `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
