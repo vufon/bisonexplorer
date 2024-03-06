@@ -1356,8 +1356,6 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
 		}
-		now := time.Now()
-		var nowCompare = now.Year()*12 + int(now.Month())
 		for _, proposalMeta := range proposalMetaList {
 			var amount = proposalMeta["Amount"]
 			var token = proposalMeta["Token"]
@@ -1404,10 +1402,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			varMonthData.End = endTime.Format("2006-01-02")
 			varMonthData.TotalSpent = 0.0
 			if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
-				var timeCompare = startTime.Year()*12 + int(startTime.Month())
-				if timeCompare < nowCompare {
-					varMonthData.TotalSpent = amountFloat
-				}
+				varMonthData.TotalSpent = amountFloat
 			} else {
 				var costOfMonth float64
 				if startTime.Year() == int(year) && int(startTime.Month()) == int(month) {
@@ -1424,10 +1419,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 					countDaysOfMonth := endDay.Day() - startDay.Day() + 1
 					costOfMonth = float64(countDaysOfMonth) * costPerDay
 				}
-				var timeCompare = year*12 + month
-				if timeCompare < int64(nowCompare) {
-					varMonthData.TotalSpent = costOfMonth
-				}
+				varMonthData.TotalSpent = costOfMonth
 			}
 			total += varMonthData.TotalSpent
 			report = append(report, varMonthData)
