@@ -408,9 +408,9 @@ export default class extends Controller {
         `<td class="va-mid text-center fs-13i">${summary.end}</td>` +
         `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
         `<td class="va-mid text-right fs-13i">${lengthInDays}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i">${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(summary.totalSpent, 2, 2)}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i pr-10i">$${humanize.formatToLocalString(summary.totalRemaining, 2, 2)}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : ''}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i pr-10i">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</td>` +
         '</tr>'
     }
     const totalColSpan = hideAuthor && hideDomain ? '3' : ((!hideAuthor && hideDomain) || (hideAuthor && !hideDomain) ? '4' : '5')
@@ -717,13 +717,13 @@ export default class extends Controller {
       `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
       `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
         '<td class="va-mid text-right px-3 fs-13i">' +
-        `$${humanize.formatToLocalString(report.totalSpent, 2, 2)}</td></tr>`
+        `${report.totalSpent > 0 ? '$' + humanize.formatToLocalString(report.totalSpent, 2, 2) : ''}</td></tr>`
       totalExpense += report.totalSpent
     }
 
     bodyList += '<tr class="finance-table-header">' +
     '<td class="va-mid text-center fw-600 fs-15i" colspan="2">Total</td>' +
-    `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalExpense, 2, 2)}</td>` +
+    `<td class="va-mid text-right px-3 fw-600 fs-15i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
     '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody

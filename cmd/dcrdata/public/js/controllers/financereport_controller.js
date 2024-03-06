@@ -1374,9 +1374,9 @@ export default class extends Controller {
         `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.end}</label></td>` +
         `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
         `<td class="va-mid text-right px-3 fs-13i">${lengthInDays}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${humanize.formatToLocalString(monthlyAverage, 2, 2)}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">$${humanize.formatToLocalString(summary.totalSpent, 2, 2)}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">$${humanize.formatToLocalString(summary.totalRemaining, 2, 2)}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : ''}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</p></td>` +
         '</tr>'
     }
 
@@ -1839,9 +1839,9 @@ export default class extends Controller {
       totalProposals += author.proposals
       bodyList += `<tr><td class="va-mid text-center px-3 fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=owner&name=' + author.name}">${author.name}</a></td>`
       bodyList += `<td class="va-mid text-center px-3 fs-13i">${author.proposals}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(author.budget, 2, 2)}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(author.totalReceived, 2, 2)}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(author.totalRemaining, 2, 2)}</td></tr>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.budget > 0 ? '$' + humanize.formatToLocalString(author.budget, 2, 2) : ''}</td>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalReceived > 0 ? '$' + humanize.formatToLocalString(author.totalReceived, 2, 2) : ''}</td>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : ''}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header">' +
