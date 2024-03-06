@@ -668,7 +668,7 @@ textarea::placeholder {
 }
 
 .ai-end {
-  align-items: flex-end;
+  align-items: end;
 }
 
 .ai-stretch {
@@ -1854,7 +1854,19 @@ input:checked + .legacy-slider::before {
 
 .info-menu-column {
   li {
-    width: 130px !important;
+    width: 180px !important;
+  }
+}
+
+.charts-menu-column {
+  li {
+    width: 140px !important;
+  }
+}
+
+.tools-menu-column {
+  li {
+    width: 230px !important;
   }
 }
 

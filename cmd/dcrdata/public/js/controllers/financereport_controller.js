@@ -22,7 +22,7 @@ let treasuryNote = ''
 const proposalTitle = 'Proposals'
 const domainTitle = 'Domains'
 const treasuryTitle = 'Treasury Spending'
-const authorTitle = 'Author List'
+const authorTitle = 'Authors'
 
 function hasCache (k) {
   if (!responseCache[k]) return false
@@ -671,7 +671,7 @@ export default class extends Controller {
       interval: 'month',
       search: '',
       usd: false,
-      active: false,
+      active: 'true',
       chart: 'amountflow',
       zoom: '',
       bin: 'month',
@@ -683,6 +683,9 @@ export default class extends Controller {
     this.query.update(this.settings)
     if (!this.settings.type || this.settings.type === 'proposal') {
       this.defaultSettings.tsort = 'oldest'
+    }
+    if (!this.settings.active) {
+      this.settings.active = this.defaultSettings.active
     }
     if (this.settings.type && this.settings.type === 'treasury') {
       this.defaultSettings.stype = ''
@@ -861,16 +864,15 @@ export default class extends Controller {
     // if summary, display toggle for filter Proposals are active
     if (this.settings.type === 'summary') {
       this.activeProposalSwitchAreaTarget.classList.remove('d-none')
-      if (!this.settings.active || this.settings.active === 'false') {
+      if (this.settings.active === 'false') {
         document.getElementById('activeProposalInput').checked = false
       } else {
         document.getElementById('activeProposalInput').checked = true
       }
     } else {
-      this.settings.active = false
+      this.settings.active = 'false'
       this.activeProposalSwitchAreaTarget.classList.add('d-none')
     }
-
     this.updateQueryString()
 
     if (this.settings.type === 'treasury') {
@@ -1355,7 +1357,7 @@ export default class extends Controller {
     // create tbody content
     for (let i = 0; i < summaryList.length; i++) {
       const summary = summaryList[i]
-      if ((this.settings.active || this.settings.active === 'true') && summary.totalRemaining === 0.0) {
+      if (this.settings.active === 'true' && summary.totalRemaining === 0.0) {
         continue
       }
       let token = ''
@@ -2401,7 +2403,7 @@ export default class extends Controller {
 
   activeProposalSwitch (e) {
     const switchCheck = document.getElementById('activeProposalInput').checked
-    this.settings.active = switchCheck
+    this.settings.active = switchCheck.toString()
     this.calculate(false)
   }
 
