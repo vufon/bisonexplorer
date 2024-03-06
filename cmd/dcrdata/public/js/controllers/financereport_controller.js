@@ -17,6 +17,7 @@ let domainChartData = null
 let domainChartYearData = null
 let domainYearData = null
 let combinedChartData = null
+let combinedChartYearData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
@@ -367,16 +368,109 @@ export default class extends Controller {
       }
     }
     // if else, get data from api
-
-    let url = `/api/treasury/io/${bin}`
-    if (this.settings.type !== 'domain' && this.settings.ttype === 'legacy') {
-      url = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
+    let graphDataResponse = null
+    if (this.settings.type === 'treasury' && (bin === 'week' || bin === 'day') && this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') {
+      const treasuryUrl = `/api/treasury/io/${bin}`
+      const legacyUrl = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
+      const treasuryRes = await requestJSON(treasuryUrl)
+      const legacyRes = await requestJSON(legacyUrl)
+      graphDataResponse = this.combinedDataHandler(treasuryRes, legacyRes)
+    } else {
+      let url = `/api/treasury/io/${bin}`
+      if (this.settings.type !== 'domain' && this.settings.ttype === 'legacy') {
+        url = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
+      }
+      graphDataResponse = this.settings.type === 'domain' ? (bin === 'year' ? domainChartYearData : domainChartData) : (this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') ? (bin === 'year' ? combinedChartYearData : combinedChartData) : await requestJSON(url)
     }
-    const graphDataResponse = this.settings.type === 'domain' ? (bin === 'year' ? domainChartYearData : domainChartData) : (this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') ? combinedChartData : await requestJSON(url)
     ctrl.processData(chart, bin, graphDataResponse)
     this.currentTType = this.changedTType
     ctrl.ajaxing = false
     ctrl.chartLoaderTarget.classList.remove('loading')
+  }
+
+  combinedDataHandler (treasuryRes, legacyRes) {
+    // create time map
+    const timeArr = []
+    // return combined data
+    const combinedDataMap = new Map()
+    const _this = this
+    if (treasuryRes && treasuryRes.time) {
+      treasuryRes.time.map((time, index) => {
+        const dateTime = new Date(time)
+        const dateTimeStr = _this.getStringFromDate(dateTime)
+        timeArr.push(dateTimeStr)
+        const item = {
+          time: dateTimeStr,
+          received: treasuryRes.received[index],
+          sent: treasuryRes.sent[index],
+          net: treasuryRes.net[index]
+        }
+        combinedDataMap.set(dateTimeStr, item)
+      })
+    }
+
+    if (legacyRes && legacyRes.time) {
+      legacyRes.time.map((time, index) => {
+        const dateTime = new Date(time)
+        const dateTimeStr = _this.getStringFromDate(dateTime)
+        if (!timeArr.includes(dateTimeStr)) {
+          timeArr.push(dateTimeStr)
+          const item = {
+            time: dateTimeStr,
+            received: legacyRes.received[index],
+            sent: legacyRes.sent[index],
+            net: legacyRes.net[index]
+          }
+          combinedDataMap.set(dateTimeStr, item)
+        } else {
+          const item = combinedDataMap.get(dateTimeStr)
+          item.received = Number(item.received) + Number(legacyRes.received[index])
+          item.sent = Number(item.sent) + Number(legacyRes.sent[index])
+          item.net = Number(item.net) + Number(legacyRes.net[index])
+          combinedDataMap.set(dateTimeStr, item)
+        }
+      })
+    }
+
+    timeArr.sort(function (a, b) {
+      const aTime = new Date(a)
+      const bTime = new Date(b)
+      if (aTime > bTime) {
+        return 1
+      }
+      if (aTime < bTime) {
+        return -1
+      }
+      return 0
+    })
+
+    const timeInsertArr = []
+    const receivedArr = []
+    const sentArr = []
+    const netArr = []
+    timeArr.forEach((time) => {
+      timeInsertArr.push(time + 'T07:00:00Z')
+      const item = combinedDataMap.get(time)
+      receivedArr.push(item.received)
+      sentArr.push(item.sent)
+      netArr.push(item.net)
+    })
+    const mainResult = {
+      time: timeInsertArr,
+      received: receivedArr,
+      sent: sentArr,
+      net: netArr
+    }
+    return mainResult
+  }
+
+  getStringFromDate (date) {
+    let result = date.getFullYear() + '-'
+    const month = date.getMonth() + 1
+    result += (month < 10 ? '0' + month : month) + '-'
+    const day = date.getDate()
+    result += day < 10 ? '0' + day : day
+    return result
   }
 
   processData (chart, bin, data) {
@@ -2007,7 +2101,7 @@ export default class extends Controller {
 
     let treasuryData = this.getTreasuryDataWithType(data)
     // if not init combined, hanlder data
-    if (!combinedChartData) {
+    if (!combinedChartData || !combinedChartYearData) {
       this.handlerDataForCombinedChart(treasuryData)
     }
     if (treasuryData === null) {
@@ -2392,27 +2486,43 @@ export default class extends Controller {
   }
 
   handlerDataForCombinedChart (data) {
-    if (!data || data.length === 0) {
-      combinedChartData = {}
+    if (combinedChartData !== null && combinedChartYearData !== null) {
       return
     }
+    if (!data || data.length === 0) {
+      combinedChartData = {}
+      combinedChartYearData = {}
+      return
+    }
+
+    combinedChartData = this.getDataForCombinedChart(data, 'month')
+    const treasuryYearlyData = this.getTreasuryYearlyData(data)
+    combinedChartYearData = this.getDataForCombinedChart(treasuryYearlyData, 'year')
+  }
+
+  getDataForCombinedChart (data, type) {
     const timeArr = []
     const spentArr = []
     const receivedArr = []
     const netArr = []
     for (let i = data.length - 1; i >= 0; i--) {
       const item = data[i]
-      timeArr.push(item.month + '-01T07:00:00Z')
+      if (type === 'month') {
+        timeArr.push(item.month + '-01T07:00:00Z')
+      } else {
+        timeArr.push(item.month + '-01-01T07:00:00Z')
+      }
       spentArr.push(item.outvalue / 100000000)
       receivedArr.push(item.invalue / 100000000)
       netArr.push((item.invalue - item.outvalue) / 100000000)
     }
-    combinedChartData = {
+    const result = {
       time: timeArr,
       received: receivedArr,
       sent: spentArr,
       net: netArr
     }
+    return result
   }
 
   handlerDataForDomainChart (data) {
