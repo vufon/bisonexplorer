@@ -14,16 +14,18 @@ let proposalResponse = null
 let treasuryResponse = null
 let isSearching = false
 let domainChartData = null
+let domainChartYearData = null
+let domainYearData = null
 let combinedChartData = null
+let combinedChartYearData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
 
-const proposalTitle = 'Proposal Matrix'
-const summaryTitle = 'Proposal List'
+const proposalTitle = 'Proposals'
 const domainTitle = 'Domains'
 const treasuryTitle = 'Treasury Spending'
-const authorTitle = 'Author List'
+const authorTitle = 'Authors'
 
 function hasCache (k) {
   if (!responseCache[k]) return false
@@ -115,7 +117,7 @@ function domainChartFormatter (data) {
     if (series.y === 0) return ''
     const l = '<span style="color: ' + series.color + ';"> ' + series.labelHTML
     html = '<span style="color:#2d2d2d;">' + html + '</span>'
-    html += '<br>' + series.dashHTML + l + ': $' + (isNaN(series.y) ? '' : series.y) + '</span> '
+    html += '<br>' + series.dashHTML + l + ': $' + (isNaN(series.y) ? '' : humanize.formatToLocalString(Number(series.y), 2, 2)) + '</span> '
   })
   return html
 }
@@ -178,13 +180,14 @@ let ctrl = null
 
 export default class extends Controller {
   static get targets () {
-    return ['report', 'reportTitle', 'colorNoteRow', 'colorLabel', 'colorDescription',
+    return ['report', 'colorNoteRow', 'colorLabel', 'colorDescription',
       'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
       'treasuryToggleArea', 'treasuryTitle', 'reportDescription', 'reportAllPage',
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
-      'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp']
+      'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
+      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel', 'netSelectRadio']
   }
 
   async connect () {
@@ -231,7 +234,6 @@ export default class extends Controller {
     )
     ctrl.currentTType = ctrl.settings.ttype
     ctrl.changedTType = null
-    this.setReportTitle(this.settings.type)
     this.calculate(true)
   }
 
@@ -366,16 +368,109 @@ export default class extends Controller {
       }
     }
     // if else, get data from api
-
-    let url = `/api/treasury/io/${bin}`
-    if (this.settings.type !== 'domain' && this.settings.ttype === 'legacy') {
-      url = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
+    let graphDataResponse = null
+    if (this.settings.type === 'treasury' && (bin === 'week' || bin === 'day') && this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') {
+      const treasuryUrl = `/api/treasury/io/${bin}`
+      const legacyUrl = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
+      const treasuryRes = await requestJSON(treasuryUrl)
+      const legacyRes = await requestJSON(legacyUrl)
+      graphDataResponse = this.combinedDataHandler(treasuryRes, legacyRes)
+    } else {
+      let url = `/api/treasury/io/${bin}`
+      if (this.settings.type !== 'domain' && this.settings.ttype === 'legacy') {
+        url = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
+      }
+      graphDataResponse = this.settings.type === 'domain' ? (bin === 'year' ? domainChartYearData : domainChartData) : (this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') ? (bin === 'year' ? combinedChartYearData : combinedChartData) : await requestJSON(url)
     }
-    const graphDataResponse = this.settings.type === 'domain' ? domainChartData : (this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') ? combinedChartData : await requestJSON(url)
     ctrl.processData(chart, bin, graphDataResponse)
     this.currentTType = this.changedTType
     ctrl.ajaxing = false
     ctrl.chartLoaderTarget.classList.remove('loading')
+  }
+
+  combinedDataHandler (treasuryRes, legacyRes) {
+    // create time map
+    const timeArr = []
+    // return combined data
+    const combinedDataMap = new Map()
+    const _this = this
+    if (treasuryRes && treasuryRes.time) {
+      treasuryRes.time.map((time, index) => {
+        const dateTime = new Date(time)
+        const dateTimeStr = _this.getStringFromDate(dateTime)
+        timeArr.push(dateTimeStr)
+        const item = {
+          time: dateTimeStr,
+          received: treasuryRes.received[index],
+          sent: treasuryRes.sent[index],
+          net: treasuryRes.net[index]
+        }
+        combinedDataMap.set(dateTimeStr, item)
+      })
+    }
+
+    if (legacyRes && legacyRes.time) {
+      legacyRes.time.map((time, index) => {
+        const dateTime = new Date(time)
+        const dateTimeStr = _this.getStringFromDate(dateTime)
+        if (!timeArr.includes(dateTimeStr)) {
+          timeArr.push(dateTimeStr)
+          const item = {
+            time: dateTimeStr,
+            received: legacyRes.received[index],
+            sent: legacyRes.sent[index],
+            net: legacyRes.net[index]
+          }
+          combinedDataMap.set(dateTimeStr, item)
+        } else {
+          const item = combinedDataMap.get(dateTimeStr)
+          item.received = Number(item.received) + Number(legacyRes.received[index])
+          item.sent = Number(item.sent) + Number(legacyRes.sent[index])
+          item.net = Number(item.net) + Number(legacyRes.net[index])
+          combinedDataMap.set(dateTimeStr, item)
+        }
+      })
+    }
+
+    timeArr.sort(function (a, b) {
+      const aTime = new Date(a)
+      const bTime = new Date(b)
+      if (aTime > bTime) {
+        return 1
+      }
+      if (aTime < bTime) {
+        return -1
+      }
+      return 0
+    })
+
+    const timeInsertArr = []
+    const receivedArr = []
+    const sentArr = []
+    const netArr = []
+    timeArr.forEach((time) => {
+      timeInsertArr.push(time + 'T07:00:00Z')
+      const item = combinedDataMap.get(time)
+      receivedArr.push(item.received)
+      sentArr.push(item.sent)
+      netArr.push(item.net)
+    })
+    const mainResult = {
+      time: timeInsertArr,
+      received: receivedArr,
+      sent: sentArr,
+      net: netArr
+    }
+    return mainResult
+  }
+
+  getStringFromDate (date) {
+    let result = date.getFullYear() + '-'
+    const month = date.getMonth() + 1
+    result += (month < 10 ? '0' + month : month) + '-'
+    const day = date.getDate()
+    result += day < 10 ? '0' + day : day
+    return result
   }
 
   processData (chart, bin, data) {
@@ -450,6 +545,15 @@ export default class extends Controller {
     ctrl.settings.bin = target.name
     ctrl.setIntervalButton(target.name)
     this.handlerBinSelectorWhenChange()
+    if (target.name === 'year') {
+      if (ctrl.zoomButtons) {
+        ctrl.zoomButtons.forEach((button) => {
+          if (button.name === 'all') {
+            button.click()
+          }
+        })
+      }
+    }
     this.updateQueryString()
     this.drawGraph()
   }
@@ -665,7 +769,7 @@ export default class extends Controller {
     ])
 
     this.defaultSettings = {
-      type: 'proposal',
+      type: 'summary',
       tsort: 'newest',
       psort: 'newest',
       stype: 'startdt',
@@ -673,7 +777,7 @@ export default class extends Controller {
       interval: 'month',
       search: '',
       usd: false,
-      active: false,
+      active: 'true',
       chart: 'amountflow',
       zoom: '',
       bin: 'month',
@@ -685,6 +789,9 @@ export default class extends Controller {
     this.query.update(this.settings)
     if (!this.settings.type || this.settings.type === 'proposal') {
       this.defaultSettings.tsort = 'oldest'
+    }
+    if (!this.settings.active) {
+      this.settings.active = this.defaultSettings.active
     }
     if (this.settings.type && this.settings.type === 'treasury') {
       this.defaultSettings.stype = ''
@@ -779,10 +886,9 @@ export default class extends Controller {
     this.query.replace(query)
   }
 
-  setReportTitle (type) {
-    switch (type) {
+  setReportTitle () {
+    switch (this.settings.type) {
       case 'proposal':
-        this.reportTitleTarget.innerHTML = proposalTitle
         this.bcnameTarget.textContent = proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         this.settings.interval = this.defaultSettings.interval
@@ -794,22 +900,18 @@ export default class extends Controller {
         })
         break
       case 'summary':
-        this.reportTitleTarget.innerHTML = summaryTitle
-        this.bcnameTarget.textContent = summaryTitle
+        this.bcnameTarget.textContent = proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'domain':
-        this.reportTitleTarget.innerHTML = domainTitle
         this.bcnameTarget.textContent = domainTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'treasury':
-        this.reportTitleTarget.innerHTML = treasuryTitle
         this.bcnameTarget.textContent = treasuryTitle
         this.reportDescriptionTarget.innerHTML = treasuryNote
         break
       case 'author':
-        this.reportTitleTarget.innerHTML = authorTitle
         this.bcnameTarget.textContent = authorTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
     }
@@ -830,7 +932,7 @@ export default class extends Controller {
   }
 
   intervalChange (e) {
-    if (e.target.name === this.settings.interval) {
+    if (e.target.name === ctrl.settings.interval) {
       return
     }
     const target = e.srcElement || e.target
@@ -838,7 +940,34 @@ export default class extends Controller {
       intervalTarget.classList.remove('btn-active')
     })
     target.classList.add('btn-active')
-    this.settings.interval = e.target.name
+    ctrl.settings.interval = e.target.name
+    if (e.target.name === 'year') {
+      if (ctrl.settings.bin !== 'year') {
+        ctrl.binputs.forEach((button) => {
+          if (button.name === 'year') {
+            button.click()
+          }
+        })
+        ctrl.zoomButtons.forEach((button) => {
+          if (button.name === 'all') {
+            button.click()
+          }
+        })
+      }
+    } else {
+      if (ctrl.settings.bin === 'year') {
+        ctrl.binputs.forEach((button) => {
+          if (button.name === 'month') {
+            button.click()
+          }
+        })
+        ctrl.zoomButtons.forEach((button) => {
+          if (button.name === 'year') {
+            button.click()
+          }
+        })
+      }
+    }
     this.calculate(false)
   }
 
@@ -868,16 +997,15 @@ export default class extends Controller {
     // if summary, display toggle for filter Proposals are active
     if (this.settings.type === 'summary') {
       this.activeProposalSwitchAreaTarget.classList.remove('d-none')
-      if (!this.settings.active || this.settings.active === 'false') {
+      if (this.settings.active === 'false') {
         document.getElementById('activeProposalInput').checked = false
       } else {
         document.getElementById('activeProposalInput').checked = true
       }
     } else {
-      this.settings.active = false
+      this.settings.active = 'false'
       this.activeProposalSwitchAreaTarget.classList.add('d-none')
     }
-
     this.updateQueryString()
 
     if (this.settings.type === 'treasury') {
@@ -910,14 +1038,29 @@ export default class extends Controller {
         this.treasuryChartTarget.classList.remove('d-none')
         this.initializeChart()
         this.drawGraph()
+        // Change select option name
         this.amountFlowOptionTarget.innerHTML = 'Domain'
-        this.chartHeaderTarget.classList.add('d-hide')
-        if (ctrl.zoomButtons) {
-          ctrl.zoomButtons.forEach((button) => {
-            if (button.name === 'year') {
-              button.click()
-            }
-          })
+        // hide balance select option
+        this.balanceOptionTarget.classList.add('d-none')
+        // change domain on radio button label
+        this.sentRadioLabelTarget.textContent = 'Development'
+        this.receivedRadioLabelTarget.textContent = 'Marketing'
+        // hide net radio button
+        this.netSelectRadioTarget.classList.add('d-none')
+        // hide some option on group and zoom
+        this.weekZoomBtnTarget.classList.add('d-none')
+        this.dayZoomBtnTarget.classList.add('d-none')
+        this.weekGroupBtnTarget.classList.add('d-none')
+        this.dayGroupBtnTarget.classList.add('d-none')
+        this.blockGroupBtnTarget.classList.add('d-none')
+        if (ctrl.settings.bin !== 'year') {
+          if (ctrl.zoomButtons) {
+            ctrl.zoomButtons.forEach((button) => {
+              if (button.name === 'year') {
+                button.click()
+              }
+            })
+          }
         }
       } else {
         this.treasuryChartTarget.classList.add('d-none')
@@ -983,8 +1126,12 @@ export default class extends Controller {
   }
 
   sortByCreateDate () {
-    this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
-    if (this.settings.type === 'treasury') {
+    if (this.settings.type === 'treasury' || this.settings.type === 'domain') {
+      this.settings.tsort = this.settings.tsort === 'oldest' ? 'newest' : 'oldest'
+    } else {
+      this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
+    }
+    if (this.settings.type === 'treasury' || this.settings.type === 'domain') {
       this.settings.stype = ''
     }
     this.createReportTable(false)
@@ -1019,6 +1166,10 @@ export default class extends Controller {
     this.sortByType('net')
   }
 
+  sortByBalance () {
+    this.sortByType('balance')
+  }
+
   sortByOutgoingEst () {
     this.sortByType('outest')
   }
@@ -1045,6 +1196,14 @@ export default class extends Controller {
 
   sortByAvg () {
     this.sortByType('avg')
+  }
+
+  sortByDomainItem (e) {
+    this.sortByType(e.params.domain)
+  }
+
+  sortByDomainTotal () {
+    this.sortByType('total')
   }
 
   sortByTotalSpent () {
@@ -1346,7 +1505,7 @@ export default class extends Controller {
     // create tbody content
     for (let i = 0; i < summaryList.length; i++) {
       const summary = summaryList[i]
-      if ((this.settings.active || this.settings.active === 'true') && summary.totalRemaining === 0.0) {
+      if (this.settings.active === 'true' && summary.totalRemaining === 0.0) {
         continue
       }
       let token = ''
@@ -1354,7 +1513,12 @@ export default class extends Controller {
         token = proposalTokenMap[summary.name]
       }
       const lengthInDays = this.getLengthInDay(summary)
-      const monthlyAverage = (summary.budget / lengthInDays) * 30
+      let monthlyAverage = summary.budget / lengthInDays
+      if (lengthInDays < 30) {
+        monthlyAverage = summary.budget
+      } else {
+        monthlyAverage = monthlyAverage * 30
+      }
       bodyList += `<tr${summary.totalRemaining === 0.0 ? '' : ' class="summary-active-row"'}>` +
         `<td class="va-mid text-center fs-13i proposal-name-column"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
@@ -1363,9 +1527,9 @@ export default class extends Controller {
         `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.end}</label></td>` +
         `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
         `<td class="va-mid text-right px-3 fs-13i">${lengthInDays}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${humanize.formatToLocalString(monthlyAverage, 2, 2)}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">$${humanize.formatToLocalString(summary.totalSpent, 2, 2)}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">$${humanize.formatToLocalString(summary.totalRemaining, 2, 2)}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : ''}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</p></td>` +
         '</tr>'
     }
 
@@ -1466,6 +1630,53 @@ export default class extends Controller {
     return authorList
   }
 
+  sortDomains (domainDataList) {
+    let result = []
+    if (!domainDataList || domainDataList.length === 0) {
+      return result
+    }
+
+    // if not sort by data column, sort by month, year
+    if (!this.settings.stype || this.settings.stype === '') {
+      for (let i = 0; i < domainDataList.length; i++) {
+        const sort = this.settings.tsort
+        result.push(sort === 'oldest' ? domainDataList[domainDataList.length - i - 1] : domainDataList[i])
+      }
+      return result
+    }
+
+    result = Array.from(domainDataList)
+    const _this = this
+    result.sort(function (a, b) {
+      let aData = null
+      let bData = null
+      if (_this.settings.stype === 'total') {
+        aData = a.total
+        bData = b.total
+      } else {
+        a.domainData.forEach((aDomainData) => {
+          if (_this.settings.stype === aDomainData.domain) {
+            aData = aDomainData.expense
+          }
+        })
+        b.domainData.forEach((bDomainData) => {
+          if (_this.settings.stype === bDomainData.domain) {
+            bData = bDomainData.expense
+          }
+        })
+      }
+      if (aData > bData) {
+        return _this.settings.order === 'desc' ? -1 : 1
+      }
+      if (aData < bData) {
+        return _this.settings.order === 'desc' ? 1 : -1
+      }
+      return 0
+    })
+
+    return result
+  }
+
   sortTreasury (treasuryList) {
     let result = []
     if (!treasuryList) {
@@ -1501,6 +1712,10 @@ export default class extends Controller {
         case 'rate':
           aData = a.monthPrice
           bData = b.monthPrice
+          break
+        case 'balance':
+          aData = a.balance
+          bData = b.balance
           break
         default:
           aData = a.invalue
@@ -1740,7 +1955,7 @@ export default class extends Controller {
     }
 
     if (!this.settings.stype || this.settings.stype === '') {
-      this.settings.stype = 'pname'
+      this.settings.stype = 'author'
     }
 
     if (!this.settings.order || this.settings.order === '') {
@@ -1750,7 +1965,7 @@ export default class extends Controller {
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
     '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
-    `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByPNum">Proposals</label>' +
     `<span data-action="click->financereport#sortByPNum" class="${(this.settings.stype === 'pnum' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pnum' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
@@ -1777,9 +1992,9 @@ export default class extends Controller {
       totalProposals += author.proposals
       bodyList += `<tr><td class="va-mid text-center px-3 fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=owner&name=' + author.name}">${author.name}</a></td>`
       bodyList += `<td class="va-mid text-center px-3 fs-13i">${author.proposals}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(author.budget, 2, 2)}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(author.totalReceived, 2, 2)}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(author.totalRemaining, 2, 2)}</td></tr>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.budget > 0 ? '$' + humanize.formatToLocalString(author.budget, 2, 2) : ''}</td>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalReceived > 0 ? '$' + humanize.formatToLocalString(author.totalReceived, 2, 2) : ''}</td>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : ''}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header">' +
@@ -1799,7 +2014,7 @@ export default class extends Controller {
     }
     let handlerData = data
     if (this.settings.interval === 'year') {
-      handlerData = this.getProposalYearlyData(data)
+      handlerData = domainYearData != null ? domainYearData : this.getProposalYearlyData(data)
     }
 
     if (handlerData.report.length < 1) {
@@ -1811,24 +2026,27 @@ export default class extends Controller {
     this.reportTarget.classList.remove('d-none')
 
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>` +
+      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>` +
       '###' +
-      '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey">Total</th>' +
+      '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey"><label class="cursor-pointer" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
+      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
     handlerData.domainList.forEach((domain) => {
-      headList += `<th class="va-mid text-right-i domain-content-cell ps-0 fs-13i ps-5 pe-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a></th>`
+      headList += `<th class="va-mid text-right-i domain-content-cell ps-0 fs-13i ps-5 pe-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a>` +
+      `<span data-action="click->financereport#sortByDomainItem" data-financereport-domain-param="${domain}" class="${(this.settings.stype === domain && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== domain ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     })
     thead = thead.replace('###', headList)
 
     let bodyList = ''
     const domainDataMap = new Map()
+    // sort before display on table
+    const domainList = this.sortDomains(handlerData.report)
     // create tbody content
-    for (let i = 0; i < handlerData.report.length; i++) {
-      const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
-      const report = handlerData.report[index]
+    for (let i = 0; i < domainList.length; i++) {
+      const report = domainList[i]
       const timeParam = this.getFullTimeParam(report.month, '/')
       bodyList += `<tr><td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
@@ -1839,7 +2057,7 @@ export default class extends Controller {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
-      bodyList += `<td class="va-mid text-right fs-13i fw-600 border-left-grey">${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
+      bodyList += `<td class="va-mid text-right fs-13i fw-600 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header"><td class="text-center fw-600 fs-15i border-right-grey">Total (Est)</td>'
@@ -1883,7 +2101,7 @@ export default class extends Controller {
 
     let treasuryData = this.getTreasuryDataWithType(data)
     // if not init combined, hanlder data
-    if (!combinedChartData) {
+    if (!combinedChartData || !combinedChartYearData) {
       this.handlerDataForCombinedChart(treasuryData)
     }
     if (treasuryData === null) {
@@ -2065,7 +2283,11 @@ export default class extends Controller {
         result.push(dataItem)
       }
     })
-    return result
+    const mainResult = []
+    for (let i = result.length - 1; i >= 0; i--) {
+      mainResult.push(result[i])
+    }
+    return mainResult
   }
 
   getTimeCompare (timStr) {
@@ -2092,15 +2314,16 @@ export default class extends Controller {
     const isLegacy = this.settings.ttype === 'legacy'
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey"><span data-action="click->financereport#sortByCreateDate" class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} col-sort"></span></th>`
+      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Incoming (${usdDisp ? 'USD' : 'DCR'})</label>` +
     `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Outgoing (${usdDisp ? 'USD' : 'DCR'})</label>` +
     `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net (${usdDisp ? 'USD' : 'DCR'})</label>` +
-    `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
-    thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Balance (${usdDisp ? 'USD' : 'DCR'})</th>`
+    `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByBalance">Balance (${usdDisp ? 'USD' : 'DCR'})</label>` +
+    `<span data-action="click->financereport#sortByBalance" class="${(this.settings.stype === 'balance' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'balance' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
     if (!isLegacy) {
       thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst">Outgoing (Est)(${usdDisp ? 'USD' : 'DCR'})</label>` +
       `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
@@ -2173,6 +2396,7 @@ export default class extends Controller {
 
   // Calculate and response
   async calculate (redrawFlg) {
+    this.setReportTitle()
     if (this.settings.type === 'treasury') {
       this.searchBoxTarget.classList.add('d-none')
       this.searchBoxTarget.classList.remove('report-search-box')
@@ -2192,6 +2416,17 @@ export default class extends Controller {
         this.searchBoxTarget.classList.add('ms-3')
       }
       this.settings.usd = false
+    }
+
+    if (!this.settings.type || this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      this.nameMatrixSwitchTarget.classList.remove('d-none')
+      if (this.settings.type === 'proposal') {
+        document.getElementById('nameMonthSwitchInput').checked = true
+      } else {
+        document.getElementById('nameMonthSwitchInput').checked = false
+      }
+    } else {
+      this.nameMatrixSwitchTarget.classList.add('d-none')
     }
     // disabled group button for loading
     this.disabledGroupButton()
@@ -2234,6 +2469,9 @@ export default class extends Controller {
     }
     // create table data
     responseData = response
+    if (this.settings.type === 'domain') {
+      domainYearData = this.getProposalYearlyData(responseData)
+    }
     // handler for domain chart
     this.handlerDataForDomainChart(response)
     if (!this.settings.search || this.settings.search === '') {
@@ -2248,54 +2486,100 @@ export default class extends Controller {
   }
 
   handlerDataForCombinedChart (data) {
-    if (!data || data.length === 0) {
-      combinedChartData = {}
+    if (combinedChartData !== null && combinedChartYearData !== null) {
       return
     }
+    if (!data || data.length === 0) {
+      combinedChartData = {}
+      combinedChartYearData = {}
+      return
+    }
+
+    combinedChartData = this.getDataForCombinedChart(data, 'month')
+    const treasuryYearlyData = this.getTreasuryYearlyData(data)
+    combinedChartYearData = this.getDataForCombinedChart(treasuryYearlyData, 'year')
+  }
+
+  getDataForCombinedChart (data, type) {
     const timeArr = []
     const spentArr = []
     const receivedArr = []
     const netArr = []
-    data.forEach((item) => {
-      timeArr.push(item.month + '-01T07:00:00Z')
+    for (let i = data.length - 1; i >= 0; i--) {
+      const item = data[i]
+      if (type === 'month') {
+        timeArr.push(item.month + '-01T07:00:00Z')
+      } else {
+        timeArr.push(item.month + '-01-01T07:00:00Z')
+      }
       spentArr.push(item.outvalue / 100000000)
       receivedArr.push(item.invalue / 100000000)
       netArr.push((item.invalue - item.outvalue) / 100000000)
-    })
-    combinedChartData = {
+    }
+    const result = {
       time: timeArr,
       received: receivedArr,
       sent: spentArr,
       net: netArr
     }
+    return result
   }
 
   handlerDataForDomainChart (data) {
-    if (!data.report || data.report.length === 0) {
-      domainChartData = {}
+    // if data is existed, skip
+    if (domainChartData !== null && domainChartYearData !== null) {
       return
     }
+    if (!data.report || data.report.length === 0) {
+      domainChartData = {}
+      domainChartYearData = {}
+      return
+    }
+    // get monthly data
+    domainChartData = this.getDataOfDomainChart(data, 'month')
+    if (domainYearData != null) {
+      domainChartYearData = this.getDataOfDomainChart(domainYearData, 'year')
+    }
+  }
+
+  getDataOfDomainChart (data, type) {
+    // handler for yearlydata
     const timeArr = []
     const marketingArr = []
     const developmentArr = []
     const virtualNetArr = []
     for (let i = data.report.length - 1; i >= 0; i--) {
       const item = data.report[i]
-      timeArr.push(item.month.replace('/', '-') + '-01T07:00:00Z')
+      if (type === 'month') {
+        timeArr.push(item.month.replace('/', '-') + '-01T07:00:00Z')
+      } else {
+        timeArr.push(item.month + '-01-01T07:00:00Z')
+      }
       virtualNetArr.push(0)
+      let hasMarketing = false
+      let hasDevelopment = false
       item.domainData.forEach((domainData) => {
         if (domainData.domain === 'marketing') {
           marketingArr.push(domainData.expense)
+          hasMarketing = true
         } else if (domainData.domain === 'development') {
           developmentArr.push(domainData.expense)
+          hasDevelopment = true
         }
       })
+      if (!hasMarketing) {
+        marketingArr.push(0)
+      }
+      if (!hasDevelopment) {
+        developmentArr.push(0)
+      }
     }
-    domainChartData = {
+    const result = {
       time: timeArr,
       marketing: marketingArr,
       development: developmentArr
     }
+    return result
   }
 
   enabledGroupButton () {
@@ -2320,7 +2604,13 @@ export default class extends Controller {
 
   activeProposalSwitch (e) {
     const switchCheck = document.getElementById('activeProposalInput').checked
-    this.settings.active = switchCheck
+    this.settings.active = switchCheck.toString()
+    this.calculate(false)
+  }
+
+  nameMatrixSwitchEvent (e) {
+    const switchCheck = document.getElementById('nameMonthSwitchInput').checked
+    this.settings.type = !switchCheck || switchCheck === 'false' ? 'summary' : 'proposal'
     this.calculate(false)
   }
 

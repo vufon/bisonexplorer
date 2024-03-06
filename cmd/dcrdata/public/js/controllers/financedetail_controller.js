@@ -214,7 +214,7 @@ export default class extends Controller {
       this.currentDetailTarget.textContent = this.settings.name
       this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=author">Authors</a>>'
     } else {
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=summary">Proposals</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report">Proposals</a>>'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -372,8 +372,10 @@ export default class extends Controller {
       `<span data-action="click->financedetail#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByBudget">Budget</label>' +
       `<span data-action="click->financedetail#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600">Days</th>' +
-      '<th class="va-mid text-right px-2 fw-600">Monthly Avg (Est)</th>' +
+      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDays">Days</label>' +
+      `<span data-action="click->financedetail#sortByDays" class="${(this.settings.stype === 'days' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'days' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAvg">Monthly Avg (Est)</label>' +
+      `<span data-action="click->financedetail#sortByAvg" class="${(this.settings.stype === 'avg' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'avg' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">Total Spent (Est)</label>' +
       `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-2 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financedetail#sortByRemaining">Total Remaining (Est)</label>' +
@@ -390,7 +392,12 @@ export default class extends Controller {
     for (let i = 0; i < summaryList.length; i++) {
       const summary = summaryList[i]
       const lengthInDays = this.getLengthInDay(summary)
-      const monthlyAverage = (summary.budget / lengthInDays) * 30
+      let monthlyAverage = summary.budget / lengthInDays
+      if (lengthInDays < 30) {
+        monthlyAverage = summary.budget
+      } else {
+        monthlyAverage = monthlyAverage * 30
+      }
       totalBudget += summary.budget
       totalAllSpent += summary.totalSpent
       totalRemaining += summary.totalRemaining
@@ -406,9 +413,9 @@ export default class extends Controller {
         `<td class="va-mid text-center fs-13i">${summary.end}</td>` +
         `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
         `<td class="va-mid text-right fs-13i">${lengthInDays}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i">${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(summary.totalSpent, 2, 2)}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i pr-10i">$${humanize.formatToLocalString(summary.totalRemaining, 2, 2)}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : ''}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i pr-10i">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</td>` +
         '</tr>'
     }
     const totalColSpan = hideAuthor && hideDomain ? '3' : ((!hideAuthor && hideDomain) || (hideAuthor && !hideDomain) ? '4' : '5')
@@ -531,7 +538,7 @@ export default class extends Controller {
   async yearMonthCalculate () {
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
-    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-18" href="/finance-report?type=summary">Proposals</a> > '
+    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-18" href="/finance-report">Proposals</a> > '
     if (this.settings.type === 'year') {
       this.yearBreadcumbTarget.classList.add('d-none')
     } else {
@@ -617,15 +624,15 @@ export default class extends Controller {
   createYearMonthTopSummary (data) {
     this.totalSpanRowTarget.classList.remove('d-none')
     this.expendiduteValueTarget.textContent = humanize.formatToLocalString((data.proposalTotal), 2, 2)
-    const innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Type</th>' +
+    const innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Treasury Type</th>' +
     '<th class="text-left px-3 fw-600">Value (DCR)</th><th class="text-left px-3 fw-600">Value (USD)</th></tr></thead>' +
-    `<tbody><tr><td class="text-left px-3 fs-13i">Treasury Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tbody><tr><td class="text-left px-3 fs-13i">Decentralized Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>` +
-    `<tr><td class="text-left px-3 fs-13i">Treasury Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tr><td class="text-left px-3 fs-13i">Decentralized Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)}</td></tr>` +
-    `<tr><td class="text-left px-3 fs-13i">Legacy Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tr><td class="text-left px-3 fs-13i">Admin Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)}</td></tr>` +
-    `<tr><td class="text-left px-3 fs-13i">Legacy Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tr><td class="text-left px-3 fs-13i">Admin Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.legacySummary.outvalueUSD), 2, 2)}</td></tr>` +
     '</tbody>'
     this.yearMonthInfoTableTarget.innerHTML = innerHtml
@@ -659,6 +666,14 @@ export default class extends Controller {
     this.proposalSort('budget')
   }
 
+  sortByDays () {
+    this.proposalSort('days')
+  }
+
+  sortByAvg () {
+    this.proposalSort('avg')
+  }
+
   sortByRemaining () {
     this.proposalSort('remaining')
   }
@@ -679,8 +694,8 @@ export default class extends Controller {
       return ''
     }
 
-    if (!this.settings.stype) {
-      this.settings.stype = 'startdt'
+    if (!this.settings.stype || this.settings.stype === '') {
+      this.settings.stype = 'pname'
     }
 
     this.proposalAreaTarget.classList.remove('d-none')
@@ -707,140 +722,82 @@ export default class extends Controller {
       `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
       `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
         '<td class="va-mid text-right px-3 fs-13i">' +
-        `$${humanize.formatToLocalString(report.totalSpent, 2, 2)}</td></tr>`
+        `${report.totalSpent > 0 ? '$' + humanize.formatToLocalString(report.totalSpent, 2, 2) : ''}</td></tr>`
       totalExpense += report.totalSpent
     }
 
     bodyList += '<tr class="finance-table-header">' +
     '<td class="va-mid text-center fw-600 fs-15i" colspan="2">Total</td>' +
-    `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalExpense, 2, 2)}</td>` +
+    `<td class="va-mid text-right px-3 fw-600 fs-15i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
     '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
   }
 
   sortSummary (summary) {
-    switch (this.settings.stype) {
-      case 'pname':
-        return this.sortSummaryByName(summary)
-      case 'domain':
-        return this.sortSummaryByDomain(summary)
-      case 'author':
-        return this.sortSummaryByAuthor(summary)
-      case 'budget':
-        return this.sortSummaryByBudget(summary)
-      case 'spent':
-        return this.sortSummaryBySpent(summary)
-      case 'remaining':
-        return this.sortSummaryByRemaining(summary)
-      case 'enddt':
-        return this.sortSummaryByDate(summary, false)
-      default:
-        return this.sortSummaryByDate(summary, true)
-    }
-  }
-
-  sortSummaryByDate (summary, isStart) {
-    if (!summary) {
+    if (!summary || summary.length === 0) {
       return
     }
     const _this = this
+    if (this.settings.stype === 'domain') {
+      return this.sortSummaryByDomain(summary)
+    }
     summary.sort(function (a, b) {
-      const date1 = Date.parse(isStart ? a.start : a.end)
-      const date2 = Date.parse(isStart ? b.start : b.end)
-      if (date1 > date2) {
+      let aData = null
+      let bData = null
+      let alength
+      let blength
+      switch (_this.settings.stype) {
+        case 'pname':
+          aData = a.name
+          bData = b.name
+          break
+        case 'author':
+          aData = a.author
+          bData = b.author
+          break
+        case 'budget':
+          aData = a.budget
+          bData = b.budget
+          break
+        case 'spent':
+          aData = a.totalSpent
+          bData = b.totalSpent
+          break
+        case 'remaining':
+          aData = a.totalRemaining
+          bData = b.totalRemaining
+          break
+        case 'days':
+          aData = _this.getLengthInDay(a)
+          bData = _this.getLengthInDay(b)
+          break
+        case 'avg':
+          alength = _this.getLengthInDay(a)
+          blength = _this.getLengthInDay(b)
+          aData = (a.budget / alength) * 30
+          bData = (b.budget / blength) * 30
+          break
+        case 'enddt':
+          aData = Date.parse(a.end)
+          bData = Date.parse(b.end)
+          break
+        default:
+          aData = Date.parse(a.start)
+          bData = Date.parse(b.start)
+          break
+      }
+
+      if (aData > bData) {
         return _this.settings.order === 'desc' ? -1 : 1
       }
-      if (date1 < date2) {
+      if (aData < bData) {
         return _this.settings.order === 'desc' ? 1 : -1
       }
       return 0
     })
 
     return summary
-  }
-
-  sortSummaryByRemaining (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.totalRemaining > b.totalRemaining) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.totalRemaining < b.totalRemaining) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByMonthSpent (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.totalSpent > b.totalSpent) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.totalSpent < b.totalSpent) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryBySpent (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.totalSpent > b.totalSpent) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.totalSpent < b.totalSpent) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByBudget (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.budget > b.budget) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.budget < b.budget) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortByStartdt (summary) {
-    if (this.settings.order !== 'esc') {
-      return summary
-    }
-    const result = []
-    for (let i = summary.length - 1; i >= 0; i--) {
-      result.push(summary[i])
-    }
-    return result
   }
 
   sortSummaryByDomain (summary) {
@@ -860,42 +817,6 @@ export default class extends Controller {
         if (a.name < b.name) {
           return _this.settings.order === 'desc' ? 1 : -1
         }
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByName (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.name > b.name) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.name < b.name) {
-        return _this.settings.order === 'desc' ? 1 : -1
-      }
-      return 0
-    })
-
-    return summary
-  }
-
-  sortSummaryByAuthor (summary) {
-    if (!summary) {
-      return
-    }
-    const _this = this
-    summary.sort(function (a, b) {
-      if (a.author > b.author) {
-        return _this.settings.order === 'desc' ? -1 : 1
-      }
-      if (a.author < b.author) {
-        return _this.settings.order === 'desc' ? 1 : -1
       }
       return 0
     })
