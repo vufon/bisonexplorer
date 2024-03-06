@@ -14,6 +14,8 @@ let proposalResponse = null
 let treasuryResponse = null
 let isSearching = false
 let domainChartData = null
+let domainChartYearData = null
+let domainYearData = null
 let combinedChartData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
@@ -114,7 +116,7 @@ function domainChartFormatter (data) {
     if (series.y === 0) return ''
     const l = '<span style="color: ' + series.color + ';"> ' + series.labelHTML
     html = '<span style="color:#2d2d2d;">' + html + '</span>'
-    html += '<br>' + series.dashHTML + l + ': $' + (isNaN(series.y) ? '' : series.y) + '</span> '
+    html += '<br>' + series.dashHTML + l + ': $' + (isNaN(series.y) ? '' : humanize.formatToLocalString(Number(series.y), 2, 2)) + '</span> '
   })
   return html
 }
@@ -183,7 +185,8 @@ export default class extends Controller {
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
-      'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch']
+      'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
+      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel', 'netSelectRadio']
   }
 
   async connect () {
@@ -369,7 +372,7 @@ export default class extends Controller {
     if (this.settings.type !== 'domain' && this.settings.ttype === 'legacy') {
       url = '/api/address/' + ctrl.devAddress + '/amountflow/' + bin
     }
-    const graphDataResponse = this.settings.type === 'domain' ? domainChartData : (this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') ? combinedChartData : await requestJSON(url)
+    const graphDataResponse = this.settings.type === 'domain' ? (bin === 'year' ? domainChartYearData : domainChartData) : (this.settings.ttype !== 'current' && this.settings.ttype !== 'legacy') ? combinedChartData : await requestJSON(url)
     ctrl.processData(chart, bin, graphDataResponse)
     this.currentTType = this.changedTType
     ctrl.ajaxing = false
@@ -448,6 +451,15 @@ export default class extends Controller {
     ctrl.settings.bin = target.name
     ctrl.setIntervalButton(target.name)
     this.handlerBinSelectorWhenChange()
+    if (target.name === 'year') {
+      if (ctrl.zoomButtons) {
+        ctrl.zoomButtons.forEach((button) => {
+          if (button.name === 'all') {
+            button.click()
+          }
+        })
+      }
+    }
     this.updateQueryString()
     this.drawGraph()
   }
@@ -826,7 +838,7 @@ export default class extends Controller {
   }
 
   intervalChange (e) {
-    if (e.target.name === this.settings.interval) {
+    if (e.target.name === ctrl.settings.interval) {
       return
     }
     const target = e.srcElement || e.target
@@ -834,7 +846,34 @@ export default class extends Controller {
       intervalTarget.classList.remove('btn-active')
     })
     target.classList.add('btn-active')
-    this.settings.interval = e.target.name
+    ctrl.settings.interval = e.target.name
+    if (e.target.name === 'year') {
+      if (ctrl.settings.bin !== 'year') {
+        ctrl.binputs.forEach((button) => {
+          if (button.name === 'year') {
+            button.click()
+          }
+        })
+        ctrl.zoomButtons.forEach((button) => {
+          if (button.name === 'all') {
+            button.click()
+          }
+        })
+      }
+    } else {
+      if (ctrl.settings.bin === 'year') {
+        ctrl.binputs.forEach((button) => {
+          if (button.name === 'month') {
+            button.click()
+          }
+        })
+        ctrl.zoomButtons.forEach((button) => {
+          if (button.name === 'year') {
+            button.click()
+          }
+        })
+      }
+    }
     this.calculate(false)
   }
 
@@ -905,14 +944,29 @@ export default class extends Controller {
         this.treasuryChartTarget.classList.remove('d-none')
         this.initializeChart()
         this.drawGraph()
+        // Change select option name
         this.amountFlowOptionTarget.innerHTML = 'Domain'
-        this.chartHeaderTarget.classList.add('d-hide')
-        if (ctrl.zoomButtons) {
-          ctrl.zoomButtons.forEach((button) => {
-            if (button.name === 'year') {
-              button.click()
-            }
-          })
+        // hide balance select option
+        this.balanceOptionTarget.classList.add('d-none')
+        // change domain on radio button label
+        this.sentRadioLabelTarget.textContent = 'Development'
+        this.receivedRadioLabelTarget.textContent = 'Marketing'
+        // hide net radio button
+        this.netSelectRadioTarget.classList.add('d-none')
+        // hide some option on group and zoom
+        this.weekZoomBtnTarget.classList.add('d-none')
+        this.dayZoomBtnTarget.classList.add('d-none')
+        this.weekGroupBtnTarget.classList.add('d-none')
+        this.dayGroupBtnTarget.classList.add('d-none')
+        this.blockGroupBtnTarget.classList.add('d-none')
+        if (ctrl.settings.bin !== 'year') {
+          if (ctrl.zoomButtons) {
+            ctrl.zoomButtons.forEach((button) => {
+              if (button.name === 'year') {
+                button.click()
+              }
+            })
+          }
         }
       } else {
         this.treasuryChartTarget.classList.add('d-none')
@@ -1866,7 +1920,7 @@ export default class extends Controller {
     }
     let handlerData = data
     if (this.settings.interval === 'year') {
-      handlerData = this.getProposalYearlyData(data)
+      handlerData = domainYearData != null ? domainYearData : this.getProposalYearlyData(data)
     }
 
     if (handlerData.report.length < 1) {
@@ -2321,6 +2375,9 @@ export default class extends Controller {
     }
     // create table data
     responseData = response
+    if (this.settings.type === 'domain') {
+      domainYearData = this.getProposalYearlyData(responseData)
+    }
     // handler for domain chart
     this.handlerDataForDomainChart(response)
     if (!this.settings.search || this.settings.search === '') {
@@ -2359,31 +2416,60 @@ export default class extends Controller {
   }
 
   handlerDataForDomainChart (data) {
-    if (!data.report || data.report.length === 0) {
-      domainChartData = {}
+    // if data is existed, skip
+    if (domainChartData !== null && domainChartYearData !== null) {
       return
     }
+    if (!data.report || data.report.length === 0) {
+      domainChartData = {}
+      domainChartYearData = {}
+      return
+    }
+    // get monthly data
+    domainChartData = this.getDataOfDomainChart(data, 'month')
+    if (domainYearData != null) {
+      domainChartYearData = this.getDataOfDomainChart(domainYearData, 'year')
+    }
+  }
+
+  getDataOfDomainChart (data, type) {
+    // handler for yearlydata
     const timeArr = []
     const marketingArr = []
     const developmentArr = []
     const virtualNetArr = []
     for (let i = data.report.length - 1; i >= 0; i--) {
       const item = data.report[i]
-      timeArr.push(item.month.replace('/', '-') + '-01T07:00:00Z')
+      if (type === 'month') {
+        timeArr.push(item.month.replace('/', '-') + '-01T07:00:00Z')
+      } else {
+        timeArr.push(item.month + '-01-01T07:00:00Z')
+      }
       virtualNetArr.push(0)
+      let hasMarketing = false
+      let hasDevelopment = false
       item.domainData.forEach((domainData) => {
         if (domainData.domain === 'marketing') {
           marketingArr.push(domainData.expense)
+          hasMarketing = true
         } else if (domainData.domain === 'development') {
           developmentArr.push(domainData.expense)
+          hasDevelopment = true
         }
       })
+      if (!hasMarketing) {
+        marketingArr.push(0)
+      }
+      if (!hasDevelopment) {
+        developmentArr.push(0)
+      }
     }
-    domainChartData = {
+    const result = {
       time: timeArr,
       marketing: marketingArr,
       development: developmentArr
     }
+    return result
   }
 
   enabledGroupButton () {
