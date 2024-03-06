@@ -392,7 +392,12 @@ export default class extends Controller {
     for (let i = 0; i < summaryList.length; i++) {
       const summary = summaryList[i]
       const lengthInDays = this.getLengthInDay(summary)
-      const monthlyAverage = (summary.budget / lengthInDays) * 30
+      let monthlyAverage = summary.budget / lengthInDays
+      if (lengthInDays < 30) {
+        monthlyAverage = summary.budget
+      } else {
+        monthlyAverage = monthlyAverage * 30
+      }
       totalBudget += summary.budget
       totalAllSpent += summary.totalSpent
       totalRemaining += summary.totalRemaining

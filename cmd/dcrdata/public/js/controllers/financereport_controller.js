@@ -1365,7 +1365,12 @@ export default class extends Controller {
         token = proposalTokenMap[summary.name]
       }
       const lengthInDays = this.getLengthInDay(summary)
-      const monthlyAverage = (summary.budget / lengthInDays) * 30
+      let monthlyAverage = summary.budget / lengthInDays
+      if (lengthInDays < 30) {
+        monthlyAverage = summary.budget
+      } else {
+        monthlyAverage = monthlyAverage * 30
+      }
       bodyList += `<tr${summary.totalRemaining === 0.0 ? '' : ' class="summary-active-row"'}>` +
         `<td class="va-mid text-center fs-13i proposal-name-column"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
