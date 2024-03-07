@@ -7,22 +7,22 @@
       <div class="content pb-40 container" 
          data-controller="financedetail"
          data-financedetail-politeia-url="{{.PoliteiaURL}}">
-         <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
-         <div class="d-none" data-financedetail-target="reportArea">
-            <div class="d-flex w-100 pb-1 fs-17 mt-3 ai-end">
+         <div class="d-flex w-100 pb-1 fs-16 mt-2 ai-end">
                <span class="me-2">
-               <a class="link-hover-underline fs-18" href="/home-report">
+               <a class="link-hover-underline fs-16" href="/home-report">
                   Financial Reports
-               </a></span>><span class="ms-2 me-2 fs-18" data-financedetail-target="toUpReport"></span>
+               </a></span>><span class="ms-2 me-2 fs-16" data-financedetail-target="toUpReport"></span>
                <span class="me-2 fs-18" data-financedetail-target="yearBreadcumb">
-               <a data-financedetail-target="upLevel" class="link-hover-underline me-2 fs-18" href="#">
+               <a data-financedetail-target="upLevel" class="link-hover-underline me-2 fs-16" href="#">
                </a>></span>
-               <span data-financedetail-target="currentDetail" class="fs-22"></span>
+               <span data-financedetail-target="currentDetail" class="fs-20"></span>
                <p class="ms-3 d-flex mt-0" data-financedetail-target="prevNextButtons">
                   <a class="fs13 cursor-pointer" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
                   <a class="fs13 cursor-pointer" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">&nbsp;next </a>
                </p>
-            </div>
+         </div>
+         <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
+         <div class="d-none" data-financedetail-target="reportArea">
             <div class="mt-1 d-none" data-financedetail-target="proposalSpanRow">
             </div>
             <div class="d-flex">
@@ -41,11 +41,11 @@
             </div>
             <p class="d-none mt-3" data-financedetail-target="noReport">Data does not exist. Let's move on to another time!</p>
             <div data-financedetail-target="domainArea" class="d-none">
-               <p class="fw-600 fs-20 mt-4">Domain Data (Est)</p>
+               <p class="fw-600 fs-20 mt-3">Domain Data (Est)</p>
                <table class="table report v3 border-grey-2 w-auto" data-financedetail-target="domainReport"></table>
             </div>
             <div data-financedetail-target="proposalArea" class="d-none">
-               <p class="fw-600 fs-20 mt-4">Proposal Data</p>
+               <p class="fw-600 fs-20 mt-3">Proposal Data</p>
                <table class="table report v3 border-grey-2 w-auto" data-financedetail-target="proposalReport">
                </table>
             </div>
@@ -55,7 +55,7 @@
                </div>
             </div>
             <div data-financedetail-target="yearlyArea" class="d-none">
-               <p class="fw-600 fs-20 mt-4">Yearly Summary</p>
+               <p class="fw-600 fs-20 mt-3">Yearly Summary</p>
                <div class="d-flex" data-financedetail-target="yearlyReport">
                </div>
             </div>
@@ -69,7 +69,7 @@
                </table>
             </div>
             <div data-financedetail-target="summaryArea" class="d-none">
-               <p class="fw-600 fs-20 mt-4">Proposals</p>
+               <p class="fw-600 fs-20 mt-3">Proposals</p>
                <div class="mt-2">
                   <label class="color-note-label summary-note-color"></label>
                   <span class="description-text c-grey-2 fw-600">The proposals are still active</span>

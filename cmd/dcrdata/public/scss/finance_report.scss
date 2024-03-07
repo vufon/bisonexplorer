@@ -4,7 +4,7 @@
 }
 
 .treasury-report-chart {
-  width: 60%;
+  width: 80%;
 }
 
 .proposal-title-col {
@@ -36,7 +36,7 @@
   }
 
   .treasury-report-chart {
-    width: 70%;
+    width: 90%;
   }
 }
 
@@ -84,7 +84,7 @@
   }
 
   .treasury-report-chart {
-    width: 75%;
+    width: 100%;
   }
 
   .proposal-title-col {
@@ -99,10 +99,6 @@
 @media (max-width: 1200px) {
   .proposal-name-col {
     width: 30%;
-  }
-
-  .treasury-report-chart {
-    width: 85%;
   }
 
   .treasury-content-cell {
@@ -127,10 +123,6 @@
 @media (max-width: 950px) {
   .report-year-text {
     padding-right: 15px !important;
-  }
-
-  .treasury-report-chart {
-    width: 100%;
   }
 
   .proposal-report-page {
@@ -396,7 +388,7 @@
 .narrow-breadcumb {
   position: sticky;
   left: 160px;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 body.darkBG {

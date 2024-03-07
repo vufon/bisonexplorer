@@ -209,12 +209,12 @@ export default class extends Controller {
     if (this.settings.type === 'domain') {
       this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=domain">Domains</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-16" href="/finance-report?type=domain">Domains</a>>'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=author">Authors</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-16" href="/finance-report?type=author">Authors</a>>'
     } else {
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report">Proposals</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-16" href="/finance-report">Proposals</a>>'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -538,7 +538,7 @@ export default class extends Controller {
   async yearMonthCalculate () {
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
-    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-18" href="/finance-report">Proposals</a> > '
+    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-16" href="/finance-report">Proposals</a> > '
     if (this.settings.type === 'year') {
       this.yearBreadcumbTarget.classList.add('d-none')
     } else {
