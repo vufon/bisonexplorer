@@ -12,7 +12,6 @@
 }
 
 .proposal-report-page {
-  width: 140%;
   padding-left: 10px !important;
   padding-right: 10px !important;
 }
@@ -40,12 +39,6 @@
   }
 }
 
-@media (max-width: 1600px) {
-  .proposal-report-page {
-    width: 220%;
-  }
-}
-
 @media (max-width: 1450px) {
   .proposal-name-col {
     width: 25%;
@@ -67,10 +60,6 @@
   .proposal-title-col {
     width: 160px !important;
   }
-
-  .proposal-report-page {
-    width: 240%;
-  }
 }
 
 @media (max-width: 1250px) {
@@ -89,10 +78,6 @@
 
   .proposal-title-col {
     width: 140px !important;
-  }
-
-  .proposal-report-page {
-    width: 300%;
   }
 }
 
@@ -114,35 +99,17 @@
   .proposal-title-col {
     width: 120px !important;
   }
-
-  .proposal-report-page {
-    width: 400%;
-  }
 }
 
 @media (max-width: 950px) {
   .report-year-text {
     padding-right: 15px !important;
   }
-
-  .proposal-report-page {
-    width: 400%;
-  }
 }
 
 @media (max-width: 830px) {
-  .proposal-report-page {
-    width: 500%;
-  }
-
   .report-search-box {
     display: table-cell !important;
-  }
-}
-
-@media (max-width: 750px) {
-  .proposal-report-page {
-    width: 550%;
   }
 }
 
@@ -153,10 +120,6 @@
 
   .report-year-text {
     padding-right: 10px !important;
-  }
-
-  .proposal-report-page {
-    width: 750%;
   }
 }
 
@@ -208,11 +171,6 @@
   background-color: #c3c3c3 !important;
 }
 
-.return-to-main {
-  position: sticky;
-  left: 10px;
-}
-
 .report-last-header {
   position: sticky;
   right: 0;
@@ -230,26 +188,6 @@
   position: sticky;
   right: 0;
   background-color: #d7d7d7 !important;
-}
-
-.report-tool-bar {
-  position: sticky;
-  left: 10px;
-}
-
-.color-description {
-  position: sticky;
-  left: 65px;
-}
-
-.button-group-area {
-  position: sticky;
-  left: 400px;
-}
-
-.button-group-title {
-  position: sticky;
-  left: 100px;
 }
 
 .table-header-sticky {
@@ -345,8 +283,6 @@
   display: inline-block;
   border: 1px solid #c3c3c3;
   border-radius: 5px;
-  position: sticky;
-  left: 10px;
 }
 
 .report-search {
@@ -380,14 +316,7 @@
   width: 170px;
 }
 
-.step1-breadcumb {
-  position: sticky;
-  left: 180px;
-}
-
 .narrow-breadcumb {
-  position: sticky;
-  left: 160px;
   font-size: 16px;
 }
 
@@ -427,4 +356,12 @@ body.darkBG {
   .home-report-card:hover {
     background-color: #696969;
   }
+}
+
+.container-report-table {
+  padding-bottom: 40px;
+}
+
+.proposal-table-padding {
+  padding-bottom: 40px;
 }

@@ -834,6 +834,68 @@ export default class extends Controller {
     }
     this.devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
+
+    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      const $scroller = document.getElementById('scroller')
+      const $container = document.getElementById('container_body')
+
+      const $wrapper = document.getElementById('wrapper')
+
+      let ignoreScrollEvent = false
+
+      let animation = null
+
+      const scrollbarPositioner = () => {
+        const scrollTop = document.scrollingElement.scrollTop
+        const wrapperTop = $wrapper.offsetTop
+        const wrapperBottom = wrapperTop + $wrapper.offsetHeight
+
+        const topMatch = (window.innerHeight + scrollTop) >= wrapperTop
+        const bottomMatch = (scrollTop) <= wrapperBottom
+
+        if (topMatch && bottomMatch) {
+          const inside = wrapperBottom >= scrollTop && window.innerHeight + scrollTop <= wrapperBottom
+
+          if (inside) {
+            $scroller.style.bottom = '0px'
+          } else {
+            const offset = (scrollTop + window.innerHeight) - wrapperBottom
+
+            $scroller.style.bottom = offset + 'px'
+          }
+          $scroller.classList.add('visible')
+        } else {
+          $scroller.classList.remove('visible')
+        }
+
+        window.requestAnimationFrame(scrollbarPositioner)
+      }
+
+      window.requestAnimationFrame(scrollbarPositioner)
+
+      $scroller.addEventListener('scroll', (e) => {
+        if (ignoreScrollEvent) return false
+
+        if (animation) window.cancelAnimationFrame(animation)
+        animation = window.requestAnimationFrame(() => {
+          ignoreScrollEvent = true
+          $container.scrollLeft = $scroller.scrollLeft
+          ignoreScrollEvent = false
+        })
+      })
+
+      $container.addEventListener('scroll', (e) => {
+        if (ignoreScrollEvent) return false
+
+        if (animation) window.cancelAnimationFrame(animation)
+        animation = window.requestAnimationFrame(() => {
+          ignoreScrollEvent = true
+          $scroller.scrollLeft = $container.scrollLeft
+
+          ignoreScrollEvent = false
+        })
+      })
+    }
   }
 
   searchInputKeypress (e) {
@@ -1109,6 +1171,19 @@ export default class extends Controller {
       }
     } else {
       this.reportAllPageTarget.classList.remove('proposal-report-page')
+    }
+
+    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      const tableWidthStr = $('#reportTable').css('width').replace('px', '')
+      console.log(tableWidthStr)
+      const tableWidth = parseFloat(tableWidthStr.trim())
+      console.log(tableWidth)
+      $('#scrollerLong').css('width', (tableWidth + 25) + 'px')
+      this.reportTarget.classList.add('proposal-table-padding')
+      $('#scroller').removeClass('d-none')
+      $('html').css('overflow-x', 'hidden')
+    } else {
+      $('html').css('overflow-x', 'auto')
     }
   }
 

@@ -173,11 +173,57 @@
             <span class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets</span>
             </div>
             <div class="container">
-            <table class="table report v3 border-grey d-table-cell" data-financereport-target="report">
-            </table>
-            <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
-            </div>
-         </div>
+            <style>
+            .wrapper {
+  max-width: 100%;
+  display: flex;
+  ;
+}
+
+.container {
+  overflow: hidden;
+}
+
+.long {
+  width: 2000px;
+}
+
+#container_body {
+  overflow: hidden;
+}
+
+.scroller {
+  position: fixed;
+  left: 0px;
+  right: 0;
+  margin-bottom: 25px;
+  overflow-x: scroll;
+  display: none;
+}
+
+.scroller.visible {
+  display: block;
+}
+
+.scroller .long {
+  height: 1px;
+}     
+            </style>
+            <div class="wrapper" id="wrapper">
+  <div class="container">
+    <div id="container_body" class="content">
+       <table id="reportTable" class="table report v3 d-table-cell" data-financereport-target="report">
+         </table>
+    </div>
+    <div id="scroller" class="scroller container d-none">
+      <div id="scrollerLong" class="long">
+      </div>
+    </div>
+  </div>
+</div>
+   <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
+      </div>
+   </div>
       </div>
       {{ template "footer". }}
       </body>

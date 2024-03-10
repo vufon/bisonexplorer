@@ -1,6 +1,9 @@
 {
     "extends": "standard",
     "parser": "@babel/eslint-parser",
+    "globals": {
+        "$": true
+    },
     "rules": {
         "no-trailing-spaces": "error",
         "no-console": ["off"],

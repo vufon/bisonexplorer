@@ -10,6 +10,7 @@ html {
   height: 100%;
   padding-bottom: 34px;
   padding-top: 105px;
+  max-width: 100%;
 }
 
 body {
@@ -41,6 +42,12 @@ body {
 
 .frame-shadow {
   box-shadow: 6px 2px 16px 0 rgb(136 165 191 / 48%), -6px -2px 16px 0 hsl(0deg 0% 100% / 80%);
+}
+
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1440px;
+  }
 }
 
 * {
