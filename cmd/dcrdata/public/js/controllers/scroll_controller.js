@@ -18,5 +18,6 @@ export default class extends Controller {
         navTarget.classList.remove('scroll-topbar')
       }
     })
+    $('html').css('overflow-x', '')
   }
 }

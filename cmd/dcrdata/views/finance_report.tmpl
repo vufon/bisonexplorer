@@ -156,74 +156,38 @@
                   </div>
                </div>
                <div class="d-none mt-2" data-financereport-target="treasuryToggleArea">
-               <label class="d-none" data-financereport-target="yearSelectTitle">Year</label>
-               <select
-                  class="border-grey me-3 d-none"
-                  data-financereport-target="yearSelect"
-                  data-action="change->financereport#changeYear"
-                  >
-               </select>
-               <span>DCR</span>
-               <label class="switch mt-2 ms-0">
-               <input type="checkbox" data-action="change->financereport#treasuryUsdChange" id="usdSwitchInput">
-               <span class="legacy-slider round"></span>
-               </label>
-               <span>USD</span>
+                  <label class="d-none" data-financereport-target="yearSelectTitle">Year</label>
+                  <select
+                     class="border-grey me-3 d-none"
+                     data-financereport-target="yearSelect"
+                     data-action="change->financereport#changeYear"
+                     >
+                  </select>
+                  <span>DCR</span>
+                  <label class="switch mt-2 ms-0">
+                  <input type="checkbox" data-action="change->financereport#treasuryUsdChange" id="usdSwitchInput">
+                  <span class="legacy-slider round"></span>
+                  </label>
+                  <span>USD</span>
+               </div>
+               <span class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets</span>
             </div>
-            <span class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets</span>
+            <div class="container" id="repotParentContainer">
+               <div class="report-table-wrapper" id="wrapperReportTable">
+                  <div id="containerReportTable">
+                     <div id="containerBody" class="content container-body">
+                        <table id="reportTable" class="table report-table report v3 d-table-cell" data-financereport-target="report">
+                        </table>
+                     </div>
+                     <div id="scroller" class="scroller container d-none">
+                        <div id="scrollerLong" class="long">
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
             </div>
-            <div class="container">
-            <style>
-            .wrapper {
-  max-width: 100%;
-  display: flex;
-  ;
-}
-
-.container {
-  overflow: hidden;
-}
-
-.long {
-  width: 2000px;
-}
-
-#container_body {
-  overflow: hidden;
-}
-
-.scroller {
-  position: fixed;
-  left: 0px;
-  right: 0;
-  margin-bottom: 25px;
-  overflow-x: scroll;
-  display: none;
-}
-
-.scroller.visible {
-  display: block;
-}
-
-.scroller .long {
-  height: 1px;
-}     
-            </style>
-            <div class="wrapper" id="wrapper">
-  <div class="container">
-    <div id="container_body" class="content">
-       <table id="reportTable" class="table report v3 d-table-cell" data-financereport-target="report">
-         </table>
-    </div>
-    <div id="scroller" class="scroller container d-none">
-      <div id="scrollerLong" class="long">
-      </div>
-    </div>
-  </div>
-</div>
-   <p data-financereport-target="nodata" class="d-none">No records found. Please try searching again!</p>
-      </div>
-   </div>
+         </div>
       </div>
       {{ template "footer". }}
       </body>

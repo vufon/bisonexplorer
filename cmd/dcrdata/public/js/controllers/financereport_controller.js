@@ -837,9 +837,9 @@ export default class extends Controller {
 
     if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
       const $scroller = document.getElementById('scroller')
-      const $container = document.getElementById('container_body')
+      const $container = document.getElementById('containerBody')
 
-      const $wrapper = document.getElementById('wrapper')
+      const $wrapper = document.getElementById('wrapperReportTable')
 
       let ignoreScrollEvent = false
 
@@ -896,6 +896,21 @@ export default class extends Controller {
         })
       })
     }
+
+    $(window).on('resize', function () {
+      // get table thead size
+      const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
+      const tableWidth = parseFloat(tableWidthStr.trim())
+      const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
+      const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
+      if (tableWidth < parentContainerWidth + 5) {
+        $('#scroller').addClass('d-none')
+      } else {
+        $('#scroller').removeClass('d-none')
+      }
+      // set overflow class
+      $('#scroller').css('width', $('#repotParentContainer').css('width'))
+    })
   }
 
   searchInputKeypress (e) {
@@ -1043,6 +1058,9 @@ export default class extends Controller {
   }
 
   createReportTable (redrawFlg) {
+    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      $('#reportTable').css('width', '')
+    }
     if (this.settings.type === 'proposal') {
       this.colorNoteRowTarget.classList.remove('d-none')
       this.colorLabelTarget.classList.remove('summary-note-color')
@@ -1174,16 +1192,38 @@ export default class extends Controller {
     }
 
     if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
-      const tableWidthStr = $('#reportTable').css('width').replace('px', '')
-      console.log(tableWidthStr)
+      const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
       const tableWidth = parseFloat(tableWidthStr.trim())
-      console.log(tableWidth)
-      $('#scrollerLong').css('width', (tableWidth + 25) + 'px')
+      const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
+      const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
+      let hideScroller = false
+      if (tableWidth < parentContainerWidth + 5) {
+        $('#scroller').addClass('d-none')
+        hideScroller = true
+      } else {
+        $('#scroller').removeClass('d-none')
+      }
       this.reportTarget.classList.add('proposal-table-padding')
-      $('#scroller').removeClass('d-none')
+      $('#reportTable').css('width', $('#reportTable thead').css('width'))
       $('html').css('overflow-x', 'hidden')
+      // set overflow class
+      $('#containerReportTable').addClass('of-x-hidden')
+      $('#containerBody').addClass('of-x-hidden')
+      $('#scrollerLong').css('width', (tableWidth + 25) + 'px')
+      // set scroller width fit with container width
+      $('#scroller').css('width', $('#repotParentContainer').css('width'))
+      if (this.isMobile()) {
+        $('#containerBody').css('overflow', 'scroll')
+        this.reportTarget.classList.remove('proposal-table-padding')
+        $('#scroller').addClass('d-none')
+      } else {
+        this.reportTarget.classList.add('proposal-table-padding')
+        if (!hideScroller) {
+          $('#scroller').removeClass('d-none')
+        }
+      }
     } else {
-      $('html').css('overflow-x', 'auto')
+      $('html').css('overflow-x', '')
     }
   }
 
@@ -2560,6 +2600,10 @@ export default class extends Controller {
     this.enabledGroupButton()
   }
 
+  isMobile () {
+    try { document.createEvent('TouchEvent'); return true } catch (e) { return false }
+  }
+
   handlerDataForCombinedChart (data) {
     if (combinedChartData !== null && combinedChartYearData !== null) {
       return
@@ -2606,8 +2650,8 @@ export default class extends Controller {
       return
     }
     if (!data.report || data.report.length === 0) {
-      domainChartData = {}
-      domainChartYearData = {}
+      domainChartData = null
+      domainChartYearData = null
       return
     }
     // get monthly data
