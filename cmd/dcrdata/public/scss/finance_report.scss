@@ -124,7 +124,11 @@
 }
 
 .month-col {
-  width: 80px;
+  width: 100px;
+}
+
+.total-last-col {
+  width: 120px;
 }
 
 .year-col {
@@ -132,7 +136,11 @@
 }
 
 .finance-table-header {
-  background-color: #dbdbdb;
+  background-color: #5587a4 !important;
+
+  th {
+    color: #fdfdfd !important;
+  }
 }
 
 .proposal-name-col {
@@ -168,32 +176,31 @@
   position: sticky;
   left: 0;
   z-index: 900;
-  background-color: #c3c3c3 !important;
+  background-color: #5587a4 !important;
 }
 
 .report-last-header {
   position: sticky;
   right: 0;
-  background-color: #c3c3c3 !important;
+  background-color: #5587a4 !important;
 }
 
 .report-first-data {
   position: sticky;
   left: 0;
-  background-color: #d7d7d7 !important;
+  background-color: #e3e3e3 !important;
   padding: 10px 0.5em !important;
 }
 
 .report-last-data {
   position: sticky;
   right: 0;
-  background-color: #d7d7d7 !important;
+  background-color: #e3e3e3 !important;
 }
 
 .table-header-sticky {
   position: sticky;
-  top: 5px;
-  background-color: #dbdbdb !important;
+  background-color: #5587a4 !important;
   padding-bottom: 20px !important;
 }
 
@@ -208,9 +215,9 @@
       color-stop(50%, black),
       color-stop(51%, white)
     );
-  background-image: -webkit-linear-gradient(top right, #e5e5e5  49%, black 50%, #c5c5c5  51%);
-  background-image: -o-linear-gradient(top right, #e5e5e5 49%, black 50%, #c5c5c5 51%);
-  background-image: linear-gradient(to bottom left, #e5e5e5 49%, black 50%, #c5c5c5 51%);
+  background-image: -webkit-linear-gradient(top right, #99c0db   49%, #6198b8 50%, #5587a4  51%);
+  background-image: -o-linear-gradient(top right, #99c0db  49%, #6198b8 50%, #5587a4 51%);
+  background-image: linear-gradient(to bottom left, #99c0db  49%, #6198b8 50%, #5587a4 51%);
 }
 
 .head-first-cell .c1 {
@@ -240,7 +247,11 @@
 }
 
 .summary-active-row {
-  background-color: #ddf4dd;
+  background-color: #ddf4dd !important;
+}
+
+.proposal-summary-row {
+  background-color: white !important;
 }
 
 .proposal-year-title {

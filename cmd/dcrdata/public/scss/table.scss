@@ -82,6 +82,20 @@ table th.addr-hash-column {
 
 .report-table {
   tr:nth-child(even) { background-color: #f3f3f3; }
+
+  tr:first-child,
+  tr:first-child > th {
+    border: 1px solid #b9b9b9 !important;
+  }
+
+  .last-row-header > td {
+    color: #fdfdfd !important;
+  }
+
+  tr:last-child,
+  tr:last-child > td {
+    border: 1px solid #b9b9b9 !important;
+  }
 }
 
 table.report.v3 {
@@ -92,8 +106,18 @@ table.report.v3 {
     padding-bottom: 8px !important;
   }
 
+  th,
+  td {
+    border: 1px solid #b9b9b9;
+  }
+
   th {
     padding-bottom: 13px 0 !important;
+    color: #fdfdfd !important;
+
+    a {
+      color: #d1f9f9 !important;
+    }
   }
 }
 
@@ -103,6 +127,11 @@ table.monthly.v3 {
   td {
     padding-top: 12px !important;
     padding-bottom: 12px !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #b9b9b9;
   }
 
   th {
@@ -132,10 +161,5 @@ table.table.v3 {
 
   td {
     font-size: 17px;
-  }
-
-  tr:last-child,
-  tr:last-child > td {
-    border: none;
   }
 }
