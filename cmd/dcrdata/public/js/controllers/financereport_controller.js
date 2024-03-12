@@ -187,7 +187,8 @@ export default class extends Controller {
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
-      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel', 'netSelectRadio']
+      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
+      'netSelectRadio', 'selectTreasuryType']
   }
 
   async connect () {
@@ -1090,7 +1091,6 @@ export default class extends Controller {
 
     if (this.settings.type === 'treasury') {
       this.treasuryTitleTarget.classList.remove('d-none')
-      this.groupByLabelTarget.classList.add('ms-3')
       this.treasuryToggleAreaTarget.classList.remove('d-none')
       if (!this.settings.usd || this.settings.usd === 'false') {
         document.getElementById('usdSwitchInput').checked = false
@@ -1151,6 +1151,7 @@ export default class extends Controller {
     if (this.settings.type === 'domain' || this.settings.type === 'treasury') {
       this.groupByTarget.classList.remove('d-none')
       if (this.settings.type === 'treasury') {
+        this.selectTreasuryTypeTarget.classList.remove('d-none')
         this.typeLabelTarget.classList.remove('d-none')
         this.typeSelectorTarget.classList.remove('d-none')
       } else {

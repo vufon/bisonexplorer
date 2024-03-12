@@ -22,7 +22,7 @@
             <div class="mt-2 mb-2 container">
                <div class="d-none" data-financereport-target="nameMatrixSwitch">
                   <span class="me-1" style="position:sticky;left:10px;">Name</span>
-                  <label class="switch mt-3" style="position:sticky;left:60px;">
+                  <label class="switch mt-2" style="position:sticky;left:60px;">
                   <input type="checkbox" data-action="change->financereport#nameMatrixSwitchEvent" id="nameMonthSwitchInput">
                   <span class="legacy-slider round"></span>
                   </label>
@@ -31,8 +31,18 @@
                <div class="mb-2">
                   <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
                </div>
+               <div class="d-flex ai-center mt-3">
+                  <div class="d-none d-inline" data-financereport-target="selectTreasuryType">
+                     <label data-financereport-target="typeLabel">Type: </label>
+                     <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
+                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm btn-active" value="Decentralized Treasury" name="current">
+                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Admin Treasury" name="legacy">
+                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Combined" name="combined">
+                     </div>
+                  </div>
+               </div>
                <!-- Start treasury chart -->
-               <p class="fs-20 pb-2 mt-2 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
+               <p class="fs-20 pb-2 mt-3 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
                   Treasury IO Chart
                </p>
                <div class="d-none secondary-card p-2 treasury-report-chart mb-3" data-financereport-target="treasuryChart">
@@ -108,7 +118,7 @@
                   </div>
                </div>
                <!-- Finish treasury chart -->
-               <div class="my-2" data-financereport-target="colorNoteRow">
+               <div class="mb-2" data-financereport-target="colorNoteRow">
                   <label class="color-note-label report-tool-bar" data-financereport-target="colorLabel"></label>
                   <span class="c-grey-2 ps-2 fw-600 color-description" data-financereport-target="colorDescription">Valid payment month</span>
                </div>
@@ -118,14 +128,8 @@
                   </p>
                </div>
                <div class="d-flex ai-center mt-2">
-                  <div class="d-none d-inline" data-financereport-target="groupBy">
-                     <label data-financereport-target="typeLabel">Type: </label>
-                     <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
-                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm btn-active" value="Decentralized Treasury" name="current">
-                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Admin Treasury" name="legacy">
-                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Combined" name="combined">
-                     </div>
-                     <label data-financereport-target="groupByLabel">Group By: </label>
+               <div class="d-none d-inline" data-financereport-target="groupBy">
+                  <label data-financereport-target="groupByLabel">Group By: </label>
                      <div class="btn-group" data-toggle="buttons">
                         <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm btn-active" value="Monthly" name="month">
                         <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm" value="Yearly" name="year">
@@ -154,9 +158,8 @@
                      <button class="report-search" data-financereport-target="searchBtn" data-action="click->financereport#searchProposal"><i class="dcricon-search"></i></button>
                      <button class="report-search d-none" data-financereport-target="clearSearchBtn" data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
                   </div>
-               </div>
-               <div class="d-none mt-2" data-financereport-target="treasuryToggleArea">
-                  <label class="d-none" data-financereport-target="yearSelectTitle">Year</label>
+                <div class="d-none ms-3" data-financereport-target="treasuryToggleArea">
+                  <label class="d-none" data-financereport-target="yearSelectTitle">Select Year</label>
                   <select
                      class="border-grey me-3 d-none"
                      data-financereport-target="yearSelect"
@@ -169,6 +172,7 @@
                   <span class="legacy-slider round"></span>
                   </label>
                   <span>USD</span>
+               </div>
                </div>
                <span class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets</span>
             </div>
