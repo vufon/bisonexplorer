@@ -182,7 +182,7 @@ export default class extends Controller {
   static get targets () {
     return ['report', 'colorNoteRow', 'colorLabel', 'colorDescription',
       'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
-      'treasuryToggleArea', 'treasuryTitle', 'reportDescription', 'reportAllPage',
+      'treasuryToggleArea', 'reportDescription', 'reportAllPage',
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
@@ -1090,7 +1090,6 @@ export default class extends Controller {
     this.updateQueryString()
 
     if (this.settings.type === 'treasury') {
-      this.treasuryTitleTarget.classList.remove('d-none')
       this.treasuryToggleAreaTarget.classList.remove('d-none')
       if (!this.settings.usd || this.settings.usd === 'false') {
         document.getElementById('usdSwitchInput').checked = false
@@ -1099,7 +1098,6 @@ export default class extends Controller {
       }
       this.createTreasuryTable(responseData)
       this.treasuryChartTarget.classList.remove('d-none')
-      this.treasuryChartTitleTarget.classList.remove('d-none')
       if (redrawFlg) {
         this.initializeChart()
         this.drawGraph()
@@ -1113,7 +1111,6 @@ export default class extends Controller {
       }
     } else {
       this.treasuryToggleAreaTarget.classList.add('d-none')
-      this.treasuryTitleTarget.classList.add('d-none')
       if (this.settings.type === 'domain') {
         this.treasuryChartTarget.classList.remove('d-none')
         this.initializeChart()
@@ -1145,21 +1142,27 @@ export default class extends Controller {
       } else {
         this.treasuryChartTarget.classList.add('d-none')
       }
-      this.treasuryChartTitleTarget.classList.add('d-none')
     }
 
     if (this.settings.type === 'domain' || this.settings.type === 'treasury') {
       this.groupByTarget.classList.remove('d-none')
+      this.treasuryChartTitleTarget.classList.remove('d-none')
+      this.treasuryTypeTitleTarget.classList.remove('d-none')
       if (this.settings.type === 'treasury') {
         this.selectTreasuryTypeTarget.classList.remove('d-none')
         this.typeLabelTarget.classList.remove('d-none')
         this.typeSelectorTarget.classList.remove('d-none')
+        this.treasuryChartTitleTarget.textContent = 'Treasury IO Chart'
       } else {
         this.typeLabelTarget.classList.add('d-none')
         this.typeSelectorTarget.classList.add('d-none')
+        this.treasuryChartTitleTarget.textContent = 'Domains Chart Data'
+        this.treasuryTypeTitleTarget.textContent = 'Domains Spending Data'
       }
     } else {
       this.groupByTarget.classList.add('d-none')
+      this.treasuryChartTitleTarget.classList.add('d-none')
+      this.treasuryTypeTitleTarget.classList.add('d-none')
     }
 
     // if treasury, get table content in other area

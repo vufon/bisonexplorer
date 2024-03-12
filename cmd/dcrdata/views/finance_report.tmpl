@@ -31,18 +31,16 @@
                <div class="mb-2">
                   <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
                </div>
-               <div class="d-flex ai-center mt-3">
-                  <div class="d-none d-inline" data-financereport-target="selectTreasuryType">
+               <div class="d-flex ai-center my-3 d-none" data-financereport-target="selectTreasuryType">
                      <label data-financereport-target="typeLabel">Type: </label>
                      <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
                         <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm btn-active" value="Decentralized Treasury" name="current">
                         <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Admin Treasury" name="legacy">
                         <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Combined" name="combined">
                      </div>
-                  </div>
                </div>
                <!-- Start treasury chart -->
-               <p class="fs-20 pb-2 mt-3 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
+               <p class="fs-20 pb-2 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
                   Treasury IO Chart
                </p>
                <div class="d-none secondary-card p-2 treasury-report-chart mb-3" data-financereport-target="treasuryChart">
@@ -122,11 +120,9 @@
                   <label class="color-note-label report-tool-bar" data-financereport-target="colorLabel"></label>
                   <span class="c-grey-2 ps-2 fw-600 color-description" data-financereport-target="colorDescription">Valid payment month</span>
                </div>
-               <div data-financereport-target="treasuryTitle">
-                  <p class="fs-20 mb-1 mt-1 report-tool-bar" data-financereport-target="treasuryTypeTitle">
-                     Current Treasury
-                  </p>
-               </div>
+               <p class="fs-20 mb-1 mt-1 report-tool-bar d-none" data-financereport-target="treasuryTypeTitle">
+                  Current Treasury
+               </p>
                <div class="d-flex ai-center mt-2">
                <div class="d-none d-inline" data-financereport-target="groupBy">
                   <label data-financereport-target="groupByLabel">Group By: </label>
