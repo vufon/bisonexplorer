@@ -3,7 +3,20 @@
     background: none;
     border-bottom: none;
     box-shadow: none;
-    height: 80px;
+    height: 70px;
+  }
+
+  .search-form {
+    background-color: white;
+    border: 1px solid #1d98c5;
+  }
+
+  .search-bttn {
+    background-color: #1d98c5;
+  }
+
+  .search-box-icon {
+    color: white;
   }
 
   .scroll-topbar {
@@ -27,7 +40,13 @@
   }
 
   .homepage-search-area {
-    margin-top: 80px;
+    margin-top: 30px;
+  }
+
+  .homepage-menu-card-header {
+    padding: 5px !important;
+    display: block;
+    text-align: center;
   }
 
   .network-stats-block {
@@ -634,6 +653,7 @@
 
   #hamburger-menu {
     margin-left: auto;
+    width: 60px;
   }
 
   .mempool-info-left {
@@ -830,9 +850,9 @@ body.darkBG .day-night-icon {
 }
 
 .hp-header-wrap {
-  background-position: right 5% top 50%;
+  background-position: right 5% top 0%;
   background-repeat: no-repeat;
-  padding-bottom: 80px;
+  padding-bottom: 40px;
   padding-top: 50px;
   background-image: url("/images/banner-light.svg");
 }
@@ -917,7 +937,7 @@ body.darkBG .day-night-icon {
   border-bottom-right-radius: var(--br-def);
   border-top-right-radius: var(--br-def);
   color: var(--c-txt-main);
-  height: 54px;
+  height: 35px;
   order: 1;
   padding-left: 10px;
 }
@@ -926,10 +946,9 @@ body.darkBG .day-night-icon {
   .searchbar__input {
     border-bottom-right-radius: 15px;
     border-top-right-radius: 15px;
-    font-family: "Inter", sans-serif;
-    font-size: 1.3rem;
+    font-size: 13px;
     font-weight: 400;
-    height: 43px;
+    height: 35px;
     line-height: 145%;
   }
 }
@@ -979,7 +998,7 @@ body.darkBG .day-night-icon {
   border-radius: 0 13px 13px 0;
   cursor: pointer;
   order: 4;
-  padding: 0 14px 0 11px;
+  padding: 0 5px;
 }
 
 .searchbar__arrow > svg {
@@ -995,7 +1014,6 @@ body.darkBG .day-night-icon {
   background-color: #fff;
   margin-top: -21px;
   padding-bottom: 70px;
-  padding-top: 20px;
   border-top: 2px solid #e9ebed;
 }
 
@@ -1030,10 +1048,6 @@ body.darkBG .day-night-icon {
 
 .explore-card__header__text__price > * + * {
   margin-left: 10px;
-}
-
-.hp-explore-wrap > div.container-1280 > * + * {
-  margin-top: 50px;
 }
 
 @media (max-width: 768px) {
@@ -1133,6 +1147,20 @@ body.darkBG .day-night-icon {
   grid-template-columns: 100%;
 }
 
+.home-menu-card {
+  grid-row-gap: 5px;
+  display: grid;
+  grid-template-columns: 100%;
+}
+
+.home-menu-link {
+  color: #4f5052;
+}
+
+.home-menu-link:hover {
+  background-color: #eeeef0;
+}
+
 .explore-card__header__logo {
   font-size: 30px;
 }
@@ -1204,6 +1232,31 @@ body.darkBG .day-night-icon {
   flex-direction: column;
   padding: 25px;
   padding-top: 0;
+}
+
+.home-menu-content {
+  padding: 5px 25px 15px;
+  grid-gap: 10px;
+  display: grid;
+  justify-items: stretch;
+}
+
+.group-menu-content {
+  grid-template-columns: repeat(1, 1fr);
+}
+
+.tool-menu-content {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.home-menu-item {
+  padding: 3px 10px 5px;
+  border-radius: 10px;
+  border: 1px solid #e2e3e3;
+}
+
+.home-menu-column {
+  background-color: white;
 }
 
 @media (max-width: 768px) {

@@ -118,15 +118,6 @@ textarea::placeholder {
   color: var(--c-txt-quiet);
 }
 
-@media (max-width: 1023px) {
-  button:focus,
-  input:focus,
-  select:focus,
-  textarea:focus {
-    font-size: max(1em, 1.6rem);
-  }
-}
-
 .c-white {
   color: var(--c-white);
 }
@@ -537,10 +528,6 @@ textarea::placeholder {
 @media (max-width: 690px) {
   html {
     padding-top: 150px !important;
-  }
-
-  .top-nav {
-    height: 150px !important;
   }
 }
 
@@ -1561,6 +1548,10 @@ hr {
 
 .bw-2 {
   border-width: 2px;
+}
+
+.bw-1 {
+  border-width: 1px;
 }
 
 .bs-solid {
