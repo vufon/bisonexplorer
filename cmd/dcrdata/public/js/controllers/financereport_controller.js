@@ -1019,33 +1019,33 @@ export default class extends Controller {
     })
     target.classList.add('btn-active')
     ctrl.settings.interval = e.target.name
-    if (e.target.name === 'year') {
-      if (ctrl.settings.bin !== 'year') {
-        ctrl.binputs.forEach((button) => {
-          if (button.name === 'year') {
-            button.click()
-          }
-        })
-        ctrl.zoomButtons.forEach((button) => {
-          if (button.name === 'all') {
-            button.click()
-          }
-        })
-      }
-    } else {
-      if (ctrl.settings.bin === 'year') {
-        ctrl.binputs.forEach((button) => {
-          if (button.name === 'month') {
-            button.click()
-          }
-        })
-        ctrl.zoomButtons.forEach((button) => {
-          if (button.name === 'year') {
-            button.click()
-          }
-        })
-      }
-    }
+    // if (e.target.name === 'year') {
+    //   if (ctrl.settings.bin !== 'year') {
+    //     ctrl.binputs.forEach((button) => {
+    //       if (button.name === 'year') {
+    //         button.click()
+    //       }
+    //     })
+    //     ctrl.zoomButtons.forEach((button) => {
+    //       if (button.name === 'all') {
+    //         button.click()
+    //       }
+    //     })
+    //   }
+    // } else {
+    //   if (ctrl.settings.bin === 'year') {
+    //     ctrl.binputs.forEach((button) => {
+    //       if (button.name === 'month') {
+    //         button.click()
+    //       }
+    //     })
+    //     ctrl.zoomButtons.forEach((button) => {
+    //       if (button.name === 'year') {
+    //         button.click()
+    //       }
+    //     })
+    //   }
+    // }
     this.calculate(false)
   }
 
