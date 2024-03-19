@@ -372,12 +372,12 @@ const (
 	SelectAllProposalTokens  = `SELECT token FROM public.proposal_meta WHERE amount > 0 GROUP BY token;`
 
 	SelectProposalMetaByMonth = `SELECT id,token,name,username,amount,start_date,end_date,domain FROM proposal_meta 
-	WHERE (EXTRACT(YEAR FROM TO_TIMESTAMP(start_date) AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(start_date) AT TIME ZONE 'UTC')) <= $1 
-	AND (EXTRACT(YEAR FROM TO_TIMESTAMP(end_date) AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(end_date) AT TIME ZONE 'UTC')) >= $2 
+	WHERE (EXTRACT(YEAR FROM TO_TIMESTAMP(start_date))*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(start_date))) <= $1 
+	AND (EXTRACT(YEAR FROM TO_TIMESTAMP(end_date))*12 + EXTRACT(MONTH FROM TO_TIMESTAMP(end_date))) >= $2 
 	AND start_date<>0 AND end_date<>0 ORDER BY start_date DESC;`
 	SelectProposalMetaByYear = `SELECT id,token,name,username,amount,start_date,end_date,domain FROM proposal_meta 
-	WHERE EXTRACT(YEAR FROM TO_TIMESTAMP(start_date) AT TIME ZONE 'UTC') <= $1
-	AND EXTRACT(YEAR FROM TO_TIMESTAMP(end_date) AT TIME ZONE 'UTC') >= $2
+	WHERE EXTRACT(YEAR FROM TO_TIMESTAMP(start_date)) <= $1
+	AND EXTRACT(YEAR FROM TO_TIMESTAMP(end_date)) >= $2
 	AND start_date<>0 AND end_date<>0 ORDER BY start_date DESC;`
 	SelectNotSyncProposalMeta = `SELECT token FROM proposal_meta;`
 

@@ -707,7 +707,7 @@ export default class extends Controller {
     `<span data-action="click->financedetail#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
     `<span data-action="click->financedetail#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">This Month (Est)</label>' +
+    `<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">This ${this.settings.type === 'year' ? 'Year' : 'Month'} (Est)</label>` +
     `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '</tr></thead>'
 

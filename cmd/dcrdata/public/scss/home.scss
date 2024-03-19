@@ -6,19 +6,6 @@
     height: 70px;
   }
 
-  .search-form {
-    background-color: white;
-    border: 1px solid #1d98c5;
-  }
-
-  .search-bttn {
-    background-color: #1d98c5;
-  }
-
-  .search-box-icon {
-    color: white;
-  }
-
   .scroll-topbar {
     background-color: #fbfbfb;
     border-bottom: 1px solid #dbdbdb;
@@ -47,6 +34,10 @@
     padding: 5px !important;
     display: block;
     text-align: center;
+  }
+
+  .home-menu-header-link:hover {
+    background-color: #d4d4d4 !important;
   }
 
   .network-stats-block {
@@ -266,6 +257,13 @@
   font-size: 20px;
   margin-left: 2px;
   color: rgb(201 201 131);
+}
+
+.home-menu-item {
+  padding: 3px 10px 5px;
+  border-radius: 5px;
+  border: 1px solid #e2e3e3;
+  box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
 }
 
 .chart-select-option {
@@ -815,6 +813,10 @@ body.darkBG.homepage-body {
     background: none !important;
     box-shadow: none !important;
   }
+
+  .home-menu-item:hover {
+    background-color: #494848 !important;
+  }
 }
 
 .card-icon {
@@ -1247,12 +1249,6 @@ body.darkBG .day-night-icon {
 
 .tool-menu-content {
   grid-template-columns: repeat(2, 1fr);
-}
-
-.home-menu-item {
-  padding: 3px 10px 5px;
-  border-radius: 10px;
-  border: 1px solid #e2e3e3;
 }
 
 .home-menu-column {

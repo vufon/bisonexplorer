@@ -163,3 +163,9 @@ table.table.v3 {
     font-size: 17px;
   }
 }
+
+body.darkBG {
+  .report-table {
+    tr:nth-child(even) { background-color: #494949 !important; }
+  }
+}
