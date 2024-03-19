@@ -2982,7 +2982,7 @@ func (pgb *ChainDB) AddressData(address string, limitN, offsetAddrOuts int64,
 	addrHist, balance, err := pgb.AddressHistory(address, limitN, offsetAddrOuts, txnType, year, month)
 	//if have period, get separator balance
 	if year != 0 {
-		balance, err = RetrieveAddressBalancePeriod(pgb.ctx, pgb.db, address, year, month)
+		balance, err = RetrieveAddressBalancePeriod(pgb.ctx, pgb.db, address, txnType, year, month)
 	}
 	if dbtypes.IsTimeoutErr(err) {
 		return nil, err

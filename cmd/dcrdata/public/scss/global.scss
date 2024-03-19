@@ -10,6 +10,7 @@ html {
   height: 100%;
   padding-bottom: 34px;
   padding-top: 105px;
+  max-width: 100%;
 }
 
 body {
@@ -41,6 +42,12 @@ body {
 
 .frame-shadow {
   box-shadow: 6px 2px 16px 0 rgb(136 165 191 / 48%), -6px -2px 16px 0 hsl(0deg 0% 100% / 80%);
+}
+
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1440px;
+  }
 }
 
 * {
@@ -111,15 +118,6 @@ textarea::placeholder {
   color: var(--c-txt-quiet);
 }
 
-@media (max-width: 1023px) {
-  button:focus,
-  input:focus,
-  select:focus,
-  textarea:focus {
-    font-size: max(1em, 1.6rem);
-  }
-}
-
 .c-white {
   color: var(--c-white);
 }
@@ -142,6 +140,10 @@ textarea::placeholder {
 
 .c-grey-3 {
   color: #adabab;
+}
+
+.c-grey-4 {
+  color: #d9d9d9;
 }
 
 .bg-green {
@@ -526,10 +528,6 @@ textarea::placeholder {
 @media (max-width: 690px) {
   html {
     padding-top: 150px !important;
-  }
-
-  .top-nav {
-    height: 150px !important;
   }
 }
 
@@ -1550,6 +1548,10 @@ hr {
 
 .bw-2 {
   border-width: 2px;
+}
+
+.bw-1 {
+  border-width: 1px;
 }
 
 .bs-solid {

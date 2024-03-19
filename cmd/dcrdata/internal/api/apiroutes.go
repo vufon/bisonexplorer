@@ -1428,7 +1428,6 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 	var treasuryGroupByMonth []dbtypes.TreasuryMonthDataObject
 	if timeType == "year" {
 		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
-		now := time.Now()
 		if yearErr != nil {
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
@@ -1485,35 +1484,27 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			varYearData.Budget = amountFloat
 			//if current year
 			var costOfYear float64
-			if year == int64(now.Year()) {
-				var nowTemp = time.Now()
-				nowTemp = nowTemp.AddDate(0, 0, -nowTemp.Day())
-				if nowTemp.Year() != int(year) {
-					continue
-				}
+			costOfYear = 0
+			//if year of start time less than year, and year of end time greater than year, get all sent of year
+			if year > int64(startTime.Year()) && year < int64(endTime.Year()) {
+				costOfYear = 365 * costPerDay
+				// if year of both of start time and end time is equal with year, totalspent is budget
+			} else if year == int64(startTime.Year()) && year == int64(endTime.Year()) {
+				costOfYear = amountFloat
+				//if year of start time is less than year, year of end time is equal with year. Get from start of year to end Time
+			} else if year > int64(startTime.Year()) && year == int64(endTime.Year()) {
 				startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
-				countDaysToTemp := int(nowTemp.Sub(startDayOfYear).Hours() / 24)
-				costOfYear = float64(countDaysToTemp) * costPerDay
-				varYearData.TotalSpent = costOfYear
-			} else {
-				if startTime.Year() == endTime.Year() {
-					varYearData.TotalSpent = amountFloat
-				} else {
-					if startTime.Year() == int(year) {
-						lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
-						countDaysToEndYear := int(lastDateOfYear.Sub(startTime).Hours() / 24)
-						costOfYear = float64(countDaysToEndYear) * costPerDay
-					} else if endTime.Year() == int(year) {
-						startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
-						countDaysFromStartYear := int(endTime.Sub(startDayOfYear).Hours() / 24)
-						costOfYear = float64(countDaysFromStartYear) * costPerDay
-					} else {
-						costOfYear = 365 * costPerDay
-					}
-					varYearData.TotalSpent = costOfYear
-				}
+				countDaysToEndTime := int(endTime.Sub(startDayOfYear).Hours() / 24)
+				costOfYear = float64(countDaysToEndTime) * costPerDay
+				//if year of start time is equal with year, year of end time is greater than year. Get from start time to end of year
+			} else if year == int64(startTime.Year()) && year < int64(endTime.Year()) {
+				lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
+				countDaysToEndYear := int(lastDateOfYear.Sub(startTime).Hours() / 24)
+				costOfYear = float64(countDaysToEndYear) * costPerDay
 			}
-			total += varYearData.TotalSpent
+
+			varYearData.TotalSpent = costOfYear
+			total += costOfYear
 			report = append(report, varYearData)
 		}
 		//get month data from proposal list

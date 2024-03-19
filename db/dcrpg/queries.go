@@ -1728,14 +1728,14 @@ func retrieveAddressTxsCount(ctx context.Context, db *sql.DB, address, interval 
 }
 
 func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
-	return RetrieveAddressBalancePeriod(ctx, db, address, 0, 0)
+	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }
 
 // RetrieveAddressBalance gets the numbers of spent and unspent outpoints
 // for the given address, the total amounts spent and unspent, the number of
 // distinct spending transactions, and the fraction spent to and received from
 // stake-related transactions.
-func RetrieveAddressBalancePeriod(ctx context.Context, db *sql.DB, address string, year int64, month int64) (balance *dbtypes.AddressBalance, err error) {
+func RetrieveAddressBalancePeriod(ctx context.Context, db *sql.DB, address string, txnType dbtypes.AddrTxnViewType, year int64, month int64) (balance *dbtypes.AddressBalance, err error) {
 	// Never return nil *AddressBalance.
 	balance = &dbtypes.AddressBalance{Address: address}
 
@@ -1783,11 +1783,17 @@ func RetrieveAddressBalancePeriod(ctx context.Context, db *sql.DB, address strin
 
 		// Unspent == funding with no matching transaction
 		if isFunding && noMatchingTx {
+			if txnType == dbtypes.AddrTxnDebit {
+				continue
+			}
 			balance.NumUnspent += count
 			balance.TotalUnspent += totalValue
 		}
 		// Spent == spending (but ensure a matching transaction is set)
 		if !isFunding {
+			if txnType == dbtypes.AddrTxnCredit {
+				continue
+			}
 			if noMatchingTx {
 				log.Errorf("Found spending transactions with matching_tx_hash"+
 					" unset for %s!", address)
@@ -2135,7 +2141,6 @@ func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, off
 		return nil, err
 	}
 	defer closeRows(rows)
-
 	switch queryType {
 	case mergedCreditQuery, mergedDebitQuery, mergedQuery:
 		onlyValidMainchain := true
@@ -2193,7 +2198,6 @@ func scanAddressQueryRows(rows *sql.Rows, queryType int) (addressRows []*dbtypes
 		var addr dbtypes.AddressRow
 		var matchingTxHash sql.NullString
 		var txVinIndex, vinDbID sql.NullInt64
-
 		err = rows.Scan(&id, &addr.Address, &matchingTxHash, &addr.TxHash, &addr.TxType,
 			&addr.ValidMainChain, &txVinIndex, &addr.TxBlockTime, &vinDbID,
 			&addr.Value, &addr.IsFunding)

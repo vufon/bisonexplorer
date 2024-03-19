@@ -14,9 +14,12 @@ export default class extends Controller {
       const scrollPos = window.pageYOffset
       if (scrollPos > 80) {
         navTarget.classList.add('scroll-topbar')
+        $('#menuDivider').addClass('d-none')
       } else {
         navTarget.classList.remove('scroll-topbar')
+        $('#menuDivider').removeClass('d-none')
       }
     })
+    $('html').css('overflow-x', '')
   }
 }

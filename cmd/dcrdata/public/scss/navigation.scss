@@ -78,12 +78,13 @@ ul.pages > li:last-child > a {
   position: relative;
   max-width: 550px;
   height: 35px;
-  border: 1px solid #d1d8dd;
+  border: 1px solid #1d98c5;
   color: #d1d8dd;
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s;
   flex-basis: 100%;
+  background-color: #fff;
 }
 
 .search-form input::placeholder {
@@ -101,12 +102,16 @@ ul.pages > li:last-child > a {
   border-style: none none none solid;
   border-width: 2px;
   border-color: transparent;
-  background-color: transparent;
+  background-color: #1d98c5;
   width: 35px;
   cursor: pointer;
   box-shadow: none;
   color: inherit;
   color: #aaa;
+}
+
+.search-box-icon {
+  color: #fff;
 }
 
 .search-bttn:hover {

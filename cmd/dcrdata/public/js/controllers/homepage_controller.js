@@ -108,23 +108,6 @@ export default class extends Controller {
     }
   }
 
-  setBlockEx () {
-    console.log('set blockex')
-    this.searchKeyTarget.value = '820936'
-  }
-
-  setAddressEx () {
-    this.searchKeyTarget.value = 'DscnTjjf8dWBCzYD64sEWTGL6eqo1YdqJF8'
-  }
-
-  setTransactionEx () {
-    this.searchKeyTarget.value = 'c0f6b710abff9f0edc0418373e4343317a5163a50a3837919d4c74b0296da575'
-  }
-
-  setProposalEx () {
-    this.searchKeyTarget.value = 'b80040fe5fe69554'
-  }
-
   _processBlock (blockData) {
     const ex = blockData.extra
     this.difficultyTarget.innerHTML = humanize.decimalParts(ex.difficulty, true, 0)

@@ -182,12 +182,13 @@ export default class extends Controller {
   static get targets () {
     return ['report', 'colorNoteRow', 'colorLabel', 'colorDescription',
       'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
-      'treasuryToggleArea', 'treasuryTitle', 'reportDescription', 'reportAllPage',
+      'treasuryToggleArea', 'reportDescription', 'reportAllPage',
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
-      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel', 'netSelectRadio']
+      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
+      'netSelectRadio', 'selectTreasuryType']
   }
 
   async connect () {
@@ -834,6 +835,83 @@ export default class extends Controller {
     }
     this.devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
+
+    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      const $scroller = document.getElementById('scroller')
+      const $container = document.getElementById('containerBody')
+
+      const $wrapper = document.getElementById('wrapperReportTable')
+
+      let ignoreScrollEvent = false
+
+      let animation = null
+
+      const scrollbarPositioner = () => {
+        const scrollTop = document.scrollingElement.scrollTop
+        const wrapperTop = $wrapper.offsetTop
+        const wrapperBottom = wrapperTop + $wrapper.offsetHeight
+
+        const topMatch = (window.innerHeight + scrollTop) >= wrapperTop
+        const bottomMatch = (scrollTop) <= wrapperBottom
+
+        if (topMatch && bottomMatch) {
+          const inside = wrapperBottom >= scrollTop && window.innerHeight + scrollTop <= wrapperBottom
+
+          if (inside) {
+            $scroller.style.bottom = '0px'
+          } else {
+            const offset = (scrollTop + window.innerHeight) - wrapperBottom
+
+            $scroller.style.bottom = offset + 'px'
+          }
+          $scroller.classList.add('visible')
+        } else {
+          $scroller.classList.remove('visible')
+        }
+
+        window.requestAnimationFrame(scrollbarPositioner)
+      }
+
+      window.requestAnimationFrame(scrollbarPositioner)
+
+      $scroller.addEventListener('scroll', (e) => {
+        if (ignoreScrollEvent) return false
+
+        if (animation) window.cancelAnimationFrame(animation)
+        animation = window.requestAnimationFrame(() => {
+          ignoreScrollEvent = true
+          $container.scrollLeft = $scroller.scrollLeft
+          ignoreScrollEvent = false
+        })
+      })
+
+      $container.addEventListener('scroll', (e) => {
+        if (ignoreScrollEvent) return false
+
+        if (animation) window.cancelAnimationFrame(animation)
+        animation = window.requestAnimationFrame(() => {
+          ignoreScrollEvent = true
+          $scroller.scrollLeft = $container.scrollLeft
+
+          ignoreScrollEvent = false
+        })
+      })
+    }
+
+    $(window).on('resize', function () {
+      // get table thead size
+      const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
+      const tableWidth = parseFloat(tableWidthStr.trim())
+      const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
+      const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
+      if (tableWidth < parentContainerWidth + 5) {
+        $('#scroller').addClass('d-none')
+      } else {
+        $('#scroller').removeClass('d-none')
+      }
+      // set overflow class
+      $('#scroller').css('width', $('#repotParentContainer').css('width'))
+    })
   }
 
   searchInputKeypress (e) {
@@ -941,33 +1019,33 @@ export default class extends Controller {
     })
     target.classList.add('btn-active')
     ctrl.settings.interval = e.target.name
-    if (e.target.name === 'year') {
-      if (ctrl.settings.bin !== 'year') {
-        ctrl.binputs.forEach((button) => {
-          if (button.name === 'year') {
-            button.click()
-          }
-        })
-        ctrl.zoomButtons.forEach((button) => {
-          if (button.name === 'all') {
-            button.click()
-          }
-        })
-      }
-    } else {
-      if (ctrl.settings.bin === 'year') {
-        ctrl.binputs.forEach((button) => {
-          if (button.name === 'month') {
-            button.click()
-          }
-        })
-        ctrl.zoomButtons.forEach((button) => {
-          if (button.name === 'year') {
-            button.click()
-          }
-        })
-      }
-    }
+    // if (e.target.name === 'year') {
+    //   if (ctrl.settings.bin !== 'year') {
+    //     ctrl.binputs.forEach((button) => {
+    //       if (button.name === 'year') {
+    //         button.click()
+    //       }
+    //     })
+    //     ctrl.zoomButtons.forEach((button) => {
+    //       if (button.name === 'all') {
+    //         button.click()
+    //       }
+    //     })
+    //   }
+    // } else {
+    //   if (ctrl.settings.bin === 'year') {
+    //     ctrl.binputs.forEach((button) => {
+    //       if (button.name === 'month') {
+    //         button.click()
+    //       }
+    //     })
+    //     ctrl.zoomButtons.forEach((button) => {
+    //       if (button.name === 'year') {
+    //         button.click()
+    //       }
+    //     })
+    //   }
+    // }
     this.calculate(false)
   }
 
@@ -981,6 +1059,9 @@ export default class extends Controller {
   }
 
   createReportTable (redrawFlg) {
+    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      $('#reportTable').css('width', '')
+    }
     if (this.settings.type === 'proposal') {
       this.colorNoteRowTarget.classList.remove('d-none')
       this.colorLabelTarget.classList.remove('summary-note-color')
@@ -1009,8 +1090,6 @@ export default class extends Controller {
     this.updateQueryString()
 
     if (this.settings.type === 'treasury') {
-      this.treasuryTitleTarget.classList.remove('d-none')
-      this.groupByLabelTarget.classList.add('ms-3')
       this.treasuryToggleAreaTarget.classList.remove('d-none')
       if (!this.settings.usd || this.settings.usd === 'false') {
         document.getElementById('usdSwitchInput').checked = false
@@ -1019,7 +1098,6 @@ export default class extends Controller {
       }
       this.createTreasuryTable(responseData)
       this.treasuryChartTarget.classList.remove('d-none')
-      this.treasuryChartTitleTarget.classList.remove('d-none')
       if (redrawFlg) {
         this.initializeChart()
         this.drawGraph()
@@ -1033,7 +1111,6 @@ export default class extends Controller {
       }
     } else {
       this.treasuryToggleAreaTarget.classList.add('d-none')
-      this.treasuryTitleTarget.classList.add('d-none')
       if (this.settings.type === 'domain') {
         this.treasuryChartTarget.classList.remove('d-none')
         this.initializeChart()
@@ -1065,20 +1142,27 @@ export default class extends Controller {
       } else {
         this.treasuryChartTarget.classList.add('d-none')
       }
-      this.treasuryChartTitleTarget.classList.add('d-none')
     }
 
     if (this.settings.type === 'domain' || this.settings.type === 'treasury') {
       this.groupByTarget.classList.remove('d-none')
+      this.treasuryChartTitleTarget.classList.remove('d-none')
+      this.treasuryTypeTitleTarget.classList.remove('d-none')
       if (this.settings.type === 'treasury') {
+        this.selectTreasuryTypeTarget.classList.remove('d-none')
         this.typeLabelTarget.classList.remove('d-none')
         this.typeSelectorTarget.classList.remove('d-none')
+        this.treasuryChartTitleTarget.textContent = 'Treasury IO Chart'
       } else {
         this.typeLabelTarget.classList.add('d-none')
         this.typeSelectorTarget.classList.add('d-none')
+        this.treasuryChartTitleTarget.textContent = 'Domains Chart Data'
+        this.treasuryTypeTitleTarget.textContent = 'Domains Spending Data'
       }
     } else {
       this.groupByTarget.classList.add('d-none')
+      this.treasuryChartTitleTarget.classList.add('d-none')
+      this.treasuryTypeTitleTarget.classList.add('d-none')
     }
 
     // if treasury, get table content in other area
@@ -1093,22 +1177,59 @@ export default class extends Controller {
       } else {
         this.reportAllPageTarget.classList.remove('proposal-report-page')
       }
-      // handler for scroll default
-      if (this.settings.psort === 'oldest') {
-        if (this.settings.tsort === 'newest') {
-          window.scrollTo(document.body.scrollWidth, 0)
-        } else {
-          window.scrollTo(0, 0)
-        }
+    } else {
+      this.reportAllPageTarget.classList.remove('proposal-report-page')
+    }
+
+    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+      const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
+      const tableWidth = parseFloat(tableWidthStr.trim())
+      const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
+      const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
+      let hideScroller = false
+      if (tableWidth < parentContainerWidth + 5) {
+        $('#scroller').addClass('d-none')
+        hideScroller = true
       } else {
-        if (this.settings.tsort === 'newest') {
-          window.scrollTo(0, 0)
+        $('#scroller').removeClass('d-none')
+      }
+      this.reportTarget.classList.add('proposal-table-padding')
+      $('#reportTable').css('width', $('#reportTable thead').css('width'))
+      $('html').css('overflow-x', 'hidden')
+      // set overflow class
+      $('#containerReportTable').addClass('of-x-hidden')
+      $('#containerBody').addClass('of-x-hidden')
+      $('#scrollerLong').css('width', (tableWidth + 25) + 'px')
+      // set scroller width fit with container width
+      $('#scroller').css('width', $('#repotParentContainer').css('width'))
+      if (this.isMobile()) {
+        $('#containerBody').css('overflow', 'scroll')
+        this.reportTarget.classList.remove('proposal-table-padding')
+        $('#scroller').addClass('d-none')
+      } else {
+        this.reportTarget.classList.add('proposal-table-padding')
+        if (!hideScroller) {
+          $('#scroller').removeClass('d-none')
+        }
+      }
+      if (this.settings.type === 'proposal') {
+      // handler for scroll default
+        if (this.settings.psort === 'oldest') {
+          if (this.settings.tsort === 'newest') {
+            $('#scroller').scrollLeft(tableWidth)
+          } else {
+            $('#scroller').scrollLeft(0)
+          }
         } else {
-          window.scrollTo(document.body.scrollWidth, 0)
+          if (this.settings.tsort === 'newest') {
+            $('#scroller').scrollLeft(0)
+          } else {
+            $('#scroller').scrollLeft(tableWidth)
+          }
         }
       }
     } else {
-      this.reportAllPageTarget.classList.remove('proposal-report-page')
+      $('html').css('overflow-x', '')
     }
   }
 
@@ -1431,7 +1552,7 @@ export default class extends Controller {
       bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data va-mid">$${humanize.formatToLocalString(handlerData.summary[index].budget, 2, 2)}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header">' +
+    bodyList += '<tr class="finance-table-header last-row-header">' +
       '<td class="text-center fw-600 fs-13i report-first-header va-mid">Total</td>'
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
@@ -1476,25 +1597,25 @@ export default class extends Controller {
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
       '<th class="va-mid text-center month-col fw-600 proposal-name-col"><label class="cursor-pointer" data-action="click->financereport#sortByPName">Name</label>' +
-      `<span data-action="click->financereport#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByDomain">Domain</label>' +
-      `<span data-action="click->financereport#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
-      `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByStartDate">Start Date</label>' +
-      `<span data-action="click->financereport#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-3'} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-4'} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByEndDate">End Date</label>' +
-      `<span data-action="click->financereport#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
-      `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-center fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByDays">Days</label>' +
-      `<span data-action="click->financereport#sortByDays" class="${(this.settings.stype === 'days' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'days' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByDays" class="${(this.settings.stype === 'days' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'days' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-center fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAvg">Monthly Avg (Est)</label>' +
-      `<span data-action="click->financereport#sortByAvg" class="${(this.settings.stype === 'avg' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'avg' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByAvg" class="${(this.settings.stype === 'avg' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'avg' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByTotalSpent">Total Spent (Est)</label>' +
-      `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-3 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financereport#sortByRemaining">Total Remaining (Est)</label>' +
-      `<span data-action="click->financereport#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      `<span data-action="click->financereport#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
@@ -1502,6 +1623,8 @@ export default class extends Controller {
     // Handler sort before display data
     // sort by param
     const summaryList = this.sortSummary(data.summary)
+    let totalBudget = 0.0
+    let totalSpent = 0.0
     // create tbody content
     for (let i = 0; i < summaryList.length; i++) {
       const summary = summaryList[i]
@@ -1519,7 +1642,9 @@ export default class extends Controller {
       } else {
         monthlyAverage = monthlyAverage * 30
       }
-      bodyList += `<tr${summary.totalRemaining === 0.0 ? '' : ' class="summary-active-row"'}>` +
+      totalBudget += summary.budget
+      totalSpent += summary.totalSpent
+      bodyList += `<tr class="${summary.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}">` +
         `<td class="va-mid text-center fs-13i proposal-name-column"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" class="link-hover-underline fs-13i">${summary.author}</a></td>` +
@@ -1533,12 +1658,12 @@ export default class extends Controller {
         '</tr>'
     }
 
-    bodyList += '<tr class="finance-table-header">' +
+    bodyList += '<tr class="finance-table-header last-row-header">' +
       '<td class="va-mid text-center fw-600 fs-15i" colspan="5">Total</td>' +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(data.allBudget, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
       '<td></td><td></td>' +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(data.allSpent, 2, 2)}</td>` +
-      `<td class="va-mid text-right px-2 fw-600 fs-15i">$${humanize.formatToLocalString(data.allBudget - data.allSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget - totalSpent, 2, 2)}</td>` +
       '</tr>'
 
     tbody = tbody.replace('###', bodyList)
@@ -1965,15 +2090,15 @@ export default class extends Controller {
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
     '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
-    `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByPNum">Proposals</label>' +
-    `<span data-action="click->financereport#sortByPNum" class="${(this.settings.stype === 'pnum' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pnum' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByPNum" class="${(this.settings.stype === 'pnum' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pnum' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
-    `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByTotalSpent">Total Received (Est)</label>' +
-    `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '<th class="va-mid text-right px-3 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financereport#sortByRemaining">Total Remaining (Est)</label>' +
-    `<span data-action="click->financereport#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
@@ -1997,7 +2122,7 @@ export default class extends Controller {
       bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : ''}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header">' +
+    bodyList += '<tr class="finance-table-header last-row-header">' +
       '<td class="va-mid text-center px-3 fw-600 fs-15i">Total</td>' +
       `<td class="va-mid text-center px-3 fw-600 fs-15i">${totalProposals}</td>` +
       `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
@@ -2026,17 +2151,17 @@ export default class extends Controller {
     this.reportTarget.classList.remove('d-none')
 
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>` +
+      `<th class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>` +
       '###' +
-      '<th class="va-mid text-right ps-0 fw-600 month-col pe-2 border-left-grey"><label class="cursor-pointer" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
-      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
+      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
     handlerData.domainList.forEach((domain) => {
-      headList += `<th class="va-mid text-right-i domain-content-cell ps-0 fs-13i ps-5 pe-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a>` +
-      `<span data-action="click->financereport#sortByDomainItem" data-financereport-domain-param="${domain}" class="${(this.settings.stype === domain && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== domain ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
+      headList += `<th class="va-mid text-right-i domain-content-cell fs-13i px-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a>` +
+      `<span data-action="click->financereport#sortByDomainItem" data-financereport-domain-param="${domain}" class="${(this.settings.stype === domain && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== domain ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     })
     thead = thead.replace('###', headList)
 
@@ -2048,25 +2173,25 @@ export default class extends Controller {
     for (let i = 0; i < domainList.length; i++) {
       const report = domainList[i]
       const timeParam = this.getFullTimeParam(report.month, '/')
-      bodyList += `<tr><td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
+      bodyList += `<tr><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
-        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-3 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : ''}</td>`
+        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : ''}</td>`
         if (domainDataMap.has(domainData.domain)) {
           domainDataMap.set(domainData.domain, domainDataMap.get(domainData.domain) + domainData.expense)
         } else {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
-      bodyList += `<td class="va-mid text-right fs-13i fw-600 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
+      bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header"><td class="text-center fw-600 fs-15i border-right-grey">Total (Est)</td>'
+    bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
     let totalAll = 0
     handlerData.domainList.forEach((domain) => {
-      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-3">$${humanize.formatToLocalString(domainDataMap.get(domain), 2, 2)}</td>`
+      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">$${humanize.formatToLocalString(domainDataMap.get(domain), 2, 2)}</td>`
       totalAll += domainDataMap.get(domain)
     })
-    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey">$${humanize.formatToLocalString(totalAll, 2, 2)}</td>`
+    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">$${humanize.formatToLocalString(totalAll, 2, 2)}</td>`
     bodyList += '</tr>'
 
     tbody = tbody.replace('###', bodyList)
@@ -2314,23 +2439,23 @@ export default class extends Controller {
     const isLegacy = this.settings.ttype === 'legacy'
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col border-right-grey cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-3' : ''} col-sort"></span></th>`
+      `<th class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Incoming (${usdDisp ? 'USD' : 'DCR'})</label>` +
-    `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Outgoing (${usdDisp ? 'USD' : 'DCR'})</label>` +
-    `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net (${usdDisp ? 'USD' : 'DCR'})</label>` +
-    `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>` +
+    `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByBalance">Balance (${usdDisp ? 'USD' : 'DCR'})</label>` +
-    `<span data-action="click->financereport#sortByBalance" class="${(this.settings.stype === 'balance' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'balance' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
+    `<span data-action="click->financereport#sortByBalance" class="${(this.settings.stype === 'balance' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'balance' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     if (!isLegacy) {
       thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst">Outgoing (Est)(${usdDisp ? 'USD' : 'DCR'})</label>` +
-      `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
+      `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     }
     if (usdDisp) {
       thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
-      `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-3' : ''} col-sort ms-1"></span></th>`
+      `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     }
     thead += '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
@@ -2359,7 +2484,7 @@ export default class extends Controller {
         outcomeHref = '/treasury?txntype=tspend&time=' + (timeParam === '' ? item.month : timeParam)
       }
       bodyList += '<tr>' +
-        `<td class="va-mid text-center fs-13i fw-600 border-right-grey"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
+        `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + incomeHref + '">' : ''}${usdDisp && incomDisplay !== '' ? '$' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + outcomeHref + '">' : ''}${usdDisp && outcomeDisplay !== '' ? '$' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${netNegative ? '-' : ''}${usdDisp && differenceDisplay !== '' ? '$' : ''}${differenceDisplay}</td>`
@@ -2377,7 +2502,7 @@ export default class extends Controller {
     const totalDifferenceDisplay = usdDisp ? humanize.formatToLocalString(diffTotal, 2, 2) : humanize.formatToLocalString((diffTotal / 100000000), 2, 2)
     const totalEstimateOutgoing = usdDisp ? humanize.formatToLocalString(estimateOutTotal, 2, 2) : humanize.formatToLocalString(estimateOutTotal, 2, 2)
     const totalNetNegative = outTotal > incomeTotal
-    bodyList += '<tr class="va-mid finance-table-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>'
+    bodyList += '<tr class="va-mid finance-table-header last-row-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>'
     bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalIncomDisplay}</td>`
     bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalOutcomeDisplay}</td>`
     bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${totalNetNegative ? '-' : ''}${usdDisp ? '$' : ''}${totalDifferenceDisplay}</td>`
@@ -2485,6 +2610,10 @@ export default class extends Controller {
     this.enabledGroupButton()
   }
 
+  isMobile () {
+    try { document.createEvent('TouchEvent'); return true } catch (e) { return false }
+  }
+
   handlerDataForCombinedChart (data) {
     if (combinedChartData !== null && combinedChartYearData !== null) {
       return
@@ -2531,8 +2660,8 @@ export default class extends Controller {
       return
     }
     if (!data.report || data.report.length === 0) {
-      domainChartData = {}
-      domainChartYearData = {}
+      domainChartData = null
+      domainChartYearData = null
       return
     }
     // get monthly data
