@@ -150,7 +150,7 @@ function getHue (token) {
 // Generate the constant hues so dynamically assigned hues won't use them.
 Object.keys(exchangeHues).forEach(generateHue)
 
-const commonChartOpts = {
+let commonChartOpts = {
   gridLineColor: gridColor,
   axisLineColor: 'transparent',
   underlayCallback: (ctx, area, dygraph) => {
@@ -600,6 +600,20 @@ export default class extends Controller {
     this.isHomepage = !window.location.href.includes('/market')
     this.query = new TurboQuery()
     settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin'])
+    commonChartOpts = {
+      gridLineColor: gridColor,
+      axisLineColor: 'transparent',
+      underlayCallback: (ctx, area, dygraph) => {
+        ctx.lineWidth = 1
+        ctx.strokeStyle = gridColor
+        ctx.strokeRect(area.x, area.y, area.w, area.h)
+      },
+      // these should be set to avoid Dygraph strangeness
+      labels: [' ', ' '], // To avoid an annoying console message,
+      xlabel: ' ',
+      ylabel: ' ',
+      pointSize: 6
+    }
     if (!this.isHomepage) {
       this.query.update(settings)
     } else {
@@ -621,6 +635,10 @@ export default class extends Controller {
           settings.bin = '1d'
         }
       }
+      commonChartOpts.showRangeSelector = true
+      commonChartOpts.rangeSelectorPlotFillColor = '#C4CBD2'
+      commonChartOpts.rangeSelectorAlpha = 0.4
+      commonChartOpts.rangeSelectorHeight = 40
     }
     this.processors = {
       orders: this.processOrders,
@@ -637,7 +655,6 @@ export default class extends Controller {
     this.lastUrl = null
     this.zoomButtons = this.zoomTarget.querySelectorAll('button')
     this.zoomCallback = this._zoomCallback.bind(this)
-
     availableCandlesticks = {}
     availableDepths = []
     this.exchangeOptions = []
@@ -683,7 +700,6 @@ export default class extends Controller {
     this.processXcUpdate = this._processXcUpdate.bind(this)
     globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
     if (darkEnabled()) chartStroke = darkStroke
-
     this.setNameDisplay()
     this.fetchInitialData()
   }
@@ -726,7 +742,9 @@ export default class extends Controller {
     // A little hack to start with the default interaction model. Updating the
     // interactionModel with updateOptions later does not appear to work.
     const model = dummyGraph.getOption('interactionModel')
-    model.wheel = gScroll
+    if (!this.isHomepage) {
+      model.wheel = gScroll
+    }
     model.mousedown = (event, g, context) => {
       // End panning even if the mouseup event is not on the chart.
       const mouseup = () => {
@@ -1001,6 +1019,7 @@ export default class extends Controller {
           valueFormatter: humanize.threeSigFigs
         }
       },
+      stats: data.stats,
       strokeWidth: 0,
       drawPoints: true,
       logscale: true,
