@@ -150,7 +150,7 @@ function getHue (token) {
 // Generate the constant hues so dynamically assigned hues won't use them.
 Object.keys(exchangeHues).forEach(generateHue)
 
-let commonChartOpts = {
+const commonChartOpts = {
   gridLineColor: gridColor,
   axisLineColor: 'transparent',
   underlayCallback: (ctx, area, dygraph) => {
@@ -162,7 +162,11 @@ let commonChartOpts = {
   labels: [' ', ' '], // To avoid an annoying console message,
   xlabel: ' ',
   ylabel: ' ',
-  pointSize: 6
+  pointSize: 6,
+  showRangeSelector: true,
+  rangeSelectorPlotFillColor: '#C4CBD2',
+  rangeSelectorAlpha: 0.4,
+  rangeSelectorHeight: 40
 }
 
 const chartResetOpts = {
@@ -182,35 +186,6 @@ function convertedThreeSigFigs (x) {
 
 function convertedEightDecimals (x) {
   return (x * conversionFactor).toFixed(8)
-}
-
-function adjustAxis (axis, zoomInPercentage, bias) {
-  const delta = axis[1] - axis[0]
-  const increment = delta * zoomInPercentage
-  const foo = [increment * bias, increment * (1 - bias)]
-  return [axis[0] + foo[0], axis[1] - foo[1]]
-}
-
-function gScroll (event, g, context) {
-  const percentage = event.detail ? event.detail * -1 / 1000 : event.wheelDelta ? event.wheelDelta / 1000 : event.deltaY / -25
-
-  if (!(event.offsetX && event.offsetY)) {
-    event.offsetX = event.layerX - event.target.offsetLeft
-    event.offsetY = event.layerY - event.target.offsetTop
-  }
-
-  const xOffset = g.toDomCoords(g.xAxisRange()[0], null)[0]
-  const x = event.offsetX - xOffset
-  const w = g.toDomCoords(g.xAxisRange()[1], null)[0] - xOffset
-  const xPct = w === 0 ? 0 : (x / w)
-  const newWindow = adjustAxis(g.xAxisRange(), percentage, xPct)
-  g.updateOptions({
-    dateWindow: newWindow
-  })
-  const zoomCallback = g.getOption('zoomCallback')
-  if (zoomCallback) zoomCallback(newWindow[0], newWindow[1], g.yAxisRanges())
-  event.preventDefault()
-  event.stopPropagation()
 }
 
 function orderbookStats (bids, asks) {
@@ -600,20 +575,6 @@ export default class extends Controller {
     this.isHomepage = !window.location.href.includes('/market')
     this.query = new TurboQuery()
     settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin'])
-    commonChartOpts = {
-      gridLineColor: gridColor,
-      axisLineColor: 'transparent',
-      underlayCallback: (ctx, area, dygraph) => {
-        ctx.lineWidth = 1
-        ctx.strokeStyle = gridColor
-        ctx.strokeRect(area.x, area.y, area.w, area.h)
-      },
-      // these should be set to avoid Dygraph strangeness
-      labels: [' ', ' '], // To avoid an annoying console message,
-      xlabel: ' ',
-      ylabel: ' ',
-      pointSize: 6
-    }
     if (!this.isHomepage) {
       this.query.update(settings)
     } else {
@@ -635,10 +596,6 @@ export default class extends Controller {
           settings.bin = '1d'
         }
       }
-      commonChartOpts.showRangeSelector = true
-      commonChartOpts.rangeSelectorPlotFillColor = '#C4CBD2'
-      commonChartOpts.rangeSelectorAlpha = 0.4
-      commonChartOpts.rangeSelectorHeight = 40
     }
     this.processors = {
       orders: this.processOrders,
@@ -742,9 +699,6 @@ export default class extends Controller {
     // A little hack to start with the default interaction model. Updating the
     // interactionModel with updateOptions later does not appear to work.
     const model = dummyGraph.getOption('interactionModel')
-    if (!this.isHomepage) {
-      model.wheel = gScroll
-    }
     model.mousedown = (event, g, context) => {
       // End panning even if the mouseup event is not on the chart.
       const mouseup = () => {
