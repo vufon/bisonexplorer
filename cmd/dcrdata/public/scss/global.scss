@@ -749,6 +749,10 @@ textarea::placeholder {
   height: 100%;
 }
 
+.h-20px {
+  height: 20px;
+}
+
 .h-auto {
   height: auto;
 }
@@ -1355,6 +1359,10 @@ textarea::placeholder {
 
 .border-right-grey {
   border-right: 1px solid #b3b2b2 !important;
+}
+
+.border-bottom-grey {
+  border-bottom: 1px solid #d9d3d3 !important;
 }
 
 .border--cyan-d3 {
