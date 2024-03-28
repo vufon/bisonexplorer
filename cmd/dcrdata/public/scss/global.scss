@@ -178,6 +178,10 @@ textarea::placeholder {
   background-color: #dfe0df;
 }
 
+.bg-white {
+  background-color: white;
+}
+
 .bg-none {
   background: none !important;
 }
@@ -1285,6 +1289,14 @@ textarea::placeholder {
   border-top: 1px solid #cfcfcf;
 }
 
+.border-none {
+  border: none !important;
+}
+
+.border-plain {
+  border: 1px solid var(--c-bg-plain);
+}
+
 .border--0_left {
   border-left: 0;
 }
@@ -1309,6 +1321,10 @@ textarea::placeholder {
 .border--0_hor {
   border-bottom: 0;
   border-top: 0;
+}
+
+.border-radius-8 {
+  border-radius: 8px;
 }
 
 .b--def,
@@ -1967,8 +1983,8 @@ body.darkBG {
       td {
         border-bottom: 1px solid #0000;
         border-top: 1px solid #0000;
-        padding-bottom: 15px;
-        padding-top: 15px;
+        padding-bottom: 10px;
+        padding-top: 10px;
       }
 
       td:first-of-type {
@@ -1986,4 +2002,17 @@ body.darkBG {
       }
     }
   }
+}
+
+.pagination-number {
+  background-color: white;
+  border: 1px solid #acc9eb;
+  border-radius: 6px;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+  font-size: 18px;
+}
+
+.pagination-narrow {
+  padding: 0.4rem 0.6rem !important;
 }

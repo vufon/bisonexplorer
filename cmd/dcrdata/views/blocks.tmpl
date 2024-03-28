@@ -29,7 +29,7 @@
                           data-action="change->pagenavigation#setPageSize"
                           data-offset="{{$pendingBlocks}}"
                           data-offsetkey="height"
-                          class="dropdown text-secondary my-2 {{if lt $blocksCount 10}}disabled{{end}}"
+                          class="dropdown text-secondary my-2 border-plain border-radius-8 {{if lt $blocksCount 10}}disabled{{end}}"
                           {{if lt $blocksCount 10}}disabled="disabled"{{end}}
                       >
                         {{if eq $blocksCount 20 30 50 100 .WindowSize}}{{else}}<option selected value="{{$blocksCount}}">{{$blocksCount}} per page</option>{{end}}
@@ -44,13 +44,13 @@
                           {{if lt $topBlock .BestBlock}}
                           <li>
                              <a
-                             class="text-secondary"
+                             class="text-secondary border-none"
                              href="/blocks?height={{.BestBlock}}&rows={{.Rows}}"
                              > Newest</a>
                           </li>
                           <li>
                              <a
-                             class="text-secondary"
+                             class="text-secondary border-none"
                              href="/blocks?height={{ add $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
                              > Newer</a>
                           </li>
@@ -58,13 +58,13 @@
                           {{if ge $topBlock .Rows}}
                             <li>
                                 <a
-                                class="text-secondary"
+                                class="text-secondary border-none"
                                 href="/blocks?height={{ subtract $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
                                 >Older</a>
                             </li>
                             <li>
                                 <a
-                                class="text-secondary"
+                                class="text-secondary border-none"
                                 href="/blocks?height={{.OldestHeight}}&rows={{.Rows}}"
                                 >Oldest</a>
                             </li>
@@ -135,18 +135,18 @@
             <div class="text-end pe-3">
               {{if lt $topBlock .BestBlock}}
                 <a href="/blocks?height={{ add $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
-                class="d-inline-block dcricon-arrow-left m-1 fs20"></a>
+                class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fs20"></a>
               {{end}}
               {{range .Pages}}
                 {{if eq .Link ""}}
                   <span>{{.Str}}</span>
                 {{else}}
-                  <a href="{{.Link}}" class="fs18 pager px-1{{if .Active}} active{{end}}">{{.Str}}</a>
+                  <a href="{{.Link}}" class="fs18 pager pagination-number {{if .Active}} active{{end}}">{{.Str}}</a>
                 {{end}}
               {{end}}
               {{if ge $topBlock .Rows}}
                 <a href="/blocks?height={{ subtract $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
-                class="d-inline-block dcricon-arrow-right m-1 fs20"></a>
+                class="d-inline-block pagination-number pagination-narrow dcricon-arrow-right m-1 fs20"></a>
               {{end}}
             </div>
             {{end}}
