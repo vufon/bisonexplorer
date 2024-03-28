@@ -146,6 +146,10 @@ textarea::placeholder {
   color: #d9d9d9;
 }
 
+.c-green {
+  color: #bce5bc;
+}
+
 .bg-green {
   background-color: var(--c-green);
 }
@@ -168,6 +172,10 @@ textarea::placeholder {
 
 .bg-green-2 {
   background-color: #bce5bc;
+}
+
+.bg-green-3 {
+  background-color: #f0fff0;
 }
 
 .bg-pink-2 {
@@ -1952,7 +1960,7 @@ body.darkBG {
 
 .btable-table-wrap {
   margin: 15px 10px 0 9px;
-  min-height: 94px;
+  min-height: 50px;
   overflow-x: auto;
 }
 
@@ -2015,4 +2023,18 @@ body.darkBG {
 
 .pagination-narrow {
   padding: 0.4rem 0.6rem !important;
+}
+
+.common-card {
+  border: 1px solid #efefef;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
+}
+
+.blue-card {
+  border: 1px solid #94cded;
+  border-radius: 15px;
+  background-color: #39a5bb;
+  color: white;
+  box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
 }

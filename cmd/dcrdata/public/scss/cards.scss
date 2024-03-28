@@ -16,14 +16,14 @@
 .pointer-right {
   right: -40px;
   top: 50%;
-  border-color: transparent transparent transparent white;
+  border-color: transparent transparent transparent #f0fff0;
   transform: translateY(-50%);
 }
 
 .pointer-bottom {
   left: 50%;
   bottom: -40px;
-  border-color: white transparent transparent;
+  border-color: #f0fff0 transparent transparent;
   transform: translateX(-50%);
 }
 

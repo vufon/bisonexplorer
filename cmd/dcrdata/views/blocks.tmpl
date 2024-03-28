@@ -132,7 +132,7 @@
             </table>
             </div>
             {{if len .Pages}}
-            <div class="text-end pe-3">
+            <div class="text-end mt-2 pe-3">
               {{if lt $topBlock .BestBlock}}
                 <a href="/blocks?height={{ add $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
                 class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fs20"></a>
