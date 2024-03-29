@@ -198,9 +198,9 @@ export default class extends Controller {
   onZoom (e) {
     const target = e.srcElement || e.target
     this.zoomTargets.forEach((zoomTarget) => {
-      zoomTarget.classList.remove('btn-active')
+      zoomTarget.classList.remove('active')
     })
-    target.classList.add('btn-active')
+    target.classList.add('active')
     this.zoom = e.target.name
     this.purchasesGraph.updateOptions({ dateWindow: getWindow(this.zoom) })
   }
@@ -208,10 +208,10 @@ export default class extends Controller {
   async onBarsChange (e) {
     const target = e.srcElement || e.target
     this.barsTargets.forEach((barsTarget) => {
-      barsTarget.classList.remove('btn-active')
+      barsTarget.classList.remove('active')
     })
     this.bars = e.target.name
-    target.classList.add('btn-active')
+    target.classList.add('active')
     this.wrapperTarget.classList.add('loading')
     const url = '/api/ticketpool/bydate/' + this.bars
     const ticketPoolResponse = await requestJSON(url)
