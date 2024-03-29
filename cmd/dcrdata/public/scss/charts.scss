@@ -270,15 +270,9 @@
 }
 
 .chartview {
-  margin: 0 2%;
+  margin: 0 1%;
   min-height: 73vh;
   width: 96%;
-}
-
-@media (max-width: 580px) {
-  .chartview {
-    width: 70% !important;
-  }
 }
 
 .chartview .dygraph-ylabel {
@@ -328,6 +322,7 @@ body.darkBG .chartview .dygraph-y2label {
 .chart-wrapper {
   position: relative;
   padding-left: 0 !important;
+  width: 96%;
 }
 
 .chart-wrapper.loading .spinner-wrapper {
