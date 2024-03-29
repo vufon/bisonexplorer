@@ -2046,3 +2046,10 @@ body.darkBG {
   color: white;
   box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
 }
+
+.common-card-header {
+  background-color: #dddcdc;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  padding-left: 15px;
+}
