@@ -329,6 +329,15 @@ body.darkBG .chartview .dygraph-y2label {
   display: block;
 }
 
+.home-chart-wrapper {
+  position: relative;
+  padding-left: 0 !important;
+}
+
+.home-chart-wrapper.loading .spinner-wrapper {
+  display: block;
+}
+
 .chart-control-wrapper {
   border: 1px solid #e6eaed;
   border-left: 1px solid #e6eaed;
