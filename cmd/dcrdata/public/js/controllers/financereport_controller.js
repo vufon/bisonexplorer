@@ -822,15 +822,15 @@ export default class extends Controller {
 
     if (this.settings.type !== 'proposal') {
       this.intervalTargets.forEach((intervalTarget) => {
-        intervalTarget.classList.remove('btn-active')
+        intervalTarget.classList.remove('active')
         if (intervalTarget.name === this.settings.interval) {
-          intervalTarget.classList.add('btn-active')
+          intervalTarget.classList.add('active')
         }
       })
       this.ttypeTargets.forEach((ttypeTarget) => {
-        ttypeTarget.classList.remove('btn-active')
+        ttypeTarget.classList.remove('active')
         if ((ttypeTarget.name === this.settings.ttype) || (ttypeTarget.name === 'current' && !this.settings.ttype)) {
-          ttypeTarget.classList.add('btn-active')
+          ttypeTarget.classList.add('active')
         }
       })
     }
@@ -972,9 +972,9 @@ export default class extends Controller {
         this.reportDescriptionTarget.innerHTML = proposalNote
         this.settings.interval = this.defaultSettings.interval
         this.intervalTargets.forEach((intervalTarget) => {
-          intervalTarget.classList.remove('btn-active')
+          intervalTarget.classList.remove('active')
           if (intervalTarget.name === this.settings.interval) {
-            intervalTarget.classList.add('btn-active')
+            intervalTarget.classList.add('active')
           }
         })
         break
@@ -1002,9 +1002,9 @@ export default class extends Controller {
     }
     const target = e.srcElement || e.target
     this.ttypeTargets.forEach((ttypeTarget) => {
-      ttypeTarget.classList.remove('btn-active')
+      ttypeTarget.classList.remove('active')
     })
-    target.classList.add('btn-active')
+    target.classList.add('active')
     this.settings.ttype = e.target.name
     this.changedTType = e.target.name
     this.calculate(true)
@@ -1016,9 +1016,9 @@ export default class extends Controller {
     }
     const target = e.srcElement || e.target
     this.intervalTargets.forEach((intervalTarget) => {
-      intervalTarget.classList.remove('btn-active')
+      intervalTarget.classList.remove('active')
     })
-    target.classList.add('btn-active')
+    target.classList.add('active')
     ctrl.settings.interval = e.target.name
     // if (e.target.name === 'year') {
     //   if (ctrl.settings.bin !== 'year') {
