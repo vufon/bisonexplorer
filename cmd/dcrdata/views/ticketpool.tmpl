@@ -17,25 +17,26 @@
         <div class="modal position-absolute"></div>
         <label>Zoom :</label>
         <div class="btn-group" data-toggle="buttons">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="btn btn_sm all btn-active" value="All" name="all">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="btn btn_sm 1d" value="Day" name="day">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="btn btn_sm 1wk" value="Week" name="wk">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="btn btn_sm 1m" value="Month" name="mo">
+          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main all active" value="All" name="all">
+          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1d" value="Day" name="day">
+          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1wk" value="Week" name="wk">
+          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1m" value="Month" name="mo">
         </div>
 
         <label>&nbsp;&nbsp;Bars :</label>
         <div class="btn-group" data-toggle="buttons">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="btn btn_sm all btn-active" value="Blocks" name="all">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="btn btn_sm 1d" value="Day" name="day">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="btn btn_sm 1wk" value="Week" name="wk">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="btn btn_sm 1m" value="Month" name="mo">
+          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main all active" value="Blocks" name="all">
+          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1d" value="Day" name="day">
+          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1wk" value="Week" name="wk">
+          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1m" value="Month" name="mo">
         </div>
-
+        <div class="p-3 common-card mt-3">
         <div id="tickets-by-purchase-date" class="tp-charts"></div>
-        <br>
+        </div>
+        <div class="p-3 common-card mt-2">
         <div id="tickets-by-purchase-price" class="tp-charts"></div>
-        <br>
-        <div class="justify-content-between">
+        </div>
+        <div class="justify-content-between common-card p-2 mt-2">
           <div class="dygraph-label dygraph-title mb-1">Distribution of Tickets by Reward Outputs</div>
           <div class="col d-flex text-center mw50 w-100 m-auto ">
             <table class="tp-outputs-align" data-ticketpool-target="outputs">

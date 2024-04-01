@@ -18,6 +18,7 @@ let domainChartYearData = null
 let domainYearData = null
 let combinedChartData = null
 let combinedChartYearData = null
+const treasurySummaryData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
@@ -821,15 +822,15 @@ export default class extends Controller {
 
     if (this.settings.type !== 'proposal') {
       this.intervalTargets.forEach((intervalTarget) => {
-        intervalTarget.classList.remove('btn-active')
+        intervalTarget.classList.remove('active')
         if (intervalTarget.name === this.settings.interval) {
-          intervalTarget.classList.add('btn-active')
+          intervalTarget.classList.add('active')
         }
       })
       this.ttypeTargets.forEach((ttypeTarget) => {
-        ttypeTarget.classList.remove('btn-active')
+        ttypeTarget.classList.remove('active')
         if ((ttypeTarget.name === this.settings.ttype) || (ttypeTarget.name === 'current' && !this.settings.ttype)) {
-          ttypeTarget.classList.add('btn-active')
+          ttypeTarget.classList.add('active')
         }
       })
     }
@@ -971,9 +972,9 @@ export default class extends Controller {
         this.reportDescriptionTarget.innerHTML = proposalNote
         this.settings.interval = this.defaultSettings.interval
         this.intervalTargets.forEach((intervalTarget) => {
-          intervalTarget.classList.remove('btn-active')
+          intervalTarget.classList.remove('active')
           if (intervalTarget.name === this.settings.interval) {
-            intervalTarget.classList.add('btn-active')
+            intervalTarget.classList.add('active')
           }
         })
         break
@@ -1001,9 +1002,9 @@ export default class extends Controller {
     }
     const target = e.srcElement || e.target
     this.ttypeTargets.forEach((ttypeTarget) => {
-      ttypeTarget.classList.remove('btn-active')
+      ttypeTarget.classList.remove('active')
     })
-    target.classList.add('btn-active')
+    target.classList.add('active')
     this.settings.ttype = e.target.name
     this.changedTType = e.target.name
     this.calculate(true)
@@ -1015,9 +1016,9 @@ export default class extends Controller {
     }
     const target = e.srcElement || e.target
     this.intervalTargets.forEach((intervalTarget) => {
-      intervalTarget.classList.remove('btn-active')
+      intervalTarget.classList.remove('active')
     })
-    target.classList.add('btn-active')
+    target.classList.add('active')
     ctrl.settings.interval = e.target.name
     // if (e.target.name === 'year') {
     //   if (ctrl.settings.bin !== 'year') {
@@ -1325,6 +1326,10 @@ export default class extends Controller {
 
   sortByDomainTotal () {
     this.sortByType('total')
+  }
+
+  sortByUnaccounted () {
+    this.sortByType('unaccounted')
   }
 
   sortByTotalSpent () {
@@ -1778,6 +1783,9 @@ export default class extends Controller {
       if (_this.settings.stype === 'total') {
         aData = a.total
         bData = b.total
+      } else if (_this.settings.stype === 'unaccounted') {
+        aData = a.unaccounted
+        bData = b.unaccounted
       } else {
         a.domainData.forEach((aDomainData) => {
           if (_this.settings.stype === aDomainData.domain) {
@@ -2141,6 +2149,12 @@ export default class extends Controller {
     if (this.settings.interval === 'year') {
       handlerData = domainYearData != null ? domainYearData : this.getProposalYearlyData(data)
     }
+    let treasuryData = data.treasurySummary
+    if (this.settings.interval === 'year') {
+      treasuryData = treasurySummaryData != null ? treasurySummaryData : this.getTreasuryYearlyData(treasuryData)
+    }
+    const treasuryDataMap = this.getTreasuryValueMapByMonth(treasuryData)
+    handlerData = this.getTreasuryDomainCombined(handlerData, treasuryDataMap)
 
     if (handlerData.report.length < 1) {
       this.nodataTarget.classList.remove('d-none')
@@ -2155,6 +2169,8 @@ export default class extends Controller {
       '###' +
       '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
       `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey" style="min-width: 160px;"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByUnaccounted">Unaccounted (Est)</label>' +
+      `<span data-action="click->financereport#sortByUnaccounted" class="${(this.settings.stype === 'unaccounted' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'unaccounted' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
 
@@ -2182,7 +2198,8 @@ export default class extends Controller {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
-      bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td></tr>`
+      bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i pe-4">${report.unaccounted === 0 ? '' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
@@ -2192,10 +2209,29 @@ export default class extends Controller {
       totalAll += domainDataMap.get(domain)
     })
     bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">$${humanize.formatToLocalString(totalAll, 2, 2)}</td>`
+    bodyList += '<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2"></td>'
     bodyList += '</tr>'
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
+  }
+
+  getTreasuryDomainCombined (reportData, treasuryDataMap) {
+    const report = reportData.report
+    if (!report || report.length === 0) {
+      return reportData
+    }
+    for (let i = report.length - 1; i >= 0; i--) {
+      const reportItem = report[i]
+      const monthFormat = reportItem.month.replace('/', '-')
+      const treasuryBalance = treasuryDataMap.get(monthFormat)
+      if (treasuryDataMap.has(monthFormat)) {
+        reportData.report[i].unaccounted = treasuryBalance - reportItem.total
+      } else {
+        reportData.report[i].unaccounted = 0
+      }
+    }
+    return reportData
   }
 
   getFullTimeParam (timeInput, splitChar) {
@@ -2282,6 +2318,61 @@ export default class extends Controller {
       options += `<option name="name_${year}" value="${year}" ${this.settings.year && this.settings.year.toString() === year ? 'selected' : ''}>${year}</option>`
     })
     this.yearSelectTarget.innerHTML = options
+  }
+
+  getTreasuryValueMapByMonth (treasurySummary) {
+    const summaryMap = new Map()
+    const result = new Map()
+    treasurySummary.forEach((summary) => {
+      summaryMap.set(summary.month, summary.balanceUSD)
+    })
+    const now = new Date()
+    const month = now.getUTCMonth() + 1
+    const year = now.getUTCFullYear()
+    const nowCompare = this.settings.interval === 'year' ? year : year * 12 + month
+    const lowestTime = treasurySummary[treasurySummary.length - 1].month
+    const lowestArr = lowestTime.split('-')
+    if (this.settings.interval !== 'year' && lowestArr.length < 2) {
+      return result
+    }
+    const lowestYear = Number(lowestArr[0])
+    let lowestMonth = 0
+    if (this.settings.interval !== 'year') {
+      // if month < 10
+      let lowestMonthStr = ''
+      if (lowestArr[1].charAt(0) === '0') {
+        lowestMonthStr = lowestArr[1].substring(1, lowestArr[1].length)
+      } else {
+        lowestMonthStr = lowestArr[1]
+      }
+      lowestMonth = Number(lowestMonthStr)
+    }
+
+    const lowestCompare = this.settings.interval === 'year' ? lowestYear : lowestYear * 12 + lowestMonth
+    // browse frome lowest to now
+    let tempBalance = 0
+    for (let i = lowestCompare; i <= nowCompare; i++) {
+      let year = i
+      let month = 0
+      let key = ''
+      if (this.settings.interval !== 'year') {
+        month = i % 12
+        year = (i - month) / 12
+        if (month === 0) {
+          year -= 1
+          month = 12
+        }
+        key = year + '-' + (month < 10 ? '0' + month : month)
+      } else {
+        key = year.toString()
+      }
+      // check key on summary map
+      if (summaryMap.has(key)) {
+        tempBalance = summaryMap.get(key)
+      }
+      result.set(key, tempBalance)
+    }
+    return result
   }
 
   getTreasuryDataWithType (data) {

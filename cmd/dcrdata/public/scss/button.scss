@@ -1,0 +1,29 @@
+.tab-button {
+  align-items: center;
+  border-radius: var(--br-def);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: "Inter", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  height: 30px;
+  justify-content: center;
+  max-height: 38px;
+  padding: 0 14px;
+  position: relative;
+  transition: none;
+}
+
+.tab-button.white {
+  background-color: var(--c-bg-bright);
+  border: 1px solid var(--c-bg-plain);
+  box-sizing: border-box;
+  font-weight: 500;
+}
+
+.tab-button.white.active,
+.tab-button.white:hover {
+  border-color: #36a6e9;
+  background: #36a6e9;
+  color: white !important;
+}

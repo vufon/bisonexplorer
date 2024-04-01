@@ -16,16 +16,18 @@
 
             <div class="row">
                 <div class="col">
-                    <h4><span>Chain parameters</span></h4>
-                    <table class="table table-mono-cells table-sm">
+                    <h5 class="mt-2"><span>Chain parameters</span></h5>
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+                    <div class="btable-table-wrap maxh-none">
+                    <table class="btable-table w-100">
                         <thead>
-                          <tr>
+                          <tr class="bg-none">
                             <th width="20%">Parameter</th>
                             <th>Value</th>
                             <th width="60%">Description</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bgc-white">
                             <tr>
                                 <td class="mono text-start pe-2 nowrap p03rem0"><a href="/block/{{.ChainParams.GenesisHash}}">GenesisBlock</a></td>
                                 <td class="mono">{{.ChainParams.GenesisBlock.Header.Height}}</td>
@@ -103,16 +105,20 @@
                             </tr>
                         </tbody>
                     </table>
-                    <h4><span>Subsidy parameters</span></h4>
-                    <table class="table table-mono-cells table-sm">
+                    </div>
+                    </div>
+                    <h5 class="mt-3"><span>Subsidy parameters</span></h5>
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                         <thead>
-                          <tr>
+                          <tr class="bg-none">
                             <th width="20%">Parameter</th>
                             <th>Value</th>
                             <th width="60%">Description</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bgc-white">
                             <tr>
                                 <td class="mono text-start pe-2 nowrap p03rem0">BaseSubsidy</td>
                                 <td>
@@ -153,16 +159,20 @@
                             </tr>
                         </tbody>
                     </table>
-                    <h4><span>Stake parameters</span></h4>
-                    <table class="table table-mono-cells table-sm">
+                    </div>
+                    </div>
+                    <h5 class="mt-3"><span>Stake parameters</span></h5>
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                         <thead>
-                          <tr>
+                          <tr class="bg-none">
                             <th width="20%">Parameter</th>
                             <th>Value</th>
                             <th width="60%">Description</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bgc-white">
                             <tr>
                                 <td class="mono text-start pe-2 nowrap p03rem0">MinimumStakeDiff</td>
                                 <td class="mono">{{template "decimalParts" (amountAsDecimalParts .ChainParams.MinimumStakeDiff true)}} DCR</td>
@@ -255,16 +265,20 @@
                             </tr>
                         </tbody>
                     </table>
-                    <h4><span>Treasury parameters</span></h4>
-                    <table class="table table-mono-cells table-sm f15">
+                    </div>
+                    </div>
+                    <h5 class="mt-3"><span>Treasury parameters</span></h5>
+                     <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100 fs-15">
                         <thead>
-                          <tr>
+                          <tr class="bg-none">
                             <th width="20%">Parameter</th>
                             <th>Value</th>
                             <th width="60%">Description</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bgc-white">
                             <tr>
                                 <td class="mono text-start pe-2 nowrap p03rem0">TreasuryVoteInterval</td>
                                 <td class="mono">{{.ChainParams.TreasuryVoteInterval}}</td>
@@ -312,16 +326,20 @@
                             </tr>
                         </tbody>
                     </table>
-                    <h4><span>Rule change parameters</span></h4>
-                    <table class="table table-mono-cells table-sm f15">
+                    </div>
+                    </div>
+                    <h5 class="mt-3"><span>Rule change parameters</span></h5>
+                     <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100 fs-15">
                         <thead>
-                          <tr>
+                          <tr class="bg-none">
                             <th width="20%">Parameter</th>
                             <th>Value</th>
                             <th width="60%">Description</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bgc-white">
                             <tr>
                                 <td class="mono text-start pe-2 nowrap p03rem0">RuleChangeActivationQuorum</td>
                                 <td class="mono">{{.ChainParams.RuleChangeActivationQuorum}}</td>
@@ -359,16 +377,20 @@
                             </tr>
                         </tbody>
                     </table>
-                    <h4><span>Address parameters</span></h4>
-                    <table class="table table-mono-cells table-sm">
+                    </div>
+                    </div>
+                    <h5 class="mt-3"><span>Address parameters</span></h5>
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                         <thead>
-                          <tr>
+                          <tr class="bg-none">
                             <th width="20%">Address</th>
                             <th>Prefix</th>
                             <th width="60%">Description</th>
                           </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bgc-white">
                             <tr>
                                 <td class="mono text-start pe-2 nowrap p03rem0">NetworkAddressPrefix</td>
                                 <td class="mono">{{.ChainParams.NetworkAddressPrefix}}</td>
@@ -383,6 +405,8 @@
                             {{end}}
                         </tbody>
                     </table>
+                    </div>
+                    </div>
                 </div>
             </div>
         </div>

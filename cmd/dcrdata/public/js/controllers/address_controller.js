@@ -423,17 +423,17 @@ export default class extends Controller {
 
     if (typeof offset !== 'undefined' && offset > 0) {
       links = `<a href="/${root}?start=${offset - pageSize}&n=${pageSize}&txntype=${txnType}${time && time !== '' ? '&time=' + time : ''}" ` +
-      'class="d-inline-block dcricon-arrow-left m-1 fz20" data-action="click->address#pageNumberLink"></a>' + '\n'
+      'class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20" data-action="click->address#pageNumberLink"></a>' + '\n'
     }
 
     links += tablePagesLink.map(d => {
       if (!d.link) return `<span>${d.str}</span>`
-      return `<a href="${d.link}" class="fs18 pager px-1${d.active ? ' active' : ''}" data-action="click->address#pageNumberLink">${d.str}</a>`
+      return `<a href="${d.link}" class="fs18 pager pagination-number${d.active ? ' active' : ''}" data-action="click->address#pageNumberLink">${d.str}</a>`
     }).join('\n')
 
     if ((txCount - offset) > pageSize) {
       links += '\n' + `<a href="/${root}?start=${(offset + pageSize)}&n=${pageSize}&txntype=${txnType}${time && time !== '' ? '&time=' + time : ''}" ` +
-      'class="d-inline-block dcricon-arrow-right m-1 fs20" data-action="click->address#pageNumberLink"></a>'
+      'class="d-inline-block dcricon-arrow-right pagination-number pagination-narrow m-1 fs20" data-action="click->address#pageNumberLink"></a>'
     }
 
     ctrl.tablePaginationTarget.innerHTML = dompurify.sanitize(links)

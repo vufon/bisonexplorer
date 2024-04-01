@@ -7,7 +7,7 @@
 {{- with .Data -}}
 {{$Invalidated := and (gt .Confirmations 1) (not .Valid) }}
 	<div class="row mx-2 my-2">
-		<div class="col-24 col-xl-12 bg-white p-3 position-relative">
+		<div class="col-24 col-xl-12 bg-green-3 p-3 position-relative common-card">
 			<div class="card-pointer pointer-right d-none d-xl-block"></div>
 			<div class="card-pointer pointer-bottom d-xl-none"></div>
 			<div class="pb-1 ps-1 position-relative">
@@ -108,7 +108,7 @@
 				<div class="d-inline-block"><span class="d-sm-none d-inline-block position-relative" data-tooltip="Revocations">Revs</span><span class="d-none d-sm-inline">Revocations</span>: {{.Revocations}}</div>
 			</div>
 		</div>
-		<div class="col-24 col-xl-12 secondary-card py-3 px-3 px-xl-4">
+		<div class="col-24 col-xl-12 py-3 px-3 px-xl-4 blue-card">
 			<div class="h6 d-inline-block my-2 ps-3">Block Details</div>
 			<table class="w-100 fs14 mt-2 details">
 				<tbody>
@@ -116,57 +116,57 @@
 						<td class="text-end fw-bold text-nowrap pe-2"
 							><span class="d-none d-sm-inline">Ticket Price</span
 							><span class="d-sm-none">Tkt Price</span>: </td>
-						<td class="text-start text-secondary">{{template "decimalParts" (float64AsDecimalParts .SBits 8 false)}}</td>
+						<td class="text-start">{{template "decimalParts" (float64AsDecimalParts .SBits 8 false)}}</td>
 						<td class="text-end fw-bold text-nowrap pe-2">Fees: </td>
-						<td class="text-start text-secondary">{{printf "%.8f" .MiningFee}}</td>
+						<td class="text-start">{{printf "%.8f" .MiningFee}}</td>
 						<td class="d-none d-sm-table-cell text-end fw-bold text-nowrap pe-2">Pool Size: </td>
-						<td class="d-none d-sm-table-cell text-start text-secondary">{{.PoolSize}}</td>
+						<td class="d-none d-sm-table-cell text-start">{{.PoolSize}}</td>
 					</tr>
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2"
 							><span class="d-none d-sm-inline">PoW Difficulty</span
 							><span class="d-sm-none">PoW Diff</span>: </td>
-						<td class="text-start text-secondary">{{template "decimalParts" (float64AsDecimalParts .Difficulty 0 true)}}</td>
+						<td class="text-start">{{template "decimalParts" (float64AsDecimalParts .Difficulty 0 true)}}</td>
 						<td class="text-end fw-bold text-nowrap pe-2"
 							><span class="d-none d-sm-inline">Block Version</span
 							><span class="d-sm-none">Blk Ver</span>: </td>
-						<td class="text-start text-secondary">{{.Version}}</td>
+						<td class="text-start">{{.Version}}</td>
 						<td class="d-none d-sm-table-cell text-end fw-bold text-nowrap pe-2">Nonce: </td>
-						<td class="d-none d-sm-table-cell text-start text-secondary">{{.Nonce}}</td>
+						<td class="d-none d-sm-table-cell text-start">{{.Nonce}}</td>
 					</tr>
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2">Final State: </td>
-						<td class="text-start text-secondary">{{.FinalState}}</td>
+						<td class="text-start">{{.FinalState}}</td>
 						<td class="text-end fw-bold text-nowrap pe-2"
 							><span class="d-none d-sm-inline">Stake Version</span
 							><span class="d-sm-none">Stk Ver</span>: </td>
-						<td class="text-start text-secondary">{{.StakeVersion}}</td>
+						<td class="text-start">{{.StakeVersion}}</td>
 						<td class="d-none d-sm-table-cell text-end fw-bold text-nowrap pe-2">Vote Bits: </td>
-						<td class="d-none d-sm-table-cell text-start text-secondary">{{.VoteBits}} ({{blockVoteBitsStr .VoteBits}})</td>
+						<td class="d-none d-sm-table-cell text-start">{{.VoteBits}} ({{blockVoteBitsStr .VoteBits}})</td>
 					</tr>
 					<tr class="d-sm-none">
 						<td class="text-end fw-bold text-nowrap pe-2">Pool Size: </td>
-						<td class="text-start text-secondary">{{.PoolSize}}</td>
+						<td class="text-start">{{.PoolSize}}</td>
 						<td class="text-end fw-bold text-nowrap pe-2">Vote Bits: </td>
-						<td class="text-start text-secondary">{{.VoteBits}} ({{blockVoteBitsStr .VoteBits}})</td>
+						<td class="text-start">{{.VoteBits}} ({{blockVoteBitsStr .VoteBits}})</td>
 					</tr>
 					<tr class="d-sm-none">
 						<td class="text-end fw-bold text-nowrap pe-2">Nonce: </td>
-						<td class="text-start text-secondary">{{.Nonce}}</td>
+						<td class="text-start">{{.Nonce}}</td>
 					</tr>
 					{{if and (ne .PoWHash .Hash) (ne .PoWHash "")}} 
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2">PoW Hash: </td>
-						<td colspan="5" class="text-start break-word text-secondary lh1rem"> {{.PoWHash}}</td>
+						<td colspan="5" class="text-start break-word lh1rem"> {{.PoWHash}}</td>
 					</tr>
 					{{end}}
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2">Merkle Root: </td>
-						<td colspan="5" class="text-start break-word text-secondary lh1rem"> {{.MerkleRoot}}</td>
+						<td colspan="5" class="text-start break-word lh1rem"> {{.MerkleRoot}}</td>
 					</tr>
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2">Stake Root: </td>
-						<td colspan="5" class="text-start break-word text-secondary lh1rem"> {{.StakeRoot}}</td>
+						<td colspan="5" class="text-start break-word lh1rem"> {{.StakeRoot}}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -177,15 +177,17 @@
 		<span class="d-inline-block pt-4 pb-1 h4">Block Reward</span>
 		{{range .Tx -}}
 		{{if eq .Coinbase true -}}
-		<table class="table">
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 			<thead>
-				<tr>
+				<tr class="bg-none">
 					<th>Transaction ID</th>
 					<th class="text-end">Total DCR</th>
 					<th class="text-end">Size</th>
 				</tr>
 			</thead>
-			<tbody {{if $Invalidated}}class="invalidated-tx" title="Regular transactions invalidated."{{end}}>
+			<tbody {{if $Invalidated}}class="invalidated-tx bgc-white" title="Regular transactions invalidated."{{else}}class="bgc-white"{{end}}>
 				<tr>
 					<td class="break-word">
 					{{- if $.Data.Nonce}}
@@ -203,14 +205,18 @@
 				</tr>
 			</tbody>
 		</table>
+		</div>
+		</div>
 		{{- end -}}
 		{{- end}}
 
 		{{if .Treasury -}}
 		<span class="d-inline-block pt-4 pb-1 h4">Treasury</span>
-		<table class="table">
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 			<thead>
-				<tr>
+				<tr class="bg-none">
 					<th>Transaction ID</th>
 					<th class="text-end">Type</th>
 					<th class="text-end">Total DCR</th>
@@ -218,7 +224,7 @@
 					<th class="text-end">Size</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="bgc-white">
 			{{range .Treasury -}}
 				<tr>
 					<td class="break-word">
@@ -234,12 +240,16 @@
 			{{- end}}
 			</tbody>
 		</table>
+		</div>
+		</div>
 		{{- end -}}
 
 		<span class="d-inline-block pt-4 pb-1 h4">Votes</span>
 		{{if not .Votes -}}
-		<table class="table">
-			<tr>
+		 <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
+			<tr class="bg-none">
 				<td>No votes in this block.
 				{{if lt .Height .StakeValidationHeight}}
 						(Voting starts at block {{.StakeValidationHeight}}.)
@@ -247,10 +257,14 @@
 				</td>
 			</tr>
 		</table>
+		</div>
+		</div>
 		{{- else}}
-		<table class="table">
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 			<thead>
-				<tr>
+				<tr class="bg-none">
 					<th>Transaction ID</th>
 					<th class="text-end">Vote Version</th>
 					<th class="text-end">Last Block</th>
@@ -258,7 +272,7 @@
 					<th class="text-end">Size</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="bgc-white">
 			{{range .Votes -}}
 				<tr>
 					<td class="break-word">
@@ -274,18 +288,21 @@
 			{{- end}}
 			</tbody>
 		</table>
+		</div></div>
 		{{- end}}
 
 		{{- if ge .Height .StakeValidationHeight -}}
 		{{if .Misses -}}
 		<span class="d-inline-block pt-4 pb-1 h4">Missed Votes</span>
-		<table class="table">
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 			<thead>
-				<tr>
+				<tr class="bg-none">
 					<th>Ticket ID</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="bgc-white">
 			{{range .Misses -}}
 				<tr>
 					<td class="break-word">
@@ -295,27 +312,34 @@
 			{{- end}}
 			</tbody>
 		</table>
+		</div>
+		</div>
 		{{- end}}
 		{{- end}}
 
 		<span class="d-inline-block pt-4 pb-1 h4">Tickets</span>
 		{{- if not .Tickets}}
-		<table class="table">
-			<tr>
+		 <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
+			<tr class="bg-none">
 				<td>No tickets mined this block.</td>
 			</tr>
 		</table>
+		</div></div>
 		{{- else}}
-		<table class="table">
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 			<thead>
-				<tr>
+				<tr class="bg-none">
 					<th>Transaction ID</th>
 					<th class="text-end">Total DCR</th>
 					<th class="text-end">Fee</th>
 					<th class="text-end">Size</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="bgc-white">
 			{{ range .Tickets -}}
 				<tr>
 					<td class="break-word">
@@ -330,20 +354,23 @@
 			{{- end}}
 			</tbody>
 		</table>
+		</div></div>
 		{{- end}}
 
 		{{if .Revocations -}}
 		<span class="d-inline-block pt-4 pb-1 h4">Revocations</span>
-		<table class="table">
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 			<thead>
-				<tr>
+				<tr class="bg-none">
 					<th>Transaction ID</th>
 					<th class="text-end">Total DCR</th>
 					<th class="text-end">Fee</th>
 					<th class="text-end">Size</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody class="bgc-white">
 			{{range .Revs -}}
 				<tr>
 					<td class="break-word">
@@ -358,19 +385,27 @@
 			{{- end}}
 			</tbody>
 		</table>
+		</div>
+		</div>
 		{{- end -}}
 
 		<span class="d-inline-block pt-4 pb-1 h4">Transactions</span>
 		{{if not .TxAvailable -}}
-		<table class="table">
-			<tr>
+		 <div class="br-8 b--def bgc-plain-bright pb-10">
+   		<div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
+			<tr class="bg-none">
 				<td>No standard transactions mined this block.</td>
 			</tr>
 		</table>
+		</div>
+		</div>
 		{{- else -}}
-		<table class="table">
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 			<thead>
-				<tr>
+				<tr class="bg-none">
 					<th>Transaction ID</th>
 					<th class="text-end">Total DCR</th>
 					<th class="text-end">Mixed</th>
@@ -379,7 +414,7 @@
 					<th class="text-end">Size</th>
 				</tr>
 			</thead>
-			<tbody {{if $Invalidated}}class="invalidated-tx" title="Regular transactions invalidated."{{end}}>
+			<tbody {{if $Invalidated}}class="invalidated-tx bgc-white" title="Regular transactions invalidated."{{else}}class="bgc-white"{{end}}>
 			{{- range .Tx -}}
 			{{- if eq .Coinbase false}}
 				<tr>
@@ -404,6 +439,7 @@
 			{{- end}}
 			</tbody>
 		</table>
+		</div></div>
 		{{- end}}
 	</div>
 {{- end}}{{/* with .Data */}}

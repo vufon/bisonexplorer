@@ -25,7 +25,7 @@
                             <label class="mb-0 me-1">Vote Status</label>
                             <select
                                 id="votestatus"
-                                class="form-control-sm mb-2 me-sm-2 mb-sm-0"
+                                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8"
                                 data-pagenavigation-target="votestatus"
                                 data-action="change->pagenavigation#setFilterbyVoteStatus"
                             >
@@ -37,11 +37,15 @@
                         </div>
                     {{end}}
 
-                    <table class="table">
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+                <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                         <tr>
                             <td>No proposal found for {{ .NetName }}.</td>
                         </tr>
                     </table>
+                    </div>
+                    </div>
                 {{ else }}
 
                 {{block "proposalsPagination" .}}
@@ -60,7 +64,7 @@
                                 data-action="change->pagenavigation#setPageSize"
                                 data-offset="{{$.Offset}}"
                                 data-offsetkey="offset"
-                                class="form-control-sm mb-2 me-sm-2 mb-sm-0 {{if lt $pending 20}}disabled{{end}}"
+                                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $pending 20}}disabled{{end}}"
                                 {{if lt $pending 20}}disabled="disabled"{{end}}
                             >
                             {{if ge $pending 20}}<option {{if eq $count 20}}selected{{end}} value="20">20</option>{{end}}
@@ -108,10 +112,11 @@
                     </div>
                 {{end}}
             </div>
-
-            <table class="table my-2" data-controller="time">
+ <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100 my-2" data-controller="time">
                 <thead>
-                    <tr>
+                    <tr class="bg-none">
                         <th class="text-center">
                             Title
                             <span class="d-none d-sm-inline">(Author)</span>
@@ -131,7 +136,7 @@
                         <th class="text-end pe-2">Updated</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="bgc-white">
                 {{range $i, $v := .Proposals}}
                 {{with $v}}
                     <tr>
@@ -236,7 +241,9 @@
                 {{end}}
                 </tbody>
             </table>
-            {{if gt .Limit 20}}
+            </div>
+            </div>
+            {{if gt $.TotalCount 20}}
                 {{template "proposalsPagination" .}}
             {{end}}
             {{end}}

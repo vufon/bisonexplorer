@@ -129,6 +129,7 @@
   border-radius: 2px;
   background: transparent;
   transition: all 0.1s cubic-bezier(0.25, 0.8, 0.25, 1);
+  color: rgb(78 78 78);
 }
 
 .btn-set > button:focus {
@@ -137,7 +138,9 @@
 
 .btn-set > button.btn-selected {
   background-color: white;
-  border: 1px solid #aaa;
+  border: 1px solid #c4c4c4;
+  border-radius: 5px;
+  color: rgb(78 78 78);
 }
 
 .btn-set > label {
@@ -267,15 +270,9 @@
 }
 
 .chartview {
-  margin: 0 2%;
+  margin: 0 1%;
   min-height: 73vh;
   width: 96%;
-}
-
-@media (max-width: 580px) {
-  .chartview {
-    width: 70% !important;
-  }
 }
 
 .chartview .dygraph-ylabel {
@@ -306,7 +303,7 @@ body.darkBG .chartview .dygraph-y2label {
 
 .address_chart_wrap {
   background-color: white;
-  border-radius: 3px;
+  border-radius: 15px;
   flex: auto;
   position: relative;
   min-height: 200px;
@@ -325,9 +322,19 @@ body.darkBG .chartview .dygraph-y2label {
 .chart-wrapper {
   position: relative;
   padding-left: 0 !important;
+  width: 96%;
 }
 
 .chart-wrapper.loading .spinner-wrapper {
+  display: block;
+}
+
+.home-chart-wrapper {
+  position: relative;
+  padding-left: 0 !important;
+}
+
+.home-chart-wrapper.loading .spinner-wrapper {
   display: block;
 }
 
@@ -546,7 +553,9 @@ body.darkBG .customcheck input:checked ~ .total-mixed {
   height: 2em;
   line-height: 2em;
   padding-right: 0.5em;
-  border: 1px solid gray;
+  border: 1px solid rgb(179 179 179);
+  border-radius: 7px;
+  color: rgb(78 78 78);
 }
 
 .chart-box:focus {

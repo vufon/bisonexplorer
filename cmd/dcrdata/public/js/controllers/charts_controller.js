@@ -705,7 +705,6 @@ export default class extends Controller {
       url += `&axis=${this.settings.axis}`
       this.setActiveOptionBtn(this.settings.axis, this.axisOptionTargets)
       const chartResponse = await requestJSON(url)
-      console.log('got api data', chartResponse, this, selection)
       selectedChart = selection
       this.plotGraph(selection, chartResponse)
     } else {

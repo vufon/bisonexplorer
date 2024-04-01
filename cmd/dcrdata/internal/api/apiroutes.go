@@ -964,6 +964,17 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 	searchKey := r.URL.Query().Get("search")
 	report, summary, domainList, proposalList, proposalTokenMap, allSpent, allBudget, authorReport := c.getProposalReportData(searchKey)
+	treasurySummary, err := c.DataSource.GetTreasurySummary()
+	if err != nil {
+		log.Errorf("Get treasury summary data failed: %v", err)
+		writeJSON(w, nil, m.GetIndentCtx(r))
+		return
+	}
+	for _, summary := range treasurySummary {
+		summary.Outvalue = 0 - summary.Outvalue
+		summary.OutvalueUSD = 0 - summary.OutvalueUSD
+	}
+
 	//Get coin supply value
 	writeJSON(w, struct {
 		Report           []apitypes.MonthReportObject  `json:"report"`
@@ -974,6 +985,7 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		AllSpent         float64                       `json:"allSpent"`
 		AllBudget        float64                       `json:"allBudget"`
 		AuthorReport     []apitypes.AuthorDataObject   `json:"authorReport"`
+		TreasurySummary  []*dbtypes.TreasurySummary    `json:"treasurySummary"`
 	}{
 		Report:           report,
 		Summary:          summary,
@@ -983,6 +995,7 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		AllSpent:         allSpent,
 		AllBudget:        allBudget,
 		AuthorReport:     authorReport,
+		TreasurySummary:  treasurySummary,
 	}, m.GetIndentCtx(r))
 }
 
@@ -1350,12 +1363,12 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		proposalMetaList, proposalErr := c.DataSource.GetProposalMetaByMonth(int(year), int(month))
 		treasuryData, treasuryErr := c.DataSource.GetTreasurySummaryByMonth(int(year), int(month))
 		legacyData, legacyErr := c.DataSource.GetLegacySummaryByMonth(int(year), int(month))
-		treasurySummary = *treasuryData
-		legacySummary = *legacyData
 		if proposalErr != nil || treasuryErr != nil || legacyErr != nil {
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
 		}
+		treasurySummary = *treasuryData
+		legacySummary = *legacyData
 		for _, proposalMeta := range proposalMetaList {
 			var amount = proposalMeta["Amount"]
 			var token = proposalMeta["Token"]

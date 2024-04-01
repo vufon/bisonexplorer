@@ -19,9 +19,9 @@
       <div class="secondary-card d-inline-block w-100 h-100 p-4" data-address-target="bigchart"></div>
     </div>
     <div class="row pb-4 px-2">
-      <div class="col-24 col-xl-10 bg-white px-3 py-3 position-relative">
-        <div class="fs22 pb-3">Decred Treasury</div>
-        <div class="position-relative d-flex justify-content-between align-items-start flex-wrap">
+      <div class="col-24 col-xl-10 bg-white px-3 py-3 me-3 position-relative common-card">
+        <div class="fs22 pb-1 border-bottom-grey">Decred Treasury</div>
+        <div class="position-relative mt-3 d-flex justify-content-between align-items-start flex-wrap">
           <div class="d-inline-block text-start pe-2 pb-3">
             <span class="text-secondary fs13">Balance</span>
             <br>
@@ -73,7 +73,7 @@
           <span>See also the <a href="/address/{{$.DevAddress}}">legacy treasury</a> during the transition to this decentralized treasury account.</span>
         </div>
       </div>
-      <div class="col-24 col-xl-14 secondary-card p-2">
+      <div class="col-24 mt-2 mt-xl-0 col-xl-13 common-card secondary-card p-2">
         <noscript>
           <div class="text-center pt-5 fs15">Enable Javascript to see charts</div>
         </noscript>
@@ -148,12 +148,7 @@
     
     <div class="position-relative" data-address-target="listbox">
       <div class="row align-items-center">
-        <div class="me-auto mb-0 h4 col-24 col-sm-6">Transactions</div>
-        <div data-address-target="paginationheader" class="d-flex flex-wrap-reverse align-items-center justify-content-end py-1 col-24 col-sm-18">
-          <span class="fs12 nowrap text-end" data-address-target="range">
-            showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset .NumTransactions)}} of
-            <span data-address-target="txnCount" data-txn-count="{{$bal.TxCount}}">{{intComma .TypeCount}}</span> transactions
-          </span>
+        <div class="me-auto mb-0 h4 col-24 col-sm-6 d-flex ai-center">Transactions
           <nav aria-label="address transactions navigation"
             data-limit="{{.Limit}}"
             class="my-1 ms-2{{if ge .NumTransactions $TxnCount}} d-hide{{end}}"
@@ -181,45 +176,24 @@
             </ul>
           </nav>
         </div>
-      </div>
-      <div class="position-relative">
-      {{- /* TODO: unconfirmed tadd and tspend txns */}}
-        <div class="loader-v2" data-address-target="listLoader"></div>
-        <div class="position-relative" data-address-target="table">
-          {{template "treasuryTable" .}}
-        </div>
-      </div>
-      <div class="text-end pe-3" data-address-target="tablePagination">
-        {{if ne .Offset 0}}
-        <a class="d-inline-block dcricon-arrow-left m-1 fz20"
-           data-action="click->address#pageNumberLink"
-           href="/treasury?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}{{if ne $Time ""}}&time={{$Time}}{{end}}"></a>
-        {{end}}
-        {{range $.Pages}}
-          {{if eq .Link ""}}
-          <span>{{.Str}}</span>
-          {{else}}
-          <a class="fs18 pager px-1{{if .Active}} active{{end}}"
-              data-action="click->address#pageNumberLink"
-              href="{{.Link}}">{{.Str}}</a>
-          {{end}}
-        {{end}}
-        {{if gt (subtract .TypeCount .Offset) .Limit}}
-        <a class="d-inline-block dcricon-arrow-right m-1 fs20"
-            data-action="click->address#pageNumberLink"
-            href="/treasury?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}{{if ne $Time ""}}&time={{$Time}}{{end}}"></a>
-        {{end}}
-      </div>
-      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex flex-wrap-reverse align-items-center justify-content-end py-1 col-24 col-sm-18">
+        <div data-address-target="paginationheader"> 
+          <span class="fs12 nowrap text-end" data-address-target="range">
+            showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset .NumTransactions)}} of
+            <span data-address-target="txnCount" data-txn-count="{{$bal.TxCount}}">{{intComma .TypeCount}}</span> transactions
+          </span>
+          <span class="separator mx-2 h-20px"></span>
+          </div>
+        <div class="d-flex align-items-center justify-content-between">
         <span></span>{{/*This dummy span ensures left/right alignment of the buttons, even if one is hidden.*/}}
         <div class="d-flex flex-row">
           <div class="d-inline-block text-end">
-            <label class="mb-0 me-1" for="txntype">Type</label>
+            <label class="mb-0 ms-2 me-1" for="txntype">Type</label>
             <select
               name="txntype"
               data-address-target="txntype"
               data-action="change->address#changeTxType"
-              class="form-control-sm mb-2 me-sm-2 mb-sm-0"
+              class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8"
             >
               <option {{if eq $txType "all"}}selected{{end}} value="all">All</option>
               <option {{if eq $txType "tspend"}}selected{{end}} value="tspend">Spend</option>
@@ -234,7 +208,7 @@
               id="pagesize"
               data-address-target="pagesize"
               data-action="change->address#changePageSize"
-              class="form-control-sm mb-2 me-sm-2 mb-sm-0 {{if lt $TxnCount 20}}disabled{{end}}"
+              class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $TxnCount 20}}disabled{{end}}"
               {{- if lt $TxnCount 20}} disabled{{end}}
             >
             {{- $Txlen := len .Transactions}}
@@ -248,6 +222,38 @@
             {{- end}}
             </select>
           </div>
+        </div>
+      </div>
+        </div>
+      </div>
+      <div class="position-relative">
+      {{- /* TODO: unconfirmed tadd and tspend txns */}}
+        <div class="loader-v2" data-address-target="listLoader"></div>
+      <div class="br-8 b--def bgc-plain-bright pb-10">
+        <div class="position-relative" data-address-target="table">
+          {{template "treasuryTable" .}}
+        </div>
+      <div class="text-end pe-3" data-address-target="tablePagination">
+        {{if ne .Offset 0}}
+        <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
+           data-action="click->address#pageNumberLink"
+           href="/treasury?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}{{if ne $Time ""}}&time={{$Time}}{{end}}"></a>
+        {{end}}
+        {{range $.Pages}}
+          {{if eq .Link ""}}
+          <span>{{.Str}}</span>
+          {{else}}
+          <a class="fs18 pager pagination-number{{if .Active}} active{{end}}"
+              data-action="click->address#pageNumberLink"
+              href="{{.Link}}">{{.Str}}</a>
+          {{end}}
+        {{end}}
+        {{if gt (subtract .TypeCount .Offset) .Limit}}
+        <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
+            data-action="click->address#pageNumberLink"
+            href="/treasury?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}{{if ne $Time ""}}&time={{$Time}}{{end}}"></a>
+        {{end}}
+      </div>
         </div>
       </div>
     </div>{{/*address.listbox*/}}

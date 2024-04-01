@@ -27,48 +27,48 @@
             <div class="row">
                 <div class="py-1 px-4 px-lg-3 text-start col-24 col-lg-12 my-2">
                   {{range .Agendas}}
-                    <div class="fs16 w-100 text-start bg-white mb-3 p-3">
+                    <div class="fs16 w-100 text-start bg-white mb-3 p-3 pt-0 px-0 pt-2 common-card">
                       {{if .IsDefined}}
                         {{if .VotingTriggered}}
                             <span class="fs18 fw-bold lh1rem">{{.ID}} vote scheduled</span><br />
                             <span class="fs14 d-inline-block lh1rem mb-2">voting begins at block {{$.VotingSummary.NextRCIHeight}} (about <span class="fw-bold">{{secondsToShortDurationString $.VotingSummary.TilNextRCI}}</span>)</span><br />
-                            {{.Description}}
+                            <p class="ms-2">{{.Description}}</p>
                         {{else}}
                             <span class="fs18 fw-bold me-2">{{.ID}}</span><br>
-                            {{.Description}}
+                            <p class="ms-2">{{.Description}}</p>
                         {{end}}
                       {{else if .IsVoting}}
                           <span class="fs18 fw-bold lh1rem">Now voting on {{.ID}}</span><br>
                           <span class="fs14 d-inline-block lh1rem mb-2">voting ends at block {{$.VotingSummary.NextRCIHeight}} (about <span class="fw-bold">{{secondsToShortDurationString $.VotingSummary.TilNextRCI}}</span>)</span><br>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{else if .IsLocked}}
-                          <div class="d-flex justify-content-start align-items-center mb-2">
+                          <div class="d-flex justify-content-start align-items-center mb-2 pb-2 pt-2 common-card-header border-bottom-grey">
                               <span class="fs22 text-green dcricon-affirm me-2 pt-1"></span>
                               <div class="d-inline-block">
                                 <span class="fs18 fw-bold me-2">{{.ID}} approved</span>
                                 <span class="fs14">active at block {{$.VotingSummary.NextRCIHeight}} (about {{secondsToShortDurationString $.VotingSummary.TilNextRCI}})</span>
                               </div>
                           </div>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{else if .IsFailed}}
-                          <div class="d-flex justify-content-start align-items-center mb-2">
+                          <div class="d-flex justify-content-start align-items-center mb-2 pb-2 pt-2 common-card-header border-bottom-grey">
                               <span class="fs22 text-danger dcricon-reject me-2 pt-1"></span> <span class="fs18 fw-bold">{{.ID}} rejected</span>
                           </div>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{else if .IsActive}}
-                          <div class="d-flex justify-content-start align-items-center mb-2">
+                          <div class="d-flex justify-content-start align-items-center mb-2 pb-2 pt-2 common-card-header border-bottom-grey">
                               <span class="fs22 text-green dcricon-affirm me-2 pt-1"></span> <span class="fs18 fw-bold">{{.ID}} passed (active)</span>
                           </div>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{end}}
                     </div>
                   {{end}}{{/* END AGENDA ITERATION, START RCI/SVI PROGRESS BARS */}}
-                    <div class="row justify-content-between">
-                        <div class="col-24 col-sm-12 text-start">
+                    <div class="row justify-content-between common-card">
+                        <div class="col-24 col-sm-12 p-3 ps-3 ps-sm-5 text-start">
                             <span class="text-secondary fs14">Rule Change Interval</span>
                             <div class="progress v2-progress col-24 col-sm-18 px-0">
                                 <div
@@ -83,7 +83,7 @@
                             </div>
                             <span class="fs14">{{.RCIMined}} of {{.RCIBlocks}} blocks</span>
                         </div>
-                        <div class="col-24 col-sm-12 text-start mb-3">
+                        <div class="col-24 col-sm-12 text-start ps-3 ps-sm-5 p-3">
                             <span class="text-secondary fs14">Stake Version Interval</span>
                             <div class="progress v2-progress col-24 col-sm-18 px-0">
                                 <div
@@ -157,7 +157,7 @@
                         <div class="bg-white d-inline-block p-2 fs16 text-center mx-2 border">Voting on <span class="fw-bold">{{.ID}}</span></div>
                       {{end}}
                     </div>
-                    <div class="d-flex justify-content-around align-items-start flex-wrap mt-2">
+                    <div class="d-flex justify-content-around align-items-start flex-wrap mt-2 common-card">
                       <div class="d-inline-block text-center p-2">
                         <span class="fs16 fw-bold">Quorum</span><br>
                         <div
@@ -192,7 +192,7 @@
                     </div>
                     <span></span>{{/* FLEX SPACER */}}
                   {{else if or .IsFailed .IsLocked .IsActive}}{{/* VOTING COMPLETE */}}
-                    <div class="col-24 col-lg-12 py-3 px-1 flex-column justify-content-center align-items-center">
+                    <div class="col-24 col-lg-12 py-3 px-1 mt-2 flex-column justify-content-center align-items-center common-card">
                       <div class="d-inline-block text-center p-2">
                         <span class="fs16 fw-bold">{{.ID}} Results</span><br>
                         <div
@@ -231,9 +231,11 @@
               </tr>
             </table>
             {{ else }}
-            <table class="table table-mono-cells">
+                                <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                 <thead>
-                  <tr>
+                  <tr class="bg-none">
                     <th>Agenda ID</th>
                     <th class="d-none d-md-table-cell">Description</th>
                     <th class="text-end">Status</th>
@@ -242,7 +244,7 @@
                     <th class="text-end d-none d-sm-table-cell">Expire Time (UTC)</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody class="bgc-white">
                 {{- range $i, $v := .Agendas}}
                 {{- with $v}}
                   <tr>
@@ -257,6 +259,8 @@
                 {{- end}}
                 </tbody>
             </table>
+            </div>
+            </div>
             {{end}}{{/* END TOP CURRENT VOTE SUMMARY SECTION */}}
         </div>
         {{template "footer" . }}

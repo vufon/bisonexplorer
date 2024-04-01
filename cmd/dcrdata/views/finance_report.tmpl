@@ -34,16 +34,16 @@
                <div class="d-flex ai-center my-3 d-none" data-financereport-target="selectTreasuryType">
                      <label data-financereport-target="typeLabel">Type: </label>
                      <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
-                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm btn-active" value="Decentralized Treasury" name="current">
-                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Admin Treasury" name="legacy">
-                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="btn btn_sm" value="Combined" name="combined">
+                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="tab-button white me-1 c-txt-main active" value="Decentralized Treasury" name="current">
+                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="tab-button white me-1 c-txt-main" value="Admin Treasury" name="legacy">
+                        <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange" type="button" class="tab-button white me-1 c-txt-main" value="Combined" name="combined">
                      </div>
                </div>
                <!-- Start treasury chart -->
                <p class="fs-20 pb-2 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
                   Treasury IO Chart
                </p>
-               <div class="d-none secondary-card p-2 treasury-report-chart mb-3" data-financereport-target="treasuryChart">
+               <div class="d-none secondary-card p-2 treasury-report-chart mb-3 common-card" data-financereport-target="treasuryChart">
                   <noscript>
                      <div class="text-center pt-5 fs15">Enable Javascript to see charts</div>
                   </noscript>
@@ -117,7 +117,7 @@
                </div>
                <!-- Finish treasury chart -->
                <div class="mb-2" data-financereport-target="colorNoteRow">
-                  <label class="color-note-label report-tool-bar" data-financereport-target="colorLabel"></label>
+                  <label class="color-note-label report-tool-bar border-radius-8" data-financereport-target="colorLabel"></label>
                   <span class="c-grey-2 ps-2 fw-600 color-description" data-financereport-target="colorDescription">Valid payment month</span>
                </div>
                <p class="fs-20 mb-1 mt-1 report-tool-bar d-none" data-financereport-target="treasuryTypeTitle">
@@ -127,8 +127,8 @@
                <div class="d-none d-inline" data-financereport-target="groupBy">
                   <label data-financereport-target="groupByLabel">Group By: </label>
                      <div class="btn-group" data-toggle="buttons">
-                        <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm btn-active" value="Monthly" name="month">
-                        <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="btn btn_sm" value="Yearly" name="year">
+                        <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="tab-button white me-1 c-txt-main active" value="Monthly" name="month">
+                        <input data-financereport-target="interval" data-action="click->financereport#intervalChange" type="button" class="tab-button white me-1 c-txt-main" value="Yearly" name="year">
                      </div>
                   </div>
                   <div class="d-none" data-financereport-target="activeProposalSwitchArea">
@@ -157,7 +157,7 @@
                 <div class="d-none ms-3" data-financereport-target="treasuryToggleArea">
                   <label class="d-none" data-financereport-target="yearSelectTitle">Select Year</label>
                   <select
-                     class="border-grey me-3 d-none"
+                     class="border-grey me-3 d-none border-plain border-radius-8"
                      data-financereport-target="yearSelect"
                      data-action="change->financereport#changeYear"
                      >

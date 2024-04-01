@@ -3,7 +3,7 @@
 <!DOCTYPE html>
 <html lang="en">
 {{template "html-head" headData .CommonPageData "Decred Market Data"}}
-<body class="{{ theme }}" style="background-color: #3d5873;">
+<body class="{{ theme }}">
 
 {{- template "navbar" . -}}
 
@@ -13,11 +13,9 @@
 
 
     {{- /* LEFT COLUMN */ -}}
-    <div class="col-24 col-lg-auto p-0">
-
-
+    <div class="col-24 col-lg-auto m-3 common-card">
         {{- /* PRICE */ -}}
-        <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white text-center">
+        <div class="ms-4 me-2 my-4 p-2 p-lg-4 common-card bg-white text-center">
             <div class="text-center fs18 text-secondary">1 DCR =</div>
             {{if eq $botState.BtcIndex "USD"}}
                 <span class="fs22 fw-bold d-inline-block">$</span>
@@ -27,8 +25,8 @@
 
 
         {{- /* DCR/BTC MARKETS */ -}}
-        <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white">
-            <div colspan="4" class="fs24 text-center pb-4"><span class="dcricon-coin-negative fs24 me-2"></span> Decred Markets</div>
+        <div class="ms-4 me-2 my-4 p-2 p-lg-4 common-card bg-white">
+            <div colspan="4" class="fs24 text-center border-bottom-grey mb-3 pb-2"><span class="dcricon-coin-negative fs24 me-2"></span> Decred Markets</div>
             <table class="mx-auto mx-lg-3">
                 <tbody>
                     <tr class="fs14 lh1rem">
@@ -80,7 +78,7 @@
 
 
         {{- /* BITCOIN INDICES */ -}}
-        <div class="ms-4 me-2 my-4 py-4 bg-white">
+        <div class="ms-4 me-2 my-4 py-4 common-card bg-white">
             <div colspan="4" class="fs24 d-flex align-items-center justify-content-center pb-3"><div class="exchange-logo bitcoin me-2"></div> <span>Bitcoin Indices</span></div>
             <div class="row">
               {{range $token, $state := $botState.FiatIndices}}
@@ -99,15 +97,14 @@
         </div>
     </div>
 
-
     {{- /* RIGHT COLUMN */ -}}
-    <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 p-0">
+    <div class="row flex-grow-0 m-3 col-24 col-lg mx-0 flex-lg-grow-1 common-card">
         <div class="col ms-4 ms-lg-3 me-2 me-lg-3 mb-4 mt-1 mt-lg-4 flex-grow-1 d-flex flex-column bg-white px-2 px-lg-5 py-2 py-lg-3 position-relative">
         <div class="loader-v2 loading" data-market-target="chartLoader"></div>
 
 
             {{- /* CHART ONTROLS */ -}}
-            <div class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
+            <div class="d-flex flex-shrink-1 align-items-top justify-content-around common-card justify-content-lg-center flex-wrap mx-1 py-2 mx-lg-4 mb-2">
 
 
                 {{- /* EXCHANGE SELECTION */ -}}
@@ -239,7 +236,6 @@
         </div>
     </div>
 </div>
-
 {{- else -}} {{/* EXCHANGE MONITORING DISABLED */}}
 
     <h5 class="py-5 text-center">Exchange monitoring disabled</h5>
