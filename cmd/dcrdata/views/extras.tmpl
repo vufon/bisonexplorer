@@ -61,7 +61,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.d422c0a3f506f82d.css" rel="stylesheet">
+	<link href="/dist/css/style.ec1e8d663f10fc1c.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -351,9 +351,10 @@
 {{define "addressTable"}}
 {{- $txType := .TxnType}}
 {{- if .Transactions}}
-<table class="table table-mono-cells table-responsive-sm">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
 	<thead>
-		<tr>
+		<tr class="bg-none">
 		<th class="d-none d-sm-table-cell">Tx Type</th>
 		<th class="text-start">Input/&#8203;Output ID</th>
 	{{- if eq $txType "merged_debit"}}
@@ -382,7 +383,7 @@
 		<th class="d-none d-sm-table-cell text-end">Size</th>
 		</tr>
 	</thead>
-	<tbody>
+	<tbody class="bgc-white">
 	{{- range .Transactions}}
 		<tr{{if eq .Confirmations 0}} data-address-target="pending" data-txid="{{.TxID}}"{{end}}>
 			<td class="d-none d-sm-table-cell">{{.TxType}}</td>
@@ -444,6 +445,7 @@
 	{{- end}}
 	</tbody>
 </table>
+</div>
 {{- else}}
 <table class="table table-mono-cells">
 	<tr>

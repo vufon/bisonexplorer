@@ -7,7 +7,8 @@
         {{with .Data}}
         <div class="container pb-4" data-controller="proposal">
           <div class="row pt-2 px-2">
-            <div class="col-24 col-xl-11 bg-white px-2 px-xl-5 py-3 position-relative d-flex flex-column justify-content-between align-items-start">
+            <div class="col-24 col-xl-11 bg-white pe-1 position-relative">
+              <div class="common-card px-xl-5 py-3 d-flex flex-column justify-content-between align-items-start">
               {{$status := $metadata.VoteStatusDesc}}
 
               {{- /* INVALID OR INELIGIBLE */ -}}
@@ -109,10 +110,12 @@
                   Proposals
                 </a>
               </div>
+              </div>
             </div>{{/* END COLUMN 1 */ -}}
 
             {{- /* ADDITIONAL DATA */ -}}
-            <div class="col-24 col-xl-13 secondary-card px-3 position-relative d-flex justify-content-center align-items-center">
+            <div class="col-24 col-xl-13 ps-1 position-relative">
+            <div class="secondary-card px-3 d-flex justify-content-center align-items-center">
               <table class="fs14 my-3 text-start d-flex">
                 <tbody>
                   <tr>
@@ -167,7 +170,7 @@
                   </tr>
                 </tbody>
               </table>
-
+            </div>
             </div>{{/* END COLUMN 2 */ -}}
           </div>{{/* END ROW */ -}}
 
@@ -178,15 +181,15 @@
                 data-hash="{{$.Data.Token}}"
                 class="pt-2 proposal-charts"
                 >
-                <div class="d-flex position-relative">
+                <div class="d-flex position-relative common-card mt-3 p-3">
                     <div data-proposal-target="approval" class="proposal-chart-align w-100"></div>
                     <div data-proposal-target="approvalLegend" class="text-nowrap proposal-chart-legend"></div>
                 </div>
-                <div class="d-flex position-relative">
+                <div class="d-flex position-relative common-card mt-3 p-3">
                     <div data-proposal-target="cumulative" class="proposal-chart-align w-100 pt-1"></div>
                     <div data-proposal-target="cumulativeLegend" class="text-nowrap proposal-chart-legend"></div>
                 </div>
-                <div class="d-flex position-relative">
+                <div class="d-flex position-relative common-card mt-3 p-3">
                     <div data-proposal-target="log" class="proposal-chart-align w-100 pt-1"></div>
                     <div data-proposal-target="logLegend" class="text-nowrap proposal-chart-legend"></div>
                 </div>

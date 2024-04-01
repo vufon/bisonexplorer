@@ -302,7 +302,7 @@
     {{$votingStarted := ge $tip .VoteStart}}
     {{$votingEnded := or .Approved (ge $tip .VoteEnd)}}
     <div class="row pt-2 px-2">
-        <div class="col-24 col-xl-11 bg-white px-2 px-xl-5 py-3 position-relative d-flex flex-column justify-content-between align-items-start">
+        <div class="col-24 col-xl-11 bg-white px-2 px-xl-5 py-3 position-relative d-flex flex-column common-card justify-content-between align-items-start">
                 <div class="fs22">Treasury Spend Approval</div>
                 {{if not $votingStarted}}
                   <span class="fs16 lh1rem">Voting has not started for this Treasury Spend</span>
@@ -361,7 +361,8 @@
                 </div>
         </div>
         {{- /* ADDITIONAL DATA */ -}}
-        <div class="col-24 col-xl-13 secondary-card px-3 position-relative d-flex justify-content-center align-items-center">
+        <div class="col-24 col-xl-13 position-relative ps-3">
+          <div class="d-flex secondary-card justify-content-center px-3 align-items-center common-card">
             <table class="fs14 my-3 text-start d-flex">
               <tbody>
                  <tr>
@@ -451,6 +452,7 @@
                  </tr>
               </tbody>
             </table>
+            </div>
         </div>
     </div>
     {{end}}
@@ -458,9 +460,11 @@
     <div class="row mb-5">
         <div class="col-lg-12 mt-4 mb-2">
             <h5 class="pb-2">{{len .Vin}} Input{{if gt (len .Vin) 1}}s{{end}} Consumed</h5>
-            <table class="table">
+           <div class="br-8 b--def bgc-plain-bright pb-10">
+            <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                 <thead>
-                  <tr>
+                  <tr class="bg-none">
                     <th class="shrink-to-fit">#</th>
                     <th class="text-nowrap">Previous Outpoint</th>
                     <th class="addr-hash-column">Addresses</th>
@@ -468,7 +472,7 @@
                     <th class="text-end shrink-to-fit">DCR</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody class="bgc-white">
                     {{range .Vin}}
                     <tr {{if and (eq $.HighlightInOut "in") (eq $.HighlightInOutID .Index)}} class="blue-row" {{end}}>
                         <td class="shrink-to-fit">{{.Index}}</td>
@@ -511,12 +515,16 @@
                     {{end}}
                 </tbody>
             </table>
+            </div>
+            </div>
         </div>
         <div class="col-lg-12 mt-4">
             <h5 class="pb-2">{{len .Vout}} Output{{if gt (len .Vout) 1}}s{{end}} Created</h5>
-            <table class="table">
+            <div class="br-8 b--def bgc-plain-bright pb-10">
+            <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                 <thead>
-                  <tr>
+                  <tr class="bg-none">
                     <th class="shrink-to-fit">#</th>
                     <th class="addr-hash-column"><div class="ps-1">Address</div></th>
                     <th class="text-start shrink-to-fit">Type</th>
@@ -525,7 +533,7 @@
                     <th class="text-end shrink-to-fit">DCR</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody class="bgc-white">
                     {{range $i, $v := .Vout}}
                     <tr {{if and (eq $.HighlightInOut "out") (eq $.HighlightInOutID .Index)}} class="blue-row" {{end}}>
                         <td class="shrink-to-fit">{{.Index}}</td>
@@ -577,6 +585,8 @@
                     {{end}}
                 </tbody>
             </table>
+            </div>
+            </div>
         </div>
     </div>
    
@@ -589,16 +599,18 @@
             Version: <span class="mono">{{.Version}}</span> | Bits: <span class="mono">{{printf "%#04x" .Bits}}</span></p>
             <h5>Agenda Choices</h5>
             {{if .Choices}}
-            <table class="table">
+            <div class="br-8 b--def bgc-plain-bright pb-10">
+            <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                 <thead>
-                  <tr>
+                  <tr class="bg-none">
                     <th class="text-end">Issue ID</th>
                     <th>Issue Description</th>
                     <th>Choice ID</th>
                     <th>Choice Description</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody class="bgc-white">
                     {{range .Choices}}
                     <tr>
                         <td class="text-end"><span class="highlight-text"><a href="/agenda/{{.ID}}">{{.ID}}</a></span></td>
@@ -612,19 +624,23 @@
                     {{end}}
                 </tbody>
             </table>
+            </div>
+            </div>
             {{else}}
             <br>No recognized agenda votes in this transaction.
             {{end}}
             <h5>Treasury Spend Choices</h5>
             {{if gt (len .TSpends) 0}}
-            <table class="table">
+           <div class="br-8 b--def bgc-plain-bright pb-10">
+          <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
                 <thead>
-                  <tr>
+                  <tr class="bg-none">
                     <th>Treasury Spend Transaction</th>
                     <th>Choice</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody class="bgc-white">
                     {{range .TSpends}}
                     <tr>
                         <td><a href="/tx/{{.TSpend}}">{{.TSpend}}</a></td>
@@ -633,6 +649,8 @@
                     {{end}}
                 </tbody>
             </table>
+            </div>
+            </div>
             {{else}}
             No treasury spend choices in this transaction.
             {{end}}

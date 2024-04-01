@@ -18,7 +18,8 @@
       <div class="secondary-card d-inline-block w-100 h-100 p-4" data-address-target="bigchart"></div>
     </div>
     <div class="row pb-4 px-2">
-      <div class="col-24 col-xl-11 bg-white px-3 py-3 position-relative">
+      <div class="col-24 col-xl-11 bg-white pe-1 position-relative">
+      <div class="py-3 px-3 common-card h-100">
           {{- if eq .Address $.DevAddress}}
               <div class="fs22 pb-3">Legacy Decred Treasury</div>
           {{- else}}
@@ -119,8 +120,10 @@
               *This a is dummy address, typically used for unspendable ticket change outputs.
             {{end}}
           </div>
+          </div>
       </div>
-      <div class="col-24 col-xl-13 secondary-card p-2">
+      <div class="col-24 col-xl-13 ps-1">
+      <div class="secondary-card p-2 h-100 common-card">
         <noscript>
           <div class="text-center pt-5 fs15">Enable Javascript to see charts</div>
         </noscript>
@@ -190,18 +193,15 @@
             </div>
           </div>
         </div>
+        </div>
       </div>
     </div>
     {{if not .IsDummyAddress}}
     <div class="position-relative" data-address-target="listbox">
         <div class="row align-items-center">
-          <div class="me-auto mb-0 h4 col-24 col-sm-6">Transactions</div>
-          <div data-address-target="paginationheader" class="d-flex flex-wrap-reverse align-items-center justify-content-end py-1 col-24 col-sm-18">
-              <span class="fs12 nowrap text-end" data-address-target="range">
-                  showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset .NumTransactions)}} of
-                      <span data-address-target="txnCount" data-txn-count="{{$TxnCount}}">{{intComma $TxnCount}}</span> transactions
-              </span>
-              <nav aria-label="address transactions navigation"
+          <div class="me-auto mb-0 h4 col-24 col-sm-6 d-flex ai-center">
+          Transactions
+          <nav aria-label="address transactions navigation"
                     data-limit="{{.Limit}}"
                     class="my-1 ms-2{{if ge .NumTransactions $TxnCount}} d-hide{{end}}"
                     data-address-target="pagebuttons">
@@ -227,50 +227,24 @@
                   </ul>
               </nav>
           </div>
-        </div>
-        <div class="position-relative">
-          <div class="loader-v2" data-address-target="listLoader"></div>
-          <div class="position-relative" data-address-target="table">
-            {{template "addressTable" .}}
-          </div>
-        </div>
-        <span class="fs13 py-1 d-block{{if not .IsMerged}} d-hide{{end}}" data-address-target="mergedMsg">
-            *No unconfirmed transactions shown in merged views.
-        </span>
-        <div class="text-end pe-3" data-address-target="tablePagination">
-          {{if ne .Offset 0}}
-            <a  class="d-inline-block dcricon-arrow-left m-1 fz20"
-                data-action="click->address#pageNumberLink"
-                href="/address/{{.Address}}?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
-          {{end}}
-          {{range $.Pages}}
-            {{if eq .Link ""}}
-              <span>{{.Str}}</span>
-            {{else}}
-              <a  class="fs18 pager px-1{{if .Active}} active{{end}}"
-                  data-action="click->address#pageNumberLink"
-                  href="{{.Link}}">{{.Str}}</a>
-            {{end}}
-          {{end}}
-          {{if gt (subtract $TxnCount .Offset) .Limit}}
-            <a  class="d-inline-block dcricon-arrow-right m-1 fs20"
-                data-action="click->address#pageNumberLink"
-                href="/address/{{.Address}}?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
-          {{end}}
-        </div>
+          <div class="d-flex flex-wrap-reverse align-items-center justify-content-end py-1 col-24 col-sm-18">
+          <div data-address-target="paginationheader">
+              <span class="fs12 nowrap text-end" data-address-target="range">
+                  showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset .NumTransactions)}} of
+                      <span data-address-target="txnCount" data-txn-count="{{$TxnCount}}">{{intComma $TxnCount}}</span> transactions
+              </span>
+              <span class="separator mx-2 h-20px"></span>
+              </div>
         <div class="d-flex align-items-center justify-content-between">
-          {{- if gt $TxnCount 0}}
-          <a class="d-inline-block p-2 rounded download text-nowrap" href="/download/address/io/{{.Address}}{{if $.CRLFDownload}}/win{{end}}" type="text/csv" download><span class="dcricon-download mx-1"></span> Download CSV</a>
-          {{- end}}
           <span></span>{{/*This dummy span ensures left/right alignment of the buttons, even if one is hidden.*/}}
           <div class="d-flex flex-row">
-            <div class="d-inline-block text-end">
+            <div class="d-flex ai-center text-end">
               <label class="mb-0 me-1" for="txntype">Type</label>
               <select
                 name="txntype"
                 data-address-target="txntype"
                 data-action="change->address#changeTxType"
-                class="form-control-sm mb-2 me-sm-2 mb-sm-0"
+                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8"
               >
                   <option {{if eq $txType "all"}}selected{{end}} value="all">All</option>
                   <option {{if eq $txType "unspent"}}selected{{end}} value="unspent">Unspent</option>
@@ -281,14 +255,14 @@
                   <option {{if eq $txType "merged_debit"}}selected{{end}} value="merged_debit">Merged Debits</option>
               </select>
             </div>
-            <div class="d-inline-block text-end">
+            <div class="d-flex ai-center text-end">
               <label class="mb-0 me-1" for="pagesize">Page size</label>
               <select
                   name="pagesize"
                   id="pagesize"
                   data-address-target="pagesize"
                   data-action="change->address#changePageSize"
-                  class="form-control-sm mb-2 me-sm-2 mb-sm-0 {{if lt $TxnCount 20}}disabled{{end}}"
+                  class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $TxnCount 20}}disabled{{end}}"
                   {{- if lt $TxnCount 20}} disabled{{end}}
               >
               {{- $Txlen := len .Transactions}}
@@ -302,8 +276,45 @@
               {{- end}}
               </select>
             </div>
+          {{- if gt $TxnCount 0}}
+          <a class="d-inline-block p-2 rounded download text-nowrap" href="/download/address/io/{{.Address}}{{if $.CRLFDownload}}/win{{end}}" type="text/csv" download><span class="dcricon-download mx-1"></span> Download CSV</a>
+          {{- end}}
           </div>
         </div>
+          </div>
+        </div>
+        <div class="position-relative">
+          <div class="loader-v2" data-address-target="listLoader"></div>
+          <div class="br-8 b--def bgc-plain-bright pb-10">
+          <div class="position-relative" data-address-target="table">
+            {{template "addressTable" .}}
+          </div>
+          <div class="text-end pe-3" data-address-target="tablePagination">
+          {{if ne .Offset 0}}
+            <a  class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
+                data-action="click->address#pageNumberLink"
+                href="/address/{{.Address}}?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
+          {{end}}
+          {{range $.Pages}}
+            {{if eq .Link ""}}
+              <span>{{.Str}}</span>
+            {{else}}
+              <a  class="fs18 pager pagination-number{{if .Active}} active{{end}}"
+                  data-action="click->address#pageNumberLink"
+                  href="{{.Link}}">{{.Str}}</a>
+            {{end}}
+          {{end}}
+          {{if gt (subtract $TxnCount .Offset) .Limit}}
+            <a  class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
+                data-action="click->address#pageNumberLink"
+                href="/address/{{.Address}}?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
+          {{end}}
+        </div>
+        </div>
+        </div>
+        <span class="fs13 py-1 d-block{{if not .IsMerged}} d-hide{{end}}" data-address-target="mergedMsg">
+            *No unconfirmed transactions shown in merged views.
+        </span>
     </div>
     {{- end}}{{/* if not .IsDummyAddress */}}
   </div>{{/* container main */}}

@@ -32,15 +32,15 @@
                         {{if .VotingTriggered}}
                             <span class="fs18 fw-bold lh1rem">{{.ID}} vote scheduled</span><br />
                             <span class="fs14 d-inline-block lh1rem mb-2">voting begins at block {{$.VotingSummary.NextRCIHeight}} (about <span class="fw-bold">{{secondsToShortDurationString $.VotingSummary.TilNextRCI}}</span>)</span><br />
-                            {{.Description}}
+                            <p class="ms-2">{{.Description}}</p>
                         {{else}}
                             <span class="fs18 fw-bold me-2">{{.ID}}</span><br>
-                            {{.Description}}
+                            <p class="ms-2">{{.Description}}</p>
                         {{end}}
                       {{else if .IsVoting}}
                           <span class="fs18 fw-bold lh1rem">Now voting on {{.ID}}</span><br>
                           <span class="fs14 d-inline-block lh1rem mb-2">voting ends at block {{$.VotingSummary.NextRCIHeight}} (about <span class="fw-bold">{{secondsToShortDurationString $.VotingSummary.TilNextRCI}}</span>)</span><br>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{else if .IsLocked}}
                           <div class="d-flex justify-content-start align-items-center mb-2 pb-2 pt-2 common-card-header border-bottom-grey">
@@ -50,19 +50,19 @@
                                 <span class="fs14">active at block {{$.VotingSummary.NextRCIHeight}} (about {{secondsToShortDurationString $.VotingSummary.TilNextRCI}})</span>
                               </div>
                           </div>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{else if .IsFailed}}
                           <div class="d-flex justify-content-start align-items-center mb-2 pb-2 pt-2 common-card-header border-bottom-grey">
                               <span class="fs22 text-danger dcricon-reject me-2 pt-1"></span> <span class="fs18 fw-bold">{{.ID}} rejected</span>
                           </div>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{else if .IsActive}}
                           <div class="d-flex justify-content-start align-items-center mb-2 pb-2 pt-2 common-card-header border-bottom-grey">
                               <span class="fs22 text-green dcricon-affirm me-2 pt-1"></span> <span class="fs18 fw-bold">{{.ID}} passed (active)</span>
                           </div>
-                          {{.Description}}
+                          <p class="ms-2">{{.Description}}</p>
                           {{template "voteTable" .}}
                       {{end}}
                     </div>
