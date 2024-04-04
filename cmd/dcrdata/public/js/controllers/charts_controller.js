@@ -432,7 +432,7 @@ export default class extends Controller {
 
   drawInitialGraph () {
     const options = {
-      axes: { y: { axisLabelWidth: 70 }, y2: { axisLabelWidth: 70 } },
+      axes: { y: { axisLabelWidth: 70 }, y2: { axisLabelWidth: 65 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
       digitsAfterDecimal: 8,
       showRangeSelector: true,

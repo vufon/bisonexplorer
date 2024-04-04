@@ -15,7 +15,7 @@
     {{- /* LEFT COLUMN */ -}}
     <div class="col-24 col-lg-auto m-3 common-card">
         {{- /* PRICE */ -}}
-        <div class="ms-4 me-2 my-4 p-2 p-lg-4 common-card bg-white text-center">
+        <div class="ms-2 ms-sm-4 me-2 my-4 p-2 p-lg-4 common-card bg-white text-center">
             <div class="text-center fs18 text-secondary">1 DCR =</div>
             {{if eq $botState.BtcIndex "USD"}}
                 <span class="fs22 fw-bold d-inline-block">$</span>
@@ -25,7 +25,7 @@
 
 
         {{- /* DCR/BTC MARKETS */ -}}
-        <div class="ms-4 me-2 my-4 p-2 p-lg-4 common-card bg-white">
+        <div class="ms-2 ms-sm-4 me-2 my-4 p-2 p-lg-4 common-card bg-white">
             <div colspan="4" class="fs24 text-center border-bottom-grey mb-3 pb-2"><span class="dcricon-coin-negative fs24 me-2"></span> Decred Markets</div>
             <table class="mx-auto mx-lg-3">
                 <tbody>
@@ -78,7 +78,7 @@
 
 
         {{- /* BITCOIN INDICES */ -}}
-        <div class="ms-4 me-2 my-4 py-4 common-card bg-white">
+        <div class="ms-2 ms-sm-4 me-2 my-4 py-4 common-card bg-white">
             <div colspan="4" class="fs24 d-flex align-items-center justify-content-center pb-3"><div class="exchange-logo bitcoin me-2"></div> <span>Bitcoin Indices</span></div>
             <div class="row">
               {{range $token, $state := $botState.FiatIndices}}
@@ -98,7 +98,7 @@
     </div>
 
     {{- /* RIGHT COLUMN */ -}}
-    <div class="row flex-grow-0 m-3 col-24 col-lg mx-0 flex-lg-grow-1 common-card">
+    <div class="ms-2 ms-sm-4 row flex-grow-0 m-3 col-24 col-lg mx-0 flex-lg-grow-1 common-card">
         <div class="col ms-4 ms-lg-3 me-2 me-lg-3 mb-4 mt-1 mt-lg-4 flex-grow-1 d-flex flex-column bg-white px-2 px-lg-5 py-2 py-lg-3 position-relative">
         <div class="loader-v2 loading" data-market-target="chartLoader"></div>
 

@@ -626,6 +626,10 @@
     display: block;
   }
 
+  .home-menu-item-title {
+    font-size: 16px;
+  }
+
   @media (max-width: 768px) {
     .chart-name-label {
       display: block !important;
@@ -633,6 +637,21 @@
 
     .chart-title-name {
       display: none;
+    }
+
+    .home-menu-content {
+      padding: 5px 10px 10px;
+      grid-gap: 5px;
+      display: grid;
+      justify-items: stretch;
+    }
+
+    .menu-item-description {
+      display: none;
+    }
+
+    .home-menu-item-title {
+      font-size: 13px;
     }
   }
 
@@ -698,13 +717,39 @@
     border-bottom-left-radius: 10px;
   }
 
-  .chartview {
-    min-width: 97%;
-    max-width: 98%;
-    max-height: 100%;
-    margin: 0 2%;
-    min-height: 0;
-    width: auto;
+  @media (min-width: 576px) {
+    .chartview {
+      min-width: 97%;
+      max-width: 98%;
+      max-height: 100%;
+      margin: 0 2%;
+      min-height: 0;
+      width: auto;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .chartview {
+      min-height: 400px;
+      width: 100%;
+    }
+
+    .dygraph-axis-label {
+      font-size: 12px;
+    }
+
+    .dygraph-ylabel {
+      font-size: 13px;
+    }
+
+    .chart-name-content {
+      font-size: 15px;
+    }
+
+    .hp-explore__cards-content-2,
+    .hp-explore__cards-content-2-1 {
+      padding-right: 0;
+    }
   }
 
   .home-feature-card {

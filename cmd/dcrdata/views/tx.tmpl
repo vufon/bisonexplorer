@@ -71,7 +71,7 @@
                 </div>
                 {{end}}
             </div>
-            <div class="col-8 text-start"{{if $isMempool}} data-tx-target="unconfirmed" data-txid="{{.TxID}}"{{end}}>
+            <div class="col-8 tx-block-num"{{if $isMempool}} data-tx-target="unconfirmed" data-txid="{{.TxID}}"{{end}}>
                 <span class="text-secondary fs13"><span class="d-none d-sm-inline">Included in Block</span><span class="d-sm-none">Block #</span></span>
                 <br>
                 <span class="fs18 fw-bold lh1rem d-inline-block pt-1">
@@ -221,7 +221,7 @@
                           <tr>
                               <td class="text-end medium-sans text-nowrap pe-2 py-2">Ticket Spent:</td>
                               <td colspan="3" class="text-start py-1 break-word lh1rem clipboard">
-                                <a href="/tx/{{.Txid}}">{{.Txid}}</a>
+                                <a class="c-green" href="/tx/{{.Txid}}">{{.Txid}}</a>
                                 {{template "copyTextIcon"}}
                               </td>
                           </tr>
@@ -347,10 +347,10 @@
                     </span>
                     {{if .QuorumAchieved}}
                       <div class="d-flex align-items-center"><span class="fs20 dcricon-affirm me-2"></span>
-                      <span class="lh1em pb-1">Quorum achieved ({{.TotalVotes}} of {{.QuorumCount}} needed votes)</span></div>
+                      <span class="lh1em pb-1">Quorum achieved <span class="mobile-break-text">({{.TotalVotes}} of {{.QuorumCount}} needed votes)</span></span></div>
                     {{else if $votingEnded}}
                       <div class="d-flex align-items-center"><span class="fs20 dcricon-reject me-2"></span>
-                      <span class="pb-1">Quorum not achieved ({{.TotalVotes}} of {{.QuorumCount}} needed votes)</span></div>
+                      <span class="pb-1">Quorum not achieved <span class="mobile-break-text">({{.TotalVotes}} of {{.QuorumCount}} needed votes)</span></span></div>
                     {{else}}
                        <span class="text-secondary fs13">Quorum</span>
                        <div class="d-flex align-items-center"><span class="fs20 dcricon-missing me-2"></span>
@@ -361,7 +361,7 @@
                 </div>
         </div>
         {{- /* ADDITIONAL DATA */ -}}
-        <div class="col-24 col-xl-13 position-relative ps-3">
+        <div class="col-24 col-xl-13 position-relative ps-0 pe-0 mt-2 mt-sm-0 ps-sm-3">
           <div class="d-flex secondary-card justify-content-center px-3 align-items-center common-card">
             <table class="fs14 my-3 text-start d-flex">
               <tbody>
@@ -604,7 +604,7 @@
             <table class="btable-table w-100">
                 <thead>
                   <tr class="bg-none">
-                    <th class="text-end">Issue ID</th>
+                    <th class="text-start">Issue ID</th>
                     <th>Issue Description</th>
                     <th>Choice ID</th>
                     <th>Choice Description</th>
@@ -613,7 +613,7 @@
                 <tbody class="bgc-white">
                     {{range .Choices}}
                     <tr>
-                        <td class="text-end"><span class="highlight-text"><a href="/agenda/{{.ID}}">{{.ID}}</a></span></td>
+                        <td class="text-start"><span class="highlight-text"><a href="/agenda/{{.ID}}">{{.ID}}</a></span></td>
                         <td>{{.Description}}</td>
                         <td>
                             <span class="agenda-voting-overview-option-dot _{{.Choice.Id}}"></span>

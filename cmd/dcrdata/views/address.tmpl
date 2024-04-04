@@ -18,7 +18,7 @@
       <div class="secondary-card d-inline-block w-100 h-100 p-4" data-address-target="bigchart"></div>
     </div>
     <div class="row pb-4 px-2">
-      <div class="col-24 col-xl-11 bg-white pe-1 position-relative">
+      <div class="col-24 col-xl-11 bg-white pe-1 position-relative mt-2">
       <div class="py-3 px-3 common-card h-100">
           {{- if eq .Address $.DevAddress}}
               <div class="fs22 pb-3">Legacy Decred Treasury</div>
@@ -122,7 +122,7 @@
           </div>
           </div>
       </div>
-      <div class="col-24 col-xl-13 ps-1">
+      <div class="col-24 col-xl-13 ps-1 mt-2">
       <div class="secondary-card p-2 h-100 common-card">
         <noscript>
           <div class="text-center pt-5 fs15">Enable Javascript to see charts</div>
@@ -227,13 +227,16 @@
                   </ul>
               </nav>
           </div>
-          <div class="d-flex flex-wrap-reverse align-items-center justify-content-end py-1 col-24 col-sm-18">
+          <div class="d-flex flex-wrap-reverse align-items-center transactions-filter-area py-1 col-24 col-sm-18">
+          {{- if gt $TxnCount 0}}
+          <a class="d-inline-block p-2 rounded download text-nowrap mobile-download-csv-btn" href="/download/address/io/{{.Address}}{{if $.CRLFDownload}}/win{{end}}" type="text/csv" download><span class="dcricon-download mx-1"></span> Download CSV</a>
+          {{- end}}
           <div data-address-target="paginationheader">
               <span class="fs12 nowrap text-end" data-address-target="range">
                   showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset .NumTransactions)}} of
                       <span data-address-target="txnCount" data-txn-count="{{$TxnCount}}">{{intComma $TxnCount}}</span> transactions
               </span>
-              <span class="separator mx-2 h-20px"></span>
+              <span class="separator mx-2 h-20px block-banner-separator"></span>
               </div>
         <div class="d-flex align-items-center justify-content-between">
           <span></span>{{/*This dummy span ensures left/right alignment of the buttons, even if one is hidden.*/}}
@@ -256,7 +259,7 @@
               </select>
             </div>
             <div class="d-flex ai-center text-end">
-              <label class="mb-0 me-1" for="pagesize">Page size</label>
+              <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
               <select
                   name="pagesize"
                   id="pagesize"
@@ -277,7 +280,7 @@
               </select>
             </div>
           {{- if gt $TxnCount 0}}
-          <a class="d-inline-block p-2 rounded download text-nowrap" href="/download/address/io/{{.Address}}{{if $.CRLFDownload}}/win{{end}}" type="text/csv" download><span class="dcricon-download mx-1"></span> Download CSV</a>
+          <a class="d-inline-block p-2 rounded download text-nowrap download-csv-btn" href="/download/address/io/{{.Address}}{{if $.CRLFDownload}}/win{{end}}" type="text/csv" download><span class="dcricon-download mx-1"></span> Download CSV</a>
           {{- end}}
           </div>
         </div>
