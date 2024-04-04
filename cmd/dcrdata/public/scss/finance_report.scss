@@ -423,3 +423,13 @@ body.darkBG {
 .scroller .long {
   height: 1px;
 }
+
+.toggle-search-area {
+  display: flex;
+}
+
+@media (max-width: 576px) {
+  .toggle-search-area {
+    display: block;
+  }
+}

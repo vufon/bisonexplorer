@@ -123,7 +123,7 @@
                <p class="fs-20 mb-1 mt-1 report-tool-bar d-none" data-financereport-target="treasuryTypeTitle">
                   Current Treasury
                </p>
-               <div class="d-flex ai-center mt-2">
+               <div class="toggle-search-area ai-center mt-2">
                <div class="d-none d-inline" data-financereport-target="groupBy">
                   <label data-financereport-target="groupByLabel">Group By: </label>
                      <div class="btn-group" data-toggle="buttons">
@@ -133,12 +133,13 @@
                   </div>
                   <div class="d-none" data-financereport-target="activeProposalSwitchArea">
                      <span class="me-1">All</span>
-                     <label class="switch mt-3">
+                     <label class="switch mt-1 mt-sm-3">
                      <input type="checkbox" data-action="change->financereport#activeProposalSwitch" id="activeProposalInput">
                      <span class="legacy-slider round"></span>
                      </label>
                      <span class="ms-1">Active</span>
                   </div>
+                  <div class="mt-2">
                   <div data-financereport-target="searchBox" class="d-iblock report-search-box px-1 pt-1 ps-2">
                      <input
                         tabindex="0"
@@ -153,6 +154,7 @@
                         />
                      <button class="report-search" data-financereport-target="searchBtn" data-action="click->financereport#searchProposal"><i class="dcricon-search"></i></button>
                      <button class="report-search d-none" data-financereport-target="clearSearchBtn" data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
+                  </div>
                   </div>
                 <div class="d-none ms-3" data-financereport-target="treasuryToggleArea">
                   <label class="d-none" data-financereport-target="yearSelectTitle">Select Year</label>

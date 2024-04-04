@@ -176,13 +176,13 @@
             </ul>
           </nav>
         </div>
-        <div class="d-flex flex-wrap-reverse align-items-center justify-content-end py-1 col-24 col-sm-18">
+        <div class="d-flex flex-wrap-reverse align-items-center transactions-filter-area py-1 col-24 col-sm-18">
         <div data-address-target="paginationheader"> 
           <span class="fs12 nowrap text-end" data-address-target="range">
             showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset .NumTransactions)}} of
             <span data-address-target="txnCount" data-txn-count="{{$bal.TxCount}}">{{intComma .TypeCount}}</span> transactions
           </span>
-          <span class="separator mx-2 h-20px"></span>
+          <span class="separator mx-2 h-20px block-banner-separator"></span>
           </div>
         <div class="d-flex align-items-center justify-content-between">
         <span></span>{{/*This dummy span ensures left/right alignment of the buttons, even if one is hidden.*/}}
@@ -202,7 +202,7 @@
             </select>
           </div>
           <div class="d-inline-block text-end">
-            <label class="mb-0 me-1" for="pagesize">Page size</label>
+            <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
             <select
               name="pagesize"
               id="pagesize"
