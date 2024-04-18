@@ -6,12 +6,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -22,7 +24,9 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
+
 	"github.com/decred/dcrd/rpcclient/v8"
+	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8"
 	"github.com/decred/dcrdata/exchanges/v3"
@@ -32,6 +36,7 @@ import (
 	"github.com/decred/dcrdata/v8/blockdata"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/mempool"
 	"github.com/decred/dcrdata/v8/pubsub"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
@@ -44,7 +49,6 @@ import (
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/explorer"
 	mw "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 	notify "github.com/decred/dcrdata/cmd/dcrdata/internal/notification"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/gops/agent"
@@ -119,11 +123,16 @@ func _main(ctx context.Context) error {
 	// the notifier now so the *rpcclient.NotificationHandlers can be obtained,
 	// using (*Notifier).DcrdHandlers, for the rpcclient.Client constructor.
 	notifier := notify.NewNotifier()
-
+	ltcNotifier := notify.NewLtcNotifier()
 	// Connect to dcrd RPC server using a websocket.
 	dcrdClient, nodeVer, err := connectNodeRPC(cfg, notifier.DcrdHandlers())
+	ltcdClient, ltcNodeVer, ltcConnectErr := connectLTCNodeRPC(cfg, ltcNotifier.LtcdHandlers())
 	if err != nil || dcrdClient == nil {
 		return fmt.Errorf("Connection to dcrd failed: %v", err)
+	}
+
+	if ltcConnectErr != nil || ltcdClient == nil {
+		return fmt.Errorf("Connection to ltcd failed: %v", ltcConnectErr)
 	}
 
 	defer func() {
@@ -132,22 +141,42 @@ func _main(ctx context.Context) error {
 			dcrdClient.Shutdown()
 			dcrdClient.WaitForShutdown()
 		}
+
+		if ltcdClient != nil {
+			log.Infof("Closing connection to ltcd.")
+			ltcdClient.Shutdown()
+			ltcdClient.WaitForShutdown()
+		}
 		log.Infof("Bye!")
 		time.Sleep(250 * time.Millisecond)
 	}()
 
 	// Display connected network (e.g. mainnet, testnet, simnet).
 	curnet, err := dcrdClient.GetCurrentNet(ctx)
+	ltcCurnet, ltcErr := ltcdClient.GetCurrentNet()
 	if err != nil {
 		return fmt.Errorf("Unable to get current network from dcrd: %v", err)
 	}
+
 	log.Infof("Connected to dcrd (JSON-RPC API v%s) on %v",
 		nodeVer.String(), curnet.String())
 
+	if ltcErr != nil {
+		return fmt.Errorf("Unable to get current network from ltcd: %v", ltcErr)
+	}
+	log.Infof("Connected to ltcd (JSON-RPC API v%s) on %v",
+		ltcNodeVer.String(), ltcCurnet.String())
+
 	if curnet != activeNet.Net {
-		log.Criticalf("Network of connected node, %s, does not match expected "+
+		log.Criticalf("DCRD: Network of connected node, %s, does not match expected "+
 			"network, %s.", activeNet.Net, curnet)
 		return fmt.Errorf("expected network %s, got %s", activeNet.Net, curnet)
+	}
+
+	if ltcCurnet != ltcActiveNet.Net {
+		log.Criticalf("LTCD: Network of connected node, %s, does not match expected "+
+			"network, %s.", ltcActiveNet.Net, ltcCurnet)
+		return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
 	}
 
 	// Wrap the rpcclient to satisfy the TransactionPromiseGetter and
@@ -206,6 +235,7 @@ func _main(ctx context.Context) error {
 	dbCfg := dcrpg.ChainDBCfg{
 		DBi:                  &dbi,
 		Params:               activeChain,
+		LTCParams:            ltcActiveChain,
 		DevPrefetch:          !cfg.NoDevPrefetch,
 		HidePGConfig:         cfg.HidePGConfig,
 		AddrCacheAddrCap:     cfg.AddrCacheLimit,
@@ -250,6 +280,78 @@ func _main(ctx context.Context) error {
 			log.Warnf("Forcing new index creation and addresses table spending info update.")
 		}
 	}
+
+	var barLoad chan *dbtypes.ProgressBarLoad
+	//Start - LTC Sync handler
+	_, ltcHeight, err := ltcdClient.GetBestBlock()
+	if err != nil {
+		return fmt.Errorf("Unable to get block from ltc node: %v", err)
+	}
+	var ltcNewPGIndexes, ltcUpdateAllAddresses bool
+	ltcHeightDB, err := chainDB.MutilchainHeightDB(dcrpg.TYPELTC)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return fmt.Errorf("Unable to get height from PostgreSQL DB: %v", err)
+		}
+		ltcHeightDB = 0
+	}
+	ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightDB)
+	if ltcBlocksBehind < 0 {
+		return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
+			"DB height = %d", ltcHeight, ltcHeightDB)
+	}
+	if ltcBlocksBehind > 7500 {
+		log.Infof("Setting PSQL sync to rebuild address table after large "+
+			"import (%d blocks).", ltcBlocksBehind)
+		ltcUpdateAllAddresses = true
+		if ltcBlocksBehind > 40000 {
+			log.Infof("Setting PSQL sync to drop indexes prior to bulk data "+
+				"import (%d blocks).", ltcBlocksBehind)
+			ltcNewPGIndexes = true
+		}
+	}
+
+	quit := make(chan struct{})
+	// Only accept a single CTRL+C
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	// Start waiting for the interrupt signal
+	go func() {
+		<-c
+		signal.Stop(c)
+		// Close the channel so multiple goroutines can get the message
+		log.Infof("CTRL+C hit.  Closing goroutines.")
+		close(quit)
+	}()
+	var ltcPgHeight int64
+	ltcPgSyncRes := make(chan dbtypes.SyncResult)
+	for {
+		go chainDB.SyncLTCChainDBAsync(ltcPgSyncRes, ltcdClient, quit, ltcNewPGIndexes, ltcUpdateAllAddresses)
+		// Wait for the results
+		pgRes := <-ltcPgSyncRes
+		ltcPgHeight = pgRes.Height
+		log.Infof("PostgreSQL LTC sync ended at height %d", ltcPgHeight)
+
+		// See if there was a SIGINT (CTRL+C)
+		select {
+		case <-quit:
+			log.Info("Quit signal received during DB sync.")
+			return nil
+		default:
+		}
+		if pgRes.Error != nil {
+			fmt.Println("dcrpg.SyncMutilchainChainDBAsync LTC failed at height", pgRes.Height)
+			return pgRes.Error
+		}
+		if ltcPgHeight == int64(ltcHeight) {
+			break
+		}
+		// Break loop to continue starting hcexplorer.
+		log.Infof("Restarting sync with PostgreSQL at %d.",
+			ltcPgHeight)
+		ltcUpdateAllAddresses, ltcNewPGIndexes = false, false
+	}
+	//Finished - LTC Sync handler
 
 	// Heights gets the current height of the DB and the chain server.
 	Heights := func() (nodeHeight, chainDBHeight int64, err error) {
@@ -548,8 +650,6 @@ func _main(ctx context.Context) error {
 	// barLoad is used to send sync status updates to websocket clients (e.g.
 	// browsers with the status page opened) via the goroutines launched by
 	// BeginSyncStatusUpdates.
-	var barLoad chan *dbtypes.ProgressBarLoad
-
 	// latestBlockHash communicates the hash of block most recently processed
 	// during synchronization. This is done if all of the explorer pages (not
 	// just the status page) are to be served during sync.
@@ -1201,6 +1301,11 @@ func _main(ctx context.Context) error {
 func connectNodeRPC(cfg *config, ntfnHandlers *rpcclient.NotificationHandlers) (*rpcclient.Client, semver.Semver, error) {
 	return rpcutils.ConnectNodeRPC(cfg.DcrdServ, cfg.DcrdUser, cfg.DcrdPass,
 		cfg.DcrdCert, cfg.DisableDaemonTLS, true, ntfnHandlers)
+}
+
+func connectLTCNodeRPC(cfg *config, ntfnHandlers *ltcClient.NotificationHandlers) (*ltcClient.Client, semver.Semver, error) {
+	return ltcrpcutils.ConnectNodeRPC(cfg.LtcdServ, cfg.LtcdUser, cfg.LtcdPass,
+		cfg.LtcdCert, cfg.DisableDaemonTLS, true, ntfnHandlers)
 }
 
 func listenAndServeProto(ctx context.Context, wg *sync.WaitGroup, listen, proto string, mux http.Handler) {

@@ -728,7 +728,6 @@ func (pq *BlockPriorityQueue) UpdateBlock(b *CachedBlock, summary *BlockDataBasi
 			stakeInfo:    stakeInfo,
 		})
 		if mismatch {
-			fmt.Println("Cannot UpdateBlock!")
 			return
 		}
 		heightRemoved := b.height

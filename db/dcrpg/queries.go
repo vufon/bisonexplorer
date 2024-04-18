@@ -36,7 +36,7 @@ import (
 // error value will never be sql.ErrNoRows; instead with height == -1 indicating
 // no data in the meta table.
 func DBBestBlock(ctx context.Context, db *sql.DB) (hash string, height int64, err error) {
-	err = db.QueryRowContext(ctx, internal.SelectMetaDBBestBlock).Scan(&height, &hash)
+	err = db.QueryRowContext(ctx, internal.SelectMetaDBBestBlock, TYPEDCR).Scan(&height, &hash)
 	if err == sql.ErrNoRows {
 		err = nil
 		height = -1
@@ -47,7 +47,7 @@ func DBBestBlock(ctx context.Context, db *sql.DB) (hash string, height int64, er
 // SetDBBestBlock sets the best block hash and height in the meta table.
 func SetDBBestBlock(db *sql.DB, hash string, height int64) error {
 	numRows, err := sqlExec(db, internal.SetMetaDBBestBlock,
-		"failed to update best block in meta table: ", height, hash)
+		"failed to update best block in meta table: ", height, hash, TYPEDCR)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func SetDBBestBlock(db *sql.DB, hash string, height int64) error {
 // IBDComplete indicates whether initial block download was completed according
 // to the meta.ibd_complete flag.
 func IBDComplete(db *sql.DB) (ibdComplete bool, err error) {
-	err = db.QueryRow(internal.SelectMetaDBIbdComplete).Scan(&ibdComplete)
+	err = db.QueryRow(internal.SelectMetaDBIbdComplete, TYPEDCR).Scan(&ibdComplete)
 	return
 }
 
@@ -69,7 +69,7 @@ func IBDComplete(db *sql.DB) (ibdComplete bool, err error) {
 // the meta table.
 func SetIBDComplete(db SqlExecutor, ibdComplete bool) error {
 	numRows, err := sqlExec(db, internal.SetMetaDBIbdComplete,
-		"failed to update ibd_complete in meta table: ", ibdComplete)
+		"failed to update ibd_complete in meta table: ", ibdComplete, TYPEDCR)
 	if err != nil {
 		return err
 	}
@@ -651,8 +651,6 @@ func InsertVotes(db *sql.DB, dbTxns []*dbtypes.Tx, _ /*txDbIDs*/ []uint64, fTx *
 
 	// If the validators are available, miss accounting should be accurate.
 	if len(msgBlock.Validators) > 0 && len(ids)+len(misses) != 5 {
-		fmt.Println(misses)
-		fmt.Println(voteTxs)
 		_ = dbtx.Rollback()
 		panic(fmt.Sprintf("votes (%d) + misses (%d) != 5", len(ids), len(misses)))
 	}

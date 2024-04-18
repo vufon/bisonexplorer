@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 )
 
@@ -34,9 +35,36 @@ var createTableStatements = [][2]string{
 	{"monthly_price", internal.CreateMonthlyPriceTable},
 }
 
+func GetCreateDBTables() [][2]string {
+	result := make([][2]string, 0)
+	result = append(result, createTableStatements...)
+	for _, chainType := range dbtypes.MutilchainList {
+		result = append(result, [2]string{fmt.Sprintf("%saddresses", chainType), mutilchainquery.CreateAddressTableFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%sblocks", chainType), mutilchainquery.CreateBlockTableFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%sblock_chain", chainType), mutilchainquery.CreateBlockPrevNextTableFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%sfees_stat", chainType), mutilchainquery.CreateFeesStatTableTableFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%smempool_history", chainType), mutilchainquery.CreateMempoolHistoryFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%snodes", chainType), mutilchainquery.CreateNodesTableFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%stransactions", chainType), mutilchainquery.CreateTransactionTableFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%svins", chainType), mutilchainquery.CreateVinTableFunc(chainType)})
+		result = append(result, [2]string{fmt.Sprintf("%svouts", chainType), mutilchainquery.CreateVoutTableFunc(chainType)})
+	}
+	return result
+}
+
+func GetCreateTypeStatements() map[string]string {
+	result := make(map[string]string)
+	for _, chainType := range dbtypes.MutilchainList {
+		result[fmt.Sprintf("%svin_t", chainType)] = mutilchainquery.CreateVinTypeFunc(chainType)
+		result[fmt.Sprintf("%svout_t", chainType)] = mutilchainquery.CreateVoutTypeFunc(chainType)
+	}
+	return result
+}
+
 func createTableMap() map[string]string {
-	m := make(map[string]string, len(createTableStatements))
-	for _, pair := range createTableStatements {
+	createTableQueries := GetCreateDBTables()
+	m := make(map[string]string, len(createTableQueries))
+	for _, pair := range createTableQueries {
 		m[pair[0]] = pair[1]
 	}
 	return m
@@ -72,9 +100,10 @@ func dropTable(db SqlExecutor, tableName string) error {
 
 // DropTables drops all of the tables internally recognized tables.
 func DropTables(db *sql.DB) {
-	lastIndex := len(createTableStatements) - 1
-	for i := range createTableStatements {
-		pair := createTableStatements[lastIndex-i]
+	createTableQueries := GetCreateDBTables()
+	lastIndex := len(createTableQueries) - 1
+	for i := range createTableQueries {
+		pair := createTableQueries[lastIndex-i]
 		tableName := pair[0]
 		log.Infof("DROPPING the %q table.", tableName)
 		if err := dropTable(db, tableName); err != nil {
@@ -144,11 +173,53 @@ func ClearTestingTable(db *sql.DB) error {
 	return err
 }
 
+func CreateTypes(db *sql.DB) error {
+	var err error
+	createTypeStatements := GetCreateTypeStatements()
+	for typeName, createCommand := range createTypeStatements {
+		var exists bool
+		exists, err = TypeExists(db, typeName)
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			_, err = db.Exec(createCommand)
+			if err != nil {
+				return err
+			}
+			_, err = db.Exec(fmt.Sprintf(`COMMENT ON TYPE %s
+				IS 'v1';`, typeName))
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Debugf("Type \"%s\" exist.", typeName)
+		}
+	}
+	return err
+}
+
+func TypeExists(db *sql.DB, tableName string) (bool, error) {
+	rows, err := db.Query(`select typname from pg_type where typname = $1`,
+		tableName)
+	if err == nil {
+		defer func() {
+			if e := rows.Close(); e != nil {
+				log.Infof(`Close of Query failed: %v`, e)
+			}
+		}()
+		return rows.Next(), nil
+	}
+	return false, err
+}
+
 // CreateTables creates all tables required by dcrdata if they do not already
 // exist.
 func CreateTables(db *sql.DB) error {
+	createTableQueries := GetCreateDBTables()
 	// Create all of the data tables.
-	for _, pair := range createTableStatements {
+	for _, pair := range createTableQueries {
 		err := createTable(db, pair[0], pair[1])
 		if err != nil {
 			return err
@@ -186,7 +257,6 @@ func createTable(db *sql.DB, tableName, stmt string) error {
 	} else {
 		log.Tracef(`Table "%s" exists.`, tableName)
 	}
-
 	return err
 }
 

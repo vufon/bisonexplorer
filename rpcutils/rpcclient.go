@@ -107,7 +107,6 @@ func ConnectNodeRPC(host, user, pass, cert string, disableTLS, disableReconnect 
 		log.Debugf("Attempting to connect to dcrd RPC %s as user %s (no TLS)",
 			host, user)
 	}
-
 	connCfgDaemon := &rpcclient.ConnConfig{
 		Host:                 host,
 		Endpoint:             "ws", // websocket

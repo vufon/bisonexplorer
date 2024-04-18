@@ -35,6 +35,9 @@ import (
 	"github.com/decred/dcrd/wire"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lib/pq"
+	ltc_chaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	ltc_chainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
@@ -42,6 +45,7 @@ import (
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
+	"github.com/decred/dcrdata/v8/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/mempool"
 	"github.com/decred/dcrdata/v8/rpcutils"
 	"github.com/decred/dcrdata/v8/stakedb"
@@ -55,6 +59,8 @@ var (
 )
 
 const dcrToAtoms = 1e8
+const TYPEDCR = "dcr"
+const TYPELTC = "ltc"
 
 type retryError struct{}
 
@@ -253,11 +259,16 @@ type ChainDB struct {
 	queryTimeout       time.Duration
 	db                 *sql.DB
 	mp                 rpcutils.MempoolAddressChecker
+	ltcMp              ltcrpcutils.MempoolAddressChecker
 	chainParams        *chaincfg.Params
+	ltcChainParams     *ltc_chaincfg.Params
 	devAddress         string
 	dupChecks          bool
+	ltcDupChecks       bool
 	bestBlock          *BestBlock
+	ltcBestBlock       *BestBlock
 	lastBlock          map[chainhash.Hash]uint64
+	ltcLastBlock       map[ltc_chainhash.Hash]uint64
 	stakeDB            *stakedb.StakeDatabase
 	unspentTicketCache *TicketTxnIDGetter
 	AddressCache       *cache.AddressCache
@@ -267,6 +278,7 @@ type ChainDB struct {
 	InReorg            bool
 	tpUpdatePermission map[dbtypes.TimeBasedGrouping]*trylock.Mutex
 	utxoCache          utxoStore
+	ltcUtxoCache       utxoStore
 	mixSetDiffsMtx     sync.Mutex
 	mixSetDiffs        map[uint32]int64 // height to value diff
 	deployments        *ChainDeployments
@@ -277,6 +289,7 @@ type ChainDB struct {
 	heightClients     []chan uint32
 	shutdownDcrdata   func()
 	Client            *rpcclient.Client
+	ltcClient         *ltcClient.Client
 	tipMtx            sync.Mutex
 	tipSummary        *apitypes.BlockDataBasic
 	lastExplorerBlock struct {
@@ -461,6 +474,7 @@ type DBInfo struct {
 type ChainDBCfg struct {
 	DBi                               *DBInfo
 	Params                            *chaincfg.Params
+	LTCParams                         *ltc_chaincfg.Params
 	DevPrefetch, HidePGConfig         bool
 	AddrCacheRowCap, AddrCacheAddrCap int
 	AddrCacheUTXOByteCap              int
@@ -543,6 +557,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 	}
 
 	params := cfg.Params
+	ltcParams := cfg.LTCParams
 
 	// Perform any necessary database schema upgrades.
 	dbVer, compatAction, err := versionCheck(db)
@@ -569,12 +584,18 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 			return nil, fmt.Errorf("failed to upgrade database (upgrade not supported?)")
 		}
 	case tablesNotFoundErr:
+		//Create type
+		if err := CreateTypes(db); err != nil {
+			return nil, err
+		}
 		// Empty database (no blocks table). Proceed to setupTables.
 		log.Infof(`Empty database "%s". Creating tables...`, dbi.DBName)
 		if err = CreateTables(db); err != nil {
 			return nil, fmt.Errorf("failed to create tables: %w", err)
 		}
+		//insert DCR meta data
 		err = insertMetaData(db, &metaData{
+			chainType:       TYPEDCR,
 			netName:         params.Name,
 			currencyNet:     uint32(params.Net),
 			bestBlockHeight: -1,
@@ -716,10 +737,12 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		db:                 db,
 		mp:                 mp,
 		chainParams:        params,
+		ltcChainParams:     ltcParams,
 		devAddress:         projectFundAddress,
 		dupChecks:          true,
 		bestBlock:          bestBlock,
 		lastBlock:          make(map[chainhash.Hash]uint64),
+		ltcLastBlock:       make(map[ltc_chainhash.Hash]uint64),
 		stakeDB:            stakeDB,
 		unspentTicketCache: unspentTicketCache,
 		AddressCache:       addrCache,
@@ -736,7 +759,6 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		Client:             client,
 	}
 	chainDB.lastExplorerBlock.difficulties = make(map[int64]float64)
-
 	// Update the current chain state in the ChainDB
 	if client != nil {
 		bci, err := chainDB.BlockchainInfo()
@@ -785,6 +807,20 @@ func (pgb *ChainDB) EnableDuplicateCheckOnInsert(dupCheck bool) {
 		return
 	}
 	pgb.dupChecks = dupCheck
+}
+
+// EnableDuplicateCheckOnInsert specifies whether SQL insertions should check
+// for row conflicts (duplicates), and avoid adding or updating.
+func (pgb *ChainDB) MutilchainEnableDuplicateCheckOnInsert(dupCheck bool, chainType string) {
+	if pgb == nil {
+		return
+	}
+	switch chainType {
+	case TYPELTC:
+		pgb.ltcDupChecks = dupCheck
+	default:
+		pgb.dupChecks = dupCheck
+	}
 }
 
 var (
@@ -1003,6 +1039,11 @@ func (pgb *ChainDB) HeightDB() (int64, error) {
 	defer cancel()
 	_, height, err := DBBestBlock(ctx, pgb.db)
 	return height, pgb.replaceCancelError(err)
+}
+
+func (pgb *ChainDB) MutilchainHeightDB(chainType string) (int64, error) {
+	height, _, _, err := RetrieveMutilchainBestBlockHeight(pgb.db, chainType)
+	return int64(height), err
 }
 
 // HashDB retrieves the best block hash according to the meta table.

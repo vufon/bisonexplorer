@@ -68,7 +68,7 @@ func NewDatabaseVersion(major, minor, patch uint32) DatabaseVersion {
 // DBVersion retrieves the database version from the meta table. See
 // (*DatabaseVersion).NeededToReach for version comparison.
 func DBVersion(db *sql.DB) (ver DatabaseVersion, err error) {
-	err = db.QueryRow(internal.SelectMetaDBVersions).Scan(&ver.compat, &ver.schema, &ver.maint)
+	err = db.QueryRow(internal.SelectMetaDBVersions, TYPEDCR).Scan(&ver.compat, &ver.schema, &ver.maint)
 	return
 }
 
@@ -137,6 +137,7 @@ func (s DatabaseUpgrade) String() string {
 }
 
 type metaData struct {
+	chainType       string
 	netName         string
 	currencyNet     uint32
 	bestBlockHeight int64
@@ -146,7 +147,7 @@ type metaData struct {
 }
 
 func insertMetaData(db *sql.DB, meta *metaData) error {
-	_, err := db.Exec(internal.InsertMetaRow, meta.netName, meta.currencyNet,
+	_, err := db.Exec(internal.InsertMetaRow, meta.chainType, meta.netName, meta.currencyNet,
 		meta.bestBlockHeight, meta.bestBlockHash,
 		meta.dbVer.compat, meta.dbVer.schema, meta.dbVer.maint,
 		meta.ibdComplete)
@@ -154,12 +155,12 @@ func insertMetaData(db *sql.DB, meta *metaData) error {
 }
 
 func updateSchemaVersion(db *sql.DB, schema uint32) error {
-	_, err := db.Exec(internal.SetDBSchemaVersion, schema)
+	_, err := db.Exec(internal.SetDBSchemaVersion, schema, TYPEDCR)
 	return err
 }
 
 func updateMaintVersion(db *sql.DB, maint uint32) error {
-	_, err := db.Exec(internal.SetDBMaintenanceVersion, maint)
+	_, err := db.Exec(internal.SetDBMaintenanceVersion, maint, TYPEDCR)
 	return err
 }
 
@@ -432,7 +433,8 @@ func storeVers(db *sql.DB, dbVer *DatabaseVersion) error {
 }
 
 func removeTableComments(db *sql.DB) {
-	for _, pair := range createTableStatements {
+	createTableQueries := GetCreateDBTables()
+	for _, pair := range createTableQueries {
 		tableName := pair[0]
 		_, err := db.Exec(fmt.Sprintf(`COMMENT ON table %s IS NULL;`, tableName))
 		if err != nil {

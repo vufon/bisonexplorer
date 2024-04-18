@@ -69,6 +69,7 @@ type explorerDataSource interface {
 	BlockHeight(hash string) (int64, error)
 	Height() int64
 	HeightDB() (int64, error)
+	MutilchainHeightDB(chainType string) (int64, error)
 	BlockHash(height int64) (string, error)
 	SpendingTransaction(fundingTx string, vout uint32) (string, uint32, int8, error)
 	SpendingTransactions(fundingTxID string) ([]string, []uint32, []uint32, error)

@@ -5,9 +5,11 @@ package dcrpg
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 )
 
@@ -385,6 +387,11 @@ func DeindexSwapsTableOnHeight(db *sql.DB) (err error) {
 	return
 }
 
+func IndexMutilchainFunc(db *sql.DB, query string) (err error) {
+	_, err = db.Exec(query)
+	return
+}
+
 // Delete duplicates
 
 func (pgb *ChainDB) DeleteDuplicateVins() (int64, error) {
@@ -411,7 +418,8 @@ func (pgb *ChainDB) DeleteDuplicateAgendaVotes() (int64, error) {
 
 // MissingIndexes lists missing table indexes and their descriptions.
 func (pgb *ChainDB) MissingIndexes() (missing, descs []string, err error) {
-	for idxName, desc := range internal.IndexDescriptions {
+	indexDescriptions := internal.GetIndexDescriptionsMap()
+	for idxName, desc := range indexDescriptions {
 		var exists bool
 		exists, err = ExistsIndex(pgb.db, idxName)
 		if err != nil {
@@ -444,11 +452,41 @@ func (pgb *ChainDB) MissingAddressIndexes() (missing []string, descs []string, e
 
 // indexDescription gives the description of the named index.
 func (pgb *ChainDB) indexDescription(indexName string) string {
-	name, ok := internal.IndexDescriptions[indexName]
+	indexDescriptions := internal.GetIndexDescriptionsMap()
+	name, ok := indexDescriptions[indexName]
 	if !ok {
 		name = "unknown index"
 	}
 	return name
+}
+
+func (pgb *ChainDB) DeindexAllMutilchain() error {
+	var err error
+	//Deindex for all mutilchain table
+	for _, chainType := range dbtypes.MutilchainList {
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexBlockTableOnHash(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexBlocksTableOnHeight(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexBlocksTableOnTime(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexTransactionTableOnBlockHeight(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexTransactionTableOnBlockIn(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexTransactionTableOnHashes(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVinTableOnPrevOuts(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVinTableOnVins(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVoutTableOnTxHash(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVoutTableOnTxHashIdx(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnFundingTxStmt(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnAddressStmt(chainType))
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnVoutIDStmt(chainType))
+	}
+	return err
+}
+
+func (pgb *ChainDB) DeindexMutilchainAddressTable(chainType string) error {
+	var err error
+	err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnFundingTxStmt(chainType))
+	err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnAddressStmt(chainType))
+	err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnVoutIDStmt(chainType))
+	return err
 }
 
 // DeindexAll drops indexes in most tables.
@@ -522,6 +560,83 @@ func (pgb *ChainDB) DeindexAll() error {
 		err = nil
 	}
 	return err
+}
+
+func HandlerDeindexFunc(db *sql.DB, query string) error {
+	err := IndexMutilchainFunc(db, query)
+	if err != nil {
+		warnUnlessNotExists(err)
+	}
+	return err
+}
+
+func (pgb *ChainDB) IndexAllMutilchain(barLoad chan *dbtypes.ProgressBarLoad) error {
+	var err error
+	//Deindex for all mutilchain table
+	for _, chainType := range dbtypes.MutilchainList {
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%sblock on hash"), mutilchainquery.MakeIndexBlockTableOnHash(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%sblock on height"), mutilchainquery.MakeIndexBlocksTableOnHeight(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%sblock on time"), mutilchainquery.MakeIndexBlocksTableOnTime(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%stransaction on block height"), mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%stransaction on block in"), mutilchainquery.MakeIndexTransactionTableOnBlockIn(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%stransaction on block hashs"), mutilchainquery.MakeIndexTransactionTableOnHashes(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%svin on prev outs"), mutilchainquery.MakeIndexVinTableOnPrevOuts(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%svin on vins"), mutilchainquery.MakeIndexVinTableOnVins(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%svout on tx hash"), mutilchainquery.MakeIndexVoutTableOnTxHash(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%svout on tx hash idx"), mutilchainquery.MakeIndexVoutTableOnTxHashIdx(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%saddress on funding txStmt"), mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%saddress on address"), mutilchainquery.IndexAddressTableOnAddressStmt(chainType), barLoad); err != nil {
+			return err
+		}
+		if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%saddress on vout ids"), mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType), barLoad); err != nil {
+			return err
+		}
+	}
+	// Signal task is done
+	if barLoad != nil {
+		barLoad <- &dbtypes.ProgressBarLoad{BarID: dbtypes.InitialDBLoad, Subtitle: " "}
+	}
+	return nil
+}
+
+func (pgb *ChainDB) IndexMutilchainAddressTable(barLoad chan *dbtypes.ProgressBarLoad, chainType string) error {
+	var err error
+	if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%saddress on funding txStmt"), mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType), barLoad); err != nil {
+		return err
+	}
+	if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%saddress on address"), mutilchainquery.IndexAddressTableOnAddressStmt(chainType), barLoad); err != nil {
+		return err
+	}
+	if err = HandlerIndexFunc(pgb.db, fmt.Sprintf("%saddress on vout ids"), mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType), barLoad); err != nil {
+		return err
+	}
+	// Signal task is done.
+	if barLoad != nil {
+		barLoad <- &dbtypes.ProgressBarLoad{BarID: dbtypes.AddressesTableSync, Subtitle: " "}
+	}
+	return nil
 }
 
 // IndexAll creates most indexes in the tables. Exceptions: (1) addresses on
@@ -604,6 +719,16 @@ func (pgb *ChainDB) IndexAll(barLoad chan *dbtypes.ProgressBarLoad) error {
 		barLoad <- &dbtypes.ProgressBarLoad{BarID: dbtypes.InitialDBLoad, Subtitle: " "}
 	}
 	return nil
+}
+
+func HandlerIndexFunc(db *sql.DB, key string, query string, barLoad chan *dbtypes.ProgressBarLoad) error {
+	logMsg := "Indexing " + key + "..."
+	log.Infof(logMsg)
+	if barLoad != nil {
+		barLoad <- &dbtypes.ProgressBarLoad{BarID: dbtypes.InitialDBLoad, Subtitle: logMsg}
+	}
+	err := IndexMutilchainFunc(db, query)
+	return err
 }
 
 // IndexTicketsTable creates indexes in the tickets table on ticket hash,

@@ -34,6 +34,9 @@ require (
 	github.com/googollee/go-socket.io v1.4.4
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/jrick/logrotate v1.0.0
+	github.com/ltcsuite/ltcd v0.23.5
+	github.com/ltcsuite/ltcd/chaincfg/chainhash v1.0.2
+	github.com/ltcsuite/ltcd/ltcutil v1.1.3
 	github.com/rs/cors v1.8.2
 	golang.org/x/net v0.8.0
 	golang.org/x/text v0.8.0
@@ -159,9 +162,7 @@ require (
 	github.com/ltcsuite/lnd/clock v0.0.0-20200822020009-1a001cbb895a // indirect
 	github.com/ltcsuite/lnd/queue v1.0.3 // indirect
 	github.com/ltcsuite/lnd/ticker v1.0.1 // indirect
-	github.com/ltcsuite/ltcd v0.22.1-beta.0.20230329025258-1ea035d2e665 // indirect
-	github.com/ltcsuite/ltcd/btcec/v2 v2.1.0 // indirect
-	github.com/ltcsuite/ltcd/ltcutil v1.1.0 // indirect
+	github.com/ltcsuite/ltcd/btcec/v2 v2.3.2 // indirect
 	github.com/ltcsuite/ltcd/ltcutil/psbt v1.1.0-1 // indirect
 	github.com/ltcsuite/ltcwallet v0.13.1 // indirect
 	github.com/ltcsuite/ltcwallet/wallet/txauthor v1.1.0 // indirect

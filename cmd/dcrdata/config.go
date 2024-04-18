@@ -23,9 +23,12 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/slog"
 	flags "github.com/jessevdk/go-flags"
+	ltccfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/ltcutil"
 
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/netparams"
+	"github.com/decred/dcrdata/v8/netparams/ltcnetparams"
 )
 
 const (
@@ -38,23 +41,34 @@ const (
 
 var activeNet = &netparams.MainNetParams
 var activeChain = chaincfg.MainNetParams()
+var ltcActiveNet = &ltcnetparams.MainNetParams
+var ltcActiveChain = &ltccfg.MainNetParams
 
 var (
-	defaultHomeDir           = dcrutil.AppDataDir("dcrdata", false)
-	defaultConfigFile        = filepath.Join(defaultHomeDir, defaultConfigFilename)
-	defaultLogDir            = filepath.Join(defaultHomeDir, defaultLogDirname)
-	defaultDataDir           = filepath.Join(defaultHomeDir, defaultDataDirname)
-	dcrdHomeDir              = dcrutil.AppDataDir("dcrd", false)
-	defaultDaemonRPCCertFile = filepath.Join(dcrdHomeDir, "rpc.cert")
-	defaultMaxLogZips        = 16
+	defaultHomeDir              = dcrutil.AppDataDir("dcrdata", false)
+	defaultConfigFile           = filepath.Join(defaultHomeDir, defaultConfigFilename)
+	defaultLogDir               = filepath.Join(defaultHomeDir, defaultLogDirname)
+	defaultDataDir              = filepath.Join(defaultHomeDir, defaultDataDirname)
+	dcrdHomeDir                 = dcrutil.AppDataDir("dcrd", false)
+	ltcdHomeDir                 = ltcutil.AppDataDir("ltcd", false)
+	defaultDaemonRPCCertFile    = filepath.Join(dcrdHomeDir, "rpc.cert")
+	defaultLTCDaemonRPCCertFile = filepath.Join(ltcdHomeDir, "rpc.cert")
+	defaultMaxLogZips           = 16
 
-	defaultHost                = "localhost"
-	defaultHTTPProfPath        = "/p"
-	defaultAPIProto            = "http"
-	defaultMainnetPort         = "7777"
-	defaultTestnetPort         = "17778"
-	defaultSimnetPort          = "17779"
-	defaultIndentJSON          = "   "
+	defaultHost         = "localhost"
+	defaultHTTPProfPath = "/p"
+	defaultAPIProto     = "http"
+	//dcr config
+	defaultMainnetPort = "7777"
+	defaultTestnetPort = "17778"
+	defaultSimnetPort  = "17779"
+	defaultIndentJSON  = "   "
+	//ltc config
+	//Litecoin core: 9332, 19332. Ltcd: 9334, 19334
+	defaultLTCMainnetPort      = "9334"
+	defaultLTCTestnetPort      = "19334"
+	defaultLTCSimnetPort       = "19335"
+	defaultLTCIndentJSON       = "   "
 	defaultCacheControlMaxAge  = 86400
 	defaultInsightReqRateLimit = 20.0
 	defaultMaxCSVAddrs         = 25
@@ -151,13 +165,19 @@ type config struct {
 	ImportSideChains bool          `long:"import-side-chains" description:"(experimental) Enable startup import of side chains retrieved from dcrd via getchaintips." env:"DCRDATA_IMPORT_SIDE_CHAINS"`
 	SyncStatusLimit  int           `long:"sync-status-limit" description:"Sets the number of blocks behind the current best height past which only the syncing status page can be served on the running web server. Value should be greater than 2 but less than 5000." env:"DCRDATA_SYNC_STATUS_LIMIT"`
 
-	// RPC client options
+	// DCR RPC client options
 	DcrdUser         string `long:"dcrduser" description:"Daemon RPC user name" env:"DCRDATA_DCRD_USER"`
 	DcrdPass         string `long:"dcrdpass" description:"Daemon RPC password" env:"DCRDATA_DCRD_PASS"`
 	DcrdServ         string `long:"dcrdserv" description:"Hostname/IP and port of dcrd RPC server to connect to (default localhost:9109, testnet: localhost:19109, simnet: localhost:19556)" env:"DCRDATA_DCRD_URL"`
 	DcrdCert         string `long:"dcrdcert" description:"File containing the dcrd certificate file" env:"DCRDATA_DCRD_CERT"`
 	DisableDaemonTLS bool   `long:"nodaemontls" description:"Disable TLS for the daemon RPC client -- NOTE: This is only allowed if the RPC client is connecting to localhost" env:"DCRDATA_DCRD_DISABLE_TLS"`
 	NoBlockPrefetch  bool   `long:"no-dcrd-block-prefetch" description:"Disable block pre-fetch from dcrd during startup sync." env:"DCRDATA_NO_BLOCK_PREFETCH"`
+
+	// LTC RPC client options
+	LtcdUser string `long:"ltcduser" description:"Daemon RPC user name" env:"DCRDATA_LTCD_USER"`
+	LtcdPass string `long:"ltcdpass" description:"Daemon RPC password" env:"DCRDATA_LTCD_PASS"`
+	LtcdServ string `long:"ltcdserv" description:"Hostname/IP and port of ltcd RPC server to connect to (default localhost:9334, testnet: localhost:19334, simnet: localhost:???)" env:"DCRDATA_LTCD_URL"`
+	LtcdCert string `long:"ltcdcert" description:"File containing the ltcd certificate file" env:"DCRDATA_LTCD_CERT"`
 
 	// ExchangeBot settings
 	EnableExchangeBot bool   `long:"exchange-monitor" description:"Enable the exchange monitor" env:"DCRDATA_MONITOR_EXCHANGES"`
@@ -192,6 +212,7 @@ var (
 		MaxCSVAddrs:         defaultMaxCSVAddrs,
 		ServerHeader:        defaultServerHeader,
 		DcrdCert:            defaultDaemonRPCCertFile,
+		LtcdCert:            defaultLTCDaemonRPCCertFile,
 		MempoolMinInterval:  defaultMempoolMinInterval,
 		MempoolMaxInterval:  defaultMempoolMaxInterval,
 		MPTriggerTickets:    defaultMPTriggerTickets,
@@ -515,16 +536,25 @@ func loadConfig() (*config, error) {
 	activeNet = &netparams.MainNetParams
 	activeChain = chaincfg.MainNetParams()
 	defaultPort := defaultMainnetPort
+	ltcActiveNet = &ltcnetparams.MainNetParams
+	ltcActiveChain = &ltccfg.MainNetParams
+	ltcDefaultPort := defaultLTCMainnetPort
 	if cfg.TestNet {
 		activeNet = &netparams.TestNet3Params
 		activeChain = chaincfg.TestNet3Params()
 		defaultPort = defaultTestnetPort
+		ltcActiveNet = &ltcnetparams.TestNet3Params
+		ltcActiveChain = &ltccfg.TestNet4Params
+		ltcDefaultPort = defaultLTCTestnetPort
 		numNets++
 	}
 	if cfg.SimNet {
 		activeNet = &netparams.SimNetParams
 		activeChain = chaincfg.SimNetParams()
 		defaultPort = defaultSimnetPort
+		ltcActiveNet = &ltcnetparams.SimNetParams
+		ltcActiveChain = &ltccfg.SimNetParams
+		ltcDefaultPort = defaultLTCSimnetPort
 		numNets++
 	}
 	if numNets > 1 {
@@ -599,6 +629,13 @@ func loadConfig() (*config, error) {
 		return loadConfigError(err)
 	}
 
+	// Set the host names and ports to the default if the user does not specify
+	// them.
+	cfg.LtcdServ, err = normalizeNetworkAddress(cfg.LtcdServ, ltcDefaultPort, ltcActiveNet.JSONRPCClientPort)
+	if err != nil {
+		return loadConfigError(err)
+	}
+
 	// Output folder
 	cfg.OutFolder = cleanAndExpandPath(cfg.OutFolder)
 	cfg.OutFolder = filepath.Join(cfg.OutFolder, activeNet.Name)
@@ -667,6 +704,7 @@ func loadConfig() (*config, error) {
 
 	// Expand some additional paths.
 	cfg.DcrdCert = cleanAndExpandPath(cfg.DcrdCert)
+	cfg.LtcdCert = cleanAndExpandPath(cfg.LtcdCert)
 	cfg.AgendasDBFileName = cleanAndExpandPath(cfg.AgendasDBFileName)
 	cfg.ProposalsFileName = cleanAndExpandPath(cfg.ProposalsFileName)
 	cfg.RateCertificate = cleanAndExpandPath(cfg.RateCertificate)
