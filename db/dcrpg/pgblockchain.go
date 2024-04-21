@@ -21,6 +21,9 @@ import (
 	"sync"
 	"time"
 
+	btc_chaincfg "github.com/btcsuite/btcd/chaincfg"
+	btc_chainhash "github.com/btcsuite/btcd/chaincfg/chainhash"
+	btcClient "github.com/btcsuite/btcd/rpcclient"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/blockchain/standalone/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -45,8 +48,9 @@ import (
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
-	"github.com/decred/dcrdata/v8/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mutilchain"
+	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/rpcutils"
 	"github.com/decred/dcrdata/v8/stakedb"
 	"github.com/decred/dcrdata/v8/trylock"
@@ -59,8 +63,6 @@ var (
 )
 
 const dcrToAtoms = 1e8
-const TYPEDCR = "dcr"
-const TYPELTC = "ltc"
 
 type retryError struct{}
 
@@ -262,13 +264,17 @@ type ChainDB struct {
 	ltcMp              ltcrpcutils.MempoolAddressChecker
 	chainParams        *chaincfg.Params
 	ltcChainParams     *ltc_chaincfg.Params
+	btcChainParams     *btc_chaincfg.Params
 	devAddress         string
 	dupChecks          bool
 	ltcDupChecks       bool
+	btcDupChecks       bool
 	bestBlock          *BestBlock
 	ltcBestBlock       *BestBlock
+	btcBestBlock       *BestBlock
 	lastBlock          map[chainhash.Hash]uint64
 	ltcLastBlock       map[ltc_chainhash.Hash]uint64
+	btcLastBlock       map[btc_chainhash.Hash]uint64
 	stakeDB            *stakedb.StakeDatabase
 	unspentTicketCache *TicketTxnIDGetter
 	AddressCache       *cache.AddressCache
@@ -279,6 +285,7 @@ type ChainDB struct {
 	tpUpdatePermission map[dbtypes.TimeBasedGrouping]*trylock.Mutex
 	utxoCache          utxoStore
 	ltcUtxoCache       utxoStore
+	btcUtxoCache       utxoStore
 	mixSetDiffsMtx     sync.Mutex
 	mixSetDiffs        map[uint32]int64 // height to value diff
 	deployments        *ChainDeployments
@@ -290,6 +297,7 @@ type ChainDB struct {
 	shutdownDcrdata   func()
 	Client            *rpcclient.Client
 	ltcClient         *ltcClient.Client
+	btcClient         *btcClient.Client
 	tipMtx            sync.Mutex
 	tipSummary        *apitypes.BlockDataBasic
 	lastExplorerBlock struct {
@@ -475,6 +483,7 @@ type ChainDBCfg struct {
 	DBi                               *DBInfo
 	Params                            *chaincfg.Params
 	LTCParams                         *ltc_chaincfg.Params
+	BTCParams                         *btc_chaincfg.Params
 	DevPrefetch, HidePGConfig         bool
 	AddrCacheRowCap, AddrCacheAddrCap int
 	AddrCacheUTXOByteCap              int
@@ -558,6 +567,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 
 	params := cfg.Params
 	ltcParams := cfg.LTCParams
+	btcParams := cfg.BTCParams
 
 	// Perform any necessary database schema upgrades.
 	dbVer, compatAction, err := versionCheck(db)
@@ -595,7 +605,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		}
 		//insert DCR meta data
 		err = insertMetaData(db, &metaData{
-			chainType:       TYPEDCR,
+			chainType:       mutilchain.TYPEDCR,
 			netName:         params.Name,
 			currencyNet:     uint32(params.Net),
 			bestBlockHeight: -1,
@@ -738,11 +748,15 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		mp:                 mp,
 		chainParams:        params,
 		ltcChainParams:     ltcParams,
+		btcChainParams:     btcParams,
 		devAddress:         projectFundAddress,
 		dupChecks:          true,
+		ltcDupChecks:       true,
+		btcDupChecks:       true,
 		bestBlock:          bestBlock,
 		lastBlock:          make(map[chainhash.Hash]uint64),
 		ltcLastBlock:       make(map[ltc_chainhash.Hash]uint64),
+		btcLastBlock:       make(map[btc_chainhash.Hash]uint64),
 		stakeDB:            stakeDB,
 		unspentTicketCache: unspentTicketCache,
 		AddressCache:       addrCache,
@@ -750,6 +764,8 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		devPrefetch:        cfg.DevPrefetch,
 		tpUpdatePermission: tpUpdatePermissions,
 		utxoCache:          newUtxoStore(5e4),
+		ltcUtxoCache:       newUtxoStore(5e4),
+		btcUtxoCache:       newUtxoStore(5e4),
 		mixSetDiffs:        make(map[uint32]int64),
 		deployments:        new(ChainDeployments),
 		MPC:                new(mempool.DataCache),
@@ -816,8 +832,10 @@ func (pgb *ChainDB) MutilchainEnableDuplicateCheckOnInsert(dupCheck bool, chainT
 		return
 	}
 	switch chainType {
-	case TYPELTC:
+	case mutilchain.TYPELTC:
 		pgb.ltcDupChecks = dupCheck
+	case mutilchain.TYPEBTC:
+		pgb.btcDupChecks = dupCheck
 	default:
 		pgb.dupChecks = dupCheck
 	}

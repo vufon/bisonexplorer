@@ -25,6 +25,7 @@ const (
 	deepStatsTarget          = 600
 	rescanLogBlockChunk      = 500
 	ltcRescanLogBlockChunk   = 250
+	btcRescanLogBlockChunk   = 250
 	initialLoadSyncStatusMsg = "Syncing stake and chain DBs..."
 	addressesSyncStatusMsg   = "Syncing addresses table with spending info..."
 )

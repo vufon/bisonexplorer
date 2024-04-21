@@ -25,6 +25,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 
+	btcClient "github.com/btcsuite/btcd/rpcclient"
 	"github.com/decred/dcrd/rpcclient/v8"
 	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 
@@ -36,8 +37,10 @@ import (
 	"github.com/decred/dcrdata/v8/blockdata"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
-	"github.com/decred/dcrdata/v8/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mutilchain"
+	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
+	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/pubsub"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/rpcutils"
@@ -123,37 +126,14 @@ func _main(ctx context.Context) error {
 	// the notifier now so the *rpcclient.NotificationHandlers can be obtained,
 	// using (*Notifier).DcrdHandlers, for the rpcclient.Client constructor.
 	notifier := notify.NewNotifier()
-	ltcNotifier := notify.NewLtcNotifier()
 	// Connect to dcrd RPC server using a websocket.
 	dcrdClient, nodeVer, err := connectNodeRPC(cfg, notifier.DcrdHandlers())
-	ltcdClient, ltcNodeVer, ltcConnectErr := connectLTCNodeRPC(cfg, ltcNotifier.LtcdHandlers())
 	if err != nil || dcrdClient == nil {
 		return fmt.Errorf("Connection to dcrd failed: %v", err)
 	}
 
-	if ltcConnectErr != nil || ltcdClient == nil {
-		return fmt.Errorf("Connection to ltcd failed: %v", ltcConnectErr)
-	}
-
-	defer func() {
-		if dcrdClient != nil {
-			log.Infof("Closing connection to dcrd.")
-			dcrdClient.Shutdown()
-			dcrdClient.WaitForShutdown()
-		}
-
-		if ltcdClient != nil {
-			log.Infof("Closing connection to ltcd.")
-			ltcdClient.Shutdown()
-			ltcdClient.WaitForShutdown()
-		}
-		log.Infof("Bye!")
-		time.Sleep(250 * time.Millisecond)
-	}()
-
 	// Display connected network (e.g. mainnet, testnet, simnet).
 	curnet, err := dcrdClient.GetCurrentNet(ctx)
-	ltcCurnet, ltcErr := ltcdClient.GetCurrentNet()
 	if err != nil {
 		return fmt.Errorf("Unable to get current network from dcrd: %v", err)
 	}
@@ -161,22 +141,10 @@ func _main(ctx context.Context) error {
 	log.Infof("Connected to dcrd (JSON-RPC API v%s) on %v",
 		nodeVer.String(), curnet.String())
 
-	if ltcErr != nil {
-		return fmt.Errorf("Unable to get current network from ltcd: %v", ltcErr)
-	}
-	log.Infof("Connected to ltcd (JSON-RPC API v%s) on %v",
-		ltcNodeVer.String(), ltcCurnet.String())
-
 	if curnet != activeNet.Net {
 		log.Criticalf("DCRD: Network of connected node, %s, does not match expected "+
 			"network, %s.", activeNet.Net, curnet)
 		return fmt.Errorf("expected network %s, got %s", activeNet.Net, curnet)
-	}
-
-	if ltcCurnet != ltcActiveNet.Net {
-		log.Criticalf("LTCD: Network of connected node, %s, does not match expected "+
-			"network, %s.", ltcActiveNet.Net, ltcCurnet)
-		return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
 	}
 
 	// Wrap the rpcclient to satisfy the TransactionPromiseGetter and
@@ -236,6 +204,7 @@ func _main(ctx context.Context) error {
 		DBi:                  &dbi,
 		Params:               activeChain,
 		LTCParams:            ltcActiveChain,
+		BTCParams:            btcActiveChain,
 		DevPrefetch:          !cfg.NoDevPrefetch,
 		HidePGConfig:         cfg.HidePGConfig,
 		AddrCacheAddrCap:     cfg.AddrCacheLimit,
@@ -282,76 +251,215 @@ func _main(ctx context.Context) error {
 	}
 
 	var barLoad chan *dbtypes.ProgressBarLoad
-	//Start - LTC Sync handler
-	_, ltcHeight, err := ltcdClient.GetBestBlock()
-	if err != nil {
-		return fmt.Errorf("Unable to get block from ltc node: %v", err)
-	}
-	var ltcNewPGIndexes, ltcUpdateAllAddresses bool
-	ltcHeightDB, err := chainDB.MutilchainHeightDB(dcrpg.TYPELTC)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			return fmt.Errorf("Unable to get height from PostgreSQL DB: %v", err)
+	var ltcdClient *ltcClient.Client
+	var btcdClient *btcClient.Client
+	//Start mutilchain support
+	//CHeck LTC enabled
+	if !mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPELTC) {
+		ltcNotifier := notify.NewLtcNotifier()
+		ltcdClient, ltcNodeVer, ltcConnectErr := connectLTCNodeRPC(cfg, ltcNotifier.LtcdHandlers())
+		if ltcConnectErr != nil || ltcdClient == nil {
+			return fmt.Errorf("Connection to ltcd failed: %v", ltcConnectErr)
 		}
-		ltcHeightDB = 0
-	}
-	ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightDB)
-	if ltcBlocksBehind < 0 {
-		return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
-			"DB height = %d", ltcHeight, ltcHeightDB)
-	}
-	if ltcBlocksBehind > 7500 {
-		log.Infof("Setting PSQL sync to rebuild address table after large "+
-			"import (%d blocks).", ltcBlocksBehind)
-		ltcUpdateAllAddresses = true
-		if ltcBlocksBehind > 40000 {
-			log.Infof("Setting PSQL sync to drop indexes prior to bulk data "+
+		ltcCurnet, ltcErr := ltcdClient.GetCurrentNet()
+		if ltcErr != nil {
+			return fmt.Errorf("Unable to get current network from ltcd: %v", ltcErr)
+		}
+
+		log.Infof("Connected to ltcd (JSON-RPC API v%s) on %v", ltcNodeVer.String(), ltcCurnet.String())
+
+		if ltcCurnet != ltcActiveNet.Net {
+			log.Criticalf("LTCD: Network of connected node, %s, does not match expected "+
+				"network, %s.", ltcActiveNet.Net, ltcCurnet)
+			return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
+		}
+
+		//Start - LTC Sync handler
+		_, ltcHeight, err := ltcdClient.GetBestBlock()
+		if err != nil {
+			return fmt.Errorf("Unable to get block from ltc node: %v", err)
+		}
+		var ltcNewPGIndexes, ltcUpdateAllAddresses bool
+		ltcHeightDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPELTC)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				return fmt.Errorf("Unable to get ltc height from PostgreSQL DB: %v", err)
+			}
+			ltcHeightDB = 0
+		}
+		ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightDB)
+		if ltcBlocksBehind < 0 {
+			return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
+				"DB height = %d", ltcHeight, ltcHeightDB)
+		}
+		if ltcBlocksBehind > 7500 {
+			log.Infof("Setting LTC PSQL sync to rebuild address table after large "+
 				"import (%d blocks).", ltcBlocksBehind)
-			ltcNewPGIndexes = true
+			ltcUpdateAllAddresses = true
+			if ltcBlocksBehind > 40000 {
+				log.Infof("Setting LTC PSQL sync to drop indexes prior to bulk data "+
+					"import (%d blocks).", ltcBlocksBehind)
+				ltcNewPGIndexes = true
+			}
 		}
+
+		quit := make(chan struct{})
+		// Only accept a single CTRL+C
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		// Start waiting for the interrupt signal
+		go func() {
+			<-c
+			signal.Stop(c)
+			// Close the channel so multiple goroutines can get the message
+			log.Infof("CTRL+C hit.  Closing goroutines.")
+			close(quit)
+		}()
+		var ltcPgHeight int64
+		ltcPgSyncRes := make(chan dbtypes.SyncResult)
+		for {
+			go chainDB.SyncLTCChainDBAsync(ltcPgSyncRes, ltcdClient, quit, ltcNewPGIndexes, ltcUpdateAllAddresses)
+			// Wait for the results
+			pgRes := <-ltcPgSyncRes
+			ltcPgHeight = pgRes.Height
+			log.Infof("PostgreSQL LTC sync ended at height %d", ltcPgHeight)
+
+			// See if there was a SIGINT (CTRL+C)
+			select {
+			case <-quit:
+				log.Info("Quit signal received during DB sync.")
+				return nil
+			default:
+			}
+			if pgRes.Error != nil {
+				fmt.Println("dcrpg.SyncMutilchainChainDBAsync LTC failed at height", pgRes.Height)
+				return pgRes.Error
+			}
+			if ltcPgHeight == int64(ltcHeight) {
+				break
+			}
+			// Break loop to continue starting hcexplorer.
+			log.Infof("Restarting LTC sync with PostgreSQL at %d.",
+				ltcPgHeight)
+			ltcUpdateAllAddresses, ltcNewPGIndexes = false, false
+		}
+		chainDB.MutilchainEnableDuplicateCheckOnInsert(true, mutilchain.TYPELTC)
+		//Finished - LTC Sync handler
 	}
 
-	quit := make(chan struct{})
-	// Only accept a single CTRL+C
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	// Start waiting for the interrupt signal
-	go func() {
-		<-c
-		signal.Stop(c)
-		// Close the channel so multiple goroutines can get the message
-		log.Infof("CTRL+C hit.  Closing goroutines.")
-		close(quit)
+	//Check BTC enabled
+	if !mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEBTC) {
+		btcNotifier := notify.NewBtcNotifier()
+		btcdClient, btcNodeVer, btcConnectErr := connectBTCNodeRPC(cfg, btcNotifier.BtcdHandlers())
+		if btcConnectErr != nil || btcdClient == nil {
+			return fmt.Errorf("Connection to btcd failed: %v", btcConnectErr)
+		}
+		btcCurnet, btcErr := btcdClient.GetCurrentNet()
+		if btcErr != nil {
+			return fmt.Errorf("Unable to get current network from btcd: %v", btcErr)
+		}
+		log.Infof("Connected to btcd (JSON-RPC API v%s) on %v", btcNodeVer.String(), btcCurnet.String())
+		if btcCurnet != btcActiveNet.Net {
+			log.Criticalf("BTCD: Network of connected node, %s, does not match expected "+
+				"network, %s.", btcActiveNet.Net, btcCurnet)
+			return fmt.Errorf("expected network %s, got %s", btcActiveNet.Net, btcCurnet)
+		}
+
+		//Start - BTC Sync handler
+		_, btcHeight, err := btcdClient.GetBestBlock()
+		if err != nil {
+			return fmt.Errorf("Unable to get block from btc node: %v", err)
+		}
+		var btcNewPGIndexes, btcUpdateAllAddresses bool
+		btcHeightDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPEBTC)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				return fmt.Errorf("Unable to get btc height from PostgreSQL DB: %v", err)
+			}
+			btcHeightDB = 0
+		}
+		btcBlocksBehind := int64(btcHeight) - int64(btcHeightDB)
+		if btcBlocksBehind < 0 {
+			return fmt.Errorf("BTC Node is still syncing. Node height = %d, "+
+				"DB height = %d", btcHeight, btcHeightDB)
+		}
+		if btcBlocksBehind > 7500 {
+			log.Infof("Setting BTC PSQL sync to rebuild address table after large "+
+				"import (%d blocks).", btcBlocksBehind)
+			btcUpdateAllAddresses = true
+			if btcBlocksBehind > 40000 {
+				log.Infof("Setting BTC PSQL sync to drop indexes prior to bulk data "+
+					"import (%d blocks).", btcBlocksBehind)
+				btcNewPGIndexes = true
+			}
+		}
+
+		quit := make(chan struct{})
+		// Only accept a single CTRL+C
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, os.Interrupt)
+		// Start waiting for the interrupt signal
+		go func() {
+			<-c
+			signal.Stop(c)
+			// Close the channel so multiple goroutines can get the message
+			log.Infof("CTRL+C hit.  Closing goroutines.")
+			close(quit)
+		}()
+		var btcPgHeight int64
+		btcPgSyncRes := make(chan dbtypes.SyncResult)
+		for {
+			go chainDB.SyncBTCChainDBAsync(btcPgSyncRes, btcdClient, quit, btcNewPGIndexes, btcUpdateAllAddresses)
+			// Wait for the results
+			pgRes := <-btcPgSyncRes
+			btcPgHeight = pgRes.Height
+			log.Infof("PostgreSQL BTC sync ended at height %d", btcPgHeight)
+
+			// See if there was a SIGINT (CTRL+C)
+			select {
+			case <-quit:
+				log.Info("BTC: Quit signal received during DB sync.")
+				return nil
+			default:
+			}
+			if pgRes.Error != nil {
+				fmt.Println("dcrpg.SyncMutilchainChainDBAsync BTC failed at height", pgRes.Height)
+				return pgRes.Error
+			}
+			if btcPgHeight == int64(btcHeight) {
+				break
+			}
+			// Break loop to continue starting hcexplorer.
+			log.Infof("Restarting BTC sync with PostgreSQL at %d.",
+				btcPgHeight)
+			btcUpdateAllAddresses, btcNewPGIndexes = false, false
+		}
+		chainDB.MutilchainEnableDuplicateCheckOnInsert(true, mutilchain.TYPEBTC)
+		//Finished - BTC Sync handler
+	}
+	//End mutilchain support
+
+	defer func() {
+		if dcrdClient != nil {
+			log.Infof("Closing connection to dcrd.")
+			dcrdClient.Shutdown()
+			dcrdClient.WaitForShutdown()
+		}
+
+		if ltcdClient != nil {
+			log.Infof("Closing connection to ltcd.")
+			ltcdClient.Shutdown()
+			ltcdClient.WaitForShutdown()
+		}
+
+		if btcdClient != nil {
+			log.Infof("Closing connection to btcd.")
+			btcdClient.Shutdown()
+			btcdClient.WaitForShutdown()
+		}
+		log.Infof("Bye!")
+		time.Sleep(250 * time.Millisecond)
 	}()
-	var ltcPgHeight int64
-	ltcPgSyncRes := make(chan dbtypes.SyncResult)
-	for {
-		go chainDB.SyncLTCChainDBAsync(ltcPgSyncRes, ltcdClient, quit, ltcNewPGIndexes, ltcUpdateAllAddresses)
-		// Wait for the results
-		pgRes := <-ltcPgSyncRes
-		ltcPgHeight = pgRes.Height
-		log.Infof("PostgreSQL LTC sync ended at height %d", ltcPgHeight)
-
-		// See if there was a SIGINT (CTRL+C)
-		select {
-		case <-quit:
-			log.Info("Quit signal received during DB sync.")
-			return nil
-		default:
-		}
-		if pgRes.Error != nil {
-			fmt.Println("dcrpg.SyncMutilchainChainDBAsync LTC failed at height", pgRes.Height)
-			return pgRes.Error
-		}
-		if ltcPgHeight == int64(ltcHeight) {
-			break
-		}
-		// Break loop to continue starting hcexplorer.
-		log.Infof("Restarting sync with PostgreSQL at %d.",
-			ltcPgHeight)
-		ltcUpdateAllAddresses, ltcNewPGIndexes = false, false
-	}
-	//Finished - LTC Sync handler
 
 	// Heights gets the current height of the DB and the chain server.
 	Heights := func() (nodeHeight, chainDBHeight int64, err error) {
@@ -1306,6 +1414,11 @@ func connectNodeRPC(cfg *config, ntfnHandlers *rpcclient.NotificationHandlers) (
 func connectLTCNodeRPC(cfg *config, ntfnHandlers *ltcClient.NotificationHandlers) (*ltcClient.Client, semver.Semver, error) {
 	return ltcrpcutils.ConnectNodeRPC(cfg.LtcdServ, cfg.LtcdUser, cfg.LtcdPass,
 		cfg.LtcdCert, cfg.DisableDaemonTLS, true, ntfnHandlers)
+}
+
+func connectBTCNodeRPC(cfg *config, ntfnHandlers *btcClient.NotificationHandlers) (*btcClient.Client, semver.Semver, error) {
+	return btcrpcutils.ConnectNodeRPC(cfg.BtcdServ, cfg.BtcdUser, cfg.BtcdPass,
+		cfg.BtcdCert, cfg.DisableDaemonTLS, true, ntfnHandlers)
 }
 
 func listenAndServeProto(ctx context.Context, wg *sync.WaitGroup, listen, proto string, mux http.Handler) {

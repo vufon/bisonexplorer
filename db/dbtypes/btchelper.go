@@ -5,33 +5,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
-	"github.com/ltcsuite/ltcd/chaincfg"
-	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
-	"github.com/ltcsuite/ltcd/txscript"
-	"github.com/ltcsuite/ltcd/wire"
+	"github.com/btcsuite/btcd/chaincfg"
+	btcClient "github.com/btcsuite/btcd/rpcclient"
+	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 )
 
-// AddressRow represents a row in the addresses table
-type MutilchainAddressRow struct {
-	// id int64
-	Address            string
-	FundingTxDbID      uint64
-	FundingTxHash      string
-	FundingTxVoutIndex uint32
-	VoutDbID           uint64
-	Value              uint64
-	SpendingTxDbID     uint64
-	SpendingTxHash     string
-	SpendingTxVinIndex uint32
-	VinDbID            uint64
-}
-
 // MsgBlockToDBBlock creates a dbtypes.Block from a wire.MsgBlock
-func MsgLTCBlockToDBBlock(client *ltcClient.Client, msgBlock *wire.MsgBlock, chainParams *chaincfg.Params) *Block {
+func MsgBTCBlockToDBBlock(client *btcClient.Client, msgBlock *wire.MsgBlock, chainParams *chaincfg.Params) *Block {
 	// Create the dbtypes.Block structure
 	blockHeader := msgBlock.Header
-	blockHeaderResult := ltcrpcutils.GetBlockHeaderVerboseByString(client, blockHeader.BlockHash().String())
+	blockHeaderResult := btcrpcutils.GetBlockHeaderVerboseByString(client, blockHeader.BlockHash().String())
 	// convert each transaction hash to a hex string
 	var txHashStrs []string
 	txHashes, _ := msgBlock.TxHashes()
@@ -56,13 +41,13 @@ func MsgLTCBlockToDBBlock(client *ltcClient.Client, msgBlock *wire.MsgBlock, cha
 	}
 }
 
-func ExtractLTCBlockTransactions(client *ltcClient.Client, block *Block, msgBlock *wire.MsgBlock,
+func ExtractBTCBlockTransactions(client *btcClient.Client, block *Block, msgBlock *wire.MsgBlock,
 	chainParams *chaincfg.Params) ([]*Tx, [][]*Vout, []VinTxPropertyARRAY) {
-	dbTxs, dbTxVouts, dbTxVins := processLTCTransactions(client, block, msgBlock, chainParams)
+	dbTxs, dbTxVouts, dbTxVins := processBTCTransactions(client, block, msgBlock, chainParams)
 	return dbTxs, dbTxVouts, dbTxVins
 }
 
-func processLTCTransactions(client *ltcClient.Client, block *Block, msgBlock *wire.MsgBlock, chainParams *chaincfg.Params) ([]*Tx, [][]*Vout, []VinTxPropertyARRAY) {
+func processBTCTransactions(client *btcClient.Client, block *Block, msgBlock *wire.MsgBlock, chainParams *chaincfg.Params) ([]*Tx, [][]*Vout, []VinTxPropertyARRAY) {
 	var txs = msgBlock.Transactions
 	blockHash := msgBlock.BlockHash()
 	dbTransactions := make([]*Tx, 0, len(txs))

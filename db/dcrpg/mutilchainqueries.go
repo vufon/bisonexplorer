@@ -64,12 +64,12 @@ func InsertMutilchainVouts(db *sql.DB, dbVouts []*dbtypes.Vout, checked bool, ch
 	return ids, addressRows, dbtx.Commit()
 }
 
-func InsertMutilchainVins(db *sql.DB, dbVins dbtypes.VinTxPropertyARRAY, chainType string) ([]uint64, error) {
+func InsertMutilchainVins(db *sql.DB, dbVins dbtypes.VinTxPropertyARRAY, chainType string, checked bool) ([]uint64, error) {
 	dbtx, err := db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("unable to begin database transaction: %v", err)
 	}
-	queryBuilder := mutilchainquery.InsertVinRowFuncCheck(true, chainType)
+	queryBuilder := mutilchainquery.InsertVinRowFuncCheck(checked, chainType)
 	stmt, err := dbtx.Prepare(queryBuilder)
 	if err != nil {
 		log.Errorf("Vin INSERT prepare: %v", err)
@@ -142,7 +142,7 @@ func InsertMutilchainTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked bool, chainT
 	return ids, dbtx.Commit()
 }
 
-func InsertMutilchainAddressOuts(db *sql.DB, dbAs []*dbtypes.MutilchainAddressRow, chainType string) ([]uint64, error) {
+func InsertMutilchainAddressOuts(db *sql.DB, dbAs []*dbtypes.MutilchainAddressRow, chainType string, checked bool) ([]uint64, error) {
 	// Create the address table if it does not exist
 	tableName := fmt.Sprintf("%saddresses", chainType)
 	if haveTable, _ := TableExists(db, tableName); !haveTable {
@@ -156,7 +156,7 @@ func InsertMutilchainAddressOuts(db *sql.DB, dbAs []*dbtypes.MutilchainAddressRo
 		return nil, fmt.Errorf("unable to begin database transaction: %v", err)
 	}
 
-	stmt, err := dbtx.Prepare(mutilchainquery.MakeAddressRowInsertStatement(chainType, true))
+	stmt, err := dbtx.Prepare(mutilchainquery.MakeAddressRowInsertStatement(chainType, checked))
 	if err != nil {
 		log.Errorf("AddressRow INSERT prepare: %v ", err)
 		_ = dbtx.Rollback() // try, but we want the Prepare error back

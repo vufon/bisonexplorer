@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/stakedb"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/lib/pq"
@@ -68,7 +69,7 @@ func NewDatabaseVersion(major, minor, patch uint32) DatabaseVersion {
 // DBVersion retrieves the database version from the meta table. See
 // (*DatabaseVersion).NeededToReach for version comparison.
 func DBVersion(db *sql.DB) (ver DatabaseVersion, err error) {
-	err = db.QueryRow(internal.SelectMetaDBVersions, TYPEDCR).Scan(&ver.compat, &ver.schema, &ver.maint)
+	err = db.QueryRow(internal.SelectMetaDBVersions, mutilchain.TYPEDCR).Scan(&ver.compat, &ver.schema, &ver.maint)
 	return
 }
 
@@ -155,12 +156,12 @@ func insertMetaData(db *sql.DB, meta *metaData) error {
 }
 
 func updateSchemaVersion(db *sql.DB, schema uint32) error {
-	_, err := db.Exec(internal.SetDBSchemaVersion, schema, TYPEDCR)
+	_, err := db.Exec(internal.SetDBSchemaVersion, schema, mutilchain.TYPEDCR)
 	return err
 }
 
 func updateMaintVersion(db *sql.DB, maint uint32) error {
-	_, err := db.Exec(internal.SetDBMaintenanceVersion, maint, TYPEDCR)
+	_, err := db.Exec(internal.SetDBMaintenanceVersion, maint, mutilchain.TYPEDCR)
 	return err
 }
 

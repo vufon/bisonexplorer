@@ -931,7 +931,6 @@ func BlockDateQueryCtx(next http.Handler) http.Handler {
 			http.Error(w, "invalid block date", 422)
 			return
 		}
-		fmt.Println("limit in block query ", limit)
 		ctx := context.WithValue(r.Context(), CtxBlockDate, blockDate)
 		ctx = context.WithValue(ctx, CtxLimit, limit)
 		next.ServeHTTP(w, r.WithContext(ctx))

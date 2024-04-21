@@ -1,0 +1,435 @@
+// Copyright (c) 2018-2021, The Decred developers
+// Copyright (c) 2017, Jonathan Chappelow
+// See LICENSE for details.
+
+package btcrpcutils
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"os"
+
+	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrdata/v8/semver"
+)
+
+type MempoolGetter interface {
+	GetRawMempoolVerbose() (map[string]btcjson.GetRawMempoolVerboseResult, error)
+}
+
+type BlockGetter interface {
+	GetBestBlock() (*chainhash.Hash, int64, error)
+	GetBlockHash(blockHeight int64) (*chainhash.Hash, error)
+	GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error)
+}
+
+type VerboseBlockGetter interface {
+	GetBlockHash(blockHeight int64) (*chainhash.Hash, error)
+	GetBlockVerbose(blockHash *chainhash.Hash, verboseTx bool) (*btcjson.GetBlockVerboseResult, error)
+	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
+}
+
+// AddressOutpoints collects spendable and spent transactions outpoints paying
+// to a certain address. The transactions referenced by the outpoints are stored
+// for quick access.
+type AddressOutpoints struct {
+	Address   string
+	Outpoints []*wire.OutPoint
+	PrevOuts  []PrevOut
+	TxnsStore map[chainhash.Hash]*TxWithBlockData
+}
+
+type TxWithBlockData struct {
+	Tx          *wire.MsgTx
+	BlockHeight int64
+	BlockHash   string
+	MemPoolTime int64
+}
+
+type PrevOut struct {
+	TxSpending       chainhash.Hash
+	InputIndex       int
+	PreviousOutpoint *wire.OutPoint
+}
+
+// AsyncTxClient is a blueprint for creating a type that satisfies both
+// txhelpers.VerboseTransactionPromiseGetter and
+// txhelpers.TransactionPromiseGetter from an rpcclient.Client.
+type AsyncTxClient struct {
+	*rpcclient.Client
+}
+
+// GetRawTransactionVerbosePromise gives txhelpers.VerboseTransactionPromiseGetter.
+func (cl *AsyncTxClient) GetRawTransactionVerbosePromise(txHash *chainhash.Hash) VerboseTxReceiver {
+	return cl.Client.GetRawTransactionVerboseAsync(txHash)
+}
+
+var _ VerboseTransactionPromiseGetter = (*AsyncTxClient)(nil)
+
+// GetRawTransactionPromise gives txhelpers.TransactionPromiseGetter.
+func (cl *AsyncTxClient) GetRawTransactionPromise(txHash *chainhash.Hash) TxReceiver {
+	return cl.Client.GetRawTransactionAsync(txHash)
+}
+
+type TxReceiver interface {
+	Receive() (*btcutil.Tx, error)
+}
+
+type TransactionPromiseGetter interface {
+	GetRawTransactionPromise(txHash *chainhash.Hash) TxReceiver
+}
+
+// RawTransactionGetter is an interface satisfied by rpcclient.Client, and
+// required by functions that would otherwise require a rpcclient.Client just
+// for GetRawTransaction.
+type RawTransactionGetter interface {
+	GetRawTransaction(txHash *chainhash.Hash) (*btcutil.Tx, error)
+}
+
+var _ TransactionPromiseGetter = (*AsyncTxClient)(nil)
+
+// NewAsyncTxClient creates an AsyncTxClient from a rpcclient.Client.
+func NewAsyncTxClient(c *rpcclient.Client) *AsyncTxClient {
+	return &AsyncTxClient{c}
+}
+
+// Any of the following dcrd RPC API versions are deemed compatible with
+// dcrdata.
+var compatibleChainServerAPIs = []semver.Semver{
+	semver.NewSemver(1, 0, 0),
+	semver.NewSemver(2, 0, 0), // removed methods we no longer use i.e. searchrawtransactions
+}
+
+var (
+	zeroHash = chainhash.Hash{}
+	// zeroHashStringBytes = []byte(chainhash.Hash{}.String())
+
+	maxAncestorChainLength = 8192
+
+	ErrAncestorAtGenesis      = errors.New("no ancestor: at genesis")
+	ErrAncestorMaxChainLength = errors.New("no ancestor: max chain length reached")
+)
+
+// ConnectNodeRPC attempts to create a new websocket connection to a dcrd node,
+// with the given credentials and optional notification handlers.
+func ConnectNodeRPC(host, user, pass, cert string, disableTLS, disableReconnect bool,
+	ntfnHandlers ...*rpcclient.NotificationHandlers) (*rpcclient.Client, semver.Semver, error) {
+	var btcdCerts []byte
+	var err error
+	var nodeVer semver.Semver
+	if !disableTLS {
+		btcdCerts, err = os.ReadFile(cert)
+		if err != nil {
+			log.Errorf("Failed to read dcrd cert file at %s: %s\n",
+				cert, err.Error())
+			return nil, nodeVer, err
+		}
+		log.Debugf("Attempting to connect to dcrd RPC %s as user %s "+
+			"using certificate located in %s",
+			host, user, cert)
+	} else {
+		log.Debugf("Attempting to connect to dcrd RPC %s as user %s (no TLS)",
+			host, user)
+	}
+
+	//connect with btcd
+	connCfgDaemon := &rpcclient.ConnConfig{
+		Host:                 host,
+		Endpoint:             "ws", // websocket
+		User:                 user,
+		Pass:                 pass,
+		Certificates:         btcdCerts,
+		DisableTLS:           disableTLS,
+		DisableAutoReconnect: disableReconnect,
+	}
+	var ntfnHdlrs *rpcclient.NotificationHandlers
+	if len(ntfnHandlers) > 0 {
+		if len(ntfnHandlers) > 1 {
+			return nil, nodeVer, fmt.Errorf("invalid notification handler argument")
+		}
+		ntfnHdlrs = ntfnHandlers[0]
+	}
+	btcdClient, err := rpcclient.New(connCfgDaemon, ntfnHdlrs)
+	if err != nil {
+		return nil, nodeVer, fmt.Errorf("Failed to start btcd RPC client: %s", err.Error())
+	}
+
+	// // Ensure the RPC server has a compatible API version.
+	ver, err := btcdClient.Version()
+	if err != nil {
+		log.Error("Unable to get RPC version: ", err)
+		return nil, nodeVer, fmt.Errorf("unable to get node RPC version")
+	}
+
+	btcdVer := ver["btcdjsonrpcapi"]
+	nodeVer = semver.NewSemver(btcdVer.Major, btcdVer.Minor, btcdVer.Patch)
+
+	// Check if the dcrd RPC API version is compatible with dcrdata.
+	isAPICompat := semver.AnyCompatible(compatibleChainServerAPIs, nodeVer)
+	if !isAPICompat {
+		return nil, nodeVer, fmt.Errorf("Node JSON-RPC server does not have "+
+			"a compatible API version. Advertises %v but requires one of: %v",
+			nodeVer, compatibleChainServerAPIs)
+	}
+
+	return btcdClient, nodeVer, nil
+}
+
+// GetBlockHeaderVerbose creates a *chainjson.GetBlockHeaderVerboseResult for the
+// block at height idx via an RPC connection to a chain server.
+func GetBlockHeaderVerbose(client BlockFetcher, idx int64) *btcjson.GetBlockHeaderVerboseResult {
+	blockhash, err := client.GetBlockHash(idx)
+	if err != nil {
+		log.Errorf("GetBlockHash(%d) failed: %v", idx, err)
+		return nil
+	}
+
+	blockHeaderVerbose, err := client.GetBlockHeaderVerbose(blockhash)
+	if err != nil {
+		log.Errorf("GetBlockHeaderVerbose(%v) failed: %v", blockhash, err)
+		return nil
+	}
+
+	return blockHeaderVerbose
+}
+
+// GetBlockHeaderVerboseByString creates a *chainjson.GetBlockHeaderVerboseResult
+// for the block specified by hash via an RPC connection to a chain server.
+func GetBlockHeaderVerboseByString(client BlockFetcher, hash string) *btcjson.GetBlockHeaderVerboseResult {
+	blockhash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		log.Errorf("Invalid block hash %s: %v", blockhash, err)
+		return nil
+	}
+
+	blockHeaderVerbose, err := client.GetBlockHeaderVerbose(blockhash)
+	if err != nil {
+		log.Errorf("GetBlockHeaderVerbose(%v) failed: %v", blockhash, err)
+		return nil
+	}
+
+	return blockHeaderVerbose
+}
+
+// GetBlockVerbose creates a *chainjson.GetBlockVerboseResult for the block index
+// specified by idx via an RPC connection to a chain server.
+func GetBlockVerbose(client VerboseBlockGetter, idx int64, verboseTx bool) *btcjson.GetBlockVerboseResult {
+	blockhash, err := client.GetBlockHash(idx)
+	if err != nil {
+		log.Errorf("GetBlockHash(%d) failed: %v", idx, err)
+		return nil
+	}
+
+	blockVerbose, err := client.GetBlockVerbose(blockhash, verboseTx)
+	if err != nil {
+		log.Errorf("GetBlockVerbose(%v) failed: %v", blockhash, err)
+		return nil
+	}
+
+	return blockVerbose
+}
+
+// GetBlockVerboseByHash creates a *chainjson.GetBlockVerboseResult for the
+// specified block hash via an RPC connection to a chain server.
+func GetBlockVerboseByHash(client VerboseBlockGetter, hash string, verboseTx bool) *btcjson.GetBlockVerboseResult {
+	blockhash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		log.Errorf("Invalid block hash %s", hash)
+		return nil
+	}
+
+	blockVerbose, err := client.GetBlockVerbose(blockhash, verboseTx)
+	if err != nil {
+		log.Errorf("GetBlockVerbose(%v) failed: %v", blockhash, err)
+		return nil
+	}
+
+	return blockVerbose
+}
+
+// GetBlock gets a block at the given height from a chain server.
+func GetBlock(ind int64, client BlockFetcher) (*btcutil.Block, *chainhash.Hash, error) {
+	blockhash, err := client.GetBlockHash(ind)
+	if err != nil {
+		return nil, nil, fmt.Errorf("GetBlockHash(%d) failed: %v", ind, err)
+	}
+
+	msgBlock, err := client.GetBlock(blockhash)
+	if err != nil {
+		return nil, blockhash,
+			fmt.Errorf("GetBlock failed (%s): %v", blockhash, err)
+	}
+	block := btcutil.NewBlock(msgBlock)
+
+	return block, blockhash, nil
+}
+
+// GetBlockByHash gets the block with the given hash from a chain server.
+func GetBlockByHash(blockhash *chainhash.Hash, client BlockFetcher) (*btcutil.Block, error) {
+	msgBlock, err := client.GetBlock(blockhash)
+	if err != nil {
+		return nil, fmt.Errorf("GetBlock failed (%s): %v", blockhash, err)
+	}
+	block := btcutil.NewBlock(msgBlock)
+
+	return block, nil
+}
+
+// SideChainFull gets all of the blocks in the side chain with the specified tip
+// block hash. The first block in the slice is the lowest height block in the
+// side chain, and its previous block is the main/side common ancestor, which is
+// not included in the slice since it is main chain. The last block in the slice
+// is thus the side chain tip.
+func SideChainFull(client BlockFetcher, tipHash string) ([]string, error) {
+	// Do not assume specified tip hash is even side chain.
+	var sideChain []string
+
+	hash := tipHash
+	for {
+		header := GetBlockHeaderVerboseByString(client, hash)
+		if header == nil {
+			return nil, fmt.Errorf("GetBlockHeaderVerboseByString failed for block %s", hash)
+		}
+
+		// Main chain blocks have Confirmations != -1.
+		if header.Confirmations != -1 {
+			// The passed block is main chain, not a side chain tip.
+			if hash == tipHash {
+				return nil, fmt.Errorf("tip block is not on a side chain")
+			}
+			// This previous block is the main/side common ancestor.
+			break
+		}
+
+		// This was another side chain block.
+		sideChain = append(sideChain, hash)
+
+		// On to previous block
+		hash = header.PreviousHash
+	}
+
+	// Reverse side chain order so that last element is tip.
+	reverseStringSlice(sideChain)
+
+	return sideChain, nil
+}
+
+func reverseStringSlice(s []string) {
+	N := len(s)
+	for i := 0; i <= (N/2)-1; i++ {
+		j := N - 1 - i
+		s[i], s[j] = s[j], s[i]
+	}
+}
+
+// BlockHashGetter is an interface implementing GetBlockHash to retrieve a block
+// hash from a height.
+type BlockHashGetter interface {
+	GetBlockHash(context.Context, int64) (*chainhash.Hash, error)
+}
+
+// OrphanedTipLength finds a common ancestor by iterating block heights
+// backwards until a common block hash is found. Unlike CommonAncestor, an
+// orphaned DB tip whose corresponding block is not known to dcrd will not cause
+// an error. The number of blocks that have been orphaned is returned.
+// Realistically, this should rarely be anything but 0 or 1, but no limits are
+// placed here on the number of blocks checked.
+func OrphanedTipLength(ctx context.Context, client BlockHashGetter,
+	tipHeight int64, hashFunc func(int64) (string, error)) (int64, error) {
+	commonHeight := tipHeight
+	var dbHash string
+	var err error
+	var dcrdHash *chainhash.Hash
+	for {
+		// Since there are no limits on the number of blocks scanned, allow
+		// cancellation for a clean exit.
+		select {
+		case <-ctx.Done():
+			return 0, nil
+		default:
+		}
+
+		dbHash, err = hashFunc(commonHeight)
+		if err != nil {
+			return -1, fmt.Errorf("Unable to retrieve block at height %d: %v", commonHeight, err)
+		}
+		dcrdHash, err = client.GetBlockHash(ctx, commonHeight)
+		if err != nil {
+			return -1, fmt.Errorf("Unable to retrieve dcrd block at height %d: %v", commonHeight, err)
+		}
+		if dcrdHash.String() == dbHash {
+			break
+		}
+
+		commonHeight--
+		if commonHeight < 0 {
+			return -1, fmt.Errorf("Unable to find a common ancestor")
+		}
+		// Reorgs are soft-limited to depth 6 by dcrd. More than six blocks without
+		// a match probably indicates an issue.
+		if commonHeight-tipHeight == 7 {
+			log.Warnf("No common ancestor within 6 blocks. This is abnormal")
+		}
+	}
+	return tipHeight - commonHeight, nil
+}
+
+// MempoolAddressChecker is an interface implementing UnconfirmedTxnsForAddress.
+// NewMempoolAddressChecker may be used to create a MempoolAddressChecker from
+// an rpcclient.Client.
+type MempoolAddressChecker interface {
+	UnconfirmedTxnsForAddress(address string) (*AddressOutpoints, int64, error)
+}
+
+type mempoolAddressChecker struct {
+	client *AsyncTxClient
+	params *chaincfg.Params
+}
+
+type VerboseTxReceiver interface {
+	Receive() (*btcjson.TxRawResult, error)
+}
+
+type VerboseTransactionPromiseGetter interface {
+	GetRawTransactionVerbosePromise(txHash *chainhash.Hash) VerboseTxReceiver
+}
+
+// UnconfirmedTxnsForAddress implements MempoolAddressChecker.
+func (m *mempoolAddressChecker) UnconfirmedTxnsForAddress(address string) (*AddressOutpoints, int64, error) {
+	return UnconfirmedTxnsForAddress(m.client, address, m.params)
+}
+
+// NewMempoolAddressChecker creates a new MempoolAddressChecker from an RPC
+// client for the given network.
+func NewMempoolAddressChecker(client *rpcclient.Client, params *chaincfg.Params) MempoolAddressChecker {
+	return &mempoolAddressChecker{&AsyncTxClient{client}, params}
+}
+
+func NewAddressOutpoints(address string) *AddressOutpoints {
+	return &AddressOutpoints{
+		Address:   address,
+		TxnsStore: make(map[chainhash.Hash]*TxWithBlockData),
+	}
+}
+
+// MempoolTxGetter must be satisfied for UnconfirmedTxnsForAddress.
+type MempoolTxGetter interface {
+	MempoolGetter
+	RawTransactionGetter
+	VerboseTransactionPromiseGetter
+	GetBestBlock() (*chainhash.Hash, int32, error)
+}
+
+// UnconfirmedTxnsForAddress returns the chainhash.Hash of all transactions in
+// mempool that (1) pay to the given address, or (2) spend a previous outpoint
+// that paid to the address.
+func UnconfirmedTxnsForAddress(client MempoolTxGetter, address string,
+	params *chaincfg.Params) (*AddressOutpoints, int64, error) {
+	return nil, 0, nil
+}

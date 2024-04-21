@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
+	btccfg "github.com/btcsuite/btcd/chaincfg"
 	"github.com/caarlos0/env/v6"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
@@ -28,6 +30,7 @@ import (
 
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/netparams"
+	"github.com/decred/dcrdata/v8/netparams/btcnetparams"
 	"github.com/decred/dcrdata/v8/netparams/ltcnetparams"
 )
 
@@ -43,6 +46,8 @@ var activeNet = &netparams.MainNetParams
 var activeChain = chaincfg.MainNetParams()
 var ltcActiveNet = &ltcnetparams.MainNetParams
 var ltcActiveChain = &ltccfg.MainNetParams
+var btcActiveNet = &btcnetparams.MainNetParams
+var btcActiveChain = &btccfg.MainNetParams
 
 var (
 	defaultHomeDir              = dcrutil.AppDataDir("dcrdata", false)
@@ -51,8 +56,10 @@ var (
 	defaultDataDir              = filepath.Join(defaultHomeDir, defaultDataDirname)
 	dcrdHomeDir                 = dcrutil.AppDataDir("dcrd", false)
 	ltcdHomeDir                 = ltcutil.AppDataDir("ltcd", false)
+	btcdHomeDir                 = btcutil.AppDataDir("btcd", false)
 	defaultDaemonRPCCertFile    = filepath.Join(dcrdHomeDir, "rpc.cert")
 	defaultLTCDaemonRPCCertFile = filepath.Join(ltcdHomeDir, "rpc.cert")
+	defaultBTCDaemonRPCCertFile = filepath.Join(btcdHomeDir, "rpc.cert")
 	defaultMaxLogZips           = 16
 
 	defaultHost         = "localhost"
@@ -65,10 +72,16 @@ var (
 	defaultIndentJSON  = "   "
 	//ltc config
 	//Litecoin core: 9332, 19332. Ltcd: 9334, 19334
-	defaultLTCMainnetPort      = "9334"
-	defaultLTCTestnetPort      = "19334"
-	defaultLTCSimnetPort       = "19335"
-	defaultLTCIndentJSON       = "   "
+	defaultLTCMainnetPort = "9334"
+	defaultLTCTestnetPort = "19334"
+	defaultLTCSimnetPort  = "19335"
+	defaultLTCIndentJSON  = "   "
+	//Bitcoin: btcd: 8334, 18334
+	defaultBTCMainnetPort = "8334"
+	defaultBTCTestnetPort = "18334"
+	defaultBTCSimnetPort  = "18335"
+	defaultBTCIndentJSON  = "   "
+
 	defaultCacheControlMaxAge  = 86400
 	defaultInsightReqRateLimit = 20.0
 	defaultMaxCSVAddrs         = 25
@@ -96,7 +109,7 @@ var (
 	defaultDisabledExchanges = "dragonex,poloniex"
 	defaultRateCertFile      = filepath.Join(defaultHomeDir, "rpc.cert")
 
-	defaultMainnetLink  = "https://explorer.dcrdata.org/"
+	defaultMainnetLink  = "https://blockcare.pro/"
 	defaultTestnetLink  = "https://testnet.dcrdata.org/"
 	defaultOnionAddress = ""
 
@@ -172,12 +185,19 @@ type config struct {
 	DcrdCert         string `long:"dcrdcert" description:"File containing the dcrd certificate file" env:"DCRDATA_DCRD_CERT"`
 	DisableDaemonTLS bool   `long:"nodaemontls" description:"Disable TLS for the daemon RPC client -- NOTE: This is only allowed if the RPC client is connecting to localhost" env:"DCRDATA_DCRD_DISABLE_TLS"`
 	NoBlockPrefetch  bool   `long:"no-dcrd-block-prefetch" description:"Disable block pre-fetch from dcrd during startup sync." env:"DCRDATA_NO_BLOCK_PREFETCH"`
-
+	//disabled mutilchains support
+	DisabledChain string `long:"disabledchain" description:"Blockchain types are disabled" env:"DCRDATA_DISABLED_CHAINS"`
 	// LTC RPC client options
 	LtcdUser string `long:"ltcduser" description:"Daemon RPC user name" env:"DCRDATA_LTCD_USER"`
 	LtcdPass string `long:"ltcdpass" description:"Daemon RPC password" env:"DCRDATA_LTCD_PASS"`
 	LtcdServ string `long:"ltcdserv" description:"Hostname/IP and port of ltcd RPC server to connect to (default localhost:9334, testnet: localhost:19334, simnet: localhost:???)" env:"DCRDATA_LTCD_URL"`
 	LtcdCert string `long:"ltcdcert" description:"File containing the ltcd certificate file" env:"DCRDATA_LTCD_CERT"`
+
+	// BTC RPC client options
+	BtcdUser string `long:"btcduser" description:"Daemon RPC user name" env:"DCRDATA_BTCD_USER"`
+	BtcdPass string `long:"btcdpass" description:"Daemon RPC password" env:"DCRDATA_BTCD_PASS"`
+	BtcdServ string `long:"btcdserv" description:"Hostname/IP and port of btcd RPC server to connect to (default localhost:8334, testnet: localhost:18334, simnet: localhost:???)" env:"DCRDATA_BTCD_URL"`
+	BtcdCert string `long:"btcdcert" description:"File containing the btcd certificate file" env:"DCRDATA_BTCD_CERT"`
 
 	// ExchangeBot settings
 	EnableExchangeBot bool   `long:"exchange-monitor" description:"Enable the exchange monitor" env:"DCRDATA_MONITOR_EXCHANGES"`
@@ -213,6 +233,7 @@ var (
 		ServerHeader:        defaultServerHeader,
 		DcrdCert:            defaultDaemonRPCCertFile,
 		LtcdCert:            defaultLTCDaemonRPCCertFile,
+		BtcdCert:            defaultBTCDaemonRPCCertFile,
 		MempoolMinInterval:  defaultMempoolMinInterval,
 		MempoolMaxInterval:  defaultMempoolMaxInterval,
 		MPTriggerTickets:    defaultMPTriggerTickets,
@@ -539,6 +560,9 @@ func loadConfig() (*config, error) {
 	ltcActiveNet = &ltcnetparams.MainNetParams
 	ltcActiveChain = &ltccfg.MainNetParams
 	ltcDefaultPort := defaultLTCMainnetPort
+	btcActiveNet = &btcnetparams.MainNetParams
+	btcActiveChain = &btccfg.MainNetParams
+	btcDefaultPort := defaultBTCMainnetPort
 	if cfg.TestNet {
 		activeNet = &netparams.TestNet3Params
 		activeChain = chaincfg.TestNet3Params()
@@ -546,6 +570,9 @@ func loadConfig() (*config, error) {
 		ltcActiveNet = &ltcnetparams.TestNet3Params
 		ltcActiveChain = &ltccfg.TestNet4Params
 		ltcDefaultPort = defaultLTCTestnetPort
+		btcActiveNet = &btcnetparams.TestNet3Params
+		btcActiveChain = &btccfg.TestNet3Params
+		btcDefaultPort = defaultBTCTestnetPort
 		numNets++
 	}
 	if cfg.SimNet {
@@ -555,6 +582,9 @@ func loadConfig() (*config, error) {
 		ltcActiveNet = &ltcnetparams.SimNetParams
 		ltcActiveChain = &ltccfg.SimNetParams
 		ltcDefaultPort = defaultLTCSimnetPort
+		btcActiveNet = &btcnetparams.SimNetParams
+		btcActiveChain = &btccfg.SimNetParams
+		btcDefaultPort = defaultBTCSimnetPort
 		numNets++
 	}
 	if numNets > 1 {
@@ -630,8 +660,15 @@ func loadConfig() (*config, error) {
 	}
 
 	// Set the host names and ports to the default if the user does not specify
-	// them.
+	// them. - For LTC
 	cfg.LtcdServ, err = normalizeNetworkAddress(cfg.LtcdServ, ltcDefaultPort, ltcActiveNet.JSONRPCClientPort)
+	if err != nil {
+		return loadConfigError(err)
+	}
+
+	// Set the host names and ports to the default if the user does not specify
+	// them. - For BTC
+	cfg.BtcdServ, err = normalizeNetworkAddress(cfg.BtcdServ, btcDefaultPort, btcActiveNet.JSONRPCClientPort)
 	if err != nil {
 		return loadConfigError(err)
 	}
@@ -705,6 +742,7 @@ func loadConfig() (*config, error) {
 	// Expand some additional paths.
 	cfg.DcrdCert = cleanAndExpandPath(cfg.DcrdCert)
 	cfg.LtcdCert = cleanAndExpandPath(cfg.LtcdCert)
+	cfg.BtcdCert = cleanAndExpandPath(cfg.BtcdCert)
 	cfg.AgendasDBFileName = cleanAndExpandPath(cfg.AgendasDBFileName)
 	cfg.ProposalsFileName = cleanAndExpandPath(cfg.ProposalsFileName)
 	cfg.RateCertificate = cleanAndExpandPath(cfg.RateCertificate)
