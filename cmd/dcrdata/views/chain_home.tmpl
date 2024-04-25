@@ -1,0 +1,173 @@
+{{define "chain_home" -}}
+<!DOCTYPE html>
+{{$ChainType := .ChainType}}
+<html lang="en">
+   {{ template "html-head" headData .CommonPageData "Bitcoin Block Explorer by blockcare.pro"}}
+   {{ template "navbar" . }}
+   <div class="main-container homepage-class" data-controller="time">
+      <!-- start explorer wrap -->
+      <div class="hp-explore-wrap" id="hp-explore-wrap">
+         <div class="container">
+            <section>
+               <h2 class="fs-40 fw-600 d-none"> Blocks Explorer</h2>
+               <div class="hp-explore__cards-wrap">
+                  <div class="hp-explore__cards-content-2-1">
+                     <div class="info-left-card">
+                        <!-- Start Treasury Card -->
+                        <div class="explore-card-wrap">
+                           <div class="explore-card-content">
+                              <div class="explore-card__header bg-for-header">
+                                 <span class="dcricon-tree explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
+                                 <div class="explore-card__header__text ml-15">
+                                    <h5 class="explore-card__header__text__name"> Distribution </h5>
+                                    <div class="explore-card__header__text__price">
+                                       <div class="price-wrap d-flex ai-center">
+                                          <span class="price-usd fs-13">Information about Treasury and Supply</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="explore-card__values-content">
+                                 {{with .Info -}}
+                                 <div class="row justify-content-between">
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/charts?chart=coin-supply">
+                                          Total Coin Supply<span class="nowrap fw-600">&nbsp(of 21 mil)</span>
+                                          </a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                          <span data-homepage-target="coinSupply">
+                                          {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .CoinSupply) 0 true)}}
+                                          </span>
+                                          <span class="info-line-2-sub">BTC</span>
+                                          </span>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 {{end}}
+                              </div>
+                           </div>
+                        </div>
+                        <!-- End Treasury Card -->
+                        <!-- Start Mining Card -->
+                        <div class="explore-card-wrap mt-3">
+                           <div class="explore-card-content">
+                              <div class="explore-card__header bg-for-header">
+                                 <span class="dcricon-pickaxe explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
+                                 <div class="explore-card__header__text ml-15">
+                                    <h5 class="explore-card__header__text__name"> Mining </h5>
+                                    <div class="explore-card__header__text__price">
+                                       <div class="price-wrap d-flex ai-center">
+                                          <span class="price-usd fs-13">Mining and Rewards information</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="explore-card__values-content">
+                                 {{with .Info -}}
+                                 <div class="row justify-content-between">
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/charts?chart=pow-difficulty">
+                                          Difficulty</a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-4" data-homepage-target="difficulty">
+                                          {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty 1.0) 0 true)}}
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/charts?chart=hashrate">
+                                          Hashrate
+                                          </a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                          <span data-homepage-target="hashrate">
+                                          {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
+                                          </span>
+                                          <span class="info-line-2-sub">{{hashratePostfix .HashRate}}</span>
+                                          </span>
+                                          <span class="stats-subinfo">
+                                          <span data-homepage-target="hashrateDelta">{{template "fmtPercentage" .HashRateChangeMonth}}</span> in past 30 days
+                                          </span>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 {{end}}
+                              </div>
+                           </div>
+                        </div>
+                     <!-- End Mining Card -->
+                     </div>
+                     <div class="info-right-card">
+                        <!-- Start Blocks Card -->
+                        <div class="explore-card-wrap">
+                           <div class="explore-card-content">
+                              <a href='/chain/{{$ChainType}}/blocks' class="link-to-subpage">
+                                 <div class="explore-card__header">
+                                    <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
+                                    <div class="explore-card__header__text ml-15">
+                                       <h5 class="explore-card__header__text__name"> Blocks </h5>
+                                       <span class="explore-card__header__arrow">
+                                       <span class='the-arrow -right'>
+                                       <span class='shaft'></span>
+                                       </span>
+                                       </span>
+                                       <div class="explore-card__header__text__price">
+                                          <div class="price-wrap d-flex ai-center">
+                                             <span class="price-usd fs-13">Block list and details</span>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </a>
+                              <div class="explore-card__values-content">
+                                 {{with .BestBlock -}}
+                                 <div class="row justify-content-between">
+                                    <div class="col-12">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Lastest Block</span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                          <a class="fs-28" href="/chain/{{$ChainType}}/block/{{.Hash}}" data-homepage-target="blockHeight">{{.Height}}</a>
+                                          </span>
+                                       </p>
+                                    </div>
+                                    <div class="col-12">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Value</span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                          <span data-homepage-target="blockTotal">
+                                          {{threeSigFigs .Total}}</span>
+                                          <span class="info-line-2-sub">DCR</span>
+                                          </span>
+                                       </p>
+                                    </div>
+                                    <div class="col-12">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Size</span>
+                                          <span class="network-stats-content d-inline-block mt-4" data-homepage-target="blockSize">{{.FormattedBytes}}</span>
+                                       </p>
+                                    </div>
+                                 </div>
+                                 {{end}}
+                              </div>
+                           </div>
+                        </div>
+                        <!-- End Blocks Card -->
+                     </div>
+                  </div>
+               </div>
+            </section>
+         </div>
+      </div>
+      <!--end block 2 -->
+   </div>
+   {{  template "footer_embed" . }}
+   </body>
+</html>
+{{- end}}

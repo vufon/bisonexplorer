@@ -100,7 +100,28 @@ const (
 	ON CONFLICT (this_hash) DO NOTHING;`
 
 	UpdateBlockNext = `UPDATE %sblock_chain set next_hash = $2 WHERE block_db_id = $1;`
+
+	SelectDiffByTime = `SELECT difficulty
+		FROM %sblocks
+		WHERE time >= $1
+		ORDER BY time
+		LIMIT 1;`
+
+	SelectBlockHeightByHash = `SELECT height FROM %sblocks WHERE hash = $1;`
+	SelectBlockHashByHeight = `SELECT hash FROM %sblocks WHERE height = $1;`
 )
+
+func MakeSelectBlockHeightByHash(chainType string) string {
+	return fmt.Sprintf(SelectBlockHeightByHash, chainType)
+}
+
+func MakeSelectBlockHashByHeight(chainType string) string {
+	return fmt.Sprintf(SelectBlockHashByHeight, chainType)
+}
+
+func MakeSelectDiffByTime(chainType string) string {
+	return fmt.Sprintf(SelectDiffByTime, chainType)
+}
 
 func MakeIndexBlockTableOnHash(chainType string) string {
 	return fmt.Sprintf(IndexBlockTableOnHash, chainType, chainType)

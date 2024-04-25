@@ -24,6 +24,7 @@ import (
 	"github.com/decred/dcrd/wire"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
@@ -1730,6 +1731,80 @@ func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (ba
 	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }
 
+func RetrieveMutilchainAddressBalance(ctx context.Context, db *sql.DB, address string, chainType string) (balance *dbtypes.AddressBalance, err error) {
+	// Never return nil *AddressBalance.
+	balance = &dbtypes.AddressBalance{Address: address}
+
+	spentCount, spentValue, err := RetrieveMutilchainAddressSpentUnspentSummary(ctx, db, address, chainType, true)
+	if err != nil {
+		return balance, err
+	}
+
+	unspentCount, unspentValue, err := RetrieveMutilchainAddressSpentUnspentSummary(ctx, db, address, chainType, false)
+	if err != nil {
+		return balance, err
+	}
+	balance.NumSpent = spentCount
+	balance.TotalSpent = spentValue
+	balance.NumUnspent = unspentCount
+	balance.TotalUnspent = unspentValue
+	return balance, nil
+}
+
+func RetrieveMutilchainAddressSpentUnspentSummary(ctx context.Context, db *sql.DB, address string, chainType string, isSpent bool) (int64, int64, error) {
+	dbtx, err := db.BeginTx(context.Background(), &sql.TxOptions{
+		Isolation: sql.LevelDefault,
+		ReadOnly:  true,
+	})
+	if err != nil {
+		err = fmt.Errorf("unable to begin database transaction: %w", err)
+		return 0, 0, err
+	}
+	var queryBuilder string
+	if isSpent {
+		queryBuilder = mutilchainquery.MakeSelectAddressSpentCountAndValue(chainType)
+	} else {
+		queryBuilder = mutilchainquery.MakeSelectAddressUnspentCountAndValue(chainType)
+	}
+	rows, err := db.QueryContext(ctx, queryBuilder, address)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			_ = dbtx.Commit()
+			return 0, 0, err
+		}
+		if errRoll := dbtx.Rollback(); errRoll != nil {
+			log.Errorf("Rollback failed: %v", errRoll)
+		}
+		err = fmt.Errorf("failed to query spent and unspent amounts: %w", err)
+		return 0, 0, err
+	}
+	totalCount := int64(0)
+	totalValue := int64(0)
+	for rows.Next() {
+		var count sql.NullInt64
+		var value sql.NullInt64
+		err = rows.Scan(&count, &value)
+		if err != nil {
+			return 0, 0, err
+		}
+		if count.Valid {
+			totalCount += count.Int64
+		}
+		if value.Valid {
+			totalValue += value.Int64
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return 0, 0, err
+	}
+	closeRows(rows)
+	err = dbtx.Commit()
+	if err != nil {
+		return 0, 0, err
+	}
+	return totalCount, totalValue, nil
+}
+
 // RetrieveAddressBalance gets the numbers of spent and unspent outpoints
 // for the given address, the total amounts spent and unspent, the number of
 // distinct spending transactions, and the fraction spent to and received from
@@ -2054,6 +2129,11 @@ func RetrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, off
 		statement, creditDebitQuery, year, month)
 }
 
+func RetrieveMutilchainAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, chainType string) ([]*dbtypes.MutilchainAddressRow, error) {
+	statement := mutilchainquery.MakeSelectAddressLimitNByAddress(chainType)
+	return retrieveMutilchainAddressTxns(ctx, db, address, N, offset, statement)
+}
+
 func RetrieveAddressDebitTxns(ctx context.Context, db *sql.DB, address string, N, offset int64, year int64, month int64) ([]*dbtypes.AddressRow, error) {
 	var statement string
 	if year == 0 {
@@ -2150,6 +2230,18 @@ func retrieveAddressTxns(ctx context.Context, db *sql.DB, address string, N, off
 	}
 }
 
+func retrieveMutilchainAddressTxns(ctx context.Context, db *sql.DB, address string, N, offset int64,
+	statement string) ([]*dbtypes.MutilchainAddressRow, error) {
+	var rows *sql.Rows
+	var err error
+	rows, err = db.QueryContext(ctx, statement, address, N, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	return scanMutilchainAddressQueryRows(rows)
+}
+
 func scanAddressMergedRows(rows *sql.Rows, addr string, queryType int, onlyValidMainchain bool) (addressRows []*dbtypes.AddressRow, err error) {
 	for rows.Next() {
 		addr := dbtypes.AddressRow{Address: addr}
@@ -2183,6 +2275,39 @@ func scanAddressMergedRows(rows *sql.Rows, addr string, queryType int, onlyValid
 		}
 
 		addr.Value = uint64(value)
+
+		addressRows = append(addressRows, &addr)
+	}
+	err = rows.Err()
+
+	return
+}
+
+func scanMutilchainAddressQueryRows(rows *sql.Rows) (addressRows []*dbtypes.MutilchainAddressRow, err error) {
+	for rows.Next() {
+		var id uint64
+		var spendingTxRowId, spendingTxVinIndex, vinRowId sql.NullInt64
+		var spendingTxHash sql.NullString
+		var addr dbtypes.MutilchainAddressRow
+		err = rows.Scan(&id, &addr.Address, &addr.FundingTxDbID, &addr.FundingTxHash, &addr.FundingTxVoutIndex,
+			&addr.VoutDbID, &addr.Value, &spendingTxRowId, &spendingTxHash,
+			&spendingTxVinIndex, &vinRowId)
+
+		if err != nil {
+			return
+		}
+		if spendingTxRowId.Valid {
+			addr.SpendingTxDbID = uint64(spendingTxRowId.Int64)
+		}
+		if spendingTxVinIndex.Valid {
+			addr.SpendingTxVinIndex = uint32(spendingTxVinIndex.Int64)
+		}
+		if vinRowId.Valid {
+			addr.VinDbID = uint64(vinRowId.Int64)
+		}
+		if spendingTxHash.Valid {
+			addr.SpendingTxHash = spendingTxHash.String
+		}
 
 		addressRows = append(addressRows, &addr)
 	}
@@ -2519,6 +2644,11 @@ func RetrievePkScriptByVinID(ctx context.Context, db *sql.DB, vinID uint64) (pkS
 	return
 }
 
+func RetrieveMutilchainPkScriptByVinID(ctx context.Context, db *sql.DB, vinID uint64, chainType string) (pkScript []byte, ver uint16, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.MakeSelectPkScriptByVinID(chainType), vinID).Scan(&ver, &pkScript)
+	return
+}
+
 func RetrievePkScriptByVoutID(ctx context.Context, db *sql.DB, voutID uint64) (pkScript []byte, ver uint16, err error) {
 	err = db.QueryRowContext(ctx, internal.SelectPkScriptByID, voutID).Scan(&ver, &pkScript)
 	return
@@ -2615,6 +2745,11 @@ func RetrieveFundingOutpointIndxByVinID(ctx context.Context, db *sql.DB, vinDbID
 	return
 }
 
+func RetrieveMutilchainFundingOutpointIndxByVinID(ctx context.Context, db *sql.DB, vinDbID uint64, chainType string) (idx uint32, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.MakeSelectFundingOutpointIndxByVinID(chainType), vinDbID).Scan(&idx)
+	return
+}
+
 // RetrieveFundingTxByTxIn gets the transaction hash of the previous outpoint
 // for a transaction input specified by hash and input index.
 func RetrieveFundingTxByTxIn(ctx context.Context, db *sql.DB, txHash string, vinIndex uint32) (id uint64, tx string, err error) {
@@ -2653,6 +2788,13 @@ func RetrieveSpendingTxByTxOut(ctx context.Context, db *sql.DB, txHash string,
 	return
 }
 
+func RetrieveMutilchainSpendingTxByTxOut(ctx context.Context, db *sql.DB, txHash string,
+	voutIndex uint32, chainType string) (id uint64, tx string, vin uint32, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.MakeSelectSpendingTxByPrevOut(chainType),
+		txHash, voutIndex).Scan(&id, &tx, &vin)
+	return
+}
+
 // RetrieveSpendingTxsByFundingTx gets info on all spending transaction inputs
 // for the given funding transaction specified by DB row ID. This function is
 // called by SpendingTransactions, an important part of the transaction page
@@ -2661,6 +2803,34 @@ func RetrieveSpendingTxsByFundingTx(ctx context.Context, db *sql.DB, fundingTxID
 	txns []string, vinInds []uint32, voutInds []uint32, err error) {
 	var rows *sql.Rows
 	rows, err = db.QueryContext(ctx, internal.SelectSpendingTxsByPrevTx, fundingTxID)
+	if err != nil {
+		return
+	}
+	defer closeRows(rows)
+
+	for rows.Next() {
+		var id uint64
+		var tx string
+		var vin, vout uint32
+		err = rows.Scan(&id, &tx, &vin, &vout)
+		if err != nil {
+			return
+		}
+
+		dbIDs = append(dbIDs, id)
+		txns = append(txns, tx)
+		vinInds = append(vinInds, vin)
+		voutInds = append(voutInds, vout)
+	}
+	err = rows.Err()
+
+	return
+}
+
+func RetrieveMutilchainSpendingTxsByFundingTx(ctx context.Context, db *sql.DB, fundingTxID string, chainType string) (dbIDs []uint64,
+	txns []string, vinInds []uint32, voutInds []uint32, err error) {
+	var rows *sql.Rows
+	rows, err = db.QueryContext(ctx, mutilchainquery.MakeSelectSpendingTxsByPrevTx(chainType), fundingTxID)
 	if err != nil {
 		return
 	}
@@ -2741,6 +2911,19 @@ func RetrieveVinsByIDs(ctx context.Context, db *sql.DB, vinDbIDs []uint64) ([]db
 	return vins, nil
 }
 
+func RetrieveMutilchainVinsByIDs(ctx context.Context, db *sql.DB, vinDbIDs []uint64, chainType string) ([]dbtypes.VinTxProperty, error) {
+	vins := make([]dbtypes.VinTxProperty, len(vinDbIDs))
+	for i, id := range vinDbIDs {
+		vin := &vins[i]
+		err := db.QueryRowContext(ctx, mutilchainquery.SelectAllVinInfoByIDFunc(chainType), id).Scan(&vin.TxID,
+			&vin.TxIndex, &vin.TxTree, &vin.PrevTxHash, &vin.PrevTxIndex, &vin.PrevTxTree)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return vins, nil
+}
+
 // RetrieveVoutsByIDs retrieves vout details for the rows of the vouts table
 // specified by the provided row IDs. This function is an important part of the
 // transaction page.
@@ -2756,6 +2939,36 @@ func RetrieveVoutsByIDs(ctx context.Context, db *sql.DB, voutDbIDs []uint64) ([]
 		err := db.QueryRowContext(ctx, internal.SelectVoutByID, id).Scan(&id0, &vout.TxHash,
 			&vout.TxIndex, &vout.TxTree, &vout.Value, &vout.Version,
 			&vout.ScriptPubKey, &reqSigs, &scriptClass, &addresses, &vout.Mixed, &spendTxRowID)
+		if err != nil {
+			return nil, err
+		}
+		// Parse the addresses array
+		replacer := strings.NewReplacer("{", "", "}", "")
+		addresses = replacer.Replace(addresses)
+
+		vout.ScriptPubKeyData.ReqSigs = reqSigs
+		vout.ScriptPubKeyData.Type = scriptClass
+		// If there are no addresses, the Addresses should be nil or length
+		// zero. However, strings.Split will return [""] if addresses is "".
+		// If that is the case, leave it as a nil slice.
+		if len(addresses) > 0 {
+			vout.ScriptPubKeyData.Addresses = strings.Split(addresses, ",")
+		}
+	}
+	return vouts, nil
+}
+
+func RetrieveMutilchainVoutsByIDs(ctx context.Context, db *sql.DB, voutDbIDs []uint64, chainType string) ([]dbtypes.Vout, error) {
+	vouts := make([]dbtypes.Vout, len(voutDbIDs))
+	for i, id := range voutDbIDs {
+		vout := &vouts[i]
+		var id0 uint64
+		var reqSigs uint32
+		var addresses string
+		var scriptClass dbtypes.ScriptClass // or scan a string and then dbtypes.NewScriptClassFromString(scriptTypeString)
+		err := db.QueryRowContext(ctx, mutilchainquery.MakeSelectVoutByID(chainType), id).Scan(&id0, &vout.TxHash,
+			&vout.TxIndex, &vout.TxTree, &vout.Value, &vout.Version,
+			&vout.ScriptPubKey, &reqSigs, &scriptClass, &addresses)
 		if err != nil {
 			return nil, err
 		}
@@ -3338,6 +3551,25 @@ func RetrieveDbTxByHash(ctx context.Context, db *sql.DB, txHash string) (id uint
 	return
 }
 
+func RetrieveMutilchainDbTxByHash(ctx context.Context, db *sql.DB, txHash string, chainType string) (id uint64, dbTx *dbtypes.Tx, err error) {
+	dbTx = new(dbtypes.Tx)
+	vinDbIDs := dbtypes.UInt64Array(dbTx.VinDbIds)
+	voutDbIDs := dbtypes.UInt64Array(dbTx.VoutDbIds)
+	var blockTime int64
+	var txTime int64
+	err = db.QueryRowContext(ctx, mutilchainquery.MakeSelectFullTxByHash(chainType), txHash).Scan(&id,
+		&dbTx.BlockHash, &dbTx.BlockHeight, &blockTime, &txTime,
+		&dbTx.TxType, &dbTx.Version, &dbTx.Tree, &dbTx.TxID, &dbTx.BlockIndex,
+		&dbTx.Locktime, &dbTx.Expiry, &dbTx.Size, &dbTx.Spent, &dbTx.Sent,
+		&dbTx.Fees, &dbTx.NumVin, &vinDbIDs,
+		&dbTx.NumVout, &voutDbIDs)
+	dbTx.BlockTime = dbtypes.NewTimeDef(time.Unix(blockTime, 0))
+	dbTx.Time = dbtypes.NewTimeDef(time.Unix(txTime, 0))
+	dbTx.VinDbIds = vinDbIDs
+	dbTx.VoutDbIds = voutDbIDs
+	return
+}
+
 // RetrieveFullTxByHash gets all data from the transactions table for the
 // transaction specified by its hash. Transactions in valid and mainchain blocks
 // are chosen first. See also RetrieveDbTxByHash.
@@ -3381,6 +3613,42 @@ func RetrieveDbTxsByHash(ctx context.Context, db *sql.DB, txHash string) (ids []
 			&dbTx.Locktime, &dbTx.Expiry, &dbTx.Size, &dbTx.Spent, &dbTx.Sent,
 			&dbTx.Fees, &dbTx.MixCount, &dbTx.MixDenom, &dbTx.NumVin, &vinids,
 			&dbTx.NumVout, &voutids, &dbTx.IsValid, &dbTx.IsMainchainBlock)
+		if err != nil {
+			return
+		}
+
+		dbTx.VinDbIds = vinids
+		dbTx.VoutDbIds = voutids
+
+		ids = append(ids, id)
+		dbTxs = append(dbTxs, &dbTx)
+	}
+	err = rows.Err()
+
+	return
+}
+
+func RetrieveMutilchainDbTxsByHash(ctx context.Context, db *sql.DB, txHash string, chainType string) (ids []uint64, dbTxs []*dbtypes.Tx, err error) {
+	var rows *sql.Rows
+	rows, err = db.QueryContext(ctx, mutilchainquery.MakeSelectFullTxByHash(chainType), txHash)
+	if err != nil {
+		return
+	}
+	defer closeRows(rows)
+
+	for rows.Next() {
+		var id uint64
+		var dbTx dbtypes.Tx
+		var vinids, voutids dbtypes.UInt64Array
+		// vinDbIDs := dbtypes.UInt64Array(dbTx.VinDbIds)
+		// voutDbIDs := dbtypes.UInt64Array(dbTx.VoutDbIds)
+
+		err = rows.Scan(&id,
+			&dbTx.BlockHash, &dbTx.BlockHeight, &dbTx.BlockTime, &dbTx.Time,
+			&dbTx.TxType, &dbTx.Version, &dbTx.Tree, &dbTx.TxID, &dbTx.BlockIndex,
+			&dbTx.Locktime, &dbTx.Expiry, &dbTx.Size, &dbTx.Spent, &dbTx.Sent,
+			&dbTx.Fees, &dbTx.NumVin, &vinids,
+			&dbTx.NumVout, &voutids)
 		if err != nil {
 			return
 		}
@@ -3532,6 +3800,32 @@ func RetrieveTxnsBlocks(ctx context.Context, db *sql.DB, txHash string) (blockHa
 		blockIndexes = append(blockIndexes, idx)
 		areValid = append(areValid, isValid)
 		areMainchain = append(areMainchain, isMainchain)
+	}
+	err = rows.Err()
+
+	return
+}
+
+func RetrieveMutilchainTxnsBlocks(ctx context.Context, db *sql.DB, txHash string, chainType string) (blockHashes []string,
+	blockHeights, blockIndexes []uint32, err error) {
+	var rows *sql.Rows
+	rows, err = db.QueryContext(ctx, mutilchainquery.MakeSelectTxsBlocks(chainType), txHash)
+	if err != nil {
+		return
+	}
+	defer closeRows(rows)
+
+	for rows.Next() {
+		var hash string
+		var height, idx uint32
+		err = rows.Scan(&height, &hash, &idx)
+		if err != nil {
+			return
+		}
+
+		blockHeights = append(blockHeights, height)
+		blockHashes = append(blockHashes, hash)
+		blockIndexes = append(blockIndexes, idx)
 	}
 	err = rows.Err()
 
@@ -4080,6 +4374,17 @@ func RetrieveBestBlock(ctx context.Context, db *sql.DB) (height int64, hash stri
 	return
 }
 
+func RetrieveMutilchainBestBlock(ctx context.Context, db *sql.DB, chainType string) (height int64, hash string, err error) {
+	var bbHeight uint64
+	bbHeight, hash, _, err = RetrieveMutilchainBestBlockHeight(db, chainType)
+	height = int64(bbHeight)
+	if err != nil && err == sql.ErrNoRows {
+		height = -1
+		err = nil
+	}
+	return
+}
+
 // RetrieveBestBlockHeightAny gets the best block height, including side chains.
 func RetrieveBestBlockHeightAny(ctx context.Context, db *sql.DB) (height uint64, hash string, id uint64, err error) {
 	err = db.QueryRowContext(ctx, internal.RetrieveBestBlockHeightAny).Scan(&id, &hash, &height)
@@ -4094,6 +4399,11 @@ func RetrieveBlockHash(ctx context.Context, db *sql.DB, idx int64) (hash string,
 	return
 }
 
+func RetrieveMutilchainBlockHash(ctx context.Context, db *sql.DB, idx int64, chainType string) (hash string, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.MakeSelectBlockHashByHeight(chainType), idx).Scan(&hash)
+	return
+}
+
 // RetrieveBlockTimeByHeight retrieves time hash of the main chain block at the
 // given height, if it exists (be sure to check error against sql.ErrNoRows!).
 func RetrieveBlockTimeByHeight(ctx context.Context, db *sql.DB, idx int64) (time dbtypes.TimeDef, err error) {
@@ -4105,6 +4415,11 @@ func RetrieveBlockTimeByHeight(ctx context.Context, db *sql.DB, idx int64) (time
 // it exists (be sure to check error against sql.ErrNoRows!).
 func RetrieveBlockHeight(ctx context.Context, db *sql.DB, hash string) (height int64, err error) {
 	err = db.QueryRowContext(ctx, internal.SelectBlockHeightByHash, hash).Scan(&height)
+	return
+}
+
+func RetrieveMutilchainBlockHeight(ctx context.Context, db *sql.DB, hash string, chainType string) (height int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.MakeSelectBlockHeightByHash(chainType), hash).Scan(&height)
 	return
 }
 
@@ -5052,5 +5367,11 @@ func RetrieveDiff(ctx context.Context, db *sql.DB, timestamp int64) (float64, er
 	var diff float64
 	tDef := dbtypes.NewTimeDefFromUNIX(timestamp)
 	err := db.QueryRowContext(ctx, internal.SelectDiffByTime, tDef).Scan(&diff)
+	return diff, err
+}
+
+func RetrieveMutilchainDiff(ctx context.Context, db *sql.DB, timestamp int64, chainType string) (float64, error) {
+	var diff float64
+	err := db.QueryRowContext(ctx, mutilchainquery.MakeSelectDiffByTime(chainType), timestamp).Scan(&diff)
 	return diff, err
 }

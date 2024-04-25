@@ -77,6 +77,18 @@ const (
 	DeindexAddressTableOnFundingTx = `DROP INDEX uix_%saddresses_funding_tx;`
 )
 
+func MakeSelectAddressUnspentCountAndValue(chainType string) string {
+	return fmt.Sprintf(SelectAddressUnspentCountAndValue, chainType)
+}
+
+func MakeSelectAddressSpentCountAndValue(chainType string) string {
+	return fmt.Sprintf(SelectAddressSpentCountAndValue, chainType)
+}
+
+func MakeSelectAddressLimitNByAddress(chainType string) string {
+	return fmt.Sprintf(SelectAddressLimitNByAddress, chainType)
+}
+
 func IndexAddressTableOnFundingTxStmt(chainType string) string {
 	return fmt.Sprintf(IndexAddressTableOnFundingTx, chainType, chainType)
 }

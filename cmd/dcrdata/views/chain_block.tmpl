@@ -1,0 +1,147 @@
+{{define "chain_block" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "html-head" headData .CommonPageData (printf "Decred Block %d" .Data.Height)}}
+{{ template "navbar" . }}
+{{$ChainType := .ChainType}}
+<div class="container main" data-controller="time">
+{{- with .Data -}}
+	<div class="row mx-2 my-2">
+		<div class="col-24 col-xl-12 bg-green-3 p-3 position-relative common-card">
+			<div class="card-pointer pointer-right d-none d-xl-block"></div>
+			<div class="card-pointer pointer-bottom d-xl-none"></div>
+			<div class="pb-1 ps-1 position-relative">
+				<div class="d-flex justify-content-between flex-wrap">
+					<div class="d-inline-block text-nowrap">
+						<span class="dcricon-block h5"></span>
+						<span class="h5 d-inline-block ps-2">Block #{{.Height}}</span>
+						{{- if gt .Confirmations 0}}
+						<div class="d-inline-block confirmations-box confirmed mx-2 fs14"
+							data-controller="newblock"
+							data-newblock-target="confirmations"
+							data-confirmations="{{.Confirmations}}"
+							data-yes="# confirmation@"
+							data-no="best block"
+							data-confirmation-block-height="{{.Height}}"
+							>{{.Confirmations}} confirmations
+						</div>
+						{{- else if .MainChain}}
+						<div class="d-inline-block confirmations-box mx-2 fs14"
+							data-controller="newblock"
+							data-newblock-target="confirmations"
+							data-confirmations="{{.Confirmations}}"
+							data-yes="# confirmation@"
+							data-no="best block"
+							data-confirmation-block-height="{{.Height}}"
+							>best block
+						</div>
+						{{- else}}
+						<div class="d-inline-block confirmations-box mx-2 fs14"><a href="/side" class="attention">side chain</a></div>
+						{{- end}}
+					</div>
+					<div class="d-inline-block text-nowrap">
+						<a class="fs13" href="/chain/{{$ChainType}}/block/{{.PreviousHash}}">previous </a>|
+						{{if ne .NextHash "" -}}
+						<a class="fs13" href="/chain/{{$ChainType}}/block/{{.NextHash}}">next </a>|
+						{{- end}}
+					</div>
+				</div>
+			</div>
+			<div class="text-start lh1rem py-1">
+				<div class="fs13 text-secondary pb-1">Block Hash</div>
+				<div class="d-inline-block fs14 break-word rounded fw-bold">{{.Hash}}</div>
+			</div>
+			<div class="row py-2">
+				<div class="col-10 col-sm-8 text-start">
+					<span class="text-secondary fs13">Total Sent</span>
+					<br>
+					<span class="lh1rem d-inline-block pt-1"
+						><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}</span><span class="text-secondary fs14"> DCR</span>
+					</span>
+				</div>
+				<div class="col-7 col-sm-8 text-start">
+					<span class="text-secondary fs13">Size</span>
+					<br>
+					<span class="fs18 fw-bold lh1rem d-inline-block pt-1">{{.FormattedBytes}}</span>
+					<br>
+					<span class="fs14 text-secondary">{{.TxCount}} <span class="d-sm-none">txs</span><span class="d-none d-sm-inline">transactions</span></span>
+				</div>
+				<div class="col-7 col-sm-8 text-start">
+					<span class="text-secondary fs13">Block Time</span>
+					<br>
+					<span class="fs18 fw-bold lh1rem d-inline-block pt-1">{{.BlockTime.PrettyMDY}}</span>
+					<br>
+					<span class="fs14 text-secondary">{{.BlockTime.HMSTZ}} <span class="jsonly">(<span data-time-target="age" data-age="{{.BlockTime.UNIX}}"></span> ago)</span></span>
+				</div>
+			</div>
+		</div>
+		<div class="col-24 col-xl-12 py-3 px-3 px-xl-4 blue-card">
+			<div class="h6 d-inline-block my-2 ps-3">Block Details</div>
+			<table class="w-100 fs14 mt-2 details">
+				<tbody>
+					<tr>
+						<td class="text-end fw-bold text-nowrap pe-2"
+							><span class="d-none d-sm-inline">Difficulty</span
+							><span class="d-sm-none">Diff</span>: </td>
+						<td class="text-start">{{template "decimalParts" (float64AsDecimalParts .Difficulty 0 true)}}</td>
+						<td class="text-end fw-bold text-nowrap pe-2"
+							><span class="d-none d-sm-inline">Block Version</span
+							><span class="d-sm-none">Blk Ver</span>: </td>
+						<td class="text-start">{{.Version}}</td>
+						<td class="d-none d-sm-table-cell text-end fw-bold text-nowrap pe-2">Nonce: </td>
+						<td class="d-none d-sm-table-cell text-start">{{.Nonce}}</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<div>
+	<span class="d-inline-block pt-4 pb-1 h4">Transactions</span>
+		{{if not .TxAvailable -}}
+		 <div class="br-8 b--def bgc-plain-bright pb-10">
+   		<div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
+			<tr class="bg-none">
+				<td>No standard transactions mined this block.</td>
+			</tr>
+		</table>
+		</div>
+		</div>
+		{{- else -}}
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
+			<thead>
+				<tr class="bg-none">
+					<th>Transaction ID</th>
+					<th class="text-end">Total {{$ChainType}}</th>
+					<th class="text-end">Size</th>
+				</tr>
+			</thead>
+			<tbody class="bgc-white">
+			{{- range .Tx -}}
+			{{- if eq .Coinbase false}}
+				<tr>
+					<td class="break-word">
+						<span><a class="hash" href="/chain/{{$ChainType}}/tx/{{.TxID}}">{{.TxID}}</a></span>
+					</td>
+					<td class="mono fs15 text-end">
+						{{- template "decimalParts" (float64AsDecimalParts .Total 8 false) -}}
+					</td>
+					<td class="mono fs15 text-end">{{.FormattedSize}}</td>
+				</tr>
+			{{- end}}
+			{{- end}}
+			</tbody>
+		</table>
+		</div></div>
+		{{- end}}
+	</div>
+{{- end}}{{/* with .Data */}}
+</div>
+
+{{ template "footer" . }}
+</body>
+</html>
+{{- end }}

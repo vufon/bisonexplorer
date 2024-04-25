@@ -70,6 +70,10 @@ const (
 	SelectRegularTxByHash = `SELECT id, block_hash, block_index FROM %stransactions WHERE tx_hash = $1 and tree=0;`
 	SelectStakeTxByHash   = `SELECT id, block_hash, block_index FROM %stransactions WHERE tx_hash = $1 and tree=1;`
 
+	SelectTxsBlocks = `SELECT block_height, block_hash, block_index
+		FROM %stransactions
+		WHERE tx_hash = $1 ORDER BY block_height DESC;`
+
 	IndexTransactionTableOnBlockIn = `CREATE UNIQUE INDEX uix_%stx_block_in
 		ON %stransactions(block_hash, block_index)
 		;` // STORING (tx_hash, block_hash)
@@ -101,6 +105,13 @@ const (
 	RetrieveVoutDbID  = `SELECT vout_db_ids[$2] FROM %stransactions WHERE id = $1;`
 )
 
+func MakeSelectTxsBlocks(chainType string) string {
+	return fmt.Sprintf(SelectTxsBlocks, chainType)
+}
+
+func MakeSelectFullTxByHash(chainType string) string {
+	return fmt.Sprintf(SelectFullTxByHash, chainType)
+}
 func MakeIndexTransactionTableOnBlockIn(chainType string) string {
 	return fmt.Sprintf(IndexTransactionTableOnBlockIn, chainType, chainType)
 }

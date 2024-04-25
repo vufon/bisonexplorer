@@ -14,11 +14,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
+	"github.com/ltcsuite/ltcd/ltcutil"
 
 	"github.com/decred/dcrdata/v8/db/dbtypes/internal"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
@@ -1051,6 +1054,23 @@ type AddressRow struct {
 	AtomsDebit  uint64
 }
 
+// AddressRow represents a row in the addresses table
+type MutilchainAddressRow struct {
+	// id int64
+	Address            string
+	FundingTxDbID      uint64
+	FundingTxHash      string
+	FundingTxVoutIndex uint32
+	VoutDbID           uint64
+	Value              uint64
+	SpendingTxDbID     uint64
+	SpendingTxHash     string
+	SpendingTxVinIndex uint32
+	VinDbID            uint64
+	Credit             uint64
+	Debit              uint64
+}
+
 type AddressSummaryRow struct {
 	Id            uint64
 	Time          TimeDef
@@ -1154,6 +1174,18 @@ func SliceAddressRows(rows []*AddressRow, N, offset int, txnView AddrTxnViewType
 	}
 }
 
+func MutilchainSliceAddressRows(rows []*MutilchainAddressRow, N, offset int, txnView AddrTxnViewType) ([]*MutilchainAddressRow, error) {
+	if offset < 0 || N < 0 {
+		return nil, fmt.Errorf("invalid offset (%d) or N (%d)", offset, N)
+	}
+	numRows := len(rows)
+	if N == 0 || numRows == 0 || offset >= numRows {
+		// No matching data.
+		return []*MutilchainAddressRow{}, nil
+	}
+	return MutilchainSliceAddressRowsAll(rows, N, offset), nil
+}
+
 // SliceAddressRowsAll selects a subset of the elements of the AddressRow slice
 // given the count and offset.
 func SliceAddressRowsAll(rows []*AddressRow, N, offset int) []*AddressRow {
@@ -1173,6 +1205,25 @@ func SliceAddressRowsAll(rows []*AddressRow, N, offset int) []*AddressRow {
 		return rows[offset:end]
 	}
 	return []*AddressRow{}
+}
+
+func MutilchainSliceAddressRowsAll(rows []*MutilchainAddressRow, N, offset int) []*MutilchainAddressRow {
+	if rows == nil {
+		return nil
+	}
+	numRows := len(rows)
+	if offset >= numRows {
+		return []*MutilchainAddressRow{}
+	}
+
+	end := offset + N
+	if end > numRows {
+		end = numRows
+	}
+	if offset < end {
+		return rows[offset:end]
+	}
+	return []*MutilchainAddressRow{}
 }
 
 // CountCreditDebitRows returns the numbers of credit (funding) and debit
@@ -1813,6 +1864,17 @@ type AddressTxnOutput struct {
 	Atoms     int64
 }
 
+type MutilchainAddressTxnOutput struct {
+	Address  string
+	PkScript string
+	TxHash   string
+	//BlockHash chainhash.Hash
+	Vout      uint32
+	Height    int32
+	BlockTime int64
+	Atoms     int64
+}
+
 // AddressMetrics defines address metrics needed to make decisions by which
 // grouping buttons on the address history page charts should be disabled or
 // enabled by default.
@@ -2168,6 +2230,9 @@ type AddressInfo struct {
 	NumTransactions int64 // The number of transactions in the address
 	NumFundingTxns  int64 // number paying to the address
 	NumSpendingTxns int64 // number spending outpoints associated with the address
+	Received        int64
+	Sent            int64
+	Unspent         int64
 	AmountReceived  dcrutil.Amount
 	AmountSent      dcrutil.Amount
 	AmountUnspent   dcrutil.Amount
@@ -2279,6 +2344,83 @@ func ReduceAddressHistory(addrHist []*AddressRow) (*AddressInfo, float64, float6
 		AmountUnspent:   dcrutil.Amount(received - sent),
 	}
 	return ai, fromStakeFraction, toStakeFraction
+}
+
+func GetMutilchainCoinAmount(amount int64, chainType string) float64 {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return btcutil.Amount(amount).ToBTC()
+	case mutilchain.TYPELTC:
+		return ltcutil.Amount(amount).ToBTC()
+	default:
+		return dcrutil.Amount(amount).ToCoin()
+	}
+}
+
+func GetMutilchainUnitAmount(coinAmount float64, chainType string) int64 {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		amount, err := btcutil.NewAmount(coinAmount)
+		if err != nil {
+			return 0
+		}
+		return int64(amount)
+	case mutilchain.TYPELTC:
+		amount, err := ltcutil.NewAmount(coinAmount)
+		if err != nil {
+			return 0
+		}
+		return int64(amount)
+	default:
+		amount, err := dcrutil.NewAmount(coinAmount)
+		if err != nil {
+			return 0
+		}
+		return int64(amount)
+	}
+}
+
+func ReduceMutilchainAddressHistory(addrHist []*MutilchainAddressRow, chainType string) *AddressInfo {
+	if len(addrHist) == 0 {
+		return nil
+	}
+	var received, sent int64
+	var creditTxns, debitTxns []*AddressTx
+	transactions := make([]*AddressTx, 0, len(addrHist))
+	for _, addrOut := range addrHist {
+		coin := GetMutilchainCoinAmount(int64(addrOut.Value), chainType)
+		tx := AddressTx{
+			TxID:      addrOut.FundingTxHash,
+			MatchedTx: addrOut.SpendingTxHash,
+		}
+		isFunding := addrOut.SpendingTxHash != ""
+		if isFunding {
+			// Funding transaction
+			received += int64(addrOut.Value)
+			tx.ReceivedTotal = coin
+			creditTxns = append(creditTxns, &tx)
+		} else {
+			sent += int64(addrOut.Value)
+			tx.SentTotal = coin
+			debitTxns = append(debitTxns, &tx)
+
+		}
+		tx.IsFunding = isFunding
+		transactions = append(transactions, &tx)
+	}
+
+	ai := &AddressInfo{
+		Address:         addrHist[0].Address,
+		Transactions:    transactions,
+		TxnsFunding:     creditTxns,
+		TxnsSpending:    debitTxns,
+		NumFundingTxns:  int64(len(creditTxns)),
+		NumSpendingTxns: int64(len(debitTxns)),
+		Received:        received,
+		Sent:            sent,
+		Unspent:         received - sent,
+	}
+	return ai
 }
 
 // PostProcess performs time/vin/vout sorting and block height calculations.

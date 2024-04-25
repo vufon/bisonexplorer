@@ -30,9 +30,14 @@ type BlockGetter interface {
 	GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error)
 }
 
+type TransactionGetter interface {
+	GetRawTransactionVerbose(txHash *chainhash.Hash) (*btcjson.TxRawResult, error)
+}
+
 type VerboseBlockGetter interface {
 	GetBlockHash(blockHeight int64) (*chainhash.Hash, error)
-	GetBlockVerbose(blockHash *chainhash.Hash, verboseTx bool) (*btcjson.GetBlockVerboseResult, error)
+	GetBlockVerbose(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseResult, error)
+	GetBlockVerboseTx(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseTxResult, error)
 	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
 }
 
@@ -149,6 +154,7 @@ func ConnectNodeRPC(host, user, pass, cert string, disableTLS, disableReconnect 
 		DisableTLS:           disableTLS,
 		DisableAutoReconnect: disableReconnect,
 	}
+
 	var ntfnHdlrs *rpcclient.NotificationHandlers
 	if len(ntfnHandlers) > 0 {
 		if len(ntfnHandlers) > 1 {
@@ -200,6 +206,38 @@ func GetBlockHeaderVerbose(client BlockFetcher, idx int64) *btcjson.GetBlockHead
 	return blockHeaderVerbose
 }
 
+func GetRawTransactionByTxidStr(client TransactionGetter, txid string) (*btcjson.TxRawResult, error) {
+	txhash, err := chainhash.NewHashFromStr(txid)
+	if err != nil {
+		log.Errorf("Invalid transaction txid %s", txid)
+		return nil, err
+	}
+
+	transactionRslt, err := client.GetRawTransactionVerbose(txhash)
+	if err != nil {
+		log.Errorf("GetTransaction(%v) failed: %v", txhash, err)
+		return nil, err
+	}
+
+	return transactionRslt, nil
+}
+
+func GetBlockVerboseTxByHash(client VerboseBlockGetter, hash string) *btcjson.GetBlockVerboseTxResult {
+	blockhash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		log.Errorf("Invalid block hash %s", hash)
+		return nil
+	}
+
+	blockVerbose, err := client.GetBlockVerboseTx(blockhash)
+	if err != nil {
+		log.Errorf("GetBlockVerbose(%v) failed: %v", blockhash, err)
+		return nil
+	}
+
+	return blockVerbose
+}
+
 // GetBlockHeaderVerboseByString creates a *chainjson.GetBlockHeaderVerboseResult
 // for the block specified by hash via an RPC connection to a chain server.
 func GetBlockHeaderVerboseByString(client BlockFetcher, hash string) *btcjson.GetBlockHeaderVerboseResult {
@@ -220,14 +258,14 @@ func GetBlockHeaderVerboseByString(client BlockFetcher, hash string) *btcjson.Ge
 
 // GetBlockVerbose creates a *chainjson.GetBlockVerboseResult for the block index
 // specified by idx via an RPC connection to a chain server.
-func GetBlockVerbose(client VerboseBlockGetter, idx int64, verboseTx bool) *btcjson.GetBlockVerboseResult {
+func GetBlockVerbose(client VerboseBlockGetter, idx int64) *btcjson.GetBlockVerboseResult {
 	blockhash, err := client.GetBlockHash(idx)
 	if err != nil {
 		log.Errorf("GetBlockHash(%d) failed: %v", idx, err)
 		return nil
 	}
 
-	blockVerbose, err := client.GetBlockVerbose(blockhash, verboseTx)
+	blockVerbose, err := client.GetBlockVerbose(blockhash)
 	if err != nil {
 		log.Errorf("GetBlockVerbose(%v) failed: %v", blockhash, err)
 		return nil
@@ -238,14 +276,14 @@ func GetBlockVerbose(client VerboseBlockGetter, idx int64, verboseTx bool) *btcj
 
 // GetBlockVerboseByHash creates a *chainjson.GetBlockVerboseResult for the
 // specified block hash via an RPC connection to a chain server.
-func GetBlockVerboseByHash(client VerboseBlockGetter, hash string, verboseTx bool) *btcjson.GetBlockVerboseResult {
+func GetBlockVerboseByHash(client VerboseBlockGetter, hash string) *btcjson.GetBlockVerboseResult {
 	blockhash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
 		log.Errorf("Invalid block hash %s", hash)
 		return nil
 	}
 
-	blockVerbose, err := client.GetBlockVerbose(blockhash, verboseTx)
+	blockVerbose, err := client.GetBlockVerbose(blockhash)
 	if err != nil {
 		log.Errorf("GetBlockVerbose(%v) failed: %v", blockhash, err)
 		return nil

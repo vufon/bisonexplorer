@@ -482,7 +482,7 @@
                         <td class="position-relative clipboard">
                             {{if gt (len .Addresses) 0}}
                                 {{range .Addresses}}
-                                  {{template "hashElide" (hashlink . (print "/address/" .))}}
+                                  {{template "hashElide" (hashlink . (print "/chain/{{$ChainType}}/address/" .))}}
                                 {{end}}
                             {{else if .TreasurySpend}}
                                 <a href="/treasury">Treasury</a>
@@ -539,7 +539,7 @@
                         <td class="shrink-to-fit">{{.Index}}</td>
                         <td class="position-relative clipboard">
                             {{range .Addresses}}
-                                {{template "hashElide" (hashlink . (print "/address/" .))}}
+                                {{template "hashElide" (hashlink . (print "/chain/{{$ChainType}}/address/" .))}}
                             {{end}}
                             {{if .OP_RETURN}}
                                 {{if .Addresses}}

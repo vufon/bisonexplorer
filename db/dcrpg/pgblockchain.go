@@ -21,9 +21,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
 	btc_chaincfg "github.com/btcsuite/btcd/chaincfg"
 	btc_chainhash "github.com/btcsuite/btcd/chaincfg/chainhash"
 	btcClient "github.com/btcsuite/btcd/rpcclient"
+	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/blockchain/standalone/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -38,9 +41,12 @@ import (
 	"github.com/decred/dcrd/wire"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lib/pq"
+	ltcjson "github.com/ltcsuite/ltcd/btcjson"
 	ltc_chaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	ltc_chainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	"github.com/ltcsuite/ltcd/ltcutil"
 	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
@@ -50,6 +56,7 @@ import (
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
 	"github.com/decred/dcrdata/v8/mutilchain"
+	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/rpcutils"
 	"github.com/decred/dcrdata/v8/stakedb"
@@ -270,8 +277,8 @@ type ChainDB struct {
 	ltcDupChecks       bool
 	btcDupChecks       bool
 	bestBlock          *BestBlock
-	ltcBestBlock       *BestBlock
-	btcBestBlock       *BestBlock
+	LtcBestBlock       *MutilchainBestBlock
+	BtcBestBlock       *MutilchainBestBlock
 	lastBlock          map[chainhash.Hash]uint64
 	ltcLastBlock       map[ltc_chainhash.Hash]uint64
 	btcLastBlock       map[btc_chainhash.Hash]uint64
@@ -296,11 +303,29 @@ type ChainDB struct {
 	heightClients     []chan uint32
 	shutdownDcrdata   func()
 	Client            *rpcclient.Client
-	ltcClient         *ltcClient.Client
-	btcClient         *btcClient.Client
+	LtcClient         *ltcClient.Client
+	BtcClient         *btcClient.Client
 	tipMtx            sync.Mutex
 	tipSummary        *apitypes.BlockDataBasic
 	lastExplorerBlock struct {
+		sync.Mutex
+		hash      string
+		blockInfo *exptypes.BlockInfo
+		// Somewhat unrelated, difficulties is a map of timestamps to mining
+		// difficulties. It is in this cache struct since these values are
+		// commonly retrieved when the explorer block is updated.
+		difficulties map[int64]float64
+	}
+	btcLastExplorerBlock struct {
+		sync.Mutex
+		hash      string
+		blockInfo *exptypes.BlockInfo
+		// Somewhat unrelated, difficulties is a map of timestamps to mining
+		// difficulties. It is in this cache struct since these values are
+		// commonly retrieved when the explorer block is updated.
+		difficulties map[int64]float64
+	}
+	ltcLastExplorerBlock struct {
 		sync.Mutex
 		hash      string
 		blockInfo *exptypes.BlockInfo
@@ -313,8 +338,10 @@ type ChainDB struct {
 
 // ChainDeployments is mutex-protected blockchain deployment data.
 type ChainDeployments struct {
-	mtx       sync.RWMutex
-	chainInfo *dbtypes.BlockChainData
+	mtx          sync.RWMutex
+	chainInfo    *dbtypes.BlockChainData
+	btcChainInfo *dbtypes.BlockChainData
+	ltcChainInfo *dbtypes.BlockChainData
 }
 
 // BestBlock is mutex-protected block hash and height.
@@ -322,6 +349,12 @@ type BestBlock struct {
 	mtx    sync.RWMutex
 	height int64
 	hash   string
+}
+
+type MutilchainBestBlock struct {
+	Mtx    sync.RWMutex
+	Height int64
+	Hash   string
 }
 
 func (pgb *ChainDB) timeoutError() string {
@@ -741,6 +774,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		cfg.AddrCacheUTXOByteCap)
 	addrCache.ProjectAddress = projectFundAddress
 
+	//init ltc address cache
 	chainDB := &ChainDB{
 		ctx:                ctx,
 		queryTimeout:       queryTimeout,
@@ -823,6 +857,10 @@ func (pgb *ChainDB) EnableDuplicateCheckOnInsert(dupCheck bool) {
 		return
 	}
 	pgb.dupChecks = dupCheck
+}
+
+func (pgb *ChainDB) GetMutilchainBestDBBlock(ctx context.Context, chainType string) (height int64, hash string, err error) {
+	return RetrieveMutilchainBestBlock(ctx, pgb.db, chainType)
 }
 
 // EnableDuplicateCheckOnInsert specifies whether SQL insertions should check
@@ -1051,11 +1089,39 @@ func (pgb *ChainDB) TransactionBlocks(txHash string) ([]*dbtypes.BlockStatus, []
 	return blocks, inds, nil
 }
 
+func (pgb *ChainDB) MutilchainTransactionBlocks(txHash string, chainType string) ([]*dbtypes.BlockStatus, []uint32, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	hashes, heights, inds, err := RetrieveMutilchainTxnsBlocks(ctx, pgb.db, txHash, chainType)
+	if err != nil {
+		return nil, nil, pgb.replaceCancelError(err)
+	}
+
+	blocks := make([]*dbtypes.BlockStatus, len(hashes))
+
+	for i := range hashes {
+		blocks[i] = &dbtypes.BlockStatus{
+			Height: heights[i],
+			Hash:   hashes[i],
+			// Next and previous hash not set
+		}
+	}
+
+	return blocks, inds, nil
+}
+
 // HeightDB retrieves the best block height according to the meta table.
 func (pgb *ChainDB) HeightDB() (int64, error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 	_, height, err := DBBestBlock(ctx, pgb.db)
+	return height, pgb.replaceCancelError(err)
+}
+
+func (pgb *ChainDB) MutilchainBlockHeight(hash string, chainType string) (int64, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	height, err := RetrieveMutilchainBlockHeight(ctx, pgb.db, hash, chainType)
 	return height, pgb.replaceCancelError(err)
 }
 
@@ -1116,6 +1182,17 @@ func (pgb *ChainDB) Height() int64 {
 	return pgb.bestBlock.Height()
 }
 
+func (pgb *ChainDB) MutilchainHeight(chainType string) int64 {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return pgb.LtcBestBlock.MutilchainHeight()
+	case mutilchain.TYPEBTC:
+		return pgb.BtcBestBlock.MutilchainHeight()
+	default:
+		return pgb.bestBlock.Height()
+	}
+}
+
 // Height uses the last stored height.
 func (block *BestBlock) Height() int64 {
 	block.mtx.RLock()
@@ -1123,10 +1200,20 @@ func (block *BestBlock) Height() int64 {
 	return block.height
 }
 
+func (block *MutilchainBestBlock) MutilchainHeight() int64 {
+	block.Mtx.RLock()
+	defer block.Mtx.RUnlock()
+	return block.Height
+}
+
 // GetHeight is for middleware DataSource compatibility. No DB query is
 // performed; the last stored height is used.
 func (pgb *ChainDB) GetHeight() (int64, error) {
 	return pgb.Height(), nil
+}
+
+func (pgb *ChainDB) GetMutilchainHeight(chainType string) (int64, error) {
+	return pgb.MutilchainHeight(chainType), nil
 }
 
 // GetBestBlockHash is for middleware DataSource compatibility. No DB query is
@@ -1154,6 +1241,20 @@ func (pgb *ChainDB) BestBlock() (*chainhash.Hash, int64) {
 	defer pgb.bestBlock.mtx.RUnlock()
 	hash, _ := chainhash.NewHashFromStr(pgb.bestBlock.hash)
 	return hash, pgb.bestBlock.height
+}
+
+func (pgb *ChainDB) BTCBestBlock() (*btc_chainhash.Hash, int64) {
+	pgb.BtcBestBlock.Mtx.RLock()
+	defer pgb.BtcBestBlock.Mtx.RUnlock()
+	hash, _ := btc_chainhash.NewHashFromStr(pgb.BtcBestBlock.Hash)
+	return hash, pgb.BtcBestBlock.Height
+}
+
+func (pgb *ChainDB) LTCBestBlock() (*ltc_chainhash.Hash, int64) {
+	pgb.LtcBestBlock.Mtx.RLock()
+	defer pgb.LtcBestBlock.Mtx.RUnlock()
+	hash, _ := ltc_chainhash.NewHashFromStr(pgb.LtcBestBlock.Hash)
+	return hash, pgb.LtcBestBlock.Height
 }
 
 func (pgb *ChainDB) BestBlockStr() (string, int64) {
@@ -1232,6 +1333,13 @@ func (pgb *ChainDB) SpendingTransactions(fundingTxID string) ([]string, []uint32
 	return spendingTxns, vinInds, voutInds, pgb.replaceCancelError(err)
 }
 
+func (pgb *ChainDB) MutilchainSpendingTransactions(fundingTxID string, chainType string) ([]string, []uint32, []uint32, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	_, spendingTxns, vinInds, voutInds, err := RetrieveMutilchainSpendingTxsByFundingTx(ctx, pgb.db, fundingTxID, chainType)
+	return spendingTxns, vinInds, voutInds, pgb.replaceCancelError(err)
+}
+
 // SpendingTransaction returns the transaction that spends the specified
 // transaction outpoint, if it is spent. The spending transaction hash, input
 // index, tx tree, and an error value are returned.
@@ -1241,6 +1349,13 @@ func (pgb *ChainDB) SpendingTransaction(fundingTxID string,
 	defer cancel()
 	_, spendingTx, vinInd, tree, err := RetrieveSpendingTxByTxOut(ctx, pgb.db, fundingTxID, fundingTxVout)
 	return spendingTx, vinInd, tree, pgb.replaceCancelError(err)
+}
+
+func (pgb *ChainDB) MutilchainSpendingTransaction(fundingTxID string, fundingTxVout uint32, chainType string) (string, uint32, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	_, spendingTx, vinInd, err := RetrieveMutilchainSpendingTxByTxOut(ctx, pgb.db, fundingTxID, fundingTxVout, chainType)
+	return spendingTx, vinInd, pgb.replaceCancelError(err)
 }
 
 // BlockTransactions retrieves all transactions in the specified block, their
@@ -1258,6 +1373,14 @@ func (pgb *ChainDB) Transaction(txHash string) ([]*dbtypes.Tx, error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 	_, dbTxs, err := RetrieveDbTxsByHash(ctx, pgb.db, txHash)
+	return dbTxs, pgb.replaceCancelError(err)
+}
+
+// mutilchain transaction hash.
+func (pgb *ChainDB) MutilchainTransaction(txHash string, chainType string) ([]*dbtypes.Tx, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	_, dbTxs, err := RetrieveMutilchainDbTxsByHash(ctx, pgb.db, txHash, chainType)
 	return dbTxs, pgb.replaceCancelError(err)
 }
 
@@ -1580,6 +1703,17 @@ func (pgb *ChainDB) AddressTransactionsAll(address string, year int64, month int
 
 	const limit = 3000000
 	addressRows, err = RetrieveAddressTxns(ctx, pgb.db, address, limit, 0, year, month)
+	// addressRows, err = RetrieveAllMainchainAddressTxns(ctx, pgb.db, address)
+	err = pgb.replaceCancelError(err)
+	return
+}
+
+func (pgb *ChainDB) MutilchainAddressTransactionsAll(address string, chainType string) (addressRows []*dbtypes.MutilchainAddressRow, err error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+
+	const limit = 3000000
+	addressRows, err = RetrieveMutilchainAddressTxns(ctx, pgb.db, address, limit, 0, chainType)
 	// addressRows, err = RetrieveAllMainchainAddressTxns(ctx, pgb.db, address)
 	err = pgb.replaceCancelError(err)
 	return
@@ -2725,6 +2859,69 @@ func (pgb *ChainDB) AddressBalance(address string) (bal *dbtypes.AddressBalance,
 	return
 }
 
+func (pgb *ChainDB) IsMutilchainValidAddress(chainType string, address string) bool {
+	var err error
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		_, err = btcutil.DecodeAddress(address, pgb.btcChainParams)
+	case mutilchain.TYPELTC:
+		_, err = ltcutil.DecodeAddress(address, pgb.ltcChainParams)
+	default:
+		return false
+	}
+	return err == nil
+}
+
+func (pgb *ChainDB) MutilchainAddressBalance(address string, chainType string) (bal *dbtypes.AddressBalance, cacheUpdated bool, err error) {
+	isValidAddress := pgb.IsMutilchainValidAddress(chainType, address)
+	if !isValidAddress {
+		return
+	}
+
+	// Check the cache first.
+	bestHash, height := pgb.GetMutilchainHashHeight(chainType)
+	var validBlock *cache.MutilchainBlockID
+	bal, validBlock = pgb.AddressCache.MutilchainBalance(address, chainType) // bal is a copy
+	if bal != nil && validBlock != nil /* && validBlock.Hash == *bestHash */ {
+		log.Tracef("AddressBalance: cache HIT for %s.", address)
+		return
+	}
+
+	busy, wait, done := pgb.CacheLocks.bal.TryLock(address)
+	if busy {
+		// Let others get the wait channel while we wait.
+		// To return stale cache data if it is available:
+		// bal, _ := pgb.AddressCache.Balance(address)
+		// if bal != nil {
+		// 	return bal, nil
+		// }
+		<-wait
+
+		// Try again, starting with the cache.
+		return pgb.MutilchainAddressBalance(address, chainType)
+	}
+
+	// We will run the DB query, so block others from doing the same. When query
+	// and/or cache update is completed, broadcast to any waiters that the coast
+	// is clear.
+	defer done()
+
+	log.Tracef("AddressBalance: cache MISS for %s.", address)
+
+	// Cache is empty or stale, so query the DB.
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	bal, err = RetrieveMutilchainAddressBalance(ctx, pgb.db, address, chainType)
+	if err != nil {
+		err = pgb.replaceCancelError(err)
+		return
+	}
+
+	// Update the address cache.
+	cacheUpdated = pgb.AddressCache.StoreMutilchainBalance(address, bal, cache.NewMutilchainBlockID(bestHash, height), chainType) // stores a copy of bal
+	return
+}
+
 // updateAddressRows updates address rows, or waits for them to update by an
 // ongoing query. On completion, the cache should be ready, although it must be
 // checked again. The returned []*dbtypes.AddressRow contains ALL non-merged
@@ -2757,6 +2954,52 @@ func (pgb *ChainDB) updateAddressRows(address string, year int64, month int64) (
 
 	// Update address rows cache.
 	pgb.AddressCache.StoreRows(address, rows, blockID)
+	return
+}
+
+func (pgb *ChainDB) GetMutilchainHashHeight(chainType string) (hash string, height int64) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		chainHash, btcheight := pgb.BTCBestBlock()
+		hash = chainHash.String()
+		height = btcheight
+	case mutilchain.TYPELTC:
+		chainHash, ltcheight := pgb.LTCBestBlock()
+		hash = chainHash.String()
+		height = ltcheight
+	default:
+		chainHash, dcrheight := pgb.BestBlock()
+		hash = chainHash.String()
+		height = dcrheight
+	}
+	return
+}
+
+func (pgb *ChainDB) updateMutilchainAddressRows(address string, chainType string) (rows []*dbtypes.MutilchainAddressRow, err error) {
+	busy, wait, done := pgb.CacheLocks.rows.TryLock(address)
+	if busy {
+		// Just wait until the updater is finished.
+		<-wait
+		err = retryError{}
+		return
+	}
+
+	// We will run the DB query, so block others from doing the same. When query
+	// and/or cache update is completed, broadcast to any waiters that the coast
+	// is clear.
+	defer done()
+	// Prior to performing the query, clear the old rows to save memory.
+	pgb.AddressCache.ClearMutilchainRows(address, chainType)
+	hash, height := pgb.GetMutilchainHashHeight(chainType)
+	blockID := cache.NewMutilchainBlockID(hash, height)
+	// Retrieve all non-merged address transaction rows.
+	rows, err = pgb.MutilchainAddressTransactionsAll(address, chainType)
+	if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
+		return
+	}
+
+	// Update address rows cache.
+	pgb.AddressCache.StoreMutilchainRows(address, rows, blockID, chainType)
 	return
 }
 
@@ -2919,6 +3162,100 @@ func (pgb *ChainDB) CountTransactions(addr string, txnView dbtypes.AddrTxnViewTy
 		return 0, err
 	}
 	return count, nil
+}
+
+// Get mutilchain address history
+func (pgb *ChainDB) MutilchainAddressHistory(address string, N, offset int64,
+	txnView dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *dbtypes.AddressBalance, error) {
+	// Try the address rows cache
+	hash, height := pgb.GetMutilchainHashHeight(chainType)
+	addressRows, validBlock, err := pgb.AddressCache.MutilchainTransactions(address, N, offset, txnView, chainType)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if addressRows == nil || validBlock == nil /* || validBlock.Hash != *hash) */ {
+		//nolint:ineffassign
+		addressRows = nil // allow garbage collection of each AddressRow in cache.
+		log.Debugf("AddressHistory: Address rows (view=%s) cache MISS for %s.",
+			txnView.String(), address)
+
+		// Update or wait for an update to the cached AddressRows, returning ALL
+		// NON-MERGED address transaction rows.
+		addressRows, err = pgb.updateMutilchainAddressRows(address, chainType)
+		if err != nil && !errors.Is(err, dbtypes.ErrNoResult) && !errors.Is(err, sql.ErrNoRows) {
+			// See if another caller ran the update, in which case we were just
+			// waiting to avoid a simultaneous query. With luck the cache will
+			// be updated with this data, although it may not be. Try again.
+			if IsRetryError(err) {
+				// Try again, starting with cache.
+				return pgb.MutilchainAddressHistory(address, N, offset, txnView, chainType)
+			}
+			return nil, nil, fmt.Errorf("failed to updateAddressRows: %w", err)
+		}
+
+		// Select the correct type and range of address rows, merging if needed.
+		addressRows, err = dbtypes.MutilchainSliceAddressRows(addressRows, int(N), int(offset), txnView)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to SliceAddressRows: %w", err)
+		}
+	}
+	log.Debugf("AddressHistory: Address rows (view=%s) cache HIT for %s.",
+		txnView.String(), address)
+
+	// addressRows is now present and current. Proceed to get the balance.
+
+	// Try the address balance cache.
+	balance, _ := pgb.AddressCache.MutilchainBalance(address, chainType) // balance is a copy
+	if balance != nil /* && validBlock != nil && validBlock.Hash == *hash) */ {
+		log.Debugf("AddressHistory: Address balance cache HIT for %s.", address)
+		return addressRows, balance, nil
+	}
+	log.Debugf("AddressHistory: Address balance cache MISS for %s.", address)
+
+	// Short cut: we have all txs when the total number of fetched txs is less
+	// than the limit, txtype is AddrTxnAll, and Offset is zero.
+	if len(addressRows) < int(N) && offset == 0 && txnView == dbtypes.AddrTxnAll {
+		log.Debugf("Taking balance shortcut since address rows includes all.")
+		// Zero balances and txn counts when rows is zero length.
+		if len(addressRows) == 0 {
+			balance = &dbtypes.AddressBalance{
+				Address: address,
+			}
+		} else {
+			addrInfo := dbtypes.ReduceMutilchainAddressHistory(addressRows, chainType)
+			if addrInfo == nil {
+				return addressRows, nil,
+					fmt.Errorf("ReduceAddressHistory failed. len(addressRows) = %d",
+						len(addressRows))
+			}
+
+			balance = &dbtypes.AddressBalance{
+				Address:      address,
+				NumSpent:     addrInfo.NumSpendingTxns,
+				NumUnspent:   addrInfo.NumFundingTxns - addrInfo.NumSpendingTxns,
+				TotalSpent:   int64(addrInfo.Sent),
+				TotalUnspent: int64(addrInfo.Unspent),
+			}
+		}
+		// Update balance cache.
+		blockID := cache.NewMutilchainBlockID(hash, height)
+		pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType) // a copy of balance is stored
+	} else {
+		// Count spent/unspent amounts and transactions.
+		log.Debugf("AddressHistory: Obtaining balance via DB query.")
+		balance, _, err = pgb.MutilchainAddressBalance(address, chainType)
+		if err != nil && !errors.Is(err, dbtypes.ErrNoResult) && !errors.Is(err, sql.ErrNoRows) {
+			return nil, nil, err
+		}
+	}
+
+	log.Infof("%s: %d spent totalling %f DCR, %d unspent totalling %f DCR", address, balance.NumSpent, dbtypes.GetMutilchainCoinAmount(balance.TotalSpent, chainType),
+		balance.NumUnspent, dbtypes.GetMutilchainCoinAmount(balance.TotalUnspent, chainType))
+	log.Infof("Receive count for address %s: count = %d at block %d.",
+		address, balance.NumSpent+balance.NumUnspent, height)
+
+	return addressRows, balance, nil
 }
 
 // AddressHistory queries the database for rows of the addresses table
@@ -3263,6 +3600,210 @@ SPENDING_TX_DUPLICATE_CHECK:
 	return
 }
 
+// AddressData returns comprehensive, paginated information for an address.
+func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts int64,
+	txnType dbtypes.AddrTxnViewType, chainType string) (addrData *dbtypes.AddressInfo, err error) {
+	addrHist, balance, err := pgb.MutilchainAddressHistory(address, limitN, offsetAddrOuts, txnType, chainType)
+	if dbtypes.IsTimeoutErr(err) {
+		return nil, err
+	}
+
+	populateTemplate := func() {
+		addrData.Offset = offsetAddrOuts
+		addrData.Limit = limitN
+		addrData.TxnType = txnType.String()
+		addrData.Address = address
+	}
+
+	if errors.Is(err, dbtypes.ErrNoResult) || errors.Is(err, sql.ErrNoRows) || (err == nil && len(addrHist) == 0) {
+		// We do not have any confirmed transactions. Prep to display ONLY
+		// unconfirmed transactions (or none at all).
+		addrData = new(dbtypes.AddressInfo)
+		populateTemplate()
+		addrData.Balance = &dbtypes.AddressBalance{}
+		log.Tracef("AddressHistory: No confirmed transactions for address %s.", address)
+	} else if err != nil {
+		// Unexpected error
+		log.Errorf("AddressHistory: %v", err)
+		return nil, fmt.Errorf("AddressHistory: %w", err)
+	} else /*err == nil*/ {
+		// Generate AddressInfo skeleton from the address table rows.
+		addrData = dbtypes.ReduceMutilchainAddressHistory(addrHist, chainType)
+		if addrData == nil {
+			addrData = new(dbtypes.AddressInfo)
+		}
+
+		// Balances and txn counts
+		populateTemplate()
+		addrData.Balance = balance
+		addrData.KnownTransactions = (balance.NumSpent * 2) + balance.NumUnspent
+		addrData.KnownFundingTxns = balance.NumSpent + balance.NumUnspent
+		addrData.KnownSpendingTxns = balance.NumSpent
+		if err != nil {
+			return nil, err
+		}
+
+		// For non-merged views, use the balance data.
+		switch txnType {
+		case dbtypes.AddrTxnAll:
+			addrData.TxnCount = addrData.KnownFundingTxns + addrData.KnownSpendingTxns
+		case dbtypes.AddrTxnCredit:
+			addrData.TxnCount = addrData.KnownFundingTxns
+			addrData.Transactions = addrData.TxnsFunding
+		case dbtypes.AddrTxnDebit:
+			addrData.TxnCount = addrData.KnownSpendingTxns
+			addrData.Transactions = addrData.TxnsSpending
+		case dbtypes.AddrUnspentTxn:
+			addrData.TxnCount = addrData.NumFundingTxns - addrData.NumSpendingTxns
+		}
+
+		// Transactions on current page
+		addrData.NumTransactions = int64(len(addrData.Transactions))
+		if addrData.NumTransactions > limitN {
+			addrData.NumTransactions = limitN
+		}
+
+		// Query database for transaction details.
+		err = pgb.FillMutilchainAddressTransactions(addrData, chainType)
+		if dbtypes.IsTimeoutErr(err) {
+			return nil, err
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Unable to fill address %s transactions: %w", address, err)
+		}
+	}
+
+	// // Check for unconfirmed transactions.
+	// addressUTXOs, numUnconfirmed, err := pgb.mp.UnconfirmedTxnsForAddress(address)
+	// if err != nil || addressUTXOs == nil {
+	// 	return nil, fmt.Errorf("UnconfirmedTxnsForAddress failed for address %s: %w", address, err)
+	// }
+	// addrData.NumUnconfirmed = numUnconfirmed
+	// addrData.NumTransactions += numUnconfirmed
+	// if addrData.UnconfirmedTxns == nil {
+	// 	addrData.UnconfirmedTxns = new(dbtypes.AddressTransactions)
+	// }
+
+	// Funding transactions (unconfirmed)
+	// 	var received, sent, numReceived, numSent int64
+	// FUNDING_TX_DUPLICATE_CHECK:
+	// 	for _, f := range addressUTXOs.Outpoints {
+	// 		// TODO: handle merged transactions
+	// 		if merged {
+	// 			break FUNDING_TX_DUPLICATE_CHECK
+	// 		}
+
+	// 		// Mempool transactions stick around for 2 blocks. The first block
+	// 		// incorporates the transaction and mines it. The second block
+	// 		// validates it by the stake. However, transactions move into our
+	// 		// database as soon as they are mined and thus we need to be careful
+	// 		// to not include those transactions in our list.
+	// 		for _, b := range addrData.Transactions {
+	// 			if f.Hash.String() == b.TxID && f.Index == b.InOutID {
+	// 				continue FUNDING_TX_DUPLICATE_CHECK
+	// 			}
+	// 		}
+	// 		fundingTx, ok := addressUTXOs.TxnsStore[f.Hash]
+	// 		if !ok {
+	// 			log.Errorf("An outpoint's transaction is not available in TxnStore.")
+	// 			continue
+	// 		}
+	// 		if fundingTx.Confirmed() {
+	// 			log.Errorf("An outpoint's transaction is unexpectedly confirmed.")
+	// 			continue
+	// 		}
+	// 		if txnType == dbtypes.AddrTxnAll || txnType == dbtypes.AddrTxnCredit || txnType == dbtypes.AddrUnspentTxn {
+	// 			addrTx := &dbtypes.AddressTx{
+	// 				TxID:          fundingTx.Hash().String(),
+	// 				TxType:        txhelpers.DetermineTxTypeString(fundingTx.Tx),
+	// 				InOutID:       f.Index,
+	// 				Time:          dbtypes.NewTimeDefFromUNIX(fundingTx.MemPoolTime),
+	// 				FormattedSize: humanize.Bytes(uint64(fundingTx.Tx.SerializeSize())),
+	// 				Total:         txhelpers.TotalOutFromMsgTx(fundingTx.Tx).ToCoin(),
+	// 				ReceivedTotal: dcrutil.Amount(fundingTx.Tx.TxOut[f.Index].Value).ToCoin(),
+	// 				IsFunding:     true,
+	// 			}
+	// 			addrData.Transactions = append(addrData.Transactions, addrTx)
+	// 		}
+	// 		received += fundingTx.Tx.TxOut[f.Index].Value
+	// 		numReceived++
+	// 	}
+
+	// Spending transactions (unconfirmed)
+	// SPENDING_TX_DUPLICATE_CHECK:
+	// 	for _, f := range addressUTXOs.PrevOuts {
+	// 		// TODO: handle merged transactions
+	// 		if merged {
+	// 			break SPENDING_TX_DUPLICATE_CHECK
+	// 		}
+
+	// 		// Mempool transactions stick around for 2 blocks. The first block
+	// 		// incorporates the transaction and mines it. The second block
+	// 		// validates it by the stake. However, transactions move into our
+	// 		// database as soon as they are mined and thus we need to be careful
+	// 		// to not include those transactions in our list.
+	// 		for _, b := range addrData.Transactions {
+	// 			if f.TxSpending.String() == b.TxID && f.InputIndex == int(b.InOutID) {
+	// 				continue SPENDING_TX_DUPLICATE_CHECK
+	// 			}
+	// 		}
+	// 		spendingTx, ok := addressUTXOs.TxnsStore[f.TxSpending]
+	// 		if !ok {
+	// 			log.Errorf("A previous outpoint's spending transaction is not available in TxnStore.")
+	// 			continue
+	// 		}
+	// 		if spendingTx.Confirmed() {
+	// 			log.Errorf("An outpoint's transaction is unexpectedly confirmed.")
+	// 			continue
+	// 		}
+
+	// 		// The total send amount must be looked up from the previous
+	// 		// outpoint because vin:i valuein is not reliable from dcrd.
+	// 		prevhash := spendingTx.Tx.TxIn[f.InputIndex].PreviousOutPoint.Hash
+	// 		strprevhash := prevhash.String()
+	// 		previndex := spendingTx.Tx.TxIn[f.InputIndex].PreviousOutPoint.Index
+	// 		valuein := addressUTXOs.TxnsStore[prevhash].Tx.TxOut[previndex].Value
+
+	// 		// Look through old transactions and set the spending transactions'
+	// 		// matching transaction fields.
+	// 		for _, dbTxn := range addrData.Transactions {
+	// 			if dbTxn.TxID == strprevhash && dbTxn.InOutID == previndex && dbTxn.IsFunding {
+	// 				dbTxn.MatchedTx = spendingTx.Hash().String()
+	// 				dbTxn.MatchedTxIndex = uint32(f.InputIndex)
+	// 			}
+	// 		}
+
+	// 		if txnType == dbtypes.AddrTxnAll || txnType == dbtypes.AddrTxnDebit {
+	// 			addrTx := &dbtypes.AddressTx{
+	// 				TxID:           spendingTx.Hash().String(),
+	// 				TxType:         txhelpers.DetermineTxTypeString(spendingTx.Tx),
+	// 				InOutID:        uint32(f.InputIndex),
+	// 				Time:           dbtypes.NewTimeDefFromUNIX(spendingTx.MemPoolTime),
+	// 				FormattedSize:  humanize.Bytes(uint64(spendingTx.Tx.SerializeSize())),
+	// 				Total:          txhelpers.TotalOutFromMsgTx(spendingTx.Tx).ToCoin(),
+	// 				SentTotal:      dcrutil.Amount(valuein).ToCoin(),
+	// 				MatchedTx:      strprevhash,
+	// 				MatchedTxIndex: previndex,
+	// 			}
+	// 			addrData.Transactions = append(addrData.Transactions, addrTx)
+	// 		}
+
+	// 		sent += valuein
+	// 		numSent++
+	// 	} // range addressUTXOs.PrevOuts
+
+	// Totals from funding and spending transactions.
+	// addrData.Balance.NumSpent += numSent
+	// addrData.Balance.NumUnspent += (numReceived - numSent)
+	// addrData.Balance.TotalSpent += sent
+	// addrData.Balance.TotalUnspent += (received - sent)
+
+	// Sort by date and calculate block height.
+	addrData.PostProcess(uint32(pgb.Height()))
+
+	return
+}
+
 // DbTxByHash retrieves a row of the transactions table corresponding to the
 // given transaction hash. Transactions in valid and mainchain blocks are chosen
 // first.
@@ -3273,6 +3814,13 @@ func (pgb *ChainDB) DbTxByHash(txid string) (*dbtypes.Tx, error) {
 	return dbTx, pgb.replaceCancelError(err)
 }
 
+func (pgb *ChainDB) DbMutilchainTxByHash(txid string, chainType string) (*dbtypes.Tx, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	_, dbTx, err := RetrieveMutilchainDbTxByHash(ctx, pgb.db, txid, chainType)
+	return dbTx, pgb.replaceCancelError(err)
+}
+
 // FundingOutpointIndxByVinID retrieves the the transaction output index of the
 // previous outpoint for a transaction input specified by row ID in the vins
 // table, which stores previous outpoints for each vin.
@@ -3280,6 +3828,13 @@ func (pgb *ChainDB) FundingOutpointIndxByVinID(id uint64) (uint32, error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 	ind, err := RetrieveFundingOutpointIndxByVinID(ctx, pgb.db, id)
+	return ind, pgb.replaceCancelError(err)
+}
+
+func (pgb *ChainDB) FundingMutilchainOutpointIndxByVinID(id uint64, chainType string) (uint32, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	ind, err := RetrieveMutilchainFundingOutpointIndxByVinID(ctx, pgb.db, id, chainType)
 	return ind, pgb.replaceCancelError(err)
 }
 
@@ -3337,6 +3892,62 @@ func (pgb *ChainDB) FillAddressTransactions(addrInfo *dbtypes.AddressInfo) error
 				} else {
 					addrInfo.Transactions[i].MatchedTxIndex = idx
 				}
+			}
+		}
+	}
+
+	addrInfo.NumUnconfirmed = numUnconfirmed
+
+	return nil
+}
+
+func (pgb *ChainDB) FillMutilchainAddressTransactions(addrInfo *dbtypes.AddressInfo, chainType string) error {
+	if addrInfo == nil {
+		return nil
+	}
+
+	var numUnconfirmed int64
+
+	for i, txn := range addrInfo.Transactions {
+		// Retrieve the most valid, most mainchain, and most recent tx with this
+		// hash. This means it prefers mainchain and valid blocks first.
+		dbTx, err := pgb.DbMutilchainTxByHash(txn.TxID, chainType)
+		if err != nil {
+			return err
+		}
+		txn.Size = dbTx.Size
+		txn.FormattedSize = humanize.Bytes(uint64(dbTx.Size))
+		txn.Total = dbtypes.GetMutilchainCoinAmount(dbTx.Sent, chainType)
+		txn.Time = dbTx.BlockTime
+		if txn.Time.UNIX() > 0 {
+			txn.Confirmations = uint64(pgb.MutilchainHeight(chainType) - dbTx.BlockHeight + 1)
+		} else {
+			numUnconfirmed++
+			txn.Confirmations = 0
+		}
+		// Get the funding or spending transaction matching index if there is a
+		// matching tx hash already present.  During the next database
+		// restructuring we may want to consider including matching tx index
+		// along with matching tx hash in the addresses table.
+		if !txn.IsFunding {
+			// Spending transaction: lookup the previous outpoint's txout
+			// index by the vins table row ID.
+			idx, err := pgb.FundingMutilchainOutpointIndxByVinID(dbTx.VinDbIds[txn.InOutID], chainType)
+			if err != nil {
+				log.Warnf("Matched Transaction Lookup failed for %s:%d: id: %d:  %v",
+					txn.TxID, txn.InOutID, txn.InOutID, err)
+			} else {
+				addrInfo.Transactions[i].MatchedTxIndex = idx
+			}
+		} else {
+			// Funding transaction: lookup by the matching (spending) tx
+			// hash and tx index.
+			_, idx, err := pgb.MutilchainSpendingTransaction(txn.TxID, txn.InOutID, chainType)
+			if err != nil {
+				log.Warnf("Matched Transaction Lookup failed for %s:%d: %v",
+					txn.TxID, txn.InOutID, err)
+			} else {
+				addrInfo.Transactions[i].MatchedTxIndex = idx
 			}
 		}
 	}
@@ -3532,6 +4143,54 @@ func (pgb *ChainDB) UpdateChainState(blockChainInfo *chainjson.GetBlockChainInfo
 
 	pgb.deployments.mtx.Lock()
 	pgb.deployments.chainInfo = &chainInfo
+	pgb.deployments.mtx.Unlock()
+}
+
+func (pgb *ChainDB) UpdateBTCChainState(blockChainInfo *btcjson.GetBlockChainInfoResult) {
+	if pgb == nil {
+		return
+	}
+	if blockChainInfo == nil {
+		log.Errorf("chainjson.GetBlockChainInfoResult data passed is empty")
+		return
+	}
+
+	chainInfo := dbtypes.BlockChainData{
+		Chain:                  blockChainInfo.Chain,
+		BestHeight:             int64(blockChainInfo.Blocks),
+		BestBlockHash:          blockChainInfo.BestBlockHash,
+		Difficulty:             uint32(blockChainInfo.Difficulty),
+		VerificationProgress:   blockChainInfo.VerificationProgress,
+		ChainWork:              blockChainInfo.ChainWork,
+		IsInitialBlockDownload: blockChainInfo.InitialBlockDownload,
+	}
+
+	pgb.deployments.mtx.Lock()
+	pgb.deployments.btcChainInfo = &chainInfo
+	pgb.deployments.mtx.Unlock()
+}
+
+func (pgb *ChainDB) UpdateLTCChainState(blockChainInfo *ltcjson.GetBlockChainInfoResult) {
+	if pgb == nil {
+		return
+	}
+	if blockChainInfo == nil {
+		log.Errorf("chainjson.GetBlockChainInfoResult data passed is empty")
+		return
+	}
+
+	chainInfo := dbtypes.BlockChainData{
+		Chain:                  blockChainInfo.Chain,
+		BestHeight:             int64(blockChainInfo.Blocks),
+		BestBlockHash:          blockChainInfo.BestBlockHash,
+		Difficulty:             uint32(blockChainInfo.Difficulty),
+		VerificationProgress:   blockChainInfo.VerificationProgress,
+		ChainWork:              blockChainInfo.ChainWork,
+		IsInitialBlockDownload: blockChainInfo.InitialBlockDownload,
+	}
+
+	pgb.deployments.mtx.Lock()
+	pgb.deployments.ltcChainInfo = &chainInfo
 	pgb.deployments.mtx.Unlock()
 }
 
@@ -4026,6 +4685,13 @@ func (pgb *ChainDB) PkScriptByVinID(id uint64) (pkScript []byte, ver uint16, err
 	return pks, ver, pgb.replaceCancelError(err)
 }
 
+func (pgb *ChainDB) MutilchainPkScriptByVinID(id uint64, chainType string) (pkScript []byte, ver uint16, err error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	pks, ver, err := RetrieveMutilchainPkScriptByVinID(ctx, pgb.db, id, chainType)
+	return pks, ver, pgb.replaceCancelError(err)
+}
+
 // PkScriptByVoutID retrieves the pkScript and script version for the row of the
 // vouts table specified by the row ID id.
 func (pgb *ChainDB) PkScriptByVoutID(id uint64) (pkScript []byte, ver uint16, err error) {
@@ -4062,12 +4728,43 @@ func (pgb *ChainDB) VinsForTx(dbTx *dbtypes.Tx) ([]dbtypes.VinTxProperty, []stri
 	return vins, prevPkScripts, versions, pgb.replaceCancelError(err)
 }
 
+func (pgb *ChainDB) MutilchainVinsForTx(dbTx *dbtypes.Tx, chainType string) ([]dbtypes.VinTxProperty, []string, []uint16, error) {
+	// Retrieve the pkScript and script version for the previous outpoint of
+	// each vin.
+	prevPkScripts := make([]string, 0, len(dbTx.VinDbIds))
+	versions := make([]uint16, 0, len(dbTx.VinDbIds))
+	for _, id := range dbTx.VinDbIds {
+		pkScript, ver, err := pgb.MutilchainPkScriptByVinID(id, chainType)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("PkScriptByVinID: %w", err)
+		}
+		prevPkScripts = append(prevPkScripts, hex.EncodeToString(pkScript))
+		versions = append(versions, ver)
+	}
+
+	// Retrieve the vins row data.
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	vins, err := RetrieveMutilchainVinsByIDs(ctx, pgb.db, dbTx.VinDbIds, chainType)
+	if err != nil {
+		err = fmt.Errorf("RetrieveVinsByIDs: %w", err)
+	}
+	return vins, prevPkScripts, versions, pgb.replaceCancelError(err)
+}
+
 // VoutsForTx returns a slice of dbtypes.Vout values for each vout referenced by
 // the transaction dbTx.
 func (pgb *ChainDB) VoutsForTx(dbTx *dbtypes.Tx) ([]dbtypes.Vout, error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 	vouts, err := RetrieveVoutsByIDs(ctx, pgb.db, dbTx.VoutDbIds)
+	return vouts, pgb.replaceCancelError(err)
+}
+
+func (pgb *ChainDB) MutilchainVoutsForTx(dbTx *dbtypes.Tx, chainType string) ([]dbtypes.Vout, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	vouts, err := RetrieveMutilchainVoutsByIDs(ctx, pgb.db, dbTx.VoutDbIds, chainType)
 	return vouts, pgb.replaceCancelError(err)
 }
 
@@ -6466,10 +7163,34 @@ func (pgb *ChainDB) GetChainParams() *chaincfg.Params {
 	return pgb.chainParams
 }
 
+// GetChainParams is a getter for the current network parameters.
+func (pgb *ChainDB) GetBTCChainParams() *btc_chaincfg.Params {
+	return pgb.btcChainParams
+}
+
+func (pgb *ChainDB) GetLTCChainParams() *ltc_chaincfg.Params {
+	return pgb.ltcChainParams
+}
+
 // GetBlockVerbose fetches the *chainjson.GetBlockVerboseResult for a given
 // block height. Optionally include verbose transactions.
 func (pgb *ChainDB) GetBlockVerbose(idx int, verboseTx bool) *chainjson.GetBlockVerboseResult {
 	block := rpcutils.GetBlockVerbose(pgb.Client, int64(idx), verboseTx)
+	return block
+}
+
+func (pgb *ChainDB) GetLTCBlockVerbose(idx int) *ltcjson.GetBlockVerboseResult {
+	block := ltcrpcutils.GetBlockVerbose(pgb.LtcClient, int64(idx))
+	return block
+}
+
+func (pgb *ChainDB) GetBTCBlockVerbose(idx int) *btcjson.GetBlockVerboseResult {
+	block := btcrpcutils.GetBlockVerbose(pgb.BtcClient, int64(idx))
+	return block
+}
+
+func (pgb *ChainDB) GetBTCBlockVerboseTx(idx int) *btcjson.GetBlockVerboseTxResult {
+	block := btcrpcutils.GetBlockVerboseTx(pgb.BtcClient, int64(idx))
 	return block
 }
 
@@ -6502,6 +7223,84 @@ func makeExplorerBlockBasic(data *chainjson.GetBlockVerboseResult, params *chain
 		FreshStake:     data.FreshStake,
 		Revocations:    uint32(data.Revocations),
 		TxCount:        uint32(data.FreshStake+data.Revocations) + uint32(numReg) + uint32(data.Voters),
+		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
+		FormattedBytes: humanize.Bytes(uint64(data.Size)),
+		Total:          total,
+	}
+
+	return block
+}
+
+func makeBTCExplorerBlockBasic(data *btcjson.GetBlockVerboseTxResult, params *btc_chaincfg.Params) *exptypes.BlockBasic {
+	total := float64(0)
+	for _, tx := range data.RawTx {
+		for _, vout := range tx.Vout {
+			total += vout.Value
+		}
+	}
+	numReg := len(data.RawTx)
+
+	block := &exptypes.BlockBasic{
+		Height:         data.Height,
+		Hash:           data.Hash,
+		Version:        data.Version,
+		Size:           data.Size,
+		Valid:          true, // we do not know this, TODO with DB v2
+		MainChain:      true,
+		Transactions:   numReg,
+		TxCount:        uint32(numReg),
+		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
+		FormattedBytes: humanize.Bytes(uint64(data.Size)),
+		Total:          total,
+	}
+
+	return block
+}
+
+func makeLTCExplorerBlockBasicFromTxResult(data *ltcjson.GetBlockVerboseTxResult, params *ltc_chaincfg.Params) *exptypes.BlockBasic {
+	total := float64(0)
+	for _, tx := range data.RawTx {
+		for _, vout := range tx.Vout {
+			total += vout.Value
+		}
+	}
+	numReg := len(data.RawTx)
+
+	block := &exptypes.BlockBasic{
+		Height:         data.Height,
+		Hash:           data.Hash,
+		Version:        data.Version,
+		Size:           data.Size,
+		Valid:          true, // we do not know this, TODO with DB v2
+		MainChain:      true,
+		Transactions:   numReg,
+		TxCount:        uint32(numReg),
+		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
+		FormattedBytes: humanize.Bytes(uint64(data.Size)),
+		Total:          total,
+	}
+
+	return block
+}
+
+func makeLTCExplorerBlockBasic(data *ltcjson.GetBlockVerboseResult, params *ltc_chaincfg.Params) *exptypes.BlockBasic {
+	total := float64(0)
+	for _, tx := range data.RawTx {
+		for _, vout := range tx.Vout {
+			total += vout.Value
+		}
+	}
+	numReg := len(data.RawTx)
+
+	block := &exptypes.BlockBasic{
+		Height:         data.Height,
+		Hash:           data.Hash,
+		Version:        data.Version,
+		Size:           data.Size,
+		Valid:          true, // we do not know this, TODO with DB v2
+		MainChain:      true,
+		Transactions:   numReg,
+		TxCount:        uint32(numReg),
 		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
 		FormattedBytes: humanize.Bytes(uint64(data.Size)),
 		Total:          total,
@@ -6565,6 +7364,26 @@ func makeExplorerTxBasic(data *chainjson.TxRawResult, ticketPrice int64, msgTx *
 	return tx, txType
 }
 
+func makeBTCExplorerTxBasic(data *btcjson.TxRawResult) *exptypes.TxBasic {
+	tx := &exptypes.TxBasic{
+		TxID:          data.Txid,
+		Version:       int32(data.Version),
+		FormattedSize: humanize.Bytes(uint64(len(data.Hex) / 2)),
+		Total:         txhelpers.TotalBTCVout(data.Vout).ToBTC(),
+	}
+	return tx
+}
+
+func makeLTCExplorerTxBasic(data *ltcjson.TxRawResult) *exptypes.TxBasic {
+	tx := &exptypes.TxBasic{
+		TxID:          data.Txid,
+		Version:       int32(data.Version),
+		FormattedSize: humanize.Bytes(uint64(len(data.Hex) / 2)),
+		Total:         txhelpers.TotalLTCVout(data.Vout).ToBTC(),
+	}
+	return tx
+}
+
 func trimmedTxInfoFromMsgTx(txraw *chainjson.TxRawResult, ticketPrice int64, msgTx *wire.MsgTx, params *chaincfg.Params) (*exptypes.TrimmedTxInfo, stake.TxType) {
 	txBasic, txType := makeExplorerTxBasic(txraw, ticketPrice, msgTx, params)
 
@@ -6581,6 +7400,28 @@ func trimmedTxInfoFromMsgTx(txraw *chainjson.TxRawResult, ticketPrice int64, msg
 		VoteValid: voteValid,
 	}
 	return tx, txType
+}
+
+func trimmedBTCTxInfoFromMsgTx(txraw *btcjson.TxRawResult, msgTx *btcwire.MsgTx, params *btc_chaincfg.Params) *exptypes.TrimmedTxInfo {
+	txBasic := makeBTCExplorerTxBasic(txraw)
+
+	tx := &exptypes.TrimmedTxInfo{
+		TxBasic:   txBasic,
+		VinCount:  len(txraw.Vin),
+		VoutCount: len(txraw.Vout),
+	}
+	return tx
+}
+
+func trimmedLTCTxInfoFromMsgTx(txraw *ltcjson.TxRawResult, msgTx *ltcwire.MsgTx, params *ltc_chaincfg.Params) *exptypes.TrimmedTxInfo {
+	txBasic := makeLTCExplorerTxBasic(txraw)
+
+	tx := &exptypes.TrimmedTxInfo{
+		TxBasic:   txBasic,
+		VinCount:  len(txraw.Vin),
+		VoutCount: len(txraw.Vout),
+	}
+	return tx
 }
 
 // BlockSubsidy gets the *chainjson.GetBlockSubsidyResult for the given height
@@ -6781,6 +7622,182 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 	return block
 }
 
+// GetExplorerBlock gets a *exptypes.Blockinfo for the specified block.
+func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
+	pgb.ltcLastExplorerBlock.Lock()
+	if pgb.ltcLastExplorerBlock.hash == hash {
+		defer pgb.ltcLastExplorerBlock.Unlock()
+		return pgb.ltcLastExplorerBlock.blockInfo
+	}
+	pgb.ltcLastExplorerBlock.Unlock()
+
+	data := pgb.GetLTCBlockVerboseTxByHash(hash)
+	if data == nil {
+		log.Error("Unable to get block for block hash " + hash)
+		return nil
+	}
+
+	b := makeLTCExplorerBlockBasicFromTxResult(data, pgb.ltcChainParams)
+
+	// Explorer Block Info
+	block := &exptypes.BlockInfo{
+		BlockBasic:    b,
+		Confirmations: data.Confirmations,
+		PoWHash:       b.Hash,
+		Nonce:         data.Nonce,
+		Bits:          data.Bits,
+		Difficulty:    data.Difficulty,
+		PreviousHash:  data.PreviousHash,
+		NextHash:      data.NextHash,
+	}
+
+	txs := make([]*exptypes.TrimmedTxInfo, 0, block.Transactions)
+	for i := range data.RawTx {
+		tx := &data.RawTx[i]
+		msgTx, err := txhelpers.MsgLTCTxFromHex(tx.Hex, int32(tx.Version))
+		if err != nil {
+			log.Errorf("Unknown transaction %s: %v", tx.Txid, err)
+			return nil
+		}
+
+		exptx := trimmedLTCTxInfoFromMsgTx(tx, msgTx, pgb.ltcChainParams) // maybe pass tree
+		txs = append(txs, exptx)
+	}
+	block.Tx = txs
+	sortTx := func(txs []*exptypes.TrimmedTxInfo) {
+		sort.Slice(txs, func(i, j int) bool {
+			return txs[i].Total > txs[j].Total
+		})
+	}
+
+	sortTx(block.Tx)
+
+	getTotalSent := func(txs []*exptypes.TrimmedTxInfo) (total ltcutil.Amount) {
+		for _, tx := range txs {
+			amt, err := ltcutil.NewAmount(tx.Total)
+			if err != nil {
+				continue
+			}
+			total += amt
+		}
+		return
+	}
+	block.TotalSent = getTotalSent(block.Tx).ToBTC()
+
+	pgb.ltcLastExplorerBlock.Lock()
+	pgb.ltcLastExplorerBlock.hash = hash
+	pgb.ltcLastExplorerBlock.blockInfo = block
+	pgb.ltcLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
+	pgb.ltcLastExplorerBlock.Unlock()
+	return block
+}
+
+// GetExplorerBlock gets a *exptypes.Blockinfo for the specified block.
+func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
+	pgb.btcLastExplorerBlock.Lock()
+	if pgb.btcLastExplorerBlock.hash == hash {
+		defer pgb.btcLastExplorerBlock.Unlock()
+		return pgb.btcLastExplorerBlock.blockInfo
+	}
+	pgb.btcLastExplorerBlock.Unlock()
+
+	data := pgb.GetBTCBlockVerboseTxByHash(hash)
+	if data == nil {
+		log.Error("Unable to get block for block hash " + hash)
+		return nil
+	}
+
+	b := makeBTCExplorerBlockBasic(data, pgb.btcChainParams)
+
+	// Explorer Block Info
+	block := &exptypes.BlockInfo{
+		BlockBasic:    b,
+		Confirmations: data.Confirmations,
+		PoWHash:       b.Hash,
+		Nonce:         data.Nonce,
+		Bits:          data.Bits,
+		Difficulty:    data.Difficulty,
+		PreviousHash:  data.PreviousHash,
+		NextHash:      data.NextHash,
+	}
+
+	txs := make([]*exptypes.TrimmedTxInfo, 0, block.Transactions)
+	for i := range data.RawTx {
+		tx := &data.RawTx[i]
+		msgTx, err := txhelpers.MsgBTCTxFromHex(tx.Hex, int32(tx.Version))
+		if err != nil {
+			log.Errorf("Unknown transaction %s: %v", tx.Txid, err)
+			return nil
+		}
+
+		exptx := trimmedBTCTxInfoFromMsgTx(tx, msgTx, pgb.btcChainParams) // maybe pass tree
+		txs = append(txs, exptx)
+	}
+	block.Tx = txs
+	sortTx := func(txs []*exptypes.TrimmedTxInfo) {
+		sort.Slice(txs, func(i, j int) bool {
+			return txs[i].Total > txs[j].Total
+		})
+	}
+
+	sortTx(block.Tx)
+
+	getTotalSent := func(txs []*exptypes.TrimmedTxInfo) (total btcutil.Amount) {
+		for _, tx := range txs {
+			amt, err := btcutil.NewAmount(tx.Total)
+			if err != nil {
+				continue
+			}
+			total += amt
+		}
+		return
+	}
+	block.TotalSent = getTotalSent(block.Tx).ToBTC()
+
+	pgb.btcLastExplorerBlock.Lock()
+	pgb.btcLastExplorerBlock.hash = hash
+	pgb.btcLastExplorerBlock.blockInfo = block
+	pgb.btcLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
+	pgb.btcLastExplorerBlock.Unlock()
+	return block
+}
+
+// GetExplorerBlocks creates an slice of exptypes.BlockBasic beginning at start
+// and decreasing in block height to end, not including end.
+func (pgb *ChainDB) GetLTCExplorerBlocks(start int, end int) []*exptypes.BlockBasic {
+	if start < end {
+		return nil
+	}
+	summaries := make([]*exptypes.BlockBasic, 0, start-end)
+	for i := start; i > end; i-- {
+		data := pgb.GetLTCBlockVerbose(i)
+		block := new(exptypes.BlockBasic)
+		if data != nil {
+			block = makeLTCExplorerBlockBasic(data, pgb.ltcChainParams)
+		}
+		summaries = append(summaries, block)
+	}
+	return summaries
+}
+
+// GetExplorerBlocks creates an slice of exptypes.BlockBasic beginning at start
+// and decreasing in block height to end, not including end.
+func (pgb *ChainDB) GetBTCExplorerBlocks(start int, end int) []*exptypes.BlockBasic {
+	if start < end {
+		return nil
+	}
+	summaries := make([]*exptypes.BlockBasic, 0, start-end)
+	for i := start; i > end; i-- {
+		data := pgb.GetBTCBlockVerboseTx(i)
+		block := new(exptypes.BlockBasic)
+		if data != nil {
+			block = makeBTCExplorerBlockBasic(data, pgb.btcChainParams)
+		}
+		summaries = append(summaries, block)
+	}
+	return summaries
+}
+
 // GetExplorerBlocks creates an slice of exptypes.BlockBasic beginning at start
 // and decreasing in block height to end, not including end.
 func (pgb *ChainDB) GetExplorerBlocks(start int, end int) []*exptypes.BlockBasic {
@@ -6846,6 +7863,296 @@ func (pgb *ChainDB) txWithTicketPrice(txhash *chainhash.Hash) (*chainjson.TxRawR
 	}
 
 	return txraw, ticketPrice, nil
+}
+
+func (pgb *ChainDB) BtcTxResult(txhash *btc_chainhash.Hash) (*btcjson.TxRawResult, error) {
+	// If the transaction is unconfirmed, the RPC client must provide the ticket
+	// price. Ensure the best block does not change between calls to
+	// getrawtransaction and getstakedifficulty.
+	blockHash, _, err := pgb.BtcClient.GetBestBlock()
+	if err != nil {
+		return nil, fmt.Errorf("GetBestBlock failed: %w", err)
+	}
+
+	var txraw *btcjson.TxRawResult
+	for {
+		txraw, err = pgb.BtcClient.GetRawTransactionVerbose(txhash)
+		if err != nil {
+			return nil, fmt.Errorf("GetRawTransactionVerbose failed for %v: %w", txhash, err)
+		}
+
+		blockHash1, _, err := pgb.BtcClient.GetBestBlock()
+		if err != nil {
+			return nil, fmt.Errorf("GetBestBlock failed: %w", err)
+		}
+
+		if blockHash.IsEqual(blockHash1) {
+			break
+		}
+		blockHash = blockHash1 // try again
+	}
+
+	return txraw, nil
+}
+
+func (pgb *ChainDB) LtcTxResult(txhash *ltc_chainhash.Hash) (*ltcjson.TxRawResult, error) {
+	blockHash, _, err := pgb.LtcClient.GetBestBlock()
+	if err != nil {
+		return nil, fmt.Errorf("GetBestBlock failed: %w", err)
+	}
+
+	var txraw *ltcjson.TxRawResult
+	for {
+		txraw, err = pgb.LtcClient.GetRawTransactionVerbose(txhash)
+		if err != nil {
+			return nil, fmt.Errorf("GetRawTransactionVerbose failed for %v: %w", txhash, err)
+		}
+
+		blockHash1, _, err := pgb.LtcClient.GetBestBlock()
+		if err != nil {
+			return nil, fmt.Errorf("GetBestBlock failed: %w", err)
+		}
+
+		if blockHash.IsEqual(blockHash1) {
+			break
+		}
+		blockHash = blockHash1 // try again
+	}
+
+	return txraw, nil
+}
+
+func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
+	txhash, err := ltc_chainhash.NewHashFromStr(txid)
+	if err != nil {
+		log.Errorf("Invalid transaction hash %s", txid)
+		return nil
+	}
+
+	txraw, err := pgb.LtcTxResult(txhash)
+	if err != nil {
+		log.Errorf("Mutilchain Tx Info: %v", err)
+		return nil
+	}
+
+	msgTx, err := txhelpers.LTCMsgTxFromHex(txraw.Hex, int32(txraw.Version))
+	if err != nil {
+		log.Errorf("Cannot create MsgTx for tx %v: %v", txhash, err)
+		return nil
+	}
+
+	txBasic := makeLTCExplorerTxBasic(txraw)
+	tx := &exptypes.TxInfo{
+		TxBasic:       txBasic,
+		BlockHash:     txraw.BlockHash,
+		Confirmations: int64(txraw.Confirmations),
+		Time:          exptypes.NewTimeDefFromUNIX(txraw.Time),
+	}
+
+	// tree := txType stake.TxTypeRegular
+
+	inputs := make([]exptypes.MutilchainVin, 0, len(txraw.Vin))
+	for i := range txraw.Vin {
+		vin := &txraw.Vin[i]
+		// The addresses are may only be obtained by decoding the previous
+		// output's pkscript.
+		var addresses []string
+		// The vin amount is now correct in most cases, but get it from the
+		// previous output anyway and compare the values for information.
+		valueIn, _ := ltcutil.NewAmount(float64(vin.Vout))
+		// Do not attempt to look up prevout if it is a coinbase or stakebase
+		// input, which does not spend a previous output.
+		prevOut := &msgTx.TxIn[i].PreviousOutPoint
+		if !txhelpers.IsLTCZeroHash(prevOut.Hash) {
+			// Store the vin amount for comparison.
+			valueIn0 := valueIn
+
+			addresses, valueIn, err = txhelpers.LTCOutPointAddresses(
+				prevOut, pgb.LtcClient, pgb.ltcChainParams)
+			if err != nil {
+				log.Warnf("Failed to get outpoint address from txid: %v", err)
+				continue
+			}
+			// See if getrawtransaction had correct vin amounts. It should
+			// except for votes on side chain blocks.
+			if valueIn != valueIn0 {
+				log.Debugf("vin amount in: prevout RPC = %v, vin's amount = %v",
+					valueIn, valueIn0)
+			}
+		}
+
+		// Assemble and append this vin.
+		coinIn := valueIn.ToBTC()
+		inputs = append(inputs, exptypes.MutilchainVin{
+			Txid:            vin.Txid,
+			Coinbase:        vin.Coinbase,
+			Vout:            vin.Vout,
+			Sequence:        vin.Sequence,
+			Witness:         vin.Witness,
+			Addresses:       addresses,
+			FormattedAmount: humanize.Commaf(coinIn),
+			Index:           uint32(i),
+		})
+	}
+	tx.MutilchainVin = inputs
+
+	CoinbaseMaturityInHours := (pgb.ltcChainParams.TargetTimePerBlock.Hours() * float64(pgb.ltcChainParams.CoinbaseMaturity))
+	tx.MaturityTimeTill = ((float64(pgb.ltcChainParams.CoinbaseMaturity) -
+		float64(tx.Confirmations)) / float64(pgb.ltcChainParams.CoinbaseMaturity)) * CoinbaseMaturityInHours
+
+	outputs := make([]exptypes.Vout, 0, len(txraw.Vout))
+	for i, vout := range txraw.Vout {
+		// Determine spent status with gettxout, including mempool.
+		txout, err := pgb.LtcClient.GetTxOut(txhash, uint32(i), true)
+		if err != nil {
+			log.Warnf("Failed to determine if tx out is spent for output %d of tx %s: %v", i, txid, err)
+		}
+		var opReturn string
+		var opTAdd bool
+		if strings.HasPrefix(vout.ScriptPubKey.Asm, "OP_RETURN") {
+			opReturn = vout.ScriptPubKey.Asm
+		} else {
+			opTAdd = strings.HasPrefix(vout.ScriptPubKey.Asm, "OP_TADD")
+		}
+		// Get a consistent script class string from dbtypes.ScriptClass.
+		outputs = append(outputs, exptypes.Vout{
+			Addresses:       vout.ScriptPubKey.Addresses,
+			Amount:          vout.Value,
+			FormattedAmount: humanize.Commaf(vout.Value),
+			OP_RETURN:       opReturn,
+			OP_TADD:         opTAdd,
+			Spent:           txout == nil,
+			Index:           vout.N,
+		})
+	}
+	tx.Vout = outputs
+
+	// Initialize the spending transaction slice for safety.
+	tx.SpendingTxns = make([]exptypes.TxInID, len(outputs))
+
+	return tx
+}
+
+func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
+	txhash, err := btc_chainhash.NewHashFromStr(txid)
+	if err != nil {
+		log.Errorf("Invalid transaction hash %s", txid)
+		return nil
+	}
+
+	txraw, err := pgb.BtcTxResult(txhash)
+	if err != nil {
+		log.Errorf("Mutilchain Tx Info: %v", err)
+		return nil
+	}
+
+	msgTx, err := txhelpers.BTCMsgTxFromHex(txraw.Hex, int32(txraw.Version))
+	if err != nil {
+		log.Errorf("Cannot create MsgTx for tx %v: %v", txhash, err)
+		return nil
+	}
+
+	txBasic := makeBTCExplorerTxBasic(txraw)
+	tx := &exptypes.TxInfo{
+		TxBasic:       txBasic,
+		BlockHash:     txraw.BlockHash,
+		Confirmations: int64(txraw.Confirmations),
+		Time:          exptypes.NewTimeDefFromUNIX(txraw.Time),
+	}
+
+	// tree := txType stake.TxTypeRegular
+
+	inputs := make([]exptypes.MutilchainVin, 0, len(txraw.Vin))
+	for i := range txraw.Vin {
+		vin := &txraw.Vin[i]
+		// The addresses are may only be obtained by decoding the previous
+		// output's pkscript.
+		var addresses []string
+		// The vin amount is now correct in most cases, but get it from the
+		// previous output anyway and compare the values for information.
+		valueIn, _ := btcutil.NewAmount(float64(vin.Vout))
+		// Do not attempt to look up prevout if it is a coinbase or stakebase
+		// input, which does not spend a previous output.
+		prevOut := &msgTx.TxIn[i].PreviousOutPoint
+		if !txhelpers.IsBTCZeroHash(prevOut.Hash) {
+			// Store the vin amount for comparison.
+			valueIn0 := valueIn
+
+			addresses, valueIn, err = txhelpers.BTCOutPointAddresses(
+				prevOut, pgb.BtcClient, pgb.btcChainParams)
+			if err != nil {
+				log.Warnf("Failed to get outpoint address from txid: %v", err)
+				continue
+			}
+			// See if getrawtransaction had correct vin amounts. It should
+			// except for votes on side chain blocks.
+			if valueIn != valueIn0 {
+				log.Debugf("vin amount in: prevout RPC = %v, vin's amount = %v",
+					valueIn, valueIn0)
+			}
+		}
+
+		// Assemble and append this vin.
+		coinIn := valueIn.ToBTC()
+		inputs = append(inputs, exptypes.MutilchainVin{
+			Txid:            vin.Txid,
+			Coinbase:        vin.Coinbase,
+			Vout:            vin.Vout,
+			Sequence:        vin.Sequence,
+			Witness:         vin.Witness,
+			Addresses:       addresses,
+			FormattedAmount: humanize.Commaf(coinIn),
+			Index:           uint32(i),
+		})
+	}
+	tx.MutilchainVin = inputs
+
+	CoinbaseMaturityInHours := (pgb.btcChainParams.TargetTimePerBlock.Hours() * float64(pgb.btcChainParams.CoinbaseMaturity))
+	tx.MaturityTimeTill = ((float64(pgb.btcChainParams.CoinbaseMaturity) -
+		float64(tx.Confirmations)) / float64(pgb.btcChainParams.CoinbaseMaturity)) * CoinbaseMaturityInHours
+
+	outputs := make([]exptypes.Vout, 0, len(txraw.Vout))
+	for i, vout := range txraw.Vout {
+		// Determine spent status with gettxout, including mempool.
+		txout, err := pgb.BtcClient.GetTxOut(txhash, uint32(i), true)
+		if err != nil {
+			log.Warnf("Failed to determine if tx out is spent for output %d of tx %s: %v", i, txid, err)
+		}
+		var opReturn string
+		var opTAdd bool
+		if strings.HasPrefix(vout.ScriptPubKey.Asm, "OP_RETURN") {
+			opReturn = vout.ScriptPubKey.Asm
+		} else {
+			opTAdd = strings.HasPrefix(vout.ScriptPubKey.Asm, "OP_TADD")
+		}
+		// Get a consistent script class string from dbtypes.ScriptClass.
+		outputs = append(outputs, exptypes.Vout{
+			Addresses:       vout.ScriptPubKey.Addresses,
+			Amount:          vout.Value,
+			FormattedAmount: humanize.Commaf(vout.Value),
+			OP_RETURN:       opReturn,
+			OP_TADD:         opTAdd,
+			Spent:           txout == nil,
+			Index:           vout.N,
+		})
+	}
+	tx.Vout = outputs
+
+	// Initialize the spending transaction slice for safety.
+	tx.SpendingTxns = make([]exptypes.TxInID, len(outputs))
+
+	return tx
+}
+
+func (pgb *ChainDB) GetMutilchainExplorerTx(txid string, chainType string) *exptypes.TxInfo {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return pgb.GetBTCExplorerTx(txid)
+	case mutilchain.TYPELTC:
+		return pgb.GetLTCExplorerTx(txid)
+	default:
+		return pgb.GetExplorerTx(txid)
+	}
 }
 
 // GetExplorerTx creates a *exptypes.TxInfo for the transaction with the given
@@ -7257,6 +8564,55 @@ func (pgb *ChainDB) Difficulty(timestamp int64) float64 {
 	pgb.lastExplorerBlock.difficulties[timestamp] = diff
 	pgb.lastExplorerBlock.Unlock()
 	return diff
+}
+
+func (pgb *ChainDB) BTCDifficulty(timestamp int64) float64 {
+	pgb.btcLastExplorerBlock.Lock()
+	diff, ok := pgb.btcLastExplorerBlock.difficulties[timestamp]
+	pgb.btcLastExplorerBlock.Unlock()
+	if ok {
+		return diff
+	}
+
+	diff, err := RetrieveMutilchainDiff(pgb.ctx, pgb.db, timestamp, mutilchain.TYPEBTC)
+	if err != nil {
+		log.Errorf("Unable to retrieve difficulty: %v", err)
+		return -1
+	}
+	pgb.btcLastExplorerBlock.Lock()
+	pgb.btcLastExplorerBlock.difficulties[timestamp] = diff
+	pgb.btcLastExplorerBlock.Unlock()
+	return diff
+}
+
+func (pgb *ChainDB) LTCDifficulty(timestamp int64) float64 {
+	pgb.ltcLastExplorerBlock.Lock()
+	diff, ok := pgb.ltcLastExplorerBlock.difficulties[timestamp]
+	pgb.ltcLastExplorerBlock.Unlock()
+	if ok {
+		return diff
+	}
+
+	diff, err := RetrieveMutilchainDiff(pgb.ctx, pgb.db, timestamp, mutilchain.TYPELTC)
+	if err != nil {
+		log.Errorf("Unable to retrieve difficulty: %v", err)
+		return -1
+	}
+	pgb.ltcLastExplorerBlock.Lock()
+	pgb.ltcLastExplorerBlock.difficulties[timestamp] = diff
+	pgb.ltcLastExplorerBlock.Unlock()
+	return diff
+}
+
+func (pgb *ChainDB) MutilchainDifficulty(timestamp int64, chainType string) float64 {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return pgb.BTCDifficulty(timestamp)
+	case mutilchain.TYPELTC:
+		return pgb.LTCDifficulty(timestamp)
+	default:
+		return pgb.Difficulty(timestamp)
+	}
 }
 
 // GetMempool gets all transactions from the mempool for explorer and adds the

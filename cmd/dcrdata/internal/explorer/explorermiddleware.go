@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -144,6 +145,65 @@ func (exp *explorerUI) BlockHashPathOrIndexCtx(next http.Handler) http.Handler {
 		ctx = context.WithValue(ctx, ctxBlockIndex, int(height)) // Must be int!
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+func (exp *explorerUI) MutilchainBlockHashPathOrIndexCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		height, err := strconv.ParseInt(chi.URLParam(r, "blockhash"), 10, 0)
+		chainType := chi.URLParam(r, "chaintype")
+		var hash string
+		if err != nil {
+			// Not a height, try it as a hash.
+			hash = chi.URLParam(r, "blockhash")
+			height, err = exp.dataSource.MutilchainBlockHeight(hash, chainType)
+			if exp.timeoutErrorPage(w, err, "BlockHashPathOrIndexCtx>BlockHeight") {
+				return
+			}
+			if err != nil {
+				if !errors.Is(err, dbtypes.ErrNoResult) {
+					log.Warnf("MutilchainBlockHeight(%s) failed: %v", hash, err)
+				}
+				exp.StatusPage(w, defaultErrorCode, "could not find that block", hash, ExpStatusNotFound)
+				return
+			}
+		} else {
+			// Check best DB block to recognize future blocks.
+			maxHeight := exp.dataSource.MutilchainHeight(chainType)
+			if height > maxHeight {
+				expectedTime := time.Duration(height-maxHeight) * exp.GetMutilchainTargetTimePerBlock(chainType)
+				message := fmt.Sprintf("This block is expected to arrive in approximately in %v. ", expectedTime)
+				exp.StatusPage(w, defaultErrorCode, message,
+					expectedTime.String(), ExpStatusFutureBlock)
+				return
+			}
+
+			hash, err = exp.dataSource.GetMutilchainBlockHash(height, chainType)
+			if err != nil {
+				hash, err = exp.dataSource.GetMutilchainBlockHash(height, chainType)
+				if err != nil {
+					log.Errorf("(*ChainDB).BlockHash(%d) failed: %v", height, err)
+					exp.StatusPage(w, defaultErrorCode, "could not find that block",
+						fmt.Sprintf("height: %d", height), ExpStatusNotFound)
+					return
+				}
+			}
+		}
+
+		ctx := context.WithValue(r.Context(), ctxBlockHash, hash)
+		ctx = context.WithValue(ctx, ctxBlockIndex, int(height)) // Must be int!
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (exp *explorerUI) GetMutilchainTargetTimePerBlock(chainType string) time.Duration {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return exp.LtcChainParams.TargetTimePerBlock
+	case mutilchain.TYPEBTC:
+		return exp.BtcChainParams.TargetTimePerBlock
+	default:
+		return exp.ChainParams.TargetTimePerBlock
+	}
 }
 
 // SyncStatusPageIntercept serves only the syncing status page until it is

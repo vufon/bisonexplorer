@@ -1,0 +1,212 @@
+// Copyright (c) 2020-2021, The Decred developers
+// Copyright (c) 2017, Jonathan Chappelow
+// See LICENSE for details.
+
+package blockdataltc
+
+import (
+	"fmt"
+	"sync"
+	"time"
+
+	apitypes "github.com/decred/dcrdata/v8/api/types"
+	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/stakedb"
+	"github.com/ltcsuite/ltcd/btcjson"
+	"github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	"github.com/ltcsuite/ltcd/wire"
+)
+
+// BlockData contains all the data collected by a Collector and stored
+// by a BlockDataSaver. TODO: consider if pointers are desirable here.
+type BlockData struct {
+	Header         btcjson.GetBlockHeaderVerboseResult
+	Connections    int32
+	ExtraInfo      apitypes.BlockExplorerExtraInfo
+	BlockchainInfo *btcjson.GetBlockChainInfoResult
+}
+
+// ToBlockSummary returns an apitypes.BlockDataBasic object from the blockdata
+func (b *BlockData) ToBlockSummary() apitypes.BlockDataBasic {
+	t := dbtypes.NewTimeDefFromUNIX(b.Header.Time)
+	return apitypes.BlockDataBasic{
+		Height:     uint32(b.Header.Height),
+		Hash:       b.Header.Hash,
+		Difficulty: b.Header.Difficulty,
+		Time:       apitypes.TimeAPI{S: t},
+	}
+}
+
+// ToBlockExplorerSummary returns a BlockExplorerBasic
+func (b *BlockData) ToBlockExplorerSummary() apitypes.BlockExplorerBasic {
+	extra := b.ExtraInfo
+	t := dbtypes.NewTimeDefFromUNIX(b.Header.Time)
+	return apitypes.BlockExplorerBasic{
+		Height:                 uint32(b.Header.Height),
+		BlockExplorerExtraInfo: extra,
+		Time:                   t,
+	}
+}
+
+// NodeClient is the RPC client functionality required by Collector.
+type NodeClient interface {
+	GetBlockCount() (int64, error)
+	GetBlock(blockHash *chainhash.Hash) (*wire.MsgBlock, error)
+	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
+	GetBlockChainInfo() (*btcjson.GetBlockChainInfoResult, error)
+	GetConnectionCount() (int64, error)
+}
+
+// Collector models a structure for the source of the blockdata
+type Collector struct {
+	mtx          sync.Mutex
+	ltcdChainSvr NodeClient
+	netParams    *chaincfg.Params
+	stakeDB      *stakedb.StakeDatabase
+}
+
+// NewCollector creates a new Collector.
+func NewCollector(ltcdChainSvr NodeClient, params *chaincfg.Params) *Collector {
+	return &Collector{
+		ltcdChainSvr: ltcdChainSvr,
+		netParams:    params,
+	}
+}
+
+// CollectAPITypes uses CollectBlockInfo to collect block data, then organizes
+// it into the BlockDataBasic and StakeInfoExtended and dcrdataapi types.
+func (t *Collector) CollectAPITypes(hash *chainhash.Hash) *apitypes.BlockDataBasic {
+	blockDataBasic, _, _, _, err := t.CollectBlockInfo(hash)
+	if err != nil {
+		return nil
+	}
+
+	return blockDataBasic
+}
+
+// CollectBlockInfo uses the chain server and the stake DB to collect most of
+// the block data required by Collect() that is specific to the block with the
+// given hash.
+func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataBasic, *btcjson.GetBlockHeaderVerboseResult,
+	*apitypes.BlockExplorerExtraInfo, *wire.MsgBlock, error) {
+	// Retrieve block from dcrd.
+	blockHeader, err := t.ltcdChainSvr.GetBlockHeaderVerbose(hash)
+	msgBlock, blockErr := t.ltcdChainSvr.GetBlock(hash)
+	if err != nil || blockErr != nil {
+		return nil, nil, nil, nil, fmt.Errorf("Retrieve block info error")
+	}
+	txLen := len(msgBlock.Transactions)
+	// Coin supply and block subsidy. If either RPC fails, do not immediately
+	// return. Attempt acquisition of other data for this block.
+	// coinSupply := txOutResult.TotalAmount
+	// Output
+	blockdata := &apitypes.BlockDataBasic{
+		Height:     uint32(blockHeader.Height),
+		Size:       uint32(msgBlock.SerializeSize()),
+		Hash:       hash.String(),
+		Difficulty: blockHeader.Difficulty,
+		Time:       apitypes.TimeAPI{S: dbtypes.NewTimeDef(time.Unix(blockHeader.Time, 0))},
+	}
+	extrainfo := &apitypes.BlockExplorerExtraInfo{
+		TxLen:      txLen,
+		CoinSupply: int64(20995175),
+	}
+	return blockdata, blockHeader, extrainfo, msgBlock, err
+}
+
+// CollectHash collects chain data at the block with the specified hash.
+func (t *Collector) CollectHash(hash *chainhash.Hash) (*BlockData, *wire.MsgBlock, error) {
+	// In case of a very fast block, make sure previous call to collect is not
+	// still running, or dcrd may be mad.
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+
+	// Time this function
+	defer func(start time.Time) {
+		log.Debugf("Collector.CollectHash() completed in %v", time.Since(start))
+	}(time.Now())
+
+	// Info specific to the block hash
+	_, blockHeaderVerbose, extra, msgBlock, err := t.CollectBlockInfo(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Number of peer connection to chain server
+	numConn, err := t.ltcdChainSvr.GetConnectionCount()
+	if err != nil {
+		log.Warn("Unable to get connection count: ", err)
+	}
+
+	// Blockchain info (e.g. syncheight, verificationprogress, chainwork,
+	// bestblockhash, initialblockdownload, maxblocksize, deployments, etc.).
+	chainInfo, err := t.ltcdChainSvr.GetBlockChainInfo()
+	if err != nil {
+		log.Warn("Unable to get blockchain info: ", err)
+	}
+	// GetBlockChainInfo is only valid for for chain tip.
+	if chainInfo.BestBlockHash != hash.String() {
+		chainInfo = nil
+	}
+
+	// Output
+	blockdata := &BlockData{
+		Header:         *blockHeaderVerbose,
+		Connections:    int32(numConn),
+		ExtraInfo:      *extra,
+		BlockchainInfo: chainInfo,
+	}
+
+	return blockdata, msgBlock, err
+}
+
+// Collect collects chain data at the current best block.
+func (t *Collector) Collect() (*BlockData, *wire.MsgBlock, error) {
+	// In case of a very fast block, make sure previous call to collect is not
+	// still running, or dcrd may be mad.
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+
+	// Time this function.
+	defer func(start time.Time) {
+		log.Debugf("Collector.Collect() completed in %v", time.Since(start))
+	}(time.Now())
+
+	// Pull and store relevant data about the blockchain (e.g. syncheight,
+	// verificationprogress, chainwork, bestblockhash, initialblockdownload,
+	// maxblocksize, deployments, etc.).
+	blockchainInfo, err := t.ltcdChainSvr.GetBlockChainInfo()
+	fmt.Println("Block info: ", blockchainInfo.BestBlockHash)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unable to get blockchain info: %v", err)
+	}
+
+	hash, err := chainhash.NewHashFromStr(blockchainInfo.BestBlockHash)
+	if err != nil {
+		return nil, nil,
+			fmt.Errorf("invalid best block hash from getblockchaininfo: %v", err)
+	}
+	fmt.Println("sadgsdgsdg info: ")
+	// Info specific to the block hash
+	_, blockHeaderVerbose, extra, msgBlock, err := t.CollectBlockInfo(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	fmt.Println("sadgsdgsdg info333333333333333: ")
+	// Number of peer connection to chain server
+	numConn, err := t.ltcdChainSvr.GetConnectionCount()
+	if err != nil {
+		log.Warn("Unable to get connection count: ", err)
+	}
+	fmt.Println("sadgsdgsdg info4444444444444444444 ")
+	// Output
+	blockdata := &BlockData{
+		Header:         *blockHeaderVerbose,
+		Connections:    int32(numConn),
+		ExtraInfo:      *extra,
+		BlockchainInfo: blockchainInfo,
+	}
+
+	return blockdata, msgBlock, err
+}

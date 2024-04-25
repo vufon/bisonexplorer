@@ -16,6 +16,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
@@ -135,6 +136,25 @@ func addressRows(rows []*dbtypes.AddressRowCompact, N, offset int) []*dbtypes.Ad
 	return []*dbtypes.AddressRowCompact{}
 }
 
+func MutilchainAddressRows(rows []*dbtypes.MutilchainAddressRow, N, offset int) []*dbtypes.MutilchainAddressRow {
+	if rows == nil {
+		return nil
+	}
+	numRows := len(rows)
+	if offset >= numRows {
+		return []*dbtypes.MutilchainAddressRow{}
+	}
+
+	end := offset + N
+	if end > numRows {
+		end = numRows
+	}
+	if offset < end {
+		return rows[offset:end]
+	}
+	return []*dbtypes.MutilchainAddressRow{}
+}
+
 // CreditAddressRows returns up to N credit (funding) address rows from the
 // given AddressRow slice, starting after skipping offset rows. The input rows
 // may only be of type []dbtypes.AddressRowCompact or
@@ -149,6 +169,30 @@ func CreditAddressRows(rows interface{}, N, offset int) interface{} {
 	default:
 		return nil
 	}
+}
+
+func mutilchainCreditAddressRows(rows []*dbtypes.MutilchainAddressRow, N, offset int) []*dbtypes.MutilchainAddressRow {
+	if rows == nil {
+		return nil
+	}
+	if offset >= len(rows) {
+		return []*dbtypes.MutilchainAddressRow{}
+	}
+
+	var skipped int
+	out := make([]*dbtypes.MutilchainAddressRow, 0, N)
+	for _, row := range rows {
+		if skipped < offset {
+			skipped++
+			continue
+		}
+		// Append this row, and break the loop if we have N rows.
+		out = append(out, row)
+		if len(out) == N {
+			break
+		}
+	}
+	return out
 }
 
 func creditAddressRows(rows []*dbtypes.AddressRowCompact, N, offset int) []*dbtypes.AddressRowCompact {
@@ -271,6 +315,30 @@ func debitAddressRows(rows []*dbtypes.AddressRowCompact, N, offset int) []*dbtyp
 	return out
 }
 
+func mutilchainDebitAddressRows(rows []*dbtypes.MutilchainAddressRow, N, offset int) []*dbtypes.MutilchainAddressRow {
+	if rows == nil {
+		return nil
+	}
+	if offset >= len(rows) {
+		return []*dbtypes.MutilchainAddressRow{}
+	}
+
+	var skipped int
+	out := make([]*dbtypes.MutilchainAddressRow, 0, N)
+	for i := range rows {
+		if skipped < offset {
+			skipped++
+			continue
+		}
+		// Append this row, and break the loop if we have N rows.
+		out = append(out, rows[i])
+		if len(out) == N {
+			break
+		}
+	}
+	return out
+}
+
 func debitAddressRowsMerged(rows []*dbtypes.AddressRowMerged, N, offset int) []*dbtypes.AddressRowMerged {
 	if rows == nil {
 		return nil
@@ -325,6 +393,34 @@ func unspentCreditAddressRows(rows []*dbtypes.AddressRowCompact, N, offset int) 
 	out := make([]*dbtypes.AddressRowCompact, 0, N)
 	for _, row := range rows {
 		if !row.IsFunding || !txhelpers.IsZeroHash(row.MatchingTxHash) {
+			continue
+		}
+
+		if skipped < offset {
+			skipped++
+			continue
+		}
+		// Append this row, and break the loop if we have N rows.
+		out = append(out, row)
+		if len(out) == N {
+			break
+		}
+	}
+	return out
+}
+
+func unspentMutilchainCreditAddressRows(rows []*dbtypes.MutilchainAddressRow, N, offset int) []*dbtypes.MutilchainAddressRow {
+	if rows == nil {
+		return nil
+	}
+	if offset >= len(rows) {
+		return []*dbtypes.MutilchainAddressRow{}
+	}
+
+	var skipped int
+	out := make([]*dbtypes.MutilchainAddressRow, 0, N)
+	for _, row := range rows {
+		if row.FundingTxHash != "" && row.SpendingTxHash != "" {
 			continue
 		}
 
@@ -405,9 +501,26 @@ type AddressCacheItem struct {
 	hash   chainhash.Hash
 }
 
+type MutilchainAddressCacheItem struct {
+	mtx     sync.RWMutex
+	balance *dbtypes.AddressBalance
+	rows    []*dbtypes.MutilchainAddressRow // creditDebitQuery
+	utxos   []*dbtypes.MutilchainAddressTxnOutput
+	history TxHistory
+	// Block height and hash are intended to keep balance and rows consistent.
+	// The utxos and charts data may be stored at a later block.
+	height int64
+	hash   string
+}
+
 // BlockID provides basic identifying information about a block.
 type BlockID struct {
 	Hash   chainhash.Hash
+	Height int64
+}
+
+type MutilchainBlockID struct {
+	Hash   string
 	Height int64
 }
 
@@ -419,9 +532,20 @@ func NewBlockID(hash *chainhash.Hash, height int64) *BlockID {
 	}
 }
 
+func NewMutilchainBlockID(hash string, height int64) *MutilchainBlockID {
+	return &MutilchainBlockID{
+		Hash:   hash,
+		Height: height,
+	}
+}
+
 // blockID generates a BlockID for the AddressCacheItem.
 func (d *AddressCacheItem) blockID() *BlockID {
 	return &BlockID{d.hash, d.height}
+}
+
+func (d *MutilchainAddressCacheItem) mutilchainBlockID() *MutilchainBlockID {
+	return &MutilchainBlockID{d.hash, d.height}
 }
 
 // BlockHash is a thread-safe accessor for the block hash.
@@ -431,8 +555,20 @@ func (d *AddressCacheItem) BlockHash() chainhash.Hash {
 	return d.hash
 }
 
+func (d *MutilchainAddressCacheItem) MutilchainBlockHash() string {
+	d.mtx.RLock()
+	defer d.mtx.RUnlock()
+	return d.hash
+}
+
 // BlockHeight is a thread-safe accessor for the block height.
 func (d *AddressCacheItem) BlockHeight() int64 {
+	d.mtx.RLock()
+	defer d.mtx.RUnlock()
+	return d.height
+}
+
+func (d *MutilchainAddressCacheItem) MutilchainBlockHeight() int64 {
 	d.mtx.RLock()
 	defer d.mtx.RUnlock()
 	return d.height
@@ -446,6 +582,15 @@ func (d *AddressCacheItem) Balance() (*dbtypes.AddressBalance, *BlockID) {
 		return nil, nil
 	}
 	return d.balance, d.blockID()
+}
+
+func (d *MutilchainAddressCacheItem) MutilchainBalance() (*dbtypes.AddressBalance, *MutilchainBlockID) {
+	d.mtx.RLock()
+	defer d.mtx.RUnlock()
+	if d.balance == nil {
+		return nil, nil
+	}
+	return d.balance, d.mutilchainBlockID()
 }
 
 // UTXOs is a thread-safe accessor for the []*dbtypes.AddressTxnOutput.
@@ -576,6 +721,46 @@ func (d *AddressCacheItem) Transactions(N, offset int, txnView dbtypes.AddrTxnVi
 		return dbtypes.MergeRowsCompactRange(rowData, N, offset, txnView), blockID, nil
 	case dbtypes.AddrUnspentTxn:
 		return unspentCreditAddressRows(rowData, N, offset), blockID, nil
+	default:
+		// This should already be caught by IsMerged err check.
+		return nil, nil, fmt.Errorf("unrecognized address transaction view: %v", txnView)
+	}
+}
+
+func (d *MutilchainAddressCacheItem) MutilchainTransactions(N, offset int, txnView dbtypes.AddrTxnViewType) (interface{}, *MutilchainBlockID, error) {
+	if offset < 0 || N < 0 {
+		return nil, nil, fmt.Errorf("invalid offset (%d) or N (%d)", offset, N)
+	}
+
+	if d == nil {
+		return nil, nil, fmt.Errorf("uninitialized AddressCacheItem")
+	}
+
+	d.mtx.RLock()
+	defer d.mtx.RUnlock()
+	// Identify cache miss by nil rows.
+	if d.rows == nil {
+		return []*dbtypes.MutilchainAddressRow(nil), nil, nil
+	}
+
+	blockID := d.mutilchainBlockID()
+	numRows := len(d.rows)
+
+	if N == 0 || numRows == 0 || offset >= numRows {
+		return []*dbtypes.MutilchainAddressRow(nil), blockID, nil
+	}
+	rowData := make([]*dbtypes.MutilchainAddressRow, 0)
+	rowData = d.rows
+	switch txnView {
+	case dbtypes.AddrTxnAll:
+		// []*dbtypes.AddressRowCompact
+		return MutilchainAddressRows(rowData, N, offset), blockID, nil
+	case dbtypes.AddrTxnCredit:
+		return mutilchainCreditAddressRows(rowData, N, offset), blockID, nil
+	case dbtypes.AddrTxnDebit:
+		return mutilchainDebitAddressRows(rowData, N, offset), blockID, nil
+	case dbtypes.AddrUnspentTxn:
+		return unspentMutilchainCreditAddressRows(rowData, N, offset), blockID, nil
 	default:
 		// This should already be caught by IsMerged err check.
 		return nil, nil, fmt.Errorf("unrecognized address transaction view: %v", txnView)
@@ -713,10 +898,17 @@ func (cm *cacheMetrics) historyMiss() {
 // AddressCache maintains a store of address data. Use NewAddressCache to create
 // a new AddressCache with initialized internal data structures.
 type AddressCache struct {
-	mtx     sync.RWMutex
-	a       map[string]*AddressCacheItem
-	cap     int
-	capAddr int
+	mtx         sync.RWMutex
+	a           map[string]*AddressCacheItem
+	a_ltc       map[string]*MutilchainAddressCacheItem
+	a_btc       map[string]*MutilchainAddressCacheItem
+	chainType   string
+	cap         int
+	cap_btc     int
+	cap_ltc     int
+	capAddr     int
+	capAddr_btc int
+	capAddr_ltc int
 	// Unlike addresses and address rows, which are counted precisely, UTXO
 	// limits are enforced per-address. maxUTXOsPerAddr is computed on
 	// construction from the specified total utxo capacity specified in bytes.
@@ -740,6 +932,30 @@ func NewAddressCache(rowCapacity, addressCapacity, utxoCapacityBytes int) *Addre
 		cap:             rowCapacity,
 		capAddr:         addressCapacity,
 		maxUTXOsPerAddr: maxUTXOsPerAddr,
+	}
+	log.Debugf("Allowing %d cached UTXOs per address (max %d addresses), using ~%.0f MiB.",
+		ac.maxUTXOsPerAddr, addressCapacity, float64(utxoCapacityBytes)/1024/1024)
+	defer func() { go ac.Reporter() }()
+	return ac
+}
+
+func NewMutilchainAddressCache(rowCapacity, addressCapacity, utxoCapacityBytes int, chainType string) *AddressCache {
+	var maxUTXOsPerAddr int
+	if addressCapacity > 0 {
+		maxUTXOsPerAddr = utxoCapacityBytes / approxTxnOutSize / addressCapacity
+	}
+	ac := &AddressCache{
+		cap:             rowCapacity,
+		capAddr:         addressCapacity,
+		maxUTXOsPerAddr: maxUTXOsPerAddr,
+	}
+	switch chainType {
+	case mutilchain.TYPELTC:
+		ac.a_ltc = make(map[string]*MutilchainAddressCacheItem)
+	case mutilchain.TYPEBTC:
+		ac.a_btc = make(map[string]*MutilchainAddressCacheItem)
+	default:
+		ac.a = make(map[string]*AddressCacheItem)
 	}
 	log.Debugf("Allowing %d cached UTXOs per address (max %d addresses), using ~%.0f MiB.",
 		ac.maxUTXOsPerAddr, addressCapacity, float64(utxoCapacityBytes)/1024/1024)
@@ -808,6 +1024,19 @@ func (ac *AddressCache) addressCacheItem(addr string) *AddressCacheItem {
 	return ac.a[addr]
 }
 
+func (ac *AddressCache) MutilchainAddressCacheItem(addr string, chainType string) *MutilchainAddressCacheItem {
+	ac.mtx.RLock()
+	defer ac.mtx.RUnlock()
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return ac.a_btc[addr]
+	case mutilchain.TYPELTC:
+		return ac.a_ltc[addr]
+	default:
+		return &MutilchainAddressCacheItem{}
+	}
+}
+
 // ClearAll resets AddressCache, purging all cached data.
 func (ac *AddressCache) ClearAll() (numCleared int) {
 	ac.mtx.Lock()
@@ -849,6 +1078,22 @@ func (ac *AddressCache) Balance(addr string) (*dbtypes.AddressBalance, *BlockID)
 	}
 	ac.cacheMetrics.balanceHit()
 	balance, blockID := aci.Balance()
+	var bal *dbtypes.AddressBalance
+	if balance != nil {
+		bal = new(dbtypes.AddressBalance)
+		*bal = *balance // copy balance struct, blockID is already new
+	}
+	return bal, blockID
+}
+
+func (ac *AddressCache) MutilchainBalance(addr string, chainType string) (*dbtypes.AddressBalance, *MutilchainBlockID) {
+	aci := ac.MutilchainAddressCacheItem(addr, chainType)
+	if aci == nil {
+		ac.cacheMetrics.balanceMiss()
+		return nil, nil
+	}
+	ac.cacheMetrics.balanceHit()
+	balance, blockID := aci.MutilchainBalance()
 	var bal *dbtypes.AddressBalance
 	if balance != nil {
 		bal = new(dbtypes.AddressBalance)
@@ -940,6 +1185,11 @@ func (ac *AddressCache) TransactionsYearMonth(addr string, N, offset int64, txnT
 	return rows, blockID, err
 }
 
+func (ac *AddressCache) MutilchainTransactions(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *MutilchainBlockID, error) {
+	rows, blockID, err := ac.MutilchainTransactionsCompact(addr, N, offset, txnType, chainType)
+	return rows, blockID, err
+}
+
 // TransactionsMerged is like Transactions, but it must be used with a merged
 // AddrTxnViewType, and it returns a []dbtypes.AddressRowMerged. A cache miss is
 // indicated by (*BlockID)==nil. The returned rows may be nil or an empty slice
@@ -992,6 +1242,28 @@ func (ac *AddressCache) TransactionsCompact(addr string, N, offset int64, txnTyp
 	}
 }
 
+func (ac *AddressCache) MutilchainTransactionsCompact(addr string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *MutilchainBlockID, error) {
+	aci := ac.MutilchainAddressCacheItem(addr, chainType)
+	if aci == nil {
+		ac.cacheMetrics.rowMiss()
+		return nil, nil, nil // cache miss is not an error; *BlockID must be nil
+	}
+	ac.cacheMetrics.rowHit()
+
+	rows, blockID, err := aci.MutilchainTransactions(int(N), int(offset), txnType)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	switch r := rows.(type) {
+	case []*dbtypes.MutilchainAddressRow:
+		return r, blockID, err
+	default:
+		return nil, nil, fmt.Errorf(`TransactionsCompact(%s, N=%d, offset=%d, view="%s") failed to return []dbtypes.AddressRowCompact`,
+			addr, N, offset, txnType.String())
+	}
+}
+
 func (ac *AddressCache) length() (numAddrs, numTxns, numUTXOs int) {
 	numAddrs = len(ac.a)
 	for _, aci := range ac.a {
@@ -999,6 +1271,34 @@ func (ac *AddressCache) length() (numAddrs, numTxns, numUTXOs int) {
 		numUTXOs += len(aci.utxos)
 	}
 	return
+}
+
+func (ac *AddressCache) GetMutilchainAddresCacheItemMap(chainType string) map[string]*MutilchainAddressCacheItem {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return ac.a_btc
+	case mutilchain.TYPELTC:
+		return ac.a_ltc
+	default:
+		return make(map[string]*MutilchainAddressCacheItem)
+	}
+}
+
+func (ac *AddressCache) mutilchainlength(chainType string) (numAddrs, numTxns, numUTXOs int) {
+	addrCacheItemMap := ac.GetMutilchainAddresCacheItemMap(chainType)
+	numAddrs = len(addrCacheItemMap)
+	for _, aci := range addrCacheItemMap {
+		numTxns += len(aci.rows)
+		numUTXOs += len(aci.utxos)
+	}
+	return
+}
+
+// Length returns the total number of address rows and UTXOs stored in cache.
+func (ac *AddressCache) MutilchainLength(chainType string) (numAddrs, numTxns, numUTXOs int) {
+	ac.mtx.RLock()
+	defer ac.mtx.RUnlock()
+	return ac.mutilchainlength(chainType)
 }
 
 // Length returns the total number of address rows and UTXOs stored in cache.
@@ -1060,8 +1360,56 @@ clearing:
 		}
 		addrsCached, cacheSize, _ = ac.length()
 	}
-
 	return cacheSize+numRows <= ac.cap && addrsCached < ac.capAddr // addrsCached+1 <= ac.capAddr
+}
+
+func (ac *AddressCache) DeleteCacheItemMap(key string, chainType string) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		delete(ac.a_btc, key)
+		return
+	case mutilchain.TYPELTC:
+		delete(ac.a_ltc, key)
+	default:
+		return
+	}
+}
+
+func (ac *AddressCache) purgeMutilchainRowsToFit(numRows int, chainType string) (haveSpace bool) {
+	cap := ac.GetMutilchainCap(chainType)
+	capAddr := ac.GetMutilchainAddrCap(chainType)
+	if cap < 1 || capAddr < 1 {
+		return false
+	}
+
+	addrCacheItemMap := ac.GetMutilchainAddresCacheItemMap(chainType)
+	// First purge to meet address capacity when adding 1 new address.
+	addrsCached := len(addrCacheItemMap)
+	for addrsCached >= capAddr {
+		for a := range addrCacheItemMap {
+			ac.DeleteCacheItemMap(a, chainType)
+			break
+		}
+		addrCacheItemMap = ac.GetMutilchainAddresCacheItemMap(chainType)
+		addrsCached = len(addrCacheItemMap)
+	}
+	addrCacheItemMap = ac.GetMutilchainAddresCacheItemMap(chainType)
+	// If the cache is at or above row capacity, remove cache items to make room
+	// for the given number of rows.
+	addrsCached, cacheSize, _ := ac.mutilchainlength(chainType)
+	for cacheSize > 0 && cacheSize+numRows > cap {
+		for a, aaci := range addrCacheItemMap {
+			// nothing much to clear for this cached item
+			if len(aaci.rows) == 0 {
+				continue
+			}
+			// Never purge the data for the project fund address.
+			ac.DeleteCacheItemMap(a, chainType)
+			break // recheck cacheSize
+		}
+		addrsCached, cacheSize, _ = ac.mutilchainlength(chainType)
+	}
+	return cacheSize+numRows <= cap && addrsCached < capAddr // addrsCached+1 <= ac.capAddr
 }
 
 func (ac *AddressCache) addCacheItem(addr string, aci *AddressCacheItem) (success bool) {
@@ -1085,6 +1433,47 @@ func (ac *AddressCache) addCacheItem(addr string, aci *AddressCacheItem) (succes
 		log.Debugf("No space in cache to add item with %d rows for %s!\n", len(aci.rows), addr)
 	}
 	return
+}
+
+func (ac *AddressCache) addMutilchainCacheItem(addr string, aci *MutilchainAddressCacheItem, chainType string) (success bool) {
+	if ac.GetMutilchainCap(chainType) < 1 || ac.GetMutilchainAddrCap(chainType) < 1 {
+		return false
+	}
+	// We will overwrite any existing AddressCacheItem, so an existing item with
+	// rows set exists, account for these rows that would be removed.
+	var alreadyStored int
+	var aci0 *MutilchainAddressCacheItem
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		aci0 = ac.a_btc[addr]
+	case mutilchain.TYPELTC:
+		aci0 = ac.a_ltc[addr]
+	default:
+		return false
+	}
+	if aci0 != nil {
+		alreadyStored = len(aci0.rows)
+	}
+	haveSpace := ac.purgeMutilchainRowsToFit(len(aci.rows)-alreadyStored, chainType)
+	if haveSpace {
+		ac.setMutilchainCacheItemOnMap(addr, aci, chainType)
+		log.Tracef("Added new AddressCacheItem: %s", addr)
+		success = true
+	} else {
+		log.Debugf("No space in cache to add item with %d rows for %s!\n", len(aci.rows), addr)
+	}
+	return
+}
+
+func (ac *AddressCache) setMutilchainCacheItemOnMap(addr string, value *MutilchainAddressCacheItem, chainType string) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		ac.a_btc[addr] = value
+	case mutilchain.TYPELTC:
+		ac.a_ltc[addr] = value
+	default:
+		return
+	}
 }
 
 func (ac *AddressCache) setCacheItemRows(addr string, rows []*dbtypes.AddressRowCompact, block *BlockID) (updated bool) {
@@ -1124,6 +1513,50 @@ func (ac *AddressCache) setCacheItemRows(addr string, rows []*dbtypes.AddressRow
 	return
 }
 
+func (ac *AddressCache) setMutilchainCacheItemRows(addr string, rows []*dbtypes.MutilchainAddressRow, block *MutilchainBlockID, chainType string) (updated bool) {
+	if block == nil || ac.GetMutilchainCap(chainType) < 1 || ac.GetMutilchainAddrCap(chainType) < 1 {
+		return false
+	}
+	var aci *MutilchainAddressCacheItem
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		aci = ac.a_btc[addr]
+	case mutilchain.TYPELTC:
+		aci = ac.a_ltc[addr]
+	default:
+		return false
+	}
+	// Keep rows consistent with height/hash.
+	if aci == nil || aci.MutilchainBlockHash() != block.Hash {
+		return ac.addMutilchainCacheItem(addr, &MutilchainAddressCacheItem{
+			rows:   rows,
+			height: block.Height,
+			hash:   block.Hash,
+		}, chainType)
+	}
+
+	aci.mtx.Lock()
+	defer aci.mtx.Unlock()
+	// If rows is already set for this same block, there should be no need to
+	// even check the length, but confirm it is the same to be safe. If so,
+	// there is no need to save the same rows slice. This is a successful set.
+	alreadyStored := len(aci.rows)
+	if aci.rows != nil && alreadyStored == len(rows) {
+		updated = true
+		return
+	}
+
+	// Try to clear space from the cache for these rows.
+	haveSpace := ac.purgeMutilchainRowsToFit(len(rows)-alreadyStored, chainType)
+	if haveSpace {
+		aci.rows = rows
+		updated = true
+	} else {
+		log.Debugf("No space in cache to set %d rows for %s!\n", len(rows), addr)
+	}
+	return
+}
+
 // StoreRows stores the non-merged AddressRow slice for the given address in
 // cache. The current best block data is required to determine cache freshness.
 func (ac *AddressCache) StoreRows(addr string, rows []*dbtypes.AddressRow, block *BlockID) bool {
@@ -1138,6 +1571,39 @@ func (ac *AddressCache) StoreRows(addr string, rows []*dbtypes.AddressRow, block
 
 	// respect cache capacity
 	return ac.StoreRowsCompact(addr, rowsCompact, block)
+}
+
+func (ac *AddressCache) GetMutilchainCap(chainType string) int {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return ac.cap_btc
+	case mutilchain.TYPELTC:
+		return ac.cap_ltc
+	default:
+		return ac.cap
+	}
+}
+
+func (ac *AddressCache) GetMutilchainAddrCap(chainType string) int {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return ac.capAddr_btc
+	case mutilchain.TYPELTC:
+		return ac.capAddr_ltc
+	default:
+		return ac.capAddr
+	}
+}
+
+func (ac *AddressCache) StoreMutilchainRows(addr string, rows []*dbtypes.MutilchainAddressRow, block *MutilchainBlockID, chainType string) bool {
+	if block == nil || ac.GetMutilchainCap(chainType) < 1 || ac.GetMutilchainAddrCap(chainType) < 1 {
+		return false
+	}
+	ac.mtx.Lock()
+	defer ac.mtx.Unlock()
+
+	// respect cache capacity
+	return ac.setMutilchainCacheItemRows(addr, rows, block, chainType)
 }
 
 // StoreHistoryChart stores the charts data for the given address in cache. The
@@ -1241,6 +1707,38 @@ func (ac *AddressCache) StoreBalance(addr string, balance *dbtypes.AddressBalanc
 	return true
 }
 
+func (ac *AddressCache) StoreMutilchainBalance(addr string, balance *dbtypes.AddressBalance, block *MutilchainBlockID, chainType string) bool {
+	if block == nil || ac.GetMutilchainCap(chainType) < 1 || ac.GetMutilchainAddrCap(chainType) < 1 {
+		return false
+	}
+
+	ac.mtx.Lock()
+	defer ac.mtx.Unlock()
+	aci := ac.GetMutilchainAddresCacheItemMap(chainType)[addr]
+
+	var bal dbtypes.AddressBalance
+	if balance == nil {
+		bal.Address = addr
+	} else {
+		bal = *balance
+	}
+
+	// Keep balance consistent with height/hash.
+	if aci == nil || aci.MutilchainBlockHash() != block.Hash {
+		return ac.addMutilchainCacheItem(addr, &MutilchainAddressCacheItem{
+			balance: &bal,
+			height:  block.Height,
+			hash:    block.Hash,
+		}, chainType)
+	}
+
+	// cache is current, so just set the balance.
+	aci.mtx.Lock()
+	aci.balance = &bal
+	aci.mtx.Unlock()
+	return true
+}
+
 // StoreUTXOs stores the *AddressTxnOutput slice for the given address in cache.
 // The current best block data is required to determine cache freshness.
 func (ac *AddressCache) StoreUTXOs(addr string, utxos []*dbtypes.AddressTxnOutput, block *BlockID) bool {
@@ -1301,6 +1799,28 @@ func (ac *AddressCache) ClearRows(addr string) {
 		return
 	}
 
+	// AddressCacheItem found. Clear rows.
+	aci.mtx.Lock()
+	aci.rows = nil
+	aci.mtx.Unlock()
+}
+
+// ClearRows clears any stored address rows for the given address in cache.
+func (ac *AddressCache) ClearMutilchainRows(addr string, chainType string) {
+	ac.mtx.Lock()
+	defer ac.mtx.Unlock()
+	var aci *MutilchainAddressCacheItem
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		aci = ac.a_btc[addr]
+	case mutilchain.TYPELTC:
+		aci = ac.a_ltc[addr]
+	default:
+		return
+	}
+	if aci == nil {
+		return
+	}
 	// AddressCacheItem found. Clear rows.
 	aci.mtx.Lock()
 	aci.rows = nil

@@ -1,0 +1,145 @@
+{{define "chain_blocks" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{$topBlock := 0}}
+{{$ChainType := .ChainType}}
+{{template "html-head" headData .CommonPageData "Decred Blocks List"}}
+    {{template "navbar" . }}
+    <div class="container px-0 main" data-controller="time pagenavigation blocklist">
+        {{$pendingBlocks := 0}}
+        {{if gt (len $.Data) 0}}{{$pendingBlocks = ((index .Data 0).Height)}}{{end}}
+
+        {{$blocksCount := (len $.Data)}}
+        <div class="px-1 mb-1">
+            {{if gt $blocksCount 0}}
+            {{$topBlock = ((index .Data 0).Height)}}
+            {{$Offset := (subtract .BestBlock $topBlock)}}
+            {{$pendingBlocks := ((index .Data 0).Height)}}
+            <div class="d-flex justify-content-between align-items-end">
+                <span class="h4 d-flex pt-2 pb-1 pe-2">
+                    Blocks
+                </span>
+                <div class="pb-1 d-flex justify-content-end align-items-center flex-wrap">
+                  <span class="fs12 nowrap text-secondary px-2 my-2">
+                      {{intComma (add $Offset 1)}} &ndash; {{intComma (add $Offset .RowsCount)}} of {{intComma (add .BestBlock 1) }} rows
+                  </span>
+                  <span class="fs12 nowrap text-end">
+                      <select
+                          data-pagenavigation-target="pagesize"
+                          data-action="change->pagenavigation#setPageSize"
+                          data-offset="{{$pendingBlocks}}"
+                          data-offsetkey="height"
+                          class="dropdown text-secondary my-2 border-plain border-radius-8 {{if lt $blocksCount 10}}disabled{{end}}"
+                          {{if lt $blocksCount 10}}disabled="disabled"{{end}}
+                      >
+                        {{if eq $blocksCount 20 30 50 100 .WindowSize}}{{else}}<option selected value="{{$blocksCount}}">{{$blocksCount}} per page</option>{{end}}
+                        {{if ge $pendingBlocks 20}}<option {{if eq $blocksCount 20}}selected{{end}} value="20">20 per page</option>{{end}}
+                        {{if ge $pendingBlocks 30}}<option {{if eq $blocksCount 30}}selected{{end}} value="30">30 per page</option>{{end}}
+                        {{if ge $pendingBlocks 50}}<option {{if eq $blocksCount 50}}selected{{end}} value="50">50 per page</option>{{end}}
+                        {{if ge $pendingBlocks 100}}<option {{if eq $blocksCount 100}}selected{{end}} value="100">100 per page</option>{{end}}
+                      </select>
+                  </span>
+                  <nav aria-label="blocks navigation" data-limit="{{.Rows}}" class="ms-2 my-2 d-inline-block text-end">
+                      <ul class="pages mb-0">
+                          {{if lt $topBlock .BestBlock}}
+                          <li>
+                             <a
+                             class="text-secondary border-none"
+                             href="/chain/{{$ChainType}}/blocks?height={{.BestBlock}}&rows={{.Rows}}"
+                             > Newest</a>
+                          </li>
+                          <li>
+                             <a
+                             class="text-secondary border-none"
+                             href="/chain/{{$ChainType}}/blocks?height={{ add $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
+                             > Newer</a>
+                          </li>
+                          {{end}}
+                          {{if ge $topBlock .Rows}}
+                            <li>
+                                <a
+                                class="text-secondary border-none"
+                                href="/chain/{{$ChainType}}/blocks?height={{ subtract $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
+                                >Older</a>
+                            </li>
+                            <li>
+                                <a
+                                class="text-secondary border-none"
+                                href="/chain/{{$ChainType}}/blocks?height={{.OldestHeight}}&rows={{.Rows}}"
+                                >Oldest</a>
+                            </li>
+                          {{end}}
+                      </ul>
+                  </nav>
+                </div>
+            </div>
+            {{else}}
+            <span class="fs12 nowrap text-end list-display">no confirmed blocks found</span>
+            {{end}}
+        </div>
+
+        <div class="bg-white pb-4">
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
+                <thead>
+                    <tr class="text-secondary bg-none">
+                        <th class="text-start">Height</th>
+                        <th class="text-center d-none d-sm-table-cell">
+                            <span class="d-none d-md-inline">Transactions</span>
+                            <span class="d-md-none position-relative" data-tooltip="regular transactions">R</span>
+                        </th>
+                        <th class="text-center d-table-cell d-sm-none">Txns</th>
+                        <th class="text-center">BTC</th>
+                        <th class="text-center">Size</th>
+                        <th class="text-center d-none d-sm-table-cell">
+                            <span class="d-none d-md-inline">Version</span>
+                            <span class="d-md-none position-relative" data-tooltip="block version">Ver</span>
+                        </th>
+                        <th class="text-end px-0" class="jsonly">Age</th>
+                        <th class="text-end">Time (UTC)</th>
+                    </tr>
+                </thead>
+                <tbody  class="bgc-white" data-blocklist-target="table">
+                {{range .Data}}
+                    <tr data-height="{{ .Height }}">
+                        <td data-type="height" class="text-start"><a href="/chain/{{$ChainType}}/block/{{.Height}}" data-keynav-priority>{{if not .Valid}}<span class="attention">&#9888;</span>{{end}}{{ .Height }}</a></td>
+                        <td class="text-center d-none d-sm-table-cell" data-type="tx" {{if not .Valid}}class="grayed" title="Regular transactions invalidated by stakeholders."{{end}}>{{.Transactions}}</td>
+                        <td class="text-center d-table-cell d-sm-none" data-type="tx_count">{{.TxCount}}</td>
+                        <td class="text-center" data-type="value">{{threeSigFigs .Total}}</td>
+                        <td class="text-center" data-type="size">{{.FormattedBytes}}</td>
+                        <td class="text-center d-none d-sm-table-cell" data-type="version">{{.Version}}</td>
+                        <td class="text-end px-0" data-type="age" class="jsonly" data-time-target="age" data-age="{{.BlockTime.UNIX}}"></td>
+                        <td class="text-end" data-type="time">{{.BlockTime.DatetimeWithoutTZ}}</td>
+                    </tr>
+                {{end}}
+                </tbody>
+            </table>
+            </div>
+            {{if len .Pages}}
+            <div class="text-end mt-2 pe-3">
+              {{if lt $topBlock .BestBlock}}
+                <a href="/chain/{{$ChainType}}/blocks?height={{ add $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
+                class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fs20"></a>
+              {{end}}
+              {{range .Pages}}
+                {{if eq .Link ""}}
+                  <span>{{.Str}}</span>
+                {{else}}
+                  <a href="{{.Link}}" class="fs18 pager pagination-number {{if .Active}} active{{end}}">{{.Str}}</a>
+                {{end}}
+              {{end}}
+              {{if ge $topBlock .Rows}}
+                <a href="/chain/{{$ChainType}}/blocks?height={{ subtract $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
+                class="d-inline-block pagination-number pagination-narrow dcricon-arrow-right m-1 fs20"></a>
+              {{end}}
+            </div>
+            {{end}}
+            </div>
+        </div>
+        <p class="text-center mt-3">Looking for <a href="/side">orphaned blocks</a> or <a href="/disapproved">PoS invalidated blocks?</a><p>
+    </div>
+{{ template "footer" . }}
+</body>
+</html>
+{{ end }}

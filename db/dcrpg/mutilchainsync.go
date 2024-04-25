@@ -341,8 +341,8 @@ func (db *ChainDB) SyncLTCChainDB(client *ltcClient.Client, quit chan struct{},
 
 // StoreBlock processes the input wire.MsgBlock, and saves to the data tables.
 // The number of vins, and vouts stored are also returned.
-func (pgb *ChainDB) StoreBTCBlock(client *btcClient.Client, msgBlock *btcwire.MsgBlock, isValid,
-	updateAddressesSpendingInfo bool) (numVins int64, numVouts int64, err error) {
+func (pgb *ChainDB) StoreBTCBlock(client *btcClient.Client, msgBlock *btcwire.MsgBlock,
+	isValid, updateAddressesSpendingInfo bool) (numVins int64, numVouts int64, err error) {
 	// Convert the wire.MsgBlock to a dbtypes.Block
 	dbBlock := dbtypes.MsgBTCBlockToDBBlock(client, msgBlock, pgb.btcChainParams)
 	// Extract transactions and their vouts, and insert vouts into their pg table,
@@ -369,9 +369,9 @@ func (pgb *ChainDB) StoreBTCBlock(client *btcClient.Client, msgBlock *btcwire.Ms
 	}
 	pgb.btcLastBlock[msgBlock.BlockHash()] = blockDbID
 
-	pgb.btcBestBlock = &BestBlock{
-		height: int64(dbBlock.Height),
-		hash:   dbBlock.Hash,
+	pgb.BtcBestBlock = &MutilchainBestBlock{
+		Height: int64(dbBlock.Height),
+		Hash:   dbBlock.Hash,
 	}
 	err = InsertMutilchainBlockPrevNext(pgb.db, blockDbID, dbBlock.Hash,
 		dbBlock.PreviousHash, "", mutilchain.TYPEBTC)
@@ -402,8 +402,8 @@ func (pgb *ChainDB) StoreBTCBlock(client *btcClient.Client, msgBlock *btcwire.Ms
 
 // StoreBlock processes the input wire.MsgBlock, and saves to the data tables.
 // The number of vins, and vouts stored are also returned.
-func (pgb *ChainDB) StoreLTCBlock(client *ltcClient.Client, msgBlock *wire.MsgBlock, isValid,
-	updateAddressesSpendingInfo bool) (numVins int64, numVouts int64, err error) {
+func (pgb *ChainDB) StoreLTCBlock(client *ltcClient.Client, msgBlock *wire.MsgBlock,
+	isValid, updateAddressesSpendingInfo bool) (numVins int64, numVouts int64, err error) {
 	// Convert the wire.MsgBlock to a dbtypes.Block
 	dbBlock := dbtypes.MsgLTCBlockToDBBlock(client, msgBlock, pgb.ltcChainParams)
 	// Extract transactions and their vouts, and insert vouts into their pg table,
@@ -432,9 +432,9 @@ func (pgb *ChainDB) StoreLTCBlock(client *ltcClient.Client, msgBlock *wire.MsgBl
 	}
 	pgb.ltcLastBlock[msgBlock.BlockHash()] = blockDbID
 
-	pgb.ltcBestBlock = &BestBlock{
-		height: int64(dbBlock.Height),
-		hash:   dbBlock.Hash,
+	pgb.LtcBestBlock = &MutilchainBestBlock{
+		Height: int64(dbBlock.Height),
+		Hash:   dbBlock.Hash,
 	}
 
 	err = InsertMutilchainBlockPrevNext(pgb.db, blockDbID, dbBlock.Hash,
@@ -472,7 +472,6 @@ func (pgb *ChainDB) storeLTCTxns(client *ltcClient.Client, block *dbtypes.Block,
 	var txRes storeTxnsResult
 	dbAddressRows := make([][]dbtypes.MutilchainAddressRow, len(dbTransactions))
 	var totalAddressRows int
-
 	var err error
 	for it, dbtx := range dbTransactions {
 		dbtx.VoutDbIds, dbAddressRows[it], err = InsertMutilchainVouts(pgb.db, dbTxVouts[it], pgb.ltcDupChecks, mutilchain.TYPELTC)
@@ -539,24 +538,6 @@ func (pgb *ChainDB) storeLTCTxns(client *ltcClient.Client, block *dbtypes.Block,
 			// vinDbID, txHash, txIndex, _, err := RetrieveFundingOutpointByTxIn(
 			// 	pgb.db, vin.TxID, vin.TxIndex)
 			vinDbID := dbTransactions[it].VinDbIds[iv]
-
-			// Single transaction to get funding tx info for the vin, get
-			// address row index for the funding tx, and set spending info.
-			// var numAddressRowsSet int64
-			// numAddressRowsSet, err = SetSpendingByVinID(pgb.db, vinDbID, txDbID, vin.TxID, vin.TxIndex)
-			// if err != nil {
-			// 	log.Errorf("SetSpendingByVinID: %v", err)
-			// }
-			// txRes.numAddresses += numAddressRowsSet
-
-			// prevout, ok := pgb.vinPrevOutpoints[vinDbID]
-			// if !ok {
-			// 	log.Errorf("No funding tx info found for vin %s:%d (prev %s)",
-			// 		vin.TxID, vin.TxIndex, vin.PrevOut)
-			// 	continue
-			// }
-			// delete(pgb.vinPrevOutpoints, vinDbID)
-
 			// skip coinbase inputs
 			if bytes.Equal(zeroHashStringBytes, []byte(vin.PrevTxHash)) {
 				continue
@@ -632,7 +613,6 @@ func (pgb *ChainDB) storeBTCTxns(client *btcClient.Client, block *dbtypes.Block,
 		txRes.err = err
 		return txRes
 	}
-
 	if !updateAddressesSpendingInfo {
 		return txRes
 	}

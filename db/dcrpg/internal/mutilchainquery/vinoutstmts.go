@@ -18,11 +18,12 @@ const (
 		prev_tx_hash TEXT,
 		prev_tx_index INT8,
 		prev_tx_tree INT2,
+		value_in INT8,
 		CONSTRAINT ux_%svin_txhash_txindex UNIQUE (tx_hash,tx_index)
 	);`
 
-	InsertVinRow0 = `INSERT INTO %svins (tx_hash, tx_index, tx_tree, prev_tx_hash, prev_tx_index, prev_tx_tree)
-		VALUES ($1, $2, $3, $4, $5, $6) `
+	InsertVinRow0 = `INSERT INTO %svins (tx_hash, tx_index, tx_tree, prev_tx_hash, prev_tx_index, prev_tx_tree, value_in)
+		VALUES ($1, $2, $3, $4, $5, $6, $7) `
 	InsertVinRow        = InsertVinRow0 + `RETURNING id;`
 	InsertVinRowChecked = InsertVinRow0 +
 		`ON CONFLICT (tx_hash, tx_index) DO NOTHING RETURNING id;`
@@ -46,9 +47,14 @@ const (
 	SelectFundingTxByTxIn       = `SELECT id, prev_tx_hash FROM %svins WHERE tx_hash=$1 AND tx_index=$2;`
 	SelectFundingOutpointByTxIn = `SELECT id, prev_tx_hash, prev_tx_index, prev_tx_tree FROM %svins 
 		WHERE tx_hash=$1 AND tx_index=$2;`
-	SelectFundingOutpointByVinID = `SELECT prev_tx_hash, prev_tx_index, prev_tx_tree FROM %svins WHERE id=$1;`
-	SelectSpendingTxByVinID      = `SELECT tx_hash, tx_index, tx_tree FROM %svins WHERE id=$1;`
-	SelectAllVinInfoByID         = `SELECT * FROM %svins WHERE id=$1;`
+	SelectFundingOutpointByVinID     = `SELECT prev_tx_hash, prev_tx_index, prev_tx_tree FROM %svins WHERE id=$1;`
+	SelectSpendingTxByVinID          = `SELECT tx_hash, tx_index, tx_tree FROM %svins WHERE id=$1;`
+	SelectAllVinInfoByID             = `SELECT * FROM %svins WHERE id=$1;`
+	SelectFundingOutpointIndxByVinID = `SELECT prev_tx_index FROM %svins WHERE id=$1;`
+
+	SelectPkScriptByVinID = `SELECT version, pkscript FROM %svouts
+		JOIN %svins ON %svouts.tx_hash=%svins.prev_tx_hash and %svouts.tx_index=%svins.prev_tx_index
+		WHERE %svins.id=$1;`
 
 	CreateVinType = `CREATE TYPE %svin_t AS (
 		prev_tx_hash TEXT,
@@ -104,7 +110,7 @@ const (
 	DeindexVoutTableOnTxHashIdx = `DROP INDEX uix_%svout_txhash_ind;`
 
 	IndexVoutTableOnTxHash = `CREATE INDEX uix_%svout_txhash
-		ON vouts(tx_hash);`
+		ON %svouts(tx_hash);`
 	DeindexVoutTableOnTxHash = `DROP INDEX uix_%svout_txhash;`
 
 	CreateVoutType = `CREATE TYPE %svout_t AS (
@@ -116,6 +122,26 @@ const (
 		script_addresses TEXT[]
 	);`
 )
+
+func MakeSelectFundingOutpointIndxByVinID(chainType string) string {
+	return fmt.Sprintf(SelectFundingOutpointIndxByVinID, chainType)
+}
+
+func MakeSelectSpendingTxsByPrevTx(chainType string) string {
+	return fmt.Sprintf(SelectSpendingTxsByPrevTx, chainType)
+}
+
+func MakeSelectPkScriptByVinID(chainType string) string {
+	return fmt.Sprintf(SelectPkScriptByVinID, chainType, chainType, chainType, chainType, chainType, chainType, chainType)
+}
+
+func MakeSelectSpendingTxByPrevOut(chainType string) string {
+	return fmt.Sprintf(SelectSpendingTxByPrevOut, chainType)
+}
+
+func MakeSelectVoutByID(chainType string) string {
+	return fmt.Sprintf(SelectVoutByID, chainType)
+}
 
 func MakeVoutInsertStatement(checked bool, chainType string) string {
 	if checked {

@@ -18,20 +18,29 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/btcsuite/btcd/btcjson"
+	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
+	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
+	ltcjson "github.com/ltcsuite/ltcd/btcjson"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
 
 	"github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/gov/v6/agendas"
 	pitypes "github.com/decred/dcrdata/gov/v6/politeia/types"
 	"github.com/decred/dcrdata/v8/blockdata"
+	"github.com/decred/dcrdata/v8/blockdatabtc"
+	"github.com/decred/dcrdata/v8/blockdataltc"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
 
@@ -67,19 +76,25 @@ const (
 // faster solution than RPC, or additional functionality.
 type explorerDataSource interface {
 	BlockHeight(hash string) (int64, error)
+	MutilchainBlockHeight(hash string, chainType string) (int64, error)
 	Height() int64
+	MutilchainHeight(chainType string) int64
 	HeightDB() (int64, error)
 	MutilchainHeightDB(chainType string) (int64, error)
 	BlockHash(height int64) (string, error)
 	SpendingTransaction(fundingTx string, vout uint32) (string, uint32, int8, error)
+	MutilchainSpendingTransaction(fundingTxID string, fundingTxVout uint32, chainType string) (string, uint32, error)
 	SpendingTransactions(fundingTxID string) ([]string, []uint32, []uint32, error)
+	MutilchainSpendingTransactions(fundingTxID string, chainType string) ([]string, []uint32, []uint32, error)
 	PoolStatusForTicket(txid string) (dbtypes.TicketSpendType, dbtypes.TicketPoolStatus, error)
 	TreasuryBalance() (*dbtypes.TreasuryBalance, error)
 	TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error)
 	TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error)
 	TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error)
 	AddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error)
+	MutilchainAddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *dbtypes.AddressBalance, error)
 	AddressData(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) (*dbtypes.AddressInfo, error)
+	MutilchainAddressData(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) (*dbtypes.AddressInfo, error)
 	DevBalance() (*dbtypes.AddressBalance, error)
 	FillAddressTransactions(addrInfo *dbtypes.AddressInfo) error
 	BlockMissedVotes(blockHash string) ([]string, error)
@@ -91,24 +106,37 @@ type explorerDataSource interface {
 	BlockFlags(hash string) (bool, bool, error)
 	TicketPoolVisualization(interval dbtypes.TimeBasedGrouping) (*dbtypes.PoolTicketsData, *dbtypes.PoolTicketsData, *dbtypes.PoolTicketsData, int64, error)
 	TransactionBlocks(hash string) ([]*dbtypes.BlockStatus, []uint32, error)
+	MutilchainTransactionBlocks(hash string, chainType string) ([]*dbtypes.BlockStatus, []uint32, error)
 	Transaction(txHash string) ([]*dbtypes.Tx, error)
+	MutilchainTransaction(txHash string, chainType string) ([]*dbtypes.Tx, error)
 	VinsForTx(*dbtypes.Tx) (vins []dbtypes.VinTxProperty, prevPkScripts []string, scriptVersions []uint16, err error)
+	MutilchainVinsForTx(tx *dbtypes.Tx, chainType string) (vins []dbtypes.VinTxProperty, prevPkScripts []string, scriptVersions []uint16, err error)
 	VoutsForTx(*dbtypes.Tx) ([]dbtypes.Vout, error)
+	MutilchainVoutsForTx(*dbtypes.Tx, string) ([]dbtypes.Vout, error)
 	PosIntervals(limit, offset uint64) ([]*dbtypes.BlocksGroupedInfo, error)
 	TimeBasedIntervals(timeGrouping dbtypes.TimeBasedGrouping, limit, offset uint64) ([]*dbtypes.BlocksGroupedInfo, error)
 	AgendasVotesSummary(agendaID string) (summary *dbtypes.AgendaSummary, err error)
 	BlockTimeByHeight(height int64) (int64, error)
 	GetChainParams() *chaincfg.Params
+	GetBTCChainParams() *btcchaincfg.Params
+	GetLTCChainParams() *ltcchaincfg.Params
 	GetExplorerBlock(hash string) *types.BlockInfo
+	GetBTCExplorerBlock(hash string) *types.BlockInfo
+	GetLTCExplorerBlock(hash string) *types.BlockInfo
 	GetExplorerBlocks(start int, end int) []*types.BlockBasic
+	GetLTCExplorerBlocks(start int, end int) []*types.BlockBasic
+	GetBTCExplorerBlocks(start int, end int) []*types.BlockBasic
 	GetBlockHeight(hash string) (int64, error)
 	GetBlockHash(idx int64) (string, error)
+	GetMutilchainBlockHash(idx int64, chainType string) (string, error)
 	GetExplorerTx(txid string) *types.TxInfo
+	GetMutilchainExplorerTx(txid string, chainType string) *types.TxInfo
 	GetTip() (*types.WebBasicBlock, error)
 	DecodeRawTransaction(txhex string) (*chainjson.TxRawResult, error)
 	SendRawTransaction(txhex string) (string, error)
 	GetTransactionByHash(txid string) (*wire.MsgTx, error)
 	GetHeight() (int64, error)
+	GetMutilchainHeight(chainType string) (int64, error)
 	TxHeight(txid *chainhash.Hash) (height int64)
 	DCP0010ActivationHeight() int64
 	DCP0011ActivationHeight() int64
@@ -117,6 +145,7 @@ type explorerDataSource interface {
 	GetExplorerFullBlocks(start int, end int) []*types.BlockInfo
 	CurrentDifficulty() (float64, error)
 	Difficulty(timestamp int64) float64
+	MutilchainDifficulty(timestamp int64, chainType string) float64
 	GetNeededSyncProposalTokens(tokens []string) (syncTokens []string, err error)
 	AddProposalMeta(proposalMetaData []map[string]string) (err error)
 }
@@ -211,6 +240,20 @@ type pageData struct {
 	HomeInfo       *types.HomeInfo
 }
 
+type btcPageData struct {
+	sync.RWMutex
+	BlockInfo      *types.BlockInfo
+	BlockchainInfo *btcjson.GetBlockChainInfoResult
+	HomeInfo       *types.HomeInfo
+}
+
+type ltcPageData struct {
+	sync.RWMutex
+	BlockInfo      *types.BlockInfo
+	BlockchainInfo *ltcjson.GetBlockChainInfoResult
+	HomeInfo       *types.HomeInfo
+}
+
 type explorerUI struct {
 	Mux              *chi.Mux
 	dataSource       explorerDataSource
@@ -223,7 +266,11 @@ type explorerUI struct {
 	templates        templates
 	wsHub            *WebsocketHub
 	pageData         *pageData
+	btcPageData      *btcPageData
+	ltcPageData      *ltcPageData
 	ChainParams      *chaincfg.Params
+	BtcChainParams   *btcchaincfg.Params
+	LtcChainParams   *ltcchaincfg.Params
 	Version          string
 	NetName          string
 	MeanVotingBlocks int64
@@ -340,7 +387,11 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	}
 
 	params := exp.dataSource.GetChainParams()
+	btcParams := exp.dataSource.GetBTCChainParams()
+	ltcParams := exp.dataSource.GetLTCChainParams()
 	exp.ChainParams = params
+	exp.BtcChainParams = btcParams
+	exp.LtcChainParams = ltcParams
 	exp.NetName = netName(exp.ChainParams)
 	exp.MeanVotingBlocks = txhelpers.CalcMeanVotingBlocks(params)
 	exp.premine = params.BlockOneSubsidy()
@@ -368,6 +419,24 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		},
 	}
 
+	exp.btcPageData = &btcPageData{
+		BlockInfo: new(types.BlockInfo),
+		HomeInfo: &types.HomeInfo{
+			Params: types.ChainParams{
+				BlockTime: exp.BtcChainParams.TargetTimePerBlock.Nanoseconds(),
+			},
+		},
+	}
+
+	exp.ltcPageData = &ltcPageData{
+		BlockInfo: new(types.BlockInfo),
+		HomeInfo: &types.HomeInfo{
+			Params: types.ChainParams{
+				BlockTime: exp.LtcChainParams.TargetTimePerBlock.Nanoseconds(),
+			},
+		},
+	}
+
 	log.Infof("Mean Voting Blocks calculated: %d", exp.pageData.HomeInfo.Params.MeanVotingBlocks)
 
 	commonTemplates := []string{"extras"}
@@ -378,7 +447,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"sidechains", "disapproved", "ticketpool", "visualblocks", "statistics",
 		"windows", "timelisting", "addresstable", "proposals", "proposal",
 		"market", "insight_root", "attackcost", "treasury", "treasurytable",
-		"verify_message", "stakingreward", "finance_report", "finance_detail", "home_report"}
+		"verify_message", "stakingreward", "finance_report", "finance_detail", "home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx", "chain_address"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -623,6 +692,85 @@ func (exp *explorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		}()
 	}
 
+	return nil
+}
+
+// Store implements BlockDataSaver.
+func (exp *explorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwire.MsgBlock) error {
+	// Retrieve block data for the passed block hash.
+	newBlockData := exp.dataSource.GetBTCExplorerBlock(msgBlock.BlockHash().String())
+
+	// Use the latest block's blocktime to get the last 24hr timestamp.
+	day := 24 * time.Hour
+	targetTimePerBlock := float64(exp.BtcChainParams.TargetTimePerBlock)
+
+	// Hashrate change over last day
+	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	last24hrDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+
+	// Hashrate change over last month
+	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+
+	difficulty := blockData.Header.Difficulty
+	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+
+	// Update pageData with block data and chain (home) info.
+	p := exp.btcPageData
+	p.Lock()
+
+	// Store current block and blockchain data.
+	p.BlockInfo = newBlockData
+	p.BlockchainInfo = blockData.BlockchainInfo
+
+	// Update HomeInfo.
+	p.HomeInfo.HashRate = hashrate
+	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
+	p.HomeInfo.Difficulty = difficulty
+	p.Unlock()
+	return nil
+}
+
+func (exp *explorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwire.MsgBlock) error {
+	// Retrieve block data for the passed block hash.
+	newBlockData := exp.dataSource.GetLTCExplorerBlock(msgBlock.BlockHash().String())
+
+	// Use the latest block's blocktime to get the last 24hr timestamp.
+	day := 24 * time.Hour
+	targetTimePerBlock := float64(exp.LtcChainParams.TargetTimePerBlock)
+
+	// Hashrate change over last day
+	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	last24hrDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+
+	// Hashrate change over last month
+	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+
+	difficulty := blockData.Header.Difficulty
+	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+
+	// Update pageData with block data and chain (home) info.
+	p := exp.ltcPageData
+	p.Lock()
+
+	// Store current block and blockchain data.
+	p.BlockInfo = newBlockData
+	p.BlockchainInfo = blockData.BlockchainInfo
+
+	// Update HomeInfo.
+	p.HomeInfo.HashRate = hashrate
+	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
+	p.HomeInfo.Difficulty = difficulty
+	p.Unlock()
 	return nil
 }
 
