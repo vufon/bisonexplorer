@@ -2,7 +2,8 @@
 <!DOCTYPE html>
 <html lang="en">
    {{template "html-head" headData .CommonPageData (printf "Decred Transaction %.20s..." .Data.TxID)}}
-   {{template "navbar" . }}
+   {{template "mutilchain_navbar" . }}
+   {{$ChainType := .ChainType}}
    {{with .Data}}
    <div class="container main" data-controller="time tx" data-tx-txid="{{.TxID}}">
       <div class="row mx-2 my-2">
@@ -32,7 +33,7 @@
                   <span class="text-secondary fs13">Total Sent</span>
                   <br>
                   <span class="lh1rem d-inline-block pt-1"
-                     ><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}</span><span class="text-secondary fs14">DCR</span>
+                     ><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}</span><span class="text-secondary fs14">{{$ChainType}}</span>
                   </span>
                </div>
             </div>
@@ -42,21 +43,18 @@
             <table class="w-100 fs14 my-1 mb-xl-3">
                <tbody>
                   <tr>
-                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Raw Tx:</td>
-                     <td class="text-start py-1">
-                        <a href="/api/tx/decoded/{{.TxID}}?indent=true" class="c-green" data-turbolinks="false">decoded</a> &middot;
-                        <a href="/api/tx/hex/{{.TxID}}" class="c-green" data-turbolinks="false">hex</a>
-                     </td>
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">Time:</td>
                      <td class="text-start py-1" data-tx-target="formattedAge">{{.Time.String}}</td>
                   </tr>
                   <tr>
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">Version:</td>
                      <td class="text-start py-1">{{.Version}}</td>
-                  </tr>
-                  <tr>
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">Size:</td>
                      <td class="text-start py-1">{{.FormattedSize}}</td>
+                  </tr>
+                  <tr>
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Block Hash:</td>
+                     <td class="text-start py-1">{{.BlockHash}}</td>
                   </tr>
                </tbody>
             </table>
@@ -74,7 +72,6 @@
                            <th class="shrink-to-fit">#</th>
                            <th class="text-nowrap">Previous Outpoint</th>
                            <th class="addr-hash-column">Addresses</th>
-                           <th class="text-center shrink-to-fit">Block</th>
                         </tr>
                      </thead>
                      <tbody class="bgc-white">
@@ -82,12 +79,12 @@
                         <tr>
                         <td class="shrink-to-fit">{{.Index}}</td>
                         <td class="position-relative clipboard">
-                           {{if .TextIsHash}}{{template "hashElide" (hashlink .DisplayText .Link)}}{{else}}{{.DisplayText}}{{end}}
+                           {{template "hashElide" (hashlink .Txid (print "/chain/" $ChainType "/tx/" .Txid))}}
                         </td>
                         <td class="position-relative clipboard">
                            {{if gt (len .Addresses) 0}}
                            {{range .Addresses}}
-                           {{template "hashElide" (hashlink . (print "/address/" .))}}
+                           {{template "hashElide" (hashlink . (print "/chain/" $ChainType "/address/" .))}}
                            {{end}}
                            {{else}}
                            N/A
@@ -122,7 +119,7 @@
                         <td class="shrink-to-fit">{{.Index}}</td>
                         <td class="position-relative clipboard">
                            {{range .Addresses}}
-                           {{template "hashElide" (hashlink . (print "/address/" .))}}
+                           {{template "hashElide" (hashlink . (print "/chain/" $ChainType "/address/" .))}}
                            {{end}}
                         </td>
                         <td class="fs13 break-word shrink-to-fit">
@@ -130,7 +127,7 @@
                         </td>
                         <td class="text-start fs13 shrink-to-fit">{{with $spending := (index $.Data.SpendingTxns $i) }}
                            {{if $spending.Hash}}
-                           <a href="/tx/{{$spending.Hash}}/in/{{$spending.Index}}">{{$v.Spent}}</a>
+                           <a href="/chain/{{$ChainType}}/tx/{{$spending.Hash}}/in/{{$spending.Index}}">{{$v.Spent}}</a>
                            {{else}}
                            {{if gt $v.Amount 0.0}}
                            {{$v.Spent}}

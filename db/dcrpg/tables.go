@@ -52,12 +52,33 @@ func GetCreateDBTables() [][2]string {
 	return result
 }
 
+func GetMutilchainTables(chainType string) [][2]string {
+	result := make([][2]string, 0)
+	result = append(result, [2]string{fmt.Sprintf("%saddresses", chainType), mutilchainquery.CreateAddressTableFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%sblocks", chainType), mutilchainquery.CreateBlockTableFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%sblock_chain", chainType), mutilchainquery.CreateBlockPrevNextTableFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%sfees_stat", chainType), mutilchainquery.CreateFeesStatTableTableFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%smempool_history", chainType), mutilchainquery.CreateMempoolHistoryFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%snodes", chainType), mutilchainquery.CreateNodesTableFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%stransactions", chainType), mutilchainquery.CreateTransactionTableFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%svins", chainType), mutilchainquery.CreateVinTableFunc(chainType)})
+	result = append(result, [2]string{fmt.Sprintf("%svouts", chainType), mutilchainquery.CreateVoutTableFunc(chainType)})
+	return result
+}
+
 func GetCreateTypeStatements() map[string]string {
 	result := make(map[string]string)
 	for _, chainType := range dbtypes.MutilchainList {
 		result[fmt.Sprintf("%svin_t", chainType)] = mutilchainquery.CreateVinTypeFunc(chainType)
 		result[fmt.Sprintf("%svout_t", chainType)] = mutilchainquery.CreateVoutTypeFunc(chainType)
 	}
+	return result
+}
+
+func GetMutilchainCreateTypeStatements(chainType string) map[string]string {
+	result := make(map[string]string)
+	result[fmt.Sprintf("%svin_t", chainType)] = mutilchainquery.CreateVinTypeFunc(chainType)
+	result[fmt.Sprintf("%svout_t", chainType)] = mutilchainquery.CreateVoutTypeFunc(chainType)
 	return result
 }
 
@@ -173,6 +194,33 @@ func ClearTestingTable(db *sql.DB) error {
 	return err
 }
 
+func CreateMutilchainTypes(db *sql.DB, chainType string) error {
+	var err error
+	createTypeStatements := GetMutilchainCreateTypeStatements(chainType)
+	for typeName, createCommand := range createTypeStatements {
+		var exists bool
+		exists, err = TypeExists(db, typeName)
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			_, err = db.Exec(createCommand)
+			if err != nil {
+				return err
+			}
+			_, err = db.Exec(fmt.Sprintf(`COMMENT ON TYPE %s
+				IS 'v1';`, typeName))
+			if err != nil {
+				return err
+			}
+		} else {
+			log.Debugf("Type \"%s\" exist.", typeName)
+		}
+	}
+	return err
+}
+
 func CreateTypes(db *sql.DB) error {
 	var err error
 	createTypeStatements := GetCreateTypeStatements()
@@ -217,9 +265,21 @@ func TypeExists(db *sql.DB, tableName string) (bool, error) {
 // CreateTables creates all tables required by dcrdata if they do not already
 // exist.
 func CreateTables(db *sql.DB) error {
-	createTableQueries := GetCreateDBTables()
 	// Create all of the data tables.
-	for _, pair := range createTableQueries {
+	for _, pair := range createTableStatements {
+		err := createTable(db, pair[0], pair[1])
+		if err != nil {
+			return err
+		}
+	}
+
+	return ClearTestingTable(db)
+}
+
+func CreateMutilchainTables(db *sql.DB, chainType string) error {
+	createMutilchainTableQueries := GetMutilchainTables(chainType)
+	// Create all of the data tables.
+	for _, pair := range createMutilchainTableQueries {
 		err := createTable(db, pair[0], pair[1])
 		if err != nil {
 			return err

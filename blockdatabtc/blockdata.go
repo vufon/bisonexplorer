@@ -91,11 +91,8 @@ func (t *Collector) CollectAPITypes(hash *chainhash.Hash) *apitypes.BlockDataBas
 func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataBasic, *btcjson.GetBlockHeaderVerboseResult,
 	*apitypes.BlockExplorerExtraInfo, *wire.MsgBlock, error) {
 	// Retrieve block from dcrd.
-	fmt.Println("sadgsdgsdg info11111111111111111111111: ")
 	blockHeader, err := t.btcdChainSvr.GetBlockHeaderVerbose(hash)
-	fmt.Println("sadgsdgsdg info122222222222222222222: ", err)
 	msgBlock, blockErr := t.btcdChainSvr.GetBlock(hash)
-	fmt.Println("sadgsdgsdg info1000000000000000000000: ", blockErr)
 	if err != nil || blockErr != nil {
 		return nil, nil, nil, nil, fmt.Errorf("Retrieve block info error")
 	}
@@ -180,7 +177,6 @@ func (t *Collector) Collect() (*BlockData, *wire.MsgBlock, error) {
 	// verificationprogress, chainwork, bestblockhash, initialblockdownload,
 	// maxblocksize, deployments, etc.).
 	blockchainInfo, err := t.btcdChainSvr.GetBlockChainInfo()
-	fmt.Println("Block info: ", blockchainInfo.BestBlockHash)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get blockchain info: %v", err)
 	}
@@ -190,19 +186,16 @@ func (t *Collector) Collect() (*BlockData, *wire.MsgBlock, error) {
 		return nil, nil,
 			fmt.Errorf("invalid best block hash from getblockchaininfo: %v", err)
 	}
-	fmt.Println("sadgsdgsdg info: ")
 	// Info specific to the block hash
 	_, blockHeaderVerbose, extra, msgBlock, err := t.CollectBlockInfo(hash)
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Println("sadgsdgsdg info333333333333333: ")
 	// Number of peer connection to chain server
 	numConn, err := t.btcdChainSvr.GetConnectionCount()
 	if err != nil {
 		log.Warn("Unable to get connection count: ", err)
 	}
-	fmt.Println("sadgsdgsdg info4444444444444444444 ")
 	// Output
 	blockdata := &BlockData{
 		Header:         *blockHeaderVerbose,

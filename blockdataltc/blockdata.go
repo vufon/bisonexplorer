@@ -177,7 +177,6 @@ func (t *Collector) Collect() (*BlockData, *wire.MsgBlock, error) {
 	// verificationprogress, chainwork, bestblockhash, initialblockdownload,
 	// maxblocksize, deployments, etc.).
 	blockchainInfo, err := t.ltcdChainSvr.GetBlockChainInfo()
-	fmt.Println("Block info: ", blockchainInfo.BestBlockHash)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to get blockchain info: %v", err)
 	}
@@ -187,19 +186,16 @@ func (t *Collector) Collect() (*BlockData, *wire.MsgBlock, error) {
 		return nil, nil,
 			fmt.Errorf("invalid best block hash from getblockchaininfo: %v", err)
 	}
-	fmt.Println("sadgsdgsdg info: ")
 	// Info specific to the block hash
 	_, blockHeaderVerbose, extra, msgBlock, err := t.CollectBlockInfo(hash)
 	if err != nil {
 		return nil, nil, err
 	}
-	fmt.Println("sadgsdgsdg info333333333333333: ")
 	// Number of peer connection to chain server
 	numConn, err := t.ltcdChainSvr.GetConnectionCount()
 	if err != nil {
 		log.Warn("Unable to get connection count: ", err)
 	}
-	fmt.Println("sadgsdgsdg info4444444444444444444 ")
 	// Output
 	blockdata := &BlockData{
 		Header:         *blockHeaderVerbose,

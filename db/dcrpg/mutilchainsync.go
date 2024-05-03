@@ -152,7 +152,7 @@ func (db *ChainDB) SyncBTCChainDB(client *btcClient.Client, quit chan struct{},
 			return ib - 1, fmt.Errorf("BTC: GetBlock failed (%s): %v", blockHash, err)
 		}
 		var numVins, numVouts int64
-		if numVins, numVouts, err = db.StoreBTCBlock(client, block.MsgBlock(), true, !updateAllAddresses); err != nil {
+		if numVins, numVouts, err = db.StoreBTCBlock(client, block.MsgBlock(), true, updateAllAddresses); err != nil {
 			return ib - 1, fmt.Errorf("BTC: StoreBlock failed: %v", err)
 		}
 		totalVins += numVins
@@ -241,7 +241,7 @@ func (db *ChainDB) SyncLTCChainDB(client *ltcClient.Client, quit chan struct{},
 	blocksToSync := int64(nodeHeight) - lastBlock
 	reindexing := newIndexes || blocksToSync > int64(nodeHeight)/2
 	if reindexing {
-		log.Info("Large bulk load: Removing indexes and disabling duplicate checks.")
+		log.Info("LTC: Large bulk load: Removing indexes and disabling duplicate checks.")
 		err = db.DeindexAllMutilchain(mutilchain.TYPELTC)
 		if err != nil && !strings.Contains(err.Error(), "does not exist") && !strings.Contains(err.Error(), "不存在") {
 			return lastBlock, err
@@ -291,7 +291,7 @@ func (db *ChainDB) SyncLTCChainDB(client *ltcClient.Client, quit chan struct{},
 			return ib - 1, fmt.Errorf("GetBlock failed (%s): %v", blockHash, err)
 		}
 		var numVins, numVouts int64
-		if numVins, numVouts, err = db.StoreLTCBlock(client, block.MsgBlock(), true, !updateAllAddresses); err != nil {
+		if numVins, numVouts, err = db.StoreLTCBlock(client, block.MsgBlock(), true, updateAllAddresses); err != nil {
 			return ib - 1, fmt.Errorf("StoreBlock failed: %v", err)
 		}
 		totalVins += numVins
@@ -449,7 +449,7 @@ func (pgb *ChainDB) StoreLTCBlock(client *ltcClient.Client, msgBlock *wire.MsgBl
 	lastBlockHash := msgBlock.Header.PrevBlock
 	lastBlockDbID, ok := pgb.ltcLastBlock[lastBlockHash]
 	if ok {
-		log.Infof("Setting last block %s. Height: %d", lastBlockHash, dbBlock.Height)
+		log.Infof("LTC: Setting last block %s. Height: %d", lastBlockHash, dbBlock.Height)
 		err = UpdateMutilchainLastBlock(pgb.db, lastBlockDbID, false, mutilchain.TYPELTC)
 		if err != nil {
 			log.Error("UpdateLastBlock:", err)

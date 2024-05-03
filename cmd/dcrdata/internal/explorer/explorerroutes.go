@@ -85,6 +85,7 @@ type CommonPageData struct {
 	Path           string
 	RequestURI     string // path?query
 	IsHomepage     bool
+	ChainType      string
 }
 
 // FullURL constructs the page's complete URL.
@@ -1154,6 +1155,7 @@ func (exp *explorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			Index: spendingTxVinInds[i],
 		}
 	}
+
 	pageData := struct {
 		*CommonPageData
 		Data      *types.TxInfo
@@ -2170,9 +2172,15 @@ func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 // AddressPage is the page handler for the "/address" path.
 func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
 	// AddressPageData is the data structure passed to the HTML template
+
+	type AddressInfo struct {
+		*dbtypes.AddressInfo
+		ChainType string
+	}
+
 	type AddressPageData struct {
 		*CommonPageData
-		Data      *dbtypes.AddressInfo
+		Data      AddressInfo
 		Type      txhelpers.AddressType
 		Pages     []pageNumber
 		ChainType string
@@ -2225,10 +2233,14 @@ func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 	if time != "" {
 		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
 	}
+	addrInfo := AddressInfo{
+		AddressInfo: addrData,
+		ChainType:   chainType,
+	}
 	// Execute the HTML template.
 	pageData := AddressPageData{
 		CommonPageData: exp.commonData(r),
-		Data:           addrData,
+		Data:           addrInfo,
 		ChainType:      chainType,
 		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
 	}
@@ -3282,7 +3294,8 @@ func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
 		}
 	}
 	baseURL := scheme + "://" + r.Host // assumes not opaque url
-
+	//Get chain type
+	chainType := chi.URLParam(r, "chaintype")
 	return &CommonPageData{
 		Tip:            tip,
 		Version:        exp.Version,
@@ -3296,6 +3309,7 @@ func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
 		Cookies: Cookies{
 			DarkMode: darkMode != nil && darkMode.Value == "1",
 		},
+		ChainType:  chainType,
 		Host:       r.Host,
 		BaseURL:    baseURL,
 		Path:       r.URL.Path,

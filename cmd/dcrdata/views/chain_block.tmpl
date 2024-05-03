@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "Decred Block %d" .Data.Height)}}
-{{ template "navbar" . }}
+{{ template "mutilchain_navbar" . }}
 {{$ChainType := .ChainType}}
 <div class="container main" data-controller="time">
 {{- with .Data -}}
@@ -56,7 +56,7 @@
 					<span class="text-secondary fs13">Total Sent</span>
 					<br>
 					<span class="lh1rem d-inline-block pt-1"
-						><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}</span><span class="text-secondary fs14"> DCR</span>
+						><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}</span><span class="text-secondary fs14"> {{$ChainType}}</span>
 					</span>
 				</div>
 				<div class="col-7 col-sm-8 text-start">

@@ -48,7 +48,7 @@ func IsDisabledChain(disabledList string, chainType string) bool {
 			continue
 		}
 		if strings.TrimSpace(disabledItem) == chainType {
-			fmt.Println("return exist: ", chainType)
+			fmt.Println("Blockchain exist: ", chainType)
 			return true
 		}
 	}

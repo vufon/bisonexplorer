@@ -4,7 +4,7 @@
 {{$topBlock := 0}}
 {{$ChainType := .ChainType}}
 {{template "html-head" headData .CommonPageData "Decred Blocks List"}}
-    {{template "navbar" . }}
+    {{template "mutilchain_navbar" . }}
     <div class="container px-0 main" data-controller="time pagenavigation blocklist">
         {{$pendingBlocks := 0}}
         {{if gt (len $.Data) 0}}{{$pendingBlocks = ((index .Data 0).Height)}}{{end}}

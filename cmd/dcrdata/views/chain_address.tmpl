@@ -3,7 +3,7 @@
 <html lang="en">
 {{$ChainType := .ChainType}}
 {{template "html-head" headData .CommonPageData (printf "Decred Address %s" .Data.Address)}}
-    {{template "navbar" . }}
+    {{template "mutilchain_navbar" . }}
     {{- with .Data}}
     {{- $TxnCount := add .TxnCount .NumUnconfirmed}}
     {{- $txType := .TxnType -}}
@@ -46,7 +46,7 @@
               <br>
               <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
                 {{- if .Balance}}
-                    {{template "decimalParts" (amountAsDecimalParts .Balance.TotalUnspent true)}}<span class="text-secondary fs14">DCR</span>
+                    {{template "decimalParts" (amountAsDecimalParts .Balance.TotalUnspent true)}}<span class="text-secondary fs14">{{$ChainType}}</span>
                 {{- else}}
                 <span class="fs18">0</span> <span class="text-secondary fs14">{{$ChainType}}</span>
                 {{- end}}
@@ -170,7 +170,7 @@
           <div class="loader-v2" data-address-target="listLoader"></div>
           <div class="br-8 b--def bgc-plain-bright pb-10">
           <div class="position-relative" data-address-target="table">
-            {{template "addressTable" .}}
+            {{template "mutilchainAddressTable" .}}
           </div>
           <div class="text-end pe-3" data-address-target="tablePagination">
           {{if ne .Offset 0}}

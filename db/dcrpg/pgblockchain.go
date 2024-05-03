@@ -627,10 +627,6 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 			return nil, fmt.Errorf("failed to upgrade database (upgrade not supported?)")
 		}
 	case tablesNotFoundErr:
-		//Create type
-		if err := CreateTypes(db); err != nil {
-			return nil, err
-		}
 		// Empty database (no blocks table). Proceed to setupTables.
 		log.Infof(`Empty database "%s". Creating tables...`, dbi.DBName)
 		if err = CreateTables(db); err != nil {
@@ -925,6 +921,25 @@ func versionCheck(db *sql.DB) (*DatabaseVersion, CompatAction, error) {
 
 	// Return the version, and an upgrade plan to reach targetDatabaseVersion.
 	return &dbVer, dbVer.NeededToReach(targetDatabaseVersion), nil
+}
+
+func (pgb *ChainDB) MutilchainCheckAndCreateTable(chainType string) error {
+	exists, err := TableExists(pgb.db, fmt.Sprintf("%sblocks", chainType))
+	if err != nil {
+		return err
+	}
+	if !exists {
+		//Create type
+		if err := CreateMutilchainTypes(pgb.db, chainType); err != nil {
+			return err
+		}
+		// Empty database (no blocks table). Proceed to setupTables.
+		log.Infof(`tables of %s empty. Creating tables...`, chainType)
+		if err = CreateMutilchainTables(pgb.db, chainType); err != nil {
+			return fmt.Errorf("failed to create tables: %w", err)
+		}
+	}
+	return nil
 }
 
 // DropTables drops (deletes) all of the known dcrdata tables.
