@@ -1,5 +1,12 @@
 package internal
 
+import (
+	"fmt"
+
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
+	"github.com/decred/dcrdata/v8/db/dbtypes"
+)
+
 // The names of table column indexes are defined in this block.
 const (
 	// blocks table
@@ -77,6 +84,55 @@ const (
 var AddressesIndexNames = []string{IndexOfAddressTableOnAddress,
 	IndexOfAddressTableOnVoutID, IndexOfAddressTableOnBlockTime,
 	IndexOfAddressTableOnTx, IndexOfAddressTableOnMatchingTx}
+
+func GetIndexDescriptionsMap() map[string]string {
+	result := make(map[string]string)
+	for key, value := range IndexDescriptions {
+		result[key] = value
+	}
+	//add mutilchain index description
+	for _, chainType := range dbtypes.MutilchainList {
+		tempIndex := mutilchainquery.MakeIndexBlockTableOnHash(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexBlocksTableOnHeight(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexBlocksTableOnTime(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockIn(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexTransactionTableOnHashes(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexVinTableOnPrevOuts(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexVinTableOnVins(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHash(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHashIdx(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.IndexAddressTableOnAddressStmt(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	}
+	return result
+}
 
 // IndexDescriptions relate table index names to descriptions of the indexes.
 var IndexDescriptions = map[string]string{

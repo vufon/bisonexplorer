@@ -1,0 +1,154 @@
+{{define "chain_tx"}}
+<!DOCTYPE html>
+<html lang="en">
+   {{template "html-head" headData .CommonPageData (printf "Decred Transaction %.20s..." .Data.TxID)}}
+   {{template "mutilchain_navbar" . }}
+   {{$ChainType := .ChainType}}
+   {{with .Data}}
+   <div class="container main" data-controller="time tx" data-tx-txid="{{.TxID}}">
+      <div class="row mx-2 my-2">
+         <div class="col-24 col-xl-12 bg-green-3 p-3 p-sm-4 position-relative common-card">
+            <div class="card-pointer pointer-right d-none d-xl-block"></div>
+            <div class="card-pointer pointer-bottom d-xl-none"></div>
+            <div class="pb-1 ps-1 position-relative">
+               <span class="fs22 dcricon-coin-negative"></span>
+               <div class="d-inline-block confirmations-box mx-2 fs14"
+                  data-controller="newblock"
+                  data-newblock-target="confirmations"
+                  data-tx-target="confirmations"
+                  data-confirmations="{{.Confirmations}}"
+                  data-yes="# confirmation@"
+                  data-no="unconfirmed"
+                  data-confirmation-block-height="{{if eq .Confirmations 0}}-1{{else}}{{.BlockHeight}}{{end}}"
+                  >
+                  {{.Confirmations}}  confirmations
+               </div>
+            </div>
+            <div class="text-start lh1rem py-2">
+               <div class="fs13 text-secondary pb-1">Transaction ID</div>
+               <div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.TxID}}{{template "copyTextIcon"}}</div>
+            </div>
+            <div class="row py-2">
+               <div class="col-8 text-start">
+                  <span class="text-secondary fs13">Total Sent</span>
+                  <br>
+                  <span class="lh1rem d-inline-block pt-1"
+                     ><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}</span><span class="text-secondary fs14">{{$ChainType}}</span>
+                  </span>
+               </div>
+            </div>
+         </div>
+         <div class="col-24 col-xl-12 py-3 px-3 px-xl-4 d-flex flex-column justify-content-between blue-card">
+            <div class="h6 d-inline-block my-2 ps-3">Transaction Details</div>
+            <table class="w-100 fs14 my-1 mb-xl-3">
+               <tbody>
+                  <tr>
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Time:</td>
+                     <td class="text-start py-1" data-tx-target="formattedAge">{{.Time.String}}</td>
+                  </tr>
+                  <tr>
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Version:</td>
+                     <td class="text-start py-1">{{.Version}}</td>
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Size:</td>
+                     <td class="text-start py-1">{{.FormattedSize}}</td>
+                  </tr>
+                  <tr>
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Block Hash:</td>
+                     <td class="text-start py-1">{{.BlockHash}}</td>
+                  </tr>
+               </tbody>
+            </table>
+            <span></span>{{/* dummy for flex alignment */}}
+         </div>
+      </div>
+      <div class="row mb-5">
+         <div class="col-lg-12 mt-4 mb-2">
+            <h5 class="pb-2">{{len .MutilchainVin}} Input{{if gt (len .MutilchainVin) 1}}s{{end}} Consumed</h5>
+            <div class="br-8 b--def bgc-plain-bright pb-10">
+               <div class="btable-table-wrap maxh-none">
+                  <table class="btable-table w-100">
+                     <thead>
+                        <tr class="bg-none">
+                           <th class="shrink-to-fit">#</th>
+                           <th class="text-nowrap">Previous Outpoint</th>
+                           <th class="addr-hash-column">Addresses</th>
+                        </tr>
+                     </thead>
+                     <tbody class="bgc-white">
+                        {{range .MutilchainVin}}
+                        <tr>
+                        <td class="shrink-to-fit">{{.Index}}</td>
+                        <td class="position-relative clipboard">
+                           {{template "hashElide" (hashlink .Txid (print "/chain/" $ChainType "/tx/" .Txid))}}
+                        </td>
+                        <td class="position-relative clipboard">
+                           {{if gt (len .Addresses) 0}}
+                           {{range .Addresses}}
+                           {{template "hashElide" (hashlink . (print "/chain/" $ChainType "/address/" .))}}
+                           {{end}}
+                           {{else}}
+                           N/A
+                           {{end}}
+                        </td>
+                        </tr>
+                        {{end}}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+         </div>
+         <div class="col-lg-12 mt-4">
+            <h5 class="pb-2">{{len .Vout}} Output{{if gt (len .Vout) 1}}s{{end}} Created</h5>
+            <div class="br-8 b--def bgc-plain-bright pb-10">
+               <div class="btable-table-wrap maxh-none">
+                  <table class="btable-table w-100">
+                     <thead>
+                        <tr class="bg-none">
+                           <th class="shrink-to-fit">#</th>
+                           <th class="addr-hash-column">
+                              <div class="ps-1">Address</div>
+                           </th>
+                           <th class="text-start shrink-to-fit"><span class="d-none d-sm-inline">Version</span><span class="d-sm-none">Ver</span></th>
+                           <th class="text-start shrink-to-fit">Spent</th>
+                           <th class="text-end shrink-to-fit">BTC</th>
+                        </tr>
+                     </thead>
+                     <tbody class="bgc-white">
+                        {{range $i, $v := .Vout}}
+                        <tr>
+                        <td class="shrink-to-fit">{{.Index}}</td>
+                        <td class="position-relative clipboard">
+                           {{range .Addresses}}
+                           {{template "hashElide" (hashlink . (print "/chain/" $ChainType "/address/" .))}}
+                           {{end}}
+                        </td>
+                        <td class="fs13 break-word shrink-to-fit">
+                           {{$v.Version}}
+                        </td>
+                        <td class="text-start fs13 shrink-to-fit">{{with $spending := (index $.Data.SpendingTxns $i) }}
+                           {{if $spending.Hash}}
+                           <a href="/chain/{{$ChainType}}/tx/{{$spending.Hash}}/in/{{$spending.Index}}">{{$v.Spent}}</a>
+                           {{else}}
+                           {{if gt $v.Amount 0.0}}
+                           {{$v.Spent}}
+                           {{end}}
+                           {{end}}
+                           {{end}}
+                        </td>
+                        <td class="text-end mono fs13">
+                           {{template "decimalParts" (float64AsDecimalParts .Amount 8 false)}}
+                        </td>
+                        </tr>
+                        {{end}}
+                     </tbody>
+                  </table>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+   {{end}}
+   {{ template "footer" . }}
+   </body>
+</html>
+{{end}}

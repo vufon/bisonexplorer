@@ -28,7 +28,6 @@ func TestGetAddressTransactionsRawWithSkip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(string(b), len(res))
 	t.Log(d)
 }
 

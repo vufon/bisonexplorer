@@ -23,7 +23,7 @@ const (
 		tree INT2,
 		tx_hash TEXT,
 		block_index INT4,
-		lock_time INT4,
+		lock_time INT8,
 		expiry INT4,
 		size INT4,
 		spent INT8,

@@ -176,6 +176,7 @@ type TxInfo struct {
 	*TxBasic
 	SpendingTxns     []TxInID
 	Vin              []Vin
+	MutilchainVin    []MutilchainVin
 	Vout             []Vout
 	BlockHeight      int64
 	BlockIndex       uint32
@@ -419,6 +420,20 @@ type Vin struct {
 	Link            string
 }
 
+type MutilchainVin struct {
+	Coinbase        string   `json:"coinbase"`
+	Txid            string   `json:"txid"`
+	Vout            uint32   `json:"vout"`
+	Sequence        uint32   `json:"sequence"`
+	Witness         []string `json:"txinwitness"`
+	Addresses       []string
+	FormattedAmount string
+	Index           uint32
+	DisplayText     string
+	TextIsHash      bool
+	Link            string
+}
+
 // Vout models basic data about a tx output for display
 type Vout struct {
 	Addresses       []string
@@ -508,6 +523,14 @@ type HomeInfo struct {
 	HashRateChangeDay     float64                  `json:"hash_rate_change_day"`
 	HashRateChangeMonth   float64                  `json:"hash_rate_change_month"`
 	ExchangeRate          *Conversion              `json:"exchange_rate,omitempty"`
+}
+
+type MutilchainHomeInfo struct {
+	CoinSupply   int64       `json:"coin_supply"`
+	Difficulty   float64     `json:"difficulty"`
+	Params       ChainParams `json:"params"`
+	HashRate     float64     `json:"hash_rate"`
+	ExchangeRate *Conversion `json:"exchange_rate,omitempty"`
 }
 
 // BlockSubsidy is an implementation of chainjson.GetBlockSubsidyResult

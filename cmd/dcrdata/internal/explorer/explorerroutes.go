@@ -18,22 +18,31 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
+	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
+	btcchainhash "github.com/btcsuite/btcd/chaincfg/chainhash"
+	btctxscript "github.com/btcsuite/btcd/txscript"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
-
 	"github.com/decred/dcrd/dcrutil/v4"
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/txscript/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/go-chi/chi/v5"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	"github.com/ltcsuite/ltcd/ltcutil"
+	ltctxscript "github.com/ltcsuite/ltcd/txscript"
 
 	"github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/gov/v6/agendas"
 	pitypes "github.com/decred/dcrdata/gov/v6/politeia/types"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/explorer/types"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	ticketvotev1 "github.com/decred/politeia/politeiawww/api/ticketvote/v1"
 
@@ -61,19 +70,22 @@ type Cookies struct {
 // explorerUI.commonData returns an initialized instance or CommonPageData,
 // which itself should be used to initialize page data template structs.
 type CommonPageData struct {
-	Tip           *types.WebBasicBlock
-	Version       string
-	ChainParams   *chaincfg.Params
-	BlockTimeUnix int64
-	DevAddress    string
-	Links         *links
-	NetName       string
-	Cookies       Cookies
-	Host          string
-	BaseURL       string // scheme + "://" + "host"
-	Path          string
-	RequestURI    string // path?query
-	IsHomepage    bool
+	Tip            *types.WebBasicBlock
+	Version        string
+	ChainParams    *chaincfg.Params
+	BtcChainParams *btcchaincfg.Params
+	LtcChainParams *ltcchaincfg.Params
+	BlockTimeUnix  int64
+	DevAddress     string
+	Links          *links
+	NetName        string
+	Cookies        Cookies
+	Host           string
+	BaseURL        string // scheme + "://" + "host"
+	Path           string
+	RequestURI     string // path?query
+	IsHomepage     bool
+	ChainType      string
 }
 
 // FullURL constructs the page's complete URL.
@@ -277,6 +289,77 @@ func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		VotingSummary:    exp.voteTracker.Summary(),
 		ProposalCountMap: proposalCountJsonStr,
 		VotesStatus:      voteStatusJsonStr,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	height, err := exp.dataSource.GetMutilchainHeight(chainType)
+	if err != nil {
+		log.Errorf("GetMutilchainHeight failed: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
+			ExpStatusError)
+		return
+	}
+	var blocks []*types.BlockBasic
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		blocks = exp.dataSource.GetBTCExplorerBlocks(int(height), int(height)-8)
+	case mutilchain.TYPELTC:
+		blocks = exp.dataSource.GetLTCExplorerBlocks(int(height), int(height)-8)
+	default:
+		blocks = exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
+	}
+
+	var bestBlock *types.BlockBasic
+	if blocks == nil {
+		bestBlock = new(types.BlockBasic)
+	} else {
+		bestBlock = blocks[0]
+	}
+	var homeInfo *types.HomeInfo
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		exp.btcPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.btcPageData.HomeInfo
+		exp.btcPageData.RUnlock()
+	case mutilchain.TYPELTC:
+		exp.ltcPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.ltcPageData.HomeInfo
+		exp.ltcPageData.RUnlock()
+	default:
+
+	}
+	var commonData = exp.commonData(r)
+	commonData.IsHomepage = true
+
+	str, err := exp.templates.exec("chain_home", struct {
+		*CommonPageData
+		Info          *types.HomeInfo
+		BestBlock     *types.BlockBasic
+		Blocks        []*types.BlockBasic
+		PercentChange float64
+		ChainType     string
+	}{
+		CommonPageData: commonData,
+		Info:           homeInfo,
+		BestBlock:      bestBlock,
+		Blocks:         blocks,
+		ChainType:      chainType,
 	})
 
 	if err != nil {
@@ -649,6 +732,110 @@ func (exp *explorerUI) timeBasedBlocksListing(val string, w http.ResponseWriter,
 	io.WriteString(w, str)
 }
 
+func (exp *explorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	bestBlockHeight, err := exp.dataSource.GetMutilchainHeight(chainType)
+	if err != nil {
+		log.Errorf("GetHeight failed: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
+			ExpStatusError)
+		return
+	}
+
+	var height int64
+	if heightStr := r.URL.Query().Get("height"); heightStr != "" {
+		h, err := strconv.ParseUint(heightStr, 10, 64)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		height = int64(h)
+	} else {
+		height = bestBlockHeight
+	}
+
+	var rows int64
+	if rowsStr := r.URL.Query().Get("rows"); rowsStr != "" {
+		h, err := strconv.ParseUint(rowsStr, 10, 64)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		rows = int64(h)
+	}
+
+	if height > bestBlockHeight {
+		height = bestBlockHeight
+	}
+	if rows == 0 {
+		rows = minExplorerRows
+	} else if rows > maxExplorerRows {
+		rows = maxExplorerRows
+	}
+	var end int
+	oldestBlock := height - rows + 1
+	if oldestBlock < 0 {
+		end = -1
+	} else {
+		end = int(height - rows)
+	}
+
+	var summaries []*types.BlockBasic
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		summaries = exp.dataSource.GetBTCExplorerBlocks(int(height), end)
+	case mutilchain.TYPELTC:
+		summaries = exp.dataSource.GetLTCExplorerBlocks(int(height), end)
+	default:
+		summaries = exp.dataSource.GetExplorerBlocks(int(height), end)
+	}
+	if summaries == nil {
+		log.Errorf("Unable to get blocks: height=%d&rows=%d", height, rows)
+		exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
+			ExpStatusNotFound)
+		return
+	}
+
+	linkTemplate := "/blocks?height=%d&rows=" + strconv.FormatInt(rows, 10)
+	linkTemplate = fmt.Sprintf("/chain/%s%s", chainType, linkTemplate)
+	oldestHeight := bestBlockHeight % rows
+
+	str, err := exp.templates.exec("chain_blocks", struct {
+		*CommonPageData
+		Data         []*types.BlockBasic
+		BestBlock    int64
+		OldestHeight int64
+		Rows         int64
+		RowsCount    int64
+		WindowSize   int64
+		TimeGrouping string
+		Pages        pageNumbers
+		ChainType    string
+	}{
+		CommonPageData: exp.commonData(r),
+		Data:           summaries,
+		BestBlock:      bestBlockHeight,
+		OldestHeight:   oldestHeight,
+		Rows:           rows,
+		RowsCount:      int64(len(summaries)),
+		TimeGrouping:   "Blocks",
+		Pages:          calcPagesDesc(int(bestBlockHeight), int(rows), int(height), linkTemplate),
+		ChainType:      chainType,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // Blocks is the page handler for the "/blocks" path.
 func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 	bestBlockHeight, err := exp.dataSource.GetHeight()
@@ -750,6 +937,295 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+func (exp *explorerUI) IsValidTransaction(hash string, chainType string) bool {
+	var err error
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		_, err = btcchainhash.NewHashFromStr(hash)
+	case mutilchain.TYPELTC:
+		_, err = ltcchainhash.NewHashFromStr(hash)
+	default:
+		_, err = chainhash.NewHashFromStr(hash)
+	}
+	return err == nil
+}
+
+func (exp *explorerUI) GetCointAmountByTypeChain(amount int64, chainType string) float64 {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return btcutil.Amount(amount).ToBTC()
+	case mutilchain.TYPELTC:
+		return ltcutil.Amount(amount).ToBTC()
+	default:
+		return dcrutil.Amount(amount).ToCoin()
+	}
+}
+
+func (exp *explorerUI) GetAddressListFromPkScript(pkScriptsStr []byte, chainType string) []string {
+	result := make([]string, 0)
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		_, addrs, _, _ := btctxscript.ExtractPkScriptAddrs(pkScriptsStr, exp.BtcChainParams)
+		for ia := range addrs {
+			result = append(result, addrs[ia].String())
+		}
+		return result
+	case mutilchain.TYPELTC:
+		_, addrs, _, _ := ltctxscript.ExtractPkScriptAddrs(pkScriptsStr, exp.LtcChainParams)
+		for ia := range addrs {
+			result = append(result, addrs[ia].String())
+		}
+		return result
+	default:
+		return make([]string, 0)
+	}
+}
+
+// TxPage is the page handler for the "/tx" path.
+func (exp *explorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) {
+	// attempt to get tx hash string from URL path
+	hash, ok := r.Context().Value(ctxTxHash).(string)
+	if !ok {
+		log.Trace("txid not set")
+		exp.StatusPage(w, defaultErrorCode, "there was no transaction requested",
+			"", ExpStatusNotFound)
+		return
+	}
+
+	//Get chain type
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+
+	validTransaction := exp.IsValidTransaction(hash, chainType)
+	if !validTransaction {
+		exp.StatusPage(w, defaultErrorCode, "Invalid transaction ID", "", ExpStatusError)
+		return
+	}
+
+	tx := exp.dataSource.GetMutilchainExplorerTx(hash, chainType)
+
+	// If dcrd has no information about the transaction, pull the transaction
+	// details from the auxiliary DB database.
+	if tx == nil {
+		log.Warnf("No transaction information for %v. Trying tables in case this is an orphaned txn.", hash)
+		// Search for occurrences of the transaction in the database.
+		dbTxs, err := exp.dataSource.MutilchainTransaction(hash, chainType)
+		if exp.timeoutErrorPage(w, err, "Transaction") {
+			return
+		}
+		if err != nil {
+			log.Errorf("Unable to retrieve transaction details for %s.", hash)
+			exp.StatusPage(w, defaultErrorCode, "could not find that transaction",
+				"", ExpStatusNotFound)
+			return
+		}
+		if dbTxs == nil {
+			exp.StatusPage(w, defaultErrorCode, "that transaction has not been recorded",
+				"", ExpStatusNotFound)
+			return
+		}
+
+		// Take the first one. The query order should put valid at the top of
+		// the list. Regardless of order, the transaction web page will link to
+		// all occurrences of the transaction.
+		dbTx0 := dbTxs[0]
+		txType := int(dbTx0.TxType)
+		txTypeStr := txhelpers.TxTypeToString(txType)
+		tx = &types.TxInfo{
+			TxBasic: &types.TxBasic{
+				TxID:          hash,
+				Type:          txTypeStr,
+				Version:       int32(dbTx0.Version),
+				FormattedSize: humanize.Bytes(uint64(dbTx0.Size)),
+				Total:         exp.GetCointAmountByTypeChain(dbTx0.Sent, chainType),
+			},
+			SpendingTxns: make([]types.TxInID, len(dbTx0.VoutDbIds)), // SpendingTxns filled below
+			// Vins - looked-up in vins table
+			// Vouts - looked-up in vouts table
+			BlockHeight:   dbTx0.BlockHeight,
+			BlockIndex:    dbTx0.BlockIndex,
+			BlockHash:     dbTx0.BlockHash,
+			Confirmations: exp.Height() - dbTx0.BlockHeight + 1,
+			Time:          types.TimeDef(dbTx0.Time),
+		}
+
+		// Retrieve vouts from DB.
+		vouts, err := exp.dataSource.MutilchainVoutsForTx(dbTx0, chainType)
+		if exp.timeoutErrorPage(w, err, "VoutsForTx") {
+			return
+		}
+		if err != nil {
+			log.Errorf("Failed to retrieve all vout details for transaction %s: %v",
+				dbTx0.TxID, err)
+			exp.StatusPage(w, defaultErrorCode, "VoutsForTx failed", "", ExpStatusError)
+			return
+		}
+
+		// Convert to explorer.Vout, getting spending information from DB.
+		for iv := range vouts {
+			// Determine if the outpoint is spent
+			spendingTx, _, err := exp.dataSource.MutilchainSpendingTransaction(hash, vouts[iv].TxIndex, chainType)
+			if exp.timeoutErrorPage(w, err, "SpendingTransaction") {
+				return
+			}
+			if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
+				log.Warnf("SpendingTransaction failed for outpoint %s:%d: %v",
+					hash, vouts[iv].TxIndex, err)
+			}
+			amount := exp.GetCointAmountByTypeChain(int64(vouts[iv].Value), chainType)
+			tx.Vout = append(tx.Vout, types.Vout{
+				Addresses:       vouts[iv].ScriptPubKeyData.Addresses,
+				Amount:          amount,
+				FormattedAmount: humanize.Commaf(amount),
+				Type:            vouts[iv].ScriptPubKeyData.Type.String(),
+				Spent:           spendingTx != "",
+				Index:           vouts[iv].TxIndex,
+				Version:         vouts[iv].Version,
+			})
+		}
+
+		// Retrieve vins from DB.
+		vins, prevPkScripts, _, err := exp.dataSource.MutilchainVinsForTx(dbTx0, chainType)
+		if exp.timeoutErrorPage(w, err, "VinsForTx") {
+			return
+		}
+		if err != nil {
+			log.Errorf("Failed to retrieve all vin details for transaction %s: %v",
+				dbTx0.TxID, err)
+			exp.StatusPage(w, defaultErrorCode, "VinsForTx failed", "", ExpStatusError)
+			return
+		}
+		// Convert to explorer.Vin from dbtypes.VinTxProperty.
+		for iv := range vins {
+			// Decode all addresses from previous outpoint's pkScript.
+			var addresses []string
+			pkScriptsStr, err := hex.DecodeString(prevPkScripts[iv])
+			if err != nil {
+				log.Errorf("Failed to decode pkScript: %v", err)
+			}
+
+			addresses = exp.GetAddressListFromPkScript(pkScriptsStr, chainType)
+			txIndex := vins[iv].TxIndex
+			tx.MutilchainVin = append(tx.MutilchainVin, types.MutilchainVin{
+				Txid:      hash,
+				Vout:      vins[iv].PrevTxIndex,
+				Sequence:  vins[iv].Sequence,
+				Addresses: addresses,
+				Index:     txIndex,
+			})
+		}
+	} // tx == nil (not found by dcrd)
+
+	// Details on all the blocks containing this transaction
+	blocks, blockInds, err := exp.dataSource.MutilchainTransactionBlocks(tx.TxID, chainType)
+	if exp.timeoutErrorPage(w, err, "TransactionBlocks") {
+		return
+	}
+	if err != nil {
+		log.Errorf("Unable to retrieve blocks for transaction %s: %v",
+			hash, err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, tx.TxID, ExpStatusError)
+		return
+	}
+
+	// For each output of this transaction, look up any spending transactions,
+	// and the index of the spending transaction input.
+	spendingTxHashes, spendingTxVinInds, voutInds, err := exp.dataSource.MutilchainSpendingTransactions(hash, chainType)
+	if exp.timeoutErrorPage(w, err, "SpendingTransactions") {
+		return
+	}
+	if err != nil {
+		log.Errorf("Unable to retrieve spending transactions for %s: %v", hash, err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, hash, ExpStatusError)
+		return
+	}
+	for i, vout := range voutInds {
+		if int(vout) >= len(tx.SpendingTxns) {
+			log.Errorf("Invalid spending transaction data (%s:%d)", hash, vout)
+			continue
+		}
+		tx.SpendingTxns[vout] = types.TxInID{
+			Hash:  spendingTxHashes[i],
+			Index: spendingTxVinInds[i],
+		}
+	}
+
+	pageData := struct {
+		*CommonPageData
+		Data      *types.TxInfo
+		Blocks    []*dbtypes.BlockStatus
+		BlockInds []uint32
+		ChainType string
+	}{
+		CommonPageData: exp.commonData(r),
+		Data:           tx,
+		Blocks:         blocks,
+		BlockInds:      blockInds,
+		ChainType:      chainType,
+	}
+
+	str, err := exp.templates.exec("chain_tx", pageData)
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+// Block is the page handler for the "/block" path.
+func (exp *explorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	// Retrieve the block specified on the path.
+	hash := getBlockHashCtx(r)
+	var data *types.BlockInfo
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		data = exp.dataSource.GetBTCExplorerBlock(hash)
+	case mutilchain.TYPELTC:
+		data = exp.dataSource.GetLTCExplorerBlock(hash)
+	default:
+		data = exp.dataSource.GetExplorerBlock(hash)
+	}
+	if data == nil {
+		log.Errorf("Unable to get block %s", hash)
+		exp.StatusPage(w, defaultErrorCode, "could not find that block", "",
+			ExpStatusNotFound)
+		return
+	}
+
+	// Check if there are any regular non-coinbase transactions in the block.
+	data.TxAvailable = len(data.Tx) > 1
+	pageData := struct {
+		*CommonPageData
+		Data      *types.BlockInfo
+		ChainType string
+	}{
+		CommonPageData: exp.commonData(r),
+		Data:           data,
+		ChainType:      chainType,
+	}
+
+	str, err := exp.templates.exec("chain_block", pageData)
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, str)
 }
@@ -1693,6 +2169,97 @@ func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+// AddressPage is the page handler for the "/address" path.
+func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
+	// AddressPageData is the data structure passed to the HTML template
+
+	type AddressInfo struct {
+		*dbtypes.AddressInfo
+		ChainType string
+	}
+
+	type AddressPageData struct {
+		*CommonPageData
+		Data      AddressInfo
+		Type      txhelpers.AddressType
+		Pages     []pageNumber
+		ChainType string
+	}
+
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+
+	// Grab the URL query parameters
+	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
+	if err != nil {
+		exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
+		return
+	}
+	//Check address here
+	var addrErr error
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		_, addrErr = btcutil.DecodeAddress(address, exp.BtcChainParams)
+	case mutilchain.TYPELTC:
+		_, addrErr = ltcutil.DecodeAddress(address, exp.LtcChainParams)
+	default:
+		_, addrErr = stdaddr.DecodeAddress(address, exp.ChainParams)
+	}
+	if addrErr != nil {
+		return
+	}
+	// Retrieve address information from the DB and/or RPC.
+	var addrData *dbtypes.AddressInfo
+
+	addrData, err = exp.MutilchainAddressListData(address, txnType, limitN, offsetAddrOuts, chainType)
+	if exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
+		return
+	} else if err != nil {
+		exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
+		return
+	}
+
+	// Set page parameters.
+	addrData.Path = r.URL.Path
+
+	if limitN == 0 {
+		limitN = 20
+	}
+
+	linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
+	linkTemplate = fmt.Sprintf("/chain/%s%s", chainType, linkTemplate)
+	if time != "" {
+		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
+	}
+	addrInfo := AddressInfo{
+		AddressInfo: addrData,
+		ChainType:   chainType,
+	}
+	// Execute the HTML template.
+	pageData := AddressPageData{
+		CommonPageData: exp.commonData(r),
+		Data:           addrInfo,
+		ChainType:      chainType,
+		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
+	}
+	str, err := exp.templates.exec("chain_address", pageData)
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+
+	log.Tracef(`"address" template HTML size: %.2f kiB (%s, %v, %d)`,
+		float64(len(str))/1024.0, address, txnType, addrData.NumTransactions)
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // AddressTable is the page handler for the "/addresstable" path.
 func (exp *explorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
 	// Grab the URL query parameters
@@ -1972,6 +2539,20 @@ func (exp *explorerUI) AddressListData(address string, txnType dbtypes.AddrTxnVi
 	// Get addresses table rows for the address.
 	addrData, err = exp.dataSource.AddressData(address, limitN,
 		offsetAddrOuts, txnType, year, month)
+	if dbtypes.IsTimeoutErr(err) { //exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
+		return nil, err
+	} else if err != nil {
+		log.Errorf("AddressData error encountered: %v", err)
+		err = fmt.Errorf(defaultErrorMessage)
+		return nil, err
+	}
+	return
+}
+
+func (exp *explorerUI) MutilchainAddressListData(address string, txnType dbtypes.AddrTxnViewType, limitN,
+	offsetAddrOuts int64, chainType string) (addrData *dbtypes.AddressInfo, err error) {
+	// Get addresses table rows for the address.
+	addrData, err = exp.dataSource.MutilchainAddressData(address, limitN, offsetAddrOuts, txnType, chainType)
 	if dbtypes.IsTimeoutErr(err) { //exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
 		return nil, err
 	} else if err != nil {
@@ -2713,18 +3294,22 @@ func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
 		}
 	}
 	baseURL := scheme + "://" + r.Host // assumes not opaque url
-
+	//Get chain type
+	chainType := chi.URLParam(r, "chaintype")
 	return &CommonPageData{
-		Tip:           tip,
-		Version:       exp.Version,
-		ChainParams:   exp.ChainParams,
-		BlockTimeUnix: int64(exp.ChainParams.TargetTimePerBlock.Seconds()),
-		DevAddress:    exp.pageData.HomeInfo.DevAddress,
-		NetName:       exp.NetName,
-		Links:         explorerLinks,
+		Tip:            tip,
+		Version:        exp.Version,
+		ChainParams:    exp.ChainParams,
+		LtcChainParams: exp.LtcChainParams,
+		BtcChainParams: exp.BtcChainParams,
+		BlockTimeUnix:  int64(exp.ChainParams.TargetTimePerBlock.Seconds()),
+		DevAddress:     exp.pageData.HomeInfo.DevAddress,
+		NetName:        exp.NetName,
+		Links:          explorerLinks,
 		Cookies: Cookies{
 			DarkMode: darkMode != nil && darkMode.Value == "1",
 		},
+		ChainType:  chainType,
 		Host:       r.Host,
 		BaseURL:    baseURL,
 		Path:       r.URL.Path,

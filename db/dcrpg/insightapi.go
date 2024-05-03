@@ -9,14 +9,19 @@ import (
 	"sort"
 	"time"
 
+	"github.com/btcsuite/btcd/btcjson"
+	btcchainhash "github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/wire"
+	ltcjson "github.com/ltcsuite/ltcd/btcjson"
 
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
+	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
@@ -164,6 +169,33 @@ func (pgb *ChainDB) GetBlockVerboseByHash(hash string, verboseTx bool) *chainjso
 	return blockVerbose
 }
 
+func (pgb *ChainDB) GetBTCBlockVerboseTxByHash(hash string) *btcjson.GetBlockVerboseTxResult {
+	block := btcrpcutils.GetBlockVerboseTxByHash(pgb.BtcClient, hash)
+	return block
+}
+
+func (pgb *ChainDB) GetLTCBlockVerboseTxByHash(hash string) *ltcjson.GetBlockVerboseTxResult {
+	block := ltcrpcutils.GetBlockVerboseTxByHash(pgb.LtcClient, hash)
+	return block
+}
+
+// GetBlockVerboseByHash returns a *chainjson.GetBlockVerboseResult for the
+// specified block hash, optionally with transaction details.
+func (pgb *ChainDB) GetBTCBlockVerboseByHash(hash string) *btcjson.GetBlockVerboseResult {
+	blockhash, err := btcchainhash.NewHashFromStr(hash)
+	if err != nil {
+		log.Errorf("Invalid block hash %s", hash)
+		return nil
+	}
+
+	blockVerbose, err := pgb.BtcClient.GetBlockVerbose(blockhash)
+	if err != nil {
+		log.Errorf("GetBlockVerbose(%v) failed: %v", hash, err)
+		return nil
+	}
+	return blockVerbose
+}
+
 // GetTransactionsForBlockByHash returns a *apitypes.BlockTransactions for the
 // block with the specified hash.
 func (pgb *ChainDB) GetTransactionsForBlockByHash(hash string) *apitypes.BlockTransactions {
@@ -189,6 +221,17 @@ func (pgb *ChainDB) GetBlockHash(idx int64) (string, error) {
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 	defer cancel()
 	hash, err := RetrieveBlockHash(ctx, pgb.db, idx)
+	if err != nil {
+		log.Errorf("Unable to get block hash for block number %d: %v", idx, err)
+		return "", pgb.replaceCancelError(err)
+	}
+	return hash, nil
+}
+
+func (pgb *ChainDB) GetMutilchainBlockHash(idx int64, chainType string) (string, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	hash, err := RetrieveMutilchainBlockHash(ctx, pgb.db, idx, chainType)
 	if err != nil {
 		log.Errorf("Unable to get block hash for block number %d: %v", idx, err)
 		return "", pgb.replaceCancelError(err)
