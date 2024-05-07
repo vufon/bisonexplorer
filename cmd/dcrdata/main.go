@@ -259,7 +259,7 @@ func _main(ctx context.Context) error {
 	var btcdClient *btcClient.Client
 	var ltcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPELTC)
 	var btcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEBTC)
-
+	var dcrDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEDCR)
 	defer func() {
 		if dcrdClient != nil {
 			log.Infof("Closing connection to dcrd.")
@@ -887,48 +887,49 @@ func _main(ctx context.Context) error {
 		return height, nil
 	}
 
-	chainDBHeight, err = syncChainDB()
-	if err != nil {
-		return err
-	}
-
-	//synchronize legacy address data
-	log.Infof("Starting address summary sync...")
-
-	syncAdressSummaryData := func() error {
-		err := chainDB.SyncAddressSummary(ctx)
+	if !dcrDisabled {
+		chainDBHeight, err = syncChainDB()
 		if err != nil {
-			log.Errorf("dcrpg.SyncAddressSummary failed")
 			return err
 		}
-		return nil
-	}
+		//synchronize legacy address data
+		log.Infof("Starting address summary sync...")
 
-	err = syncAdressSummaryData()
-	if err != nil {
-		return err
-	}
+		syncAdressSummaryData := func() error {
+			err := chainDB.SyncAddressSummary(ctx)
+			if err != nil {
+				log.Errorf("dcrpg.SyncAddressSummary failed")
+				return err
+			}
+			return nil
+		}
 
-	log.Infof("Finished address summary sync")
-
-	//Synchronize DCR's price by month
-	log.Infof("Starting DCR monthly price sync...")
-
-	syncMonthlyPriceData := func() error {
-		err := chainDB.SyncMonthlyPrice(ctx)
+		err = syncAdressSummaryData()
 		if err != nil {
-			log.Errorf("dcrpg.SyncMonthlyPrice failed")
 			return err
 		}
-		return nil
-	}
 
-	err = syncMonthlyPriceData()
-	if err != nil {
-		return err
-	}
+		log.Infof("Finished address summary sync")
 
-	log.Infof("Finished DCR monthly price sync")
+		//Synchronize DCR's price by month
+		log.Infof("Starting DCR monthly price sync...")
+
+		syncMonthlyPriceData := func() error {
+			err := chainDB.SyncMonthlyPrice(ctx)
+			if err != nil {
+				log.Errorf("dcrpg.SyncMonthlyPrice failed")
+				return err
+			}
+			return nil
+		}
+
+		err = syncMonthlyPriceData()
+		if err != nil {
+			return err
+		}
+
+		log.Infof("Finished DCR monthly price sync")
+	}
 
 	// After sync and indexing, must use upsert statement, which checks for
 	// duplicate entries and updates instead of erroring. SyncChainDB should
@@ -1068,64 +1069,64 @@ func _main(ctx context.Context) error {
 	if latestBlockHash != nil {
 		close(latestBlockHash)
 	}
+	if !dcrDisabled {
+		// The proposals and agenda db updates are run after the db indexing.
+		// Retrieve blockchain deployment updates and add them to the agendas db.
+		if err = agendaDB.UpdateAgendas(); err != nil {
+			return fmt.Errorf("updating agendas db failed: %v", err)
+		}
 
-	// The proposals and agenda db updates are run after the db indexing.
-	// Retrieve blockchain deployment updates and add them to the agendas db.
-	if err = agendaDB.UpdateAgendas(); err != nil {
-		return fmt.Errorf("updating agendas db failed: %v", err)
-	}
+		// Retrieve updates and newly added proposals from Politeia and store them
+		// on our stormdb. This call is made asynchronously to not block execution
+		// while the proposals db is syncing.
+		log.Info("Syncing proposals data with Politeia...")
+		go func() {
+			if err := proposalsDB.ProposalsSync(); err != nil {
+				log.Errorf("updating proposals db failed: %v", err)
+			}
+		}()
 
-	// Retrieve updates and newly added proposals from Politeia and store them
-	// on our stormdb. This call is made asynchronously to not block execution
-	// while the proposals db is syncing.
-	log.Info("Syncing proposals data with Politeia...")
-	go func() {
-		if err := proposalsDB.ProposalsSync(); err != nil {
-			log.Errorf("updating proposals db failed: %v", err)
-		}
-	}()
-
-	// Synchronize proposal Meta data
-	log.Info("Syncing proposals meta data with chain DB")
-	go func() {
-		//check exist and create proposal_meta table
-		err := chainDB.CheckCreateProposalMetaTable()
-		if err != nil {
-			log.Errorf("Check exist and create proposal_meta table failed: %v", err)
-			return
-		}
-		//get all proposals
-		proposals, err := proposalsDB.GetAllProposals()
-		if err != nil {
-			log.Errorf("Get proposals failed: %v", err)
-			return
-		}
-		tokens := make([]string, 0, len(proposals))
-		for _, proposal := range proposals {
-			tokens = append(tokens, proposal.Token)
-		}
-		//Get the tokens that need to be synchronized
-		neededTokens, err := chainDB.GetNeededSyncProposalTokens(tokens)
-		if err != nil {
-			log.Errorf("Get sync needed proposals failed: %v", err)
-			return
-		}
-		if len(neededTokens) > 0 {
-			//get meta data from file
-			proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens, proposals)
+		// Synchronize proposal Meta data
+		log.Info("Syncing proposals meta data with chain DB")
+		go func() {
+			//check exist and create proposal_meta table
+			err := chainDB.CheckCreateProposalMetaTable()
 			if err != nil {
-				log.Errorf("Get proposal metadata failed: %v", err)
+				log.Errorf("Check exist and create proposal_meta table failed: %v", err)
 				return
 			}
-			//Add meta data to DB
-			addErr := chainDB.AddProposalMeta(proposalMetaDatas)
-			if addErr != nil {
-				log.Errorf("Add proposal meta to DB failed: %v", addErr)
+			//get all proposals
+			proposals, err := proposalsDB.GetAllProposals()
+			if err != nil {
+				log.Errorf("Get proposals failed: %v", err)
 				return
 			}
-		}
-	}()
-
+			tokens := make([]string, 0, len(proposals))
+			for _, proposal := range proposals {
+				tokens = append(tokens, proposal.Token)
+			}
+			//Get the tokens that need to be synchronized
+			neededTokens, err := chainDB.GetNeededSyncProposalTokens(tokens)
+			if err != nil {
+				log.Errorf("Get sync needed proposals failed: %v", err)
+				return
+			}
+			if len(neededTokens) > 0 {
+				//get meta data from file
+				proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens, proposals)
+				if err != nil {
+					log.Errorf("Get proposal metadata failed: %v", err)
+					return
+				}
+				//Add meta data to DB
+				addErr := chainDB.AddProposalMeta(proposalMetaDatas)
+				if addErr != nil {
+					log.Errorf("Add proposal meta to DB failed: %v", addErr)
+					return
+				}
+			}
+		}()
+	}
 	// Monitors for new blocks, transactions, and reorgs should not run before
 	// blockchain syncing and DB indexing completes. If started before then, the
 	// DBs will not be prepared to process the notified events. For example, if
@@ -1174,16 +1175,18 @@ func _main(ctx context.Context) error {
 	// After this final node sync check, the monitors will handle new blocks.
 	// TODO: make this not racy at all by having notifiers register first, but
 	// enable operation on signal of sync complete.
-	nodeHeight, chainDBHeight, err = Heights()
-	if err != nil {
-		return fmt.Errorf("Heights failed: %w", err)
-	}
-	if nodeHeight != chainDBHeight {
-		log.Infof("Initial chain DB sync complete. Now catching up with network...")
-		newPGIndexes, updateAllAddresses = false, false
-		chainDBHeight, err = syncChainDB()
+	if !dcrDisabled {
+		nodeHeight, chainDBHeight, err = Heights()
 		if err != nil {
-			return err
+			return fmt.Errorf("Heights failed: %w", err)
+		}
+		if nodeHeight != chainDBHeight {
+			log.Infof("Initial chain DB sync complete. Now catching up with network...")
+			newPGIndexes, updateAllAddresses = false, false
+			chainDBHeight, err = syncChainDB()
+			if err != nil {
+				return err
+			}
 		}
 	}
 

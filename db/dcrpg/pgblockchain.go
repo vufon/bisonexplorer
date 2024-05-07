@@ -8625,6 +8625,30 @@ func (pgb *ChainDB) LTCDifficulty(timestamp int64) float64 {
 	return diff
 }
 
+func (pgb *ChainDB) MutilchainGetTransactionCount(chainType string) int64 {
+	txCount, err := RetrieveMutilchainTransactionCount(pgb.ctx, pgb.db, chainType)
+	if err != nil {
+		return 0
+	}
+	return txCount
+}
+
+func (pgb *ChainDB) MutilchainGetTotalVoutsCount(chainType string) int64 {
+	txCount, err := RetrieveMutilchainVoutsCount(pgb.ctx, pgb.db, chainType)
+	if err != nil {
+		return 0
+	}
+	return txCount
+}
+
+func (pgb *ChainDB) MutilchainGetTotalAddressesCount(chainType string) int64 {
+	txCount, err := RetrieveMutilchainAddressesCount(pgb.ctx, pgb.db, chainType)
+	if err != nil {
+		return 0
+	}
+	return txCount
+}
+
 func (pgb *ChainDB) MutilchainDifficulty(timestamp int64, chainType string) float64 {
 	switch chainType {
 	case mutilchain.TYPEBTC:

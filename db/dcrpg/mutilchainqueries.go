@@ -2,6 +2,7 @@ package dcrpg
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -402,4 +403,22 @@ func SetMutilchainSpendingForVinDbIDs(db *sql.DB, vinDbIDs []uint64, chainType s
 	}
 
 	return addressRowsUpdated, totalUpdated, dbtx.Commit()
+}
+
+func RetrieveMutilchainTransactionCount(ctx context.Context, db *sql.DB, chainType string) (int64, error) {
+	var count int64
+	err := db.QueryRowContext(ctx, mutilchainquery.MakeSelectTotalTransaction(chainType)).Scan(&count)
+	return count, err
+}
+
+func RetrieveMutilchainVoutsCount(ctx context.Context, db *sql.DB, chainType string) (int64, error) {
+	var count int64
+	err := db.QueryRowContext(ctx, mutilchainquery.MakeCountTotalVouts(chainType)).Scan(&count)
+	return count, err
+}
+
+func RetrieveMutilchainAddressesCount(ctx context.Context, db *sql.DB, chainType string) (int64, error) {
+	var count int64
+	err := db.QueryRowContext(ctx, mutilchainquery.MakeSelectCountTotalAddress(chainType)).Scan(&count)
+	return count, err
 }

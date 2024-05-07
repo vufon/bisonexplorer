@@ -13,6 +13,95 @@
                <div class="hp-explore__cards-wrap">
                   <div class="hp-explore__cards-content-2-1">
                      <div class="info-left-card">
+                      <!-- Start Summary Card -->
+                        <div class="explore-card-wrap">
+                           <div class="explore-card-content">
+                              <div class="explore-card__header bg-for-header">
+                                 <span class="dcricon-tree explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
+                                 <div class="explore-card__header__text ml-15">
+                                    <h5 class="explore-card__header__text__name"> Summary </h5>
+                                    <div class="explore-card__header__text__price">
+                                       <div class="price-wrap d-flex ai-center">
+                                          <span class="price-usd fs-13">Information about system summary</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="explore-card__values-content">
+                                 {{with .Info -}}
+                                 <div class="row justify-content-between">
+                                    <div class="col-24 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/treasury">
+                                          Total Outputs</a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                             {{.TotalOutputs}}
+                                          </span>
+                                       </div>
+                                    </div>
+                                   <div class="col-24 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/treasury">
+                                          Total Transactions</a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                             {{.TotalTransactions}}
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/treasury">
+                                          Total Addresses</a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                             {{.TotalAddresses}}
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/treasury">
+                                          Coin Supply</a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                             {{.CoinSupply}}
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/treasury">
+                                          Market Cap</a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                           
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/treasury">
+                                          Blockchain Size</a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                             {{.TotalSize}}
+                                          </span>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 {{end}}
+                              </div>
+                           </div>
+                        </div>
+                        <!-- End Summary Card -->
                         <!-- Start Mining Card -->
                         <div class="explore-card-wrap">
                            <div class="explore-card-content">

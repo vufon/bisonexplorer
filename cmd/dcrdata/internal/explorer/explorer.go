@@ -148,6 +148,9 @@ type explorerDataSource interface {
 	MutilchainDifficulty(timestamp int64, chainType string) float64
 	GetNeededSyncProposalTokens(tokens []string) (syncTokens []string, err error)
 	AddProposalMeta(proposalMetaData []map[string]string) (err error)
+	MutilchainGetTransactionCount(chainType string) int64
+	MutilchainGetTotalVoutsCount(chainType string) int64
+	MutilchainGetTotalAddressesCount(chainType string) int64
 }
 
 type PoliteiaBackend interface {
@@ -796,6 +799,11 @@ func (exp *explorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	difficulty := blockData.Header.Difficulty
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
 
+	//Get transactions total count
+	totalTransactionCount := exp.dataSource.MutilchainGetTransactionCount(mutilchain.TYPELTC)
+	totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPELTC)
+	totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPELTC)
+
 	// Update pageData with block data and chain (home) info.
 	p := exp.ltcPageData
 	p.Lock()
@@ -810,6 +818,10 @@ func (exp *explorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
 	p.HomeInfo.Difficulty = difficulty
+	p.HomeInfo.TotalTransactions = totalTransactionCount
+	p.HomeInfo.TotalOutputs = totalVoutsCount
+	p.HomeInfo.TotalAddresses = totalAddressesCount
+	p.HomeInfo.TotalSize = blockData.BlockchainInfo.SizeOnDisk
 	p.Unlock()
 	return nil
 }

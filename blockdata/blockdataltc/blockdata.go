@@ -110,7 +110,7 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 	}
 	extrainfo := &apitypes.BlockExplorerExtraInfo{
 		TxLen:      txLen,
-		CoinSupply: int64(20995175),
+		CoinSupply: 0,
 	}
 	return blockdata, blockHeader, extrainfo, msgBlock, err
 }
@@ -145,10 +145,10 @@ func (t *Collector) CollectHash(hash *chainhash.Hash) (*BlockData, *wire.MsgBloc
 	if err != nil {
 		log.Warn("Unable to get blockchain info: ", err)
 	}
-	// GetBlockChainInfo is only valid for for chain tip.
-	if chainInfo.BestBlockHash != hash.String() {
-		chainInfo = nil
-	}
+	// // GetBlockChainInfo is only valid for for chain tip.
+	// if chainInfo.BestBlockHash != hash.String() {
+	// 	chainInfo = nil
+	// }
 
 	// Output
 	blockdata := &BlockData{

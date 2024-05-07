@@ -58,9 +58,9 @@ const (
 		vout_db_ids INT8[],
 		CONSTRAINT ux_%stransaction_txhash_blockhash UNIQUE (block_hash, tx_hash)
 	);`
-
-	SelectTxByHash       = `SELECT id, block_hash, block_index, tree FROM %stransactions WHERE tx_hash = $1;`
-	SelectTxsByBlockHash = `SELECT id, tx_hash, block_index, tree FROM %stransactions WHERE block_hash = $1;`
+	SelectTotalTransaction = `SELECT count(*) FROM %stransactions;`
+	SelectTxByHash         = `SELECT id, block_hash, block_index, tree FROM %stransactions WHERE tx_hash = $1;`
+	SelectTxsByBlockHash   = `SELECT id, tx_hash, block_index, tree FROM %stransactions WHERE block_hash = $1;`
 
 	SelectFullTxByHash = `SELECT id, block_hash, block_height, block_time, 
 		time, tx_type, version, tree, tx_hash, block_index, lock_time, expiry, 
@@ -104,6 +104,10 @@ const (
 	RetrieveVoutDbIDs = `SELECT unnest(vout_db_ids) FROM %stransactions WHERE id = $1;`
 	RetrieveVoutDbID  = `SELECT vout_db_ids[$2] FROM %stransactions WHERE id = $1;`
 )
+
+func MakeSelectTotalTransaction(chainType string) string {
+	return fmt.Sprintf(SelectTotalTransaction, chainType)
+}
 
 func MakeSelectTxsBlocks(chainType string) string {
 	return fmt.Sprintf(SelectTxsBlocks, chainType)

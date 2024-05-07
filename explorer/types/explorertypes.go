@@ -521,6 +521,10 @@ type HomeInfo struct {
 	PoolInfo              TicketPoolInfo           `json:"pool_info"`
 	TotalLockedDCR        float64                  `json:"total_locked_dcr"`
 	HashRate              float64                  `json:"hash_rate"`
+	TotalTransactions     int64                    `json:"total_transactions"`
+	TotalOutputs          int64                    `json:"total_outputs"`
+	TotalSize             int64                    `json:"total_size"`
+	TotalAddresses        int64                    `json:"total_addresses"`
 	HashRateChangeDay     float64                  `json:"hash_rate_change_day"`
 	HashRateChangeMonth   float64                  `json:"hash_rate_change_month"`
 	ExchangeRate          *Conversion              `json:"exchange_rate,omitempty"`

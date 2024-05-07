@@ -97,7 +97,7 @@ const (
 	 SELECT id FROM %svouts
 	 WHERE  tx_hash = $1 AND tx_index = $2 AND tx_tree = $3
 	 LIMIT  1;`
-
+	CountTotalVouts        = `SELECT count(*) FROM %svouts;`
 	SelectPkScriptByID     = `SELECT pkscript FROM %svouts WHERE id=$1;`
 	SelectVoutIDByOutpoint = `SELECT id FROM %svouts WHERE tx_hash=$1 and tx_index=$2;`
 	SelectVoutByID         = `SELECT * FROM %svouts WHERE id=$1;`
@@ -122,6 +122,10 @@ const (
 		script_addresses TEXT[]
 	);`
 )
+
+func MakeCountTotalVouts(chainType string) string {
+	return fmt.Sprintf(CountTotalVouts, chainType)
+}
 
 func MakeSelectFundingOutpointIndxByVinID(chainType string) string {
 	return fmt.Sprintf(SelectFundingOutpointIndxByVinID, chainType)
