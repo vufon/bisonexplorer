@@ -36,18 +36,11 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
-	ltcjson "github.com/ltcsuite/ltcd/btcjson"
-	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
-	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/ltcutil"
-	ltctxscript "github.com/ltcsuite/ltcd/txscript"
-	ltcwire "github.com/ltcsuite/ltcd/wire"
 )
 
 var (
 	zeroHash            = chainhash.Hash{}
 	btcZeroHash         = btcchainhash.Hash{}
-	ltcZeroHash         = ltcchainhash.Hash{}
 	zeroHashStringBytes = []byte(chainhash.Hash{}.String())
 )
 
@@ -186,10 +179,6 @@ type RawTransactionGetter interface {
 
 type BTCRawTransactionGetter interface {
 	GetRawTransaction(txHash *btcchainhash.Hash) (*btcutil.Tx, error)
-}
-
-type LTCRawTransactionGetter interface {
-	GetRawTransaction(txHash *ltcchainhash.Hash) (*ltcutil.Tx, error)
 }
 
 // TxReceiver is satisfied by the return type from GetRawTransactionAsync
@@ -817,36 +806,6 @@ func BTCOutPointAddresses(outPoint *btcwire.OutPoint, c BTCRawTransactionGetter,
 	return addresses, value, nil
 }
 
-func LTCOutPointAddresses(outPoint *ltcwire.OutPoint, c LTCRawTransactionGetter,
-	params *ltcchaincfg.Params) ([]string, ltcutil.Amount, error) {
-	// The addresses are encoded in the pkScript, so we need to get the
-	// raw transaction, and the TxOut that contains the pkScript.
-	prevTx, err := c.GetRawTransaction(&outPoint.Hash)
-	if err != nil {
-		return nil, 0, fmt.Errorf("unable to get raw transaction for %s", outPoint.Hash.String())
-	}
-
-	txOuts := prevTx.MsgTx().TxOut
-	if len(txOuts) <= int(outPoint.Index) {
-		return nil, 0, fmt.Errorf("PrevOut index (%d) is beyond the TxOuts slice (length %d)",
-			outPoint.Index, len(txOuts))
-	}
-
-	// For the TxOut of interest, extract the list of addresses
-	txOut := txOuts[outPoint.Index]
-	_, txAddresses, _, err := ltctxscript.ExtractPkScriptAddrs(txOut.PkScript, params)
-	if err != nil {
-		return nil, 0, fmt.Errorf("Invalid tx hash get address")
-	}
-	value := ltcutil.Amount(txOut.Value)
-	addresses := make([]string, 0, len(txAddresses))
-	for _, txAddr := range txAddresses {
-		addr := txAddr.String()
-		addresses = append(addresses, addr)
-	}
-	return addresses, value, nil
-}
-
 // OutPointAddressesFromString is the same as OutPointAddresses, but it takes
 // the outpoint as the tx string, vout index, and tree.
 func OutPointAddressesFromString(txid string, index uint32, tree int8,
@@ -1202,14 +1161,6 @@ func BTCMsgTxFromHex(txhex string, version int32) (*btcwire.MsgTx, error) {
 	return msgTx, nil
 }
 
-func LTCMsgTxFromHex(txhex string, version int32) (*ltcwire.MsgTx, error) {
-	msgTx := ltcwire.NewMsgTx(version)
-	if err := msgTx.Deserialize(hex.NewDecoder(strings.NewReader(txhex))); err != nil {
-		return nil, err
-	}
-	return msgTx, nil
-}
-
 // MsgTxToHex returns a transaction hex string from a wire.MsgTx struct.
 func MsgTxToHex(msgTx *wire.MsgTx) (string, error) {
 	var hexBuilder strings.Builder
@@ -1221,14 +1172,6 @@ func MsgTxToHex(msgTx *wire.MsgTx) (string, error) {
 
 func MsgBTCTxFromHex(txhex string, version int32) (*btcwire.MsgTx, error) {
 	msgTx := btcwire.NewMsgTx(version)
-	if err := msgTx.Deserialize(hex.NewDecoder(strings.NewReader(txhex))); err != nil {
-		return nil, err
-	}
-	return msgTx, nil
-}
-
-func MsgLTCTxFromHex(txhex string, version int32) (*ltcwire.MsgTx, error) {
-	msgTx := ltcwire.NewMsgTx(version)
 	if err := msgTx.Deserialize(hex.NewDecoder(strings.NewReader(txhex))); err != nil {
 		return nil, err
 	}
@@ -1417,18 +1360,6 @@ func TotalBTCVout(vouts []btcjson.Vout) btcutil.Amount {
 	return total
 }
 
-func TotalLTCVout(vouts []ltcjson.Vout) ltcutil.Amount {
-	var total ltcutil.Amount
-	for _, v := range vouts {
-		a, err := ltcutil.NewAmount(v.Value)
-		if err != nil {
-			continue
-		}
-		total += a
-	}
-	return total
-}
-
 // GenesisTxHash returns the hash of the single coinbase transaction in the
 // genesis block of the specified network. This transaction is hard coded, and
 // the pubkey script for its one output only decodes for simnet.
@@ -1457,11 +1388,6 @@ func IsZeroHash(hash chainhash.Hash) bool {
 // IsZeroHash checks if the Hash is the zero hash.
 func IsBTCZeroHash(hash btcchainhash.Hash) bool {
 	return hash == btcZeroHash
-}
-
-// IsZeroHash checks if the Hash is the zero hash.
-func IsLTCZeroHash(hash ltcchainhash.Hash) bool {
-	return hash == ltcZeroHash
 }
 
 // IsZeroHashStr checks if the string is the zero hash string.

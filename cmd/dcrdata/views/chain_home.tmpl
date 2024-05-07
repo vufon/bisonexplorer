@@ -64,7 +64,7 @@
                               </div>
                            </div>
                         </div>
-                     <!-- End Mining Card -->
+                        <!-- End Mining Card -->
                      </div>
                      <div class="info-right-card">
                         <!-- Start Blocks Card -->
@@ -115,12 +115,76 @@
                                           <span class="network-stats-content d-inline-block mt-4" data-homepage-target="blockSize">{{.FormattedBytes}}</span>
                                        </p>
                                     </div>
+                                    <div class="col-12">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Age</span>
+                                          <span class="network-stats-content d-inline-block mt-4" data-type="age" class="jsonly" data-time-target="age" data-age="{{.BlockTime.UNIX}}" data-homepage-target="blockTime">{{.BlockTime}}</span>
+                                       </p>
+                                    </div>
                                  </div>
                                  {{end}}
                               </div>
                            </div>
                         </div>
                         <!-- End Blocks Card -->
+                        <!-- Start Mempool Card -->
+                        <div class="explore-card-wrap">
+                           <div class="explore-card-content">
+                              <a href='/chain/{{$ChainType}}/mempool' class="link-to-subpage">
+                                 <div class="explore-card__header">
+                                    <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
+                                    <div class="explore-card__header__text ml-15">
+                                       <h5 class="explore-card__header__text__name"> Mempool </h5>
+                                       <span class="explore-card__header__arrow">
+                                       <span class='the-arrow -right'>
+                                       <span class='shaft'></span>
+                                       </span>
+                                       </span>
+                                       <div class="explore-card__header__text__price">
+                                          <div class="price-wrap d-flex ai-center">
+                                             <span class="price-usd fs-13">Block list and details</span>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </a>
+                              <div class="explore-card__values-content">
+                                 {{with .MempoolInfo -}}
+                                 <div class="row justify-content-between">
+                                    <div class="col-12">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Transactions</span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                          {{.TotalTransactions}}
+                                          </span>
+                                       </p>
+                                    </div>
+                                    <div class="col-12">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Outputs</span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                          {{.OutputsCount}}
+                                          </span>
+                                       </p>
+                                    </div>
+                                    <div class="col-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">Fee Total</span>
+                                          <span class="network-stats-content d-inline-block mt-4">{{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}</span>
+                                       </div>
+                                    </div>
+                                    <div class="col-12">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Size</span>
+                                          <span class="network-stats-content d-inline-block mt-4">{{.FormattedTotalSize}}</span>
+                                       </p>
+                                    </div>
+                                 </div>
+                                 {{end}}
+                              </div>
+                           </div>
+                        </div>
+                        <!-- End Mempool Card -->
                      </div>
                   </div>
                </div>

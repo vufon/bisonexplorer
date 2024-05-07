@@ -35,8 +35,8 @@ import (
 	"github.com/decred/dcrdata/gov/v6/agendas"
 	pitypes "github.com/decred/dcrdata/gov/v6/politeia/types"
 	"github.com/decred/dcrdata/v8/blockdata"
-	"github.com/decred/dcrdata/v8/blockdatabtc"
-	"github.com/decred/dcrdata/v8/blockdataltc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
@@ -281,9 +281,11 @@ type explorerUI struct {
 	displaySyncStatusPage atomic.Value
 	politeiaURL           string
 
-	invsMtx sync.RWMutex
-	invs    *types.MempoolInfo
-	premine int64
+	invsMtx        sync.RWMutex
+	invs           *types.MempoolInfo
+	ltcMempoolInfo *types.MutilchainMempoolInfo
+	btcMempoolInfo *types.MutilchainMempoolInfo
+	premine        int64
 }
 
 // AreDBsSyncing is a thread-safe way to fetch the boolean in dbsSyncing.
@@ -359,6 +361,8 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	exp.chartSource = cfg.ChartSource
 	// Allocate Mempool fields.
 	exp.invs = new(types.MempoolInfo)
+	exp.ltcMempoolInfo = new(types.MutilchainMempoolInfo)
+	exp.btcMempoolInfo = new(types.MutilchainMempoolInfo)
 	exp.Version = cfg.AppVersion
 	exp.devPrefetch = cfg.DevPrefetch
 	exp.xcBot = cfg.XcBot
@@ -447,7 +451,9 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"sidechains", "disapproved", "ticketpool", "visualblocks", "statistics",
 		"windows", "timelisting", "addresstable", "proposals", "proposal",
 		"market", "insight_root", "attackcost", "treasury", "treasurytable",
-		"verify_message", "stakingreward", "finance_report", "finance_detail", "home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx", "chain_address"}
+		"verify_message", "stakingreward", "finance_report", "finance_detail",
+		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
+		"chain_address", "chain_mempool"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -504,6 +510,19 @@ func (exp *explorerUI) MempoolInventory() *types.MempoolInfo {
 	return exp.invs
 }
 
+func (exp *explorerUI) MutilchainMempoolInfo(chainType string) *types.MutilchainMempoolInfo {
+	exp.invsMtx.RLock()
+	defer exp.invsMtx.RUnlock()
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return exp.btcMempoolInfo
+	case mutilchain.TYPELTC:
+		return exp.ltcMempoolInfo
+	default:
+		return nil
+	}
+}
+
 // MempoolID safely fetches the current mempool inventory ID.
 func (exp *explorerUI) MempoolID() uint64 {
 	exp.invsMtx.RLock()
@@ -526,6 +545,27 @@ func (exp *explorerUI) StoreMPData(_ *mempool.StakeData, _ []types.MempoolTx, in
 	exp.invs = inv
 	exp.invsMtx.Unlock()
 	log.Debugf("Updated mempool details for the explorerUI.")
+}
+
+func (exp *explorerUI) StoreLTCMPData(_ []types.MempoolTx, inv *types.MutilchainMempoolInfo) {
+	// Get exclusive access to the Mempool field.
+	exp.invsMtx.Lock()
+	exp.ltcMempoolInfo = inv
+	exp.invsMtx.Unlock()
+	log.Debugf("Updated mempool details for the explorerUI.")
+}
+
+func (exp *explorerUI) StoreMutilchainMPData(chainType string, inv *types.MutilchainMempoolInfo) {
+	// Get exclusive access to the Mempool field.
+	exp.invsMtx.Lock()
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		exp.btcMempoolInfo = inv
+	case mutilchain.TYPELTC:
+		exp.ltcMempoolInfo = inv
+	}
+	exp.invsMtx.Unlock()
+	log.Debugf("Updated mutilchain mempool details for the explorerUI.")
 }
 
 // Store implements BlockDataSaver.

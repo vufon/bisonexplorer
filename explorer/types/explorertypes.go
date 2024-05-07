@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
 )
 
 // Types of votes
@@ -566,6 +567,22 @@ type MempoolInfo struct {
 	TSpends      []MempoolTx `json:"tspends"`
 	TAdds        []MempoolTx `json:"tadds"`
 	Ident        uint64      `json:"id"`
+}
+
+type MutilchainMempoolInfo struct {
+	sync.RWMutex
+	LastBlockHeight    int64       `json:"block_height"`
+	LastBlockHash      string      `json:"block_hash"`
+	LastBlockTime      int64       `json:"block_time"`
+	FormattedBlockTime string      `json:"formatted_block_time"`
+	Time               int64       `json:"time"`
+	TotalOut           float64     `json:"total"`
+	TotalSize          int32       `json:"size"`
+	TotalFee           float64     `json:"total_fee"`
+	FormattedTotalSize string      `json:"formatted_size"`
+	Transactions       []MempoolTx `json:"tx"`
+	OutputsCount       int64       `json:"outputsCount"`
+	TotalTransactions  int         `json:"totalTransactions"`
 }
 
 // DeepCopy makes a deep copy of MempoolInfo, where all the slice and map data
@@ -1210,6 +1227,19 @@ func UnspentOutputIndices(vouts []Vout) (unspents []int) {
 
 // MsgTxMempoolInputs parses a MsgTx and creates a list of MempoolInput.
 func MsgTxMempoolInputs(msgTx *wire.MsgTx) (inputs []MempoolInput) {
+	for vindex := range msgTx.TxIn {
+		outpoint := msgTx.TxIn[vindex].PreviousOutPoint
+		outId := outpoint.Hash.String()
+		inputs = append(inputs, MempoolInput{
+			TxId:   outId,
+			Index:  uint32(vindex),
+			Outdex: outpoint.Index,
+		})
+	}
+	return
+}
+
+func LTCMsgTxMempoolInputs(msgTx *ltcwire.MsgTx) (inputs []MempoolInput) {
 	for vindex := range msgTx.TxIn {
 		outpoint := msgTx.TxIn[vindex].PreviousOutPoint
 		outId := outpoint.Hash.String()

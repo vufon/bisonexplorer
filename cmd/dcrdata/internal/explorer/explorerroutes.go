@@ -346,16 +346,18 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	}
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
-
+	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
 	str, err := exp.templates.exec("chain_home", struct {
 		*CommonPageData
 		Info          *types.HomeInfo
+		MempoolInfo   *types.MutilchainMempoolInfo
 		BestBlock     *types.BlockBasic
 		Blocks        []*types.BlockBasic
 		PercentChange float64
 		ChainType     string
 	}{
 		CommonPageData: commonData,
+		MempoolInfo:    mempoolInfo,
 		Info:           homeInfo,
 		BestBlock:      bestBlock,
 		Blocks:         blocks,
@@ -1315,6 +1317,39 @@ func (exp *explorerUI) Mempool(w http.ResponseWriter, r *http.Request) {
 		Mempool:        inv,
 	})
 	inv.RUnlock()
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+// Mempool is the page handler for the "/mempool" path.
+func (exp *explorerUI) MutilchainMempool(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	// Safely retrieve the inventory pointer, which can be reset in StoreMPData.
+	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
+
+	// Prevent modifications to the shared inventory struct (e.g. in the
+	// MempoolMonitor) while marshaling the inventory.
+	mempoolInfo.RLock()
+	str, err := exp.templates.exec("chain_mempool", struct {
+		*CommonPageData
+		Mempool   *types.MutilchainMempoolInfo
+		ChainType string
+	}{
+		CommonPageData: exp.commonData(r),
+		Mempool:        mempoolInfo,
+		ChainType:      chainType,
+	})
+	mempoolInfo.RUnlock()
 
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)

@@ -36,11 +36,12 @@ import (
 	politeia "github.com/decred/dcrdata/gov/v6/politeia"
 
 	"github.com/decred/dcrdata/v8/blockdata"
-	"github.com/decred/dcrdata/v8/blockdatabtc"
-	"github.com/decred/dcrdata/v8/blockdataltc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mempool/mempoolltc"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
@@ -828,6 +829,7 @@ func _main(ctx context.Context) error {
 			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/{chaintype}/block/{blockhash}", explore.MutilchainBlockDetail)
 			rd.With(explorer.TransactionHashCtx).Get("/{chaintype}/tx/{txid}", explore.MutilchainTxPage)
 			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/address/{address}", explore.MutilchainAddressPage)
+			rd.Get("/{chaintype}/mempool", explore.MutilchainMempool)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
@@ -1262,6 +1264,30 @@ func _main(ctx context.Context) error {
 				"network, %s.", ltcActiveNet.Net, ltcCurnet)
 			return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
 		}
+
+		//handler mempool
+		ltcMempoolSavers := []mempoolltc.MempoolDataSaver{chainDB.LTCMPC}
+		ltcMempoolSavers = append(ltcMempoolSavers, explore)
+		// Create the mempool data collector.
+		ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcActiveChain)
+		if ltcMpoolCollector == nil {
+			// Shutdown goroutines.
+			requestShutdown()
+			return fmt.Errorf("Failed to create LTC mempool data collector")
+		}
+
+		mpm, err := mempoolltc.NewMempoolMonitor(ctx, ltcMpoolCollector, ltcMempoolSavers,
+			ltcActiveChain, true)
+
+		// Ensure the initial collect/store succeeded.
+		if err != nil {
+			// Shutdown goroutines.
+			requestShutdown()
+			return fmt.Errorf("NewMempoolMonitor: %v", err)
+		}
+
+		// Use the MempoolMonitor in DB to get unconfirmed transaction data.
+		chainDB.UseLTCMempoolChecker(mpm)
 
 		//Start - LTC Sync handler
 		_, ltcHeight, err = ltcdClient.GetBestBlock()

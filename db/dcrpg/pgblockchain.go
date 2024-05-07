@@ -55,6 +55,7 @@ import (
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mempool/mempoolltc"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
@@ -297,6 +298,7 @@ type ChainDB struct {
 	mixSetDiffs        map[uint32]int64 // height to value diff
 	deployments        *ChainDeployments
 	MPC                *mempool.DataCache
+	LTCMPC             *mempoolltc.DataCache
 	// BlockCache stores apitypes.BlockDataBasic and apitypes.StakeInfoExtended
 	// in StoreBlock for quick retrieval without a DB query.
 	BlockCache        *apitypes.APICache
@@ -798,6 +800,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		mixSetDiffs:        make(map[uint32]int64),
 		deployments:        new(ChainDeployments),
 		MPC:                new(mempool.DataCache),
+		LTCMPC:             new(mempoolltc.DataCache),
 		BlockCache:         apitypes.NewAPICache(1e4),
 		heightClients:      make([]chan uint32, 0),
 		shutdownDcrdata:    shutdown,
@@ -843,6 +846,10 @@ func (pgb *ChainDB) UseStakeDB(stakeDB *stakedb.StakeDatabase) {
 // transactions involving a certain address.
 func (pgb *ChainDB) UseMempoolChecker(mp rpcutils.MempoolAddressChecker) {
 	pgb.mp = mp
+}
+
+func (pgb *ChainDB) UseLTCMempoolChecker(mp ltcrpcutils.MempoolAddressChecker) {
+	pgb.ltcMp = mp
 }
 
 // EnableDuplicateCheckOnInsert specifies whether SQL insertions should check
