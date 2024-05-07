@@ -634,7 +634,6 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		}
 		//insert DCR meta data
 		err = insertMetaData(db, &metaData{
-			chainType:       mutilchain.TYPEDCR,
 			netName:         params.Name,
 			currencyNet:     uint32(params.Net),
 			bestBlockHeight: -1,

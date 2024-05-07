@@ -28,7 +28,6 @@ import (
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
-	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lib/pq"
@@ -38,7 +37,7 @@ import (
 // error value will never be sql.ErrNoRows; instead with height == -1 indicating
 // no data in the meta table.
 func DBBestBlock(ctx context.Context, db *sql.DB) (hash string, height int64, err error) {
-	err = db.QueryRowContext(ctx, internal.SelectMetaDBBestBlock, mutilchain.TYPEDCR).Scan(&height, &hash)
+	err = db.QueryRowContext(ctx, internal.SelectMetaDBBestBlock).Scan(&height, &hash)
 	if err == sql.ErrNoRows {
 		err = nil
 		height = -1
@@ -49,7 +48,7 @@ func DBBestBlock(ctx context.Context, db *sql.DB) (hash string, height int64, er
 // SetDBBestBlock sets the best block hash and height in the meta table.
 func SetDBBestBlock(db *sql.DB, hash string, height int64) error {
 	numRows, err := sqlExec(db, internal.SetMetaDBBestBlock,
-		"failed to update best block in meta table: ", height, hash, mutilchain.TYPEDCR)
+		"failed to update best block in meta table: ", height, hash)
 	if err != nil {
 		return err
 	}
@@ -63,7 +62,7 @@ func SetDBBestBlock(db *sql.DB, hash string, height int64) error {
 // IBDComplete indicates whether initial block download was completed according
 // to the meta.ibd_complete flag.
 func IBDComplete(db *sql.DB) (ibdComplete bool, err error) {
-	err = db.QueryRow(internal.SelectMetaDBIbdComplete, mutilchain.TYPEDCR).Scan(&ibdComplete)
+	err = db.QueryRow(internal.SelectMetaDBIbdComplete).Scan(&ibdComplete)
 	return
 }
 
@@ -71,7 +70,7 @@ func IBDComplete(db *sql.DB) (ibdComplete bool, err error) {
 // the meta table.
 func SetIBDComplete(db SqlExecutor, ibdComplete bool) error {
 	numRows, err := sqlExec(db, internal.SetMetaDBIbdComplete,
-		"failed to update ibd_complete in meta table: ", ibdComplete, mutilchain.TYPEDCR)
+		"failed to update ibd_complete in meta table: ", ibdComplete)
 	if err != nil {
 		return err
 	}

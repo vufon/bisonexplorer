@@ -152,7 +152,7 @@ func (db *ChainDB) SyncBTCChainDB(client *btcClient.Client, quit chan struct{},
 			return ib - 1, fmt.Errorf("BTC: GetBlock failed (%s): %v", blockHash, err)
 		}
 		var numVins, numVouts int64
-		if numVins, numVouts, err = db.StoreBTCBlock(client, block.MsgBlock(), true, updateAllAddresses); err != nil {
+		if numVins, numVouts, err = db.StoreBTCBlock(client, block.MsgBlock(), true, !updateAllAddresses); err != nil {
 			return ib - 1, fmt.Errorf("BTC: StoreBlock failed: %v", err)
 		}
 		totalVins += numVins
@@ -291,7 +291,7 @@ func (db *ChainDB) SyncLTCChainDB(client *ltcClient.Client, quit chan struct{},
 			return ib - 1, fmt.Errorf("GetBlock failed (%s): %v", blockHash, err)
 		}
 		var numVins, numVouts int64
-		if numVins, numVouts, err = db.StoreLTCBlock(client, block.MsgBlock(), true, updateAllAddresses); err != nil {
+		if numVins, numVouts, err = db.StoreLTCBlock(client, block.MsgBlock(), true, !updateAllAddresses); err != nil {
 			return ib - 1, fmt.Errorf("StoreBlock failed: %v", err)
 		}
 		totalVins += numVins
