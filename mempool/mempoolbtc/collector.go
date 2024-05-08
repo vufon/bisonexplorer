@@ -2,7 +2,7 @@
 // Copyright (c) 2017, Jonathan Chappelow
 // See LICENSE for details.
 
-package mempoolltc
+package mempoolbtc
 
 import (
 	"fmt"
@@ -10,20 +10,20 @@ import (
 	"sync"
 	"time"
 
+	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
-	"github.com/ltcsuite/ltcd/btcjson"
-	"github.com/ltcsuite/ltcd/chaincfg"
-	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/ltcutil"
 )
 
 // txhelpers.VerboseTransactionPromiseGetter.
 type NodeClient interface {
 	GetRawMempoolVerbose() (map[string]btcjson.GetRawMempoolVerboseResult, error)
 	GetBestBlock() (*chainhash.Hash, int32, error)
-	txhelpers.LTCRawTransactionGetter
-	txhelpers.LTCVerboseTransactionGetter
+	txhelpers.BTCRawTransactionGetter
+	txhelpers.BTCVerboseTransactionGetter
 	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
 }
 
@@ -36,18 +36,18 @@ type CoreNodeClient interface {
 type DataCollector struct {
 	// Mutex is used to prevent multiple concurrent calls to Collect.
 	mtx             sync.Mutex
-	ltcdChainSvr    NodeClient
-	ltcCoreChainSvr CoreNodeClient
+	btcdChainSvr    NodeClient
+	btcCoreChainSvr CoreNodeClient
 	activeChain     *chaincfg.Params
 }
 
 // NewDataCollector creates a new DataCollector. Use a rpcutils.AsyncTxClient to
 // create a NodeClient from an rpcclient.Client or implement a wrapper that
 // provides txhelpers.VerboseTransactionPromiseGetter.
-func NewDataCollector(ltcdChainSvr NodeClient, ltcCoreChainSvr CoreNodeClient, params *chaincfg.Params) *DataCollector {
+func NewDataCollector(btcdChainSvr NodeClient, btcCoreChainSvr CoreNodeClient, params *chaincfg.Params) *DataCollector {
 	return &DataCollector{
-		ltcdChainSvr:    ltcdChainSvr,
-		ltcCoreChainSvr: ltcCoreChainSvr,
+		btcdChainSvr:    btcdChainSvr,
+		btcCoreChainSvr: btcCoreChainSvr,
 		activeChain:     params,
 	}
 }
@@ -55,17 +55,17 @@ func NewDataCollector(ltcdChainSvr NodeClient, ltcCoreChainSvr CoreNodeClient, p
 // mempoolTxns retrieves all transactions and returns them as a
 // []exptypes.MempoolTx. See also ParseTxns, which may process this slice. A
 // fresh MempoolAddressStore and TxnsStore are also generated.
-func (t *DataCollector) Collect() (*BlockID, []exptypes.MempoolTx, txhelpers.LTCMempoolAddressStore, txhelpers.LTCTxnsStore, error) {
-	mempooltxs, err := t.ltcdChainSvr.GetRawMempoolVerbose()
+func (t *DataCollector) Collect() (*BlockID, []exptypes.MempoolTx, txhelpers.BTCMempoolAddressStore, txhelpers.BTCTxnsStore, error) {
+	mempooltxs, err := t.btcdChainSvr.GetRawMempoolVerbose()
 	if err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("GetRawMempoolVerbose failed: %v", err)
 	}
 
-	bestHash, bestHeight, err := t.ltcdChainSvr.GetBestBlock()
+	bestHash, bestHeight, err := t.btcdChainSvr.GetBestBlock()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	header, err := t.ltcdChainSvr.GetBlockHeaderVerbose(bestHash)
+	header, err := t.btcdChainSvr.GetBlockHeaderVerbose(bestHash)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -77,28 +77,30 @@ func (t *DataCollector) Collect() (*BlockID, []exptypes.MempoolTx, txhelpers.LTC
 	}
 
 	txs := make([]exptypes.MempoolTx, 0, len(mempooltxs))
-	addrMap := make(txhelpers.LTCMempoolAddressStore)
-	txnsStore := make(txhelpers.LTCTxnsStore)
+	addrMap := make(txhelpers.BTCMempoolAddressStore)
+	txnsStore := make(txhelpers.BTCTxnsStore)
 	for hashStr, tx := range mempooltxs {
 		hash, err := chainhash.NewHashFromStr(hashStr)
 		if err != nil {
 			log.Warn(err)
 			continue
 		}
-		txn, err := t.ltcdChainSvr.GetRawTransaction(hash)
+		txn, err := t.btcdChainSvr.GetRawTransaction(hash)
 		if err != nil {
 			log.Warn(err)
 			continue
 		}
 		msgTx := txn.MsgTx()
+
 		// Set Outpoints in the addrMap.
-		txhelpers.LTCTxOutpointsByAddr(addrMap, msgTx, t.activeChain)
+
+		txhelpers.BTCTxOutpointsByAddr(addrMap, msgTx, t.activeChain)
 		// Set PrevOuts in the addrMap, and related txns data in txnsStore.
-		txhelpers.LTCTxPrevOutsByAddr(addrMap, txnsStore, msgTx, t.ltcdChainSvr, t.activeChain)
+		txhelpers.BTCTxPrevOutsByAddr(addrMap, txnsStore, msgTx, t.btcdChainSvr, t.activeChain)
 
 		// Store the current mempool transaction with MemPoolTime from GRM, and
 		// block info zeroed.
-		txnsStore[*hash] = &txhelpers.LTCTxWithBlockData{
+		txnsStore[*hash] = &txhelpers.BTCTxWithBlockData{
 			Tx:          msgTx,
 			MemPoolTime: tx.Time,
 		}
@@ -108,7 +110,7 @@ func (t *DataCollector) Collect() (*BlockID, []exptypes.MempoolTx, txhelpers.LTC
 			totalOut += v.Value
 		}
 
-		_, feeRate := txhelpers.LTCTxFeeRate(msgTx, t.ltcdChainSvr)
+		_, feeRate := txhelpers.BTCTxFeeRate(msgTx, t.btcdChainSvr)
 
 		txs = append(txs, exptypes.MempoolTx{
 			TxID:      hashStr,
@@ -117,12 +119,12 @@ func (t *DataCollector) Collect() (*BlockID, []exptypes.MempoolTx, txhelpers.LTC
 			FeeRate:   feeRate.ToBTC(),
 			VinCount:  len(msgTx.TxIn),
 			VoutCount: len(msgTx.TxOut),
-			Vin:       exptypes.LTCMsgTxMempoolInputs(msgTx),
+			Vin:       exptypes.BTCMsgTxMempoolInputs(msgTx),
 			// Coinbase:  txhelpers.IsCoinBaseTx(msgTx), // commented because coinbase is not in mempool
 			Hash:     hashStr, // dup of TxID!
 			Time:     tx.Time,
 			Size:     tx.Size,
-			TotalOut: ltcutil.Amount(totalOut).ToBTC(),
+			TotalOut: btcutil.Amount(totalOut).ToBTC(),
 		})
 	}
 
@@ -154,13 +156,13 @@ func ParseTxns(txs []exptypes.MempoolTx, params *chaincfg.Params, lastBlock *Blo
 
 	// Reduction variables.
 	var latestTime int64
-	var totalOut ltcutil.Amount
+	var totalOut btcutil.Amount
 	var totalSize int32
 	var totalFee = float64(0)
 	totalVouts := int64(0)
 	for _, tx := range txs {
 		totalVouts += int64(tx.VoutCount)
-		out, _ := ltcutil.NewAmount(tx.TotalOut) // 0 for invalid amounts
+		out, _ := btcutil.NewAmount(tx.TotalOut) // 0 for invalid amounts
 		totalOut += out
 		totalSize += tx.Size
 		if latestTime < tx.Time {

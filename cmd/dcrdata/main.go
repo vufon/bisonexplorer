@@ -41,6 +41,7 @@ import (
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mempool/mempoolbtc"
 	"github.com/decred/dcrdata/v8/mempool/mempoolltc"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
@@ -1446,6 +1447,32 @@ func _main(ctx context.Context) error {
 		}
 		chainDB.BtcClient = btcdClient
 		chainDB.BtcCoreClient = btcCoreClient
+
+		//handler mempool
+		btcMempoolSavers := []mempoolbtc.MempoolDataSaver{chainDB.BTCMPC}
+		btcMempoolSavers = append(btcMempoolSavers, explore)
+		// Create the mempool data collector.
+		btcMpoolCollector := mempoolbtc.NewDataCollector(btcdClient, btcCoreClient, btcActiveChain)
+		if btcMpoolCollector == nil {
+			// Shutdown goroutines.
+			requestShutdown()
+			return fmt.Errorf("Failed to create BTC mempool data collector")
+		}
+
+		mpm, err := mempoolbtc.NewMempoolMonitor(ctx, btcMpoolCollector, btcMempoolSavers,
+			btcActiveChain, true)
+
+		// Ensure the initial collect/store succeeded.
+		if err != nil {
+			// Shutdown goroutines.
+			requestShutdown()
+			return fmt.Errorf("NewMempoolMonitor: %v", err)
+		}
+
+		// Use the MempoolMonitor in DB to get unconfirmed transaction data.
+		chainDB.UseBTCMempoolChecker(mpm)
+		//end handler mempool
+
 		//Start - BTC Sync handler
 		_, btcHeight, err = btcdClient.GetBestBlock()
 		if err != nil {

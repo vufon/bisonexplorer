@@ -17,6 +17,7 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrdata/v8/semver"
+	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
 type MempoolGetter interface {
@@ -34,23 +35,6 @@ type VerboseBlockGetter interface {
 	GetBlockVerbose(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseResult, error)
 	GetBlockVerboseTx(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseTxResult, error)
 	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
-}
-
-// AddressOutpoints collects spendable and spent transactions outpoints paying
-// to a certain address. The transactions referenced by the outpoints are stored
-// for quick access.
-type AddressOutpoints struct {
-	Address   string
-	Outpoints []*wire.OutPoint
-	PrevOuts  []PrevOut
-	TxnsStore map[chainhash.Hash]*TxWithBlockData
-}
-
-type TxWithBlockData struct {
-	Tx          *wire.MsgTx
-	BlockHeight int64
-	BlockHash   string
-	MemPoolTime int64
 }
 
 type TransactionGetter interface {
@@ -142,7 +126,7 @@ func ConnectNodeRPC(host, user, pass, cert string, disableTLS, disableReconnect 
 		log.Debugf("Attempting to connect to dcrd RPC %s as user %s (no TLS)",
 			host, user)
 	}
-	
+
 	//connect with btcd
 	connCfgDaemon := &rpcclient.ConnConfig{
 		Host:                 host,
@@ -439,7 +423,7 @@ func OrphanedTipLength(ctx context.Context, client BlockHashGetter,
 // NewMempoolAddressChecker may be used to create a MempoolAddressChecker from
 // an rpcclient.Client.
 type MempoolAddressChecker interface {
-	UnconfirmedTxnsForAddress(address string) (*AddressOutpoints, int64, error)
+	UnconfirmedTxnsForAddress(address string) (*txhelpers.BTCAddressOutpoints, int64, error)
 }
 
 type mempoolAddressChecker struct {
@@ -456,7 +440,7 @@ type VerboseTransactionPromiseGetter interface {
 }
 
 // UnconfirmedTxnsForAddress implements MempoolAddressChecker.
-func (m *mempoolAddressChecker) UnconfirmedTxnsForAddress(address string) (*AddressOutpoints, int64, error) {
+func (m *mempoolAddressChecker) UnconfirmedTxnsForAddress(address string) (*txhelpers.BTCAddressOutpoints, int64, error) {
 	return UnconfirmedTxnsForAddress(m.client, address, m.params)
 }
 
@@ -466,10 +450,10 @@ func NewMempoolAddressChecker(client *rpcclient.Client, params *chaincfg.Params)
 	return &mempoolAddressChecker{&AsyncTxClient{client}, params}
 }
 
-func NewAddressOutpoints(address string) *AddressOutpoints {
-	return &AddressOutpoints{
+func NewAddressOutpoints(address string) *txhelpers.BTCAddressOutpoints {
+	return &txhelpers.BTCAddressOutpoints{
 		Address:   address,
-		TxnsStore: make(map[chainhash.Hash]*TxWithBlockData),
+		TxnsStore: make(map[chainhash.Hash]*txhelpers.BTCTxWithBlockData),
 	}
 }
 
@@ -485,6 +469,6 @@ type MempoolTxGetter interface {
 // mempool that (1) pay to the given address, or (2) spend a previous outpoint
 // that paid to the address.
 func UnconfirmedTxnsForAddress(client MempoolTxGetter, address string,
-	params *chaincfg.Params) (*AddressOutpoints, int64, error) {
+	params *chaincfg.Params) (*txhelpers.BTCAddressOutpoints, int64, error) {
 	return nil, 0, nil
 }

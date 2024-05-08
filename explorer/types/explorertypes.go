@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
@@ -1246,6 +1247,19 @@ func MsgTxMempoolInputs(msgTx *wire.MsgTx) (inputs []MempoolInput) {
 }
 
 func LTCMsgTxMempoolInputs(msgTx *ltcwire.MsgTx) (inputs []MempoolInput) {
+	for vindex := range msgTx.TxIn {
+		outpoint := msgTx.TxIn[vindex].PreviousOutPoint
+		outId := outpoint.Hash.String()
+		inputs = append(inputs, MempoolInput{
+			TxId:   outId,
+			Index:  uint32(vindex),
+			Outdex: outpoint.Index,
+		})
+	}
+	return
+}
+
+func BTCMsgTxMempoolInputs(msgTx *btcwire.MsgTx) (inputs []MempoolInput) {
 	for vindex := range msgTx.TxIn {
 		outpoint := msgTx.TxIn[vindex].PreviousOutPoint
 		outId := outpoint.Hash.String()

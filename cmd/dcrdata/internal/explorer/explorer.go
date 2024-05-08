@@ -559,6 +559,14 @@ func (exp *explorerUI) StoreLTCMPData(_ []types.MempoolTx, inv *types.Mutilchain
 	log.Debugf("Updated mempool details for the explorerUI.")
 }
 
+func (exp *explorerUI) StoreBTCMPData(_ []types.MempoolTx, inv *types.MutilchainMempoolInfo) {
+	// Get exclusive access to the Mempool field.
+	exp.invsMtx.Lock()
+	exp.btcMempoolInfo = inv
+	exp.invsMtx.Unlock()
+	log.Debugf("Updated mempool details for the explorerUI.")
+}
+
 func (exp *explorerUI) StoreMutilchainMPData(chainType string, inv *types.MutilchainMempoolInfo) {
 	// Get exclusive access to the Mempool field.
 	exp.invsMtx.Lock()

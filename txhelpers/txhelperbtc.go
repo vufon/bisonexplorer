@@ -5,60 +5,60 @@ import (
 	"fmt"
 	"strings"
 
-	ltcjson "github.com/ltcsuite/ltcd/btcjson"
-	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
-	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/ltcutil"
-	"github.com/ltcsuite/ltcd/txscript"
-	ltctxscript "github.com/ltcsuite/ltcd/txscript"
-	ltcwire "github.com/ltcsuite/ltcd/wire"
+	btcjson "github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
+	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
+	btctxscript "github.com/btcsuite/btcd/txscript"
+	btcwire "github.com/btcsuite/btcd/wire"
 )
 
 var (
-	ltcZeroHash = chainhash.Hash{}
+	btcZeroHash = chainhash.Hash{}
 )
 
-type LTCAddressOutpoints struct {
+type BTCAddressOutpoints struct {
 	Address   string
-	Outpoints []*ltcwire.OutPoint
-	PrevOuts  []LTCPrevOut
-	TxnsStore map[chainhash.Hash]*LTCTxWithBlockData
+	Outpoints []*btcwire.OutPoint
+	PrevOuts  []BTCPrevOut
+	TxnsStore map[chainhash.Hash]*BTCTxWithBlockData
 }
 
-func NewLTCAddressOutpoints(address string) *LTCAddressOutpoints {
-	return &LTCAddressOutpoints{
+func NewBTCAddressOutpoints(address string) *BTCAddressOutpoints {
+	return &BTCAddressOutpoints{
 		Address:   address,
-		TxnsStore: make(map[chainhash.Hash]*LTCTxWithBlockData),
+		TxnsStore: make(map[chainhash.Hash]*BTCTxWithBlockData),
 	}
 }
 
-type LTCPrevOut struct {
+type BTCPrevOut struct {
 	TxSpending       chainhash.Hash
 	InputIndex       int
-	PreviousOutpoint *ltcwire.OutPoint
+	PreviousOutpoint *btcwire.OutPoint
 }
 
-type LTCRawTransactionGetter interface {
-	GetRawTransaction(txHash *chainhash.Hash) (*ltcutil.Tx, error)
+type BTCRawTransactionGetter interface {
+	GetRawTransaction(txHash *chainhash.Hash) (*btcutil.Tx, error)
 }
 
-type LTCVerboseTransactionGetter interface {
-	GetRawTransactionVerbose(txHash *chainhash.Hash) (*ltcjson.TxRawResult, error)
-	GetBlockVerboseTx(blockHash *chainhash.Hash) (*ltcjson.GetBlockVerboseTxResult, error)
+type BTCVerboseTransactionGetter interface {
+	GetRawTransactionVerbose(txHash *chainhash.Hash) (*btcjson.TxRawResult, error)
+	GetBlockVerboseTx(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseTxResult, error)
 }
 
-func LTCMsgTxFromHex(txhex string, version int32) (*ltcwire.MsgTx, error) {
-	msgTx := ltcwire.NewMsgTx(version)
+func BTCMsgTxFromHex(txhex string, version int32) (*btcwire.MsgTx, error) {
+	msgTx := btcwire.NewMsgTx(version)
 	if err := msgTx.Deserialize(hex.NewDecoder(strings.NewReader(txhex))); err != nil {
 		return nil, err
 	}
 	return msgTx, nil
 }
 
-func TotalLTCVout(vouts []ltcjson.Vout) ltcutil.Amount {
-	var total ltcutil.Amount
+func TotalBTCVout(vouts []btcjson.Vout) btcutil.Amount {
+	var total btcutil.Amount
 	for _, v := range vouts {
-		a, err := ltcutil.NewAmount(v.Value)
+		a, err := btcutil.NewAmount(v.Value)
 		if err != nil {
 			continue
 		}
@@ -68,20 +68,20 @@ func TotalLTCVout(vouts []ltcjson.Vout) ltcutil.Amount {
 }
 
 // IsZeroHash checks if the Hash is the zero hash.
-func IsLTCZeroHash(hash chainhash.Hash) bool {
-	return hash == ltcZeroHash
+func IsBTCZeroHash(hash chainhash.Hash) bool {
+	return hash == btcZeroHash
 }
 
-func MsgLTCTxFromHex(txhex string, version int32) (*ltcwire.MsgTx, error) {
-	msgTx := ltcwire.NewMsgTx(version)
+func MsgBTCTxFromHex(txhex string, version int32) (*btcwire.MsgTx, error) {
+	msgTx := btcwire.NewMsgTx(version)
 	if err := msgTx.Deserialize(hex.NewDecoder(strings.NewReader(txhex))); err != nil {
 		return nil, err
 	}
 	return msgTx, nil
 }
 
-func LTCOutPointAddresses(outPoint *ltcwire.OutPoint, c LTCRawTransactionGetter,
-	params *ltcchaincfg.Params) ([]string, ltcutil.Amount, error) {
+func BTCOutPointAddresses(outPoint *btcwire.OutPoint, c BTCRawTransactionGetter,
+	params *btcchaincfg.Params) ([]string, btcutil.Amount, error) {
 	// The addresses are encoded in the pkScript, so we need to get the
 	// raw transaction, and the TxOut that contains the pkScript.
 	prevTx, err := c.GetRawTransaction(&outPoint.Hash)
@@ -97,11 +97,11 @@ func LTCOutPointAddresses(outPoint *ltcwire.OutPoint, c LTCRawTransactionGetter,
 
 	// For the TxOut of interest, extract the list of addresses
 	txOut := txOuts[outPoint.Index]
-	_, txAddresses, _, err := ltctxscript.ExtractPkScriptAddrs(txOut.PkScript, params)
+	_, txAddresses, _, err := btctxscript.ExtractPkScriptAddrs(txOut.PkScript, params)
 	if err != nil {
 		return nil, 0, fmt.Errorf("Invalid tx hash get address")
 	}
-	value := ltcutil.Amount(txOut.Value)
+	value := btcutil.Amount(txOut.Value)
 	addresses := make([]string, 0, len(txAddresses))
 	for _, txAddr := range txAddresses {
 		addr := txAddr.String()
@@ -110,19 +110,19 @@ func LTCOutPointAddresses(outPoint *ltcwire.OutPoint, c LTCRawTransactionGetter,
 	return addresses, value, nil
 }
 
-type LTCTxnsStore map[chainhash.Hash]*LTCTxWithBlockData
+type BTCTxnsStore map[chainhash.Hash]*BTCTxWithBlockData
 
-type LTCTxWithBlockData struct {
-	Tx          *ltcwire.MsgTx
+type BTCTxWithBlockData struct {
+	Tx          *btcwire.MsgTx
 	BlockHeight int64
 	BlockHash   string
 	MemPoolTime int64
 }
 
 // MempoolAddressStore organizes AddressOutpoints by address.
-type LTCMempoolAddressStore map[string]*LTCAddressOutpoints
+type BTCMempoolAddressStore map[string]*BTCAddressOutpoints
 
-func LTCTxOutpointsByAddr(txAddrOuts LTCMempoolAddressStore, msgTx *ltcwire.MsgTx, params *ltcchaincfg.Params) (newOuts int, addrs map[string]bool) {
+func BTCTxOutpointsByAddr(txAddrOuts BTCMempoolAddressStore, msgTx *btcwire.MsgTx, params *btcchaincfg.Params) (newOuts int, addrs map[string]bool) {
 	if txAddrOuts == nil {
 		panic("TxAddressOutpoints: input map must be initialized: map[string]*AddressOutpoints")
 	}
@@ -144,13 +144,13 @@ func LTCTxOutpointsByAddr(txAddrOuts LTCMempoolAddressStore, msgTx *ltcwire.MsgT
 		for _, txAddr := range txOutAddrs {
 			addr := txAddr.String()
 
-			op := ltcwire.NewOutPoint(txHash, uint32(outIndex))
+			op := btcwire.NewOutPoint(txHash, uint32(outIndex))
 
 			addrOuts := txAddrOuts[addr]
 			if addrOuts == nil {
-				addrOuts = &LTCAddressOutpoints{
+				addrOuts = &BTCAddressOutpoints{
 					Address:   addr,
-					Outpoints: []*ltcwire.OutPoint{op},
+					Outpoints: []*btcwire.OutPoint{op},
 				}
 				txAddrOuts[addr] = addrOuts
 				addrs[addr] = true // new
@@ -166,33 +166,33 @@ func LTCTxOutpointsByAddr(txAddrOuts LTCMempoolAddressStore, msgTx *ltcwire.MsgT
 }
 
 // TotalOutFromMsgTx computes the total value out of a MsgTx
-func LTCTotalOutFromMsgTx(msgTx *ltcwire.MsgTx) ltcutil.Amount {
+func BTCTotalOutFromMsgTx(msgTx *btcwire.MsgTx) btcutil.Amount {
 	var amtOut int64
 	for _, v := range msgTx.TxOut {
 		amtOut += v.Value
 	}
-	return ltcutil.Amount(amtOut)
+	return btcutil.Amount(amtOut)
 }
 
-func LTCTxPrevOutsByAddr(txAddrOuts LTCMempoolAddressStore, txnsStore LTCTxnsStore, msgTx *ltcwire.MsgTx, c LTCVerboseTransactionGetter,
-	params *ltcchaincfg.Params) (newPrevOuts int, addrs map[string]bool, valsIn []int64) {
+func BTCTxPrevOutsByAddr(txAddrOuts BTCMempoolAddressStore, txnsStore BTCTxnsStore, msgTx *btcwire.MsgTx, c BTCVerboseTransactionGetter,
+	params *btcchaincfg.Params) (newPrevOuts int, addrs map[string]bool, valsIn []int64) {
 	if txAddrOuts == nil {
-		panic("LTCTxPrevOutsByAddr: input map must be initialized: map[string]*AddressOutpoints")
+		panic("BTCTxPrevOutsByAddr: input map must be initialized: map[string]*AddressOutpoints")
 	}
 	if txnsStore == nil {
-		panic("LTCTxPrevOutsByAddr: input map must be initialized: map[string]*AddressOutpoints")
+		panic("BTCTxPrevOutsByAddr: input map must be initialized: map[string]*AddressOutpoints")
 	}
 
 	// Send all the raw transaction requests
 	type promiseGetRawTransaction struct {
-		result *ltcjson.TxRawResult
+		result *btcjson.TxRawResult
 		inIdx  int
 	}
 	promisesGetRawTransaction := make([]promiseGetRawTransaction, 0, len(msgTx.TxIn))
 
 	for inIdx, txIn := range msgTx.TxIn {
 		hash := &txIn.PreviousOutPoint.Hash
-		if ltcZeroHash.IsEqual(hash) {
+		if btcZeroHash.IsEqual(hash) {
 			continue // coinbase or stakebase
 		}
 		txVerbose, txErr := c.GetRawTransactionVerbose(hash)
@@ -207,7 +207,6 @@ func LTCTxPrevOutsByAddr(txAddrOuts LTCMempoolAddressStore, txnsStore LTCTxnsSto
 
 	addrs = make(map[string]bool)
 	valsIn = make([]int64, len(msgTx.TxIn))
-
 	// For each TxIn of this transaction, inspect the previous outpoint.
 	for i := range promisesGetRawTransaction {
 		// Previous outpoint for this TxIn
@@ -221,9 +220,9 @@ func LTCTxPrevOutsByAddr(txAddrOuts LTCMempoolAddressStore, txnsStore LTCTxnsSto
 			continue
 		}
 
-		prevTx, err := LTCMsgTxFromHex(prevTxRaw.Hex, int32(prevTxRaw.Version))
+		prevTx, err := BTCMsgTxFromHex(prevTxRaw.Hex, int32(prevTxRaw.Version))
 		if err != nil {
-			fmt.Printf("TxPrevOutsByAddr: MsgTxFromHex failed: %s\n", err)
+			fmt.Printf("BTC: MsgTxFromHex failed: %s\n", err)
 			continue
 		}
 
@@ -256,14 +255,14 @@ func LTCTxPrevOutsByAddr(txAddrOuts LTCMempoolAddressStore, txnsStore LTCTxnsSto
 		}
 
 		// Put the previous outpoint's transaction in the txnsStore.
-		txnsStore[hash] = &LTCTxWithBlockData{
+		txnsStore[hash] = &BTCTxWithBlockData{
 			Tx:          prevTx,
 			BlockHeight: blockVerbose.Height,
 			BlockHash:   prevTxRaw.BlockHash,
 		}
 
-		outpoint := ltcwire.NewOutPoint(&hash, prevOut.Index)
-		prevOutExtended := LTCPrevOut{
+		outpoint := btcwire.NewOutPoint(&hash, prevOut.Index)
+		prevOutExtended := BTCPrevOut{
 			TxSpending:       msgTx.TxHash(),
 			InputIndex:       inIdx,
 			PreviousOutpoint: outpoint,
@@ -280,9 +279,9 @@ func LTCTxPrevOutsByAddr(txAddrOuts LTCMempoolAddressStore, txnsStore LTCTxnsSto
 				// Insert into affected address map.
 				addrs[addr] = true // new
 				// Insert into the address store.
-				txAddrOuts[addr] = &LTCAddressOutpoints{
+				txAddrOuts[addr] = &BTCAddressOutpoints{
 					Address:  addr,
-					PrevOuts: []LTCPrevOut{prevOutExtended},
+					PrevOuts: []BTCPrevOut{prevOutExtended},
 				}
 				continue
 			}
@@ -298,7 +297,7 @@ func LTCTxPrevOutsByAddr(txAddrOuts LTCMempoolAddressStore, txnsStore LTCTxnsSto
 	return
 }
 
-func LTCTxFeeRate(msgTx *ltcwire.MsgTx, client LTCVerboseTransactionGetter) (ltcutil.Amount, ltcutil.Amount) {
+func BTCTxFeeRate(msgTx *btcwire.MsgTx, client BTCVerboseTransactionGetter) (btcutil.Amount, btcutil.Amount) {
 	var amtIn int64
 	for _, txin := range msgTx.TxIn {
 		//Get transaction
@@ -317,5 +316,5 @@ func LTCTxFeeRate(msgTx *ltcwire.MsgTx, client LTCVerboseTransactionGetter) (ltc
 		amtOut += msgTx.TxOut[iv].Value
 	}
 	txSize := int64(msgTx.SerializeSize())
-	return ltcutil.Amount(amtIn - amtOut), ltcutil.Amount(FeeRate(amtIn, amtOut, txSize))
+	return btcutil.Amount(amtIn - amtOut), btcutil.Amount(FeeRate(amtIn, amtOut, txSize))
 }
