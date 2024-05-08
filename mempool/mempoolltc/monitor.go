@@ -181,7 +181,7 @@ func (p *MempoolMonitor) TxHandler(rawTx *btcjson.TxRawResult) error {
 	}
 
 	p.inventory.Transactions = append([]exptypes.MempoolTx{tx}, p.inventory.Transactions...)
-	p.inventory.TotalTransactions = len(p.inventory.Transactions)
+	p.inventory.TotalTransactions = int64(len(p.inventory.Transactions))
 	p.inventory.OutputsCount += 1
 	// Update latest transactions, popping the oldest transaction off
 	p.inventory.FormattedTotalSize = exptypes.BytesString(uint64(p.inventory.TotalSize))

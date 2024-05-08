@@ -502,6 +502,7 @@ type Conversion struct {
 // HomeInfo represents data used for the home page
 type HomeInfo struct {
 	CoinSupply            int64                    `json:"coin_supply"`
+	CoinValueSupply       float64                  `json:"coin_value_supply"`
 	MixedPercent          float64                  `json:"mixed_percent"`
 	StakeDiff             float64                  `json:"sdiff"`
 	NextExpectedStakeDiff float64                  `json:"next_expected_sdiff"`
@@ -524,6 +525,7 @@ type HomeInfo struct {
 	TotalTransactions     int64                    `json:"total_transactions"`
 	TotalOutputs          int64                    `json:"total_outputs"`
 	TotalSize             int64                    `json:"total_size"`
+	FormattedSize         string                   `json:"formatted_size"`
 	TotalAddresses        int64                    `json:"total_addresses"`
 	HashRateChangeDay     float64                  `json:"hash_rate_change_day"`
 	HashRateChangeMonth   float64                  `json:"hash_rate_change_month"`
@@ -586,7 +588,7 @@ type MutilchainMempoolInfo struct {
 	FormattedTotalSize string      `json:"formatted_size"`
 	Transactions       []MempoolTx `json:"tx"`
 	OutputsCount       int64       `json:"outputsCount"`
-	TotalTransactions  int         `json:"totalTransactions"`
+	TotalTransactions  int64       `json:"totalTransactions"`
 }
 
 // DeepCopy makes a deep copy of MempoolInfo, where all the slice and map data

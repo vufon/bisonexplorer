@@ -307,6 +307,8 @@ type ChainDB struct {
 	Client            *rpcclient.Client
 	LtcClient         *ltcClient.Client
 	BtcClient         *btcClient.Client
+	LtcCoreClient     *ltcClient.Client
+	BtcCoreClient     *btcClient.Client
 	tipMtx            sync.Mutex
 	tipSummary        *apitypes.BlockDataBasic
 	lastExplorerBlock struct {

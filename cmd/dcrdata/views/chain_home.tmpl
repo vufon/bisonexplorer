@@ -32,67 +32,49 @@
                                  <div class="row justify-content-between">
                                     <div class="col-24 col-md-8">
                                        <div class="network-stats-block">
-                                          <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/treasury">
-                                          Total Outputs</a>
-                                          </span>
+                                          <span class="network-stats-title">Outputs</span>
                                           <span class="network-stats-content d-inline-block mt-2">
-                                             {{.TotalOutputs}}
+                                          {{int64Comma .TotalOutputs}}
                                           </span>
                                        </div>
                                     </div>
                                    <div class="col-24 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/treasury">
-                                          Total Transactions</a>
+                                          Transactions
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
-                                             {{.TotalTransactions}}
+                                          {{int64Comma .TotalTransactions}}
                                           </span>
                                        </div>
                                     </div>
                                     <div class="col-24 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/treasury">
-                                          Total Addresses</a>
+                                           Addresses
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
-                                             {{.TotalAddresses}}
+                                           {{int64Comma .TotalAddresses}}
                                           </span>
                                        </div>
                                     </div>
                                     <div class="col-24 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/treasury">
-                                          Coin Supply</a>
+                                          Coin Supply
                                           </span>
-                                          <span class="network-stats-content d-inline-block mt-2">
-                                             {{.CoinSupply}}
-                                          </span>
+                                          <div class="network-stats-content d-inline-block mt-2">
+                                          {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 false)}} {{$ChainType}}
+                                          </div>
                                        </div>
                                     </div>
                                     <div class="col-24 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/treasury">
-                                          Market Cap</a>
+                                          Blockchain Size
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
-                                           
-                                          </span>
-                                       </div>
-                                    </div>
-                                    <div class="col-24 col-md-8">
-                                       <div class="network-stats-block">
-                                          <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/treasury">
-                                          Blockchain Size</a>
-                                          </span>
-                                          <span class="network-stats-content d-inline-block mt-2">
-                                             {{.TotalSize}}
+                                             {{.FormattedSize}}
                                           </span>
                                        </div>
                                     </div>
@@ -122,25 +104,25 @@
                                     <div class="col-24 col-sm-12">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/charts?chart=pow-difficulty">
+                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=pow-difficulty">
                                           Difficulty</a>
                                           </span>
-                                          <span class="network-stats-content d-inline-block mt-4" data-homepage-target="difficulty">
+                                          <div class="network-stats-content d-inline-block mt-4" data-homepage-target="difficulty">
                                           {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty 1.0) 0 true)}}
-                                          </span>
+                                          </div>
                                        </div>
                                     </div>
                                     <div class="col-24 col-sm-12">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/charts?chart=hashrate">
+                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=hashrate">
                                           Hashrate
                                           </a>
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
-                                          <span data-homepage-target="hashrate">
+                                          <div data-homepage-target="hashrate" class="d-inline-block">
                                           {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
-                                          </span>
+                                          </div>
                                           <span class="info-line-2-sub">{{hashratePostfix .HashRate}}</span>
                                           </span>
                                           <span class="stats-subinfo">
@@ -244,7 +226,7 @@
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Transactions</span>
                                           <span class="network-stats-content d-inline-block mt-4">
-                                          {{.TotalTransactions}}
+                                          {{int64Comma .TotalTransactions}}
                                           </span>
                                        </p>
                                     </div>
@@ -252,14 +234,15 @@
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Outputs</span>
                                           <span class="network-stats-content d-inline-block mt-4">
-                                          {{.OutputsCount}}
+                                          {{int64Comma .OutputsCount}}
                                           </span>
                                        </p>
                                     </div>
                                     <div class="col-12">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Fee Total</span>
-                                          <span class="network-stats-content d-inline-block mt-4">{{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}</span>
+                                          <div class="network-stats-content d-inline-block mt-4">
+                                          {{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}</div>
                                        </div>
                                     </div>
                                     <div class="col-12">

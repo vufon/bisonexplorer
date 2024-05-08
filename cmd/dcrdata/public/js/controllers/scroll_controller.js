@@ -17,7 +17,6 @@ export default class extends Controller {
           chain = urlArr[index + 1]
         }
       })
-      console.log('Chain:', chain)
       this.coinSelectTarget.value = chain
     }
     navTarget = this.navbarTarget

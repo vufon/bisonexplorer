@@ -747,6 +747,8 @@ type BlockExplorerBasic struct {
 type BlockExplorerExtraInfo struct {
 	TxLen            int                              `json:"tx"`
 	CoinSupply       int64                            `json:"coin_supply"`
+	CoinValueSupply  float64                          `json:"coin_value_supply"`
+	BlockchainSize   int64                            `json:"blockchain_size"`
 	NextBlockSubsidy *chainjson.GetBlockSubsidyResult `json:"next_block_subsidy"`
 }
 

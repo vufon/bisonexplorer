@@ -27,6 +27,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
+	humanize "github.com/dustin/go-humanize"
 	ltcjson "github.com/ltcsuite/ltcd/btcjson"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	ltcwire "github.com/ltcsuite/ltcd/wire"
@@ -817,11 +818,13 @@ func (exp *explorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
 	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
+	p.HomeInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
 	p.HomeInfo.Difficulty = difficulty
 	p.HomeInfo.TotalTransactions = totalTransactionCount
 	p.HomeInfo.TotalOutputs = totalVoutsCount
 	p.HomeInfo.TotalAddresses = totalAddressesCount
-	p.HomeInfo.TotalSize = blockData.BlockchainInfo.SizeOnDisk
+	p.HomeInfo.TotalSize = blockData.ExtraInfo.BlockchainSize
+	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(p.HomeInfo.TotalSize))
 	p.Unlock()
 	return nil
 }

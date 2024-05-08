@@ -27,22 +27,28 @@ type NodeClient interface {
 	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
 }
 
+type CoreNodeClient interface {
+	GetTxOutSetInfo() (*btcjson.GetTxOutSetInfoResult, error)
+}
+
 // DataCollector is used for retrieving and processing data from a chain
 // server's mempool.
 type DataCollector struct {
 	// Mutex is used to prevent multiple concurrent calls to Collect.
-	mtx          sync.Mutex
-	ltcdChainSvr NodeClient
-	activeChain  *chaincfg.Params
+	mtx             sync.Mutex
+	ltcdChainSvr    NodeClient
+	ltcCoreChainSvr CoreNodeClient
+	activeChain     *chaincfg.Params
 }
 
 // NewDataCollector creates a new DataCollector. Use a rpcutils.AsyncTxClient to
 // create a NodeClient from an rpcclient.Client or implement a wrapper that
 // provides txhelpers.VerboseTransactionPromiseGetter.
-func NewDataCollector(ltcdChainSvr NodeClient, params *chaincfg.Params) *DataCollector {
+func NewDataCollector(ltcdChainSvr NodeClient, ltcCoreChainSvr CoreNodeClient, params *chaincfg.Params) *DataCollector {
 	return &DataCollector{
-		ltcdChainSvr: ltcdChainSvr,
-		activeChain:  params,
+		ltcdChainSvr:    ltcdChainSvr,
+		ltcCoreChainSvr: ltcCoreChainSvr,
+		activeChain:     params,
 	}
 }
 
@@ -179,7 +185,7 @@ func ParseTxns(txs []exptypes.MempoolTx, params *chaincfg.Params, lastBlock *Blo
 		TotalSize:          totalSize,
 		FormattedTotalSize: formattedSize,
 		Transactions:       txs,
-		TotalTransactions:  len(txs),
+		TotalTransactions:  int64(len(txs)),
 		TotalFee:           totalFee,
 		OutputsCount:       totalVouts,
 	}
