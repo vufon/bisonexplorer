@@ -38,6 +38,7 @@ import (
 	"github.com/decred/dcrdata/v8/blockdata"
 	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
 	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
+	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
@@ -262,6 +263,8 @@ type explorerUI struct {
 	Mux              *chi.Mux
 	dataSource       explorerDataSource
 	chartSource      ChartDataSource
+	BtcChartSource   *cache.MutilchainChartData
+	LtcChartSource   *cache.MutilchainChartData
 	agendasSource    agendaBackend
 	voteTracker      *agendas.VoteTracker
 	proposals        PoliteiaBackend
@@ -457,7 +460,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"market", "insight_root", "attackcost", "treasury", "treasurytable",
 		"verify_message", "stakingreward", "finance_report", "finance_detail",
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
-		"chain_address", "chain_mempool"}
+		"chain_address", "chain_mempool", "chain_charts"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

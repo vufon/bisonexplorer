@@ -846,6 +846,7 @@ func _main(ctx context.Context) error {
 			rd.With(explorer.TransactionHashCtx).Get("/{chaintype}/tx/{txid}", explore.MutilchainTxPage)
 			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/address/{address}", explore.MutilchainAddressPage)
 			rd.Get("/{chaintype}/mempool", explore.MutilchainMempool)
+			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
@@ -1336,6 +1337,18 @@ func _main(ctx context.Context) error {
 			}
 			ltcHeightFromDB = 0
 		}
+
+		ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain)
+		chainDB.RegisterLTCCharts(ltcCharts)
+
+		explore.LtcChartSource = ltcCharts
+		app.LtcCharts = ltcCharts
+		ltcDumpPath := filepath.Join(cfg.DataDir, cfg.LTCChartsCacheDump)
+		if err = ltcCharts.Load(ltcDumpPath); err != nil {
+			log.Warnf("Failed to load charts data cache: %v", err)
+		}
+		// Dump the cache charts data into a file for future use on system exit.
+		defer ltcCharts.Dump(ltcDumpPath)
 		ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightFromDB)
 		if ltcBlocksBehind < 0 {
 			return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+

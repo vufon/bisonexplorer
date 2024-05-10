@@ -271,6 +271,8 @@ type zoomSet struct {
 	Fees         ChartUints
 	TotalMixed   ChartUints
 	AnonymitySet ChartUints
+	Difficulty   ChartFloats
+	Hashrate     ChartFloats
 }
 
 // Snip truncates the zoomSet to a provided length.
@@ -367,6 +369,7 @@ type ChartGobject struct {
 	Fees         ChartUints
 	WindowTime   ChartUints
 	PowDiff      ChartFloats
+	Hashrate     ChartFloats
 	TicketPrice  ChartUints
 	StakeCount   ChartUints
 	MissedVotes  ChartUints

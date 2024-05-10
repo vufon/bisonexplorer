@@ -3842,6 +3842,14 @@ func retrieveChartBlocks(ctx context.Context, db *sql.DB, charts *cache.ChartDat
 	return rows, nil
 }
 
+func retrieveMutilchainChartBlocks(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData, chainType string) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, mutilchainquery.MakeSelectBlockStats(chainType), charts.Height())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // Append the results from retrieveChartBlocks to the provided ChartData.
 // This is the Appender half of a pair that make up a cache.ChartUpdater.
 func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
@@ -3902,6 +3910,44 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 		return fmt.Errorf("appendChartBlocks: data length misalignment. len(chainwork) = %d, len(stamps) = %d, len(counts) = %d",
 			chainLen, len(blocks.Time), len(blocks.TxCount))
 	}
+
+	return nil
+}
+
+func appendChartLTCBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+
+	var count, size, height uint64
+	var difficulty float64
+	var rowCount int32
+	var time uint64
+	blocks := charts.Blocks
+	for rows.Next() {
+		rowCount++
+		// Get the chainwork.
+		err := rows.Scan(&height, &size, &time, &count, &difficulty)
+		if err != nil {
+			return err
+		}
+		blocks.Height = append(blocks.Height, height)
+		blocks.TxCount = append(blocks.TxCount, count)
+		blocks.Time = append(blocks.Time, time)
+		blocks.BlockSize = append(blocks.BlockSize, size)
+		blocks.Difficulty = append(blocks.Difficulty, difficulty)
+		hashrateEst := dbtypes.CalculateHashRate(difficulty, charts.TimePerBlocks)
+		blocks.Hashrate = append(blocks.Hashrate, hashrateEst)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
+	}
+	// chainLen := len(blocks.Chainwork)
+	// if rowCount > 0 && uint64(chainLen-1) != height {
+	// 	return fmt.Errorf("appendChartBlocks: height misalignment. last height = %d. data length = %d", height, chainLen)
+	// }
+	// if len(blocks.Time) != chainLen || len(blocks.TxCount) != chainLen {
+	// 	return fmt.Errorf("appendChartBlocks: data length misalignment. len(chainwork) = %d, len(stamps) = %d, len(counts) = %d",
+	// 		chainLen, len(blocks.Time), len(blocks.TxCount))
+	// }
 
 	return nil
 }
@@ -3969,6 +4015,15 @@ func retrieveCoinSupply(ctx context.Context, db *sql.DB, charts *cache.ChartData
 	return rows, nil
 }
 
+// retrieveMutilchainCoinSupply fetches the coin supply data from the vins table.
+func retrieveMutilchainCoinSupply(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, mutilchainquery.MakeSelectCoinSupply(charts.ChainType), charts.NewAtomsTip())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // Append the results from retrieveCoinSupply to the provided ChartData.
 // This is the Appender half of a pair that make up a cache.ChartUpdater.
 func appendCoinSupply(charts *cache.ChartData, rows *sql.Rows) error {
@@ -3981,6 +4036,30 @@ func appendCoinSupply(charts *cache.ChartData, rows *sql.Rows) error {
 			return err
 		}
 
+		blocks.NewAtoms = append(blocks.NewAtoms, uint64(value))
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// Set the genesis block to zero because the DB stores it as -1
+	if len(blocks.NewAtoms) > 0 {
+		blocks.NewAtoms[0] = 0
+	}
+	return nil
+}
+
+func appendMutilchainCoinSupply(charts *cache.MutilchainChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	blocks := charts.Blocks
+	count := int64(0)
+	for rows.Next() {
+		count++
+		var value int64
+		var time uint64
+		if err := rows.Scan(&time, &value); err != nil {
+			return err
+		}
 		blocks.NewAtoms = append(blocks.NewAtoms, uint64(value))
 	}
 	if err := rows.Err(); err != nil {
@@ -4051,6 +4130,14 @@ func retrieveBlockFees(ctx context.Context, db *sql.DB, charts *cache.ChartData)
 	return rows, nil
 }
 
+func retrieveMutilchainBlockFees(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, mutilchainquery.MakeSelectFeesPerBlockAboveHeight(charts.ChainType), charts.FeesTip())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // Append the result from retrieveBlockFees to the provided ChartData. This
 // is the Appender half of a pair that make up a cache.ChartUpdater.
 func appendBlockFees(charts *cache.ChartData, rows *sql.Rows) error {
@@ -4067,6 +4154,25 @@ func appendBlockFees(charts *cache.ChartData, rows *sql.Rows) error {
 			fees *= -1
 		}
 
+		// Converting to atoms.
+		blocks.Fees = append(blocks.Fees, uint64(fees))
+	}
+	return rows.Err()
+}
+
+func appendMutilchainBlockFees(charts *cache.MutilchainChartData, rows *sql.Rows) error {
+	defer rows.Close()
+	blocks := charts.Blocks
+	for rows.Next() {
+		var blockHeight uint64
+		var fees int64
+		if err := rows.Scan(&blockHeight, &fees); err != nil {
+			log.Errorf("Unable to scan for FeeInfoPerBlock fields: %v", err)
+			return err
+		}
+		if fees < 0 {
+			fees *= -1
+		}
 		// Converting to atoms.
 		blocks.Fees = append(blocks.Fees, uint64(fees))
 	}

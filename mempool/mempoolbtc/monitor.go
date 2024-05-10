@@ -237,7 +237,6 @@ func (p *MempoolMonitor) CollectAndStore() error {
 		// stakeData is nil when err != nil
 		return err
 	}
-	fmt.Println("Here checkkkkkkkk ")
 	// Store mempool stakeData with each registered saver.
 	for _, s := range p.dataSavers {
 		if s != nil {

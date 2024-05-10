@@ -1094,6 +1094,26 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 	})
 }
 
+func (pgb *ChainDB) RegisterLTCCharts(charts *cache.MutilchainChartData) {
+	charts.AddUpdater(cache.ChartMutilchainUpdater{
+		Tag:      "basic blocks",
+		Fetcher:  pgb.chartMutilchainBlocks,
+		Appender: appendChartLTCBlocks,
+	})
+
+	charts.AddUpdater(cache.ChartMutilchainUpdater{
+		Tag:      "coin supply",
+		Fetcher:  pgb.mutilchainCoinSupply,
+		Appender: appendMutilchainCoinSupply,
+	})
+
+	charts.AddUpdater(cache.ChartMutilchainUpdater{
+		Tag:      "fees",
+		Fetcher:  pgb.mutilchainBlockFees,
+		Appender: appendMutilchainBlockFees,
+	})
+}
+
 // TransactionBlocks retrieves the blocks in which the specified transaction
 // appears, along with the index of the transaction in each of the blocks. The
 // next and previous block hashes are NOT SET in each BlockStatus.
@@ -4481,6 +4501,15 @@ func (pgb *ChainDB) chartBlocks(charts *cache.ChartData) (*sql.Rows, func(), err
 	return rows, cancel, nil
 }
 
+func (pgb *ChainDB) chartMutilchainBlocks(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	rows, err := retrieveMutilchainChartBlocks(ctx, pgb.db, charts, charts.ChainType)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
+
 // coinSupply fetches the coin supply chart data from retrieveCoinSupply.
 // This is the Fetcher half of a pair that make up a cache.ChartUpdater. The
 // Appender half is appendCoinSupply.
@@ -4488,6 +4517,17 @@ func (pgb *ChainDB) coinSupply(charts *cache.ChartData) (*sql.Rows, func(), erro
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 
 	rows, err := retrieveCoinSupply(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("coinSupply: %w", pgb.replaceCancelError(err))
+	}
+
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) mutilchainCoinSupply(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveMutilchainCoinSupply(ctx, pgb.db, charts)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("coinSupply: %w", pgb.replaceCancelError(err))
 	}
@@ -4517,6 +4557,16 @@ func (pgb *ChainDB) blockFees(charts *cache.ChartData) (*sql.Rows, func(), error
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 
 	rows, err := retrieveBlockFees(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) mutilchainBlockFees(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveMutilchainBlockFees(ctx, pgb.db, charts)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
 	}

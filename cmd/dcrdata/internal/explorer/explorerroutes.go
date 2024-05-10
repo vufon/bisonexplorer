@@ -2641,6 +2641,42 @@ func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+func (exp *explorerUI) MutilchainCharts(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	str, err := exp.templates.exec("chain_charts", struct {
+		*CommonPageData
+		ChainType          string
+		TargetTimePerBlock float64
+	}{
+		CommonPageData:     exp.commonData(r),
+		ChainType:          chainType,
+		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
+	})
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+func (exp *explorerUI) GetTargetTimePerBlock(chainType string) float64 {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return exp.BtcChainParams.TargetTimePerBlock.Seconds()
+	case mutilchain.TYPELTC:
+		return exp.LtcChainParams.TargetTimePerBlock.Seconds()
+	default:
+		return exp.ChainParams.TargetTimePerBlock.Seconds()
+	}
+}
+
 // Search implements a primitive search algorithm by checking if the value in
 // question is a block index, block hash, address hash or transaction hash and
 // redirects to the appropriate page or displays an error.

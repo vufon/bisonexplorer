@@ -101,9 +101,19 @@ const (
 	// 	WHERE txs.id = $1;`
 	// RetrieveVoutValue = `SELECT vouts[$2].value FROM transactions WHERE id = $1;`
 
-	RetrieveVoutDbIDs = `SELECT unnest(vout_db_ids) FROM %stransactions WHERE id = $1;`
-	RetrieveVoutDbID  = `SELECT vout_db_ids[$2] FROM %stransactions WHERE id = $1;`
+	RetrieveVoutDbIDs             = `SELECT unnest(vout_db_ids) FROM %stransactions WHERE id = $1;`
+	RetrieveVoutDbID              = `SELECT vout_db_ids[$2] FROM %stransactions WHERE id = $1;`
+	SelectFeesPerBlockAboveHeight = `
+	SELECT block_height, SUM(fees) AS fees
+	FROM %stransactions
+	WHERE block_height > $1
+	GROUP BY block_height
+	ORDER BY block_height;`
 )
+
+func MakeSelectFeesPerBlockAboveHeight(chainType string) string {
+	return fmt.Sprintf(SelectFeesPerBlockAboveHeight, chainType)
+}
 
 func MakeSelectTotalTransaction(chainType string) string {
 	return fmt.Sprintf(SelectTotalTransaction, chainType)

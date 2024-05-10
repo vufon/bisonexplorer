@@ -107,9 +107,18 @@ const (
 		ORDER BY time
 		LIMIT 1;`
 
+	SelectBlockStats = `SELECT height, size, time, numtx, difficulty
+		FROM %sblocks
+		WHERE height > $1
+		ORDER BY height;`
+
 	SelectBlockHeightByHash = `SELECT height FROM %sblocks WHERE hash = $1;`
 	SelectBlockHashByHeight = `SELECT hash FROM %sblocks WHERE height = $1;`
 )
+
+func MakeSelectBlockStats(chainType string) string {
+	return fmt.Sprintf(SelectBlockStats, chainType)
+}
 
 func MakeSelectBlockHeightByHash(chainType string) string {
 	return fmt.Sprintf(SelectBlockHeightByHash, chainType)

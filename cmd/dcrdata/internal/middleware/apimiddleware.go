@@ -60,6 +60,7 @@ const (
 	ctxXcToken
 	ctxStickWidth
 	ctxIndent
+	ctxChainType
 )
 
 type DataSource interface {

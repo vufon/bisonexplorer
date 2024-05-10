@@ -33,6 +33,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/go-chi/chi/v5"
 
 	m "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 	"github.com/decred/dcrdata/exchanges/v3"
@@ -41,6 +42,7 @@ import (
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
@@ -144,6 +146,8 @@ type appContext struct {
 	ProposalsDB *politeia.ProposalsDB
 	maxCSVAddrs int
 	charts      *cache.ChartData
+	LtcCharts   *cache.MutilchainChartData
+	BtcCharts   *cache.MutilchainChartData
 }
 
 // AppContextConfig is the configuration for the appContext and the only
@@ -157,6 +161,8 @@ type AppContextConfig struct {
 	ProposalsDB       *politeia.ProposalsDB
 	MaxAddrs          int
 	Charts            *cache.ChartData
+	LtcCharts         *cache.MutilchainChartData
+	BtcCharts         *cache.MutilchainChartData
 	AppVer            string
 }
 
@@ -2840,6 +2846,43 @@ func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSONBytes(w, chartData)
+}
+
+func (c *appContext) MutilchainChartTypeData(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	chartType := m.GetChartTypeCtx(r)
+	bin := r.URL.Query().Get("bin")
+	// Support the deprecated URL parameter "zoom".
+	if bin == "" {
+		bin = r.URL.Query().Get("zoom")
+	}
+
+	mutilchainChartData := c.GetMutilchainChartData(chainType)
+	if mutilchainChartData == nil {
+		return
+	}
+	axis := r.URL.Query().Get("axis")
+	chartData, err := mutilchainChartData.Chart(chartType, bin, axis)
+	if err != nil {
+		http.NotFound(w, r)
+		log.Warnf(`Error fetching chart %q at bin level '%s': %v`, chartType, bin, err)
+		return
+	}
+	writeJSONBytes(w, chartData)
+}
+
+func (c *appContext) GetMutilchainChartData(chainType string) *cache.MutilchainChartData {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return c.BtcCharts
+	case mutilchain.TYPELTC:
+		return c.LtcCharts
+	default:
+		return nil
+	}
 }
 
 // route: /market/{token}/candlestick/{bin}

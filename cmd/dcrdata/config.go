@@ -97,10 +97,12 @@ var (
 	defaultMempoolMaxInterval = 120
 	defaultMPTriggerTickets   = 1
 
-	defaultAgendasDBFileName = "agendas.db"
-	defaultProposalsFileName = "proposals.db"
-	defaultPoliteiaURL       = "https://proposals.decred.org/"
-	defaultChartsCacheDump   = "chartscache.gob"
+	defaultAgendasDBFileName  = "agendas.db"
+	defaultProposalsFileName  = "proposals.db"
+	defaultPoliteiaURL        = "https://proposals.decred.org/"
+	defaultChartsCacheDump    = "chartscache.gob"
+	defaultLTCChartsCacheDump = "ltcchartscache.gob"
+	defaultBTCChartsCacheDump = "btcchartscache.gob"
 
 	defaultPGHost           = "127.0.0.1:5432"
 	defaultPGUser           = "dcrdata"
@@ -165,12 +167,13 @@ type config struct {
 	PoliteiaURL       string `long:"politeiaurl" description:"Defines the root API politeia URL (defaults to https://proposals.decred.org/)." env:"DCRDATA_POLITEIA_URL"`
 
 	// Caching and optimization.
-	AddrCacheCap     int    `long:"addr-cache-cap" description:"Address cache capacity in bytes." env:"DCRDATA_ADDR_CACHE_CAP"`
-	AddrCacheLimit   int    `long:"addr-cache-address-limit" description:"Maximum number of addresses allowed in the address cache." env:"DCRDATA_ADDR_CACHE_LIMIT"`
-	AddrCacheUXTOCap int    `long:"addr-cache-utxo-cap" description:"UTXO cache capacity in bytes." env:"DCRDATA_ADDR_CASH_UTXO_CAP"`
-	NoDevPrefetch    bool   `long:"no-dev-prefetch" description:"Disable automatic dev fund balance query on new blocks. When true, the query will still be run on demand, but not automatically after new blocks are connected." env:"DCRDATA_DISABLE_DEV_PREFETCH"`
-	ChartsCacheDump  string `long:"chartscache" description:"Defines the file name that holds the charts cache data on system exit." env:"DCRDATA_CHARTS_CACHE"`
-
+	AddrCacheCap       int    `long:"addr-cache-cap" description:"Address cache capacity in bytes." env:"DCRDATA_ADDR_CACHE_CAP"`
+	AddrCacheLimit     int    `long:"addr-cache-address-limit" description:"Maximum number of addresses allowed in the address cache." env:"DCRDATA_ADDR_CACHE_LIMIT"`
+	AddrCacheUXTOCap   int    `long:"addr-cache-utxo-cap" description:"UTXO cache capacity in bytes." env:"DCRDATA_ADDR_CASH_UTXO_CAP"`
+	NoDevPrefetch      bool   `long:"no-dev-prefetch" description:"Disable automatic dev fund balance query on new blocks. When true, the query will still be run on demand, but not automatically after new blocks are connected." env:"DCRDATA_DISABLE_DEV_PREFETCH"`
+	ChartsCacheDump    string `long:"chartscache" description:"Defines the file name that holds the charts cache data on system exit." env:"DCRDATA_CHARTS_CACHE"`
+	LTCChartsCacheDump string `long:"ltcchartscache" description:"Defines the file name that holds the ltc charts cache data on system exit." env:"DCRDATA_LTC_CHARTS_CACHE"`
+	BTCChartsCacheDump string `long:"btcchartscache" description:"Defines the file name that holds the btc charts cache data on system exit." env:"DCRDATA_BTC_CHARTS_CACHE"`
 	// DB backend
 	PGDBName         string        `long:"pgdbname" description:"PostgreSQL DB name." env:"DCRDATA_PG_DB_NAME"`
 	PGUser           string        `long:"pguser" description:"PostgreSQL DB user." env:"DCRDATA_POSTGRES_USER"`
@@ -237,6 +240,8 @@ var (
 		ProposalsFileName:   defaultProposalsFileName,
 		PoliteiaURL:         defaultPoliteiaURL,
 		ChartsCacheDump:     defaultChartsCacheDump,
+		LTCChartsCacheDump:  defaultLTCChartsCacheDump,
+		BTCChartsCacheDump:  defaultBTCChartsCacheDump,
 		DebugLevel:          defaultLogLevel,
 		HTTPProfPath:        defaultHTTPProfPath,
 		APIProto:            defaultAPIProto,
@@ -775,6 +780,8 @@ func loadConfig() (*config, error) {
 	cfg.ProposalsFileName = cleanAndExpandPath(cfg.ProposalsFileName)
 	cfg.RateCertificate = cleanAndExpandPath(cfg.RateCertificate)
 	cfg.ChartsCacheDump = cleanAndExpandPath(cfg.ChartsCacheDump)
+	cfg.LTCChartsCacheDump = cleanAndExpandPath(cfg.LTCChartsCacheDump)
+	cfg.BTCChartsCacheDump = cleanAndExpandPath(cfg.BTCChartsCacheDump)
 
 	// Clean up the provided mainnet and testnet links, ensuring there is a single
 	// trailing slash.
