@@ -463,6 +463,7 @@
                         </div>
                         <!-- End Blocks Card -->
                         <!-- Start Mempool Card -->
+                        {{if ne $ChainType "btc"}}
                         <div class="explore-card-wrap mt-3">
                            <div class="explore-card-content">
                               <a href='/chain/{{$ChainType}}/mempool' class="link-to-subpage">
@@ -521,6 +522,7 @@
                               </div>
                            </div>
                         </div>
+                        {{end}}
                         <!-- End Mempool Card -->
                      </div>
                   </div>
