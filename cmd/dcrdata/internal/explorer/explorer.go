@@ -460,7 +460,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"market", "insight_root", "attackcost", "treasury", "treasurytable",
 		"verify_message", "stakingreward", "finance_report", "finance_detail",
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
-		"chain_address", "chain_mempool", "chain_charts"}
+		"chain_address", "chain_mempool", "chain_charts", "chain_market"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -1012,18 +1012,28 @@ func (exp *explorerUI) watchExchanges() {
 
 	sendXcUpdate := func(isFiat bool, token string, updater *exchanges.ExchangeState) {
 		xcState := exp.xcBot.State()
+		var chainType string
+		switch updater.Symbol {
+		case exchanges.BTCSYMBOL:
+			chainType = mutilchain.TYPEBTC
+		case exchanges.LTCSYMBOL:
+			chainType = mutilchain.TYPELTC
+		default:
+			chainType = mutilchain.TYPEDCR
+		}
 		update := &WebsocketExchangeUpdate{
 			Updater: WebsocketMiniExchange{
-				Token:  token,
-				Price:  updater.Price,
-				Volume: updater.Volume,
-				Change: updater.Change,
+				Token:     token,
+				ChainType: chainType,
+				Price:     updater.Price,
+				Volume:    updater.Volume,
+				Change:    updater.Change,
 			},
 			IsFiatIndex: isFiat,
 			BtcIndex:    exp.xcBot.BtcIndex,
-			Price:       xcState.Price,
+			Price:       xcState.GetMutilchainPrice(chainType),
 			BtcPrice:    xcState.BtcPrice,
-			Volume:      xcState.Volume,
+			Volume:      xcState.GetMutilchainVolumn(chainType),
 		}
 		select {
 		case exp.wsHub.xcChan <- update:

@@ -374,10 +374,11 @@ const exchangeUpdateID = "exchange"
 // WebsocketMiniExchange is minimal info regarding the exchange that triggered
 // an update.
 type WebsocketMiniExchange struct {
-	Token  string  `json:"token"`
-	Price  float64 `json:"price"`
-	Volume float64 `json:"volume"`
-	Change float64 `json:"change"`
+	ChainType string  `json:"chain_type"`
+	Token     string  `json:"token"`
+	Price     float64 `json:"price"`
+	Volume    float64 `json:"volume"`
+	Change    float64 `json:"change"`
 }
 
 // WebsocketExchangeUpdate is an update to the exchange state to send over the

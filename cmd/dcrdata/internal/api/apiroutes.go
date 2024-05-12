@@ -2885,6 +2885,32 @@ func (c *appContext) GetMutilchainChartData(chainType string) *cache.MutilchainC
 	}
 }
 
+// route: chainchart/market/{token}/candlestick/{bin}
+func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	if c.xcBot == nil {
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	token := m.RetrieveExchangeTokenCtx(r)
+	bin := m.RetrieveStickWidthCtx(r)
+	if token == "" || bin == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	chart, err := c.xcBot.MutilchainQuickSticks(token, bin, chainType)
+	if err != nil {
+		apiLog.Infof("QuickSticks error: %v", err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	writeJSONBytes(w, chart)
+}
+
 // route: /market/{token}/candlestick/{bin}
 func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request) {
 	if c.xcBot == nil {
@@ -2901,6 +2927,30 @@ func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request)
 	chart, err := c.xcBot.QuickSticks(token, bin)
 	if err != nil {
 		apiLog.Infof("QuickSticks error: %v", err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	writeJSONBytes(w, chart)
+}
+
+func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	if c.xcBot == nil {
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	token := m.RetrieveExchangeTokenCtx(r)
+	if token == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	chart, err := c.xcBot.MutilchainQuickDepth(token, chainType)
+	if err != nil {
+		apiLog.Infof("QuickDepth error: %v", err)
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}

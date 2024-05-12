@@ -1,5 +1,6 @@
 {{define "chain_home" -}}
 <!DOCTYPE html>
+{{- $conv := .Conversions -}}
 {{$ChainType := .ChainType}}
 <html lang="en">
    {{ template "html-head" headData .CommonPageData "Bitcoin Block Explorer by blockcare.pro"}}
@@ -30,6 +31,15 @@
                               <div class="explore-card__values-content">
                                  {{with .Info -}}
                                  <div class="row">
+                                  <div class="col-24 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">Exchange Rate</span>
+                                          <div class="network-stats-content d-inline-block mt-4">
+                                             <span data-homepage-target="exchangeRate">{{$conv.ExchangeRate.TwoDecimals}}</span>
+                                             <span class="info-line-2-sub">{{$conv.ExchangeRate.Index}}</span>
+                                          </div>
+                                       </div>
+                                    </div>
                                     <div class="col-24 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Outputs</span>
@@ -64,7 +74,12 @@
                                           Coin Supply
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-2">
-                                          {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 false)}} {{$ChainType}}
+                                          {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 false)}} {{toUpperCase $ChainType}}
+                                          <span class="stats-subinfo">
+                                          {{if $conv -}}
+                                          <span data-homepage-target="convertedSupply">{{threeSigFigs $conv.CoinSupply}} {{$conv.CoinSupply.Index}}</span>,
+                                          {{- end}}
+                                          </span>
                                           </div>
                                        </div>
                                     </div>
@@ -176,7 +191,7 @@
                                           <span class="network-stats-content d-inline-block mt-4">
                                           <span data-homepage-target="blockTotal">
                                           {{threeSigFigs .Total}}</span>
-                                          <span class="info-line-2-sub">{{$ChainType}}</span>
+                                          <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                           </span>
                                        </p>
                                     </div>

@@ -183,6 +183,12 @@ type homeConversions struct {
 	TreasuryBalance *exchanges.Conversion
 }
 
+// For the exchange rates on the homepage
+type MutilchainHomeConversions struct {
+	ExchangeRate *exchanges.Conversion
+	CoinSupply   *exchanges.Conversion
+}
+
 // Home is the page handler for the "/" path.
 func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	height, err := exp.dataSource.GetHeight()
@@ -344,6 +350,16 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	default:
 
 	}
+
+	var conversions *MutilchainHomeConversions
+	xcBot := exp.xcBot
+	if xcBot != nil {
+		conversions = &MutilchainHomeConversions{
+			ExchangeRate: xcBot.MutilchainConversion(1.0, chainType),
+			CoinSupply:   xcBot.MutilchainConversion(homeInfo.CoinValueSupply, chainType),
+		}
+	}
+
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
@@ -353,6 +369,7 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		MempoolInfo   *types.MutilchainMempoolInfo
 		BestBlock     *types.BlockBasic
 		Blocks        []*types.BlockBasic
+		Conversions   *MutilchainHomeConversions
 		PercentChange float64
 		ChainType     string
 	}{
@@ -362,6 +379,7 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		BestBlock:      bestBlock,
 		Blocks:         blocks,
 		ChainType:      chainType,
+		Conversions:    conversions,
 	})
 
 	if err != nil {
@@ -3330,6 +3348,45 @@ func (exp *explorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
 	}{
 		CommonPageData: exp.commonData(r),
 		XcState:        exp.getExchangeState(),
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+// MarketPage is the page handler for the "/market" path.
+func (exp *explorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	allXcState := exp.getExchangeState()
+	xcState := exchanges.ExchangeBotStateContent{
+		BtcIndex:      allXcState.BtcIndex,
+		BtcPrice:      allXcState.BtcPrice,
+		Price:         allXcState.GetMutilchainPrice(chainType),
+		Volume:        allXcState.GetMutilchainVolumn(chainType),
+		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
+		FiatIndices:   allXcState.FiatIndices,
+		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+	}
+
+	str, err := exp.templates.exec("chain_market", struct {
+		*CommonPageData
+		DepthMarkets []string
+		StickMarkets map[string]string
+		XcState      exchanges.ExchangeBotStateContent
+		ChainType    string
+	}{
+		CommonPageData: exp.commonData(r),
+		XcState:        xcState,
+		ChainType:      chainType,
 	})
 
 	if err != nil {

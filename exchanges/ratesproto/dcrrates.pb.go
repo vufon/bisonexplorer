@@ -25,6 +25,8 @@ const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 type ExchangeSubscription struct {
 	BtcIndex             string   `protobuf:"bytes,1,opt,name=btcIndex,proto3" json:"btcIndex,omitempty"`
 	Exchanges            []string `protobuf:"bytes,2,rep,name=exchanges,proto3" json:"exchanges,omitempty"`
+	LTCExchanges         []string `protobuf:"bytes,2,rep,name=ltcexchanges,proto3" json:"ltcexchanges,omitempty"`
+	BTCExchanges         []string `protobuf:"bytes,2,rep,name=btcexchanges,proto3" json:"btcexchanges,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -69,8 +71,23 @@ func (m *ExchangeSubscription) GetExchanges() []string {
 	return nil
 }
 
+func (m *ExchangeSubscription) GetMutilchainExchanges(chainType string) []string {
+	if m != nil {
+		switch chainType {
+		case "ltc":
+			return m.LTCExchanges
+		case "btc":
+			return m.BTCExchanges
+		default:
+			return m.Exchanges
+		}
+	}
+	return nil
+}
+
 type ExchangeRateUpdate struct {
 	Token                string                             `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Symbol               string                             `protobuf:"bytes,1,opt,name=symbol,proto3" json:"symbol,omitempty"`
 	Price                float64                            `protobuf:"fixed64,2,opt,name=price,proto3" json:"price,omitempty"`
 	BaseVolume           float64                            `protobuf:"fixed64,3,opt,name=baseVolume,proto3" json:"baseVolume,omitempty"`
 	Volume               float64                            `protobuf:"fixed64,4,opt,name=volume,proto3" json:"volume,omitempty"`

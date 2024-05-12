@@ -464,6 +464,7 @@ func _main(ctx context.Context) error {
 	if cfg.EnableExchangeBot {
 		botCfg := exchanges.ExchangeBotConfig{
 			BtcIndex:       cfg.ExchangeCurrency,
+			LTCIndex:       cfg.ExchangeCurrency,
 			MasterBot:      cfg.RateMaster,
 			MasterCertFile: cfg.RateCertificate,
 		}
@@ -847,6 +848,7 @@ func _main(ctx context.Context) error {
 			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/address/{address}", explore.MutilchainAddressPage)
 			rd.Get("/{chaintype}/mempool", explore.MutilchainMempool)
 			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
+			rd.Get("/{chaintype}/market", explore.MutilchainMarketPage)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})

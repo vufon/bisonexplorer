@@ -18,6 +18,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/explorer/types"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	humanize "github.com/dustin/go-humanize"
 )
@@ -507,6 +508,17 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			return dateTime.Format("2006-01-02 15:04:05")
 		},
 		"toLowerCase": strings.ToLower,
+		"toUpperCase": strings.ToUpper,
+		"chainName": func(chainType string) string {
+			switch chainType {
+			case mutilchain.TYPEBTC:
+				return "Bitcoin"
+			case mutilchain.TYPELTC:
+				return "Litecoin"
+			default:
+				return "Decred"
+			}
+		},
 		"toTitleCase": titler.String,
 		"xcDisplayName": func(token string) string {
 			switch token {
