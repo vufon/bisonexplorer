@@ -82,6 +82,12 @@ var (
 	defaultBTCSimnetPort  = "18335"
 	defaultBTCIndentJSON  = "   "
 
+	defaultLTCCoreMainnetPort = "8772"
+	defaultLTCCoreTestnetPort = "18772"
+
+	defaultBTCCoreMainnetPort = "9772"
+	defaultBTCCoreTestnetPort = "19772"
+
 	defaultCacheControlMaxAge  = 86400
 	defaultInsightReqRateLimit = 20.0
 	defaultMaxCSVAddrs         = 25
@@ -91,10 +97,12 @@ var (
 	defaultMempoolMaxInterval = 120
 	defaultMPTriggerTickets   = 1
 
-	defaultAgendasDBFileName = "agendas.db"
-	defaultProposalsFileName = "proposals.db"
-	defaultPoliteiaURL       = "https://proposals.decred.org/"
-	defaultChartsCacheDump   = "chartscache.gob"
+	defaultAgendasDBFileName  = "agendas.db"
+	defaultProposalsFileName  = "proposals.db"
+	defaultPoliteiaURL        = "https://proposals.decred.org/"
+	defaultChartsCacheDump    = "chartscache.gob"
+	defaultLTCChartsCacheDump = "ltcchartscache.gob"
+	defaultBTCChartsCacheDump = "btcchartscache.gob"
 
 	defaultPGHost           = "127.0.0.1:5432"
 	defaultPGUser           = "dcrdata"
@@ -159,12 +167,13 @@ type config struct {
 	PoliteiaURL       string `long:"politeiaurl" description:"Defines the root API politeia URL (defaults to https://proposals.decred.org/)." env:"DCRDATA_POLITEIA_URL"`
 
 	// Caching and optimization.
-	AddrCacheCap     int    `long:"addr-cache-cap" description:"Address cache capacity in bytes." env:"DCRDATA_ADDR_CACHE_CAP"`
-	AddrCacheLimit   int    `long:"addr-cache-address-limit" description:"Maximum number of addresses allowed in the address cache." env:"DCRDATA_ADDR_CACHE_LIMIT"`
-	AddrCacheUXTOCap int    `long:"addr-cache-utxo-cap" description:"UTXO cache capacity in bytes." env:"DCRDATA_ADDR_CASH_UTXO_CAP"`
-	NoDevPrefetch    bool   `long:"no-dev-prefetch" description:"Disable automatic dev fund balance query on new blocks. When true, the query will still be run on demand, but not automatically after new blocks are connected." env:"DCRDATA_DISABLE_DEV_PREFETCH"`
-	ChartsCacheDump  string `long:"chartscache" description:"Defines the file name that holds the charts cache data on system exit." env:"DCRDATA_CHARTS_CACHE"`
-
+	AddrCacheCap       int    `long:"addr-cache-cap" description:"Address cache capacity in bytes." env:"DCRDATA_ADDR_CACHE_CAP"`
+	AddrCacheLimit     int    `long:"addr-cache-address-limit" description:"Maximum number of addresses allowed in the address cache." env:"DCRDATA_ADDR_CACHE_LIMIT"`
+	AddrCacheUXTOCap   int    `long:"addr-cache-utxo-cap" description:"UTXO cache capacity in bytes." env:"DCRDATA_ADDR_CASH_UTXO_CAP"`
+	NoDevPrefetch      bool   `long:"no-dev-prefetch" description:"Disable automatic dev fund balance query on new blocks. When true, the query will still be run on demand, but not automatically after new blocks are connected." env:"DCRDATA_DISABLE_DEV_PREFETCH"`
+	ChartsCacheDump    string `long:"chartscache" description:"Defines the file name that holds the charts cache data on system exit." env:"DCRDATA_CHARTS_CACHE"`
+	LTCChartsCacheDump string `long:"ltcchartscache" description:"Defines the file name that holds the ltc charts cache data on system exit." env:"DCRDATA_LTC_CHARTS_CACHE"`
+	BTCChartsCacheDump string `long:"btcchartscache" description:"Defines the file name that holds the btc charts cache data on system exit." env:"DCRDATA_BTC_CHARTS_CACHE"`
 	// DB backend
 	PGDBName         string        `long:"pgdbname" description:"PostgreSQL DB name." env:"DCRDATA_PG_DB_NAME"`
 	PGUser           string        `long:"pguser" description:"PostgreSQL DB user." env:"DCRDATA_POSTGRES_USER"`
@@ -188,16 +197,24 @@ type config struct {
 	//disabled mutilchains support
 	DisabledChain string `long:"disabledchain" description:"Blockchain types are disabled" env:"DCRDATA_DISABLED_CHAINS"`
 	// LTC RPC client options
-	LtcdUser string `long:"ltcduser" description:"Daemon RPC user name" env:"DCRDATA_LTCD_USER"`
-	LtcdPass string `long:"ltcdpass" description:"Daemon RPC password" env:"DCRDATA_LTCD_PASS"`
-	LtcdServ string `long:"ltcdserv" description:"Hostname/IP and port of ltcd RPC server to connect to (default localhost:9334, testnet: localhost:19334, simnet: localhost:???)" env:"DCRDATA_LTCD_URL"`
-	LtcdCert string `long:"ltcdcert" description:"File containing the ltcd certificate file" env:"DCRDATA_LTCD_CERT"`
+	LtcdUser    string `long:"ltcduser" description:"Daemon RPC user name" env:"DCRDATA_LTCD_USER"`
+	LtcdPass    string `long:"ltcdpass" description:"Daemon RPC password" env:"DCRDATA_LTCD_PASS"`
+	LtcdServ    string `long:"ltcdserv" description:"Hostname/IP and port of ltcd RPC server to connect to (default localhost:9334, testnet: localhost:19334, simnet: localhost:???)" env:"DCRDATA_LTCD_URL"`
+	LtcCoreServ string `long:"ltccoreserv" description:"Hostname/IP and port of ltcd RPC server to connect to (default localhost:9334, testnet: localhost:19334, simnet: localhost:???)" env:"DCRDATA_LTC_CORE_URL"`
+	LtcdCert    string `long:"ltcdcert" description:"File containing the ltcd certificate file" env:"DCRDATA_LTCD_CERT"`
+	LtcCoreUser string `long:"ltccoreuser" description:"Daemon LTC RPC user name" env:"DCRDATA_LTC_CORE_USER"`
+	LtcCorePass string `long:"ltccorepass" description:"Daemon LTC RPC password" env:"DCRDATA_LTC_CORE_PASS"`
+	LtcCorePort string `long:"ltccoreport" description:"Daemon LTC RPC port" env:"DCRDATA_LTC_CORE_PORT"`
 
 	// BTC RPC client options
-	BtcdUser string `long:"btcduser" description:"Daemon RPC user name" env:"DCRDATA_BTCD_USER"`
-	BtcdPass string `long:"btcdpass" description:"Daemon RPC password" env:"DCRDATA_BTCD_PASS"`
-	BtcdServ string `long:"btcdserv" description:"Hostname/IP and port of btcd RPC server to connect to (default localhost:8334, testnet: localhost:18334, simnet: localhost:???)" env:"DCRDATA_BTCD_URL"`
-	BtcdCert string `long:"btcdcert" description:"File containing the btcd certificate file" env:"DCRDATA_BTCD_CERT"`
+	BtcdUser    string `long:"btcduser" description:"Daemon RPC user name" env:"DCRDATA_BTCD_USER"`
+	BtcdPass    string `long:"btcdpass" description:"Daemon RPC password" env:"DCRDATA_BTCD_PASS"`
+	BtcdServ    string `long:"btcdserv" description:"Hostname/IP and port of btcd RPC server to connect to (default localhost:8334, testnet: localhost:18334, simnet: localhost:???)" env:"DCRDATA_BTCD_URL"`
+	BtcCoreServ string `long:"btccoreserv" description:"Hostname/IP and port of ltcd RPC server to connect to (default localhost:9334, testnet: localhost:19334, simnet: localhost:???)" env:"DCRDATA_BTC_CORE_URL"`
+	BtcdCert    string `long:"btcdcert" description:"File containing the btcd certificate file" env:"DCRDATA_BTCD_CERT"`
+	BtcCoreUser string `long:"btccoreuser" description:"Daemon BTC RPC user name" env:"DCRDATA_BTC_CORE_USER"`
+	BtcCorePass string `long:"btccorepass" description:"Daemon BTC RPC password" env:"DCRDATA_BTC_CORE_PASS"`
+	BtcCorePort string `long:"btccoreport" description:"Daemon BTC RPC port" env:"DCRDATA_BTC_CORE_PORT"`
 
 	// ExchangeBot settings
 	EnableExchangeBot bool   `long:"exchange-monitor" description:"Enable the exchange monitor" env:"DCRDATA_MONITOR_EXCHANGES"`
@@ -223,6 +240,8 @@ var (
 		ProposalsFileName:   defaultProposalsFileName,
 		PoliteiaURL:         defaultPoliteiaURL,
 		ChartsCacheDump:     defaultChartsCacheDump,
+		LTCChartsCacheDump:  defaultLTCChartsCacheDump,
+		BTCChartsCacheDump:  defaultBTCChartsCacheDump,
 		DebugLevel:          defaultLogLevel,
 		HTTPProfPath:        defaultHTTPProfPath,
 		APIProto:            defaultAPIProto,
@@ -560,6 +579,8 @@ func loadConfig() (*config, error) {
 	ltcActiveNet = &ltcnetparams.MainNetParams
 	ltcActiveChain = &ltccfg.MainNetParams
 	ltcDefaultPort := defaultLTCMainnetPort
+	ltcCoreDefaultPort := defaultLTCCoreMainnetPort
+	btcCoreDefaultPort := defaultBTCCoreMainnetPort
 	btcActiveNet = &btcnetparams.MainNetParams
 	btcActiveChain = &btccfg.MainNetParams
 	btcDefaultPort := defaultBTCMainnetPort
@@ -570,6 +591,8 @@ func loadConfig() (*config, error) {
 		ltcActiveNet = &ltcnetparams.TestNet3Params
 		ltcActiveChain = &ltccfg.TestNet4Params
 		ltcDefaultPort = defaultLTCTestnetPort
+		ltcCoreDefaultPort = defaultLTCCoreTestnetPort
+		btcCoreDefaultPort = defaultBTCCoreTestnetPort
 		btcActiveNet = &btcnetparams.TestNet3Params
 		btcActiveChain = &btccfg.TestNet3Params
 		btcDefaultPort = defaultBTCTestnetPort
@@ -673,6 +696,16 @@ func loadConfig() (*config, error) {
 		return loadConfigError(err)
 	}
 
+	//set litecoin core port
+	if cfg.LtcCorePort == "" {
+		cfg.LtcCorePort = ltcCoreDefaultPort
+	}
+
+	//set bitcoin core port
+	if cfg.BtcCorePort == "" {
+		cfg.BtcCorePort = btcCoreDefaultPort
+	}
+
 	// Output folder
 	cfg.OutFolder = cleanAndExpandPath(cfg.OutFolder)
 	cfg.OutFolder = filepath.Join(cfg.OutFolder, activeNet.Name)
@@ -747,6 +780,8 @@ func loadConfig() (*config, error) {
 	cfg.ProposalsFileName = cleanAndExpandPath(cfg.ProposalsFileName)
 	cfg.RateCertificate = cleanAndExpandPath(cfg.RateCertificate)
 	cfg.ChartsCacheDump = cleanAndExpandPath(cfg.ChartsCacheDump)
+	cfg.LTCChartsCacheDump = cleanAndExpandPath(cfg.LTCChartsCacheDump)
+	cfg.BTCChartsCacheDump = cleanAndExpandPath(cfg.BTCChartsCacheDump)
 
 	// Clean up the provided mainnet and testnet links, ensuring there is a single
 	// trailing slash.

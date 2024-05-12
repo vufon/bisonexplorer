@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
@@ -19,6 +20,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
 )
 
 // Types of votes
@@ -501,6 +503,7 @@ type Conversion struct {
 // HomeInfo represents data used for the home page
 type HomeInfo struct {
 	CoinSupply            int64                    `json:"coin_supply"`
+	CoinValueSupply       float64                  `json:"coin_value_supply"`
 	MixedPercent          float64                  `json:"mixed_percent"`
 	StakeDiff             float64                  `json:"sdiff"`
 	NextExpectedStakeDiff float64                  `json:"next_expected_sdiff"`
@@ -520,6 +523,11 @@ type HomeInfo struct {
 	PoolInfo              TicketPoolInfo           `json:"pool_info"`
 	TotalLockedDCR        float64                  `json:"total_locked_dcr"`
 	HashRate              float64                  `json:"hash_rate"`
+	TotalTransactions     int64                    `json:"total_transactions"`
+	TotalOutputs          int64                    `json:"total_outputs"`
+	TotalSize             int64                    `json:"total_size"`
+	FormattedSize         string                   `json:"formatted_size"`
+	TotalAddresses        int64                    `json:"total_addresses"`
 	HashRateChangeDay     float64                  `json:"hash_rate_change_day"`
 	HashRateChangeMonth   float64                  `json:"hash_rate_change_month"`
 	ExchangeRate          *Conversion              `json:"exchange_rate,omitempty"`
@@ -566,6 +574,22 @@ type MempoolInfo struct {
 	TSpends      []MempoolTx `json:"tspends"`
 	TAdds        []MempoolTx `json:"tadds"`
 	Ident        uint64      `json:"id"`
+}
+
+type MutilchainMempoolInfo struct {
+	sync.RWMutex
+	LastBlockHeight    int64       `json:"block_height"`
+	LastBlockHash      string      `json:"block_hash"`
+	LastBlockTime      int64       `json:"block_time"`
+	FormattedBlockTime string      `json:"formatted_block_time"`
+	Time               int64       `json:"time"`
+	TotalOut           float64     `json:"total"`
+	TotalSize          int32       `json:"size"`
+	TotalFee           float64     `json:"total_fee"`
+	FormattedTotalSize string      `json:"formatted_size"`
+	Transactions       []MempoolTx `json:"tx"`
+	OutputsCount       int64       `json:"outputsCount"`
+	TotalTransactions  int64       `json:"totalTransactions"`
 }
 
 // DeepCopy makes a deep copy of MempoolInfo, where all the slice and map data
@@ -1210,6 +1234,32 @@ func UnspentOutputIndices(vouts []Vout) (unspents []int) {
 
 // MsgTxMempoolInputs parses a MsgTx and creates a list of MempoolInput.
 func MsgTxMempoolInputs(msgTx *wire.MsgTx) (inputs []MempoolInput) {
+	for vindex := range msgTx.TxIn {
+		outpoint := msgTx.TxIn[vindex].PreviousOutPoint
+		outId := outpoint.Hash.String()
+		inputs = append(inputs, MempoolInput{
+			TxId:   outId,
+			Index:  uint32(vindex),
+			Outdex: outpoint.Index,
+		})
+	}
+	return
+}
+
+func LTCMsgTxMempoolInputs(msgTx *ltcwire.MsgTx) (inputs []MempoolInput) {
+	for vindex := range msgTx.TxIn {
+		outpoint := msgTx.TxIn[vindex].PreviousOutPoint
+		outId := outpoint.Hash.String()
+		inputs = append(inputs, MempoolInput{
+			TxId:   outId,
+			Index:  uint32(vindex),
+			Outdex: outpoint.Index,
+		})
+	}
+	return
+}
+
+func BTCMsgTxMempoolInputs(msgTx *btcwire.MsgTx) (inputs []MempoolInput) {
 	for vindex := range msgTx.TxIn {
 		outpoint := msgTx.TxIn[vindex].PreviousOutPoint
 		outId := outpoint.Hash.String()

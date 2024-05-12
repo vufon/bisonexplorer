@@ -45,6 +45,7 @@ const (
 	// SelectSpendingTxByPrevOut = `SELECT id, tx_hash, tx_index FROM vins WHERE prev_tx_hash=$1 AND prev_tx_index=$2;`
 	// SelectFundingTxsByTx      = `SELECT id, prev_tx_hash FROM vins WHERE tx_hash=$1;`
 	// SelectFundingTxByTxIn     = `SELECT id, prev_tx_hash FROM vins WHERE tx_hash=$1 AND tx_index=$2;`
+	SelectCountTotalAddress            = `SELECT count(*) FROM (SELECT DISTINCT address FROM %saddresses) AS count`
 	SelectAddressAllByAddress          = `SELECT * FROM %saddresses WHERE address=$1 order by id desc;`
 	SelectAddressRecvCount             = `SELECT COUNT(*) FROM %saddresses WHERE address=$1;`
 	SelectAddressUnspentCountAndValue  = `SELECT COUNT(*), SUM(value) FROM %saddresses WHERE address=$1 and spending_tx_row_id IS NULL;`
@@ -76,6 +77,10 @@ const (
 		ON %saddresses(funding_tx_hash, funding_tx_vout_index);`
 	DeindexAddressTableOnFundingTx = `DROP INDEX uix_%saddresses_funding_tx;`
 )
+
+func MakeSelectCountTotalAddress(chainType string) string {
+	return fmt.Sprintf(SelectCountTotalAddress, chainType)
+}
 
 func MakeSelectAddressUnspentCountAndValue(chainType string) string {
 	return fmt.Sprintf(SelectAddressUnspentCountAndValue, chainType)

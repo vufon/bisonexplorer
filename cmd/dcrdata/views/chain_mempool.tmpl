@@ -1,0 +1,133 @@
+{{define "chain_mempool" -}}
+<!DOCTYPE html>
+<html lang="en">
+{{$ChainType := .ChainType}}
+{{template "html-head" headData .CommonPageData "Decred Mempool"}}
+{{ template "mutilchain_navbar" . }}
+        {{with .Mempool -}}
+        <div class="container main"
+        data-controller="mempool time"
+        data-mempool-target="mempool"
+        >
+            <div class="pb-2 h4">Mempool</div>
+
+            <div class="row mx-0 my-2">
+                <div class="col-24 col-sm-12 col-md-24 col-lg-12 bg-green-3 py-3 px-3 position-relative common-card">
+                    <div class="card-pointer pointer-right d-none d-sm-block d-md-none d-lg-block"></div>
+                    <div class="card-pointer pointer-bottom d-sm-none d-md-block d-lg-none"></div>
+                    <div class="ps-1">
+                        <span class="dcricon-stack h5"></span>
+                        <span class="h6 d-inline-block ps-2">Current Mempool</span>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pt-2 pt-md-0 pt-lg-2 pt-xl-0">
+                            <div class="col-12 text-center">
+                                <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                                    <span class="text-secondary fs13">Total Sent</span>
+                                    <br>
+                                    <span class="h4" data-mempool-target="likelyTotal">{{threeSigFigs .TotalOut}}</span> <span class="text-secondary">{{$ChainType}}</span>
+                                </div>
+                            </div>
+                            <div class="col-12 text-center">
+                                <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                                    <span class="text-secondary fs13">Last Block</span>
+                                    <br>
+                                    <span class="h4"><a href="/block/{{.LastBlockHeight}}" data-mempool-target="bestBlock" data-hash="{{.LastBlockHash}}" data-keynav-priority>{{.LastBlockHeight}}</a></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pt-2 pt-md-0 pt-lg-2 pt-xl-0">
+                            <div class="col-12 text-center">
+                                <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                                    <span class="text-secondary fs13" data-time-target="header" data-jstitle="Since Last Block">Last Block</span>
+                                    <br>
+                                    <span class="h4" data-mempool-target="bestBlockTime" data-time-target="age" data-age="{{.LastBlockTime}}"><span class="fs13">{{.FormattedBlockTime}}</span></span>
+                                </div>
+                            </div>
+                            <div class="col-12 text-center">
+                                <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                                    <span class="text-secondary fs13">Size</span>
+                                    <br>
+                                    <span class="h4" data-mempool-target="mempoolSize">{{.FormattedTotalSize}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-24 col-sm-12 col-md-24 col-lg-12 blue-card pt-3 pb-3 px-3">
+                    <div class="ps-1">
+                      <!-- <span class="dcricon-stack h5"></span> -->
+                      <span class="h6 d-inline-block ps-2">Details</span>
+                    </div>
+
+                    <div class="row mt-1">
+                        <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pb-3">
+                            <div class="col-12">
+                                <div class="text-center fs13">Total Transactions</div>
+                                <div class="text-center h4 mb-0">{{.TotalTransactions}}</div>
+                            </div>
+                            <div class="col-12">
+                                <div class="text-center fs13">Fee Total</div>
+                                <div class="text-center h4 mb-0">
+                                {{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}} {{$ChainType}}</div>
+                            </div>
+                        </div>
+                         <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pb-3">
+                            <div class="col-12">
+                                <div class="text-center fs13">Total Out</div>
+                                <div class="text-center h4 mb-0">{{.OutputsCount}}</div>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+              <div class="row">
+                  <div class="col-sm-24">
+                  <h4 class="pt-5 pb-2"><span>Transactions</span></h4>
+                  <div class="br-8 b--def bgc-plain-bright pb-10">
+   <div class="btable-table-wrap maxh-none">
+            <table class="btable-table w-100">
+                          <thead>
+                            <tr class="bg-none">
+                              <th>Transaction ID</th>
+                              <th class="text-end">Total {{$ChainType}}</th>
+                              <th class="text-end">Size</th>
+                              <th class="text-end">Fee Rate</th>
+                              <th class="text-end">Time in Mempool</th>
+                            </tr>
+                          </thead>
+                          <tbody class="bgc-white" data-mempool-target="regularTransactions">
+                              {{if gt .TotalTransactions 0 -}}
+                              {{- range .Transactions -}}
+                              <tr>
+                                  <td class="break-word clipboard">
+                                      <a class="hash lh1rem" href="/tx/{{.Hash}}">{{.Hash}}</a>
+                                      {{template "copyTextIcon"}}
+                                  </td>
+                                  <td class="mono fs15 text-end">
+                                    {{template "decimalParts" (float64AsDecimalParts .TotalOut 8 false)}}
+                                  </td>
+                                  <td class="mono fs15 text-end">{{.Size}} B</td>
+                                  <td class="mono fs15 text-end">{{printf "%.8f" (.FeeRate)}} DCR/kB</td>
+                                  <td class="mono fs15 text-end" data-time-target="age" data-age="{{.Time}}"></td>
+                              </tr>
+                              {{- end -}}
+                              {{- else -}}
+                              <tr class="no-tx-tr">
+                                  <td colspan="5">No regular transactions in mempool.</td>
+                              </tr>
+                              {{- end}}
+                          </tbody>
+                      </table>
+                      </div>
+                      </div>
+                  </div>
+              </div>
+            </div>
+        </div>
+        {{- end}}
+        {{ template "footer" . }}
+    </body>
+</html>
+{{- end}}

@@ -33,6 +33,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/go-chi/chi/v5"
 
 	m "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 	"github.com/decred/dcrdata/exchanges/v3"
@@ -41,6 +42,7 @@ import (
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
@@ -144,6 +146,8 @@ type appContext struct {
 	ProposalsDB *politeia.ProposalsDB
 	maxCSVAddrs int
 	charts      *cache.ChartData
+	LtcCharts   *cache.MutilchainChartData
+	BtcCharts   *cache.MutilchainChartData
 }
 
 // AppContextConfig is the configuration for the appContext and the only
@@ -157,6 +161,8 @@ type AppContextConfig struct {
 	ProposalsDB       *politeia.ProposalsDB
 	MaxAddrs          int
 	Charts            *cache.ChartData
+	LtcCharts         *cache.MutilchainChartData
+	BtcCharts         *cache.MutilchainChartData
 	AppVer            string
 }
 
@@ -2842,6 +2848,69 @@ func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
 	writeJSONBytes(w, chartData)
 }
 
+func (c *appContext) MutilchainChartTypeData(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	chartType := m.GetChartTypeCtx(r)
+	bin := r.URL.Query().Get("bin")
+	// Support the deprecated URL parameter "zoom".
+	if bin == "" {
+		bin = r.URL.Query().Get("zoom")
+	}
+
+	mutilchainChartData := c.GetMutilchainChartData(chainType)
+	if mutilchainChartData == nil {
+		return
+	}
+	axis := r.URL.Query().Get("axis")
+	chartData, err := mutilchainChartData.Chart(chartType, bin, axis)
+	if err != nil {
+		http.NotFound(w, r)
+		log.Warnf(`Error fetching chart %q at bin level '%s': %v`, chartType, bin, err)
+		return
+	}
+	writeJSONBytes(w, chartData)
+}
+
+func (c *appContext) GetMutilchainChartData(chainType string) *cache.MutilchainChartData {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return c.BtcCharts
+	case mutilchain.TYPELTC:
+		return c.LtcCharts
+	default:
+		return nil
+	}
+}
+
+// route: chainchart/market/{token}/candlestick/{bin}
+func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	if c.xcBot == nil {
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	token := m.RetrieveExchangeTokenCtx(r)
+	bin := m.RetrieveStickWidthCtx(r)
+	if token == "" || bin == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	chart, err := c.xcBot.MutilchainQuickSticks(token, bin, chainType)
+	if err != nil {
+		apiLog.Infof("QuickSticks error: %v", err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	writeJSONBytes(w, chart)
+}
+
 // route: /market/{token}/candlestick/{bin}
 func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request) {
 	if c.xcBot == nil {
@@ -2858,6 +2927,30 @@ func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request)
 	chart, err := c.xcBot.QuickSticks(token, bin)
 	if err != nil {
 		apiLog.Infof("QuickSticks error: %v", err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	writeJSONBytes(w, chart)
+}
+
+func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	if c.xcBot == nil {
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	token := m.RetrieveExchangeTokenCtx(r)
+	if token == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	chart, err := c.xcBot.MutilchainQuickDepth(token, chainType)
+	if err != nil {
+		apiLog.Infof("QuickDepth error: %v", err)
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}

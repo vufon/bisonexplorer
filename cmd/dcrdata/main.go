@@ -36,11 +36,12 @@ import (
 	politeia "github.com/decred/dcrdata/gov/v6/politeia"
 
 	"github.com/decred/dcrdata/v8/blockdata"
-	"github.com/decred/dcrdata/v8/blockdatabtc"
-	"github.com/decred/dcrdata/v8/blockdataltc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mempool/mempoolltc"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
@@ -255,10 +256,12 @@ func _main(ctx context.Context) error {
 
 	var barLoad chan *dbtypes.ProgressBarLoad
 	var ltcdClient *ltcClient.Client
+	var ltcCoreClient *ltcClient.Client
 	var btcdClient *btcClient.Client
+	var btcCoreClient *btcClient.Client
 	var ltcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPELTC)
 	var btcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEBTC)
-
+	var dcrDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEDCR)
 	defer func() {
 		if dcrdClient != nil {
 			log.Infof("Closing connection to dcrd.")
@@ -277,6 +280,19 @@ func _main(ctx context.Context) error {
 			btcdClient.Shutdown()
 			btcdClient.WaitForShutdown()
 		}
+
+		if btcCoreClient != nil {
+			log.Infof("Closing connection to Bitcoin core.")
+			btcCoreClient.Shutdown()
+			btcCoreClient.WaitForShutdown()
+		}
+
+		if ltcCoreClient != nil {
+			log.Infof("Closing connection to Litecoin core.")
+			ltcCoreClient.Shutdown()
+			ltcCoreClient.WaitForShutdown()
+		}
+
 		log.Infof("Bye!")
 		time.Sleep(250 * time.Millisecond)
 	}()
@@ -447,6 +463,7 @@ func _main(ctx context.Context) error {
 	if cfg.EnableExchangeBot {
 		botCfg := exchanges.ExchangeBotConfig{
 			BtcIndex:       cfg.ExchangeCurrency,
+			LTCIndex:       cfg.ExchangeCurrency,
 			MasterBot:      cfg.RateMaster,
 			MasterCertFile: cfg.RateCertificate,
 		}
@@ -828,6 +845,9 @@ func _main(ctx context.Context) error {
 			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/{chaintype}/block/{blockhash}", explore.MutilchainBlockDetail)
 			rd.With(explorer.TransactionHashCtx).Get("/{chaintype}/tx/{txid}", explore.MutilchainTxPage)
 			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/address/{address}", explore.MutilchainAddressPage)
+			rd.Get("/{chaintype}/mempool", explore.MutilchainMempool)
+			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
+			rd.Get("/{chaintype}/market", explore.MutilchainMarketPage)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
@@ -885,48 +905,49 @@ func _main(ctx context.Context) error {
 		return height, nil
 	}
 
-	chainDBHeight, err = syncChainDB()
-	if err != nil {
-		return err
-	}
-
-	//synchronize legacy address data
-	log.Infof("Starting address summary sync...")
-
-	syncAdressSummaryData := func() error {
-		err := chainDB.SyncAddressSummary(ctx)
+	if !dcrDisabled {
+		chainDBHeight, err = syncChainDB()
 		if err != nil {
-			log.Errorf("dcrpg.SyncAddressSummary failed")
 			return err
 		}
-		return nil
-	}
+		//synchronize legacy address data
+		log.Infof("Starting address summary sync...")
 
-	err = syncAdressSummaryData()
-	if err != nil {
-		return err
-	}
+		syncAdressSummaryData := func() error {
+			err := chainDB.SyncAddressSummary(ctx)
+			if err != nil {
+				log.Errorf("dcrpg.SyncAddressSummary failed")
+				return err
+			}
+			return nil
+		}
 
-	log.Infof("Finished address summary sync")
-
-	//Synchronize DCR's price by month
-	log.Infof("Starting DCR monthly price sync...")
-
-	syncMonthlyPriceData := func() error {
-		err := chainDB.SyncMonthlyPrice(ctx)
+		err = syncAdressSummaryData()
 		if err != nil {
-			log.Errorf("dcrpg.SyncMonthlyPrice failed")
 			return err
 		}
-		return nil
-	}
 
-	err = syncMonthlyPriceData()
-	if err != nil {
-		return err
-	}
+		log.Infof("Finished address summary sync")
 
-	log.Infof("Finished DCR monthly price sync")
+		//Synchronize DCR's price by month
+		log.Infof("Starting DCR monthly price sync...")
+
+		syncMonthlyPriceData := func() error {
+			err := chainDB.SyncMonthlyPrice(ctx)
+			if err != nil {
+				log.Errorf("dcrpg.SyncMonthlyPrice failed")
+				return err
+			}
+			return nil
+		}
+
+		err = syncMonthlyPriceData()
+		if err != nil {
+			return err
+		}
+
+		log.Infof("Finished DCR monthly price sync")
+	}
 
 	// After sync and indexing, must use upsert statement, which checks for
 	// duplicate entries and updates instead of erroring. SyncChainDB should
@@ -1066,64 +1087,64 @@ func _main(ctx context.Context) error {
 	if latestBlockHash != nil {
 		close(latestBlockHash)
 	}
+	if !dcrDisabled {
+		// The proposals and agenda db updates are run after the db indexing.
+		// Retrieve blockchain deployment updates and add them to the agendas db.
+		if err = agendaDB.UpdateAgendas(); err != nil {
+			return fmt.Errorf("updating agendas db failed: %v", err)
+		}
 
-	// The proposals and agenda db updates are run after the db indexing.
-	// Retrieve blockchain deployment updates and add them to the agendas db.
-	if err = agendaDB.UpdateAgendas(); err != nil {
-		return fmt.Errorf("updating agendas db failed: %v", err)
-	}
+		// Retrieve updates and newly added proposals from Politeia and store them
+		// on our stormdb. This call is made asynchronously to not block execution
+		// while the proposals db is syncing.
+		log.Info("Syncing proposals data with Politeia...")
+		go func() {
+			if err := proposalsDB.ProposalsSync(); err != nil {
+				log.Errorf("updating proposals db failed: %v", err)
+			}
+		}()
 
-	// Retrieve updates and newly added proposals from Politeia and store them
-	// on our stormdb. This call is made asynchronously to not block execution
-	// while the proposals db is syncing.
-	log.Info("Syncing proposals data with Politeia...")
-	go func() {
-		if err := proposalsDB.ProposalsSync(); err != nil {
-			log.Errorf("updating proposals db failed: %v", err)
-		}
-	}()
-
-	// Synchronize proposal Meta data
-	log.Info("Syncing proposals meta data with chain DB")
-	go func() {
-		//check exist and create proposal_meta table
-		err := chainDB.CheckCreateProposalMetaTable()
-		if err != nil {
-			log.Errorf("Check exist and create proposal_meta table failed: %v", err)
-			return
-		}
-		//get all proposals
-		proposals, err := proposalsDB.GetAllProposals()
-		if err != nil {
-			log.Errorf("Get proposals failed: %v", err)
-			return
-		}
-		tokens := make([]string, 0, len(proposals))
-		for _, proposal := range proposals {
-			tokens = append(tokens, proposal.Token)
-		}
-		//Get the tokens that need to be synchronized
-		neededTokens, err := chainDB.GetNeededSyncProposalTokens(tokens)
-		if err != nil {
-			log.Errorf("Get sync needed proposals failed: %v", err)
-			return
-		}
-		if len(neededTokens) > 0 {
-			//get meta data from file
-			proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens, proposals)
+		// Synchronize proposal Meta data
+		log.Info("Syncing proposals meta data with chain DB")
+		go func() {
+			//check exist and create proposal_meta table
+			err := chainDB.CheckCreateProposalMetaTable()
 			if err != nil {
-				log.Errorf("Get proposal metadata failed: %v", err)
+				log.Errorf("Check exist and create proposal_meta table failed: %v", err)
 				return
 			}
-			//Add meta data to DB
-			addErr := chainDB.AddProposalMeta(proposalMetaDatas)
-			if addErr != nil {
-				log.Errorf("Add proposal meta to DB failed: %v", addErr)
+			//get all proposals
+			proposals, err := proposalsDB.GetAllProposals()
+			if err != nil {
+				log.Errorf("Get proposals failed: %v", err)
 				return
 			}
-		}
-	}()
-
+			tokens := make([]string, 0, len(proposals))
+			for _, proposal := range proposals {
+				tokens = append(tokens, proposal.Token)
+			}
+			//Get the tokens that need to be synchronized
+			neededTokens, err := chainDB.GetNeededSyncProposalTokens(tokens)
+			if err != nil {
+				log.Errorf("Get sync needed proposals failed: %v", err)
+				return
+			}
+			if len(neededTokens) > 0 {
+				//get meta data from file
+				proposalMetaDatas, err := proposalsDB.ProposalsApprovedMetadata(neededTokens, proposals)
+				if err != nil {
+					log.Errorf("Get proposal metadata failed: %v", err)
+					return
+				}
+				//Add meta data to DB
+				addErr := chainDB.AddProposalMeta(proposalMetaDatas)
+				if addErr != nil {
+					log.Errorf("Add proposal meta to DB failed: %v", addErr)
+					return
+				}
+			}
+		}()
+	}
 	// Monitors for new blocks, transactions, and reorgs should not run before
 	// blockchain syncing and DB indexing completes. If started before then, the
 	// DBs will not be prepared to process the notified events. For example, if
@@ -1172,16 +1193,18 @@ func _main(ctx context.Context) error {
 	// After this final node sync check, the monitors will handle new blocks.
 	// TODO: make this not racy at all by having notifiers register first, but
 	// enable operation on signal of sync complete.
-	nodeHeight, chainDBHeight, err = Heights()
-	if err != nil {
-		return fmt.Errorf("Heights failed: %w", err)
-	}
-	if nodeHeight != chainDBHeight {
-		log.Infof("Initial chain DB sync complete. Now catching up with network...")
-		newPGIndexes, updateAllAddresses = false, false
-		chainDBHeight, err = syncChainDB()
+	if !dcrDisabled {
+		nodeHeight, chainDBHeight, err = Heights()
 		if err != nil {
-			return err
+			return fmt.Errorf("Heights failed: %w", err)
+		}
+		if nodeHeight != chainDBHeight {
+			log.Infof("Initial chain DB sync complete. Now catching up with network...")
+			newPGIndexes, updateAllAddresses = false, false
+			chainDBHeight, err = syncChainDB()
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1245,23 +1268,52 @@ func _main(ctx context.Context) error {
 		//Start create rpcclient
 		ltcNotifier := notify.NewLtcNotifier()
 		var ltcNodeVer semver.Semver
-		var ltcConnectErr error
+		var ltcConnectErr, ltcCoreErr error
 		ltcdClient, ltcNodeVer, ltcConnectErr = connectLTCNodeRPC(cfg, ltcNotifier.LtcdHandlers())
+		ltcCoreClient, ltcCoreErr = connectLTCCoreRPC(cfg)
 		if ltcConnectErr != nil || ltcdClient == nil {
 			return fmt.Errorf("Connection to ltcd failed: %v", ltcConnectErr)
+		}
+		if ltcCoreErr != nil || ltcCoreClient == nil {
+			return fmt.Errorf("Connection to litecoin core failed: %v", ltcCoreErr)
 		}
 		ltcCurnet, ltcErr := ltcdClient.GetCurrentNet()
 		if ltcErr != nil {
 			return fmt.Errorf("Unable to get current network from ltcd: %v", ltcErr)
 		}
 		chainDB.LtcClient = ltcdClient
-		log.Infof("Connected to ltcd (JSON-RPC API v%s) on %v", ltcNodeVer.String(), ltcCurnet.String())
+		chainDB.LtcCoreClient = ltcCoreClient
+		log.Infof("Connected to ltcd and litecoin core (JSON-RPC API v%s) on %v", ltcNodeVer.String(), ltcCurnet.String())
 
 		if ltcCurnet != ltcActiveNet.Net {
 			log.Criticalf("LTCD: Network of connected node, %s, does not match expected "+
 				"network, %s.", ltcActiveNet.Net, ltcCurnet)
 			return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
 		}
+
+		//handler mempool
+		ltcMempoolSavers := []mempoolltc.MempoolDataSaver{chainDB.LTCMPC}
+		ltcMempoolSavers = append(ltcMempoolSavers, explore)
+		// Create the mempool data collector.
+		ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
+		if ltcMpoolCollector == nil {
+			// Shutdown goroutines.
+			requestShutdown()
+			return fmt.Errorf("Failed to create LTC mempool data collector")
+		}
+
+		mpm, err := mempoolltc.NewMempoolMonitor(ctx, ltcMpoolCollector, ltcMempoolSavers,
+			ltcActiveChain, true)
+
+		// Ensure the initial collect/store succeeded.
+		if err != nil {
+			// Shutdown goroutines.
+			requestShutdown()
+			return fmt.Errorf("NewMempoolMonitor: %v", err)
+		}
+
+		// Use the MempoolMonitor in DB to get unconfirmed transaction data.
+		chainDB.UseLTCMempoolChecker(mpm)
 
 		//Start - LTC Sync handler
 		_, ltcHeight, err = ltcdClient.GetBestBlock()
@@ -1286,6 +1338,18 @@ func _main(ctx context.Context) error {
 			}
 			ltcHeightFromDB = 0
 		}
+
+		ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain)
+		chainDB.RegisterLTCCharts(ltcCharts)
+
+		explore.LtcChartSource = ltcCharts
+		app.LtcCharts = ltcCharts
+		ltcDumpPath := filepath.Join(cfg.DataDir, cfg.LTCChartsCacheDump)
+		if err = ltcCharts.Load(ltcDumpPath); err != nil {
+			log.Warnf("Failed to load charts data cache: %v", err)
+		}
+		// Dump the cache charts data into a file for future use on system exit.
+		defer ltcCharts.Dump(ltcDumpPath)
 		ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightFromDB)
 		if ltcBlocksBehind < 0 {
 			return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
@@ -1303,7 +1367,7 @@ func _main(ctx context.Context) error {
 		}
 
 		//start init collector for ltc
-		ltcCollector = blockdataltc.NewCollector(ltcdClient, ltcActiveChain)
+		ltcCollector = blockdataltc.NewCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
 		if ltcCollector == nil {
 			return fmt.Errorf("Failed to create LTC block data collector")
 		}
@@ -1375,22 +1439,54 @@ func _main(ctx context.Context) error {
 		}
 		btcNotifier := notify.NewBtcNotifier()
 		var btcNodeVer semver.Semver
-		var btcConnectErr error
+		var btcConnectErr, btcCoreErr error
 		btcdClient, btcNodeVer, btcConnectErr = connectBTCNodeRPC(cfg, btcNotifier.BtcdHandlers())
+		btcCoreClient, btcCoreErr = connectBTCCoreRPC(cfg)
 		if btcConnectErr != nil || btcdClient == nil {
 			return fmt.Errorf("Connection to btcd failed: %v", btcConnectErr)
+		}
+
+		if btcCoreErr != nil || btcCoreClient == nil {
+			return fmt.Errorf("Connection to bitcoin core failed: %v", btcCoreErr)
 		}
 		btcCurnet, btcErr := btcdClient.GetCurrentNet()
 		if btcErr != nil {
 			return fmt.Errorf("Unable to get current network from btcd: %v", btcErr)
 		}
-		log.Infof("Connected to btcd (JSON-RPC API v%s) on %v", btcNodeVer.String(), btcCurnet.String())
+		log.Infof("Connected to btcd and bitcoin core (JSON-RPC API v%s) on %v", btcNodeVer.String(), btcCurnet.String())
 		if btcCurnet != btcActiveNet.Net {
 			log.Criticalf("BTCD: Network of connected node, %s, does not match expected "+
 				"network, %s.", btcActiveNet.Net, btcCurnet)
 			return fmt.Errorf("expected network %s, got %s", btcActiveNet.Net, btcCurnet)
 		}
 		chainDB.BtcClient = btcdClient
+		chainDB.BtcCoreClient = btcCoreClient
+
+		// //handler mempool : TODO: Optimize mempool processing for BTC (Because the volume is quite large)
+		// btcMempoolSavers := []mempoolbtc.MempoolDataSaver{chainDB.BTCMPC}
+		// btcMempoolSavers = append(btcMempoolSavers, explore)
+		// // Create the mempool data collector.
+		// btcMpoolCollector := mempoolbtc.NewDataCollector(btcdClient, btcCoreClient, btcActiveChain)
+		// if btcMpoolCollector == nil {
+		// 	// Shutdown goroutines.
+		// 	requestShutdown()
+		// 	return fmt.Errorf("Failed to create BTC mempool data collector")
+		// }
+
+		// mpm, err := mempoolbtc.NewMempoolMonitor(ctx, btcMpoolCollector, btcMempoolSavers,
+		// 	btcActiveChain, true)
+
+		// // Ensure the initial collect/store succeeded.
+		// if err != nil {
+		// 	// Shutdown goroutines.
+		// 	requestShutdown()
+		// 	return fmt.Errorf("NewMempoolMonitor: %v", err)
+		// }
+
+		// // Use the MempoolMonitor in DB to get unconfirmed transaction data.
+		// chainDB.UseBTCMempoolChecker(mpm)
+		// //end handler mempool
+
 		//Start - BTC Sync handler
 		_, btcHeight, err = btcdClient.GetBestBlock()
 		if err != nil {
@@ -1606,6 +1702,36 @@ func connectNodeRPC(cfg *config, ntfnHandlers *rpcclient.NotificationHandlers) (
 func connectLTCNodeRPC(cfg *config, ntfnHandlers *ltcClient.NotificationHandlers) (*ltcClient.Client, semver.Semver, error) {
 	return ltcrpcutils.ConnectNodeRPC(cfg.LtcdServ, cfg.LtcdUser, cfg.LtcdPass,
 		cfg.LtcdCert, cfg.DisableDaemonTLS, true, ntfnHandlers)
+}
+
+func connectLTCCoreRPC(cfg *config) (*ltcClient.Client, error) {
+	connCfg := &ltcClient.ConnConfig{
+		Host:         fmt.Sprintf("%s:%s", cfg.LtcCoreServ, cfg.LtcCorePort),
+		User:         cfg.LtcCoreUser,
+		Pass:         cfg.LtcCorePass,
+		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
+		DisableTLS:   true, // Bitcoin core does not provide TLS by default
+	}
+	client, err := ltcClient.New(connCfg, nil)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func connectBTCCoreRPC(cfg *config) (*btcClient.Client, error) {
+	connCfg := &btcClient.ConnConfig{
+		Host:         fmt.Sprintf("%s:%s", cfg.BtcCoreServ, cfg.BtcCorePort),
+		User:         cfg.BtcCoreUser,
+		Pass:         cfg.BtcCorePass,
+		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
+		DisableTLS:   true, // Bitcoin core does not provide TLS by default
+	}
+	client, err := btcClient.New(connCfg, nil)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func connectBTCNodeRPC(cfg *config, ntfnHandlers *btcClient.NotificationHandlers) (*btcClient.Client, semver.Semver, error) {

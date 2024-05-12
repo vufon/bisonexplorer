@@ -112,6 +112,32 @@ var (
 			monthKey: "https://api.binance.com/api/v3/klines?symbol=DCRBTC&interval=1M",
 		},
 	}
+
+	BinanceMutilchainURLs = URLs{
+		Price: "https://api.binance.com/api/v3/ticker/24hr?symbol=%sUSDT",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.binance.com/api/v3/depth?symbol=%sUSDT&limit=5000",
+		Candlesticks: map[candlestickKey]string{
+			hourKey:  "https://api.binance.com/api/v3/klines?symbol=%sUSDT&interval=1h",
+			dayKey:   "https://api.binance.com/api/v3/klines?symbol=%sUSDT&interval=1d",
+			monthKey: "https://api.binance.com/api/v3/klines?symbol=%sUSDT&interval=1M",
+		},
+	}
+
+	BittrexMutilchainURLs = URLs{
+		Price: "https://api.bittrex.com/v3/markets/%s-usd/ticker",
+		Stats: "https://api.bittrex.com/v3/markets/%s-usd/summary",
+		Depth: "https://api.bittrex.com/v3/markets/%s-usd/orderbook?depth=500",
+		Candlesticks: map[candlestickKey]string{
+			hourKey: "https://api.bittrex.com/v3/markets/%s-usd/candles/HOUR_1/recent",
+			dayKey:  "https://api.bittrex.com/v3/markets/%s-usd/candles/DAY_1/recent",
+		},
+		// Bittrex uses SignalR, which retrieves the actual websocket endpoint via
+		// HTTP.
+		Websocket: "socket.bittrex.com",
+	}
+
 	BittrexURLs = URLs{
 		Price: "https://api.bittrex.com/v3/markets/dcr-btc/ticker",
 		Stats: "https://api.bittrex.com/v3/markets/dcr-btc/summary",
@@ -133,6 +159,19 @@ var (
 			dayKey:  "https://openapi.dragonex.io/api/v1/market/kline/?symbol_id=1520101&count=100&kline_type=6",
 		},
 	}
+
+	HuobiMutilchainURLs = URLs{
+		Price: "https://api.huobi.pro/market/detail/merged?symbol=%susdt",
+		// Huobi's only depth parameter defines bin size, 'step0' seems to mean bin
+		// width of zero.
+		Depth: "https://api.huobi.pro/market/depth?symbol=%susdt&type=step0",
+		Candlesticks: map[candlestickKey]string{
+			hourKey:  "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=60min&size=2000",
+			dayKey:   "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=1day&size=2000",
+			monthKey: "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=1mon&size=2000",
+		},
+	}
+
 	HuobiURLs = URLs{
 		Price: "https://api.huobi.pro/market/detail/merged?symbol=dcrbtc",
 		// Huobi's only depth parameter defines bin size, 'step0' seems to mean bin
@@ -151,6 +190,17 @@ var (
 		Candlesticks: map[candlestickKey]string{
 			halfHourKey: "https://poloniex.com/public?command=returnChartData&currencyPair=BTC_DCR&period=1800&start=0&resolution=auto",
 			dayKey:      "https://poloniex.com/public?command=returnChartData&currencyPair=BTC_DCR&period=86400&start=0&resolution=auto",
+		},
+		Websocket: "wss://api2.poloniex.com",
+	}
+
+	PoloniexMutilchainURLs = URLs{
+		Price: "https://poloniex.com/public?command=returnTicker",
+		// Maximum value of 100 for depth parameter.
+		Depth: "https://poloniex.com/public?command=returnOrderBook&currencyPair=USDT_%s&depth=100",
+		Candlesticks: map[candlestickKey]string{
+			halfHourKey: "https://poloniex.com/public?command=returnChartData&currencyPair=USDT_%s&period=1800&start=0&resolution=auto",
+			dayKey:      "https://poloniex.com/public?command=returnChartData&currencyPair=USDT_%s&period=86400&start=0&resolution=auto",
 		},
 		Websocket: "wss://api2.poloniex.com",
 	}
@@ -177,6 +227,24 @@ var DcrExchanges = map[string]func(*http.Client, *BotChannels) (Exchange, error)
 	}),
 }
 
+var LTCExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
+	Binance:      MutilchainNewBinance,
+	Bittrex:      MutilchainNewBittrex,
+	DragonEx:     nil,
+	Huobi:        MutilchainNewHuobi,
+	Poloniex:     MutilchainNewPoloniex,
+	DexDotDecred: nil,
+}
+
+var BTCExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
+	Binance:      MutilchainNewBinance,
+	Bittrex:      MutilchainNewBittrex,
+	DragonEx:     nil,
+	Huobi:        MutilchainNewHuobi,
+	Poloniex:     MutilchainNewPoloniex,
+	DexDotDecred: nil,
+}
+
 // IsBtcIndex checks whether the given token is a known Bitcoin index, as
 // opposed to a Decred-to-Bitcoin Exchange.
 func IsBtcIndex(token string) bool {
@@ -185,9 +253,34 @@ func IsBtcIndex(token string) bool {
 }
 
 // IsDcrExchange checks whether the given token is a known Decred-BTC exchange.
-func IsDcrExchange(token string) bool {
+func IsDcrExchange(token string, symbol string) bool {
+	if symbol != DCRSYMBOL {
+		return false
+	}
 	_, ok := DcrExchanges[token]
 	return ok
+}
+
+func IsLTCExchange(token string, symbol string) bool {
+	if symbol != LTCSYMBOL {
+		return false
+	}
+	exchange, ok := LTCExchanges[token]
+	if !ok {
+		return ok
+	}
+	return exchange != nil
+}
+
+func IsBTCExchange(token string, symbol string) bool {
+	if symbol != BTCSYMBOL {
+		return false
+	}
+	exchange, ok := BTCExchanges[token]
+	if !ok {
+		return ok
+	}
+	return exchange != nil
 }
 
 // Tokens is a new slice of available exchange tokens.
@@ -281,7 +374,8 @@ func (sticks Candlesticks) needsUpdate(bin candlestickKey) bool {
 // BaseState are the non-iterable fields of the ExchangeState, which embeds
 // BaseState.
 type BaseState struct {
-	Price float64 `json:"price"`
+	Symbol string  `json:"symbol"`
+	Price  float64 `json:"price"`
 	// BaseVolume is poorly named. This is the volume in terms of (usually) BTC,
 	// not the base asset of any particular market.
 	BaseVolume float64 `json:"base_volume,omitempty"`
@@ -340,6 +434,7 @@ func (state *ExchangeState) stealSticks(top *ExchangeState) {
 func exchangeStateFromProto(proto *dcrrates.ExchangeRateUpdate) *ExchangeState {
 	state := &ExchangeState{
 		BaseState: BaseState{
+			Symbol:     proto.Symbol,
 			Price:      proto.GetPrice(),
 			BaseVolume: proto.GetBaseVolume(),
 			Volume:     proto.GetVolume(),
@@ -997,6 +1092,30 @@ type BinanceExchange struct {
 	*CommonExchange
 }
 
+func MutilchainNewBinance(client *http.Client, channels *BotChannels, chainType string) (binance Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceMutilchainURLs.Depth, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range BinanceMutilchainURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType)), nil)
+		if err != nil {
+			return
+		}
+	}
+	binance = &BinanceExchange{
+		CommonExchange: newCommonExchange(Binance, client, reqs, channels),
+	}
+	return
+}
+
 // NewBinance constructs a BinanceExchange.
 func NewBinance(client *http.Client, channels *BotChannels) (binance Exchange, err error) {
 	reqs := newRequests()
@@ -1248,9 +1367,9 @@ func (binance *BinanceExchange) Refresh() {
 			}
 		}
 	}
-
 	binance.Update(&ExchangeState{
 		BaseState: BaseState{
+			Symbol:     priceResponse.Symbol,
 			Price:      price,
 			BaseVolume: baseVolume,
 			Volume:     dcrVolume,
@@ -1301,6 +1420,49 @@ func NewBittrex(client *http.Client, channels *BotChannels) (bittrex Exchange, e
 	b := &BittrexExchange{
 		CommonExchange: newCommonExchange(Bittrex, client, reqs, channels),
 		MarketName:     "BTC-DCR",
+		queue:          make([]*BittrexOrderbookUpdate, 0),
+	}
+	go func() {
+		<-channels.done
+		sr := b.signalr()
+		if sr != nil {
+			sr.Close()
+		}
+	}()
+	bittrex = b
+	return
+}
+
+func MutilchainNewBittrex(client *http.Client, channels *BotChannels, chainType string) (bittrex Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BittrexMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+	reqs.price.Header.Add("Content-Type", "application/json")
+
+	reqs.stats, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BittrexMutilchainURLs.Stats, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+	reqs.stats.Header.Add("Content-Type", "application/json")
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BittrexMutilchainURLs.Depth, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range BittrexMutilchainURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType)), nil)
+		if err != nil {
+			return
+		}
+		reqs.candlesticks[dur].Header.Add("Content-Type", "application/json")
+	}
+
+	b := &BittrexExchange{
+		CommonExchange: newCommonExchange(Bittrex, client, reqs, channels),
+		MarketName:     fmt.Sprintf("USD-%s", strings.ToUpper(chainType)),
 		queue:          make([]*BittrexOrderbookUpdate, 0),
 	}
 	go func() {
@@ -2186,6 +2348,34 @@ func NewHuobi(client *http.Client, channels *BotChannels) (huobi Exchange, err e
 	}, nil
 }
 
+func MutilchainNewHuobi(client *http.Client, channels *BotChannels, chainType string) (huobi Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(HuobiMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+	reqs.price.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(HuobiMutilchainURLs.Depth, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+	reqs.depth.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+	for dur, url := range HuobiMutilchainURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType)), nil)
+		if err != nil {
+			return
+		}
+		reqs.candlesticks[dur].Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	}
+
+	return &HuobiExchange{
+		CommonExchange: newCommonExchange(Huobi, client, reqs, channels),
+		Ok:             "ok",
+	}, nil
+}
+
 // HuobiResponse models the common response fields in all API BittrexResponseResult
 type HuobiResponse struct {
 	Status string `json:"status"`
@@ -2380,6 +2570,40 @@ func NewPoloniex(client *http.Client, channels *BotChannels) (poloniex Exchange,
 	p := &PoloniexExchange{
 		CommonExchange: newCommonExchange(Poloniex, client, reqs, channels),
 		CurrencyPair:   "BTC_DCR",
+	}
+	go func() {
+		<-channels.done
+		ws, _ := p.websocket()
+		if ws != nil {
+			ws.Close()
+		}
+	}()
+	poloniex = p
+	return
+}
+
+func MutilchainNewPoloniex(client *http.Client, channels *BotChannels, chainType string) (poloniex Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(PoloniexMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(PoloniexMutilchainURLs.Depth, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range PoloniexMutilchainURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType)), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	p := &PoloniexExchange{
+		CommonExchange: newCommonExchange(Poloniex, client, reqs, channels),
+		CurrencyPair:   fmt.Sprintf("USDT_%s", strings.ToUpper(chainType)),
 	}
 	go func() {
 		<-channels.done

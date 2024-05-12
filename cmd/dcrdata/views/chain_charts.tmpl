@@ -1,0 +1,184 @@
+{{define "chain_charts"}}
+<!DOCTYPE html>
+<html lang="en">
+
+   {{template "html-head" headData .CommonPageData "Decred Charts"}}
+   {{template "mutilchain_navbar" . }}
+   <div data-controller="chaincharts"
+      data-chaincharts-block-time="{{.TargetTimePerBlock}}"
+      data-chaincharts-chain-type="{{.ChainType}}"
+      >
+      <div class="container main pb-2">
+         <span class="d-none" data-chaincharts-target="chartTitleName"></span>
+         <div class="d-flex flex-wrap justify-content-center align-items-center chart-controls common-card p-2 mb-1 mt-1">
+            <div class="chart-control-wrapper me-2 mb-1">
+               <div class="chart-control-label">CHART</div>
+               <div class="chart-control">
+                  <select
+                     id="selectBox"
+                     class="form-control chart-form-control bg-none"
+                     data-chaincharts-target="chartSelect"
+                     data-action="chaincharts#selectChart"
+                     >
+                     <option value="block-size">Block Size</option>
+                     <option value="blockchain-size">Blockchain Size</option>
+                     <option value="tx-count">Transaction Count</option>
+                     <option value="pow-difficulty">Difficulty</option>
+                     <option value="coin-supply">Circulation</option>
+                     <option value="fees">Fees</option>
+                     <option value="duration-btw-blocks">Duration Between Blocks</option>
+                     <option value="hashrate">Hashrate</option>
+                  </select>
+               </div>
+            </div>
+            <div class="chart-control-wrapper me-2 mb-1" data-chaincharts-target="zoomSelector">
+               <div class="chart-control-label">ZOOM</div>
+               <div class="chart-control p-1">
+                  <ul class="nav nav-pills">
+                     <li class="nav-item nav-link active"
+                        data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom"
+                        data-option="all">
+                        All
+                     </li>
+                     <li class="nav-item nav-link"
+                        data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom"
+                        data-option="year">
+                        Year
+                     </li>
+                     <li class="nav-item nav-link"
+                        data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom"
+                        data-option="month">
+                        Month
+                     </li>
+                     <li class="nav-item nav-link"
+                        data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom"
+                        data-option="week">
+                        Week
+                     </li>
+                     <li class="nav-item nav-link"
+                        data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom"
+                        data-option="day">
+                        Day
+                     </li>
+                  </ul>
+               </div>
+            </div>
+            <div class="chart-control-wrapper me-2 mb-1" data-chaincharts-target="binSelector">
+               <div class="chart-control-label">BIN</div>
+               <div class="chart-control p-1">
+                  <ul class="nav nav-pills">
+                     <li class="nav-item nav-link active"
+                        data-chaincharts-target="binSize"
+                        data-action="click->chaincharts#setBin"
+                        data-option="day">
+                        Day
+                     </li>
+                     <li class="nav-item nav-link"
+                        data-chaincharts-target="binSize"
+                        data-action="click->chaincharts#setBin"
+                        data-option="block">
+                        Blocks
+                     </li>
+                  </ul>
+               </div>
+            </div>
+            <div class="chart-control-wrapper me-2 mb-1" data-chaincharts-target="scaleSelector">
+               <div class="chart-control-label">SCALE</div>
+               <div class="chart-control p-1">
+                  <ul class="nav nav-pills">
+                     <li class="nav-item nav-link active"
+                        data-chaincharts-target="scaleType"
+                        data-action="click->chaincharts#setScale"
+                        data-option="linear">
+                        Linear
+                     </li>
+                     <li class="nav-item nav-link"
+                        data-chaincharts-target="scaleType"
+                        data-action="click->chaincharts#setScale"
+                        data-option="log">
+                        Log
+                     </li>
+                  </ul>
+               </div>
+            </div>
+            <div class="chart-control-wrapper me-2 mb-1" data-chaincharts-target="modeSelector">
+               <div class="chart-control-label">MODE</div>
+               <div class="chart-control p-1">
+                  <ul class="nav nav-pills">
+                     <li class="nav-item nav-link active"
+                        data-chaincharts-target="modeOption"
+                        data-action="click->chaincharts#setMode"
+                        data-option="smooth">
+                        Smooth
+                     </li>
+                     <li class="nav-item nav-link"
+                        data-chaincharts-target="modeOption"
+                        data-action="click->chaincharts#setMode"
+                        data-option="stepped">
+                        Stepped
+                     </li>
+                  </ul>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div class="d-flex justify-content-center">
+      <div data-chaincharts-target="chartWrapper" class="d-block chart-wrapper common-card p-3 px-2 pb-5 mb-50">
+         <span class="d-none" data-chaincharts-target="chartName"></span>
+         <div
+            class="chartview"
+            data-chaincharts-target="chartsView">
+         </div>
+         <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-3">
+            <div class="chart-control">
+               <ul class="nav nav-pills justify-content-center">
+                  <li class="nav-item nav-link active"
+                     data-chaincharts-target="axisOption"
+                     data-action="click->chaincharts#setAxis"
+                     data-option="time">
+                     Time
+                  </li>
+                  <li class="nav-item nav-link"
+                     data-chaincharts-target="axisOption"
+                     data-action="click->chaincharts#setAxis"
+                     data-option="height">
+                     Blocks
+                  </li>
+               </ul>
+            </div>
+         </div>
+         <div class="d-flex justify-content-center">
+            <div class="d-flex flex-column align-items-center p-2 px-3 my-2 bg-white">
+               <span class="fs18">JSON-formatted raw data for this chart @</span>
+               <div class="d-inline-block text-center fs15 clipboard py-1">
+                  <span class="text-center" data-chaincharts-target="rawDataURL"></span>
+                  {{template "copyTextIcon"}}
+               </div>
+            </div>
+         </div>
+         <div class="spinner-wrapper">
+            <div class="spinner-centerer d-flex align-items-center justify-content-center">
+               <div class="spinner">
+                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+               </div>
+            </div>
+         </div>
+         <div class="d-flex justify-content-center legend-wrapper">
+            <div class="legend d-flex align-items-center" data-chaincharts-target="labels">
+               <div class="pe-3" data-chaincharts-target="legendEntry">
+                  <div class="dygraph-legend-line" data-chaincharts-target="legendMarker"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+      </div>
+   </div>
+   {{ template "footer" . }}
+   </body>
+</html>
+{{end}}

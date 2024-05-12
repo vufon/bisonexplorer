@@ -1,10 +1,10 @@
 import { Controller } from '@hotwired/stimulus'
-import TurboQuery from '../helpers/turbolinks_helper'
-import { getDefault } from '../helpers/module_helper'
-import { requestJSON } from '../helpers/http'
-import humanize from '../helpers/humanize_helper'
-import { darkEnabled } from '../services/theme_service'
-import globalEventBus from '../services/event_bus_service'
+import TurboQuery from '../helpers/turbolinks_helper.js'
+import { getDefault } from '../helpers/module_helper.js'
+import { requestJSON } from '../helpers/http.js'
+import humanize from '../helpers/humanize_helper.js'
+import { darkEnabled } from '../services/theme_service.js'
+import globalEventBus from '../services/event_bus_service.js'
 
 let Dygraph
 const SELL = 1
@@ -16,6 +16,7 @@ const history = 'history'
 const volume = 'volume'
 const aggregatedKey = 'aggregated'
 const anHour = '1h'
+let globalChainType = ''
 const minuteMap = {
   '5m': 5,
   '30m': 30,
@@ -30,14 +31,6 @@ const prettyDurations = {
   '1h': 'hour',
   '1d': 'day',
   '1mo': 'month'
-}
-const exchangeLinks = {
-  binance: 'https://www.binance.com/en/trade/DCR_BTC',
-  bittrex: 'https://bittrex.com/Market/Index?MarketName=BTC-DCR',
-  poloniex: 'https://poloniex.com/exchange#btc_dcr',
-  dragonex: 'https://dragonex.io/en-us/trade/index/dcr_btc',
-  huobi: 'https://www.hbg.com/en-us/exchange/?s=dcr_btc',
-  dcrdex: 'https://dex.decred.org'
 }
 
 const printNames = {
@@ -463,7 +456,7 @@ function depthLegendPlotter (e) {
   const midGapPrice = humanize.threeSigFigs(stats.midGap)
   const deltaPctTxt = `${greekCapDelta} : ${humanize.threeSigFigs(stats.gap / stats.midGap * 100)}%`
   const fiatGapTxt = `${humanize.threeSigFigs(stats.gap * btcPrice)} ${fiatCode}`
-  const btcGapTxt = `${humanize.threeSigFigs(stats.gap)} BTC`
+  const btcGapTxt = `${humanize.threeSigFigs(stats.gap)} USD`
   let boxW = 0
   const txts = [fiatGapTxt, btcGapTxt, deltaPctTxt, midGapPrice]
   txts.forEach(txt => {
@@ -573,6 +566,16 @@ export default class extends Controller {
 
   async connect () {
     this.isHomepage = !window.location.href.includes('/market')
+    this.chainType = this.data.get('chainType')
+    globalChainType = this.chainType
+    this.exchangeLinks = {
+      binance: 'https://www.binance.com/en/trade/' + this.chainType.toUpperCase() + '_USDT',
+      bittrex: 'https://bittrex.com/Market/Index?MarketName=USD-' + this.chainType.toUpperCase(),
+      poloniex: 'https://poloniex.com/exchange#usd_' + this.chainType,
+      dragonex: 'https://dragonex.io/en-us/trade/index/' + this.chainType + '_usd',
+      huobi: 'https://www.hbg.com/en-us/exchange/?s=' + this.chainType + '_usd',
+      dcrdex: 'https://dex.decred.org'
+    }
     this.query = new TurboQuery()
     settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin'])
     if (!this.isHomepage) {
@@ -746,13 +749,13 @@ export default class extends Controller {
         console.warn('invalid bin:', bin)
         return
       }
-      url = `/api/chart/market/${xc}/candlestick/${bin}`
+      url = `/api/chainchart/${this.chainType}/market/${xc}/candlestick/${bin}`
     } else if (usesOrderbook(chart)) {
       if (!validDepthExchange(xc)) {
         console.warn('invalid depth exchange:', xc)
         return
       }
-      url = `/api/chart/market/${xc}/depth`
+      url = `/api/chainchart/${this.chainType}/market/${xc}/depth`
     }
     if (!url) {
       console.warn('invalid chart:', chart)
@@ -776,12 +779,10 @@ export default class extends Controller {
     }
     // Fiat conversion only available for order books for now.
     if (usesOrderbook(chart)) {
-      this.conversionTarget.classList.remove('d-hide')
       this.ageSpanTarget.dataset.age = response.data.time
       this.ageSpanTarget.textContent = humanize.timeSince(response.data.time)
       this.ageTarget.classList.remove('d-hide')
     } else {
-      this.conversionTarget.classList.add('d-hide')
       this.ageTarget.classList.add('d-hide')
     }
     this.graph.updateOptions(chartResetOpts, true)
@@ -814,7 +815,7 @@ export default class extends Controller {
       file: data,
       labels: ['time', 'open', 'close', 'high', 'low'],
       xlabel: 'Time',
-      ylabel: 'Price (BTC)',
+      ylabel: 'Price (USD)',
       plotter: candlestickPlotter,
       axes: {
         x: {
@@ -841,7 +842,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'price'],
       xlabel: 'Time',
-      ylabel: 'Price (BTC)',
+      ylabel: 'Price (USD)',
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -867,7 +868,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'volume'],
       xlabel: 'Time',
-      ylabel: `Volume (DCR / ${prettyDurations[settings.bin]})`,
+      ylabel: 'Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`,
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -893,8 +894,8 @@ export default class extends Controller {
       file: data.pts,
       fillGraph: true,
       colors: ['#ed6d47', '#41be53'],
-      xlabel: `Price (${this.converted ? fiatCode : 'BTC'})`,
-      ylabel: 'Volume (DCR)',
+      xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
+      ylabel: 'Volume (' + globalChainType.toUpperCase() + ')',
       tokens: null,
       stats: data.stats,
       plotter: depthPlotter, // Don't use Dygraph.linePlotter here. fillGraph won't work.
@@ -933,8 +934,8 @@ export default class extends Controller {
       labels: keys,
       file: data.pts,
       colors: colors,
-      xlabel: `Price (${this.converted ? fiatCode : 'BTC'})`,
-      ylabel: 'Volume (DCR)',
+      xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
+      ylabel: 'Volume (' + globalChainType.toUpperCase() + ')',
       plotter: depthPlotter,
       fillGraph: aggStacking,
       stackedGraph: aggStacking,
@@ -961,8 +962,8 @@ export default class extends Controller {
       labels: ['price', 'sell', 'buy'],
       file: data.pts,
       colors: ['#f93f39cc', '#1acc84cc'],
-      xlabel: `Price (${this.converted ? fiatCode : 'BTC'})`,
-      ylabel: 'Volume (DCR)',
+      xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
+      ylabel: 'Volume (' + globalChainType.toUpperCase() + ')',
       plotter: orderPlotter,
       axes: {
         x: {
@@ -1106,8 +1107,8 @@ export default class extends Controller {
     if (btn.nodeName !== 'BUTTON' || !this.graph) return
     this.conversionTarget.querySelectorAll('button').forEach(b => b.classList.remove('btn-selected'))
     btn.classList.add('btn-selected')
-    let cLabel = 'BTC'
-    if (e.target.name === 'BTC') {
+    let cLabel = 'USD'
+    if (e.target.name === 'USD') {
       this.converted = false
       conversionFactor = 1
     } else {
@@ -1122,7 +1123,7 @@ export default class extends Controller {
     this.xcLogoTarget.className = `exchange-logo ${settings.xc}`
     const prettyName = printName(settings.xc)
     this.xcNameTarget.textContent = prettyName
-    const href = exchangeLinks[settings.xc]
+    const href = this.exchangeLinks[settings.xc]
     if (href) {
       this.linkTarget.href = href
       this.linkTarget.textContent = `Visit ${prettyName}`
@@ -1213,7 +1214,7 @@ export default class extends Controller {
   _processXcUpdate (update) {
     const xc = update.updater
     const cType = xc.chain_type
-    if (cType && cType !== 'dcr') {
+    if (cType !== this.chainType) {
       return
     }
     if (update.fiat) { // btc-fiat exchange update

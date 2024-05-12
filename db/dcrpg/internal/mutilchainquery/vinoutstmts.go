@@ -3,6 +3,7 @@ package mutilchainquery
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
 
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 )
@@ -97,7 +98,7 @@ const (
 	 SELECT id FROM %svouts
 	 WHERE  tx_hash = $1 AND tx_index = $2 AND tx_tree = $3
 	 LIMIT  1;`
-
+	CountTotalVouts        = `SELECT count(*) FROM %svouts;`
 	SelectPkScriptByID     = `SELECT pkscript FROM %svouts WHERE id=$1;`
 	SelectVoutIDByOutpoint = `SELECT id FROM %svouts WHERE tx_hash=$1 and tx_index=$2;`
 	SelectVoutByID         = `SELECT * FROM %svouts WHERE id=$1;`
@@ -121,7 +122,23 @@ const (
 		script_type TEXT,
 		script_addresses TEXT[]
 	);`
+
+	SelectCoinSupply = `SELECT {chaintype}transactions.block_time, sum({chaintype}vins.value_in)
+	FROM {chaintype}vins JOIN {chaintype}transactions
+	ON {chaintype}vins.tx_hash = {chaintype}transactions.tx_hash
+	WHERE NOT EXISTS(SELECT 1 FROM {chaintype}vins WHERE tx_hash = {chaintype}vins.prev_tx_hash)
+	AND {chaintype}transactions.block_height > $1
+	GROUP BY {chaintype}transactions.block_time, {chaintype}transactions.block_height
+	ORDER BY {chaintype}transactions.block_time;`
 )
+
+func MakeSelectCoinSupply(chainType string) string {
+	return strings.ReplaceAll(SelectCoinSupply, "{chaintype}", chainType)
+}
+
+func MakeCountTotalVouts(chainType string) string {
+	return fmt.Sprintf(CountTotalVouts, chainType)
+}
 
 func MakeSelectFundingOutpointIndxByVinID(chainType string) string {
 	return fmt.Sprintf(SelectFundingOutpointIndxByVinID, chainType)

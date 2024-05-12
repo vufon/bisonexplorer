@@ -93,10 +93,10 @@ func (server *RateServer) ReallySubscribeExchanges(hello *dcrrates.ExchangeSubsc
 		log.Infof("Client has connected from %s", clientAddr)
 	}
 
-	state := server.xcBot.State()
 	// Send Decred exchanges.
-	err = sendStateList(client, state.DcrBtc)
+	state := server.xcBot.State()
 	if err != nil {
+		err = sendStateList(client, state.DcrBtc)
 		return err
 	}
 	// Send Bitcoin-fiat indices.
@@ -158,6 +158,7 @@ func NewRateClient(stream GRPCStream, exchanges []string) RateClient {
 func makeExchangeRateUpdate(update *exchanges.ExchangeUpdate) *dcrrates.ExchangeRateUpdate {
 	state := update.State
 	protoUpdate := &dcrrates.ExchangeRateUpdate{
+		Symbol:     state.Symbol,
 		Token:      update.Token,
 		Price:      state.Price,
 		BaseVolume: state.BaseVolume,

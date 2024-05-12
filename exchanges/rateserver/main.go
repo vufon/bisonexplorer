@@ -101,10 +101,10 @@ func main() {
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 	dcrrates.RegisterDCRRatesServer(grpcServer, rateServer)
 
-	printUpdate := func(token string) {
-		msg := fmt.Sprintf("Update received from %s", token)
+	printUpdate := func(token string, chainSymbol string) {
+		msg := fmt.Sprintf("Update received from %s for : %s", token, chainSymbol)
 		if !xcBot.IsFailed() {
-			msg += fmt.Sprintf(". Current price: %.2f %s", xcBot.Price(), xcBot.BtcIndex)
+			msg += fmt.Sprintf(". Current price: %.2f %s", xcBot.MutilchainPrice(chainSymbol), xcBot.BtcIndex)
 		}
 		log.Infof(msg)
 	}
@@ -128,10 +128,10 @@ func main() {
 			case <-killSwitch:
 				break out
 			case update := <-xcSignals.Exchange:
-				printUpdate(update.Token)
+				printUpdate(update.Token, update.State.Symbol)
 				sendUpdate(makeExchangeRateUpdate(update))
 			case update := <-xcSignals.Index:
-				printUpdate(update.Token)
+				printUpdate(update.Token, exchanges.DCRSYMBOL)
 				sendUpdate(&dcrrates.ExchangeRateUpdate{
 					Token:   update.Token,
 					Indices: update.Indices,

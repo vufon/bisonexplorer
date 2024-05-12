@@ -55,6 +55,8 @@ import (
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mempool/mempoolbtc"
+	"github.com/decred/dcrdata/v8/mempool/mempoolltc"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
@@ -269,6 +271,7 @@ type ChainDB struct {
 	db                 *sql.DB
 	mp                 rpcutils.MempoolAddressChecker
 	ltcMp              ltcrpcutils.MempoolAddressChecker
+	btcMp              btcrpcutils.MempoolAddressChecker
 	chainParams        *chaincfg.Params
 	ltcChainParams     *ltc_chaincfg.Params
 	btcChainParams     *btc_chaincfg.Params
@@ -297,6 +300,8 @@ type ChainDB struct {
 	mixSetDiffs        map[uint32]int64 // height to value diff
 	deployments        *ChainDeployments
 	MPC                *mempool.DataCache
+	LTCMPC             *mempoolltc.DataCache
+	BTCMPC             *mempoolbtc.DataCache
 	// BlockCache stores apitypes.BlockDataBasic and apitypes.StakeInfoExtended
 	// in StoreBlock for quick retrieval without a DB query.
 	BlockCache        *apitypes.APICache
@@ -305,6 +310,8 @@ type ChainDB struct {
 	Client            *rpcclient.Client
 	LtcClient         *ltcClient.Client
 	BtcClient         *btcClient.Client
+	LtcCoreClient     *ltcClient.Client
+	BtcCoreClient     *btcClient.Client
 	tipMtx            sync.Mutex
 	tipSummary        *apitypes.BlockDataBasic
 	lastExplorerBlock struct {
@@ -798,6 +805,8 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		mixSetDiffs:        make(map[uint32]int64),
 		deployments:        new(ChainDeployments),
 		MPC:                new(mempool.DataCache),
+		LTCMPC:             new(mempoolltc.DataCache),
+		BTCMPC:             new(mempoolbtc.DataCache),
 		BlockCache:         apitypes.NewAPICache(1e4),
 		heightClients:      make([]chan uint32, 0),
 		shutdownDcrdata:    shutdown,
@@ -843,6 +852,14 @@ func (pgb *ChainDB) UseStakeDB(stakeDB *stakedb.StakeDatabase) {
 // transactions involving a certain address.
 func (pgb *ChainDB) UseMempoolChecker(mp rpcutils.MempoolAddressChecker) {
 	pgb.mp = mp
+}
+
+func (pgb *ChainDB) UseLTCMempoolChecker(mp ltcrpcutils.MempoolAddressChecker) {
+	pgb.ltcMp = mp
+}
+
+func (pgb *ChainDB) UseBTCMempoolChecker(mp btcrpcutils.MempoolAddressChecker) {
+	pgb.btcMp = mp
 }
 
 // EnableDuplicateCheckOnInsert specifies whether SQL insertions should check
@@ -1074,6 +1091,26 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 		Tag:      "pool stats",
 		Fetcher:  pgb.poolStats,
 		Appender: appendPoolStats,
+	})
+}
+
+func (pgb *ChainDB) RegisterLTCCharts(charts *cache.MutilchainChartData) {
+	charts.AddUpdater(cache.ChartMutilchainUpdater{
+		Tag:      "basic blocks",
+		Fetcher:  pgb.chartMutilchainBlocks,
+		Appender: appendChartLTCBlocks,
+	})
+
+	charts.AddUpdater(cache.ChartMutilchainUpdater{
+		Tag:      "coin supply",
+		Fetcher:  pgb.mutilchainCoinSupply,
+		Appender: appendMutilchainCoinSupply,
+	})
+
+	charts.AddUpdater(cache.ChartMutilchainUpdater{
+		Tag:      "fees",
+		Fetcher:  pgb.mutilchainBlockFees,
+		Appender: appendMutilchainBlockFees,
 	})
 }
 
@@ -4464,6 +4501,15 @@ func (pgb *ChainDB) chartBlocks(charts *cache.ChartData) (*sql.Rows, func(), err
 	return rows, cancel, nil
 }
 
+func (pgb *ChainDB) chartMutilchainBlocks(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	rows, err := retrieveMutilchainChartBlocks(ctx, pgb.db, charts, charts.ChainType)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
+
 // coinSupply fetches the coin supply chart data from retrieveCoinSupply.
 // This is the Fetcher half of a pair that make up a cache.ChartUpdater. The
 // Appender half is appendCoinSupply.
@@ -4471,6 +4517,17 @@ func (pgb *ChainDB) coinSupply(charts *cache.ChartData) (*sql.Rows, func(), erro
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 
 	rows, err := retrieveCoinSupply(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("coinSupply: %w", pgb.replaceCancelError(err))
+	}
+
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) mutilchainCoinSupply(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveMutilchainCoinSupply(ctx, pgb.db, charts)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("coinSupply: %w", pgb.replaceCancelError(err))
 	}
@@ -4500,6 +4557,16 @@ func (pgb *ChainDB) blockFees(charts *cache.ChartData) (*sql.Rows, func(), error
 	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 
 	rows, err := retrieveBlockFees(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) mutilchainBlockFees(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveMutilchainBlockFees(ctx, pgb.db, charts)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
 	}
@@ -7198,6 +7265,11 @@ func (pgb *ChainDB) GetLTCBlockVerbose(idx int) *ltcjson.GetBlockVerboseResult {
 	return block
 }
 
+func (pgb *ChainDB) GetLTCBlockVerboseTx(idx int) *ltcjson.GetBlockVerboseTxResult {
+	block := ltcrpcutils.GetBlockVerboseTx(pgb.LtcClient, int64(idx))
+	return block
+}
+
 func (pgb *ChainDB) GetBTCBlockVerbose(idx int) *btcjson.GetBlockVerboseResult {
 	block := btcrpcutils.GetBlockVerbose(pgb.BtcClient, int64(idx))
 	return block
@@ -7245,7 +7317,7 @@ func makeExplorerBlockBasic(data *chainjson.GetBlockVerboseResult, params *chain
 	return block
 }
 
-func makeBTCExplorerBlockBasic(data *btcjson.GetBlockVerboseTxResult, params *btc_chaincfg.Params) *exptypes.BlockBasic {
+func makeBTCExplorerBlockBasic(data *btcjson.GetBlockVerboseTxResult) *exptypes.BlockBasic {
 	total := float64(0)
 	for _, tx := range data.RawTx {
 		for _, vout := range tx.Vout {
@@ -7297,7 +7369,7 @@ func makeLTCExplorerBlockBasicFromTxResult(data *ltcjson.GetBlockVerboseTxResult
 	return block
 }
 
-func makeLTCExplorerBlockBasic(data *ltcjson.GetBlockVerboseResult, params *ltc_chaincfg.Params) *exptypes.BlockBasic {
+func makeLTCExplorerBlockBasic(data *ltcjson.GetBlockVerboseTxResult) *exptypes.BlockBasic {
 	total := float64(0)
 	for _, tx := range data.RawTx {
 		for _, vout := range tx.Vout {
@@ -7721,7 +7793,7 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 		return nil
 	}
 
-	b := makeBTCExplorerBlockBasic(data, pgb.btcChainParams)
+	b := makeBTCExplorerBlockBasic(data)
 
 	// Explorer Block Info
 	block := &exptypes.BlockInfo{
@@ -7784,10 +7856,10 @@ func (pgb *ChainDB) GetLTCExplorerBlocks(start int, end int) []*exptypes.BlockBa
 	}
 	summaries := make([]*exptypes.BlockBasic, 0, start-end)
 	for i := start; i > end; i-- {
-		data := pgb.GetLTCBlockVerbose(i)
+		data := pgb.GetLTCBlockVerboseTx(i)
 		block := new(exptypes.BlockBasic)
 		if data != nil {
-			block = makeLTCExplorerBlockBasic(data, pgb.ltcChainParams)
+			block = makeLTCExplorerBlockBasic(data)
 		}
 		summaries = append(summaries, block)
 	}
@@ -7805,7 +7877,7 @@ func (pgb *ChainDB) GetBTCExplorerBlocks(start int, end int) []*exptypes.BlockBa
 		data := pgb.GetBTCBlockVerboseTx(i)
 		block := new(exptypes.BlockBasic)
 		if data != nil {
-			block = makeBTCExplorerBlockBasic(data, pgb.btcChainParams)
+			block = makeBTCExplorerBlockBasic(data)
 		}
 		summaries = append(summaries, block)
 	}
@@ -8616,6 +8688,30 @@ func (pgb *ChainDB) LTCDifficulty(timestamp int64) float64 {
 	pgb.ltcLastExplorerBlock.difficulties[timestamp] = diff
 	pgb.ltcLastExplorerBlock.Unlock()
 	return diff
+}
+
+func (pgb *ChainDB) MutilchainGetTransactionCount(chainType string) int64 {
+	txCount, err := RetrieveMutilchainTransactionCount(pgb.ctx, pgb.db, chainType)
+	if err != nil {
+		return 0
+	}
+	return txCount
+}
+
+func (pgb *ChainDB) MutilchainGetTotalVoutsCount(chainType string) int64 {
+	txCount, err := RetrieveMutilchainVoutsCount(pgb.ctx, pgb.db, chainType)
+	if err != nil {
+		return 0
+	}
+	return txCount
+}
+
+func (pgb *ChainDB) MutilchainGetTotalAddressesCount(chainType string) int64 {
+	txCount, err := RetrieveMutilchainAddressesCount(pgb.ctx, pgb.db, chainType)
+	if err != nil {
+		return 0
+	}
+	return txCount
 }
 
 func (pgb *ChainDB) MutilchainDifficulty(timestamp int64, chainType string) float64 {
