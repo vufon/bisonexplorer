@@ -360,6 +360,17 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	allXcState := exp.getExchangeState()
+	xcState := exchanges.ExchangeBotStateContent{
+		BtcIndex:      allXcState.BtcIndex,
+		BtcPrice:      allXcState.BtcPrice,
+		Price:         allXcState.GetMutilchainPrice(chainType),
+		Volume:        allXcState.GetMutilchainVolumn(chainType),
+		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
+		FiatIndices:   allXcState.FiatIndices,
+		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+	}
+
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
@@ -370,6 +381,7 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		BestBlock     *types.BlockBasic
 		Blocks        []*types.BlockBasic
 		Conversions   *MutilchainHomeConversions
+		XcState       exchanges.ExchangeBotStateContent
 		PercentChange float64
 		ChainType     string
 	}{
@@ -380,6 +392,7 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		Blocks:         blocks,
 		ChainType:      chainType,
 		Conversions:    conversions,
+		XcState:        xcState,
 	})
 
 	if err != nil {
