@@ -213,6 +213,22 @@ func GetRawTransactionByTxidStr(client TransactionGetter, txid string) (*btcjson
 	return transactionRslt, nil
 }
 
+func GetBlockVerboseTx(client VerboseBlockGetter, idx int64) *btcjson.GetBlockVerboseTxResult {
+	blockhash, err := client.GetBlockHash(idx)
+	if err != nil {
+		log.Errorf("GetBlockHash(%d) failed: %v", idx, err)
+		return nil
+	}
+
+	blockVerbose, err := client.GetBlockVerboseTx(blockhash)
+	if err != nil {
+		log.Errorf("GetBlockVerboseTx(%v) failed: %v", blockhash, err)
+		return nil
+	}
+
+	return blockVerbose
+}
+
 func GetBlockVerboseTxByHash(client VerboseBlockGetter, hash string) *btcjson.GetBlockVerboseTxResult {
 	blockhash, err := chainhash.NewHashFromStr(hash)
 	if err != nil {

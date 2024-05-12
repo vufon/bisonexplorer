@@ -21,6 +21,7 @@ const windowScales = ['ticket-price', 'missed-votes']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
+let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
 const hashrateUnits = ['Th/s', 'Ph/s', 'Eh/s']
@@ -274,6 +275,7 @@ export default class extends Controller {
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
     avgBlockTime = parseInt(this.data.get('blockTime')) * 1000
     this.chainType = this.data.get('chainType')
+    globalChainType = this.chainType
     legendElement = this.labelsTarget
 
     // Prepare the legend element generators.
@@ -416,7 +418,7 @@ export default class extends Controller {
       case 'coin-supply': // supply graph
         d = circulationFunc(data)
         assign(gOptions, mapDygraphOptions(d.data, [xlabel, 'Coin Supply', 'Inflation Limit', 'Mix Rate'],
-          true, 'Coin Supply (DCR)', true, false))
+          true, 'Coin Supply (' + this.chainType.toUpperCase() + ')', true, false))
         gOptions.y2label = 'Inflation Limit'
         gOptions.y3label = 'Mix Rate'
         gOptions.series = { 'Inflation Limit': { axis: 'y2' }, 'Mix Rate': { axis: 'y3' } }
@@ -434,20 +436,20 @@ export default class extends Controller {
         }
         gOptions.inflation = d.inflation
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' DCR')
+          addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' ' + globalChainType.toUpperCase())
           let change = 0
           if (i < d.inflation.length) {
             const predicted = d.inflation[i]
             const unminted = predicted - data.series[0].y
             change = ((unminted / predicted) * 100).toFixed(2)
-            div.appendChild(legendEntry(`${legendMarker()} Unminted: ${intComma(unminted)} DCR (${change}%)`))
+            div.appendChild(legendEntry(`${legendMarker()} Unminted: ${intComma(unminted)} ` + globalChainType.toUpperCase() + ` (${change}%)`))
           }
         }
         break
 
       case 'fees': // block fee graph
         d = zip2D(data, data.fees, atomsToDCR)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (DCR)', true, false))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (' + globalChainType.toUpperCase() + ')', true, false))
         break
 
       case 'duration-btw-blocks': // Duration between blocks graph

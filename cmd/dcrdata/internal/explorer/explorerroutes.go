@@ -376,23 +376,25 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
 	str, err := exp.templates.exec("chain_home", struct {
 		*CommonPageData
-		Info          *types.HomeInfo
-		MempoolInfo   *types.MutilchainMempoolInfo
-		BestBlock     *types.BlockBasic
-		Blocks        []*types.BlockBasic
-		Conversions   *MutilchainHomeConversions
-		XcState       exchanges.ExchangeBotStateContent
-		PercentChange float64
-		ChainType     string
+		Info               *types.HomeInfo
+		MempoolInfo        *types.MutilchainMempoolInfo
+		BestBlock          *types.BlockBasic
+		Blocks             []*types.BlockBasic
+		Conversions        *MutilchainHomeConversions
+		XcState            exchanges.ExchangeBotStateContent
+		PercentChange      float64
+		ChainType          string
+		TargetTimePerBlock float64
 	}{
-		CommonPageData: commonData,
-		MempoolInfo:    mempoolInfo,
-		Info:           homeInfo,
-		BestBlock:      bestBlock,
-		Blocks:         blocks,
-		ChainType:      chainType,
-		Conversions:    conversions,
-		XcState:        xcState,
+		CommonPageData:     commonData,
+		MempoolInfo:        mempoolInfo,
+		Info:               homeInfo,
+		BestBlock:          bestBlock,
+		Blocks:             blocks,
+		ChainType:          chainType,
+		Conversions:        conversions,
+		XcState:            xcState,
+		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
 	})
 
 	if err != nil {

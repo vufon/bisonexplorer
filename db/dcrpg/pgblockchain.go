@@ -7265,6 +7265,11 @@ func (pgb *ChainDB) GetLTCBlockVerbose(idx int) *ltcjson.GetBlockVerboseResult {
 	return block
 }
 
+func (pgb *ChainDB) GetLTCBlockVerboseTx(idx int) *ltcjson.GetBlockVerboseTxResult {
+	block := ltcrpcutils.GetBlockVerboseTx(pgb.LtcClient, int64(idx))
+	return block
+}
+
 func (pgb *ChainDB) GetBTCBlockVerbose(idx int) *btcjson.GetBlockVerboseResult {
 	block := btcrpcutils.GetBlockVerbose(pgb.BtcClient, int64(idx))
 	return block
@@ -7312,7 +7317,7 @@ func makeExplorerBlockBasic(data *chainjson.GetBlockVerboseResult, params *chain
 	return block
 }
 
-func makeBTCExplorerBlockBasic(data *btcjson.GetBlockVerboseTxResult, params *btc_chaincfg.Params) *exptypes.BlockBasic {
+func makeBTCExplorerBlockBasic(data *btcjson.GetBlockVerboseTxResult) *exptypes.BlockBasic {
 	total := float64(0)
 	for _, tx := range data.RawTx {
 		for _, vout := range tx.Vout {
@@ -7364,7 +7369,7 @@ func makeLTCExplorerBlockBasicFromTxResult(data *ltcjson.GetBlockVerboseTxResult
 	return block
 }
 
-func makeLTCExplorerBlockBasic(data *ltcjson.GetBlockVerboseResult, params *ltc_chaincfg.Params) *exptypes.BlockBasic {
+func makeLTCExplorerBlockBasic(data *ltcjson.GetBlockVerboseTxResult) *exptypes.BlockBasic {
 	total := float64(0)
 	for _, tx := range data.RawTx {
 		for _, vout := range tx.Vout {
@@ -7788,7 +7793,7 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 		return nil
 	}
 
-	b := makeBTCExplorerBlockBasic(data, pgb.btcChainParams)
+	b := makeBTCExplorerBlockBasic(data)
 
 	// Explorer Block Info
 	block := &exptypes.BlockInfo{
@@ -7851,10 +7856,10 @@ func (pgb *ChainDB) GetLTCExplorerBlocks(start int, end int) []*exptypes.BlockBa
 	}
 	summaries := make([]*exptypes.BlockBasic, 0, start-end)
 	for i := start; i > end; i-- {
-		data := pgb.GetLTCBlockVerbose(i)
+		data := pgb.GetLTCBlockVerboseTx(i)
 		block := new(exptypes.BlockBasic)
 		if data != nil {
-			block = makeLTCExplorerBlockBasic(data, pgb.ltcChainParams)
+			block = makeLTCExplorerBlockBasic(data)
 		}
 		summaries = append(summaries, block)
 	}
@@ -7872,7 +7877,7 @@ func (pgb *ChainDB) GetBTCExplorerBlocks(start int, end int) []*exptypes.BlockBa
 		data := pgb.GetBTCBlockVerboseTx(i)
 		block := new(exptypes.BlockBasic)
 		if data != nil {
-			block = makeBTCExplorerBlockBasic(data, pgb.btcChainParams)
+			block = makeBTCExplorerBlockBasic(data)
 		}
 		summaries = append(summaries, block)
 	}

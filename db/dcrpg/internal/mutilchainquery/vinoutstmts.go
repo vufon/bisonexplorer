@@ -129,7 +129,7 @@ const (
 	WHERE NOT EXISTS(SELECT 1 FROM {chaintype}vins WHERE tx_hash = {chaintype}vins.prev_tx_hash)
 	AND {chaintype}transactions.block_height > $1
 	GROUP BY {chaintype}transactions.block_time, {chaintype}transactions.block_height
-	ORDER BY {chaintype}transactions.block_height;`
+	ORDER BY {chaintype}transactions.block_time;`
 )
 
 func MakeSelectCoinSupply(chainType string) string {
