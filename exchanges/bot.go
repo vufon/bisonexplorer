@@ -54,6 +54,7 @@ type ExchangeBotConfig struct {
 	Indent         bool
 	MasterBot      string
 	MasterCertFile string
+	BinanceAPIURL  string
 }
 
 // ExchangeBot monitors exchanges and processes updates. When an update is
@@ -442,14 +443,14 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 		done:     quit,
 	}
 
-	buildExchange := func(token string, constructor func(*http.Client, *BotChannels) (Exchange, error), xcMap map[string]Exchange) {
+	buildExchange := func(token string, constructor func(*http.Client, *BotChannels, string) (Exchange, error), xcMap map[string]Exchange, binanceApiUrl string) {
 		if isDisabled(token) {
 			return
 		}
 		if constructor == nil {
 			return
 		}
-		xc, err := constructor(bot.client, channels)
+		xc, err := constructor(bot.client, channels, binanceApiUrl)
 		if err != nil {
 			return
 		}
@@ -468,14 +469,14 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 		}
 	}
 
-	buildMutilchainExchange := func(token string, constructor func(*http.Client, *BotChannels, string) (Exchange, error), xcMap map[string]Exchange, chainType string) {
+	buildMutilchainExchange := func(token string, constructor func(*http.Client, *BotChannels, string, string) (Exchange, error), xcMap map[string]Exchange, chainType, binanceApiUrl string) {
 		if isDisabled(token) {
 			return
 		}
 		if constructor == nil {
 			return
 		}
-		xc, err := constructor(bot.client, channels, chainType)
+		xc, err := constructor(bot.client, channels, chainType, binanceApiUrl)
 		if err != nil {
 			return
 		}
@@ -484,19 +485,19 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 	}
 
 	for token, constructor := range BtcIndices {
-		buildExchange(token, constructor, bot.IndexExchanges)
+		buildExchange(token, constructor, bot.IndexExchanges, config.BinanceAPIURL)
 	}
 
 	for token, constructor := range DcrExchanges {
-		buildExchange(token, constructor, bot.DcrBtcExchanges)
+		buildExchange(token, constructor, bot.DcrBtcExchanges, config.BinanceAPIURL)
 	}
 
 	for token, constructor := range LTCExchanges {
-		buildMutilchainExchange(token, constructor, bot.LTCUSDExchanges, TYPELTC)
+		buildMutilchainExchange(token, constructor, bot.LTCUSDExchanges, TYPELTC, config.BinanceAPIURL)
 	}
 
 	for token, constructor := range BTCExchanges {
-		buildMutilchainExchange(token, constructor, bot.BTCUSDExchanges, TYPEBTC)
+		buildMutilchainExchange(token, constructor, bot.BTCUSDExchanges, TYPEBTC, config.BinanceAPIURL)
 	}
 
 	if len(bot.DcrBtcExchanges) == 0 {

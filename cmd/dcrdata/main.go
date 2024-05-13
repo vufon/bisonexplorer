@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"runtime"
 	"runtime/pprof"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -466,6 +467,7 @@ func _main(ctx context.Context) error {
 			LTCIndex:       cfg.ExchangeCurrency,
 			MasterBot:      cfg.RateMaster,
 			MasterCertFile: cfg.RateCertificate,
+			BinanceAPIURL:  cfg.BinanceAPI,
 		}
 		if cfg.DisabledExchanges != "" {
 			botCfg.Disabled = strings.Split(cfg.DisabledExchanges, ",")
@@ -475,7 +477,18 @@ func _main(ctx context.Context) error {
 			log.Errorf("Could not create exchange monitor. Exchange info will be disabled: %v", err)
 		} else {
 			var xcList, prepend string
+			tokenList := make([]string, 0)
 			for k := range xcBot.Exchanges {
+				if !slices.Contains(tokenList, k) {
+					tokenList = append(tokenList, k)
+				}
+			}
+			for k := range xcBot.LTCExchanges {
+				if !slices.Contains(tokenList, k) {
+					tokenList = append(tokenList, k)
+				}
+			}
+			for _, k := range tokenList {
 				xcList += prepend + k
 				prepend = ", "
 			}

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -65,6 +66,7 @@ func main() {
 		DataExpiry:    cfg.ExchangeRefresh,
 		RequestExpiry: cfg.ExchangeExpiry,
 		BtcIndex:      cfg.ExchangeCurrency,
+		BinanceAPIURL: cfg.BinanceAPI,
 	}
 	if cfg.DisabledExchanges != "" {
 		botCfg.Disabled = strings.Split(cfg.DisabledExchanges, ",")
@@ -75,7 +77,19 @@ func main() {
 		return
 	}
 	var xcList, prepend string
+	tokenList := make([]string, 0)
 	for k := range xcBot.Exchanges {
+		if !slices.Contains(tokenList, k) {
+			tokenList = append(tokenList, k)
+		}
+	}
+	for k := range xcBot.LTCExchanges {
+		if !slices.Contains(tokenList, k) {
+			tokenList = append(tokenList, k)
+		}
+	}
+
+	for _, k := range tokenList {
 		xcList += prepend + k
 		prepend = ", "
 	}
