@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -76,7 +77,19 @@ func main() {
 		return
 	}
 	var xcList, prepend string
+	tokenList := make([]string, 0)
 	for k := range xcBot.Exchanges {
+		if !slices.Contains(tokenList, k) {
+			tokenList = append(tokenList, k)
+		}
+	}
+	for k := range xcBot.LTCExchanges {
+		if !slices.Contains(tokenList, k) {
+			tokenList = append(tokenList, k)
+		}
+	}
+
+	for _, k := range tokenList {
 		xcList += prepend + k
 		prepend = ", "
 	}

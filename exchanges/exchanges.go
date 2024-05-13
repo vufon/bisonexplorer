@@ -41,6 +41,8 @@ const (
 	Huobi        = "huobi"
 	Poloniex     = "poloniex"
 	DexDotDecred = "dcrdex"
+	KuCoin       = "kucoin"
+	Gemini       = "gemini"
 )
 
 // A few candlestick bin sizes.
@@ -74,6 +76,7 @@ func (k candlestickKey) duration() time.Duration {
 // URLs is a set of endpoints for an exchange's various datasets.
 type URLs struct {
 	Price        string
+	SubPrice     string
 	Stats        string
 	Depth        string
 	Candlesticks map[candlestickKey]string
@@ -82,6 +85,7 @@ type URLs struct {
 
 type requests struct {
 	price        *http.Request
+	subprice     *http.Request
 	stats        *http.Request
 	depth        *http.Request
 	candlesticks map[candlestickKey]*http.Request
@@ -204,6 +208,42 @@ var (
 		},
 		Websocket: "wss://api2.poloniex.com",
 	}
+
+	KucoinURLs = URLs{
+		Price: "https://api.kucoin.com/api/v1/market/stats?symbol=DCR-BTC",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=DCR-BTC",
+		Candlesticks: map[candlestickKey]string{
+			hourKey:  "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=DCR-BTC",
+			dayKey:   "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=DCR-BTC",
+			monthKey: "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=DCR-BTC",
+		},
+	}
+
+	KucoinMutilchainURLs = URLs{
+		Price: "https://api.kucoin.com/api/v1/market/stats?symbol=%s-USDT",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=%s-USDT",
+		Candlesticks: map[candlestickKey]string{
+			hourKey:  "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=%s-USDT",
+			dayKey:   "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=%s-USDT",
+			monthKey: "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=%s-USDT",
+		},
+	}
+
+	GeminiMutilchainURLs = URLs{
+		Price:    "https://api.gemini.com/v2/ticker/%susd",
+		SubPrice: "https://api.gemini.com/v1/pubticker/%susd",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.gemini.com/v1/book/%susd?limit_bids=5000&limit_asks=5000",
+		Candlesticks: map[candlestickKey]string{
+			hourKey: "https://api.gemini.com/v2/candles/%susd/1hr",
+			dayKey:  "https://api.gemini.com/v2/candles/%susd/1day",
+		},
+	}
 )
 
 // BtcIndices maps tokens to constructors for BTC-fiat exchanges.
@@ -219,6 +259,7 @@ var DcrExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange
 	DragonEx: NewDragonEx,
 	Huobi:    NewHuobi,
 	Poloniex: NewPoloniex,
+	KuCoin:   NewKucoin,
 	DexDotDecred: NewDecredDEXConstructor(&DEXConfig{
 		Token:    DexDotDecred,
 		Host:     "dex.decred.org:7232",
@@ -233,6 +274,8 @@ var LTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (
 	DragonEx:     nil,
 	Huobi:        MutilchainNewHuobi,
 	Poloniex:     MutilchainNewPoloniex,
+	KuCoin:       MutilchainNewKucoin,
+	Gemini:       MutilchainNewGemini,
 	DexDotDecred: nil,
 }
 
@@ -242,6 +285,8 @@ var BTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (
 	DragonEx:     nil,
 	Huobi:        MutilchainNewHuobi,
 	Poloniex:     MutilchainNewPoloniex,
+	KuCoin:       MutilchainNewKucoin,
+	Gemini:       MutilchainNewGemini,
 	DexDotDecred: nil,
 }
 
@@ -537,6 +582,7 @@ type Doer interface {
 // http.Request must be created individually for each exchange.
 type CommonExchange struct {
 	mtx          sync.RWMutex
+	Symbol       string
 	token        string
 	URL          string
 	currentState *ExchangeState
@@ -1090,7 +1136,14 @@ func (coindesk *CoindeskExchange) Refresh() {
 // BinanceExchange is a high-volume and well-respected crypto exchange.
 type BinanceExchange struct {
 	*CommonExchange
-	Symbol string
+}
+
+type KucoinExchange struct {
+	*CommonExchange
+}
+
+type GeminiExchange struct {
+	*CommonExchange
 }
 
 func MutilchainNewBinance(client *http.Client, channels *BotChannels, chainType string, binanceApiUrl string) (binance Exchange, err error) {
@@ -1111,9 +1164,11 @@ func MutilchainNewBinance(client *http.Client, channels *BotChannels, chainType 
 			return
 		}
 	}
+
+	commonExchange := newCommonExchange(Binance, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
 	binance = &BinanceExchange{
-		CommonExchange: newCommonExchange(Binance, client, reqs, channels),
-		Symbol:         GetSymbolFromChainType(chainType),
+		CommonExchange: commonExchange,
 	}
 	return
 }
@@ -1137,9 +1192,98 @@ func NewBinance(client *http.Client, channels *BotChannels, binanceApiUrl string
 			return
 		}
 	}
+
+	commonExchange := newCommonExchange(Binance, client, reqs, channels)
+	commonExchange.Symbol = DCRSYMBOL
 	binance = &BinanceExchange{
-		CommonExchange: newCommonExchange(Binance, client, reqs, channels),
-		Symbol:         DCRSYMBOL,
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+func MutilchainNewGemini(client *http.Client, channels *BotChannels, chainType string, _ string) (gemini Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(GeminiMutilchainURLs.Price, chainType), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.subprice, err = http.NewRequest(http.MethodGet, fmt.Sprintf(GeminiMutilchainURLs.SubPrice, chainType), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(GeminiMutilchainURLs.Depth, chainType), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range GeminiMutilchainURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, chainType), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(Gemini, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
+	gemini = &GeminiExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+// NewBinance constructs a BinanceExchange.
+func NewKucoin(client *http.Client, channels *BotChannels, _ string) (kucoin Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, KucoinURLs.Price, nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, KucoinURLs.Depth, nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range KucoinURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(KuCoin, client, reqs, channels)
+	commonExchange.Symbol = DCRSYMBOL
+	kucoin = &KucoinExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+func MutilchainNewKucoin(client *http.Client, channels *BotChannels, chainType string, _ string) (kucoin Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(KucoinMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(KucoinMutilchainURLs.Depth, strings.ToUpper(chainType)), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range KucoinMutilchainURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType)), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(KuCoin, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
+	kucoin = &KucoinExchange{
+		CommonExchange: commonExchange,
 	}
 	return
 }
@@ -1169,27 +1313,196 @@ type BinancePriceResponse struct {
 	Count              int64  `json:"count"`
 }
 
-// BinanceCandlestickResponse models candlestick data returned from the Binance
-// API. Binance has a response with mixed-type arrays, so type-checking is
-// appropriate. Sample response is
-// [
-//
-//	[
-//	  1499040000000,      // Open time
-//	  "0.01634790",       // Open
-//	  "0.80000000",       // High
-//	  "0.01575800",       // Low
-//	  "0.01577100",       // Close
-//	  "148976.11427815",  // Volume
-//	  ...
-//	]
-//
-// ]
+type KucoinDepthResponse struct {
+	Code string                  `json:"code"`
+	Data KucoinDepthResponseData `json:"data"`
+}
+
+type KucoinCandlestickResponse struct {
+	Code string      `json:"code"`
+	Data [][7]string `json:"data"`
+}
+
+type KucoinDepthResponseData struct {
+	Time     int64       `json:"time"`
+	Sequence string      `json:"sequence"`
+	Bids     [][2]string `json:"bids"`
+	Asks     [][2]string `json:"asks"`
+}
+
+type KucoinPriceResponse struct {
+	Code string             `json:"code"`
+	Data KucoinResponseData `json:"data"`
+}
+
+type KucoinResponseData struct {
+	Symbol           string `json:"symbol"`
+	Time             int64  `json:"time"`
+	Buy              string `json:"buy"`
+	Sell             string `json:"sell"`
+	ChangeRate       string `json:"changeRate"`
+	ChangePrice      string `json:"changePrice"`
+	High             string `json:"high"`
+	Low              string `json:"low"`
+	Vol              string `json:"vol"`
+	VolValue         string `json:"volValue"`
+	Last             string `json:"last"`
+	AveragePrice     string `json:"averagePrice"`
+	TakerFeeRate     string `json:"takerFeeRate"`
+	MakerFeeRate     string `json:"makerFeeRate"`
+	TakerCoefficient string `json:"takerCoefficient"`
+	MakerCoefficient string `json:"makerCoefficient"`
+}
+
+type GeminiPriceResponse struct {
+	Symbol  string   `json:"symbol"`
+	Open    string   `json:"open"`
+	High    string   `json:"high"`
+	Low     string   `json:"low"`
+	Close   string   `json:"close"`
+	Changes []string `json:"changes"`
+	Bid     string   `json:"bid"`
+	Ask     string   `json:"ask"`
+}
+
+type GeminiSubPriceResponse struct {
+	Ask    string         `json:"ask"`
+	Bid    string         `json:"bid"`
+	Last   string         `json:"last"`
+	Volume map[string]any `json:"volume"`
+}
+
+type GeminiDepthResponse struct {
+	Bids []GeminiDepthResData `json:"bids"`
+	Asks []GeminiDepthResData `json:"asks"`
+}
+
+type GeminiDepthResData struct {
+	Price     string `json:"price"`
+	Amount    string `json:"amount"`
+	Timestamp string `json:"timestamp"`
+}
+
+type GeminiCandlestickResponse [][6]any
+
 type BinanceCandlestickResponse [][]interface{}
 
 func badBinanceStickElement(key string, element interface{}) Candlesticks {
 	log.Errorf("Unable to decode %s from Binance candlestick: %T: %v", key, element, element)
 	return Candlesticks{}
+}
+
+func badGeminiStickElement(key string, element interface{}) Candlesticks {
+	log.Errorf("Unable to decode %s from Gemini candlestick: %T: %v", key, element, element)
+	return Candlesticks{}
+}
+
+func (r GeminiCandlestickResponse) translate() Candlesticks {
+	sticks := make(Candlesticks, 0, len(r))
+	for _, rawStick := range r {
+		if len(rawStick) < 6 {
+			log.Error("Unable to decode Gemini candlestick response. Not enough elements.")
+			return Candlesticks{}
+		}
+		//parse Start time
+		startFloat, ok := rawStick[0].(float64)
+		if !ok {
+			return badGeminiStickElement("Start time", rawStick[0])
+		}
+		startTime := time.Unix(int64(startFloat/1e3), 0)
+
+		//parse open price
+		openPrice, ok := rawStick[1].(float64)
+		if !ok {
+			return badGeminiStickElement("Open price", rawStick[1])
+		}
+		highestPrice, ok := rawStick[2].(float64)
+		if !ok {
+			return badGeminiStickElement("Highest price", rawStick[2])
+		}
+		lowestPrice, ok := rawStick[3].(float64)
+		if !ok {
+			return badGeminiStickElement("Lowest price", rawStick[3])
+		}
+		closePrice, ok := rawStick[4].(float64)
+		if !ok {
+			return badGeminiStickElement("Close price", rawStick[4])
+		}
+		volume, ok := rawStick[5].(float64)
+		if !ok {
+			return badGeminiStickElement("Volumn", rawStick[5])
+		}
+
+		sticks = append(sticks, Candlestick{
+			High:   highestPrice,
+			Low:    lowestPrice,
+			Open:   openPrice,
+			Close:  closePrice,
+			Volume: volume,
+			Start:  startTime,
+		})
+	}
+	return sticks
+}
+
+func (r KucoinCandlestickResponse) translate() Candlesticks {
+	sticks := make(Candlesticks, 0, len(r.Data))
+	for _, rawStick := range r.Data {
+		if len(rawStick) < 7 {
+			log.Error("Unable to decode Kucoin candlestick response. Not enough elements.")
+			return Candlesticks{}
+		}
+		//parse Start time
+		startUnix, err := strconv.ParseInt(rawStick[0], 0, 32)
+		if err != nil {
+			log.Error("Unable to parse Kucoin Start time: %v", err)
+			return Candlesticks{}
+		}
+		startTime := time.Unix(startUnix, 0)
+
+		//parse open price
+		openPrice, err := strconv.ParseFloat(rawStick[1], 64)
+		if err != nil {
+			log.Error("Unable to parse Kucoin Open Price: %v", err)
+			return Candlesticks{}
+		}
+		//parse close price
+		closePrice, err := strconv.ParseFloat(rawStick[2], 64)
+		if err != nil {
+			log.Error("Unable to parse Kucoin Close Price: %v", err)
+			return Candlesticks{}
+		}
+		//parse highest price
+		highestPrice, err := strconv.ParseFloat(rawStick[3], 64)
+		if err != nil {
+			log.Error("Unable to parse Kucoin Highest Price: %v", err)
+			return Candlesticks{}
+		}
+
+		//parse lowest price
+		lowestPrice, err := strconv.ParseFloat(rawStick[4], 64)
+		if err != nil {
+			log.Error("Unable to parse Kucoin Lowest Price: %v", err)
+			return Candlesticks{}
+		}
+
+		//parse Transaction volumn
+		volume, err := strconv.ParseFloat(rawStick[5], 64)
+		if err != nil {
+			log.Error("Unable to parse Kucoin Volumn: %v", err)
+			return Candlesticks{}
+		}
+
+		sticks = append(sticks, Candlestick{
+			High:   highestPrice,
+			Low:    lowestPrice,
+			Open:   openPrice,
+			Close:  closePrice,
+			Volume: volume,
+			Start:  startTime,
+		})
+	}
+	return sticks
 }
 
 func (r BinanceCandlestickResponse) translate() Candlesticks {
@@ -1310,6 +1623,67 @@ func (r *BinanceDepthResponse) translate() *DepthData {
 	return depth
 }
 
+func parseGeminiDepthPoints(pts []GeminiDepthResData) ([]DepthPoint, error) {
+	outPts := make([]DepthPoint, 0, len(pts))
+	for _, pt := range pts {
+		price, err := strconv.ParseFloat(pt.Price, 64)
+		if err != nil {
+			return outPts, fmt.Errorf("Unable to parse Gemini depth point price: %v", err)
+		}
+
+		quantity, err := strconv.ParseFloat(pt.Amount, 64)
+		if err != nil {
+			return outPts, fmt.Errorf("Unable to parse Gemini depth point quantity: %v", err)
+		}
+
+		outPts = append(outPts, DepthPoint{
+			Quantity: quantity,
+			Price:    price,
+		})
+	}
+	return outPts, nil
+}
+
+func (r *GeminiDepthResponse) translate() *DepthData {
+	if r == nil {
+		return nil
+	}
+	depth := new(DepthData)
+	depth.Time = time.Now().Unix()
+	var err error
+	depth.Asks, err = parseGeminiDepthPoints(r.Asks)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	depth.Bids, err = parseGeminiDepthPoints(r.Bids)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	return depth
+}
+
+func (r *KucoinDepthResponse) translate() *DepthData {
+	if r == nil {
+		return nil
+	}
+	depth := new(DepthData)
+	depth.Time = time.Now().Unix()
+	var err error
+	depth.Asks, err = parseBinanceDepthPoints(r.Data.Asks)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	depth.Bids, err = parseBinanceDepthPoints(r.Data.Bids)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	return depth
+}
+
 // Refresh retrieves and parses API data from Binance.
 func (binance *BinanceExchange) Refresh() {
 	binance.LogRequest()
@@ -1378,6 +1752,198 @@ func (binance *BinanceExchange) Refresh() {
 			Volume:     dcrVolume,
 			Change:     priceChange,
 			Stamp:      priceResponse.CloseTime / 1000,
+		},
+		Candlesticks: candlesticks,
+		Depth:        depth,
+	})
+}
+
+// Refresh retrieves and parses API data from Binance.
+func (kucoin *KucoinExchange) Refresh() {
+	kucoin.LogRequest()
+	priceResponse := new(KucoinPriceResponse)
+	err := kucoin.fetch(kucoin.requests.price, priceResponse)
+	if err != nil {
+		kucoin.fail("Fetch price", err)
+		return
+	}
+	price, err := strconv.ParseFloat(priceResponse.Data.Last, 64)
+	if err != nil {
+		kucoin.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceResponse.Data.Last), err)
+		return
+	}
+	baseVolume, err := strconv.ParseFloat(priceResponse.Data.VolValue, 64)
+	if err != nil {
+		kucoin.fail(fmt.Sprintf("Failed to parse float from BaseVolume=%s", priceResponse.Data.VolValue), err)
+		return
+	}
+
+	dcrVolume, err := strconv.ParseFloat(priceResponse.Data.Vol, 64)
+	if err != nil {
+		kucoin.fail(fmt.Sprintf("Failed to parse float from Volume=%s", priceResponse.Data.Vol), err)
+		return
+	}
+	priceChange, err := strconv.ParseFloat(priceResponse.Data.ChangePrice, 64)
+	if err != nil {
+		kucoin.fail(fmt.Sprintf("Failed to parse float from PriceChange=%s", priceResponse.Data.ChangePrice), err)
+		return
+	}
+
+	// Get the depth chart
+	depthResponse := new(KucoinDepthResponse)
+	err = kucoin.fetch(kucoin.requests.depth, depthResponse)
+	if err != nil {
+		log.Errorf("Error retrieving depth chart data from Kucoin: %v", err)
+	}
+	depth := depthResponse.translate()
+
+	// Grab the current state to check if candlesticks need updating
+	state := kucoin.state()
+
+	candlesticks := map[candlestickKey]Candlesticks{}
+	for bin, req := range kucoin.requests.candlesticks {
+		oldSticks, found := state.Candlesticks[bin]
+		if !found || oldSticks.needsUpdate(bin) {
+			log.Tracef("Signalling candlestick update for %s, bin size %s", kucoin.token, bin)
+			response := new(KucoinCandlestickResponse)
+			err := kucoin.fetch(req, response)
+			if err != nil {
+				log.Errorf("Error retrieving candlestick data from binance for bin size %s: %v", string(bin), err)
+				continue
+			}
+			sticks := response.translate()
+
+			if !found || sticks.time().After(oldSticks.time()) {
+				candlesticks[bin] = sticks
+			}
+		}
+	}
+	kucoin.Update(&ExchangeState{
+		BaseState: BaseState{
+			Symbol:     kucoin.Symbol,
+			Price:      price,
+			BaseVolume: baseVolume,
+			Volume:     dcrVolume,
+			Change:     priceChange,
+			Stamp:      priceResponse.Data.Time,
+		},
+		Candlesticks: candlesticks,
+		Depth:        depth,
+	})
+}
+
+func (gemini *GeminiExchange) Refresh() {
+	gemini.LogRequest()
+	priceResponse := new(GeminiPriceResponse)
+	err := gemini.fetch(gemini.requests.price, priceResponse)
+	if err != nil {
+		gemini.fail("Fetch price", err)
+		return
+	}
+
+	subPriceResponse := new(GeminiSubPriceResponse)
+	err = gemini.fetch(gemini.requests.subprice, subPriceResponse)
+	if err != nil {
+		gemini.fail("Fetch price", err)
+		return
+	}
+
+	price, err := strconv.ParseFloat(subPriceResponse.Last, 64)
+	if err != nil {
+		gemini.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", subPriceResponse.Last), err)
+		return
+	}
+	volumne := float64(0)
+	baseVolume := float64(0)
+	timeStamp := int64(0)
+	//check subpriceresponse
+	for key := range subPriceResponse.Volume {
+		if key == "timestamp" {
+			timeStampFloat64, ok := subPriceResponse.Volume[key].(float64)
+			if !ok {
+				badGeminiStickElement("Start time", subPriceResponse.Volume[key])
+				return
+			}
+			timeStamp = int64(timeStampFloat64 / 1e3)
+		} else {
+			//if symbol start with key, is base volume
+			if strings.HasPrefix(gemini.Symbol, strings.ToUpper(key)) {
+				baseVolStr := subPriceResponse.Volume[key].(string)
+				baseVolume, err = strconv.ParseFloat(baseVolStr, 64)
+				if err != nil {
+					gemini.fail(fmt.Sprintf("Failed to parse float from Base Volumn=%s", baseVolStr), err)
+					return
+				}
+				//else, is volumn
+			} else {
+				volStr := subPriceResponse.Volume[key].(string)
+				volumne, err = strconv.ParseFloat(volStr, 64)
+				if err != nil {
+					gemini.fail(fmt.Sprintf("Failed to parse float from Volumn=%s", volStr), err)
+					return
+				}
+			}
+		}
+	}
+
+	totalPriceChange := float64(0)
+	totalCountChange := int(0)
+	for _, change := range priceResponse.Changes {
+		if change == "" {
+			continue
+		}
+		hourChangeVal, err := strconv.ParseFloat(change, 64)
+		if err != nil {
+			continue
+		}
+		totalCountChange++
+		totalPriceChange += hourChangeVal
+	}
+
+	changeAvgPrice := float64(0)
+	if totalCountChange > 0 {
+		changeAvgPrice = totalPriceChange / float64(totalCountChange)
+	}
+
+	changePrice := changeAvgPrice - price
+
+	// Get the depth chart
+	depthResponse := new(GeminiDepthResponse)
+	err = gemini.fetch(gemini.requests.depth, depthResponse)
+	if err != nil {
+		log.Errorf("Error retrieving depth chart data from Gemini: %v", err)
+	}
+	depth := depthResponse.translate()
+
+	// Grab the current state to check if candlesticks need updating
+	state := gemini.state()
+
+	candlesticks := map[candlestickKey]Candlesticks{}
+	for bin, req := range gemini.requests.candlesticks {
+		oldSticks, found := state.Candlesticks[bin]
+		if !found || oldSticks.needsUpdate(bin) {
+			log.Tracef("Signalling candlestick update for %s, bin size %s", gemini.token, bin)
+			response := new(GeminiCandlestickResponse)
+			err := gemini.fetch(req, response)
+			if err != nil {
+				log.Errorf("Error retrieving candlestick data from gemini for bin size %s: %v", string(bin), err)
+				continue
+			}
+			sticks := response.translate()
+
+			if !found || sticks.time().After(oldSticks.time()) {
+				candlesticks[bin] = sticks
+			}
+		}
+	}
+	gemini.Update(&ExchangeState{
+		BaseState: BaseState{
+			Symbol:     gemini.Symbol,
+			Price:      price,
+			BaseVolume: baseVolume,
+			Volume:     volumne,
+			Change:     changePrice,
+			Stamp:      timeStamp,
 		},
 		Candlesticks: candlesticks,
 		Depth:        depth,
@@ -2319,8 +2885,7 @@ func (dragonex *DragonExchange) Refresh() {
 // HuobiExchange is based in Hong Kong and Singapore.
 type HuobiExchange struct {
 	*CommonExchange
-	Ok     string
-	Symbol string
+	Ok string
 }
 
 // NewHuobi constructs a HuobiExchange.
@@ -2345,11 +2910,11 @@ func NewHuobi(client *http.Client, channels *BotChannels, _ string) (huobi Excha
 		}
 		reqs.candlesticks[dur].Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
-
+	commonExchange := newCommonExchange(Huobi, client, reqs, channels)
+	commonExchange.Symbol = DCRSYMBOL
 	return &HuobiExchange{
-		CommonExchange: newCommonExchange(Huobi, client, reqs, channels),
+		CommonExchange: commonExchange,
 		Ok:             "ok",
-		Symbol:         DCRSYMBOL,
 	}, nil
 }
 
@@ -2375,10 +2940,12 @@ func MutilchainNewHuobi(client *http.Client, channels *BotChannels, chainType st
 		reqs.candlesticks[dur].Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
 
+	commonExchange := newCommonExchange(Huobi, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
+
 	return &HuobiExchange{
-		CommonExchange: newCommonExchange(Huobi, client, reqs, channels),
+		CommonExchange: commonExchange,
 		Ok:             "ok",
-		Symbol:         GetSymbolFromChainType(chainType),
 	}, nil
 }
 
