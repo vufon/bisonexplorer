@@ -19,6 +19,7 @@ const (
 	defaultExchangeExpiry  = "60m"
 	defaultListen          = ":7778"
 	defaultBtcIndex        = "USD"
+	defaultBinanceAPI      = "https://api.binance.com"
 )
 
 var (
@@ -35,6 +36,7 @@ type config struct {
 	LogLevel          string   `long:"loglevel" description:"Logging level {trace, debug, info, warn, error, critical}" env:"DCRRATES_LOG_LEVEL"`
 	DisabledExchanges string   `long:"disable-exchange" description:"Exchanges to disable. See /exchanges/exchanges.go for available exchanges. Use a comma to separate multiple exchanges" env:"DCRRATES_DISABLE_EXCHANGES"`
 	ExchangeCurrency  string   `long:"exchange-currency" description:"The default bitcoin price index. A 3-letter currency code." env:"DCRRATES_EXCHANGE_INDEX"`
+	BinanceAPI        string   `long:"binance-api" description:"Link to Binance data. Default is Binance API URL" env:"DCRRATES_BINANCEAPI_INDEX"`
 	ExchangeRefresh   string   `long:"exchange-refresh" description:"Time between API calls for exchange data. See (ExchangeBotConfig).DataExpiry." env:"DCRRATES_EXCHANGE_REFRESH"`
 	ExchangeExpiry    string   `long:"exchange-expiry" description:"Maximum age before exchange data is discarded. See (ExchangeBotConfig).RequestExpiry." env:"DCRRATES_EXCHANGE_EXPIRY"`
 	CertificatePath   string   `long:"tlscert" description:"Path to the TLS certificate. Will be created if it doesn't already exist. ([appdir]/rpc.cert)" env:"DCRRATES_EXCHANGE_EXPIRY"`
@@ -49,6 +51,7 @@ var defaultConfig = config{
 	ExchangeRefresh:  defaultExchangeRefresh,
 	ExchangeExpiry:   defaultExchangeExpiry,
 	AltDNSNames:      defaultAltDNSNames,
+	BinanceAPI:       defaultBinanceAPI,
 }
 
 func loadConfig() (*config, error) {

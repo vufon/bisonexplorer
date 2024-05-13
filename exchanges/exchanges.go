@@ -102,26 +102,26 @@ var (
 		Price: "https://api.coindesk.com/v2/bpi/currentprice.json",
 	}
 	BinanceURLs = URLs{
-		Price: "https://api.binance.com/api/v3/ticker/24hr?symbol=DCRBTC",
+		Price: "%s/api/v3/ticker/24hr?symbol=DCRBTC",
 		// Binance returns a maximum of 5000 depth chart points. This seems like it
 		// is the entire order book at least sometimes.
-		Depth: "https://api.binance.com/api/v3/depth?symbol=DCRBTC&limit=5000",
+		Depth: "%s/api/v3/depth?symbol=DCRBTC&limit=5000",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.binance.com/api/v3/klines?symbol=DCRBTC&interval=1h",
-			dayKey:   "https://api.binance.com/api/v3/klines?symbol=DCRBTC&interval=1d",
-			monthKey: "https://api.binance.com/api/v3/klines?symbol=DCRBTC&interval=1M",
+			hourKey:  "%s/api/v3/klines?symbol=DCRBTC&interval=1h",
+			dayKey:   "%s/api/v3/klines?symbol=DCRBTC&interval=1d",
+			monthKey: "%s/api/v3/klines?symbol=DCRBTC&interval=1M",
 		},
 	}
 
 	BinanceMutilchainURLs = URLs{
-		Price: "https://api.binance.com/api/v3/ticker/24hr?symbol=%sUSDT",
+		Price: "%s/api/v3/ticker/24hr?symbol=%sUSDT",
 		// Binance returns a maximum of 5000 depth chart points. This seems like it
 		// is the entire order book at least sometimes.
-		Depth: "https://api.binance.com/api/v3/depth?symbol=%sUSDT&limit=5000",
+		Depth: "%s/api/v3/depth?symbol=%sUSDT&limit=5000",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.binance.com/api/v3/klines?symbol=%sUSDT&interval=1h",
-			dayKey:   "https://api.binance.com/api/v3/klines?symbol=%sUSDT&interval=1d",
-			monthKey: "https://api.binance.com/api/v3/klines?symbol=%sUSDT&interval=1M",
+			hourKey:  "%s/api/v3/klines?symbol=%sUSDT&interval=1h",
+			dayKey:   "%s/api/v3/klines?symbol=%sUSDT&interval=1d",
+			monthKey: "%s/api/v3/klines?symbol=%sUSDT&interval=1M",
 		},
 	}
 
@@ -207,13 +207,13 @@ var (
 )
 
 // BtcIndices maps tokens to constructors for BTC-fiat exchanges.
-var BtcIndices = map[string]func(*http.Client, *BotChannels) (Exchange, error){
+var BtcIndices = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
 	Coinbase: NewCoinbase,
 	Coindesk: NewCoindesk,
 }
 
 // DcrExchanges maps tokens to constructors for DCR-BTC exchanges.
-var DcrExchanges = map[string]func(*http.Client, *BotChannels) (Exchange, error){
+var DcrExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
 	Binance:  NewBinance,
 	Bittrex:  NewBittrex,
 	DragonEx: NewDragonEx,
@@ -227,7 +227,7 @@ var DcrExchanges = map[string]func(*http.Client, *BotChannels) (Exchange, error)
 	}),
 }
 
-var LTCExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
+var LTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (Exchange, error){
 	Binance:      MutilchainNewBinance,
 	Bittrex:      MutilchainNewBittrex,
 	DragonEx:     nil,
@@ -236,7 +236,7 @@ var LTCExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange
 	DexDotDecred: nil,
 }
 
-var BTCExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
+var BTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (Exchange, error){
 	Binance:      MutilchainNewBinance,
 	Bittrex:      MutilchainNewBittrex,
 	DragonEx:     nil,
@@ -982,7 +982,7 @@ type CoinbaseExchange struct {
 }
 
 // NewCoinbase constructs a CoinbaseExchange.
-func NewCoinbase(client *http.Client, channels *BotChannels) (coinbase Exchange, err error) {
+func NewCoinbase(client *http.Client, channels *BotChannels, _ string) (coinbase Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, CoinbaseURLs.Price, nil)
 	if err != nil {
@@ -1034,7 +1034,7 @@ type CoindeskExchange struct {
 }
 
 // NewCoindesk constructs a CoindeskExchange.
-func NewCoindesk(client *http.Client, channels *BotChannels) (coindesk Exchange, err error) {
+func NewCoindesk(client *http.Client, channels *BotChannels, _ string) (coindesk Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, CoindeskURLs.Price, nil)
 	if err != nil {
@@ -1090,53 +1090,56 @@ func (coindesk *CoindeskExchange) Refresh() {
 // BinanceExchange is a high-volume and well-respected crypto exchange.
 type BinanceExchange struct {
 	*CommonExchange
+	Symbol string
 }
 
-func MutilchainNewBinance(client *http.Client, channels *BotChannels, chainType string) (binance Exchange, err error) {
+func MutilchainNewBinance(client *http.Client, channels *BotChannels, chainType string, binanceApiUrl string) (binance Exchange, err error) {
 	reqs := newRequests()
-	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceMutilchainURLs.Price, binanceApiUrl, strings.ToUpper(chainType)), nil)
 	if err != nil {
 		return
 	}
 
-	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceMutilchainURLs.Depth, strings.ToUpper(chainType)), nil)
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceMutilchainURLs.Depth, binanceApiUrl, strings.ToUpper(chainType)), nil)
 	if err != nil {
 		return
 	}
 
 	for dur, url := range BinanceMutilchainURLs.Candlesticks {
-		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType)), nil)
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, binanceApiUrl, strings.ToUpper(chainType)), nil)
 		if err != nil {
 			return
 		}
 	}
 	binance = &BinanceExchange{
 		CommonExchange: newCommonExchange(Binance, client, reqs, channels),
+		Symbol:         GetSymbolFromChainType(chainType),
 	}
 	return
 }
 
 // NewBinance constructs a BinanceExchange.
-func NewBinance(client *http.Client, channels *BotChannels) (binance Exchange, err error) {
+func NewBinance(client *http.Client, channels *BotChannels, binanceApiUrl string) (binance Exchange, err error) {
 	reqs := newRequests()
-	reqs.price, err = http.NewRequest(http.MethodGet, BinanceURLs.Price, nil)
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Price, binanceApiUrl), nil)
 	if err != nil {
 		return
 	}
 
-	reqs.depth, err = http.NewRequest(http.MethodGet, BinanceURLs.Depth, nil)
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Depth, binanceApiUrl), nil)
 	if err != nil {
 		return
 	}
 
 	for dur, url := range BinanceURLs.Candlesticks {
-		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, url, nil)
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, binanceApiUrl), nil)
 		if err != nil {
 			return
 		}
 	}
 	binance = &BinanceExchange{
 		CommonExchange: newCommonExchange(Binance, client, reqs, channels),
+		Symbol:         DCRSYMBOL,
 	}
 	return
 }
@@ -1369,7 +1372,7 @@ func (binance *BinanceExchange) Refresh() {
 	}
 	binance.Update(&ExchangeState{
 		BaseState: BaseState{
-			Symbol:     priceResponse.Symbol,
+			Symbol:     binance.Symbol,
 			Price:      price,
 			BaseVolume: baseVolume,
 			Volume:     dcrVolume,
@@ -1390,7 +1393,7 @@ type BittrexExchange struct {
 }
 
 // NewBittrex constructs a BittrexExchange.
-func NewBittrex(client *http.Client, channels *BotChannels) (bittrex Exchange, err error) {
+func NewBittrex(client *http.Client, channels *BotChannels, _ string) (bittrex Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, BittrexURLs.Price, nil)
 	if err != nil {
@@ -1433,7 +1436,7 @@ func NewBittrex(client *http.Client, channels *BotChannels) (bittrex Exchange, e
 	return
 }
 
-func MutilchainNewBittrex(client *http.Client, channels *BotChannels, chainType string) (bittrex Exchange, err error) {
+func MutilchainNewBittrex(client *http.Client, channels *BotChannels, chainType string, _ string) (bittrex Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BittrexMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
 	if err != nil {
@@ -1961,7 +1964,7 @@ type DragonExchange struct {
 }
 
 // NewDragonEx constructs a DragonExchange.
-func NewDragonEx(client *http.Client, channels *BotChannels) (dragonex Exchange, err error) {
+func NewDragonEx(client *http.Client, channels *BotChannels, _ string) (dragonex Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, DragonExURLs.Price, nil)
 	if err != nil {
@@ -2316,11 +2319,12 @@ func (dragonex *DragonExchange) Refresh() {
 // HuobiExchange is based in Hong Kong and Singapore.
 type HuobiExchange struct {
 	*CommonExchange
-	Ok string
+	Ok     string
+	Symbol string
 }
 
 // NewHuobi constructs a HuobiExchange.
-func NewHuobi(client *http.Client, channels *BotChannels) (huobi Exchange, err error) {
+func NewHuobi(client *http.Client, channels *BotChannels, _ string) (huobi Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, HuobiURLs.Price, nil)
 	if err != nil {
@@ -2345,25 +2349,26 @@ func NewHuobi(client *http.Client, channels *BotChannels) (huobi Exchange, err e
 	return &HuobiExchange{
 		CommonExchange: newCommonExchange(Huobi, client, reqs, channels),
 		Ok:             "ok",
+		Symbol:         DCRSYMBOL,
 	}, nil
 }
 
-func MutilchainNewHuobi(client *http.Client, channels *BotChannels, chainType string) (huobi Exchange, err error) {
+func MutilchainNewHuobi(client *http.Client, channels *BotChannels, chainType string, _ string) (huobi Exchange, err error) {
 	reqs := newRequests()
-	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(HuobiMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(HuobiMutilchainURLs.Price, chainType), nil)
 	if err != nil {
 		return
 	}
 	reqs.price.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(HuobiMutilchainURLs.Depth, strings.ToUpper(chainType)), nil)
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(HuobiMutilchainURLs.Depth, chainType), nil)
 	if err != nil {
 		return
 	}
 	reqs.depth.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	for dur, url := range HuobiMutilchainURLs.Candlesticks {
-		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType)), nil)
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, chainType), nil)
 		if err != nil {
 			return
 		}
@@ -2373,7 +2378,19 @@ func MutilchainNewHuobi(client *http.Client, channels *BotChannels, chainType st
 	return &HuobiExchange{
 		CommonExchange: newCommonExchange(Huobi, client, reqs, channels),
 		Ok:             "ok",
+		Symbol:         GetSymbolFromChainType(chainType),
 	}, nil
+}
+
+func GetSymbolFromChainType(chainType string) string {
+	switch chainType {
+	case TYPEBTC:
+		return BTCSYMBOL
+	case TYPELTC:
+		return LTCSYMBOL
+	default:
+		return DCRSYMBOL
+	}
 }
 
 // HuobiResponse models the common response fields in all API BittrexResponseResult
@@ -2529,6 +2546,7 @@ func (huobi *HuobiExchange) Refresh() {
 
 	huobi.Update(&ExchangeState{
 		BaseState: BaseState{
+			Symbol:     huobi.Symbol,
 			Price:      priceResponse.Tick.Close,
 			BaseVolume: baseVolume,
 			Volume:     baseVolume / priceResponse.Tick.Close,
@@ -2548,7 +2566,7 @@ type PoloniexExchange struct {
 }
 
 // NewPoloniex constructs a PoloniexExchange.
-func NewPoloniex(client *http.Client, channels *BotChannels) (poloniex Exchange, err error) {
+func NewPoloniex(client *http.Client, channels *BotChannels, _ string) (poloniex Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, PoloniexURLs.Price, nil)
 	if err != nil {
@@ -2582,7 +2600,7 @@ func NewPoloniex(client *http.Client, channels *BotChannels) (poloniex Exchange,
 	return
 }
 
-func MutilchainNewPoloniex(client *http.Client, channels *BotChannels, chainType string) (poloniex Exchange, err error) {
+func MutilchainNewPoloniex(client *http.Client, channels *BotChannels, chainType string, _ string) (poloniex Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(PoloniexMutilchainURLs.Price, strings.ToUpper(chainType)), nil)
 	if err != nil {
@@ -3223,8 +3241,8 @@ type DecredDEX struct {
 
 // NewDecredDEXConstructor creates a constructor for a DEX with the provided
 // configuration.
-func NewDecredDEXConstructor(cfg *DEXConfig) func(*http.Client, *BotChannels) (Exchange, error) {
-	return func(client *http.Client, channels *BotChannels) (Exchange, error) {
+func NewDecredDEXConstructor(cfg *DEXConfig) func(*http.Client, *BotChannels, string) (Exchange, error) {
+	return func(client *http.Client, channels *BotChannels, _ string) (Exchange, error) {
 		dcr := &DecredDEX{
 			CommonExchange: newCommonExchange(cfg.Token, client, requests{}, channels),
 			candleCaches:   make(map[uint64]*candleCache),

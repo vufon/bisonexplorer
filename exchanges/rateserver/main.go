@@ -65,6 +65,7 @@ func main() {
 		DataExpiry:    cfg.ExchangeRefresh,
 		RequestExpiry: cfg.ExchangeExpiry,
 		BtcIndex:      cfg.ExchangeCurrency,
+		BinanceAPIURL: cfg.BinanceAPI,
 	}
 	if cfg.DisabledExchanges != "" {
 		botCfg.Disabled = strings.Split(cfg.DisabledExchanges, ",")

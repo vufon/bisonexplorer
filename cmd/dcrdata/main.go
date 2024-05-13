@@ -466,6 +466,7 @@ func _main(ctx context.Context) error {
 			LTCIndex:       cfg.ExchangeCurrency,
 			MasterBot:      cfg.RateMaster,
 			MasterCertFile: cfg.RateCertificate,
+			BinanceAPIURL:  cfg.BinanceAPI,
 		}
 		if cfg.DisabledExchanges != "" {
 			botCfg.Disabled = strings.Split(cfg.DisabledExchanges, ",")
