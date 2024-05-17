@@ -5,17 +5,17 @@
 	{{/* The above meta tags *must* come first in the head */ -}}
 	{{- if .Data.Host -}}
 	<meta name="description" content="dcrdata, an original Decred block explorer powered by Go">
-	<meta name="author" content="The Decred developers">
+	<meta name="author" content="The mutilple blockchains developers">
 	<meta name="application-name"           content="dcrdata - The Decred Block Explorer">
 	<meta name="apple-mobile-web-app-title" content="dcrdata - The Decred Block Explorer">
 
 	<meta name="twitter:card" content="summary"/>
-	<meta name="twitter:title" content="dcrdata - The Decred Block Explorer"/>
+	<meta name="twitter:title" content="dcrdata - The Mutilple Blockchain Explorer"/>
 	<meta name="twitter:description" content="{{ .Title }}"/>
 	<meta name="twitter:image" content="{{ .Data.BaseURL }}/images/dcrdata400x348.png"/>
 
 	<meta property="og:site_name"   content="dcrdata" />
-	<meta property="og:title"       content="dcrdata - The Decred Block Explorer" />
+	<meta property="og:title"       content="dcrdata - The Mutilple Blockchains Block Explorer" />
 	<meta property="og:description" content="{{ .Title }}" />
 	<meta property="og:type"        content="website" />
 	<meta property="og:url"         content="{{ .Data.CanonicalURL }}" />
@@ -25,7 +25,6 @@
 	<!--  Custom favicon  -->
 		<!-- Apple PWA -->
 		<link rel="apple-touch-icon" sizes="57x57"   href="/images/favicon/apple-touch-icon-57x57.png?v=yHh3NA">
-		<link rel="apple-touch-icon" sizes="60x60"   href="/images/favicon/apple-touch-icon-60x60.png?v=yHh3NA">
 		<link rel="apple-touch-icon" sizes="72x72"   href="/images/favicon/apple-touch-icon-72x72.png?v=yHh3NA">
 		<link rel="apple-touch-icon" sizes="76x76"   href="/images/favicon/apple-touch-icon-76x76.png?v=yHh3NA">
 		<link rel="apple-touch-icon" sizes="114x114" href="/images/favicon/apple-touch-icon-114x114.png?v=yHh3NA">
@@ -35,19 +34,9 @@
 		<link rel="apple-touch-icon" sizes="180x180" href="/images/favicon/apple-touch-icon-180x180.png?v=yHh3NA">
 
 		<!-- Browser -->
-		<link rel="icon" href="/images/favicon/favicon.ico?v=yHh3NA">
-		<link rel="icon" href="/images/favicon/favicon-32x32.png?v=yHh3NA" type="image/png" sizes="32x32">
-		<link rel="icon" href="/images/favicon/favicon-16x16.png?v=yHh3NA" type="image/png" sizes="16x16">
-
-		<!-- Android PWA -->
-		<link rel="manifest" href="/images/favicon/site.webmanifest?v=yHh3NA">
-
-		<!-- Safari -->
-		<link rel="mask-icon" href="/images/favicon/safari-pinned-tab.svg?v=yHh3NA" color="#091440">
-		<!-- Windows PWA -->
-		<meta name="msapplication-TileColor" content="#091440">
-		<meta name="msapplication-TileImage" content="/images/favicon/mstile-144x144.png?v=65tv3">
-		<meta name="msapplication-config" content="/images/favicon/browserconfig.xml?v=65tv3">
+		<link rel="icon" href="/images/favicon/favicon.ico">
+		<link rel="icon" href="/images/favicon/favicon-32x32.png" type="image/png" sizes="32x32">
+		<link rel="icon" href="/images/favicon/favicon-16x16.png" type="image/png" sizes="16x16">
 	<!-- End custom favicon -->
 
 	<meta name="turbolinks-cache-control" content="no-cache">
@@ -61,7 +50,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.d5e69539bae028ed.css" rel="stylesheet">
+	<link href="/dist/css/style.77f0f74017ca1f24.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -72,7 +61,7 @@
 <header class="top-nav align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
    <div class="container d-flex justify-content-between align-items-center my-1">
       <div class="d-flex ai-center">
-	  <a class="no-underline d-block home-link dcrdata-logo" href="/chain/{{.ChainType}}"></a>
+	  <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
 	   <select
                                  class="chart-box d-inline-flex ms-3"
 								 data-scroll-target="coinSelect"
@@ -80,7 +69,7 @@
                                  >
                                  <option name="dcr" value="dcr">Decred (DCR)</option>
                                  <option name="btc" value="btc">Bitcoin (BTC)</option>
-								 <option name="btc" value="ltc">Litecoin (LTC)</option>
+								 <option name="ltc" value="ltc">Litecoin (LTC)</option>
                               </select>
 	  </div>
 	  <form
@@ -195,6 +184,134 @@
 						<span class="text">Enable Hot Keys</span><br /><span class="keys-hint">(<span class="arrows"> &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
 					</a>
 </div>
+					</div>
+				</div>
+			</div>
+            </div>
+         </nav>
+   </div>
+</header>
+{{end}}
+
+{{define "home_navbar"}}
+<body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} {{if .IsHomepage}}homepage-body{{end}}" data-controller="scroll">
+<header class="top-nav align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
+   <div class="container d-flex justify-content-between align-items-center my-1">
+      <div class="d-flex ai-center">
+	  <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
+	  </div>
+	  <form
+         class="search-form"
+         role="search"
+         id="search-form"
+         action="/search"
+         data-controller="search"
+         data-action="submit->search#execute"
+         >
+         <input
+            tabindex="0"
+            type="text"
+            name="search"
+            id="search"
+            class="top-search mousetrap"
+            placeholder="Search for blocks, addresses, transactions or proposal tokens"
+            spellcheck="false"
+            autocomplete="off"
+            />
+         <button class="search-bttn" type="submit"><span class="dcricon-search search-box-icon"></span></button>
+      </form>
+         <nav id="hamburger-menu"
+		  	data-controller="menu" 
+			data-turbolinks-permanent
+			data-menu-homepage="{{.IsHomepage}}">
+            <div id="menu-toggle">
+			<div data-menu-target="homeMenu">
+               <input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
+               <span class="patty d-none"></span>
+               <span class="patty d-none"></span>
+               <span class="patty short d-none"></span>
+               <div id="menu" class="row">
+                  <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1">
+                     <input type="hidden" name="darkmode" value="darkmode">
+                     <input type="hidden" name="requestURI" value="{{.RequestURI}}">
+                     <button type="submit" data-action="click->menu#onSunClick"
+                        class="menu-submit text-start w-100 p-0"
+                        data-keynav-skip>
+                        <div class="menu-item">
+                           <span id="sun-icon" class="dcricon-sun-fill no-underline pe-2 fs-22"></span>
+                        </div>
+                     </button>
+                  </form>
+               </div>
+			</div>
+			<div class="d-none" data-menu-target="commonMenu">
+				<input type="checkbox" id="common-menu-input" data-menu-target="toggle" data-action="change->menu#toggle"/>
+				<span class="patty"></span>
+				<span class="patty"></span>
+				<span class="patty short"></span>
+				<div id="menu">
+				<a class="menu-item ps-3 mt-4" data-keynav-skip href="/" title="Home">Home</a>
+					<div class="border-top-grey">
+					<p class="row ps-1">
+						<a class="menu-item col-12" data-keynav-skip href="/blocks" title="Decred blocks">Blocks</a>
+						<a class="menu-item col-12" data-keynav-skip href="/mempool" title="Decred mempool">Mempool</a>
+					</p>
+					<p class="row ps-1">
+						<a class="menu-item col-12" data-keynav-skip href="/treasury" title="Decred Treasury">Treasury</a>
+						<a class="menu-item col-12" data-keynav-skip href="/proposals" title="Proposals">Proposals</a>
+					</p>
+					<p class="row ps-1">
+					<a class="menu-item col-12" data-keynav-skip href="/agendas" title="Agendas">Agendas</a>
+					</p>
+					</div>
+
+					<div class="border-top-grey">
+						<p class="row ps-1">
+						<a class="menu-item col-12" data-keynav-skip href="/ticketpool" title="Decred ticket pool">Ticket Pool</a>
+						<a class="menu-item col-12 jsonly" data-keynav-skip href="/charts" title="Decred charts">Charts</a>
+						</p>
+						<p class="row ps-1">
+							<a class="menu-item col-12" data-keynav-skip href="/market" title="Market">Market</a>
+							<a class="menu-item col-12" data-keynav-skip href="/home-report" title="Finance Report Homepage">Financial Reports</a>
+						</p>
+					</div>
+					<div class="border-top-grey">
+						<p class="row ps-1">
+<a class="menu-item col-12" data-keynav-skip href="/attack-cost" title="Decred Attack Cost">Attack Cost</a>
+					<a class="menu-item col-12" data-keynav-skip href="/parameters" title="Chain Parameters">Parameters</a>
+						</p>
+						<p class="row ps-1">
+						<a class="menu-item col-12" data-keynav-skip href="/decodetx" title="Decode or send a raw transaction">Decode/Broadcast Tx</a>
+					<a class="menu-item col-12" data-keynav-skip href="/stakingcalc" title="Staking Reward Calculator">Staking Reward Calculator</a>
+						</p>
+					</div>
+					<div class="border-top-grey">
+					<p class="row ps-1">
+					<a class="menu-item col-12" data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a>
+				{{- if eq .NetName "Mainnet"}}
+					<a class="menu-item col-12" data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>
+				{{- else}}
+					<a class="menu-item col-12" data-keynav-skip href="{{.Links.Mainnet}}" title="Home">Switch To Mainnet</a>
+				{{- end}}
+					</p>
+<div class="row ps-1">
+<form action="/set" method="post" data-menu-target="form" class="menu-form col-12">
+						<input type="hidden" name="darkmode" value="darkmode">
+						<input type="hidden" name="requestURI" value="{{.RequestURI}}">
+						<button type="submit" data-action="click->menu#onSunClick"
+								class="menu-submit text-start w-100 p-0"
+								data-keynav-skip>
+								<div class="menu-item">
+								  <span id="sun-icon" class="dcricon-sun-fill no-underline pe-2"></span>
+								  Night Mode
+								</div>
+						</button>
+					</form>
+<a class="menu-item col-12" data-keynav-skip href="{{.Links.APIDocs}}" title="API Endpoints" target="_blank" rel="noopener noreferrer">JSON API Docs</a>
+	<a class="menu-item jsonly col-24" data-keynav-skip data-turbolinks="false" href="#" id="keynav-toggle">
+						<span class="text">Enable Hot Keys</span><br /><span class="keys-hint">(<span class="arrows"> &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
+					</a>
+					</div>
 					</div>
 				</div>
 			</div>
@@ -415,7 +532,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.1db19247d33a9d58.bundle.js"
+	src="/dist/js/app.945011b21923ad9a.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

@@ -278,6 +278,7 @@ type explorerUI struct {
 	ChainParams      *chaincfg.Params
 	BtcChainParams   *btcchaincfg.Params
 	LtcChainParams   *ltcchaincfg.Params
+	ChainDisabledMap map[string]bool
 	Version          string
 	NetName          string
 	MeanVotingBlocks int64
@@ -343,21 +344,22 @@ func (exp *explorerUI) StopWebsocketHub() {
 
 // ExplorerConfig is the configuration settings for explorerUI.
 type ExplorerConfig struct {
-	DataSource    explorerDataSource
-	ChartSource   ChartDataSource
-	UseRealIP     bool
-	AppVersion    string
-	DevPrefetch   bool
-	Viewsfolder   string
-	XcBot         *exchanges.ExchangeBot
-	AgendasSource agendaBackend
-	Tracker       *agendas.VoteTracker
-	Proposals     PoliteiaBackend
-	PoliteiaURL   string
-	MainnetLink   string
-	TestnetLink   string
-	OnionAddress  string
-	ReloadHTML    bool
+	DataSource       explorerDataSource
+	ChartSource      ChartDataSource
+	UseRealIP        bool
+	AppVersion       string
+	DevPrefetch      bool
+	Viewsfolder      string
+	XcBot            *exchanges.ExchangeBot
+	AgendasSource    agendaBackend
+	Tracker          *agendas.VoteTracker
+	Proposals        PoliteiaBackend
+	PoliteiaURL      string
+	MainnetLink      string
+	TestnetLink      string
+	OnionAddress     string
+	ReloadHTML       bool
+	ChainDisabledMap map[string]bool
 }
 
 // New returns an initialized instance of explorerUI
@@ -378,6 +380,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	exp.voteTracker = cfg.Tracker
 	exp.proposals = cfg.Proposals
 	exp.politeiaURL = cfg.PoliteiaURL
+	exp.ChainDisabledMap = cfg.ChainDisabledMap
 	explorerLinks.Mainnet = cfg.MainnetLink
 	explorerLinks.Testnet = cfg.TestnetLink
 	explorerLinks.MainnetSearch = cfg.MainnetLink + "search?search="
@@ -453,7 +456,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 	commonTemplates := []string{"extras"}
 	exp.templates = newTemplates(cfg.Viewsfolder, cfg.ReloadHTML, commonTemplates, makeTemplateFuncMap(exp.ChainParams))
 
-	tmpls := []string{"home", "blocks", "mempool", "block", "tx", "address",
+	tmpls := []string{"home", "decred_home", "blocks", "mempool", "block", "tx", "address",
 		"rawtx", "status", "parameters", "agenda", "agendas", "charts",
 		"sidechains", "disapproved", "ticketpool", "visualblocks", "statistics",
 		"windows", "timelisting", "addresstable", "proposals", "proposal",

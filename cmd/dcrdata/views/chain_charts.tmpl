@@ -1,14 +1,14 @@
 {{define "chain_charts"}}
 <!DOCTYPE html>
 <html lang="en">
-
-   {{template "html-head" headData .CommonPageData "Decred Charts"}}
+   {{template "html-head" headData .CommonPageData (printf "%s Charts" (chainName .ChainType))}}
    {{template "mutilchain_navbar" . }}
    <div data-controller="chaincharts"
       data-chaincharts-block-time="{{.TargetTimePerBlock}}"
       data-chaincharts-chain-type="{{.ChainType}}"
       >
       <div class="container main pb-2">
+      <p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/chain/{{.ChainType}}">{{chainName .ChainType}}</a>&nbsp;> Charts</p>
          <span class="d-none" data-chaincharts-target="chartTitleName"></span>
          <div class="d-flex flex-wrap justify-content-center align-items-center chart-controls common-card p-2 mb-1 mt-1">
             <div class="chart-control-wrapper me-2 mb-1">

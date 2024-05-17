@@ -1,10 +1,11 @@
 {{define "chain_block" -}}
 <!DOCTYPE html>
-<html lang="en">
-{{template "html-head" headData .CommonPageData (printf "Decred Block %d" .Data.Height)}}
-{{ template "mutilchain_navbar" . }}
 {{$ChainType := .ChainType}}
+<html lang="en">
+{{template "html-head" headData .CommonPageData (printf "%s Block %d" (chainName $ChainType) .Data.Height)}}
+{{ template "mutilchain_navbar" . }}
 <div class="container main" data-controller="time">
+<p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Block</p>
 {{- with .Data -}}
 	<div class="row mx-2 my-2">
 		<div class="col-24 col-xl-12 bg-green-3 p-3 position-relative common-card">

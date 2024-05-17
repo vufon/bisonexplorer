@@ -2,13 +2,14 @@
 <!DOCTYPE html>
 <html lang="en">
 {{$ChainType := .ChainType}}
-{{template "html-head" headData .CommonPageData "Decred Mempool"}}
+{{template "html-head" headData .CommonPageData (printf "%s Mempool" (chainName $ChainType))}}
 {{ template "mutilchain_navbar" . }}
         {{with .Mempool -}}
         <div class="container main"
         data-controller="mempool time"
         data-mempool-target="mempool"
         >
+        <p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Mempool</p>
             <div class="pb-2 h4">Mempool</div>
 
             <div class="row mx-0 my-2">

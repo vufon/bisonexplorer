@@ -6,6 +6,7 @@
 {{$conv := .Conversions}}
 {{with .Data}}
 <div class="container main" data-controller="time tx" data-tx-txid="{{.TxID}}">
+<p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/decred">Decred</a>&nbsp;> Transaction Detail</p>
 {{$isMempool := (eq .BlockHeight 0)}}
     <div class="row mx-2 my-2">
         <div class="col-24 col-xl-12 bg-green-3 p-3 p-sm-4 position-relative common-card">

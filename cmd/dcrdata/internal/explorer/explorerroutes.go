@@ -189,8 +189,16 @@ type MutilchainHomeConversions struct {
 	CoinSupply   *exchanges.Conversion
 }
 
+type MutilchainHomeInfo struct {
+	Chain        string
+	ExchangeRate *exchanges.Conversion
+	CoinSupply   *exchanges.Conversion
+	BestBlock    *types.BlockBasic
+	HomeInfo     *types.HomeInfo
+}
+
 // Home is the page handler for the "/" path.
-func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
+func (exp *explorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	height, err := exp.dataSource.GetHeight()
 	if err != nil {
 		log.Errorf("GetHeight failed: %v", err)
@@ -263,7 +271,7 @@ func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
 
-	str, err := exp.templates.exec("home", struct {
+	str, err := exp.templates.exec("decred_home", struct {
 		*CommonPageData
 		Info             *types.HomeInfo
 		Mempool          *types.MempoolInfo
@@ -295,6 +303,98 @@ func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		VotingSummary:    exp.voteTracker.Summary(),
 		ProposalCountMap: proposalCountJsonStr,
 		VotesStatus:      voteStatusJsonStr,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+// Home is the page handler for the "/" path.
+func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
+	//Get mutilchainList
+	chainList := make([]string, 0)
+	chainList = append(chainList, mutilchain.TYPEDCR)
+	chainList = append(chainList, dbtypes.MutilchainList...)
+
+	homeChainInfoList := make([]MutilchainHomeInfo, 0)
+
+	for _, chainType := range chainList {
+		disabled, exist := exp.ChainDisabledMap[chainType]
+		if !exist || disabled {
+			continue
+		}
+		height, err := exp.dataSource.GetMutilchainHeight(chainType)
+		if err != nil {
+			log.Errorf("GetMutilchainHeight failed: %v", err)
+			exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
+				ExpStatusError)
+			return
+		}
+		var blocks []*types.BlockBasic
+		switch chainType {
+		case mutilchain.TYPEBTC:
+			blocks = exp.dataSource.GetBTCExplorerBlocks(int(height), int(height)-8)
+		case mutilchain.TYPELTC:
+			blocks = exp.dataSource.GetLTCExplorerBlocks(int(height), int(height)-8)
+		default:
+			blocks = exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
+		}
+
+		var bestBlock *types.BlockBasic
+		if blocks == nil {
+			bestBlock = new(types.BlockBasic)
+		} else {
+			bestBlock = blocks[0]
+		}
+		var homeInfo *types.HomeInfo
+		switch chainType {
+		case mutilchain.TYPEBTC:
+			exp.btcPageData.RLock()
+			// Get fiat conversions if available
+			homeInfo = exp.btcPageData.HomeInfo
+			exp.btcPageData.RUnlock()
+		case mutilchain.TYPELTC:
+			exp.ltcPageData.RLock()
+			// Get fiat conversions if available
+			homeInfo = exp.ltcPageData.HomeInfo
+			exp.ltcPageData.RUnlock()
+		default:
+			exp.pageData.RLock()
+			homeInfo = exp.pageData.HomeInfo
+			exp.pageData.RUnlock()
+		}
+
+		xcBot := exp.xcBot
+		var exchangeRate, coinSupply *exchanges.Conversion
+		if xcBot != nil {
+			exchangeRate = xcBot.MutilchainConversion(1.0, chainType)
+			coinSupply = xcBot.MutilchainConversion(homeInfo.CoinValueSupply, chainType)
+		}
+		chainHomeInfo := MutilchainHomeInfo{
+			Chain:        chainType,
+			ExchangeRate: exchangeRate,
+			CoinSupply:   coinSupply,
+			BestBlock:    bestBlock,
+			HomeInfo:     homeInfo,
+		}
+		homeChainInfoList = append(homeChainInfoList, chainHomeInfo)
+	}
+
+	var commonData = exp.commonData(r)
+	commonData.IsHomepage = true
+
+	str, err := exp.templates.exec("home", struct {
+		*CommonPageData
+		HomeInfoList []MutilchainHomeInfo
+	}{
+		CommonPageData: commonData,
+		HomeInfoList:   homeChainInfoList,
 	})
 
 	if err != nil {
@@ -348,7 +448,9 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		homeInfo = exp.ltcPageData.HomeInfo
 		exp.ltcPageData.RUnlock()
 	default:
-
+		exp.pageData.RLock()
+		homeInfo = exp.pageData.HomeInfo
+		exp.pageData.RUnlock()
 	}
 
 	var conversions *MutilchainHomeConversions

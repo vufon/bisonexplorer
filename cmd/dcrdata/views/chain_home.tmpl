@@ -4,15 +4,16 @@
 {{$ChainType := .ChainType}}
 {{- $botState := .XcState -}}
 <html lang="en">
-   {{ template "html-head" headData .CommonPageData "Bitcoin Block Explorer by blockcare.pro"}}
+   {{ template "html-head" headData .CommonPageData (printf "%s Blockchain Explorer by blockcare.pro" (chainName $ChainType))}}
    {{ template "mutilchain_navbar" . }}
    <div class="main-container homepage-class" data-controller="time">
       <!-- start explorer wrap -->
       <div class="hp-explore-wrap mutilchain-explore-wrap" id="hp-explore-wrap">
          <div class="container">
+            <p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> {{chainName $ChainType}}</p>
             <section>
                <h2 class="fs-40 fw-600 d-none"> Blocks Explorer</h2>
-               <div class="hp-explore__cards-wrap">
+               <div class="hp-explore__cards-wrap mt-2">
                   <!-- Start Market chart -->
                   <div class="hp-explore__cards-content-1">
                      <div class="explore-card-wrap">

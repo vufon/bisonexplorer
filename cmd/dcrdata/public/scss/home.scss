@@ -1152,6 +1152,10 @@ body.darkBG .day-night-icon {
   grid-template-columns: 60% 40%;
 }
 
+.home-chain-card {
+  grid-template-columns: 50% 50% !important;
+}
+
 @media (max-width: 960px) {
   .hp-explore__cards-content-2-1,
   .hp-explore__cards-content-2 {

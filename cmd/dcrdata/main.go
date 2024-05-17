@@ -263,6 +263,9 @@ func _main(ctx context.Context) error {
 	var ltcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPELTC)
 	var btcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEBTC)
 	var dcrDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEDCR)
+	chainDB.ChainDisabledMap[mutilchain.TYPEBTC] = btcDisabled
+	chainDB.ChainDisabledMap[mutilchain.TYPELTC] = ltcDisabled
+	chainDB.ChainDisabledMap[mutilchain.TYPEDCR] = dcrDisabled
 	defer func() {
 		if dcrdClient != nil {
 			log.Infof("Closing connection to dcrd.")
@@ -528,24 +531,28 @@ func _main(ctx context.Context) error {
 			return fmt.Errorf("Unable to initialize vote tracker: %v", err)
 		}
 	}
-
+	chainDisabledMap := make(map[string]bool)
+	chainDisabledMap[mutilchain.TYPEBTC] = btcDisabled
+	chainDisabledMap[mutilchain.TYPELTC] = ltcDisabled
+	chainDisabledMap[mutilchain.TYPEDCR] = dcrDisabled
 	// Create the explorer system.
 	explore := explorer.New(&explorer.ExplorerConfig{
-		DataSource:    chainDB,
-		ChartSource:   charts,
-		UseRealIP:     cfg.UseRealIP,
-		AppVersion:    Version(),
-		DevPrefetch:   !cfg.NoDevPrefetch,
-		Viewsfolder:   "views",
-		XcBot:         xcBot,
-		AgendasSource: agendaDB,
-		Tracker:       tracker,
-		Proposals:     proposalsDB,
-		PoliteiaURL:   cfg.PoliteiaURL,
-		MainnetLink:   cfg.MainnetLink,
-		TestnetLink:   cfg.TestnetLink,
-		ReloadHTML:    cfg.ReloadHTML,
-		OnionAddress:  cfg.OnionAddress,
+		DataSource:       chainDB,
+		ChartSource:      charts,
+		UseRealIP:        cfg.UseRealIP,
+		AppVersion:       Version(),
+		DevPrefetch:      !cfg.NoDevPrefetch,
+		Viewsfolder:      "views",
+		XcBot:            xcBot,
+		AgendasSource:    agendaDB,
+		Tracker:          tracker,
+		Proposals:        proposalsDB,
+		PoliteiaURL:      cfg.PoliteiaURL,
+		MainnetLink:      cfg.MainnetLink,
+		TestnetLink:      cfg.TestnetLink,
+		ReloadHTML:       cfg.ReloadHTML,
+		OnionAddress:     cfg.OnionAddress,
+		ChainDisabledMap: chainDisabledMap,
 	})
 	// TODO: allow views config
 	if explore == nil {
@@ -838,12 +845,13 @@ func _main(ctx context.Context) error {
 		r.Get("/ticketpool", explore.Ticketpool)
 		r.Get("/stats", explore.StatsPage)
 		r.Get("/market", explore.MarketPage)
+		r.Get("/decred", explore.DecredHome)
 		r.Get("/statistics", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/stats", http.StatusPermanentRedirect)
 		})
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.
-		r.With(explorer.MenuFormParser).Post("/set", explore.Home)
+		r.With(explorer.MenuFormParser).Post("/set", explore.DecredHome)
 		r.Get("/attack-cost", explore.AttackCost)
 		r.Get("/verify-message", explore.VerifyMessagePage)
 		r.Get("/stakingcalc", explore.StakeRewardCalcPage)

@@ -285,6 +285,7 @@ type ChainDB struct {
 	lastBlock          map[chainhash.Hash]uint64
 	ltcLastBlock       map[ltc_chainhash.Hash]uint64
 	btcLastBlock       map[btc_chainhash.Hash]uint64
+	ChainDisabledMap   map[string]bool
 	stakeDB            *stakedb.StakeDatabase
 	unspentTicketCache *TicketTxnIDGetter
 	AddressCache       *cache.AddressCache
@@ -793,6 +794,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		lastBlock:          make(map[chainhash.Hash]uint64),
 		ltcLastBlock:       make(map[ltc_chainhash.Hash]uint64),
 		btcLastBlock:       make(map[btc_chainhash.Hash]uint64),
+		ChainDisabledMap:   make(map[string]bool, 0),
 		stakeDB:            stakeDB,
 		unspentTicketCache: unspentTicketCache,
 		AddressCache:       addrCache,

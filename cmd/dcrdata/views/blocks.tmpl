@@ -4,6 +4,9 @@
 {{$topBlock := 0}}
 {{template "html-head" headData .CommonPageData "Decred Blocks List"}}
     {{template "navbar" . }}
+    <div class="container mt-2">
+    <p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/decred">Decred</a>&nbsp;> Blocks</p>
+    </div>
     {{template "blocksBanner" .}}
     <div class="container px-0 main" data-controller="time pagenavigation blocklist">
         {{$pendingBlocks := 0}}

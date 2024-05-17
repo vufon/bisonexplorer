@@ -38,7 +38,7 @@ export default class extends Controller {
     const coin = e.target.value
     switch (coin) {
       case 'dcr':
-        window.location.href = '/'
+        window.location.href = '/decred'
         return
       default:
         window.location.href = '/chain/' + coin
