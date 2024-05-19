@@ -432,10 +432,10 @@ func (pgb *ChainDB) StoreLTCBlock(client *ltcClient.Client, msgBlock *wire.MsgBl
 	}
 	pgb.ltcLastBlock[msgBlock.BlockHash()] = blockDbID
 
-	pgb.LtcBestBlock = &MutilchainBestBlock{
-		Height: int64(dbBlock.Height),
-		Hash:   dbBlock.Hash,
-	}
+	// pgb.LtcBestBlock = &MutilchainBestBlock{
+	// 	Height: int64(dbBlock.Height),
+	// 	Hash:   dbBlock.Hash,
+	// }
 
 	err = InsertMutilchainBlockPrevNext(pgb.db, blockDbID, dbBlock.Hash,
 		dbBlock.PreviousHash, "", mutilchain.TYPELTC)

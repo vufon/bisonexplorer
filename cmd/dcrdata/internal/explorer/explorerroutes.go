@@ -1328,14 +1328,7 @@ func (exp *explorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 	// Retrieve the block specified on the path.
 	hash := getBlockHashCtx(r)
 	var data *types.BlockInfo
-	switch chainType {
-	case mutilchain.TYPEBTC:
-		data = exp.dataSource.GetBTCExplorerBlock(hash)
-	case mutilchain.TYPELTC:
-		data = exp.dataSource.GetLTCExplorerBlock(hash)
-	default:
-		data = exp.dataSource.GetExplorerBlock(hash)
-	}
+	data = exp.dataSource.GetMutilchainExplorerBlock(hash, chainType)
 	if data == nil {
 		log.Errorf("Unable to get block %s", hash)
 		exp.StatusPage(w, defaultErrorCode, "could not find that block", "",

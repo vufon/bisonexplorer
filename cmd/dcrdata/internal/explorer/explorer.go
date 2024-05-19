@@ -123,6 +123,7 @@ type explorerDataSource interface {
 	GetBTCChainParams() *btcchaincfg.Params
 	GetLTCChainParams() *ltcchaincfg.Params
 	GetExplorerBlock(hash string) *types.BlockInfo
+	GetMutilchainExplorerBlock(hash, chainType string) *types.BlockInfo
 	GetBTCExplorerBlock(hash string) *types.BlockInfo
 	GetLTCExplorerBlock(hash string) *types.BlockInfo
 	GetExplorerBlocks(start int, end int) []*types.BlockBasic
@@ -131,6 +132,7 @@ type explorerDataSource interface {
 	GetBlockHeight(hash string) (int64, error)
 	GetBlockHash(idx int64) (string, error)
 	GetMutilchainBlockHash(idx int64, chainType string) (string, error)
+	GetDaemonMutilchainBlockHash(idx int64, chainType string) (string, error)
 	GetExplorerTx(txid string) *types.TxInfo
 	GetMutilchainExplorerTx(txid string, chainType string) *types.TxInfo
 	GetTip() (*types.WebBasicBlock, error)

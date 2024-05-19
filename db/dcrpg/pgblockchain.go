@@ -7277,6 +7277,25 @@ func (pgb *ChainDB) GetBTCBlockVerbose(idx int) *btcjson.GetBlockVerboseResult {
 	return block
 }
 
+func (pgb *ChainDB) GetDaemonMutilchainBlockHash(idx int64, chainType string) (string, error) {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		hashObj, err := pgb.LtcClient.GetBlockHash(idx)
+		if err != nil {
+			return "", err
+		}
+		return hashObj.String(), nil
+	case mutilchain.TYPEBTC:
+		hashObj, err := pgb.BtcClient.GetBlockHash(idx)
+		if err != nil {
+			return "", err
+		}
+		return hashObj.String(), nil
+	default:
+		return pgb.GetBlockHash(idx)
+	}
+}
+
 func (pgb *ChainDB) GetBTCBlockVerboseTx(idx int) *btcjson.GetBlockVerboseTxResult {
 	block := btcrpcutils.GetBlockVerboseTx(pgb.BtcClient, int64(idx))
 	return block
@@ -7778,6 +7797,17 @@ func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.ltcLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
 	pgb.ltcLastExplorerBlock.Unlock()
 	return block
+}
+
+func (pgb *ChainDB) GetMutilchainExplorerBlock(hash, chainType string) *exptypes.BlockInfo {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return pgb.GetBTCExplorerBlock(hash)
+	case mutilchain.TYPELTC:
+		return pgb.GetLTCExplorerBlock(hash)
+	default:
+		return pgb.GetExplorerBlock(hash)
+	}
 }
 
 // GetExplorerBlock gets a *exptypes.Blockinfo for the specified block.

@@ -1337,19 +1337,20 @@ func _main(ctx context.Context) error {
 		chainDB.UseLTCMempoolChecker(mpm)
 
 		//Start - LTC Sync handler
-		_, ltcHeight, err = ltcdClient.GetBestBlock()
+		var ltcHash *ltcchainhash.Hash
+		ltcHash, ltcHeight, err = ltcdClient.GetBestBlock()
 		if err != nil {
 			return fmt.Errorf("Unable to get block from ltc node: %v", err)
 		}
 		//init bestblock height chainDB
-		dbHeight, dbHash, lastDBBlockErr := chainDB.GetMutilchainBestDBBlock(ctx, mutilchain.TYPELTC)
-		if lastDBBlockErr != nil {
-			return fmt.Errorf("Get best block from DB failed for ltcd: %v", lastDBBlockErr)
-		}
+		// dbHeight, dbHash, lastDBBlockErr := chainDB.GetMutilchainBestDBBlock(ctx, mutilchain.TYPELTC)
+		// if lastDBBlockErr != nil {
+		// 	return fmt.Errorf("Get best block from DB failed for ltcd: %v", lastDBBlockErr)
+		// }
 		//create bestblock object
 		bestBlock := &dcrpg.MutilchainBestBlock{
-			Height: dbHeight,
-			Hash:   dbHash,
+			Height: int64(ltcHeight),
+			Hash:   ltcHash.String(),
 		}
 		chainDB.LtcBestBlock = bestBlock
 		ltcHeightFromDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPELTC)
@@ -1509,20 +1510,15 @@ func _main(ctx context.Context) error {
 		// //end handler mempool
 
 		//Start - BTC Sync handler
-		_, btcHeight, err = btcdClient.GetBestBlock()
+		var btcHash *btcchainhash.Hash
+		btcHash, btcHeight, err = btcdClient.GetBestBlock()
 		if err != nil {
 			return fmt.Errorf("Unable to get block from btc node: %v", err)
 		}
-		//init bestblock height chainDB
-		dbHeight, dbHash, lastDBBlockErr := chainDB.GetMutilchainBestDBBlock(ctx, mutilchain.TYPEBTC)
-		if lastDBBlockErr != nil {
-			return fmt.Errorf("Get best block from DB failed for ltcd: %v", lastDBBlockErr)
-		}
-
 		//create bestblock object
 		bestBlock := &dcrpg.MutilchainBestBlock{
-			Height: dbHeight,
-			Hash:   dbHash,
+			Height: int64(btcHeight),
+			Hash:   btcHash.String(),
 		}
 		chainDB.BtcBestBlock = bestBlock
 		btcHeightFromDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPEBTC)

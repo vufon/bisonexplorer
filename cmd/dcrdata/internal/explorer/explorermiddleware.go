@@ -155,20 +155,19 @@ func (exp *explorerUI) MutilchainBlockHashPathOrIndexCtx(next http.Handler) http
 		if err != nil {
 			// Not a height, try it as a hash.
 			hash = chi.URLParam(r, "blockhash")
-			height, err = exp.dataSource.MutilchainBlockHeight(hash, chainType)
-			if exp.timeoutErrorPage(w, err, "BlockHashPathOrIndexCtx>BlockHeight") {
-				return
-			}
-			if err != nil {
-				if !errors.Is(err, dbtypes.ErrNoResult) {
-					log.Warnf("MutilchainBlockHeight(%s) failed: %v", hash, err)
-				}
+			blockInfo := exp.dataSource.GetMutilchainExplorerBlock(hash, chainType)
+			if blockInfo == nil {
+				log.Warnf("MutilchainBlockHeight(%s) failed", hash)
 				exp.StatusPage(w, defaultErrorCode, "could not find that block", hash, ExpStatusNotFound)
 				return
 			}
 		} else {
 			// Check best DB block to recognize future blocks.
-			maxHeight := exp.dataSource.MutilchainHeight(chainType)
+			maxHeight, err := exp.dataSource.GetMutilchainHeight(chainType)
+			if err != nil {
+				exp.StatusPage(w, defaultErrorCode, "could not find best block", fmt.Sprintf("chain type: %s", chainType), ExpStatusNotFound)
+				return
+			}
 			if height > maxHeight {
 				expectedTime := time.Duration(height-maxHeight) * exp.GetMutilchainTargetTimePerBlock(chainType)
 				message := fmt.Sprintf("This block is expected to arrive in approximately in %v. ", expectedTime)
@@ -177,9 +176,9 @@ func (exp *explorerUI) MutilchainBlockHashPathOrIndexCtx(next http.Handler) http
 				return
 			}
 
-			hash, err = exp.dataSource.GetMutilchainBlockHash(height, chainType)
+			hash, err = exp.dataSource.GetDaemonMutilchainBlockHash(height, chainType)
 			if err != nil {
-				hash, err = exp.dataSource.GetMutilchainBlockHash(height, chainType)
+				hash, err = exp.dataSource.GetDaemonMutilchainBlockHash(height, chainType)
 				if err != nil {
 					log.Errorf("(*ChainDB).BlockHash(%d) failed: %v", height, err)
 					exp.StatusPage(w, defaultErrorCode, "could not find that block",
