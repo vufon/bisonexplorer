@@ -200,6 +200,13 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		})
 	})
 
+	mux.Route("/chainaddress", func(r chi.Router) {
+		r.Route("/{chaintype}/{address}", func(rd chi.Router) {
+			rd.Use(m.AddressPathCtxN(1))
+			rd.Get("/", app.getMutilchainAddressTransactions)
+		})
+	})
+
 	// Treasury
 	mux.Route("/treasury", func(r chi.Router) {
 		r.Get("/balance", app.getTreasuryBalance)

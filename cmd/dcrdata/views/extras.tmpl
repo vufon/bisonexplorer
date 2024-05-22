@@ -532,7 +532,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.945011b21923ad9a.bundle.js"
+	src="/dist/js/app.494b04c3faad9f09.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -737,21 +737,21 @@
 		<th class="text-end"><span class="d-sm-none position-relative" data-tooltip="merged input count">Cnt</span
 			><span class="d-none d-sm-inline">Inputs</span>
 		</th>
-		<th class="text-end">Debit DCR</th>
+		<th class="text-end">Debit ({{toUpperCase $ChainType}})</th>
 	{{- else if eq $txType "merged_credit" }}
 		<th class="text-end"><span class="d-sm-none position-relative" data-tooltip="merged output count">Cnt</span
 			><span class="d-none d-sm-inline">Outputs</span>
 		</th>
-		<th class="text-end">Credit DCR</th>
+		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
 	{{- else if eq $txType "merged" }}
 		<th title="Count of address's inputs and outputs in the transaction." class="text-end"><span class="d-none d-sm-inline-block">I/O Count</span><span class="d-sm-none position-relative" data-tooltip="# of inputs and outputs">#</span></th>
-		<th class="text-end">Credit DCR</th>
-		<th class="text-end">Debit DCR</th>
+		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
+		<th class="text-end">Debit ({{toUpperCase $ChainType}})</th>
 	{{- else if eq $txType "unspent" }}
-		<th class="text-end">Credit DCR</th>
+		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
 	{{- else}}
-		<th class="text-end">Credit DCR</th>
-		<th class="text-end">Debit DCR</th>
+		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
+		<th class="text-end">Debit ({{toUpperCase $ChainType}})</th>
 	{{- end}}
 		<th class="d-none d-sm-table-cell text-end">Time (UTC)</th>
 		<th class="text-end">Age</th>

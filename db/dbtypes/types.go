@@ -2245,6 +2245,7 @@ type AddressInfo struct {
 	KnownTransactions int64
 	KnownFundingTxns  int64
 	KnownSpendingTxns int64
+	ChainType         string
 }
 
 // AddressBalance represents the number and value of spent and unspent outputs
@@ -2403,7 +2404,6 @@ func ReduceMutilchainAddressHistory(addrHist []*MutilchainAddressRow, chainType 
 			sent += int64(addrOut.Value)
 			tx.SentTotal = coin
 			debitTxns = append(debitTxns, &tx)
-
 		}
 		tx.IsFunding = isFunding
 		transactions = append(transactions, &tx)

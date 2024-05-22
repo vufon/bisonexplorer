@@ -2336,14 +2336,9 @@ func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
 	// AddressPageData is the data structure passed to the HTML template
 
-	type AddressInfo struct {
-		*dbtypes.AddressInfo
-		ChainType string
-	}
-
 	type AddressPageData struct {
 		*CommonPageData
-		Data      AddressInfo
+		Data      *dbtypes.AddressInfo
 		Type      txhelpers.AddressType
 		Pages     []pageNumber
 		ChainType string
@@ -2375,7 +2370,6 @@ func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 	}
 	// Retrieve address information from the DB and/or RPC.
 	var addrData *dbtypes.AddressInfo
-
 	addrData, err = exp.MutilchainAddressListData(address, txnType, limitN, offsetAddrOuts, chainType)
 	if exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
 		return
@@ -2396,14 +2390,11 @@ func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 	if time != "" {
 		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
 	}
-	addrInfo := AddressInfo{
-		AddressInfo: addrData,
-		ChainType:   chainType,
-	}
+	addrData.ChainType = chainType
 	// Execute the HTML template.
 	pageData := AddressPageData{
 		CommonPageData: exp.commonData(r),
-		Data:           addrInfo,
+		Data:           addrData,
 		ChainType:      chainType,
 		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
 	}
@@ -2421,6 +2412,66 @@ func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, str)
+}
+
+// AddressTable is the page handler for the "/addresstable" path.
+func (exp *explorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Request) {
+	// Grab the URL query parameters
+	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
+	if err != nil {
+		log.Errorf("AddressTable request error: %v", err)
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+
+	addrData, err := exp.MutilchainAddressListData(address, txnType, limitN, offsetAddrOuts, chainType)
+	if err != nil {
+		log.Errorf("AddressListData error: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		return
+	}
+
+	linkTemplate := "/chain/" + chainType + "/address/" + addrData.Address + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + fmt.Sprintf("%v", txnType)
+	if time != "" {
+		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
+	}
+	response := struct {
+		TxnCount int64        `json:"tx_count"`
+		HTML     string       `json:"html"`
+		Pages    []pageNumber `json:"pages"`
+	}{
+		TxnCount: addrData.TxnCount + addrData.NumUnconfirmed,
+		Pages:    calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
+	}
+	addrData.ChainType = chainType
+	response.HTML, err = exp.templates.exec("chain_addresstable", struct {
+		Data *dbtypes.AddressInfo
+	}{
+		Data: addrData,
+	})
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		return
+	}
+
+	log.Tracef(`"addresstable" template HTML size: %.2f kiB (%s, %v, %d)`,
+		float64(len(response.HTML))/1024.0, address, txnType, addrData.NumTransactions)
+
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	//enc.SetEscapeHTML(false)
+	err = enc.Encode(response)
+	if err != nil {
+		log.Debug(err)
+	}
 }
 
 // AddressTable is the page handler for the "/addresstable" path.

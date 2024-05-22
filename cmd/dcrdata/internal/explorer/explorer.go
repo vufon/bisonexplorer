@@ -465,7 +465,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 		"market", "insight_root", "attackcost", "treasury", "treasurytable",
 		"verify_message", "stakingreward", "finance_report", "finance_detail",
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
-		"chain_address", "chain_mempool", "chain_charts", "chain_market"}
+		"chain_address", "chain_mempool", "chain_charts", "chain_market", "chain_addresstable"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

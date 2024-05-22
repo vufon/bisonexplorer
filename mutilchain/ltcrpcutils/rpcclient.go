@@ -197,6 +197,14 @@ func GetBlockHeaderVerbose(client BlockFetcher, idx int64) *btcjson.GetBlockHead
 	return blockHeaderVerbose
 }
 
+func GetTransactionTimeAndSize(client TransactionGetter, txid string) (int64, int64) {
+	txResult, err := GetRawTransactionByTxidStr(client, txid)
+	if err != nil {
+		return 0, 0
+	}
+	return int64(txResult.Size), txResult.Time
+}
+
 func GetRawTransactionByTxidStr(client TransactionGetter, txid string) (*btcjson.TxRawResult, error) {
 	txhash, err := chainhash.NewHashFromStr(txid)
 	if err != nil {

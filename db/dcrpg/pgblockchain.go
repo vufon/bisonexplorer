@@ -59,6 +59,7 @@ import (
 	"github.com/decred/dcrdata/v8/mempool/mempoolltc"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
+	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/rpcutils"
 	"github.com/decred/dcrdata/v8/stakedb"
@@ -3050,7 +3051,6 @@ func (pgb *ChainDB) updateMutilchainAddressRows(address string, chainType string
 	if err != nil && !errors.Is(err, dbtypes.ErrNoResult) {
 		return
 	}
-
 	// Update address rows cache.
 	pgb.AddressCache.StoreMutilchainRows(address, rows, blockID, chainType)
 	return
@@ -3303,9 +3303,10 @@ func (pgb *ChainDB) MutilchainAddressHistory(address string, N, offset int64,
 		}
 	}
 
-	log.Infof("%s: %d spent totalling %f DCR, %d unspent totalling %f DCR", address, balance.NumSpent, dbtypes.GetMutilchainCoinAmount(balance.TotalSpent, chainType),
-		balance.NumUnspent, dbtypes.GetMutilchainCoinAmount(balance.TotalUnspent, chainType))
-	log.Infof("Receive count for address %s: count = %d at block %d.",
+	log.Infof("From DB: Address: %s: %d spent totalling %f %s, %d unspent totalling %f %s",
+		address, balance.NumSpent, dbtypes.GetMutilchainCoinAmount(balance.TotalSpent, chainType), strings.ToUpper(chainType),
+		balance.NumUnspent, dbtypes.GetMutilchainCoinAmount(balance.TotalUnspent, chainType), strings.ToUpper(chainType))
+	log.Infof("From DB (%s): Receive count for address %s: count = %d at block %d.", strings.ToUpper(chainType),
 		address, balance.NumSpent+balance.NumUnspent, height)
 
 	return addressRows, balance, nil
@@ -3668,17 +3669,48 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 		addrData.Address = address
 	}
 
-	if errors.Is(err, dbtypes.ErrNoResult) || errors.Is(err, sql.ErrNoRows) || (err == nil && len(addrHist) == 0) {
+	useAPI := false
+	if err != nil || (err == nil && len(addrHist) == 0) {
 		// We do not have any confirmed transactions. Prep to display ONLY
 		// unconfirmed transactions (or none at all).
 		addrData = new(dbtypes.AddressInfo)
 		populateTemplate()
-		addrData.Balance = &dbtypes.AddressBalance{}
-		log.Tracef("AddressHistory: No confirmed transactions for address %s.", address)
-	} else if err != nil {
-		// Unexpected error
-		log.Errorf("AddressHistory: %v", err)
-		return nil, fmt.Errorf("AddressHistory: %w", err)
+		//set client for api
+		externalapi.BTCClient = pgb.BtcClient
+		externalapi.LTCClient = pgb.LtcClient
+		apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType))
+		useAPI = true
+		if err != nil {
+			addrData.Balance = &dbtypes.AddressBalance{}
+			log.Tracef("AddressHistory: No confirmed transactions for address %s.", address)
+		} else {
+			balance = &dbtypes.AddressBalance{
+				Address:      address,
+				NumSpent:     apiAddrInfo.NumSpendingTxns,
+				NumUnspent:   apiAddrInfo.NumFundingTxns - apiAddrInfo.NumSpendingTxns,
+				TotalSpent:   apiAddrInfo.Sent,
+				TotalUnspent: apiAddrInfo.Unspent,
+			}
+			addrData.Address = address
+			addrData.Transactions = apiAddrInfo.Transactions
+			addrData.TxnsFunding = apiAddrInfo.TxnsFunding
+			addrData.TxnsSpending = apiAddrInfo.TxnsSpending
+			addrData.NumFundingTxns = apiAddrInfo.NumFundingTxns
+			addrData.NumSpendingTxns = apiAddrInfo.NumSpendingTxns
+			addrData.Received = apiAddrInfo.Received
+			addrData.Sent = apiAddrInfo.Sent
+			addrData.Unspent = apiAddrInfo.Unspent
+			addrData.NumTransactions = apiAddrInfo.NumTransactions
+			addrData.KnownTransactions = addrData.NumTransactions
+			addrData.KnownFundingTxns = addrData.NumTransactions
+			addrData.KnownSpendingTxns = addrData.NumTransactions
+
+			addrData.TxnCount = addrData.NumTransactions
+			//update balance cache
+			hash, height := pgb.GetMutilchainHashHeight(chainType)
+			blockID := cache.NewMutilchainBlockID(hash, height)
+			pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType)
+		}
 	} else /*err == nil*/ {
 		// Generate AddressInfo skeleton from the address table rows.
 		addrData = dbtypes.ReduceMutilchainAddressHistory(addrHist, chainType)
@@ -3688,13 +3720,9 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 
 		// Balances and txn counts
 		populateTemplate()
-		addrData.Balance = balance
 		addrData.KnownTransactions = (balance.NumSpent * 2) + balance.NumUnspent
 		addrData.KnownFundingTxns = balance.NumSpent + balance.NumUnspent
 		addrData.KnownSpendingTxns = balance.NumSpent
-		if err != nil {
-			return nil, err
-		}
 
 		// For non-merged views, use the balance data.
 		switch txnType {
@@ -3709,13 +3737,17 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 		case dbtypes.AddrUnspentTxn:
 			addrData.TxnCount = addrData.NumFundingTxns - addrData.NumSpendingTxns
 		}
+	}
 
-		// Transactions on current page
-		addrData.NumTransactions = int64(len(addrData.Transactions))
-		if addrData.NumTransactions > limitN {
-			addrData.NumTransactions = limitN
-		}
+	addrData.Balance = balance
 
+	// Transactions on current page
+	addrData.NumTransactions = int64(len(addrData.Transactions))
+	if addrData.NumTransactions > limitN {
+		addrData.NumTransactions = limitN
+	}
+
+	if !useAPI {
 		// Query database for transaction details.
 		err = pgb.FillMutilchainAddressTransactions(addrData, chainType)
 		if dbtypes.IsTimeoutErr(err) {
@@ -4107,6 +4139,46 @@ func (pgb *ChainDB) AddressTransactionDetails(addr string, count, skip int64,
 
 	// Convert each dbtypes.AddressTx to apitypes.AddressTxShort
 	txs := addrData.Transactions
+	txsShort := make([]*apitypes.AddressTxShort, 0, len(txs))
+	for i := range txs {
+		txsShort = append(txsShort, &apitypes.AddressTxShort{
+			TxID:          txs[i].TxID,
+			Time:          apitypes.TimeAPI{S: txs[i].Time},
+			Value:         txs[i].Total,
+			Confirmations: int64(txs[i].Confirmations),
+			Size:          int32(txs[i].Size),
+		})
+	}
+
+	// put a bow on it
+	return &apitypes.Address{
+		Address:      addr,
+		Transactions: txsShort,
+	}, nil
+}
+
+func (pgb *ChainDB) MutilchainAddressTransactionDetails(addr, chainType string, count, skip int64,
+	txnType dbtypes.AddrTxnViewType) (*apitypes.Address, error) {
+
+	apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(addr, chainType, count, skip, pgb.MutilchainHeight(chainType))
+	if err != nil {
+		return &apitypes.Address{
+			Address:      addr,
+			Transactions: make([]*apitypes.AddressTxShort, 0), // not nil for JSON formatting
+		}, nil
+	}
+	var txs []*dbtypes.AddressTx
+	switch txnType {
+	case dbtypes.AddrTxnAll:
+		txs = apiAddrInfo.Transactions
+	case dbtypes.AddrTxnCredit:
+		txs = apiAddrInfo.TxnsFunding
+	case dbtypes.AddrTxnDebit:
+		txs = apiAddrInfo.TxnsSpending
+	default:
+		txs = apiAddrInfo.Transactions
+	}
+	// Convert each dbtypes.AddressTx to apitypes.AddressTxShort
 	txsShort := make([]*apitypes.AddressTxShort, 0, len(txs))
 	for i := range txs {
 		txsShort = append(txsShort, &apitypes.AddressTxShort{

@@ -64,6 +64,8 @@ type DataSource interface {
 	FillAddressTransactions(addrInfo *dbtypes.AddressInfo) error
 	AddressTransactionDetails(addr string, count, skip int64,
 		txnType dbtypes.AddrTxnViewType) (*apitypes.Address, error)
+	MutilchainAddressTransactionDetails(addr, chainType string, count, skip int64,
+		txnType dbtypes.AddrTxnViewType) (*apitypes.Address, error)
 	AddressTotals(address string) (*apitypes.AddressTotals, error)
 	VotesInBlock(hash string) (int16, error)
 	TxHistoryData(address string, addrChart dbtypes.HistoryChart,
@@ -2998,6 +3000,42 @@ func (c *appContext) getAddressTransactions(w http.ResponseWriter, r *http.Reque
 	}
 
 	txs, err := c.DataSource.AddressTransactionDetails(address, count, skip, dbtypes.AddrTxnAll)
+	if dbtypes.IsTimeoutErr(err) {
+		apiLog.Errorf("AddressTransactionDetails: %v", err)
+		http.Error(w, "Database timeout.", http.StatusServiceUnavailable)
+		return
+	}
+
+	if txs == nil || err != nil {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	writeJSON(w, txs, m.GetIndentCtx(r))
+}
+
+func (c *appContext) getMutilchainAddressTransactions(w http.ResponseWriter, r *http.Request) {
+	addresses, err := m.GetAddressCtx(r, c.Params)
+	if err != nil || len(addresses) > 1 {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	address := addresses[0]
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	count := int64(m.GetNCtx(r))
+	skip := int64(m.GetMCtx(r))
+	if count <= 0 {
+		count = 10
+	} else if count > 8000 {
+		count = 8000
+	}
+	if skip <= 0 {
+		skip = 0
+	}
+
+	txs, err := c.DataSource.MutilchainAddressTransactionDetails(address, chainType, count, skip, dbtypes.AddrTxnAll)
 	if dbtypes.IsTimeoutErr(err) {
 		apiLog.Errorf("AddressTransactionDetails: %v", err)
 		http.Error(w, "Database timeout.", http.StatusServiceUnavailable)

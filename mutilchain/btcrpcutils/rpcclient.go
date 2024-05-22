@@ -222,6 +222,14 @@ func GetBlockHeaderVerboseByString(client BlockFetcher, hash string) *btcjson.Ge
 	return blockHeaderVerbose
 }
 
+func GetTransactionTimeAndSize(client TransactionGetter, txid string) (int64, int64) {
+	txResult, err := GetRawTransactionByTxidStr(client, txid)
+	if err != nil {
+		return 0, 0
+	}
+	return int64(txResult.Size), txResult.Time
+}
+
 // GetBlockVerbose creates a *chainjson.GetBlockVerboseResult for the block index
 // specified by idx via an RPC connection to a chain server.
 func GetBlockVerbose(client VerboseBlockGetter, idx int64) *btcjson.GetBlockVerboseResult {

@@ -866,6 +866,7 @@ func _main(ctx context.Context) error {
 			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/{chaintype}/block/{blockhash}", explore.MutilchainBlockDetail)
 			rd.With(explorer.TransactionHashCtx).Get("/{chaintype}/tx/{txid}", explore.MutilchainTxPage)
 			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/address/{address}", explore.MutilchainAddressPage)
+			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/addresstable/{address}", explore.MutilchainAddressTable)
 			rd.Get("/{chaintype}/mempool", explore.MutilchainMempool)
 			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
 			rd.Get("/{chaintype}/market", explore.MutilchainMarketPage)
