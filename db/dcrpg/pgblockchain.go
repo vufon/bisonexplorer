@@ -3678,7 +3678,7 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 		//set client for api
 		externalapi.BTCClient = pgb.BtcClient
 		externalapi.LTCClient = pgb.LtcClient
-		apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType))
+		apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType), txnType)
 		useAPI = true
 		if err != nil {
 			addrData.Balance = &dbtypes.AddressBalance{}
@@ -3693,18 +3693,10 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 			}
 			addrData.Address = address
 			addrData.Transactions = apiAddrInfo.Transactions
-			addrData.TxnsFunding = apiAddrInfo.TxnsFunding
-			addrData.TxnsSpending = apiAddrInfo.TxnsSpending
-			addrData.NumFundingTxns = apiAddrInfo.NumFundingTxns
-			addrData.NumSpendingTxns = apiAddrInfo.NumSpendingTxns
 			addrData.Received = apiAddrInfo.Received
 			addrData.Sent = apiAddrInfo.Sent
 			addrData.Unspent = apiAddrInfo.Unspent
 			addrData.NumTransactions = apiAddrInfo.NumTransactions
-			addrData.KnownTransactions = addrData.NumTransactions
-			addrData.KnownFundingTxns = addrData.NumTransactions
-			addrData.KnownSpendingTxns = addrData.NumTransactions
-
 			addrData.TxnCount = addrData.NumTransactions
 			//update balance cache
 			hash, height := pgb.GetMutilchainHashHeight(chainType)
@@ -4160,24 +4152,14 @@ func (pgb *ChainDB) AddressTransactionDetails(addr string, count, skip int64,
 func (pgb *ChainDB) MutilchainAddressTransactionDetails(addr, chainType string, count, skip int64,
 	txnType dbtypes.AddrTxnViewType) (*apitypes.Address, error) {
 
-	apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(addr, chainType, count, skip, pgb.MutilchainHeight(chainType))
+	apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(addr, chainType, count, skip, pgb.MutilchainHeight(chainType), txnType)
 	if err != nil {
 		return &apitypes.Address{
 			Address:      addr,
 			Transactions: make([]*apitypes.AddressTxShort, 0), // not nil for JSON formatting
 		}, nil
 	}
-	var txs []*dbtypes.AddressTx
-	switch txnType {
-	case dbtypes.AddrTxnAll:
-		txs = apiAddrInfo.Transactions
-	case dbtypes.AddrTxnCredit:
-		txs = apiAddrInfo.TxnsFunding
-	case dbtypes.AddrTxnDebit:
-		txs = apiAddrInfo.TxnsSpending
-	default:
-		txs = apiAddrInfo.Transactions
-	}
+	txs := apiAddrInfo.Transactions
 	// Convert each dbtypes.AddressTx to apitypes.AddressTxShort
 	txsShort := make([]*apitypes.AddressTxShort, 0, len(txs))
 	for i := range txs {

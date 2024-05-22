@@ -114,7 +114,6 @@ func GetBlockchainInfoAddressInfoAPI(address string, chainType string, limit, of
 			break
 		}
 	}
-	var creditTxns, debitTxns []*dbtypes.AddressTx
 	transactions := make([]*dbtypes.AddressTx, 0, len(result.Txs))
 	numUnconfirmed := int64(0)
 	//handler tx for address info
@@ -155,12 +154,10 @@ func GetBlockchainInfoAddressInfoAPI(address string, chainType string, limit, of
 				}
 			}
 			addrTx.Total = coin
-			creditTxns = append(creditTxns, &addrTx)
 		} else {
 			coin := dbtypes.GetMutilchainCoinAmount(matchedTxIn.PrevOut.Value, chainType)
 			addrTx.SentTotal = coin
 			addrTx.Total = coin
-			debitTxns = append(debitTxns, &addrTx)
 		}
 		addrTx.IsFunding = isFunding
 		transactions = append(transactions, &addrTx)
@@ -168,15 +165,13 @@ func GetBlockchainInfoAddressInfoAPI(address string, chainType string, limit, of
 	addressInfo := &APIAddressInfo{
 		Address:         address,
 		Transactions:    transactions,
-		TxnsFunding:     creditTxns,
-		TxnsSpending:    debitTxns,
-		NumFundingTxns:  int64(len(creditTxns)),
-		NumSpendingTxns: int64(len(debitTxns)),
 		Received:        result.TotalReceived,
 		Sent:            result.TotalSent,
 		Unspent:         result.TotalReceived - result.TotalSent,
 		NumUnconfirmed:  numUnconfirmed,
 		NumTransactions: result.Ntx,
+		NumFundingTxns:  result.Ntx,
+		NumSpendingTxns: result.Ntx,
 	}
 
 	return addressInfo, nil

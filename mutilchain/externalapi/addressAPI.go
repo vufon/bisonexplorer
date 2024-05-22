@@ -16,8 +16,6 @@ var (
 type APIAddressInfo struct {
 	Address         string
 	Transactions    []*dbtypes.AddressTx
-	TxnsFunding     []*dbtypes.AddressTx
-	TxnsSpending    []*dbtypes.AddressTx
 	NumTransactions int64
 	NumFundingTxns  int64
 	NumSpendingTxns int64
@@ -32,12 +30,12 @@ const (
 	BlockcypherAPI = "blockcypher"
 )
 
-var APIList = []string{BLockchainAPI, BlockcypherAPI}
+var APIList = []string{BlockcypherAPI, BLockchainAPI}
 
-func GetAPIMutilchainAddressDetails(address string, chainType string, limit, offset, chainHeight int64) (*APIAddressInfo, error) {
+func GetAPIMutilchainAddressDetails(address string, chainType string, limit, offset, chainHeight int64, txnType dbtypes.AddrTxnViewType) (*APIAddressInfo, error) {
 	for _, api := range APIList {
 		//Get from API
-		addrInfo, err := GetAddressDetailsByAPIEnv(address, chainType, api, limit, offset, chainHeight)
+		addrInfo, err := GetAddressDetailsByAPIEnv(address, chainType, api, limit, offset, chainHeight, txnType)
 		if err == nil {
 			return addrInfo, nil
 		}
@@ -45,12 +43,12 @@ func GetAPIMutilchainAddressDetails(address string, chainType string, limit, off
 	return nil, fmt.Errorf("%s", "Get address info from API failed")
 }
 
-func GetAddressDetailsByAPIEnv(address, chainType, apiType string, limit, offset, chainHeight int64) (*APIAddressInfo, error) {
+func GetAddressDetailsByAPIEnv(address, chainType, apiType string, limit, offset, chainHeight int64, txnType dbtypes.AddrTxnViewType) (*APIAddressInfo, error) {
 	switch apiType {
 	case BLockchainAPI:
 		return GetBlockchainInfoAddressInfoAPI(address, chainType, limit, offset, chainHeight)
 	case BlockcypherAPI:
-		return GetBlockcypherAddressInfoAPI(address, chainType, limit, offset, chainHeight)
+		return GetBlockcypherAddressInfoAPI(address, chainType, limit, offset, chainHeight, txnType)
 	default:
 		return nil, fmt.Errorf("%s%s", "Get by API failed, API type:", apiType)
 	}

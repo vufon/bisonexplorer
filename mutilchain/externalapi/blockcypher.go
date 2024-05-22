@@ -43,29 +43,70 @@ type BlockcypherAddressTransactions struct {
 	DoubleSpend   bool   `json:"double_spend"`
 }
 
-func GetBlockcypherAddressInfoAPI(address string, chainType string, limit, offset, chainHeight int64) (*APIAddressInfo, error) {
-	getLimit := offset + limit
-	fetchUrl := fmt.Sprintf(blockcypherUrl, chainType, address)
+func GetBlockCypherData(url string, limit int64) (*BlockcypherAddressData, error) {
 	var fetchData BlockcypherAddressData
 	query := map[string]string{
-		"limit": fmt.Sprintf("%d", getLimit),
+		"limit": fmt.Sprintf("%d", limit),
 	}
 	req := &ReqConfig{
 		Method:  http.MethodGet,
-		HttpUrl: fetchUrl,
+		HttpUrl: url,
 		Payload: query,
 	}
 	if err := HttpRequest(req, &fetchData); err != nil {
 		return nil, err
 	}
-	var creditTxns, debitTxns []*dbtypes.AddressTx
-	transactions := make([]*dbtypes.AddressTx, 0, len(fetchData.TxRefs))
+	return &fetchData, nil
+}
+
+func GetBlockcypherAddressInfoAPI(address string, chainType string, limit, offset, chainHeight int64, txnType dbtypes.AddrTxnViewType) (*APIAddressInfo, error) {
+	fetchUrl := fmt.Sprintf(blockcypherUrl, chainType, address)
+	var fetchData *BlockcypherAddressData
+	transactions := make([]*dbtypes.AddressTx, 0)
 	numUnconfirmed := int64(0)
-	//handler tx for address info
-	for i := offset; i < (offset + limit); i++ {
-		if int(i) > len(fetchData.TxRefs)-1 {
-			break
+	var err error
+	var totalTx int64
+	totalFunding := int64(0)
+	totalSpending := int64(0)
+	// Get first information
+	firstData, err := GetBlockCypherData(fetchUrl, 10)
+	if err != nil {
+		return nil, err
+	}
+	//Get all transactions
+	fetchData, err = GetBlockCypherData(fetchUrl, firstData.Ntx)
+	if err != nil {
+		return nil, err
+	}
+	//fetch with limit and offset
+	countTx := int64(0)
+	isFull := false
+	newTxRefs := make([]BlockcypherAddressTransactions, 0)
+	for i := 0; i < len(fetchData.TxRefs); i++ {
+		if countTx >= offset+limit {
+			isFull = true
 		}
+		txRef := fetchData.TxRefs[i]
+		isFunding := txRef.TxOutputN >= 0
+		if isFunding {
+			totalFunding++
+			if txRef.Spent {
+				totalSpending++
+			}
+		}
+		if (txnType == dbtypes.AddrTxnCredit && !isFunding) ||
+			(txnType == dbtypes.AddrTxnDebit && isFunding) || (txnType == dbtypes.AddrUnspentTxn && (!isFunding || txRef.Spent)) {
+			continue
+		}
+		countTx++
+		if !isFull && countTx > offset {
+			newTxRefs = append(newTxRefs, txRef)
+		}
+	}
+	fetchData.TxRefs = newTxRefs
+	totalTx = countTx
+
+	for i := 0; i < len(fetchData.TxRefs); i++ {
 		txRef := fetchData.TxRefs[i]
 		txSize, txTime := GetTransactionTimeAndSize(txRef.TxHash, chainType)
 		addrTx := dbtypes.AddressTx{
@@ -86,13 +127,10 @@ func GetBlockcypherAddressInfoAPI(address string, chainType string, limit, offse
 			if txRef.Spent {
 				addrTx.MatchedTx = txRef.SpentBy
 			}
-			addrTx.Total = coin
-			creditTxns = append(creditTxns, &addrTx)
 		} else {
 			addrTx.SentTotal = coin
-			addrTx.Total = coin
-			debitTxns = append(debitTxns, &addrTx)
 		}
+		addrTx.Total = coin
 		addrTx.IsFunding = isFunding
 		transactions = append(transactions, &addrTx)
 	}
@@ -100,15 +138,13 @@ func GetBlockcypherAddressInfoAPI(address string, chainType string, limit, offse
 	addressInfo := &APIAddressInfo{
 		Address:         address,
 		Transactions:    transactions,
-		TxnsFunding:     creditTxns,
-		TxnsSpending:    debitTxns,
-		NumFundingTxns:  int64(len(creditTxns)),
-		NumSpendingTxns: int64(len(debitTxns)),
 		Received:        fetchData.TotalReceived,
 		Sent:            fetchData.TotalSent,
 		Unspent:         fetchData.TotalReceived - fetchData.TotalSent,
 		NumUnconfirmed:  numUnconfirmed,
-		NumTransactions: fetchData.Ntx,
+		NumTransactions: totalTx,
+		NumFundingTxns:  totalFunding,
+		NumSpendingTxns: totalSpending,
 	}
 
 	return addressInfo, nil
