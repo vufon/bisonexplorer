@@ -99,7 +99,7 @@ const (
 	requestURIFormKey = "requestURI"
 )
 
-func (exp *explorerUI) BlockHashPathOrIndexCtx(next http.Handler) http.Handler {
+func (exp *ExplorerUI) BlockHashPathOrIndexCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		height, err := strconv.ParseInt(chi.URLParam(r, "blockhash"), 10, 0)
 		var hash string
@@ -147,7 +147,7 @@ func (exp *explorerUI) BlockHashPathOrIndexCtx(next http.Handler) http.Handler {
 	})
 }
 
-func (exp *explorerUI) MutilchainBlockHashPathOrIndexCtx(next http.Handler) http.Handler {
+func (exp *ExplorerUI) MutilchainBlockHashPathOrIndexCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		height, err := strconv.ParseInt(chi.URLParam(r, "blockhash"), 10, 0)
 		chainType := chi.URLParam(r, "chaintype")
@@ -194,7 +194,7 @@ func (exp *explorerUI) MutilchainBlockHashPathOrIndexCtx(next http.Handler) http
 	})
 }
 
-func (exp *explorerUI) GetMutilchainTargetTimePerBlock(chainType string) time.Duration {
+func (exp *ExplorerUI) GetMutilchainTargetTimePerBlock(chainType string) time.Duration {
 	switch chainType {
 	case mutilchain.TYPELTC:
 		return exp.LtcChainParams.TargetTimePerBlock
@@ -208,7 +208,7 @@ func (exp *explorerUI) GetMutilchainTargetTimePerBlock(chainType string) time.Du
 // SyncStatusPageIntercept serves only the syncing status page until it is
 // deactivated when ShowingSyncStatusPage is set to false. This page is served
 // for all the possible routes supported until the background syncing is done.
-func (exp *explorerUI) SyncStatusPageIntercept(next http.Handler) http.Handler {
+func (exp *ExplorerUI) SyncStatusPageIntercept(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if exp.ShowingSyncStatusPage() {
 			exp.StatusPage(w, "Database Update Running. Please Wait.",
@@ -222,7 +222,7 @@ func (exp *explorerUI) SyncStatusPageIntercept(next http.Handler) http.Handler {
 
 // SyncStatusAPIIntercept returns a json response back instead of a web page
 // when display sync status is active for the api endpoints supported.
-func (exp *explorerUI) SyncStatusAPIIntercept(next http.Handler) http.Handler {
+func (exp *ExplorerUI) SyncStatusAPIIntercept(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if exp.ShowingSyncStatusPage() {
 			exp.HandleApiRequestsOnSync(w, r)
@@ -235,7 +235,7 @@ func (exp *explorerUI) SyncStatusAPIIntercept(next http.Handler) http.Handler {
 
 // SyncStatusFileIntercept triggers an HTTP error if a file is requested for
 // download before the DB is synced.
-func (exp *explorerUI) SyncStatusFileIntercept(next http.Handler) http.Handler {
+func (exp *ExplorerUI) SyncStatusFileIntercept(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if exp.ShowingSyncStatusPage() {
 			http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)

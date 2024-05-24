@@ -586,6 +586,8 @@ type MutilchainMempoolInfo struct {
 	TotalOut           float64     `json:"total"`
 	TotalSize          int32       `json:"size"`
 	TotalFee           float64     `json:"total_fee"`
+	MinFeeRatevB       float64     `json:"minFeeRatevB"`
+	MaxFeeRatevB       float64     `json:"maxFeeRatevB"`
 	FormattedTotalSize string      `json:"formatted_size"`
 	Transactions       []MempoolTx `json:"tx"`
 	OutputsCount       int64       `json:"outputsCount"`

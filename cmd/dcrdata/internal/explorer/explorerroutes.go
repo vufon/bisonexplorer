@@ -163,7 +163,7 @@ func netName(chainParams *chaincfg.Params) string {
 	return titler.String(chainParams.Name)
 }
 
-func (exp *explorerUI) timeoutErrorPage(w http.ResponseWriter, err error, debugStr string) (wasTimeout bool) {
+func (exp *ExplorerUI) timeoutErrorPage(w http.ResponseWriter, err error, debugStr string) (wasTimeout bool) {
 	wasTimeout = dbtypes.IsTimeoutErr(err)
 	if wasTimeout {
 		log.Debugf("%s: %v", debugStr, err)
@@ -198,7 +198,7 @@ type MutilchainHomeInfo struct {
 }
 
 // Home is the page handler for the "/" path.
-func (exp *explorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	height, err := exp.dataSource.GetHeight()
 	if err != nil {
 		log.Errorf("GetHeight failed: %v", err)
@@ -316,7 +316,7 @@ func (exp *explorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 }
 
 // Home is the page handler for the "/" path.
-func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	//Get mutilchainList
 	chainList := make([]string, 0)
 	chainList = append(chainList, mutilchain.TYPEDCR)
@@ -407,7 +407,7 @@ func (exp *explorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -510,7 +510,7 @@ func (exp *explorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 }
 
 // SideChains is the page handler for the "/side" path.
-func (exp *explorerUI) SideChains(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) SideChains(w http.ResponseWriter, r *http.Request) {
 	sideBlocks, err := exp.dataSource.SideChainBlocks()
 	if exp.timeoutErrorPage(w, err, "SideChainBlocks") {
 		return
@@ -541,7 +541,7 @@ func (exp *explorerUI) SideChains(w http.ResponseWriter, r *http.Request) {
 }
 
 // InsightRootPage is the page for the "/insight" path.
-func (exp *explorerUI) InsightRootPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) InsightRootPage(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("insight_root", struct {
 		*CommonPageData
 	}{
@@ -559,7 +559,7 @@ func (exp *explorerUI) InsightRootPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // DisapprovedBlocks is the page handler for the "/disapproved" path.
-func (exp *explorerUI) DisapprovedBlocks(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) DisapprovedBlocks(w http.ResponseWriter, r *http.Request) {
 	disapprovedBlocks, err := exp.dataSource.DisapprovedBlocks()
 	if exp.timeoutErrorPage(w, err, "DisapprovedBlocks") {
 		return
@@ -590,7 +590,7 @@ func (exp *explorerUI) DisapprovedBlocks(w http.ResponseWriter, r *http.Request)
 }
 
 // VisualBlocks is the page handler for the "/visualblocks" path.
-func (exp *explorerUI) VisualBlocks(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) VisualBlocks(w http.ResponseWriter, r *http.Request) {
 	// Get top N blocks and trim each block to have just the fields required for
 	// this page.
 	height, err := exp.dataSource.GetHeight()
@@ -653,7 +653,7 @@ func (exp *explorerUI) VisualBlocks(w http.ResponseWriter, r *http.Request) {
 }
 
 // StakeDiffWindows is the page handler for the "/ticketpricewindows" path.
-func (exp *explorerUI) StakeDiffWindows(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) StakeDiffWindows(w http.ResponseWriter, r *http.Request) {
 	var offsetWindow uint64
 	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 		o, err := strconv.ParseUint(offsetStr, 10, 64)
@@ -730,28 +730,28 @@ func (exp *explorerUI) StakeDiffWindows(w http.ResponseWriter, r *http.Request) 
 }
 
 // DayBlocksListing handles "/day" page.
-func (exp *explorerUI) DayBlocksListing(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) DayBlocksListing(w http.ResponseWriter, r *http.Request) {
 	exp.timeBasedBlocksListing("Days", w, r)
 }
 
 // WeekBlocksListing handles "/week" page.
-func (exp *explorerUI) WeekBlocksListing(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) WeekBlocksListing(w http.ResponseWriter, r *http.Request) {
 	exp.timeBasedBlocksListing("Weeks", w, r)
 }
 
 // MonthBlocksListing handles "/month" page.
-func (exp *explorerUI) MonthBlocksListing(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MonthBlocksListing(w http.ResponseWriter, r *http.Request) {
 	exp.timeBasedBlocksListing("Months", w, r)
 }
 
 // YearBlocksListing handles "/year" page.
-func (exp *explorerUI) YearBlocksListing(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) YearBlocksListing(w http.ResponseWriter, r *http.Request) {
 	exp.timeBasedBlocksListing("Years", w, r)
 }
 
 // TimeBasedBlocksListing is the main handler for "/day", "/week", "/month" and
 // "/year".
-func (exp *explorerUI) timeBasedBlocksListing(val string, w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) timeBasedBlocksListing(val string, w http.ResponseWriter, r *http.Request) {
 	var offset uint64
 	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
 		o, err := strconv.ParseUint(offsetStr, 10, 64)
@@ -869,7 +869,7 @@ func (exp *explorerUI) timeBasedBlocksListing(val string, w http.ResponseWriter,
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -974,7 +974,7 @@ func (exp *explorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) 
 }
 
 // Blocks is the page handler for the "/blocks" path.
-func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 	bestBlockHeight, err := exp.dataSource.GetHeight()
 	if err != nil {
 		log.Errorf("GetHeight failed: %v", err)
@@ -1078,7 +1078,7 @@ func (exp *explorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) IsValidTransaction(hash string, chainType string) bool {
+func (exp *ExplorerUI) IsValidTransaction(hash string, chainType string) bool {
 	var err error
 	switch chainType {
 	case mutilchain.TYPEBTC:
@@ -1091,7 +1091,7 @@ func (exp *explorerUI) IsValidTransaction(hash string, chainType string) bool {
 	return err == nil
 }
 
-func (exp *explorerUI) GetCointAmountByTypeChain(amount int64, chainType string) float64 {
+func (exp *ExplorerUI) GetCointAmountByTypeChain(amount int64, chainType string) float64 {
 	switch chainType {
 	case mutilchain.TYPEBTC:
 		return btcutil.Amount(amount).ToBTC()
@@ -1102,7 +1102,7 @@ func (exp *explorerUI) GetCointAmountByTypeChain(amount int64, chainType string)
 	}
 }
 
-func (exp *explorerUI) GetAddressListFromPkScript(pkScriptsStr []byte, chainType string) []string {
+func (exp *ExplorerUI) GetAddressListFromPkScript(pkScriptsStr []byte, chainType string) []string {
 	result := make([]string, 0)
 	switch chainType {
 	case mutilchain.TYPEBTC:
@@ -1123,7 +1123,7 @@ func (exp *explorerUI) GetAddressListFromPkScript(pkScriptsStr []byte, chainType
 }
 
 // TxPage is the page handler for the "/tx" path.
-func (exp *explorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) {
 	// attempt to get tx hash string from URL path
 	hash, ok := r.Context().Value(ctxTxHash).(string)
 	if !ok {
@@ -1320,7 +1320,7 @@ func (exp *explorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 }
 
 // Block is the page handler for the "/block" path.
-func (exp *explorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -1361,7 +1361,7 @@ func (exp *explorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 }
 
 // Block is the page handler for the "/block" path.
-func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) Block(w http.ResponseWriter, r *http.Request) {
 	// Retrieve the block specified on the path.
 	hash := getBlockHashCtx(r)
 	data := exp.dataSource.GetExplorerBlock(hash)
@@ -1430,7 +1430,7 @@ func (exp *explorerUI) Block(w http.ResponseWriter, r *http.Request) {
 }
 
 // Mempool is the page handler for the "/mempool" path.
-func (exp *explorerUI) Mempool(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) Mempool(w http.ResponseWriter, r *http.Request) {
 	// Safely retrieve the inventory pointer, which can be reset in StoreMPData.
 	inv := exp.MempoolInventory()
 
@@ -1457,7 +1457,7 @@ func (exp *explorerUI) Mempool(w http.ResponseWriter, r *http.Request) {
 }
 
 // Mempool is the page handler for the "/mempool" path.
-func (exp *explorerUI) MutilchainMempool(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainMempool(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -1490,7 +1490,7 @@ func (exp *explorerUI) MutilchainMempool(w http.ResponseWriter, r *http.Request)
 }
 
 // Ticketpool is the page handler for the "/ticketpool" path.
-func (exp *explorerUI) Ticketpool(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) Ticketpool(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("ticketpool", exp.commonData(r))
 
 	if err != nil {
@@ -1505,7 +1505,7 @@ func (exp *explorerUI) Ticketpool(w http.ResponseWriter, r *http.Request) {
 }
 
 // TxPage is the page handler for the "/tx" path.
-func (exp *explorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	// attempt to get tx hash string from URL path
 	hash, ok := r.Context().Value(ctxTxHash).(string)
 	if !ok {
@@ -2026,7 +2026,7 @@ func (exp *explorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) txAtomicSwapsInfo(tx *types.TxInfo) (*txhelpers.TxSwapResults, error) {
+func (exp *ExplorerUI) txAtomicSwapsInfo(tx *types.TxInfo) (*txhelpers.TxSwapResults, error) {
 	// Check if tx is a stake tree tx or coinbase tx and return empty swap info.
 	if tx.Type != txhelpers.TxTypeRegular || tx.Coinbase {
 		return new(txhelpers.TxSwapResults), nil
@@ -2086,7 +2086,7 @@ type TreasuryInfo struct {
 }
 
 // TreasuryPage is the page handler for the "/treasury" path
-func (exp *explorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithValue(r.Context(), ctxAddress, exp.pageData.HomeInfo.DevAddress)
 	r = r.WithContext(ctx)
 	if queryVals := r.URL.Query(); queryVals.Get("txntype") == "" {
@@ -2214,7 +2214,7 @@ func (exp *explorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddressPage is the page handler for the "/address" path.
-func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 	// AddressPageData is the data structure passed to the HTML template
 	type AddressPageData struct {
 		*CommonPageData
@@ -2333,7 +2333,7 @@ func (exp *explorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // AddressPage is the page handler for the "/address" path.
-func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
 	// AddressPageData is the data structure passed to the HTML template
 
 	type AddressPageData struct {
@@ -2415,7 +2415,7 @@ func (exp *explorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 }
 
 // AddressTable is the page handler for the "/addresstable" path.
-func (exp *explorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Request) {
 	// Grab the URL query parameters
 	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
 	if err != nil {
@@ -2475,7 +2475,7 @@ func (exp *explorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Req
 }
 
 // AddressTable is the page handler for the "/addresstable" path.
-func (exp *explorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
 	// Grab the URL query parameters
 	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
 	if err != nil {
@@ -2530,7 +2530,7 @@ func (exp *explorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
 }
 
 // TreasuryTable is the handler for the "/treasurytable" path.
-func (exp *explorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
 	// Grab the URL query parameters
 	txType, limitN, offset, time, err := parseTreasuryParams(r)
 	if err != nil {
@@ -2730,7 +2730,7 @@ func parsePaginationParams(r *http.Request) (txnType string, limitN, offset int6
 
 // AddressListData grabs a size-limited and type-filtered set of inputs/outputs
 // for a given address.
-func (exp *explorerUI) AddressListData(address string, txnType dbtypes.AddrTxnViewType, limitN,
+func (exp *ExplorerUI) AddressListData(address string, txnType dbtypes.AddrTxnViewType, limitN,
 	offsetAddrOuts int64, time string) (addrData *dbtypes.AddressInfo, err error) {
 
 	year := int64(0)
@@ -2763,7 +2763,7 @@ func (exp *explorerUI) AddressListData(address string, txnType dbtypes.AddrTxnVi
 	return
 }
 
-func (exp *explorerUI) MutilchainAddressListData(address string, txnType dbtypes.AddrTxnViewType, limitN,
+func (exp *ExplorerUI) MutilchainAddressListData(address string, txnType dbtypes.AddrTxnViewType, limitN,
 	offsetAddrOuts int64, chainType string) (addrData *dbtypes.AddressInfo, err error) {
 	// Get addresses table rows for the address.
 	addrData, err = exp.dataSource.MutilchainAddressData(address, limitN, offsetAddrOuts, txnType, chainType)
@@ -2779,7 +2779,7 @@ func (exp *explorerUI) MutilchainAddressListData(address string, txnType dbtypes
 
 // DecodeTxPage handles the "decode/broadcast transaction" page. The actual
 // decoding or broadcasting is handled by the websocket hub.
-func (exp *explorerUI) DecodeTxPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) DecodeTxPage(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("rawtx", struct {
 		*CommonPageData
 	}{
@@ -2796,7 +2796,7 @@ func (exp *explorerUI) DecodeTxPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // Charts handles the charts displays showing the various charts plotted.
-func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 	exp.pageData.RLock()
 	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
 	exp.pageData.RUnlock()
@@ -2820,7 +2820,7 @@ func (exp *explorerUI) Charts(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) MutilchainCharts(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainCharts(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -2845,7 +2845,7 @@ func (exp *explorerUI) MutilchainCharts(w http.ResponseWriter, r *http.Request) 
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) GetTargetTimePerBlock(chainType string) float64 {
+func (exp *ExplorerUI) GetTargetTimePerBlock(chainType string) float64 {
 	switch chainType {
 	case mutilchain.TYPEBTC:
 		return exp.BtcChainParams.TargetTimePerBlock.Seconds()
@@ -2859,7 +2859,7 @@ func (exp *explorerUI) GetTargetTimePerBlock(chainType string) float64 {
 // Search implements a primitive search algorithm by checking if the value in
 // question is a block index, block hash, address hash or transaction hash and
 // redirects to the appropriate page or displays an error.
-func (exp *explorerUI) Search(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 	// The ?search= query.
 	searchStr := r.URL.Query().Get("search")
 
@@ -2990,7 +2990,7 @@ func (exp *explorerUI) Search(w http.ResponseWriter, r *http.Request) {
 // StatusPage provides a page for displaying status messages and exception
 // handling without redirecting. Be sure to return after calling StatusPage if
 // this completes the processing of the calling http handler.
-func (exp *explorerUI) StatusPage(w http.ResponseWriter, code, message, additionalInfo string, sType expStatus) {
+func (exp *ExplorerUI) StatusPage(w http.ResponseWriter, code, message, additionalInfo string, sType expStatus) {
 	commonPageData := exp.commonData(dummyRequest)
 	if commonPageData == nil {
 		// exp.blockData.GetTip likely failed due to empty DB.
@@ -3042,12 +3042,12 @@ func (exp *explorerUI) StatusPage(w http.ResponseWriter, code, message, addition
 }
 
 // NotFound wraps StatusPage to display a 404 page.
-func (exp *explorerUI) NotFound(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) NotFound(w http.ResponseWriter, r *http.Request) {
 	exp.StatusPage(w, "Page not found.", "Cannot find page: "+r.URL.Path, "", ExpStatusNotFound)
 }
 
 // ParametersPage is the page handler for the "/parameters" path.
-func (exp *explorerUI) ParametersPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) ParametersPage(w http.ResponseWriter, r *http.Request) {
 	params := exp.ChainParams
 	addrPrefix := types.AddressPrefixes(params)
 	actualTicketPoolSize := int64(params.TicketPoolSize * params.TicketsPerBlock)
@@ -3090,7 +3090,7 @@ func (exp *explorerUI) ParametersPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // AgendaPage is the page handler for the "/agenda" path.
-func (exp *explorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 	errPageInvalidAgenda := func(err error) {
 		log.Errorf("Template execute failure: %v", err)
 		exp.StatusPage(w, defaultErrorCode, "the agenda ID given seems to not exist",
@@ -3177,7 +3177,7 @@ func (exp *explorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // AgendasPage is the page handler for the "/agendas" path.
-func (exp *explorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 	if exp.voteTracker == nil {
 		log.Warnf("Agendas requested with nil voteTracker")
 		exp.StatusPage(w, "", "agendas disabled on simnet", "", ExpStatusPageDisabled)
@@ -3212,7 +3212,7 @@ func (exp *explorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // ProposalPage is the page handler for the "/proposal" path.
-func (exp *explorerUI) ProposalPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) ProposalPage(w http.ResponseWriter, r *http.Request) {
 	if exp.proposals == nil {
 		log.Errorf("Proposal DB instance is not available")
 		exp.StatusPage(w, defaultErrorCode, "the proposals DB was not instantiated correctly",
@@ -3257,7 +3257,7 @@ func (exp *explorerUI) ProposalPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // ProposalsPage is the page handler for the "/proposals" path.
-func (exp *explorerUI) ProposalsPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) ProposalsPage(w http.ResponseWriter, r *http.Request) {
 	if exp.proposals == nil {
 		errMsg := "Proposal DB instance is not available"
 		log.Errorf("proposals page error: %s", errMsg)
@@ -3373,7 +3373,7 @@ func (exp *explorerUI) ProposalsPage(w http.ResponseWriter, r *http.Request) {
 
 // HandleApiRequestsOnSync handles all API request when the sync status pages is
 // running.
-func (exp *explorerUI) HandleApiRequestsOnSync(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) HandleApiRequestsOnSync(w http.ResponseWriter, r *http.Request) {
 	var complete int
 	dataFetched := SyncStatus()
 
@@ -3413,7 +3413,7 @@ func (exp *explorerUI) HandleApiRequestsOnSync(w http.ResponseWriter, r *http.Re
 }
 
 // StatsPage is the page handler for the "/stats" path.
-func (exp *explorerUI) StatsPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) StatsPage(w http.ResponseWriter, r *http.Request) {
 	// Get current PoW difficulty.
 	powDiff, err := exp.dataSource.CurrentDifficulty()
 	if err != nil {
@@ -3500,7 +3500,7 @@ func (exp *explorerUI) StatsPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // MarketPage is the page handler for the "/market" path.
-func (exp *explorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("market", struct {
 		*CommonPageData
 		DepthMarkets []string
@@ -3522,7 +3522,7 @@ func (exp *explorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // MarketPage is the page handler for the "/market" path.
-func (exp *explorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -3563,7 +3563,7 @@ func (exp *explorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 // commonData grabs the common page data that is available to every page.
 // This is particularly useful for extras.tmpl, parts of which
 // are used on every page
-func (exp *explorerUI) commonData(r *http.Request) *CommonPageData {
+func (exp *ExplorerUI) commonData(r *http.Request) *CommonPageData {
 	tip, err := exp.dataSource.GetTip()
 	if err != nil {
 		log.Errorf("Failed to get the chain tip from the database.: %v", err)
@@ -3726,7 +3726,7 @@ func calcPages(rows, pageSize, offset int, link string) pageNumbers {
 }
 
 // AttackCost is the page handler for the "/attack-cost" path.
-func (exp *explorerUI) AttackCost(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) AttackCost(w http.ResponseWriter, r *http.Request) {
 	price := 24.42
 	if exp.xcBot != nil {
 		if rate := exp.xcBot.Conversion(1.0); rate != nil {
@@ -3776,7 +3776,7 @@ func (exp *explorerUI) AttackCost(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-func (exp *explorerUI) FinanceDetailPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) FinanceDetailPage(w http.ResponseWriter, r *http.Request) {
 	rtype := r.URL.Query().Get("type")
 	time := r.URL.Query().Get("time")
 
@@ -3804,7 +3804,7 @@ func (exp *explorerUI) FinanceDetailPage(w http.ResponseWriter, r *http.Request)
 }
 
 // FinanceReportPage is the page handler for the "/finance-report" path.
-func (exp *explorerUI) HomeReportPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) HomeReportPage(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.execTemplateToString("home_report", struct {
 		*CommonPageData
 	}{
@@ -3823,7 +3823,7 @@ func (exp *explorerUI) HomeReportPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // FinanceReportPage is the page handler for the "/finance-report" path.
-func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request) {
 	exp.pageData.RLock()
 	//Get all proposal token to check sync
 	allProposals, err := exp.proposals.GetAllProposals()
@@ -3874,7 +3874,7 @@ func (exp *explorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 }
 
 // StakeRewardCalcPage is the page handler for the "/stakingcalc" path.
-func (exp *explorerUI) StakeRewardCalcPage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) StakeRewardCalcPage(w http.ResponseWriter, r *http.Request) {
 	price := 24.42
 	if exp.xcBot != nil {
 		if rate := exp.xcBot.Conversion(1.0); rate != nil {
@@ -3921,7 +3921,7 @@ type verifyMessageResult struct {
 }
 
 // VerifyMessagePage is the page handler for "GET /verify-message" path.
-func (exp *explorerUI) VerifyMessagePage(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) VerifyMessagePage(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("verify_message", struct {
 		*CommonPageData
 		VerifyMessageResult *verifyMessageResult
@@ -3940,7 +3940,7 @@ func (exp *explorerUI) VerifyMessagePage(w http.ResponseWriter, r *http.Request)
 }
 
 // VerifyMessageHandler is the handler for "POST /verify-message" path.
-func (exp *explorerUI) VerifyMessageHandler(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) VerifyMessageHandler(w http.ResponseWriter, r *http.Request) {
 	address := r.PostFormValue("address")
 	signature := r.PostFormValue("signature")
 	message := r.PostFormValue("message")

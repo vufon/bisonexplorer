@@ -21,16 +21,16 @@ import (
 )
 
 // RootWebsocket is the websocket handler for all pages
-func (exp *explorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
+func (exp *ExplorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 	wsHandler := websocket.Handler(func(ws *websocket.Conn) {
 		// Create channel to signal updated data availability
 		updateSig := make(hubSpoke, 3)
 		// Create a channel for exchange updates
 		xcChan := make(exchangeChannel, 3)
 		// register websocket client with our signal channel
-		clientData := exp.wsHub.RegisterClient(&updateSig, xcChan)
+		clientData := exp.WsHub.RegisterClient(&updateSig, xcChan)
 		// unregister (and close signal channel) before return
-		defer exp.wsHub.UnregisterClient(&updateSig)
+		defer exp.WsHub.UnregisterClient(&updateSig)
 
 		// close the websocket
 		closeWS := func() {
@@ -278,7 +278,6 @@ func (exp *explorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 					} else {
 						log.Errorf("json.Encode(WebsocketBlock) failed: %v", err)
 					}
-
 				case sigMempoolUpdate:
 					inv := exp.MempoolInventory()
 					inv.RLock()
@@ -292,7 +291,7 @@ func (exp *explorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 
 				case sigPingAndUserCount:
 					// ping and send user count
-					webData.Message = strconv.Itoa(exp.wsHub.NumClients())
+					webData.Message = strconv.Itoa(exp.WsHub.NumClients())
 				case sigNewTxs:
 					// Do not use any tx slice in sig.Msg. Instead use client's
 					// new transactions slice, newTxs.
@@ -340,7 +339,7 @@ func (exp *explorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 
-			case <-exp.wsHub.quitWSHandler:
+			case <-exp.WsHub.quitWSHandler:
 				break loop
 			} // select
 		} // for a.k.a. loop:

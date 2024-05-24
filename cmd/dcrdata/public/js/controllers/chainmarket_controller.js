@@ -1225,6 +1225,9 @@ export default class extends Controller {
       })
     } else { // dcr-btc exchange update
       const row = this.getExchangeRow(xc.token)
+      if (!row) {
+        return
+      }
       row.volume.textContent = humanize.threeSigFigs(xc.volume)
       row.price.textContent = humanize.threeSigFigs(xc.price)
       row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
@@ -1241,6 +1244,9 @@ export default class extends Controller {
     this.priceTarget.textContent = fmtPrice
     const aggRow = this.getExchangeRow(aggregatedKey)
     btcPrice = update.btc_price
+    if (!aggRow) {
+      return
+    }
     aggRow.price.textContent = humanize.threeSigFigs(update.price / btcPrice)
     aggRow.volume.textContent = humanize.threeSigFigs(update.volume)
     aggRow.fiat.textContent = fmtPrice

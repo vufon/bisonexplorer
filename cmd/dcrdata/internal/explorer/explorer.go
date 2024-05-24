@@ -261,7 +261,7 @@ type ltcPageData struct {
 	HomeInfo       *types.HomeInfo
 }
 
-type explorerUI struct {
+type ExplorerUI struct {
 	Mux              *chi.Mux
 	dataSource       explorerDataSource
 	chartSource      ChartDataSource
@@ -273,7 +273,7 @@ type explorerUI struct {
 	dbsSyncing       atomic.Value
 	devPrefetch      bool
 	templates        templates
-	wsHub            *WebsocketHub
+	WsHub            *WebsocketHub
 	pageData         *pageData
 	btcPageData      *btcPageData
 	ltcPageData      *ltcPageData
@@ -293,29 +293,29 @@ type explorerUI struct {
 
 	invsMtx        sync.RWMutex
 	invs           *types.MempoolInfo
-	ltcMempoolInfo *types.MutilchainMempoolInfo
-	btcMempoolInfo *types.MutilchainMempoolInfo
+	LtcMempoolInfo *types.MutilchainMempoolInfo
+	BtcMempoolInfo *types.MutilchainMempoolInfo
 	premine        int64
 }
 
 // AreDBsSyncing is a thread-safe way to fetch the boolean in dbsSyncing.
-func (exp *explorerUI) AreDBsSyncing() bool {
+func (exp *ExplorerUI) AreDBsSyncing() bool {
 	syncing, ok := exp.dbsSyncing.Load().(bool)
 	return ok && syncing
 }
 
 // SetDBsSyncing is a thread-safe way to update dbsSyncing.
-func (exp *explorerUI) SetDBsSyncing(syncing bool) {
+func (exp *ExplorerUI) SetDBsSyncing(syncing bool) {
 	exp.dbsSyncing.Store(syncing)
-	exp.wsHub.SetDBsSyncing(syncing)
+	exp.WsHub.SetDBsSyncing(syncing)
 }
 
-func (exp *explorerUI) reloadTemplates() error {
+func (exp *ExplorerUI) reloadTemplates() error {
 	return exp.templates.reloadTemplates()
 }
 
 // See reloadsig*.go for an exported method
-func (exp *explorerUI) reloadTemplatesSig(sig os.Signal) {
+func (exp *ExplorerUI) reloadTemplatesSig(sig os.Signal) {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, sig)
 
@@ -335,12 +335,12 @@ func (exp *explorerUI) reloadTemplatesSig(sig os.Signal) {
 }
 
 // StopWebsocketHub stops the websocket hub
-func (exp *explorerUI) StopWebsocketHub() {
+func (exp *ExplorerUI) StopWebsocketHub() {
 	if exp == nil {
 		return
 	}
 	log.Info("Stopping websocket hub.")
-	exp.wsHub.Stop()
+	exp.WsHub.Stop()
 	close(exp.xcDone)
 }
 
@@ -365,15 +365,15 @@ type ExplorerConfig struct {
 }
 
 // New returns an initialized instance of explorerUI
-func New(cfg *ExplorerConfig) *explorerUI {
-	exp := new(explorerUI)
+func New(cfg *ExplorerConfig) *ExplorerUI {
+	exp := new(ExplorerUI)
 	exp.Mux = chi.NewRouter()
 	exp.dataSource = cfg.DataSource
 	exp.chartSource = cfg.ChartSource
 	// Allocate Mempool fields.
 	exp.invs = new(types.MempoolInfo)
-	exp.ltcMempoolInfo = new(types.MutilchainMempoolInfo)
-	exp.btcMempoolInfo = new(types.MutilchainMempoolInfo)
+	exp.LtcMempoolInfo = new(types.MutilchainMempoolInfo)
+	exp.BtcMempoolInfo = new(types.MutilchainMempoolInfo)
 	exp.Version = cfg.AppVersion
 	exp.devPrefetch = cfg.DevPrefetch
 	exp.xcBot = cfg.XcBot
@@ -476,9 +476,9 @@ func New(cfg *ExplorerConfig) *explorerUI {
 
 	exp.addRoutes()
 
-	exp.wsHub = NewWebsocketHub()
+	exp.WsHub = NewWebsocketHub()
 
-	go exp.wsHub.run()
+	go exp.WsHub.run()
 
 	go exp.watchExchanges()
 
@@ -486,7 +486,7 @@ func New(cfg *ExplorerConfig) *explorerUI {
 }
 
 // Height returns the height of the current block data.
-func (exp *explorerUI) Height() int64 {
+func (exp *ExplorerUI) Height() int64 {
 	exp.pageData.RLock()
 	defer exp.pageData.RUnlock()
 
@@ -499,7 +499,7 @@ func (exp *explorerUI) Height() int64 {
 }
 
 // LastBlock returns the last block hash, height and time.
-func (exp *explorerUI) LastBlock() (lastBlockHash string, lastBlock int64, lastBlockTime int64) {
+func (exp *ExplorerUI) LastBlock() (lastBlockHash string, lastBlock int64, lastBlockTime int64) {
 	exp.pageData.RLock()
 	defer exp.pageData.RUnlock()
 
@@ -516,27 +516,27 @@ func (exp *explorerUI) LastBlock() (lastBlockHash string, lastBlock int64, lastB
 }
 
 // MempoolInventory safely retrieves the current mempool inventory.
-func (exp *explorerUI) MempoolInventory() *types.MempoolInfo {
+func (exp *ExplorerUI) MempoolInventory() *types.MempoolInfo {
 	exp.invsMtx.RLock()
 	defer exp.invsMtx.RUnlock()
 	return exp.invs
 }
 
-func (exp *explorerUI) MutilchainMempoolInfo(chainType string) *types.MutilchainMempoolInfo {
+func (exp *ExplorerUI) MutilchainMempoolInfo(chainType string) *types.MutilchainMempoolInfo {
 	exp.invsMtx.RLock()
 	defer exp.invsMtx.RUnlock()
 	switch chainType {
 	case mutilchain.TYPEBTC:
-		return exp.btcMempoolInfo
+		return exp.BtcMempoolInfo
 	case mutilchain.TYPELTC:
-		return exp.ltcMempoolInfo
+		return exp.LtcMempoolInfo
 	default:
 		return nil
 	}
 }
 
 // MempoolID safely fetches the current mempool inventory ID.
-func (exp *explorerUI) MempoolID() uint64 {
+func (exp *ExplorerUI) MempoolID() uint64 {
 	exp.invsMtx.RLock()
 	defer exp.invsMtx.RUnlock()
 	return exp.invs.ID()
@@ -544,14 +544,14 @@ func (exp *explorerUI) MempoolID() uint64 {
 
 // MempoolSignal returns the mempool signal channel, which is to be used by the
 // mempool package's MempoolMonitor as a send-only channel.
-func (exp *explorerUI) MempoolSignal() chan<- pstypes.HubMessage {
-	return exp.wsHub.HubRelay
+func (exp *ExplorerUI) MempoolSignal() chan<- pstypes.HubMessage {
+	return exp.WsHub.HubRelay
 }
 
 // StoreMPData stores mempool data. It is advisable to pass a copy of the
 // []types.MempoolTx so that it may be modified (e.g. sorted) without affecting
 // other MempoolDataSavers.
-func (exp *explorerUI) StoreMPData(_ *mempool.StakeData, _ []types.MempoolTx, inv *types.MempoolInfo) {
+func (exp *ExplorerUI) StoreMPData(_ *mempool.StakeData, _ []types.MempoolTx, inv *types.MempoolInfo) {
 	// Get exclusive access to the Mempool field.
 	exp.invsMtx.Lock()
 	exp.invs = inv
@@ -559,37 +559,37 @@ func (exp *explorerUI) StoreMPData(_ *mempool.StakeData, _ []types.MempoolTx, in
 	log.Debugf("Updated mempool details for the explorerUI.")
 }
 
-func (exp *explorerUI) StoreLTCMPData(_ []types.MempoolTx, inv *types.MutilchainMempoolInfo) {
+func (exp *ExplorerUI) StoreLTCMPData(_ []types.MempoolTx, inv *types.MutilchainMempoolInfo) {
 	// Get exclusive access to the Mempool field.
 	exp.invsMtx.Lock()
-	exp.ltcMempoolInfo = inv
+	exp.LtcMempoolInfo = inv
 	exp.invsMtx.Unlock()
 	log.Debugf("Updated mempool details for the explorerUI.")
 }
 
-func (exp *explorerUI) StoreBTCMPData(_ []types.MempoolTx, inv *types.MutilchainMempoolInfo) {
+func (exp *ExplorerUI) StoreBTCMPData(_ []types.MempoolTx, inv *types.MutilchainMempoolInfo) {
 	// Get exclusive access to the Mempool field.
 	exp.invsMtx.Lock()
-	exp.btcMempoolInfo = inv
+	exp.BtcMempoolInfo = inv
 	exp.invsMtx.Unlock()
 	log.Debugf("Updated mempool details for the explorerUI.")
 }
 
-func (exp *explorerUI) StoreMutilchainMPData(chainType string, inv *types.MutilchainMempoolInfo) {
+func (exp *ExplorerUI) StoreMutilchainMPData(chainType string, inv *types.MutilchainMempoolInfo) {
 	// Get exclusive access to the Mempool field.
 	exp.invsMtx.Lock()
 	switch chainType {
 	case mutilchain.TYPEBTC:
-		exp.btcMempoolInfo = inv
+		exp.BtcMempoolInfo = inv
 	case mutilchain.TYPELTC:
-		exp.ltcMempoolInfo = inv
+		exp.LtcMempoolInfo = inv
 	}
 	exp.invsMtx.Unlock()
 	log.Debugf("Updated mutilchain mempool details for the explorerUI.")
 }
 
 // Store implements BlockDataSaver.
-func (exp *explorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBlock) error {
+func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBlock) error {
 	// Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetExplorerBlock(msgBlock.BlockHash().String())
 
@@ -695,7 +695,7 @@ func (exp *explorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	// block Store(), and do not hang forever in a goroutine waiting to send.
 	go func() {
 		select {
-		case exp.wsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewBlock}:
+		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewBlock}:
 		case <-time.After(time.Second * 10):
 			log.Errorf("sigNewBlock send failed: Timeout waiting for WebsocketHub.")
 		}
@@ -756,7 +756,7 @@ func (exp *explorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 }
 
 // Store implements BlockDataSaver.
-func (exp *explorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwire.MsgBlock) error {
+func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwire.MsgBlock) error {
 	// Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetBTCExplorerBlock(msgBlock.BlockHash().String())
 
@@ -795,7 +795,7 @@ func (exp *explorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	return nil
 }
 
-func (exp *explorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwire.MsgBlock) error {
+func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwire.MsgBlock) error {
 	// Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetLTCExplorerBlock(msgBlock.BlockHash().String())
 
@@ -846,7 +846,7 @@ func (exp *explorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 }
 
 // ChartsUpdated should be called when a chart update completes.
-func (exp *explorerUI) ChartsUpdated() {
+func (exp *ExplorerUI) ChartsUpdated() {
 	anonSet := exp.chartSource.AnonymitySet()
 	exp.pageData.Lock()
 	if exp.pageData.HomeInfo.CoinSupply > 0 {
@@ -855,7 +855,7 @@ func (exp *explorerUI) ChartsUpdated() {
 	exp.pageData.Unlock()
 }
 
-func (exp *explorerUI) updateDevFundBalance() {
+func (exp *ExplorerUI) updateDevFundBalance() {
 	// yield processor to other goroutines
 	runtime.Gosched()
 
@@ -865,7 +865,7 @@ func (exp *explorerUI) updateDevFundBalance() {
 		exp.pageData.HomeInfo.DevFund = devBalance.TotalUnspent
 		exp.pageData.Unlock()
 	} else {
-		log.Errorf("explorerUI.updateDevFundBalance failed: %v", err)
+		log.Errorf("ExplorerUI.updateDevFundBalance failed: %v", err)
 	}
 }
 
@@ -875,7 +875,7 @@ func (lw loggerFunc) Printf(str string, args ...interface{}) {
 	lw(str, args...)
 }
 
-func (exp *explorerUI) addRoutes() {
+func (exp *ExplorerUI) addRoutes() {
 	exp.Mux.Use(middleware.Logger)
 	exp.Mux.Use(middleware.Recoverer)
 	corsMW := cors.Default()
@@ -908,7 +908,7 @@ func (exp *explorerUI) addRoutes() {
 // starting amount of DCR and calculation parameters.  Generate a TEXT table of
 // the simulation results that can optionally be used for future expansion of
 // dcrdata functionality.
-func (exp *explorerUI) simulateASR(StartingDCRBalance float64, IntegerTicketQty bool,
+func (exp *ExplorerUI) simulateASR(StartingDCRBalance float64, IntegerTicketQty bool,
 	CurrentStakePercent float64, ActualCoinbase float64, CurrentBlockNum float64,
 	ActualTicketPrice float64) (ASR float64, ReturnTable string) {
 
@@ -1009,7 +1009,7 @@ func (exp *explorerUI) simulateASR(StartingDCRBalance float64, IntegerTicketQty 
 	return
 }
 
-func (exp *explorerUI) watchExchanges() {
+func (exp *ExplorerUI) watchExchanges() {
 	if exp.xcBot == nil {
 		return
 	}
@@ -1041,7 +1041,7 @@ func (exp *explorerUI) watchExchanges() {
 			Volume:      xcState.GetMutilchainVolumn(chainType),
 		}
 		select {
-		case exp.wsHub.xcChan <- update:
+		case exp.WsHub.xcChan <- update:
 		default:
 			log.Warnf("Failed to send WebsocketExchangeUpdate on WebsocketHub channel")
 		}
@@ -1067,7 +1067,7 @@ func (exp *explorerUI) watchExchanges() {
 	}
 }
 
-func (exp *explorerUI) getExchangeState() *exchanges.ExchangeBotState {
+func (exp *ExplorerUI) getExchangeState() *exchanges.ExchangeBotState {
 	if exp.xcBot == nil || exp.xcBot.IsFailed() {
 		return nil
 	}
@@ -1076,7 +1076,7 @@ func (exp *explorerUI) getExchangeState() *exchanges.ExchangeBotState {
 
 // mempoolTime is the TimeDef that the transaction was received in DCRData, or
 // else a zero-valued TimeDef if no transaction is found.
-func (exp *explorerUI) mempoolTime(txid string) types.TimeDef {
+func (exp *ExplorerUI) mempoolTime(txid string) types.TimeDef {
 	exp.invsMtx.RLock()
 	defer exp.invsMtx.RUnlock()
 	tx, found := exp.invs.Tx(txid)

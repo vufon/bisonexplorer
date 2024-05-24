@@ -47,19 +47,19 @@ func SyncStatus() []SyncStatusInfo {
 
 // ShowingSyncStatusPage is a thread-safe way to fetch the
 // displaySyncStatusPage.
-func (exp *explorerUI) ShowingSyncStatusPage() bool {
+func (exp *ExplorerUI) ShowingSyncStatusPage() bool {
 	display, ok := exp.displaySyncStatusPage.Load().(bool)
 	return ok && display
 }
 
 // EnableSyncStatusPage enables or disables updates to the sync status page.
-func (exp *explorerUI) EnableSyncStatusPage(displayStatus bool) {
+func (exp *ExplorerUI) EnableSyncStatusPage(displayStatus bool) {
 	exp.displaySyncStatusPage.Store(displayStatus)
 }
 
 // BeginSyncStatusUpdates receives the progress updates and and updates the
 // blockchainSyncStatus.ProgressBars.
-func (exp *explorerUI) BeginSyncStatusUpdates(barLoad chan *dbtypes.ProgressBarLoad) {
+func (exp *ExplorerUI) BeginSyncStatusUpdates(barLoad chan *dbtypes.ProgressBarLoad) {
 	// Do not start listening for updates if channel is nil.
 	if barLoad == nil {
 		log.Warnf("Not updating sync status page.")
@@ -81,7 +81,7 @@ func (exp *explorerUI) BeginSyncStatusUpdates(barLoad chan *dbtypes.ProgressBarL
 			select {
 			case <-timer.C:
 				log.Trace("Sending progress bar signal.")
-				exp.wsHub.HubRelay <- pstypes.HubMessage{Signal: sigSyncStatus}
+				exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigSyncStatus}
 
 			case <-stopTimer:
 				log.Debug("Stopping progress bar signals.")
@@ -103,7 +103,7 @@ func (exp *explorerUI) BeginSyncStatusUpdates(barLoad chan *dbtypes.ProgressBarL
 			// Send the one last signal so that the websocket can send the final
 			// confirmation that syncing is done and home page auto reload should
 			// happen.
-			exp.wsHub.HubRelay <- pstypes.HubMessage{Signal: sigSyncStatus}
+			exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigSyncStatus}
 			exp.EnableSyncStatusPage(false)
 		}()
 

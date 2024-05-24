@@ -33,6 +33,8 @@ require (
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
 	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect
+	github.com/carterjones/go-cloudflare-scraper v0.1.2 // indirect
+	github.com/carterjones/signalr v0.3.5 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect

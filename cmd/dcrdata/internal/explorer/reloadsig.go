@@ -6,6 +6,6 @@ import "syscall"
 
 // UseSIGToReloadTemplates wraps (*explorerUI).UseSIGToReloadTemplates for
 // non-Windows systems, where there are actually signals.
-func (exp *explorerUI) UseSIGToReloadTemplates() {
+func (exp *ExplorerUI) UseSIGToReloadTemplates() {
 	exp.reloadTemplatesSig(syscall.SIGUSR1)
 }

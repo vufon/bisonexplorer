@@ -33,7 +33,7 @@ func matchMempoolVins(txid string, txsList []types.MempoolTx) (vins []types.Memp
 // GetTxMempoolInputs grabs very simple information about mempool transaction
 // inputs that spend a particular previous transaction's outputs. The returned
 // slice has just enough information to match an unspent transaction output.
-func (exp *explorerUI) GetTxMempoolInputs(txid string, txType string) (vins []types.MempoolVin) {
+func (exp *ExplorerUI) GetTxMempoolInputs(txid string, txType string) (vins []types.MempoolVin) {
 	// Lock the pointer from changing, and the contents of the shared struct.
 	inv := exp.MempoolInventory()
 	inv.RLock()

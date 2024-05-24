@@ -54,6 +54,7 @@ import (
 
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api/insight"
+	"github.com/decred/dcrdata/cmd/dcrdata/internal/chainsocket"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/explorer"
 	mw "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 	notify "github.com/decred/dcrdata/cmd/dcrdata/internal/notification"
@@ -121,7 +122,6 @@ func _main(ctx context.Context) error {
 		}
 		defer agent.Close()
 	}
-
 	// Display app version.
 	log.Infof("%s version %v (Go version %s)", AppName, Version(), runtime.Version())
 
@@ -1313,29 +1313,37 @@ func _main(ctx context.Context) error {
 			return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
 		}
 
-		//handler mempool
-		ltcMempoolSavers := []mempoolltc.MempoolDataSaver{chainDB.LTCMPC}
-		ltcMempoolSavers = append(ltcMempoolSavers, explore)
-		// Create the mempool data collector.
-		ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
-		if ltcMpoolCollector == nil {
-			// Shutdown goroutines.
-			requestShutdown()
-			return fmt.Errorf("Failed to create LTC mempool data collector")
+		//first, use external socket api to get mempool info
+		mainSocket, err := chainsocket.NewMutilchainInfoSocket(explore, mutilchain.TYPELTC)
+		if err == nil {
+			err = mainSocket.StartMempoolConnectAndUpdate()
 		}
-
-		mpm, err := mempoolltc.NewMempoolMonitor(ctx, ltcMpoolCollector, ltcMempoolSavers,
-			ltcActiveChain, true)
-
-		// Ensure the initial collect/store succeeded.
 		if err != nil {
-			// Shutdown goroutines.
-			requestShutdown()
-			return fmt.Errorf("NewMempoolMonitor: %v", err)
-		}
+			log.Infof("Create external API socket failed. Start initialize mempool data with Mempool collector")
+			//handler mempool with Mempool monitor
+			ltcMempoolSavers := []mempoolltc.MempoolDataSaver{chainDB.LTCMPC}
+			ltcMempoolSavers = append(ltcMempoolSavers, explore)
+			// Create the mempool data collector.
+			ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
+			if ltcMpoolCollector == nil {
+				// Shutdown goroutines.
+				requestShutdown()
+				return fmt.Errorf("Failed to create LTC mempool data collector")
+			}
 
-		// Use the MempoolMonitor in DB to get unconfirmed transaction data.
-		chainDB.UseLTCMempoolChecker(mpm)
+			mpm, err := mempoolltc.NewMempoolMonitor(ctx, ltcMpoolCollector, ltcMempoolSavers,
+				ltcActiveChain, true)
+
+			// Ensure the initial collect/store succeeded.
+			if err != nil {
+				// Shutdown goroutines.
+				requestShutdown()
+				return fmt.Errorf("NewMempoolMonitor: %v", err)
+			}
+
+			// Use the MempoolMonitor in DB to get unconfirmed transaction data.
+			chainDB.UseLTCMempoolChecker(mpm)
+		}
 
 		//Start - LTC Sync handler
 		var ltcHash *ltcchainhash.Hash
@@ -1484,6 +1492,15 @@ func _main(ctx context.Context) error {
 		}
 		chainDB.BtcClient = btcdClient
 		chainDB.BtcCoreClient = btcCoreClient
+
+		//first, use external socket api to get mempool info
+		mainSocket, err := chainsocket.NewMutilchainInfoSocket(explore, mutilchain.TYPEBTC)
+		if err == nil {
+			err = mainSocket.StartMempoolConnectAndUpdate()
+		}
+		if err != nil {
+			log.Infof("Create external API socket failed. Start initialize mempool data with Mempool collector")
+		}
 
 		// //handler mempool : TODO: Optimize mempool processing for BTC (Because the volume is quite large)
 		// btcMempoolSavers := []mempoolbtc.MempoolDataSaver{chainDB.BTCMPC}

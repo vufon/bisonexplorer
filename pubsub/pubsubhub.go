@@ -81,8 +81,8 @@ type connection struct {
 // data to WebSocket clients.
 type PubSubHub struct {
 	sourceBase DataSource
-	wsHub      *WebsocketHub
-	state      *State
+	WsHub      *WebsocketHub
+	State      *State
 	params     *chaincfg.Params
 	invsMtx    sync.RWMutex
 	invs       *exptypes.MempoolInfo
@@ -111,7 +111,7 @@ func NewPubSubHub(dataSource DataSource) (*PubSubHub, error) {
 		return nil, fmt.Errorf("bad project fund address: %v", err)
 	}
 
-	psh.state = &State{
+	psh.State = &State{
 		// Set the constant parameters of GeneralInfo.
 		GeneralInfo: &exptypes.HomeInfo{
 			DevAddress: devSubsidyAddress,
@@ -128,8 +128,8 @@ func NewPubSubHub(dataSource DataSource) (*PubSubHub, error) {
 		// BlockInfo and BlockchainInfo are set by Store()
 	}
 
-	psh.wsHub = NewWebsocketHub()
-	go psh.wsHub.Run()
+	psh.WsHub = NewWebsocketHub()
+	go psh.WsHub.Run()
 
 	return psh, nil
 }
@@ -140,23 +140,23 @@ func (psh *PubSubHub) StopWebsocketHub() {
 		return
 	}
 	log.Info("Stopping websocket hub.")
-	psh.wsHub.Stop()
+	psh.WsHub.Stop()
 }
 
 // Ready checks if the WebSocketHub is ready.
 func (psh *PubSubHub) Ready() bool {
-	return psh.wsHub.Ready()
+	return psh.WsHub.Ready()
 }
 
 // SetReady updates the ready status of the WebSocketHub.
 func (psh *PubSubHub) SetReady(ready bool) {
-	psh.wsHub.SetReady(ready)
+	psh.WsHub.SetReady(ready)
 }
 
 // HubRelay returns the channel used to signal to the WebSocketHub. See
 // pstypes.HubSignal for valid signals.
 func (psh *PubSubHub) HubRelay() chan pstypes.HubMessage {
-	return psh.wsHub.HubRelay
+	return psh.WsHub.HubRelay
 }
 
 // MempoolInventory safely retrieves the current mempool inventory.
@@ -216,7 +216,7 @@ func (psh *PubSubHub) receiveLoop(conn *connection) {
 		}
 
 		// Reject messages that exceed the limit.
-		if len(msg.Message) > psh.wsHub.requestLimit {
+		if len(msg.Message) > psh.WsHub.requestLimit {
 			log.Debug("Request size over limit")
 			resp.Message = json.RawMessage(`"Request too large"`) // skip json.Marshal for a string.
 			continue
@@ -319,9 +319,9 @@ func (psh *PubSubHub) receiveLoop(conn *connection) {
 			inv := psh.MempoolInventory()
 			mempoolInfo := inv.Trim() // Trim locks the inventory.
 
-			psh.state.mtx.RLock()
-			mempoolInfo.Subsidy = psh.state.GeneralInfo.NBlockSubsidy
-			psh.state.mtx.RUnlock()
+			psh.State.mtx.RLock()
+			mempoolInfo.Subsidy = psh.State.GeneralInfo.NBlockSubsidy
+			psh.State.mtx.RUnlock()
 
 			var b []byte
 			b, err = json.Marshal(mempoolInfo)
@@ -453,16 +453,16 @@ loop:
 
 			pushMsg.Message = buff.Bytes()
 		case sigNewBlock:
-			psh.state.mtx.RLock()
-			if psh.state.BlockInfo == nil {
-				psh.state.mtx.RUnlock()
+			psh.State.mtx.RLock()
+			if psh.State.BlockInfo == nil {
+				psh.State.mtx.RUnlock()
 				break // from switch to send empty message
 			}
 			err := enc.Encode(exptypes.WebsocketBlock{
-				Block: psh.state.BlockInfo,
-				Extra: psh.state.GeneralInfo,
+				Block: psh.State.BlockInfo,
+				Extra: psh.State.GeneralInfo,
 			})
-			psh.state.mtx.RUnlock()
+			psh.State.mtx.RUnlock()
 			if err != nil {
 				log.Warnf("Encode(WebsocketBlock) failed: %v", err)
 			}
@@ -488,7 +488,7 @@ loop:
 
 		case sigPingAndUserCount:
 			// ping and send user count
-			pushMsg.Message = json.RawMessage(strconv.Itoa(psh.wsHub.NumClients())) // No quotes as this is a JSON integer
+			pushMsg.Message = json.RawMessage(strconv.Itoa(psh.WsHub.NumClients())) // No quotes as this is a JSON integer
 
 		case sigNewTxs:
 			// Marshal this client's tx buffer if it is not empty.
@@ -547,12 +547,12 @@ loop:
 // are launched.
 func (psh *PubSubHub) WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	// Register websocket client.
-	ch := psh.wsHub.NewClientHubSpoke()
+	ch := psh.WsHub.NewClientHubSpoke()
 	defer close(ch.cl.killed)
 
 	wsHandler := websocket.Handler(func(ws *websocket.Conn) {
 		// Set the max payload size for this connection.
-		ws.MaxPayloadBytes = psh.wsHub.requestLimit
+		ws.MaxPayloadBytes = psh.WsHub.requestLimit
 
 		// The receive loop will be sitting on websocket.JSON.Receive, while the
 		// send loop will be waiting for signals from the WebSocketHub. One must
@@ -638,7 +638,7 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 	}
 
 	// Update pageData with block data and chain (home) info.
-	p := psh.state
+	p := psh.State
 	p.mtx.Lock()
 
 	// Store current block and blockchain data.
@@ -685,7 +685,7 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 	// ticket maturity (time from ticket purchase until its eligible to vote)
 	// and coinbase maturity (time after vote until funds distributed to ticket
 	// holder are available to use).
-	avgSSTxToSSGenMaturity := psh.state.GeneralInfo.Params.MeanVotingBlocks +
+	avgSSTxToSSGenMaturity := psh.State.GeneralInfo.Params.MeanVotingBlocks +
 		int64(psh.params.TicketMaturity) +
 		int64(psh.params.CoinbaseMaturity)
 	p.GeneralInfo.RewardPeriod = fmt.Sprintf("%.2f days", float64(avgSSTxToSSGenMaturity)*
@@ -698,7 +698,7 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 	// block Store(), and do not hang forever in a goroutine waiting to send.
 	go func() {
 		select {
-		case psh.wsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewBlock}:
+		case psh.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewBlock}:
 		case <-time.After(time.Second * 10):
 			log.Errorf("sigNewBlock send failed: Timeout waiting for WebsocketHub.")
 		}
@@ -717,7 +717,7 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 			addr := scriptAddr.String()
 			go func() {
 				select {
-				case psh.wsHub.HubRelay <- pstypes.HubMessage{
+				case psh.WsHub.HubRelay <- pstypes.HubMessage{
 					Signal: sigAddressTx,
 					Msg: &pstypes.AddressMessage{
 						Address: addr,
@@ -751,7 +751,7 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 
 	go func() {
 		select {
-		case psh.wsHub.HubRelay <- pstypes.HubMessage{
+		case psh.WsHub.HubRelay <- pstypes.HubMessage{
 			Signal: sigNewTx,
 			Msg:    &newTxCoinbase,
 		}:
