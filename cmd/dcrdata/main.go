@@ -1564,7 +1564,7 @@ func _main(ctx context.Context) error {
 		}
 
 		//start init collector for btc
-		btcCollector = blockdatabtc.NewCollector(btcdClient, btcActiveChain)
+		btcCollector = blockdatabtc.NewCollector(btcdClient, btcCoreClient, btcActiveChain)
 		if btcCollector == nil {
 			return fmt.Errorf("Failed to create BTC block data collector")
 		}
@@ -1740,8 +1740,9 @@ func connectLTCNodeRPC(cfg *config, ntfnHandlers *ltcClient.NotificationHandlers
 }
 
 func connectLTCCoreRPC(cfg *config) (*ltcClient.Client, error) {
+	host := fmt.Sprintf("%s:%s", cfg.LtcCoreServ, cfg.LtcCorePort)
 	connCfg := &ltcClient.ConnConfig{
-		Host:         fmt.Sprintf("%s:%s", cfg.LtcCoreServ, cfg.LtcCorePort),
+		Host:         host,
 		User:         cfg.LtcCoreUser,
 		Pass:         cfg.LtcCorePass,
 		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode

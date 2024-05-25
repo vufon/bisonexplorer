@@ -16,6 +16,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
@@ -39,6 +40,11 @@ type VerboseBlockGetter interface {
 
 type TransactionGetter interface {
 	GetRawTransactionVerbose(txHash *chainhash.Hash) (*btcjson.TxRawResult, error)
+}
+
+type CoreBlockchain interface {
+	GetChainTxStats() (*btcjson.GetChainTxStatsResult, error)
+	GetBlockChainInfo() (*btcjson.GetBlockChainInfoResult, error)
 }
 
 type PrevOut struct {
@@ -228,6 +234,23 @@ func GetTransactionTimeAndSize(client TransactionGetter, txid string) (int64, in
 		return 0, 0
 	}
 	return int64(txResult.Size), txResult.Time
+}
+
+func GetBlockchainInfo(client CoreBlockchain) (*mutilchain.BlockchainInfo, error) {
+	blockchainInfo, err := client.GetBlockChainInfo()
+	if err != nil {
+		return nil, err
+	}
+	chainTxStats, err := client.GetChainTxStats()
+	if err != nil {
+		return nil, err
+	}
+	insertInfo := &mutilchain.BlockchainInfo{
+		TotalTransactions: chainTxStats.TxCount,
+		BlockchainSize:    blockchainInfo.SizeOnDisk,
+		Difficulty:        blockchainInfo.Difficulty,
+	}
+	return insertInfo, nil
 }
 
 // GetBlockVerbose creates a *chainjson.GetBlockVerboseResult for the block index

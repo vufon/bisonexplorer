@@ -17,6 +17,7 @@ import (
 	"github.com/ltcsuite/ltcd/rpcclient"
 	"github.com/ltcsuite/ltcd/wire"
 
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
@@ -40,6 +41,11 @@ type VerboseBlockGetter interface {
 	GetBlockVerbose(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseResult, error)
 	GetBlockVerboseTx(blockHash *chainhash.Hash) (*btcjson.GetBlockVerboseTxResult, error)
 	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
+}
+
+type CoreBlockchain interface {
+	GetChainTxStats() (*btcjson.GetChainTxStatsResult, error)
+	GetBlockChainInfo() (*btcjson.GetBlockChainInfoResult, error)
 }
 
 type TxWithBlockData struct {
@@ -287,6 +293,23 @@ func GetBlockVerbose(client VerboseBlockGetter, idx int64) *btcjson.GetBlockVerb
 	}
 
 	return blockVerbose
+}
+
+func GetBlockchainInfo(client CoreBlockchain) (*mutilchain.BlockchainInfo, error) {
+	blockchainInfo, err := client.GetBlockChainInfo()
+	if err != nil {
+		return nil, err
+	}
+	chainTxStats, err := client.GetChainTxStats()
+	if err != nil {
+		return nil, err
+	}
+	insertInfo := &mutilchain.BlockchainInfo{
+		TotalTransactions: chainTxStats.TxCount,
+		BlockchainSize:    blockchainInfo.SizeOnDisk,
+		Difficulty:        blockchainInfo.Difficulty,
+	}
+	return insertInfo, nil
 }
 
 // GetBlockVerboseByHash creates a *chainjson.GetBlockVerboseResult for the

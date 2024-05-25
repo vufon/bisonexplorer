@@ -8784,6 +8784,17 @@ func (pgb *ChainDB) MutilchainGetTransactionCount(chainType string) int64 {
 	return txCount
 }
 
+func (pgb *ChainDB) MutilchainGetBlockchainInfo(chainType string) (*mutilchain.BlockchainInfo, error) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return btcrpcutils.GetBlockchainInfo(pgb.BtcCoreClient)
+	case mutilchain.TYPELTC:
+		return ltcrpcutils.GetBlockchainInfo(pgb.LtcCoreClient)
+	default:
+		return nil, fmt.Errorf("%s", "Get size and tx count error. Invalid chain type")
+	}
+}
+
 func (pgb *ChainDB) MutilchainGetTotalVoutsCount(chainType string) int64 {
 	txCount, err := RetrieveMutilchainVoutsCount(pgb.ctx, pgb.db, chainType)
 	if err != nil {

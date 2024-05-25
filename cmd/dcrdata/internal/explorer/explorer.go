@@ -155,6 +155,7 @@ type explorerDataSource interface {
 	MutilchainGetTransactionCount(chainType string) int64
 	MutilchainGetTotalVoutsCount(chainType string) int64
 	MutilchainGetTotalAddressesCount(chainType string) int64
+	MutilchainGetBlockchainInfo(chainType string) (*mutilchain.BlockchainInfo, error)
 }
 
 type PoliteiaBackend interface {
@@ -774,8 +775,26 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
 	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
 
-	difficulty := blockData.Header.Difficulty
+	totalTransactionCount := int64(0)
+	chainSize := int64(0)
+	difficulty := float64(0)
+	var chainErr error
+	var blockchainInfo *mutilchain.BlockchainInfo
+	//Get transactions total count
+	blockchainInfo, chainErr = exp.dataSource.MutilchainGetBlockchainInfo(mutilchain.TYPEBTC)
+	if chainErr != nil {
+		difficulty = blockData.Header.Difficulty
+		totalTransactionCount = exp.dataSource.MutilchainGetTransactionCount(mutilchain.TYPEBTC)
+		chainSize = blockData.ExtraInfo.BlockchainSize
+	} else {
+		totalTransactionCount = blockchainInfo.TotalTransactions
+		chainSize = blockchainInfo.BlockchainSize
+		difficulty = blockchainInfo.Difficulty
+	}
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+	//TODO: Open later
+	//totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPEBTC)
+	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPEBTC)
 
 	// Update pageData with block data and chain (home) info.
 	p := exp.btcPageData
@@ -790,7 +809,13 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
 	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
+	p.HomeInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
 	p.HomeInfo.Difficulty = difficulty
+	p.HomeInfo.TotalTransactions = totalTransactionCount
+	//p.HomeInfo.TotalOutputs = totalVoutsCount
+	//p.HomeInfo.TotalAddresses = totalAddressesCount
+	p.HomeInfo.TotalSize = chainSize
+	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
 	p.Unlock()
 	return nil
 }
@@ -813,13 +838,28 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
 	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
 
-	difficulty := blockData.Header.Difficulty
-	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
-
+	totalTransactionCount := int64(0)
+	chainSize := int64(0)
+	difficulty := float64(0)
+	var chainErr error
+	var blockchainInfo *mutilchain.BlockchainInfo
 	//Get transactions total count
-	totalTransactionCount := exp.dataSource.MutilchainGetTransactionCount(mutilchain.TYPELTC)
-	totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPELTC)
-	totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPELTC)
+
+	blockchainInfo, chainErr = exp.dataSource.MutilchainGetBlockchainInfo(mutilchain.TYPELTC)
+	if chainErr != nil {
+		difficulty = blockData.Header.Difficulty
+		totalTransactionCount = exp.dataSource.MutilchainGetTransactionCount(mutilchain.TYPELTC)
+		chainSize = blockData.ExtraInfo.BlockchainSize
+	} else {
+		totalTransactionCount = blockchainInfo.TotalTransactions
+		chainSize = blockchainInfo.BlockchainSize
+		difficulty = blockchainInfo.Difficulty
+	}
+
+	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+	//TODO: Open later
+	//totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPELTC)
+	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPELTC)
 
 	// Update pageData with block data and chain (home) info.
 	p := exp.ltcPageData
@@ -837,10 +877,10 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
 	p.HomeInfo.Difficulty = difficulty
 	p.HomeInfo.TotalTransactions = totalTransactionCount
-	p.HomeInfo.TotalOutputs = totalVoutsCount
-	p.HomeInfo.TotalAddresses = totalAddressesCount
-	p.HomeInfo.TotalSize = blockData.ExtraInfo.BlockchainSize
-	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(p.HomeInfo.TotalSize))
+	//p.HomeInfo.TotalOutputs = totalVoutsCount
+	//p.HomeInfo.TotalAddresses = totalAddressesCount
+	p.HomeInfo.TotalSize = chainSize
+	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
 	p.Unlock()
 	return nil
 }
