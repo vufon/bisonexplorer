@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/explorer"
 	"github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mutilchain"
@@ -49,8 +50,28 @@ type MempoolInfoData struct {
 	MempoolBlocks   []interface{} `json:"mempool-blocks"`
 }
 
+type MempoolMutilBlocksData struct {
+	Blocks          []interface{} `json:"blocks"`
+	MempoolBlocks   []interface{} `json:"mempool-blocks"`
+	MempoolInfo     interface{}   `json:"mempoolInfo"`
+	VBytesPerSecond int64         `json:"vBytesPerSecond"`
+	Fees            interface{}   `json:"fees"`
+	Da              interface{}   `json:"da"`
+}
+
+type MempoolSimpleBlocksData struct {
+	Block         interface{}   `json:"block"`
+	MempoolInfo   interface{}   `json:"mempoolInfo"`
+	Da            interface{}   `json:"da"`
+	Fees          interface{}   `json:"fees"`
+	MempoolBlocks []interface{} `json:"mempool-blocks"`
+}
+
 const (
 	MempoolInfoKey    = "mempoolInfo"
+	TransactionsKey   = "transactions"
+	SimpleBlockKey    = "block"
+	MutilBlockKey     = "blocks"
 	LitecoinSocketURL = "wss://litecoinspace.org/api/v1/ws"
 	BitcoinSocketURL  = "wss://mempool.space/api/v1/ws"
 )
@@ -251,60 +272,175 @@ func (sk *MutilchainInfoSocket) websocket() (websocketFeed, WebsocketProcessor) 
 
 func (sk *MutilchainInfoSocket) processWsMessage(raw []byte) {
 	if IsExistKey(raw, MempoolInfoKey) {
-		var response MempoolInfoData
-		parseErr := json.Unmarshal(raw, &response)
-		if parseErr != nil {
-			log.Printf("Parse %s websocket failed. %v", sk.ChainType, parseErr)
-			return
-		}
-		if sk.Exp == nil {
-			return
-		}
-		homeInfo := sk.getHomeInfo()
-		if homeInfo == nil {
-			return
-		}
-		//get mempool info
-		memInfoMap, err := ConvertInterfaceToMap(response.MempoolInfo)
-		if err != nil {
-			return
-		}
-		//Get Tx Count
-		txCount := ConvertAnyToInt(memInfoMap["size"])
-		//Get total fee
-		totalFee := sk.GetMutilchainTotalFee(memInfoMap, response.MempoolBlocks)
-		minFeeRatevB := math.MaxFloat64
-		maxFeeRatevB := float64(0)
-		size := int64(0)
-		for _, blockMempool := range response.MempoolBlocks {
-			blockMempoolMap, err := ConvertInterfaceToMap(blockMempool)
-			if err != nil {
-				continue
-			}
-			//Get blockSize
-			blockSize := ConvertAnyToInt(blockMempoolMap["blockSize"])
-			size += blockSize
-
-			//Fee range
-			feeRange := ConvertAnyToFloatArray(blockMempoolMap["feeRange"])
-			for _, fee := range feeRange {
-				if minFeeRatevB > fee {
-					minFeeRatevB = fee
-				}
-				if maxFeeRatevB < fee {
-					maxFeeRatevB = fee
-				}
-			}
-		}
-		homeInfo.TotalTransactions = txCount
-		homeInfo.TotalFee = totalFee
-		homeInfo.TotalSize = int32(size)
-		homeInfo.MinFeeRatevB = minFeeRatevB
-		homeInfo.MaxFeeRatevB = maxFeeRatevB
-		homeInfo.FormattedTotalSize = types.BytesString(uint64(size))
-		sk.UpdateMutilchainHomeInfo(homeInfo)
+		sk.HandlerMempoolInfoData(raw)
 	}
+	if IsExistKey(raw, SimpleBlockKey) {
+		sk.HandlerSimpleBlockData(raw)
+	}
+	if IsExistKey(raw, MutilBlockKey) {
+		sk.HandlerMutilBlocksData(raw)
+	}
+
 	sk.wsUpdated()
+}
+
+func (sk *MutilchainInfoSocket) HandlerSimpleBlockData(raw []byte) {
+	log.Printf("Start handler simple Block Data for %s", sk.ChainType)
+	var blockData MempoolSimpleBlocksData
+	parseErr := json.Unmarshal(raw, &blockData)
+	if parseErr != nil {
+		log.Printf("Parse %s for block websocket failed. %v", sk.ChainType, parseErr)
+		return
+	}
+
+	homeInfo := sk.getHomeInfo()
+	if homeInfo == nil {
+		return
+	}
+	blockMap, err := ConvertInterfaceToMap(blockData.Block)
+	if err != nil {
+		log.Printf("Check block map failed, %v", err)
+		return
+	}
+	homeInfo.LastBlockHash = ConvertAnyToString(blockMap["id"])
+	homeInfo.LastBlockHeight = ConvertAnyToInt(blockMap["height"])
+	homeInfo.LastBlockTime = ConvertAnyToInt(blockMap["timestamp"])
+	homeInfo.FormattedBlockTime = (types.TimeDef{T: time.Unix(homeInfo.LastBlockTime, 0)}).String()
+	extrasInfo, err := ConvertInterfaceToMap(blockMap["extras"])
+	if err != nil {
+		log.Printf("Convert to map failed: %v", err)
+		return
+	}
+	homeInfo.InputsCount = ConvertAnyToInt(extrasInfo["totalInputs"])
+	homeInfo.OutputsCount = ConvertAnyToInt(extrasInfo["totalOutputs"])
+	homeInfo.TotalOut = GetMutilchainUnitAmount(ConvertAnyToInt(extrasInfo["totalOutputAmt"]), sk.ChainType)
+	sk.UpdateMutilchainHomeInfo(homeInfo)
+}
+
+func (sk *MutilchainInfoSocket) HandlerMutilBlocksData(raw []byte) {
+	log.Printf("Start handler mutil Blocks Data for %s", sk.ChainType)
+	var blocksData MempoolMutilBlocksData
+	parseErr := json.Unmarshal(raw, &blocksData)
+	if parseErr != nil {
+		log.Printf("Parse %s for blocks websocket failed. %v", sk.ChainType, parseErr)
+		return
+	}
+	homeInfo := sk.getHomeInfo()
+	if homeInfo == nil {
+		return
+	}
+	blocks := blocksData.Blocks
+	totalInputs := int64(0)
+	totalOutpus := int64(0)
+	totalOut := float64(0)
+	for i := 0; i < len(blocks); i++ {
+		blockMap, err := ConvertInterfaceToMap(blocks[i])
+		if err != nil {
+			continue
+		}
+		//if is last block, save to homeinfo
+		if i == len(blocks)-1 {
+			homeInfo.LastBlockHash = ConvertAnyToString(blockMap["id"])
+			homeInfo.LastBlockHeight = ConvertAnyToInt(blockMap["height"])
+			homeInfo.LastBlockTime = ConvertAnyToInt(blockMap["timestamp"])
+			homeInfo.FormattedBlockTime = (types.TimeDef{T: time.Unix(homeInfo.LastBlockTime, 0)}).String()
+		}
+		//sum all info
+		extrasInfo, err := ConvertInterfaceToMap(blockMap["extras"])
+		if err != nil {
+			continue
+		}
+		totalInputs += ConvertAnyToInt(extrasInfo["totalInputs"])
+		totalOutpus += ConvertAnyToInt(extrasInfo["totalOutputs"])
+		totalOut += GetMutilchainUnitAmount(ConvertAnyToInt(extrasInfo["totalOutputAmt"]), sk.ChainType)
+	}
+	homeInfo.InputsCount = totalInputs
+	homeInfo.OutputsCount = totalOutpus
+	homeInfo.TotalOut = totalOut
+	sk.UpdateMutilchainHomeInfo(homeInfo)
+}
+
+func (sk *MutilchainInfoSocket) HandlerMempoolInfoData(raw []byte) {
+	var response MempoolInfoData
+	parseErr := json.Unmarshal(raw, &response)
+	if parseErr != nil {
+		log.Printf("Parse %s websocket failed. %v", sk.ChainType, parseErr)
+		return
+	}
+	if sk.Exp == nil {
+		return
+	}
+	homeInfo := sk.getHomeInfo()
+	if homeInfo == nil {
+		return
+	}
+	//get mempool info
+	memInfoMap, err := ConvertInterfaceToMap(response.MempoolInfo)
+	if err != nil {
+		return
+	}
+	//Get Tx Count
+	txCount := ConvertAnyToInt(memInfoMap["size"])
+	//Get total fee
+	totalFee := sk.GetMutilchainTotalFee(memInfoMap, response.MempoolBlocks)
+	minFeeRatevB := math.MaxFloat64
+	maxFeeRatevB := float64(0)
+	size := int64(0)
+	for _, blockMempool := range response.MempoolBlocks {
+		blockMempoolMap, err := ConvertInterfaceToMap(blockMempool)
+		if err != nil {
+			continue
+		}
+		//Get blockSize
+		blockSize := ConvertAnyToInt(blockMempoolMap["blockSize"])
+		size += blockSize
+
+		//Fee range
+		feeRange := ConvertAnyToFloatArray(blockMempoolMap["feeRange"])
+		for _, fee := range feeRange {
+			if minFeeRatevB > fee {
+				minFeeRatevB = fee
+			}
+			if maxFeeRatevB < fee {
+				maxFeeRatevB = fee
+			}
+		}
+	}
+
+	//handler transactions
+	txList := make([]types.MempoolTx, 0)
+	for _, txInfo := range response.Transactions {
+		txObjMap, err := ConvertInterfaceToMap(txInfo)
+		if err != nil {
+			continue
+		}
+		txId := ConvertAnyToString(txObjMap["txid"])
+		if txId == "" {
+			continue
+		}
+		insertTx := types.MempoolTx{
+			Hash:     txId,
+			TxID:     txId,
+			Fees:     GetMutilchainUnitAmount(ConvertAnyToInt(txObjMap["fee"]), sk.ChainType),
+			TotalOut: GetMutilchainUnitAmount(ConvertAnyToInt(txObjMap["value"]), sk.ChainType),
+			FeeRate:  ConvertAnyToFloat(txObjMap["rate"]),
+		}
+		txList = append(txList, insertTx)
+	}
+
+	sortedTxList := make([]types.MempoolTx, 0)
+	for i := len(txList) - 1; i >= 0; i-- {
+		sortedTxList = append(sortedTxList, txList[i])
+	}
+
+	homeInfo.TotalTransactions = txCount
+	homeInfo.TotalFee = totalFee
+	homeInfo.TotalSize = int32(size)
+	homeInfo.MinFeeRatevB = minFeeRatevB
+	homeInfo.MaxFeeRatevB = maxFeeRatevB
+	homeInfo.Transactions = sortedTxList
+	homeInfo.FormattedTotalSize = types.BytesString(uint64(size))
+	sk.UpdateMutilchainHomeInfo(homeInfo)
 }
 
 func (sk *MutilchainInfoSocket) GetFeeRatevB() (float64, float64) {
@@ -335,6 +471,17 @@ func (sk *MutilchainInfoSocket) GetLTCTotalFee(mempoolBlocks []interface{}) floa
 		totalFee += ConvertAnyToInt(blockMempoolMap["totalFees"])
 	}
 	return ltcutil.Amount(totalFee).ToBTC()
+}
+
+func GetMutilchainUnitAmount(intValue int64, chainType string) float64 {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return ltcutil.Amount(intValue).ToBTC()
+	case mutilchain.TYPEBTC:
+		return btcutil.Amount(intValue).ToBTC()
+	default:
+		return 0
+	}
 }
 
 func (sk *MutilchainInfoSocket) UpdateMutilchainHomeInfo(homeInfo *types.MutilchainMempoolInfo) {
@@ -370,6 +517,17 @@ func ConvertAnyToFloat(data any) float64 {
 	dataFlt, ok := data.(float64)
 	if !ok {
 		return 0
+	}
+	return dataFlt
+}
+
+func ConvertAnyToString(data any) string {
+	if data == nil {
+		return ""
+	}
+	dataFlt, ok := data.(string)
+	if !ok {
+		return ""
 	}
 	return dataFlt
 }

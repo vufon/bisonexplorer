@@ -591,6 +591,7 @@ type MutilchainMempoolInfo struct {
 	FormattedTotalSize string      `json:"formatted_size"`
 	Transactions       []MempoolTx `json:"tx"`
 	OutputsCount       int64       `json:"outputsCount"`
+	InputsCount        int64       `json:"inputsCount"`
 	TotalTransactions  int64       `json:"totalTransactions"`
 }
 

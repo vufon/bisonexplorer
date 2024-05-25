@@ -283,7 +283,7 @@
                               <div class="explore-card__values-content">
                                  {{with .Info -}}
                                  <div class="row">
-                                    <div class="col-24 col-md-8">
+                                    <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Exchange Rate</span>
                                           <div class="network-stats-content d-inline-block mt-4">
@@ -292,24 +292,24 @@
                                           </div>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-md-8">
+                                    <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Outputs</span><span class="network-stats-content d-inline-block mt-2">
                                           {{int64Comma .TotalOutputs}}
                                           </span>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-md-8">
+                                    <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          Transactions
+                                          Total Transactions
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
                                           {{int64Comma .TotalTransactions}}
                                           </span>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-md-8">
+                                    <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
                                           Addresses
@@ -319,7 +319,7 @@
                                           </span>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-md-8">
+                                    <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
                                           Coin Supply
@@ -334,7 +334,7 @@
                                           </div>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-md-8">
+                                    <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
                                           Blockchain Size
@@ -350,58 +350,84 @@
                            </div>
                         </div>
                         <!-- End Summary Card -->
-                        <!-- Start Mining Card -->
+                        <!-- Start Mempool Card -->
                         <div class="explore-card-wrap mt-3">
                            <div class="explore-card-content">
-                              <div class="explore-card__header bg-for-header">
-                                 <span class="dcricon-pickaxe explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
-                                 <div class="explore-card__header__text ml-15">
-                                    <h5 class="explore-card__header__text__name"> Mining </h5>
-                                    <div class="explore-card__header__text__price">
-                                       <div class="price-wrap d-flex ai-center">
-                                          <span class="price-usd fs-13">Mining and Rewards information</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                              </div>
-                              <div class="explore-card__values-content">
-                                 {{with .Info -}}
-                                 <div class="row justify-content-between">
-                                    <div class="col-24 col-sm-12">
-                                       <div class="network-stats-block">
-                                          <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=pow-difficulty">
-                                          Difficulty</a>
-                                          </span>
-                                          <div class="network-stats-content d-inline-block mt-4" data-homepage-target="difficulty">
-                                             {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty 1.0) 0 true)}}
+                              <a href='/chain/{{$ChainType}}/mempool' class="link-to-subpage">
+                                 <div class="explore-card__header">
+                                    <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
+                                    <div class="explore-card__header__text ml-15">
+                                       <h5 class="explore-card__header__text__name"> Mempool </h5>
+                                       <span class="explore-card__header__arrow">
+                                       <span class='the-arrow -right'>
+                                       <span class='shaft'></span>
+                                       </span>
+                                       </span>
+                                       <div class="explore-card__header__text__price">
+                                          <div class="price-wrap d-flex ai-center">
+                                             <span class="price-usd fs-13">Block list and details</span>
                                           </div>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-sm-12">
+                                 </div>
+                              </a>
+                              <div class="explore-card__values-content">
+                                 {{with .MempoolInfo -}}
+                                 <div class="row justify-content-between">
+                                    <div class="col-24 col-sm-12 col-md-8">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Transactions</span>
+                                          <span class="network-stats-content d-inline-block mt-4" id="txCount">
+                                          {{int64Comma .TotalTransactions}}
+                                          </span>
+                                       </p>
+                                    </div>
+                                     <div class="col-24 col-sm-12 col-md-8">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Processing Outputs</span>
+                                          <span class="network-stats-content d-inline-block mt-4" id="txOutCount">
+                                          {{int64Comma .OutputsCount}}
+                                          </span>
+                                       </p>
+                                    </div>
+                                     <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
-                                          <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=hashrate">
-                                          Hashrate
-                                          </a>
-                                          </span>
-                                          <span class="network-stats-content d-inline-block mt-2">
-                                             <div data-homepage-target="hashrate" class="d-inline-block">
-                                                {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
-                                             </div>
-                                             <span class="info-line-2-sub">{{hashratePostfix .HashRate}}</span>
-                                          </span>
-                                          <span class="stats-subinfo">
-                                          <span data-homepage-target="hashrateDelta">{{template "fmtPercentage" .HashRateChangeMonth}}</span> in past 30 days
-                                          </span>
+                                          <span class="network-stats-title">Total Sent</span>
+                                          <div class="network-stats-content d-inline-block mt-4" id="totalSent">
+                                             {{template "decimalParts" (float64AsDecimalParts .TotalOut 8 false)}}
+                                          </div>
                                        </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">Fee Total</span>
+                                          <div class="network-stats-content d-inline-block mt-4" id="totalFee">
+                                             {{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12 col-md-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">Fee span</span>
+                                          <div class="network-stats-content d-inline-block mt-4 fs-18">
+                                          <span id="minFeeRate">{{template "decimalParts" (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> - 
+                                          <span id="maxFeeRate">{{template "decimalParts" (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
+                                          {{if eq $ChainType "ltc"}}lit{{else}}sat{{end}}/vB
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12 col-md-8">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Size</span>
+                                          <span id="totalSize" class="network-stats-content d-inline-block mt-4">{{.FormattedTotalSize}}</span>
+                                       </p>
                                     </div>
                                  </div>
                                  {{end}}
                               </div>
                            </div>
                         </div>
-                        <!-- End Mining Card -->
+                        <!-- End Mempool Card -->
                      </div>
                      <div class="info-right-card">
                         <!-- Start Blocks Card -->
@@ -464,68 +490,58 @@
                            </div>
                         </div>
                         <!-- End Blocks Card -->
-                        <!-- Start Mempool Card -->
+                         <!-- Start Mining Card -->
                         <div class="explore-card-wrap mt-3">
                            <div class="explore-card-content">
-                              <a href='/chain/{{$ChainType}}/mempool' class="link-to-subpage">
-                                 <div class="explore-card__header">
-                                    <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
-                                    <div class="explore-card__header__text ml-15">
-                                       <h5 class="explore-card__header__text__name"> Mempool </h5>
-                                       <span class="explore-card__header__arrow">
-                                       <span class='the-arrow -right'>
-                                       <span class='shaft'></span>
-                                       </span>
-                                       </span>
-                                       <div class="explore-card__header__text__price">
-                                          <div class="price-wrap d-flex ai-center">
-                                             <span class="price-usd fs-13">Block list and details</span>
-                                          </div>
+                              <div class="explore-card__header bg-for-header">
+                                 <span class="dcricon-pickaxe explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
+                                 <div class="explore-card__header__text ml-15">
+                                    <h5 class="explore-card__header__text__name"> Mining </h5>
+                                    <div class="explore-card__header__text__price">
+                                       <div class="price-wrap d-flex ai-center">
+                                          <span class="price-usd fs-13">Mining and Rewards information</span>
                                        </div>
                                     </div>
                                  </div>
-                              </a>
+                              </div>
                               <div class="explore-card__values-content">
-                                 {{with .MempoolInfo -}}
+                                 {{with .Info -}}
                                  <div class="row justify-content-between">
-                                    <div class="col-12">
-                                       <p class="network-stats-block">
-                                          <span class="network-stats-title">Transactions</span>
-                                          <span class="network-stats-content d-inline-block mt-4" id="txCount">
-                                          {{int64Comma .TotalTransactions}}
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=pow-difficulty">
+                                          Difficulty</a>
                                           </span>
-                                       </p>
-                                    </div>
-                                    <div class="col-12">
-                                       <div class="network-stats-block">
-                                          <span class="network-stats-title">Fee Total</span>
-                                          <div class="network-stats-content d-inline-block mt-4" id="totalFee">
-                                             {{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}
+                                          <div class="network-stats-content d-inline-block mt-4" data-homepage-target="difficulty">
+                                             {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty 1.0) 0 true)}}
                                           </div>
                                        </div>
                                     </div>
-                                    <div class="col-12">
+                                    <div class="col-24 col-sm-12">
                                        <div class="network-stats-block">
-                                          <span class="network-stats-title">Fee span</span>
-                                          <div class="network-stats-content d-inline-block mt-4 fs-18">
-                                          <span id="minFeeRate">{{template "decimalParts" (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> - 
-                                          <span id="maxFeeRate">{{template "decimalParts" (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
-                                          {{if eq $ChainType "ltc"}}lit{{else}}sat{{end}}/vB
-                                          </div>
+                                          <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=hashrate">
+                                          Hashrate
+                                          </a>
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-2">
+                                             <div data-homepage-target="hashrate" class="d-inline-block">
+                                                {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
+                                             </div>
+                                             <span class="info-line-2-sub">{{hashratePostfix .HashRate}}</span>
+                                          </span>
+                                          <span class="stats-subinfo">
+                                          <span data-homepage-target="hashrateDelta">{{template "fmtPercentage" .HashRateChangeMonth}}</span> in past 30 days
+                                          </span>
                                        </div>
-                                    </div>
-                                    <div class="col-12">
-                                       <p class="network-stats-block">
-                                          <span class="network-stats-title">Size</span>
-                                          <span id="totalSize" class="network-stats-content d-inline-block mt-4">{{.FormattedTotalSize}}</span>
-                                       </p>
                                     </div>
                                  </div>
                                  {{end}}
                               </div>
                            </div>
                         </div>
-                        <!-- End Mempool Card -->
+                        <!-- End Mining Card -->
                      </div>
                   </div>
                   <!-- Start Chain Charts -->
@@ -752,58 +768,72 @@
    {{end}}
    <script src="/js/action/action_common.js"></script>
    <script>
-   const ltcHostname = 'litecoinspace.org'
-   const btcHostname = 'mempool.space'
-   const chainType = {{$ChainType}}
-   const wsHostName = chainType === 'ltc' ? ltcHostname : btcHostname
-   const init = async () => {    
-        const { bitcoin: { websocket } } = mempoolJS({
-          hostname: wsHostName
-        });
-
-        const ws = websocket.initClient({
-          options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart'],
-        });
-
-        ws.addEventListener('message', function incoming({data}) {
-          const res = JSON.parse(data.toString());
-          if (res.mempoolInfo) {
+const ltcHostname = 'litecoinspace.org'
+const btcHostname = 'mempool.space'
+const chainType = {{$ChainType}}
+const wsHostName = chainType === 'ltc' ? ltcHostname : btcHostname
+const init = async () => {
+    const {bitcoin: {websocket}} = mempoolJS({
+        hostname: wsHostName
+    });
+    const ws = websocket.initClient({
+        options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart'],
+    });
+    ws.addEventListener('message', function incoming({data}) {
+        const res = JSON.parse(data.toString());
+        if (res.mempoolInfo) {
             $("#txCount").html(decimalParts(res.mempoolInfo.size, true, 0))
             if (chainType === 'btc') {
-               $("#totalFee").html(decimalParts(res.mempoolInfo.total_fee, false, 8, 2))
+                $("#totalFee").html(decimalParts(res.mempoolInfo.total_fee, false, 8, 2))
             }
-          }
-          if (res["mempool-blocks"]) {
-         let totalSize = 0
-        let ltcTotalFee = 0
-        let minFeeRatevB = Number.MAX_VALUE
-        let maxFeeRatevB = 0
-        res["mempool-blocks"].forEach(memBlock => {
-          totalSize += memBlock.blockSize
-          if (chainType === 'ltc') {
-            ltcTotalFee += memBlock.totalFees
-          }
-          if (memBlock.feeRange) {
-            memBlock.feeRange.forEach(feevB => {
-              if (minFeeRatevB > feevB) {
-                minFeeRatevB = feevB
-              }
-              if (maxFeeRatevB < feevB) {
-                maxFeeRatevB = feevB
-              }
-            })
-          }
-        })
-        if (chainType === 'ltc') {
-          $("#totalFee").html(decimalParts(ltcTotalFee / 1e8, false, 8, 2))
         }
-        $("#minFeeRate").html(decimalParts(minFeeRatevB, true, 0))
-        $("#maxFeeRate").html(decimalParts(maxFeeRatevB, true, 0))
-        $("#totalSize").html(bytes(totalSize))
+        if (res["mempool-blocks"]) {
+            let totalSize = 0
+            let ltcTotalFee = 0
+            let minFeeRatevB = Number.MAX_VALUE
+            let maxFeeRatevB = 0
+            res["mempool-blocks"].forEach(memBlock => {
+                totalSize += memBlock.blockSize
+                if (chainType === 'ltc') {
+                    ltcTotalFee += memBlock.totalFees
+                }
+                if (memBlock.feeRange) {
+                    memBlock.feeRange.forEach(feevB => {
+                        if (minFeeRatevB > feevB) {
+                            minFeeRatevB = feevB
+                        }
+                        if (maxFeeRatevB < feevB) {
+                            maxFeeRatevB = feevB
+                        }
+                    })
+                }
+            })
+            if (chainType === 'ltc') {
+                $("#totalFee").html(decimalParts(ltcTotalFee / 1e8, false, 8, 2))
+            }
+            $("#minFeeRate").html(decimalParts(minFeeRatevB, true, 0))
+            $("#maxFeeRate").html(decimalParts(maxFeeRatevB, true, 0))
+            $("#totalSize").html(bytes(totalSize))
+        }
+          if (res.block) {
+             const extras = res.block.extras
+             $("#txOutCount").html(decimalParts(extras.totalOutputs, true, 0))
+             $("#totalSent").html(decimalParts(extras.totalOutputAmt / 1e8, false, 8, 2))
           }
-        });
-      };
-      init();
+          if (res.blocks) {
+            let txOutCount = 0
+            let totalSent = 0
+             res.blocks.forEach(block => {
+                  const extras = block.extras
+                  txOutCount += extras.totalOutputs
+                  totalSent += extras.totalOutputAmt
+             })
+            $("#txOutCount").html(decimalParts(txOutCount, true, 0))
+            $("#totalSent").html(decimalParts(totalSent / 1e8, false, 8, 2))
+          }
+    });
+};
+init();
    </script>
    {{  template "footer_embed" . }}
    </body>
