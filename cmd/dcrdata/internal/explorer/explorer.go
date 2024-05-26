@@ -248,14 +248,14 @@ type pageData struct {
 	HomeInfo       *types.HomeInfo
 }
 
-type btcPageData struct {
+type BtcPageData struct {
 	sync.RWMutex
 	BlockInfo      *types.BlockInfo
 	BlockchainInfo *btcjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
 }
 
-type ltcPageData struct {
+type LtcPageData struct {
 	sync.RWMutex
 	BlockInfo      *types.BlockInfo
 	BlockchainInfo *ltcjson.GetBlockChainInfoResult
@@ -276,8 +276,8 @@ type ExplorerUI struct {
 	templates        templates
 	WsHub            *WebsocketHub
 	pageData         *pageData
-	btcPageData      *btcPageData
-	ltcPageData      *ltcPageData
+	BtcPageData      *BtcPageData
+	LtcPageData      *LtcPageData
 	ChainParams      *chaincfg.Params
 	BtcChainParams   *btcchaincfg.Params
 	LtcChainParams   *ltcchaincfg.Params
@@ -436,7 +436,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		},
 	}
 
-	exp.btcPageData = &btcPageData{
+	exp.BtcPageData = &BtcPageData{
 		BlockInfo: new(types.BlockInfo),
 		HomeInfo: &types.HomeInfo{
 			Params: types.ChainParams{
@@ -445,7 +445,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		},
 	}
 
-	exp.ltcPageData = &ltcPageData{
+	exp.LtcPageData = &LtcPageData{
 		BlockInfo: new(types.BlockInfo),
 		HomeInfo: &types.HomeInfo{
 			Params: types.ChainParams{
@@ -797,7 +797,7 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPEBTC)
 
 	// Update pageData with block data and chain (home) info.
-	p := exp.btcPageData
+	p := exp.BtcPageData
 	p.Lock()
 
 	// Store current block and blockchain data.
@@ -862,7 +862,7 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPELTC)
 
 	// Update pageData with block data and chain (home) info.
-	p := exp.ltcPageData
+	p := exp.LtcPageData
 	p.Lock()
 
 	// Store current block and blockchain data.

@@ -8,11 +8,12 @@ function isCorrectVal (value) {
 
 export default class extends Controller {
   static get targets () {
-    return ['age', 'blocktime', 'header']
+    return ['age', 'blocktime', 'header', 'duration']
   }
 
   connect () {
     this.startAgeRefresh()
+    this.startDurationRefresh()
     this.processBlock = this._processBlock.bind(this)
     this.targetBlockTime = parseInt(document.getElementById('navBar').dataset.blocktime)
     if (this.hasBlocktimeTarget) {
@@ -27,6 +28,7 @@ export default class extends Controller {
 
   disconnect () {
     this.stopAgeRefresh()
+    this.stopDurationRefresh()
     if (this.hasBlocktimeTarget) {
       globalEventBus.off('BLOCK_RECEIVED', this.processBlock)
     }
@@ -48,10 +50,32 @@ export default class extends Controller {
     }, 10 * 1000)
   }
 
+  startDurationRefresh () {
+    setTimeout(() => {
+      this.setDurations()
+    })
+    this.durationRefreshTimer = setInterval(() => {
+      this.setDurations()
+    }, 10 * 1000)
+  }
+
   stopAgeRefresh () {
     if (this.ageRefreshTimer) {
       clearInterval(this.ageRefreshTimer)
     }
+  }
+
+  stopDurationRefresh () {
+    if (this.durationRefreshTimer) {
+      clearInterval(this.durationRefreshTimer)
+    }
+  }
+
+  setDurations () {
+    if (!this.hasDurationTarget) return
+    this.durationTargets.forEach((el) => {
+      el.textContent = humanize.timeDuration(el.dataset.duration)
+    })
   }
 
   setAges () {

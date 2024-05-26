@@ -355,15 +355,15 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		var homeInfo *types.HomeInfo
 		switch chainType {
 		case mutilchain.TYPEBTC:
-			exp.btcPageData.RLock()
+			exp.BtcPageData.RLock()
 			// Get fiat conversions if available
-			homeInfo = exp.btcPageData.HomeInfo
-			exp.btcPageData.RUnlock()
+			homeInfo = exp.BtcPageData.HomeInfo
+			exp.BtcPageData.RUnlock()
 		case mutilchain.TYPELTC:
-			exp.ltcPageData.RLock()
+			exp.LtcPageData.RLock()
 			// Get fiat conversions if available
-			homeInfo = exp.ltcPageData.HomeInfo
-			exp.ltcPageData.RUnlock()
+			homeInfo = exp.LtcPageData.HomeInfo
+			exp.LtcPageData.RUnlock()
 		default:
 			exp.pageData.RLock()
 			homeInfo = exp.pageData.HomeInfo
@@ -438,15 +438,15 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	var homeInfo *types.HomeInfo
 	switch chainType {
 	case mutilchain.TYPEBTC:
-		exp.btcPageData.RLock()
+		exp.BtcPageData.RLock()
 		// Get fiat conversions if available
-		homeInfo = exp.btcPageData.HomeInfo
-		exp.btcPageData.RUnlock()
+		homeInfo = exp.BtcPageData.HomeInfo
+		exp.BtcPageData.RUnlock()
 	case mutilchain.TYPELTC:
-		exp.ltcPageData.RLock()
+		exp.LtcPageData.RLock()
 		// Get fiat conversions if available
-		homeInfo = exp.ltcPageData.HomeInfo
-		exp.ltcPageData.RUnlock()
+		homeInfo = exp.LtcPageData.HomeInfo
+		exp.LtcPageData.RUnlock()
 	default:
 		exp.pageData.RLock()
 		homeInfo = exp.pageData.HomeInfo

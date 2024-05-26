@@ -115,6 +115,56 @@ function bytes (s) { // from go-humanize
   return round(val, precision) + ' ' + suffix
 }
 
+function timeDuration (duration, keepOnly) {
+  const seconds = duration / 1000
+  let interval = Math.floor(seconds / 31536000)
+  if (interval >= 1) {
+    const extra = Math.floor((seconds - interval * 31536000) / 2628000)
+    let result = interval + 'y'
+    if (extra > 0 && keepOnly !== 'years') {
+      result = result + ' ' + parseInt(extra) + 'mo'
+    }
+    return result
+  }
+  interval = Math.floor(seconds / 2628000)
+  if (interval >= 1) {
+    const extra = Math.floor((seconds - interval * 2628000) / 86400)
+    let result = interval + 'mo'
+    if (extra > 0 && keepOnly !== 'months') {
+      result = result + ' ' + parseInt(extra) + 'd'
+    }
+    return result
+  }
+  interval = Math.floor(seconds / 86400)
+  if (interval >= 1) {
+    const extra = Math.floor((seconds - interval * 86400) / 3600)
+    let result = interval + 'd'
+    if (extra > 0 && keepOnly !== 'days') {
+      result = result + ' ' + parseInt(extra) + 'h'
+    }
+    return result
+  }
+  interval = Math.floor(seconds / 3600)
+  if (interval >= 1) {
+    const extra = Math.floor((seconds - interval * 3600) / 60)
+    let result = interval + 'h'
+    if (extra > 0) {
+      result = result + ' ' + parseInt(extra) + 'm'
+    }
+    return result
+  }
+  interval = Math.floor(seconds / 60)
+  if (interval >= 1) {
+    const extra = seconds - interval * 60
+    let result = parseInt(interval) + 'm'
+    if (extra > 0) {
+      result = result + ' ' + parseInt(extra) + 's'
+    }
+    return result
+  }
+  return parseInt(Math.floor(seconds)) + 's'
+}
+
 function timeSince (unixTime, keepOnly) {
   const seconds = Math.floor(((new Date().getTime() / 1000) - unixTime))
   let interval = Math.floor(seconds / 31536000)

@@ -348,6 +348,12 @@
                                           </span>
                                        </div>
                                     </div>
+                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <p class="network-stats-block">
+                                          <span class="network-stats-title">Average Block Time</span>
+                                          <span class="network-stats-content d-inline-block mt-4" data-type="duration" class="jsonly" data-time-target="duration" id="blockTimeAvg" data-duration="{{.BlockTimeAvg}}" id="blockTimeAvg">0</span>
+                                    </p>
+                                    </div>
                                  </div>
                                  {{end}}
                               </div>
@@ -535,9 +541,32 @@
                                              </div>
                                              <span class="info-line-2-sub">{{hashratePostfix .HashRate}}</span>
                                           </span>
-                                          <span class="stats-subinfo">
-                                          <span data-homepage-target="hashrateDelta">{{template "fmtPercentage" .HashRateChangeMonth}}</span> in past 30 days
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                           Remaining Blocks
                                           </span>
+                                          <div class="network-stats-content d-inline-block mt-2">
+                                             <span id="remainingBlocks">{{int64Comma .RemainingBlocks}}</span>
+                                             <span class="stats-subinfo">
+                                             In ~<span data-type="duration" class="jsonly" id="timeRemaning" data-time-target="duration" data-duration="{{.TimeRemaining}}">0</span>
+                                             </span>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                           Difficulty Change
+                                          </span>
+                                          <div class="network-stats-content d-inline-block mt-2">
+                                             <span id="diffChange">{{threeSigFigs .DifficultyChange}}</span> %
+                                              <span class="stats-subinfo">
+                                                Previous: <span id="prevRetarget">{{threeSigFigs .PreviousRetarget}}</span> %
+                                             </span>
+                                          </div>
                                        </div>
                                     </div>
                                  </div>
@@ -772,11 +801,9 @@
    {{end}}
    <script src="/js/action/action_common.js"></script>
    <script>
-const ltcHostname = 'litecoinspace.org'
-const btcHostname = 'mempool.space'
-const chainType = {{$ChainType}}
-const wsHostName = chainType === 'ltc' ? ltcHostname : btcHostname
-const init = async () => {
+var chainType = {{$ChainType}}
+var wsHostName = chainType === 'ltc' ? ltcHostname : btcHostname
+var init = async () => {
     const {bitcoin: {websocket}} = mempoolJS({
         hostname: wsHostName
     });
@@ -834,7 +861,19 @@ const init = async () => {
              })
             $("#txOutCount").html(decimalParts(txOutCount, true, 0))
             $("#totalSent").html(decimalParts(totalSent / 1e8, false, 8, 2))
-          }
+         }
+         if (res.da) {
+            const diffChange = res.da.difficultyChange
+            const prevRetarget = res.da.previousRetarget
+            const remainingBlocks = res.da.remainingBlocks
+            const timeRemaining = res.da.remainingTime
+            const timeAvg = res.da.timeAvg
+            $("#diffChange").html(decimalParts(diffChange, false, 2, 0))
+            $("#prevRetarget").html(threeSigFigs(prevRetarget))
+            $("#remainingBlocks").html(decimalParts(remainingBlocks, true, 0))
+            $("#timeRemaning").attr("data-duration", timeRemaining)
+            $("#blockTimeAvg").attr("data-duration", timeAvg)
+         }
     });
 };
 init();

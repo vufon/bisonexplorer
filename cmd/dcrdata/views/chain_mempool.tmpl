@@ -138,11 +138,9 @@
    {{end}}
    <script src="/js/action/action_common.js"></script>
    <script>
-const ltcHostname = 'litecoinspace.org'
-const btcHostname = 'mempool.space'
-const chainType = {{$ChainType}}
-const wsHostName = chainType === 'ltc' ? ltcHostname : btcHostname
-const init = async () => {
+var chainType = {{$ChainType}}
+var wsHostName = chainType === 'ltc' ? ltcHostname : btcHostname
+var init = async () => {
     const {bitcoin: {websocket}} = mempoolJS({
         hostname: wsHostName
     });

@@ -531,6 +531,11 @@ type HomeInfo struct {
 	HashRateChangeDay     float64                  `json:"hash_rate_change_day"`
 	HashRateChangeMonth   float64                  `json:"hash_rate_change_month"`
 	ExchangeRate          *Conversion              `json:"exchange_rate,omitempty"`
+	DifficultyChange      float64                  `json:"difficultyChange"`
+	PreviousRetarget      float64                  `json:"previousRetarget"`
+	RemainingBlocks       int64                    `json:"remainingBlocks"`
+	TimeRemaining         int64                    `json:"timeRemaining"`
+	BlockTimeAvg          int64                    `json:"blockTimeAvg"`
 }
 
 type MutilchainHomeInfo struct {
