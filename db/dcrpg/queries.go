@@ -3915,7 +3915,7 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 	return nil
 }
 
-func appendChartLTCBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) error {
+func appendMutilchainChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) error {
 	defer closeRows(rows)
 
 	var count, size, height uint64

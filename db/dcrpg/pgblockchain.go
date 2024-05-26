@@ -1097,11 +1097,11 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 	})
 }
 
-func (pgb *ChainDB) RegisterLTCCharts(charts *cache.MutilchainChartData) {
+func (pgb *ChainDB) RegisterMutilchainCharts(charts *cache.MutilchainChartData) {
 	charts.AddUpdater(cache.ChartMutilchainUpdater{
 		Tag:      "basic blocks",
 		Fetcher:  pgb.chartMutilchainBlocks,
-		Appender: appendChartLTCBlocks,
+		Appender: appendMutilchainChartBlocks,
 	})
 
 	charts.AddUpdater(cache.ChartMutilchainUpdater{

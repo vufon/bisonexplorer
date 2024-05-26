@@ -50,7 +50,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.77f0f74017ca1f24.css" rel="stylesheet">
+	<link href="/dist/css/style.9bc6dcc56f1c4bbe.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 	<script>
@@ -66,14 +66,15 @@
    <div class="container d-flex justify-content-between align-items-center my-1">
       <div class="d-flex ai-center">
 	  <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
-	   <select
-                                 class="chart-box d-inline-flex ms-3"
+	   						<select
+                                 class="chart-box d-inline-flex ms-3 coin-select-box"
 								 data-scroll-target="coinSelect"
+								 id="coinSelect"
                                  data-action="change->scroll#changeCoin"
                                  >
-                                 <option name="dcr" value="dcr">Decred (DCR)</option>
-                                 <option name="btc" value="btc">Bitcoin (BTC)</option>
-								 <option name="ltc" value="ltc">Litecoin (LTC)</option>
+                                 <option name="dcr" value="dcr" data-src="/images/decred_logo.png">Decred (DCR)</option>
+                                 <option name="btc" value="btc" data-src="/images/bitcoin.png">Bitcoin (BTC)</option>
+								 <option name="ltc" value="ltc" data-src="/images/litecoin.png">Litecoin (LTC)</option>
                               </select>
 	  </div>
 	  <form
@@ -332,13 +333,14 @@
       <div class="d-flex ai-center">
 	  	  <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
 	                    <select
-                                 class="chart-box d-inline-flex ms-3"
-								  data-scroll-target="coinSelect"
+                                 class="chart-box d-inline-flex ms-3 coin-select-box"
+								data-scroll-target="coinSelect"
+								id="coinSelect"
                                  data-action="change->scroll#changeCoin"
                                  >
-                                 <option name="dcr" value="dcr">Decred (DCR)</option>
-                                 <option name="btc" value="btc">Bitcoin (BTC)</option>
-								 <option name="btc" value="ltc">Litecoin (LTC)</option>
+                                  <option name="dcr" value="dcr" data-src="/images/decred_logo.png">Decred (DCR)</option>
+                                 <option name="btc" value="btc" data-src="/images/bitcoin.png">Bitcoin (BTC)</option>
+								 <option name="ltc" value="ltc" data-src="/images/litecoin.png">Litecoin (LTC)</option>
                               </select>
 	  </div>
 	  <form

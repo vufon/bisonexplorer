@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
@@ -427,6 +428,23 @@ func NewLTCChartData(ctx context.Context, height uint32, chainParams *ltcchaincf
 		updaters:        make([]ChartMutilchainUpdater, 0),
 		TimePerBlocks:   float64(chainParams.TargetTimePerBlock),
 		ChainType:       mutilchain.TYPELTC,
+		LastBlockHeight: lastBlockHeight,
+	}
+}
+
+func NewBTCChartData(ctx context.Context, height uint32, chainParams *btcchaincfg.Params, lastBlockHeight int64) *MutilchainChartData {
+	genesis := chainParams.GenesisBlock.Header.Timestamp
+	size := int(height * 5 / 4)
+	days := int(time.Since(genesis)/time.Hour/24)*5/4 + 1 // at least one day
+
+	return &MutilchainChartData{
+		ctx:             ctx,
+		Blocks:          newBlockSet(size),
+		Days:            newDaySet(days),
+		cache:           make(map[string]*cachedChart),
+		updaters:        make([]ChartMutilchainUpdater, 0),
+		TimePerBlocks:   float64(chainParams.TargetTimePerBlock),
+		ChainType:       mutilchain.TYPEBTC,
 		LastBlockHeight: lastBlockHeight,
 	}
 }

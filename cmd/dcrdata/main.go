@@ -1369,9 +1369,9 @@ func _main(ctx context.Context) error {
 			}
 			ltcHeightFromDB = 0
 		}
-
+		//start handler ltc chart data
 		ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain, int64(ltcHeight))
-		chainDB.RegisterLTCCharts(ltcCharts)
+		chainDB.RegisterMutilchainCharts(ltcCharts)
 
 		explore.LtcChartSource = ltcCharts
 		app.LtcCharts = ltcCharts
@@ -1381,6 +1381,7 @@ func _main(ctx context.Context) error {
 		}
 		// Dump the cache charts data into a file for future use on system exit.
 		defer ltcCharts.Dump(ltcDumpPath)
+		//finish handler ltc chart data
 		ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightFromDB)
 		if ltcBlocksBehind < 0 {
 			return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
@@ -1546,6 +1547,19 @@ func _main(ctx context.Context) error {
 			}
 			btcHeightFromDB = 0
 		}
+		//start handler btc chart data
+		btcCharts := cache.NewBTCChartData(ctx, uint32(btcHeightFromDB), btcActiveChain, int64(btcHeight))
+		chainDB.RegisterMutilchainCharts(btcCharts)
+
+		explore.BtcChartSource = btcCharts
+		app.BtcCharts = btcCharts
+		btcDumpPath := filepath.Join(cfg.DataDir, cfg.BTCChartsCacheDump)
+		if err = btcCharts.Load(btcDumpPath); err != nil {
+			log.Warnf("Failed to load charts data cache: %v", err)
+		}
+		// Dump the cache charts data into a file for future use on system exit.
+		defer btcCharts.Dump(btcDumpPath)
+		//finish handler btc chart data
 		btcBlocksBehind := int64(btcHeight) - int64(btcHeightFromDB)
 		if btcBlocksBehind < 0 {
 			return fmt.Errorf("BTC Node is still syncing. Node height = %d, "+

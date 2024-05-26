@@ -304,7 +304,9 @@
                                     <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=tx-count">
                                           Total Transactions
+                                          </a>
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
                                           {{int64Comma .TotalTransactions}}
@@ -326,7 +328,9 @@
                                     <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
+                                           <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=coin-supply">
                                           Coin Supply
+                                          </a>
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-2">
                                              {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 false)}} {{toUpperCase $ChainType}}
@@ -341,7 +345,9 @@
                                     <div class="col-24 col-sm-12 col-md-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=blockchain-size">
                                           Blockchain Size
+                                          </a>
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
                                           {{.FormattedSize}}
@@ -386,7 +392,11 @@
                                  <div class="row justify-content-between">
                                     <div class="col-24 col-sm-12 col-md-8">
                                        <p class="network-stats-block">
-                                          <span class="network-stats-title">Transactions</span>
+                                          <span class="network-stats-title">
+                                           <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=mempool-txs">
+                                          Transactions
+                                          </a>
+                                          </span>
                                           <span class="network-stats-content d-inline-block mt-4" id="txCount">
                                           {{int64Comma .TotalTransactions}}
                                           </span>
@@ -428,7 +438,11 @@
                                     </div>
                                     <div class="col-24 col-sm-12 col-md-8">
                                        <p class="network-stats-block">
-                                          <span class="network-stats-title">Size</span>
+                                          <span class="network-stats-title">
+                                           <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=mempool-size">
+                                          Size
+                                          </a>
+                                          </span>
                                           <span id="totalSize" class="network-stats-content d-inline-block mt-4">{{.FormattedTotalSize}}</span>
                                        </p>
                                     </div>
