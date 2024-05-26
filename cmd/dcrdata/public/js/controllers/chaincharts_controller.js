@@ -397,25 +397,52 @@ export default class extends Controller {
         d = zip2D(data, data.size)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', true, false))
         break
-
       case 'blockchain-size': // blockchain size graph
         d = zip2D(data, data.size)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Blockchain Size'], true,
           'Blockchain Size', false, true))
         break
-
       case 'tx-count': // tx per block graph
         d = zip2D(data, data.count)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Number of Transactions'], false,
-          '# of Transactions', false, false))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Transactions'], false,
+          'Total Transactions', false, false))
         break
-
+      case 'tx-per-block': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg TXs Per Block'], false,
+          'Avg TXs Per Block', false, false))
+        break
+      case 'mined-blocks': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mined Blocks'], false,
+          'Mined Blocks', false, false))
+        break
+      case 'mempool-txs': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mempool Transactions'], false,
+          'Mempool Transactions', false, false))
+        break
+      case 'mempool-size': // blockchain size graph
+        d = zip2D(data, data.size)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mempool Size'], true,
+          'Mempool Size', false, true))
+        break
+      case 'address-number': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Active Addresses'], false,
+          'Active Addresses', false, false))
+        break
       case 'pow-difficulty': // difficulty graph
         d = powDiffFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
         break
-
       case 'coin-supply': // supply graph
+        if (this.settings.bin === 'day') {
+          d = zip2D(data, data.supply)
+          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply'], false,
+            'Coins Supply', false, false))
+          break
+        }
         d = circulationFunc(data)
         assign(gOptions, mapDygraphOptions(d.data, [xlabel, 'Coin Supply', 'Inflation Limit', 'Mix Rate'],
           true, 'Coin Supply (' + this.chainType.toUpperCase() + ')', true, false))
@@ -546,6 +573,16 @@ export default class extends Controller {
         return 'Circulation'
       case 'fees':
         return 'Fees'
+      case 'tx-per-block':
+        return 'TXs Per Blocks'
+      case 'mined-blocks':
+        return 'Mined Blocks'
+      case 'mempool-txs':
+        return 'Mempool TXs'
+      case 'mempool-size':
+        return 'Mempool Size'
+      case 'address-number':
+        return 'Active Addresses'
       default:
         return ''
     }

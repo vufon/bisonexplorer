@@ -4563,6 +4563,10 @@ func (pgb *ChainDB) chartMutilchainBlocks(charts *cache.MutilchainChartData) (*s
 	if err != nil {
 		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
 	}
+	lastBlockHeight, blockErr := pgb.GetMutilchainHeight(charts.ChainType)
+	if blockErr == nil {
+		charts.LastBlockHeight = lastBlockHeight
+	}
 	return rows, cancel, nil
 }
 

@@ -27,16 +27,30 @@ type ChartMutilchainUpdater struct {
 }
 
 type MutilchainChartData struct {
-	mtx           sync.RWMutex
-	ctx           context.Context
-	Blocks        *zoomSet
-	Days          *zoomSet
-	cacheMtx      sync.RWMutex
-	cache         map[string]*cachedChart
-	updateMtx     sync.Mutex
-	updaters      []ChartMutilchainUpdater
-	TimePerBlocks float64
-	ChainType     string
+	mtx                 sync.RWMutex
+	ctx                 context.Context
+	LastBlockHeight     int64
+	Blocks              *ZoomSet
+	Days                *ZoomSet
+	APIBlockSize        *ZoomSet
+	APIBlockchainSize   *ZoomSet
+	APITxNumPerBlockAvg *ZoomSet
+	APINewMinedBlocks   *ZoomSet
+	APITxTotal          *ZoomSet
+	APIMempoolTxCount   *ZoomSet
+	APIMempoolSize      *ZoomSet
+	APITxFeeAvg         *ZoomSet
+	APICoinSupply       *ZoomSet
+	APIHashrate         *ZoomSet
+	APIDifficulty       *ZoomSet
+	APIAddressCount     *ZoomSet
+	cacheMtx            sync.RWMutex
+	cache               map[string]*cachedChart
+	updateMtx           sync.Mutex
+	updaters            []ChartMutilchainUpdater
+	TimePerBlocks       float64
+	ChainType           string
+	UseAPI              bool
 }
 
 // Lengthen performs data validation and populates the Days zoomSet. If there is
@@ -400,19 +414,20 @@ func (charts *MutilchainChartData) Update() error {
 	return nil
 }
 
-func NewLTCChartData(ctx context.Context, height uint32, chainParams *ltcchaincfg.Params) *MutilchainChartData {
+func NewLTCChartData(ctx context.Context, height uint32, chainParams *ltcchaincfg.Params, lastBlockHeight int64) *MutilchainChartData {
 	genesis := chainParams.GenesisBlock.Header.Timestamp
 	size := int(height * 5 / 4)
 	days := int(time.Since(genesis)/time.Hour/24)*5/4 + 1 // at least one day
 
 	return &MutilchainChartData{
-		ctx:           ctx,
-		Blocks:        newBlockSet(size),
-		Days:          newDaySet(days),
-		cache:         make(map[string]*cachedChart),
-		updaters:      make([]ChartMutilchainUpdater, 0),
-		TimePerBlocks: float64(chainParams.TargetTimePerBlock),
-		ChainType:     mutilchain.TYPELTC,
+		ctx:             ctx,
+		Blocks:          newBlockSet(size),
+		Days:            newDaySet(days),
+		cache:           make(map[string]*cachedChart),
+		updaters:        make([]ChartMutilchainUpdater, 0),
+		TimePerBlocks:   float64(chainParams.TargetTimePerBlock),
+		ChainType:       mutilchain.TYPELTC,
+		LastBlockHeight: lastBlockHeight,
 	}
 }
 
@@ -466,6 +481,11 @@ var mutilchainChartMaker = map[string]MutilchainChartMaker{
 	POWDifficulty:  MutilchainDifficultyChart,
 	TxCount:        MutilchainTxCountChart,
 	Fees:           MutilchainFeesChart,
+	TxNumPerBlock:  MutilchainTxNumPerBlock,
+	MinedBlocks:    MutilchainMinedBlocks,
+	MempoolTxCount: MutilchainMempoolTxCount,
+	MempoolSize:    MutilchainMempoolSize,
+	AddressNumber:  MutilchainAddressNumber,
 }
 
 // Chart will return a JSON-encoded chartResponse of the provided chart,
@@ -517,6 +537,12 @@ func MutilchainBlockSizeChart(charts *MutilchainChartData, bin binLevel, axis ax
 				sizeKey:   charts.Days.BlockSize,
 			}, seed)
 		default:
+			if charts.UseAPI {
+				return encode(lengtherMap{
+					timeKey: charts.APIBlockSize.Time,
+					sizeKey: charts.APIBlockSize.BlockSize,
+				}, seed)
+			}
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
 				sizeKey: charts.Days.BlockSize,
@@ -549,6 +575,12 @@ func MutilchainBlockchainSizeChart(charts *MutilchainChartData, bin binLevel, ax
 				sizeKey:   accumulate(charts.Days.BlockSize),
 			}, seed)
 		default:
+			if charts.UseAPI {
+				return encode(lengtherMap{
+					timeKey: charts.APIBlockchainSize.Time,
+					sizeKey: charts.APIBlockchainSize.APIBlockchainSize,
+				}, seed)
+			}
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
 				sizeKey: accumulate(charts.Days.BlockSize),
@@ -613,6 +645,12 @@ func MutilchainCoinSupplyChart(charts *MutilchainChartData, bin binLevel, axis a
 				supplyKey: accumulate(charts.Days.NewAtoms),
 			}, seed)
 		default:
+			if charts.UseAPI {
+				return encode(lengtherMap{
+					timeKey:   charts.APICoinSupply.Time,
+					supplyKey: charts.APICoinSupply.NewAtoms,
+				}, seed)
+			}
 			return encode(lengtherMap{
 				timeKey:   charts.Days.Time,
 				supplyKey: accumulate(charts.Days.NewAtoms),
@@ -713,6 +751,12 @@ func MutilchainDifficultyChart(charts *MutilchainChartData, bin binLevel, axis a
 			diffKey: charts.Blocks.Difficulty,
 		}, seed)
 	default:
+		if charts.UseAPI {
+			return encode(lengtherMap{
+				diffKey: charts.APIDifficulty.Difficulty,
+				timeKey: charts.APIDifficulty.Time,
+			}, seed)
+		}
 		return encode(lengtherMap{
 			diffKey: charts.Blocks.Difficulty,
 			timeKey: charts.Blocks.Time,
@@ -749,6 +793,12 @@ func MutilchainHashRateChart(charts *MutilchainChartData, bin binLevel, axis axi
 				rateKey:   charts.Blocks.Hashrate,
 			}, seed)
 		default:
+			if charts.UseAPI {
+				return encode(lengtherMap{
+					timeKey: charts.APIHashrate.Time,
+					rateKey: charts.APIHashrate.Hashrate,
+				}, seed)
+			}
 			return encode(lengtherMap{
 				timeKey: charts.Blocks.Time,
 				rateKey: charts.Blocks.Hashrate,
@@ -781,6 +831,12 @@ func MutilchainTxCountChart(charts *MutilchainChartData, bin binLevel, axis axis
 				countKey:  charts.Days.TxCount,
 			}, seed)
 		default:
+			if charts.UseAPI {
+				return encode(lengtherMap{
+					timeKey:  charts.APITxTotal.Time,
+					countKey: charts.APITxTotal.TxCount,
+				}, seed)
+			}
 			return encode(lengtherMap{
 				timeKey:  charts.Days.Time,
 				countKey: charts.Days.TxCount,
@@ -788,6 +844,46 @@ func MutilchainTxCountChart(charts *MutilchainChartData, bin binLevel, axis axis
 		}
 	}
 	return nil, InvalidBinErr
+}
+
+func MutilchainTxNumPerBlock(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	return encode(lengtherMap{
+		timeKey:  charts.APITxNumPerBlockAvg.Time,
+		countKey: charts.APITxNumPerBlockAvg.APITxAverage,
+	}, seed)
+}
+
+func MutilchainMinedBlocks(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	return encode(lengtherMap{
+		timeKey:  charts.APINewMinedBlocks.Time,
+		countKey: charts.APINewMinedBlocks.APIMinedBlocks,
+	}, seed)
+}
+
+func MutilchainMempoolTxCount(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	return encode(lengtherMap{
+		timeKey:  charts.APIMempoolTxCount.Time,
+		countKey: charts.APIMempoolTxCount.APIMempoolTxNum,
+	}, seed)
+}
+
+func MutilchainMempoolSize(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	return encode(lengtherMap{
+		timeKey: charts.APIMempoolSize.Time,
+		sizeKey: charts.APIMempoolSize.APIMempoolSize,
+	}, seed)
+}
+
+func MutilchainAddressNumber(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	return encode(lengtherMap{
+		timeKey:  charts.APIAddressCount.Time,
+		countKey: charts.APIAddressCount.APIAddressCount,
+	}, seed)
 }
 
 func MutilchainFeesChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
@@ -813,6 +909,12 @@ func MutilchainFeesChart(charts *MutilchainChartData, bin binLevel, axis axisTyp
 				feesKey:   charts.Days.Fees,
 			}, seed)
 		default:
+			if charts.UseAPI {
+				return encode(lengtherMap{
+					timeKey: charts.APITxFeeAvg.Time,
+					feesKey: charts.APITxFeeAvg.Fees,
+				}, seed)
+			}
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
 				feesKey: charts.Days.Fees,

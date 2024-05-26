@@ -276,7 +276,7 @@ func TestChartReorg(t *testing.T) {
 			StakeCount:  newUints(),
 			MissedVotes: newUints(),
 		}
-		charts.Days = &zoomSet{
+		charts.Days = &ZoomSet{
 			cacheID:   0,
 			Height:    newUints(),
 			Time:      newUints(),
@@ -288,7 +288,7 @@ func TestChartReorg(t *testing.T) {
 			Chainwork: newUints(),
 			Fees:      newUints(),
 		}
-		charts.Blocks = &zoomSet{
+		charts.Blocks = &ZoomSet{
 			cacheID:    0,
 			Time:       newUints(),
 			PoolSize:   newUints(),

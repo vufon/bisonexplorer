@@ -35,6 +35,11 @@ const (
 	TicketPoolValue = "ticket-pool-value"
 	WindMissedVotes = "missed-votes"
 	PercentStaked   = "stake-participation"
+	TxNumPerBlock   = "tx-per-block"
+	MinedBlocks     = "mined-blocks"
+	MempoolTxCount  = "mempool-txs"
+	MempoolSize     = "mempool-size"
+	AddressNumber   = "address-number"
 
 	// Some chartResponse keys
 	heightKey       = "h"
@@ -258,25 +263,32 @@ func newChartUints(size int) ChartUints {
 // provides methods for validating the data and handling concurrency. The
 // cacheID is updated anytime new data is added and validated (see
 // Lengthen), typically once per bin duration.
-type zoomSet struct {
-	cacheID      uint64
-	Height       ChartUints
-	Time         ChartUints
-	PoolSize     ChartUints
-	PoolValue    ChartUints
-	BlockSize    ChartUints
-	TxCount      ChartUints
-	NewAtoms     ChartUints
-	Chainwork    ChartUints
-	Fees         ChartUints
-	TotalMixed   ChartUints
-	AnonymitySet ChartUints
-	Difficulty   ChartFloats
-	Hashrate     ChartFloats
+type ZoomSet struct {
+	cacheID           uint64
+	Height            ChartUints
+	Time              ChartUints
+	PoolSize          ChartUints
+	PoolValue         ChartUints
+	BlockSize         ChartUints
+	TxCount           ChartUints
+	APIBlockchainSize ChartUints
+	APITxAverage      ChartUints
+	APIMinedBlocks    ChartUints
+	APIMinedSize      ChartUints
+	APIAddressCount   ChartUints
+	APIMempoolTxNum   ChartUints
+	APIMempoolSize    ChartUints
+	NewAtoms          ChartUints
+	Chainwork         ChartUints
+	Fees              ChartUints
+	TotalMixed        ChartUints
+	AnonymitySet      ChartUints
+	Difficulty        ChartFloats
+	Hashrate          ChartFloats
 }
 
 // Snip truncates the zoomSet to a provided length.
-func (set *zoomSet) Snip(length int) {
+func (set *ZoomSet) Snip(length int) {
 	if length < 0 {
 		length = 0
 	}
@@ -295,8 +307,8 @@ func (set *zoomSet) Snip(length int) {
 
 // Constructor for a sized zoomSet for blocks, which has has no Height slice
 // since the height is implicit for block-binned data.
-func newBlockSet(size int) *zoomSet {
-	return &zoomSet{
+func newBlockSet(size int) *ZoomSet {
+	return &ZoomSet{
 		Height:       newChartUints(size),
 		Time:         newChartUints(size),
 		PoolSize:     newChartUints(size),
@@ -312,7 +324,7 @@ func newBlockSet(size int) *zoomSet {
 }
 
 // Constructor for a sized zoomSet for day-binned data.
-func newDaySet(size int) *zoomSet {
+func newDaySet(size int) *ZoomSet {
 	set := newBlockSet(size)
 	set.Height = newChartUints(size)
 	return set
@@ -420,9 +432,9 @@ type ChartData struct {
 	ctx          context.Context
 	DiffInterval int32
 	StartPOS     int32
-	Blocks       *zoomSet
+	Blocks       *ZoomSet
 	Windows      *windowSet
-	Days         *zoomSet
+	Days         *ZoomSet
 	cacheMtx     sync.RWMutex
 	cache        map[string]*cachedChart
 	updateMtx    sync.Mutex

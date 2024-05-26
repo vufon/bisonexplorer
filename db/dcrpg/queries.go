@@ -28,6 +28,7 @@ import (
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lib/pq"
@@ -3940,16 +3941,21 @@ func appendChartLTCBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
 	}
-	// chainLen := len(blocks.Chainwork)
-	// if rowCount > 0 && uint64(chainLen-1) != height {
-	// 	return fmt.Errorf("appendChartBlocks: height misalignment. last height = %d. data length = %d", height, chainLen)
-	// }
-	// if len(blocks.Time) != chainLen || len(blocks.TxCount) != chainLen {
-	// 	return fmt.Errorf("appendChartBlocks: data length misalignment. len(chainwork) = %d, len(stamps) = %d, len(counts) = %d",
-	// 		chainLen, len(blocks.Time), len(blocks.TxCount))
-	// }
-
+	//if lastest db height less than lastblock height, use external api to display chart
+	if height < uint64(charts.LastBlockHeight) {
+		charts.UseAPI = true
+		//handler api data for charts
+		apiErr := HandlerMutilchainAPIDataForCharts(charts)
+		if apiErr == nil {
+			return nil
+		}
+	}
+	charts.UseAPI = false
 	return nil
+}
+
+func HandlerMutilchainAPIDataForCharts(charts *cache.MutilchainChartData) error {
+	return externalapi.HandlerMutilchainChartsData(charts)
 }
 
 // retrieveWindowStats fetches the ticket-price and pow-difficulty

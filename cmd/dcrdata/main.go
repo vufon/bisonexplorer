@@ -1370,7 +1370,7 @@ func _main(ctx context.Context) error {
 			ltcHeightFromDB = 0
 		}
 
-		ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain)
+		ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain, int64(ltcHeight))
 		chainDB.RegisterLTCCharts(ltcCharts)
 
 		explore.LtcChartSource = ltcCharts
