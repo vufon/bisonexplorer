@@ -21,7 +21,7 @@
                            <div class="explore-card-content">
                               <a href='{{if eq .Chain "dcr"}}/decred{{else}}/chain/{{.Chain}}{{end}}' class="link-to-subpage">
                                  <div class="explore-card__header">
-                                    <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
+                                    <img src="/images/{{.Chain}}-icon.png" width="50" height="50" />
                                     <div class="explore-card__header__text ml-15">
                                        <h5 class="explore-card__header__text__name"> {{chainName .Chain}} </h5>
                                        <span class="explore-card__header__arrow">
