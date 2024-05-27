@@ -21,8 +21,8 @@
 <html lang="en">
     {{template "html-head" headData .CommonPageData "Consensus Deployment Agendas"}}
         {{template "navbar" .}}
-        <div class="container main pb-5" data-controller="agendas">
-          <p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/decred">Decred</a>&nbsp;> Agendas</p>
+        <div class="container pt-1 main pb-5" data-controller="agendas">
+          <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/decred">Decred</a>&nbsp;> Agendas</p>
             {{- /* PRIMARY INFO CARD. LISTS AGENDAS AND SHOWS RCI/SVI PROGRESS BARS */}}
             {{with .VotingSummary}}
             <div class="row">

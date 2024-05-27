@@ -2,6 +2,15 @@ import { Controller } from '@hotwired/stimulus'
 
 let navTarget
 
+$(document).mouseup(function (e) {
+  const selectArea = $('#chainSelectList')
+  if (!selectArea.is(e.target) && selectArea.has(e.target).length === 0) {
+    if (selectArea.css('display') !== 'none') {
+      selectArea.css('display', 'none')
+    }
+  }
+})
+
 export default class extends Controller {
   static get targets () {
     return ['navbar', 'coinSelect']
@@ -35,6 +44,41 @@ export default class extends Controller {
       }
     })
     $('html').css('overflow-x', '')
+    // handler for chain selection
+    const chainArray = []
+    const chainNameArr = []
+    $('.vodiapicker option').each(function () {
+      const img = $(this).attr('data-thumbnail')
+      const text = this.innerText
+      const value = $(this).val()
+      const item = '<li><img src="' + img + '" alt="" value="' + value + '"/><span>' + text + '</span></li>'
+      chainArray.push(item)
+      chainNameArr.push(value)
+    })
+    $('#selectUl').html(chainArray)
+    const chainIndex = chainNameArr.indexOf(this.currentChain)
+    if (chainIndex >= 0) {
+      $('.chain-selected-btn').html(chainArray[chainIndex])
+      $('.chain-selected-btn').attr('value', this.currentChain)
+    }
+    const _this = this
+    $('#selectUl li').click(function () {
+      const value = $(this).find('img').attr('value')
+      if (value === _this.currentChain) {
+        $('.selection-area').toggle()
+        return
+      }
+      _this.keepWithUrl(value)
+      // const img = $(this).find('img').attr('src')
+      // const text = this.innerText
+      // const item = '<li><img src="' + img + '" alt="" /><span>' + text + '</span></li>'
+      // $('.chain-selected-btn').html(item)
+      // $('.chain-selected-btn').attr('value', value)
+      // $('.selection-area').toggle()
+    })
+    $('.chain-selected-btn').click(function () {
+      $('.selection-area').toggle()
+    })
   }
 
   changeCoin (e) {

@@ -7,7 +7,7 @@
     {{template "navbar" . }}
     {{template "blocksBanner" .}}
     <div class="container main" data-controller="time pagenavigation">
-    <p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/decred">Decred</a>&nbsp;> Time Listing</p>
+    <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/decred">Decred</a>&nbsp;> Time Listing</p>
         {{$count := (int64 (len .Data))}}
         <div class="px-1 mb-1">
             {{if gt $count 0}}

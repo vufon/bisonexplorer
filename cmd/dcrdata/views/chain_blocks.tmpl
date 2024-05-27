@@ -5,8 +5,8 @@
 {{$ChainType := .ChainType}}
 {{template "html-head" headData .CommonPageData (printf "%s Blocks List" (chainName $ChainType))}}
     {{template "mutilchain_navbar" . }}
-    <div class="container px-0 main" data-controller="time pagenavigation blocklist">
-    <p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Blocks</p>
+    <div class="container px-0 pt-1 main" data-controller="time pagenavigation blocklist">
+    <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Blocks</p>
         {{$pendingBlocks := 0}}
         {{if gt (len $.Data) 0}}{{$pendingBlocks = ((index .Data 0).Height)}}{{end}}
 

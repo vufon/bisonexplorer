@@ -4,7 +4,7 @@
 {{template "html-head" headData .CommonPageData (printf "Decred Block %d" .Data.Height)}}
 {{ template "navbar" . }}
 <div class="container main" data-controller="time">
-<p class="fs-20"><a class="fs-20" href="/">Homepage</a>&nbsp;> <a class="fs-20" href="/decred">Decred</a>&nbsp;> Block</p>
+<p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/decred">Decred</a>&nbsp;> Block</p>
 {{- with .Data -}}
 {{$Invalidated := and (gt .Confirmations 1) (not .Valid) }}
 	<div class="row mx-2 my-2">
