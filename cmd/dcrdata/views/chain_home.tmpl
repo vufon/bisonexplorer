@@ -333,7 +333,9 @@
                                           </a>
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-2">
-                                             {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 false)}} {{toUpperCase $ChainType}}
+                                             {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 true)}} 
+                                             <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                             </span>
                                              <span class="stats-subinfo">
                                              {{if $conv -}}
                                              <span data-homepage-target="convertedSupply">{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
@@ -371,7 +373,7 @@
                            <div class="explore-card-content">
                               <a href='/chain/{{$ChainType}}/mempool' class="link-to-subpage">
                                  <div class="explore-card__header">
-                                    <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
+                                    <span class="homeicon-mempool explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
                                     <div class="explore-card__header__text ml-15">
                                        <h5 class="explore-card__header__text__name"> Mempool </h5>
                                        <span class="explore-card__header__arrow">
@@ -381,7 +383,7 @@
                                        </span>
                                        <div class="explore-card__header__text__price">
                                           <div class="price-wrap d-flex ai-center">
-                                             <span class="price-usd fs-13">Block list and details</span>
+                                             <span class="price-usd fs-13">Mempool Information</span>
                                           </div>
                                        </div>
                                     </div>
@@ -391,16 +393,16 @@
                                  {{with .MempoolInfo -}}
                                  <div class="row justify-content-between">
                                     <div class="col-24 col-sm-12 col-md-8">
-                                       <p class="network-stats-block">
+                                       <div class="network-stats-block">
                                           <span class="network-stats-title">
                                            <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=mempool-txs">
                                           Transactions
                                           </a>
                                           </span>
-                                          <span class="network-stats-content d-inline-block mt-4" id="txCount">
+                                          <div class="network-stats-content d-inline-block mt-4" id="txCount">
                                           {{int64Comma .TotalTransactions}}
-                                          </span>
-                                       </p>
+                                          </div>
+                                       </div>
                                     </div>
                                      <div class="col-24 col-sm-12 col-md-8">
                                        <p class="network-stats-block">
@@ -414,8 +416,9 @@
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Total Sent</span>
                                           <div class="network-stats-content d-inline-block mt-4" id="totalSent">
-                                             {{template "decimalParts" (float64AsDecimalParts .TotalOut 8 false)}}
+                                             {{template "decimalParts" (float64AsDecimalParts .TotalOut 3 true)}}
                                           </div>
+                                          <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                        </div>
                                     </div>
                                     <div class="col-24 col-sm-12 col-md-8">
@@ -424,6 +427,7 @@
                                           <div class="network-stats-content d-inline-block mt-4" id="totalFee">
                                              {{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}
                                           </div>
+                                          <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                        </div>
                                     </div>
                                     <div class="col-24 col-sm-12 col-md-8">
@@ -523,7 +527,7 @@
                                     <h5 class="explore-card__header__text__name"> Mining </h5>
                                     <div class="explore-card__header__text__price">
                                        <div class="price-wrap d-flex ai-center">
-                                          <span class="price-usd fs-13">Mining and Rewards information</span>
+                                          <span class="price-usd fs-13">Mining information</span>
                                        </div>
                                     </div>
                                  </div>
@@ -576,7 +580,7 @@
                                            Difficulty Change
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-2">
-                                             <span id="diffChange">{{threeSigFigs .DifficultyChange}}</span> %
+                                             <span id="diffChange" class="{{if gt .DifficultyChange 0.0}}c-green-2{{else}}c-red{{end}}">{{commaWithDecimal .DifficultyChange 2}}</span> %
                                               <span class="stats-subinfo">
                                                 Previous: <span id="prevRetarget">{{threeSigFigs .PreviousRetarget}}</span> %
                                              </span>
@@ -879,7 +883,7 @@ var init = async () => {
                   totalSent += extras.totalOutputAmt
              })
             $("#txOutCount").html(decimalParts(txOutCount, true, 0))
-            $("#totalSent").html(decimalParts(totalSent / 1e8, false, 8, 2))
+            $("#totalSent").html(decimalParts(totalSent / 1e8, false, 3, 2))
          }
          if (res.da) {
             const diffChange = res.da.difficultyChange
@@ -888,6 +892,13 @@ var init = async () => {
             const timeRemaining = res.da.remainingTime
             const timeAvg = res.da.timeAvg
             $("#diffChange").html(decimalParts(diffChange, false, 2, 0))
+            if (diffChange > 0) {
+               $("#diffChange").removeClass('c-red')
+               $("#diffChange").addClass('c-green-2')
+            } else {
+               $("#diffChange").addClass('c-red')
+               $("#diffChange").removeClass('c-green-2')
+            }
             $("#prevRetarget").html(threeSigFigs(prevRetarget))
             $("#remainingBlocks").html(decimalParts(remainingBlocks, true, 0))
             $("#timeRemaning").attr("data-duration", timeRemaining)

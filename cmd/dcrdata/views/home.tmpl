@@ -9,7 +9,7 @@
       <!-- start explorer wrap -->
       <div class="hp-explore-wrap" id="hp-explore-wrap">
          <div class="container pt-1">
-         <p class="fs-20 nav-bar-area">Supported Blockchains</p>
+         <p class="fs-22 nav-bar-area fw-600">Supported Blockchains</p>
             <section>
                <h2 class="fs-40 fw-600 d-none"> Blocks Explorer</h2>
                <div class="hp-explore__cards-wrap mt-3">
@@ -46,14 +46,14 @@
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Lastest Block</span>
                                           <span class="network-stats-content d-inline-block mt-4">
-                                          <a class="fs-28" href="/chain/{{.Chain}}/block/{{.BestBlock.Hash}}">{{.BestBlock.Height}}</a>
+                                          <a class="fs-28" {{if eq .Chain "dcr"}}href="/block/{{.BestBlock.Height}}"{{else}}href="/chain/{{.Chain}}/block/{{.BestBlock.Height}}"{{end}}>{{.BestBlock.Height}}</a>
                                           </span>
                                        </p>
                                     </div>
                                     <div class="col-12">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/chain/{{.Chain}}/charts?chart=pow-difficulty">
+                                          <a class="link-hover-underline" {{if eq .Chain "dcr"}}href="/charts?chart=pow-difficulty"{{else}}href="/chain/{{.Chain}}/charts?chart=pow-difficulty"{{end}}>
                                           Difficulty</a>
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-4">

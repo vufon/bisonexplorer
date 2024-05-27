@@ -418,7 +418,23 @@ func (pgb *ChainDB) DeleteDuplicateAgendaVotes() (int64, error) {
 
 // MissingIndexes lists missing table indexes and their descriptions.
 func (pgb *ChainDB) MissingIndexes() (missing, descs []string, err error) {
-	indexDescriptions := internal.GetIndexDescriptionsMap()
+	indexDescriptions := internal.IndexDescriptions
+	for idxName, desc := range indexDescriptions {
+		var exists bool
+		exists, err = ExistsIndex(pgb.db, idxName)
+		if err != nil {
+			return
+		}
+		if !exists {
+			missing = append(missing, idxName)
+			descs = append(descs, desc)
+		}
+	}
+	return
+}
+
+func (pgb *ChainDB) MutilchainMissingIndexes(chainType string) (missing, descs []string, err error) {
+	indexDescriptions := internal.GetMutilchainIndexDescriptionsMap(chainType)
 	for idxName, desc := range indexDescriptions {
 		var exists bool
 		exists, err = ExistsIndex(pgb.db, idxName)
@@ -437,6 +453,22 @@ func (pgb *ChainDB) MissingIndexes() (missing, descs []string, err error) {
 // descriptions.
 func (pgb *ChainDB) MissingAddressIndexes() (missing []string, descs []string, err error) {
 	for _, idxName := range internal.AddressesIndexNames {
+		var exists bool
+		exists, err = ExistsIndex(pgb.db, idxName)
+		if err != nil {
+			return
+		}
+		if !exists {
+			missing = append(missing, idxName)
+			descs = append(descs, pgb.indexDescription(idxName))
+		}
+	}
+	return
+}
+
+func (pgb *ChainDB) MissingMutilchainAddressIndexes(chainType string) (missing []string, descs []string, err error) {
+	addrIndexNames := internal.GetMutilchainAddressesIndexNames(chainType)
+	for _, idxName := range addrIndexNames {
 		var exists bool
 		exists, err = ExistsIndex(pgb.db, idxName)
 		if err != nil {

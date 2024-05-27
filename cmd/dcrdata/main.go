@@ -1387,16 +1387,37 @@ func _main(ctx context.Context) error {
 			return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
 				"DB height = %d", ltcHeight, ltcHeightFromDB)
 		}
-		if ltcBlocksBehind > 7500 {
-			log.Infof("Setting LTC PSQL sync to rebuild address table after large "+
-				"import (%d blocks).", ltcBlocksBehind)
+
+		// Check for missing indexes.
+		ltcMissingIndexes, ltcDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPELTC)
+		if err != nil {
+			return err
+		}
+		// If any indexes are missing, forcibly drop any existing indexes, and
+		// create them all after block sync.
+		if len(ltcMissingIndexes) > 0 {
+			ltcNewPGIndexes = true
 			ltcUpdateAllAddresses = true
-			if ltcBlocksBehind > 40000 {
-				log.Infof("Setting LTC PSQL sync to drop indexes prior to bulk data "+
-					"import (%d blocks).", ltcBlocksBehind)
-				ltcNewPGIndexes = true
+			// Warn if this is not a fresh sync.
+			if chainDB.MutilchainHeight(mutilchain.TYPELTC) > 0 {
+				log.Warnf("Some table indexes not found on %s!", mutilchain.TYPELTC)
+				for im, mi := range ltcMissingIndexes {
+					log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPELTC, mi, ltcDescs[im])
+				}
+				log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPELTC)
 			}
 		}
+
+		// if ltcBlocksBehind > 7500 {
+		// 	log.Infof("Setting LTC PSQL sync to rebuild address table after large "+
+		// 		"import (%d blocks).", ltcBlocksBehind)
+		// 	ltcUpdateAllAddresses = true
+		// 	if ltcBlocksBehind > 40000 {
+		// 		log.Infof("Setting LTC PSQL sync to drop indexes prior to bulk data "+
+		// 			"import (%d blocks).", ltcBlocksBehind)
+		// 		ltcNewPGIndexes = true
+		// 	}
+		// }
 
 		//start init collector for ltc
 		ltcCollector = blockdataltc.NewCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
@@ -1566,16 +1587,36 @@ func _main(ctx context.Context) error {
 				"DB height = %d", btcHeight, btcHeightFromDB)
 		}
 
-		if btcBlocksBehind > 7500 {
-			log.Infof("Setting BTC PSQL sync to rebuild address table after large "+
-				"import (%d blocks).", btcBlocksBehind)
+		// Check for missing indexes.
+		btcMissingIndexes, btcDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPEBTC)
+		if err != nil {
+			return err
+		}
+		// If any indexes are missing, forcibly drop any existing indexes, and
+		// create them all after block sync.
+		if len(btcMissingIndexes) > 0 {
+			btcNewPGIndexes = true
 			btcUpdateAllAddresses = true
-			if btcBlocksBehind > 40000 {
-				log.Infof("Setting BTC PSQL sync to drop indexes prior to bulk data "+
-					"import (%d blocks).", btcBlocksBehind)
-				btcNewPGIndexes = true
+			// Warn if this is not a fresh sync.
+			if chainDB.MutilchainHeight(mutilchain.TYPEBTC) > 0 {
+				log.Warnf("Some table indexes not found on %s!", mutilchain.TYPEBTC)
+				for im, mi := range btcMissingIndexes {
+					log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPEBTC, mi, btcDescs[im])
+				}
+				log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPEBTC)
 			}
 		}
+
+		// if btcBlocksBehind > 7500 {
+		// 	log.Infof("Setting BTC PSQL sync to rebuild address table after large "+
+		// 		"import (%d blocks).", btcBlocksBehind)
+		// 	btcUpdateAllAddresses = true
+		// 	if btcBlocksBehind > 40000 {
+		// 		log.Infof("Setting BTC PSQL sync to drop indexes prior to bulk data "+
+		// 			"import (%d blocks).", btcBlocksBehind)
+		// 		btcNewPGIndexes = true
+		// 	}
+		// }
 
 		//start init collector for btc
 		btcCollector = blockdatabtc.NewCollector(btcdClient, btcCoreClient, btcActiveChain)

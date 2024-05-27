@@ -85,6 +85,57 @@ var AddressesIndexNames = []string{IndexOfAddressTableOnAddress,
 	IndexOfAddressTableOnVoutID, IndexOfAddressTableOnBlockTime,
 	IndexOfAddressTableOnTx, IndexOfAddressTableOnMatchingTx}
 
+func GetMutilchainAddressesIndexNames(chainType string) []string {
+	res := make([]string, 0)
+	res = append(res, mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType))
+	res = append(res, mutilchainquery.IndexAddressTableOnAddressStmt(chainType))
+	res = append(res, mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType))
+	return res
+}
+
+func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
+	result := make(map[string]string)
+	tempIndex := mutilchainquery.MakeIndexBlockTableOnHash(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexBlocksTableOnHeight(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexBlocksTableOnTime(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockIn(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexTransactionTableOnHashes(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexVinTableOnPrevOuts(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexVinTableOnVins(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHash(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHashIdx(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.IndexAddressTableOnAddressStmt(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	return result
+}
+
 func GetIndexDescriptionsMap() map[string]string {
 	result := make(map[string]string)
 	for key, value := range IndexDescriptions {

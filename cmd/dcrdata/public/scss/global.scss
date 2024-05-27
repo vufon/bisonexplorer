@@ -146,8 +146,20 @@ textarea::placeholder {
   color: #d9d9d9;
 }
 
+.c-grey-5 {
+  color: #4f5052 !important;
+}
+
 .c-green {
   color: #bce5bc;
+}
+
+.c-green-2 {
+  color: #2ec100;
+}
+
+.c-red {
+  color: #e75241;
 }
 
 .bg-green {
@@ -729,6 +741,10 @@ textarea::placeholder {
 
 .w-100 {
   width: 100%;
+}
+
+.w-100i {
+  width: 100% !important;
 }
 
 .w-60px {
@@ -2211,4 +2227,8 @@ body.darkBG {
   background-color: #ececec;
   border-radius: 8px;
   border: 1px solid #e5e5e5;
+}
+
+.cursor-pointer {
+  cursor: pointer;
 }
