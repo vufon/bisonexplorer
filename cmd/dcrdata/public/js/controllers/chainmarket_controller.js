@@ -1228,9 +1228,15 @@ export default class extends Controller {
       if (!row) {
         return
       }
-      row.volume.textContent = humanize.threeSigFigs(xc.volume)
-      row.price.textContent = humanize.threeSigFigs(xc.price)
-      row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
+      if (row.volume) {
+        row.volume.textContent = humanize.threeSigFigs(xc.volume)
+      }
+      if (row.price) {
+        row.price.textContent = humanize.threeSigFigs(xc.price)
+      }
+      if (row.fiat) {
+        row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
+      }
       if (xc.change === 0) {
         row.arrow.className = ''
       } else if (xc.change > 0) {
@@ -1247,9 +1253,15 @@ export default class extends Controller {
     if (!aggRow) {
       return
     }
-    aggRow.price.textContent = humanize.threeSigFigs(update.price / btcPrice)
-    aggRow.volume.textContent = humanize.threeSigFigs(update.volume)
-    aggRow.fiat.textContent = fmtPrice
+    if (aggRow.price) {
+      aggRow.price.textContent = humanize.threeSigFigs(update.price / btcPrice)
+    }
+    if (aggRow.volume) {
+      aggRow.volume.textContent = humanize.threeSigFigs(update.volume)
+    }
+    if (aggRow.fiat) {
+      aggRow.fiat.textContent = fmtPrice
+    }
     // Auto-update the chart if it makes sense.
     if (settings.xc !== aggregatedKey && settings.xc !== xc.token) return
     if (settings.xc === aggregatedKey &&

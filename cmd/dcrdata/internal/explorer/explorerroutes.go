@@ -117,6 +117,7 @@ type expStatus string
 const (
 	ExpStatusError          expStatus = "Error"
 	ExpStatusNotFound       expStatus = "Not Found"
+	ExpStatusMutilchain     expStatus = "Mutilchain Search Result"
 	ExpStatusFutureBlock    expStatus = "Future Block"
 	ExpStatusNotSupported   expStatus = "Not Supported"
 	ExpStatusBadRequest     expStatus = "Bad Request"
@@ -131,6 +132,10 @@ const (
 
 func (e expStatus) IsNotFound() bool {
 	return e == ExpStatusNotFound
+}
+
+func (e expStatus) IsMutilchainResult() bool {
+	return e == ExpStatusMutilchain
 }
 
 func (e expStatus) IsWrongNet() bool {
@@ -2877,25 +2882,101 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 	// redirect to the block page if it is.
 	idx, err := strconv.ParseInt(searchStr, 10, 0)
 	if err == nil {
-		_, err = exp.dataSource.GetBlockHash(idx)
+		blockHashMap := make(map[string]string)
+		//Get Decred hash
+		decredHash, err := exp.dataSource.GetBlockHash(idx)
 		if err == nil {
-			http.Redirect(w, r, "/block/"+searchStr, http.StatusPermanentRedirect)
+			blockHashMap[mutilchain.TYPEDCR] = decredHash
+		}
+		//get mutilchain hash
+		for _, mutilchain := range dbtypes.MutilchainList {
+			if exp.ChainDisabledMap[mutilchain] {
+				continue
+			}
+			fmt.Println("check chain: ", mutilchain)
+			mHash, mErr := exp.dataSource.GetDaemonMutilchainBlockHash(idx, mutilchain)
+			if mErr == nil {
+				blockHashMap[mutilchain] = mHash
+			}
+		}
+		if len(blockHashMap) == 1 {
+			//redirect to block page
+			_, dcrExist := blockHashMap[mutilchain.TYPEDCR]
+			if dcrExist {
+				http.Redirect(w, r, "/block/"+searchStr, http.StatusPermanentRedirect)
+				return
+			}
+			for chain := range blockHashMap {
+				http.Redirect(w, r, "/chain/"+chain+"/block/"+searchStr, http.StatusPermanentRedirect)
+				return
+			}
+		}
+
+		if len(blockHashMap) > 1 {
+			resultDisp := "<div>"
+			for chain, hash := range blockHashMap {
+				redirectURL := ""
+				if chain == mutilchain.TYPEDCR {
+					redirectURL = "/block/" + searchStr
+				} else {
+					redirectURL = "/chain/" + chain + "/block/" + searchStr
+				}
+				resultDisp += "<p class=\"mt-3\"><img src=\"/images/" + chain + "-icon.png\" width=\"25\" height=\"25\" /><span class=\"ms-2 fw-600\">" + strings.ToUpper(chain) + ":</span> <a href=\"" + redirectURL + "\">" + hash + "</a> </p>"
+			}
+			resultDisp += "</div>"
+			exp.StatusPage(w, "Blocks Search Result", "Search results for blocks: "+searchStr, resultDisp, ExpStatusMutilchain)
 			return
 		}
-		_, err = exp.dataSource.BlockHash(idx)
-		if err == nil {
-			http.Redirect(w, r, "/block/"+searchStr, http.StatusPermanentRedirect)
-			return
-		}
+
 		exp.StatusPage(w, "search failed", "Block "+searchStr+
 			" has not yet been mined", searchStr, ExpStatusNotFound)
 		return
 	}
 
+	//hanlder for dcr address search
 	_, err = stdaddr.DecodeAddress(searchStr, exp.ChainParams)
 	if err == nil {
 		http.Redirect(w, r, "/address/"+searchStr, http.StatusPermanentRedirect)
 		return
+	}
+	if !exp.ChainDisabledMap[mutilchain.TYPELTC] {
+		//hanlder for ltc address search
+		_, err = ltcutil.DecodeAddress(searchStr, exp.LtcChainParams)
+		if err == nil {
+			http.Redirect(w, r, "/chain/"+mutilchain.TYPELTC+"/address/"+searchStr, http.StatusPermanentRedirect)
+			return
+		}
+	}
+	if !exp.ChainDisabledMap[mutilchain.TYPEBTC] {
+		//hanlder for btc address search
+		_, err = btcutil.DecodeAddress(searchStr, exp.BtcChainParams)
+		if err == nil {
+			http.Redirect(w, r, "/chain/"+mutilchain.TYPEBTC+"/address/"+searchStr, http.StatusPermanentRedirect)
+			return
+		}
+	}
+
+	//check mutilchain block hash
+	for _, mutilchain := range dbtypes.MutilchainList {
+		if exp.ChainDisabledMap[mutilchain] {
+			continue
+		}
+		hashValid := exp.dataSource.MutilchainValidBlockhash(searchStr, mutilchain)
+		if hashValid {
+			http.Redirect(w, r, "/chain/"+mutilchain+"/block/"+searchStr, http.StatusPermanentRedirect)
+			return
+		}
+	}
+	//check mutilchain tx hash
+	for _, mutilchain := range dbtypes.MutilchainList {
+		if exp.ChainDisabledMap[mutilchain] {
+			continue
+		}
+		txHashValid := exp.dataSource.MutilchainValidTxhash(searchStr, mutilchain)
+		if txHashValid {
+			http.Redirect(w, r, "/chain/"+mutilchain+"/tx/"+searchStr, http.StatusPermanentRedirect)
+			return
+		}
 	}
 
 	// Split searchStr to the first part corresponding to a transaction hash and

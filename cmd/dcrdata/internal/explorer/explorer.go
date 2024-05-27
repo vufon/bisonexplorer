@@ -156,6 +156,8 @@ type explorerDataSource interface {
 	MutilchainGetTotalVoutsCount(chainType string) int64
 	MutilchainGetTotalAddressesCount(chainType string) int64
 	MutilchainGetBlockchainInfo(chainType string) (*mutilchain.BlockchainInfo, error)
+	MutilchainValidBlockhash(hash string, chainType string) bool
+	MutilchainValidTxhash(hash string, chainType string) bool
 }
 
 type PoliteiaBackend interface {

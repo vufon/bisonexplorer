@@ -20,6 +20,7 @@ import (
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/txhelpers"
@@ -167,6 +168,28 @@ func (pgb *ChainDB) GetBlockVerboseByHash(hash string, verboseTx bool) *chainjso
 		return nil
 	}
 	return blockVerbose
+}
+
+func (pgb *ChainDB) MutilchainValidBlockhash(hash string, chainType string) bool {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return btcrpcutils.IsValidBlockHash(pgb.BtcClient, hash)
+	case mutilchain.TYPELTC:
+		return ltcrpcutils.IsValidBlockHash(pgb.LtcClient, hash)
+	default:
+		return false
+	}
+}
+
+func (pgb *ChainDB) MutilchainValidTxhash(hash string, chainType string) bool {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return btcrpcutils.IsValidTxHash(pgb.BtcClient, hash)
+	case mutilchain.TYPELTC:
+		return ltcrpcutils.IsValidTxHash(pgb.LtcClient, hash)
+	default:
+		return false
+	}
 }
 
 func (pgb *ChainDB) GetBTCBlockVerboseTxByHash(hash string) *btcjson.GetBlockVerboseTxResult {

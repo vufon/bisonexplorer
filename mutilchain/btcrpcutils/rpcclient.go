@@ -236,6 +236,25 @@ func GetTransactionTimeAndSize(client TransactionGetter, txid string) (int64, in
 	return int64(txResult.Size), txResult.Time
 }
 
+func IsValidBlockHash(client BlockFetcher, hash string) bool {
+	blockhash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		return false
+	}
+
+	_, err = client.GetBlockHeaderVerbose(blockhash)
+	return err == nil
+}
+
+func IsValidTxHash(client TransactionGetter, hash string) bool {
+	txhash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		return false
+	}
+	_, err = client.GetRawTransactionVerbose(txhash)
+	return err == nil
+}
+
 func GetBlockchainInfo(client CoreBlockchain) (*mutilchain.BlockchainInfo, error) {
 	blockchainInfo, err := client.GetBlockChainInfo()
 	if err != nil {

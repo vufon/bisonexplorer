@@ -51,13 +51,18 @@ let hasRedirected = false
 
 export default class extends Controller {
   static get targets () {
-    return ['statusSyncing', 'futureBlock', 'init', 'address', 'message']
+    return ['statusSyncing', 'futureBlock', 'init', 'address', 'message', 'searchResult']
   }
 
   connect () {
     this.progressBars = {
       'initial-load': this.initTarget,
       'addresses-sync': this.addressTarget
+    }
+    const isMutilchain = this.data.get('isMutilchain')
+    const additionInfo = this.data.get('addInfo')
+    if (isMutilchain === 'true') {
+      this.searchResultTarget.innerHTML = additionInfo
     }
     ws.registerEvtHandler('blockchainSync', (evt) => {
       const d = JSON.parse(evt)

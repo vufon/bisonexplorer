@@ -277,6 +277,25 @@ func GetBlockHeaderVerboseByString(client BlockFetcher, hash string) *btcjson.Ge
 	return blockHeaderVerbose
 }
 
+func IsValidBlockHash(client BlockFetcher, hash string) bool {
+	blockhash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		return false
+	}
+
+	_, err = client.GetBlockHeaderVerbose(blockhash)
+	return err == nil
+}
+
+func IsValidTxHash(client TransactionGetter, hash string) bool {
+	txhash, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		return false
+	}
+	_, err = client.GetRawTransactionVerbose(txhash)
+	return err == nil
+}
+
 // GetBlockVerbose creates a *chainjson.GetBlockVerboseResult for the block index
 // specified by idx via an RPC connection to a chain server.
 func GetBlockVerbose(client VerboseBlockGetter, idx int64) *btcjson.GetBlockVerboseResult {
