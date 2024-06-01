@@ -68,3 +68,4 @@ sqlite_*.sql
 db/dcrpg/chkdcrpg/chkdcrpg
 go.work
 go.work.sum
+*.out
