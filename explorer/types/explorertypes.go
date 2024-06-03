@@ -536,6 +536,7 @@ type HomeInfo struct {
 	RemainingBlocks       int64                    `json:"remainingBlocks"`
 	TimeRemaining         int64                    `json:"timeRemaining"`
 	BlockTimeAvg          int64                    `json:"blockTimeAvg"`
+	BlockReward           int64                    `json:"blockReward"`
 }
 
 type MutilchainHomeInfo struct {

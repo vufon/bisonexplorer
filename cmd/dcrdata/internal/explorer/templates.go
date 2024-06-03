@@ -396,6 +396,9 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			t, _ := time.Now().Zone()
 			return t
 		},
+		"toint64": func(a int) int64 {
+			return int64(a)
+		},
 		"timezoneOffset": func() int {
 			_, secondsEastOfUTC := time.Now().Zone()
 			return secondsEastOfUTC

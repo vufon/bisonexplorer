@@ -858,6 +858,7 @@ func _main(ctx context.Context) error {
 		r.Get("/home-report", explore.HomeReportPage)
 		r.Get("/finance-report", explore.FinanceReportPage)
 		r.Get("/finance-report/detail", explore.FinanceDetailPage)
+		r.Get("/supply", explore.SupplyPage)
 
 		//mutilchain support
 		r.Route("/chain", func(rd chi.Router) {
@@ -870,6 +871,7 @@ func _main(ctx context.Context) error {
 			rd.Get("/{chaintype}/mempool", explore.MutilchainMempool)
 			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
 			rd.Get("/{chaintype}/market", explore.MutilchainMarketPage)
+			rd.Get("/{chaintype}/supply", explore.SupplyPage)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
@@ -1348,8 +1350,16 @@ func _main(ctx context.Context) error {
 		//Start - LTC Sync handler
 		var ltcHash *ltcchainhash.Hash
 		ltcHash, ltcHeight, err = ltcdClient.GetBestBlock()
+		ltcTime := int64(0)
 		if err != nil {
 			return fmt.Errorf("Unable to get block from ltc node: %v", err)
+		}
+		blockhash, err := ltcdClient.GetBlockHash(int64(ltcHeight))
+		if err == nil {
+			blockRst, rstErr := ltcdClient.GetBlockVerbose(blockhash)
+			if rstErr == nil {
+				ltcTime = blockRst.Time
+			}
 		}
 		//init bestblock height chainDB
 		// dbHeight, dbHash, lastDBBlockErr := chainDB.GetMutilchainBestDBBlock(ctx, mutilchain.TYPELTC)
@@ -1360,6 +1370,7 @@ func _main(ctx context.Context) error {
 		bestBlock := &dcrpg.MutilchainBestBlock{
 			Height: int64(ltcHeight),
 			Hash:   ltcHash.String(),
+			Time:   ltcTime,
 		}
 		chainDB.LtcBestBlock = bestBlock
 		ltcHeightFromDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPELTC)
@@ -1451,22 +1462,15 @@ func _main(ctx context.Context) error {
 		// Before starting the DB sync, trigger the explorer to display data for
 		// the current best block.
 		// Retrieve the hash of the best block across every DB.
-		ltcHeightDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPELTC)
-		if err != nil {
-			if err != sql.ErrNoRows {
-				return fmt.Errorf("Unable to get btc height from PostgreSQL DB: %v", err)
-			}
-			ltcHeightDB = 0
-		}
-		ltcLatestDBBlockHash, err := ltcdClient.GetBlockHash(ltcHeightDB)
-		if err != nil {
+		ltcDaemonLastestBlockHash, ltcBestHeight, bestErr := ltcdClient.GetBestBlock()
+		if bestErr != nil {
 			return fmt.Errorf("failed to fetch the block at height (%d): %v",
-				ltcHeightDB, err)
+				ltcBestHeight, bestErr)
 		}
 
 		// Signal to load this block's data into the explorer. Future signals
 		// will come from the sync methods of ChainDB.
-		ltcLatestBlockHash <- ltcLatestDBBlockHash
+		ltcLatestBlockHash <- ltcDaemonLastestBlockHash
 
 		if ltcCollector != nil {
 			ltcBlockData, ltcMsgBlock, err := ltcCollector.Collect()
@@ -1552,13 +1556,22 @@ func _main(ctx context.Context) error {
 		//Start - BTC Sync handler
 		var btcHash *btcchainhash.Hash
 		btcHash, btcHeight, err = btcdClient.GetBestBlock()
+		btcTime := int64(0)
 		if err != nil {
 			return fmt.Errorf("Unable to get block from btc node: %v", err)
+		}
+		blockhash, err := btcdClient.GetBlockHash(int64(btcHeight))
+		if err == nil {
+			blockRst, rstErr := btcdClient.GetBlockVerbose(blockhash)
+			if rstErr == nil {
+				btcTime = blockRst.Time
+			}
 		}
 		//create bestblock object
 		bestBlock := &dcrpg.MutilchainBestBlock{
 			Height: int64(btcHeight),
 			Hash:   btcHash.String(),
+			Time:   btcTime,
 		}
 		chainDB.BtcBestBlock = bestBlock
 		btcHeightFromDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPEBTC)
@@ -1607,17 +1620,6 @@ func _main(ctx context.Context) error {
 			}
 		}
 
-		// if btcBlocksBehind > 7500 {
-		// 	log.Infof("Setting BTC PSQL sync to rebuild address table after large "+
-		// 		"import (%d blocks).", btcBlocksBehind)
-		// 	btcUpdateAllAddresses = true
-		// 	if btcBlocksBehind > 40000 {
-		// 		log.Infof("Setting BTC PSQL sync to drop indexes prior to bulk data "+
-		// 			"import (%d blocks).", btcBlocksBehind)
-		// 		btcNewPGIndexes = true
-		// 	}
-		// }
-
 		//start init collector for btc
 		btcCollector = blockdatabtc.NewCollector(btcdClient, btcCoreClient, btcActiveChain)
 		if btcCollector == nil {
@@ -1652,22 +1654,15 @@ func _main(ctx context.Context) error {
 		// the current best block.
 
 		// Retrieve the hash of the best block across every DB.
-		btcHeightDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPEBTC)
-		if err != nil {
-			if err != sql.ErrNoRows {
-				return fmt.Errorf("Unable to get btc height from PostgreSQL DB: %v", err)
-			}
-			btcHeightDB = 0
-		}
-		btcLatestDBBlockHash, err := btcdClient.GetBlockHash(btcHeightDB)
-		if err != nil {
+		btcDaemonLastestBlockHash, btcBestHeight, btcBestErr := btcdClient.GetBestBlock()
+		if btcBestErr != nil {
 			return fmt.Errorf("failed to fetch the block at height (%d): %v",
-				btcHeightDB, err)
+				btcBestHeight, btcBestErr)
 		}
 
 		// Signal to load this block's data into the explorer. Future signals
 		// will come from the sync methods of ChainDB.
-		btcLatestBlockHash <- btcLatestDBBlockHash
+		btcLatestBlockHash <- btcDaemonLastestBlockHash
 		if !btcDisabled && btcCollector != nil {
 			btcBlockData, btcMsgBlock, err := btcCollector.Collect()
 			if err != nil {

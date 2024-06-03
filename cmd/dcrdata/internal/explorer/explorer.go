@@ -158,6 +158,7 @@ type explorerDataSource interface {
 	MutilchainGetBlockchainInfo(chainType string) (*mutilchain.BlockchainInfo, error)
 	MutilchainValidBlockhash(hash string, chainType string) bool
 	MutilchainValidTxhash(hash string, chainType string) bool
+	MutilchainBestBlockTime(chainType string) int64
 }
 
 type PoliteiaBackend interface {
@@ -442,7 +443,8 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		BlockInfo: new(types.BlockInfo),
 		HomeInfo: &types.HomeInfo{
 			Params: types.ChainParams{
-				BlockTime: exp.BtcChainParams.TargetTimePerBlock.Nanoseconds(),
+				RewardWindowSize: int64(exp.BtcChainParams.SubsidyReductionInterval),
+				BlockTime:        exp.BtcChainParams.TargetTimePerBlock.Nanoseconds(),
 			},
 		},
 	}
@@ -451,7 +453,8 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		BlockInfo: new(types.BlockInfo),
 		HomeInfo: &types.HomeInfo{
 			Params: types.ChainParams{
-				BlockTime: exp.LtcChainParams.TargetTimePerBlock.Nanoseconds(),
+				RewardWindowSize: int64(exp.LtcChainParams.SubsidyReductionInterval),
+				BlockTime:        exp.LtcChainParams.TargetTimePerBlock.Nanoseconds(),
 			},
 		},
 	}
@@ -468,7 +471,8 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"market", "insight_root", "attackcost", "treasury", "treasurytable",
 		"verify_message", "stakingreward", "finance_report", "finance_detail",
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
-		"chain_address", "chain_mempool", "chain_charts", "chain_market", "chain_addresstable"}
+		"chain_address", "chain_mempool", "chain_charts", "chain_market",
+		"chain_addresstable", "supply"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -651,7 +655,6 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.NBlockSubsidy.PoS = blockData.ExtraInfo.NextBlockSubsidy.PoS
 	p.HomeInfo.NBlockSubsidy.PoW = blockData.ExtraInfo.NextBlockSubsidy.PoW
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockSubsidy.Total
-
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {
@@ -818,6 +821,9 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	//p.HomeInfo.TotalAddresses = totalAddressesCount
 	p.HomeInfo.TotalSize = chainSize
 	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
+	p.HomeInfo.IdxInRewardWindow = int(newBlockData.Height%int64(exp.BtcChainParams.SubsidyReductionInterval)) + 1
+	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
+	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.Unlock()
 	return nil
 }
@@ -883,6 +889,9 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	//p.HomeInfo.TotalAddresses = totalAddressesCount
 	p.HomeInfo.TotalSize = chainSize
 	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
+	p.HomeInfo.IdxInRewardWindow = int(newBlockData.Height%int64(exp.LtcChainParams.SubsidyReductionInterval)) + 1
+	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
+	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.Unlock()
 	return nil
 }

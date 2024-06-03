@@ -364,6 +364,7 @@ type MutilchainBestBlock struct {
 	Mtx    sync.RWMutex
 	Height int64
 	Hash   string
+	Time   int64
 }
 
 func (pgb *ChainDB) timeoutError() string {
@@ -1247,6 +1248,17 @@ func (pgb *ChainDB) MutilchainHeight(chainType string) int64 {
 	}
 }
 
+func (pgb *ChainDB) MutilchainBestBlockTime(chainType string) int64 {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return pgb.LtcBestBlock.MutilchainTime()
+	case mutilchain.TYPEBTC:
+		return pgb.BtcBestBlock.MutilchainTime()
+	default:
+		return 0
+	}
+}
+
 // Height uses the last stored height.
 func (block *BestBlock) Height() int64 {
 	block.mtx.RLock()
@@ -1258,6 +1270,12 @@ func (block *MutilchainBestBlock) MutilchainHeight() int64 {
 	block.Mtx.RLock()
 	defer block.Mtx.RUnlock()
 	return block.Height
+}
+
+func (block *MutilchainBestBlock) MutilchainTime() int64 {
+	block.Mtx.RLock()
+	defer block.Mtx.RUnlock()
+	return block.Time
 }
 
 // GetHeight is for middleware DataSource compatibility. No DB query is

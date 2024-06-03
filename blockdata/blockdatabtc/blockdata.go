@@ -16,6 +16,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/stakedb"
 )
 
@@ -128,6 +129,8 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 		CoinSupply:      int64(coinSupply),
 		CoinValueSupply: coinSupply.ToBTC(),
 		BlockchainSize:  sizeOnDisk,
+		NextBlockReward: mutilchain.GetNextBlockReward(mutilchain.TYPEBTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
+		BlockReward:     mutilchain.GetCurrentBlockReward(mutilchain.TYPEBTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 	}
 	return blockdata, blockHeader, extrainfo, msgBlock, err
 }

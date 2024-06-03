@@ -2893,7 +2893,6 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 			if exp.ChainDisabledMap[mutilchain] {
 				continue
 			}
-			fmt.Println("check chain: ", mutilchain)
 			mHash, mErr := exp.dataSource.GetDaemonMutilchainBlockHash(idx, mutilchain)
 			if mErr == nil {
 				blockHashMap[mutilchain] = mHash
@@ -3999,6 +3998,83 @@ type verifyMessageResult struct {
 	Message   string
 	Valid     bool
 	Error     string
+}
+
+// StakeRewardCalcPage is the page handler for the "/stakingcalc" path.
+func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		chainType = mutilchain.TYPEDCR
+	}
+	var homeInfo *types.HomeInfo
+	var blockReward int64
+	var blockHeight int64
+	var blockTime int64
+	var nextTicketTime int64
+
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		exp.BtcPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.BtcPageData.HomeInfo
+		blockReward = homeInfo.BlockReward
+		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPEBTC)
+		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPEBTC)
+		exp.BtcPageData.RUnlock()
+	case mutilchain.TYPELTC:
+		exp.LtcPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.LtcPageData.HomeInfo
+		blockReward = homeInfo.BlockReward
+		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPELTC)
+		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPELTC)
+		exp.LtcPageData.RUnlock()
+	default:
+		exp.pageData.RLock()
+		homeInfo = exp.pageData.HomeInfo
+		blockHeight = exp.pageData.BlockInfo.Height
+		blockSubsidy := exp.dataSource.BlockSubsidy(blockHeight,
+			exp.ChainParams.TicketsPerBlock)
+		blockReward = blockSubsidy.Total
+		blockTime = exp.pageData.BlockInfo.BlockTime.UNIX()
+		exp.pageData.RUnlock()
+		ticketDuration := (int64(homeInfo.Params.WindowSize) - int64(homeInfo.IdxBlockInWindow)) * homeInfo.Params.BlockTime
+		ticketAllsecs := int64(time.Duration(ticketDuration).Seconds())
+		nextTicketTime = blockTime + ticketAllsecs
+	}
+	x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
+	allsecs := int64(time.Duration(x).Seconds())
+	targetTime := blockTime + allsecs
+	nextBlockReward := homeInfo.NBlockSubsidy.Total
+
+	str, err := exp.templates.execTemplateToString("supply", struct {
+		*CommonPageData
+		Info             *types.HomeInfo
+		BlockHeight      int64
+		ChainType        string
+		TargetTime       uint64
+		TicketTargetTime uint64
+		BlockReward      int64
+		NextBlockReward  int64
+	}{
+		CommonPageData:   exp.commonData(r),
+		ChainType:        chainType,
+		Info:             homeInfo,
+		TargetTime:       uint64(targetTime),
+		BlockHeight:      blockHeight,
+		BlockReward:      blockReward,
+		NextBlockReward:  nextBlockReward,
+		TicketTargetTime: uint64(nextTicketTime),
+	})
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
 }
 
 // VerifyMessagePage is the page handler for "GET /verify-message" path.

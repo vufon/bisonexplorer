@@ -5,7 +5,11 @@
 package mutilchain
 
 import (
+	"math"
 	"strings"
+
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/ltcsuite/ltcd/ltcutil"
 )
 
 const (
@@ -51,4 +55,66 @@ func IsDisabledChain(disabledList string, chainType string) bool {
 		}
 	}
 	return false
+}
+
+func GetBTCCurrentBlockReward(reductionInterval, currentBlockHeight int32) int64 {
+	numReduceToNextHalving := currentBlockHeight / reductionInterval
+	coinValue := BTCStartBlockReward / math.Pow(2, float64(numReduceToNextHalving))
+	btcAmount, vErr := btcutil.NewAmount(coinValue)
+	if vErr != nil {
+		return 0
+	}
+	return int64(btcAmount)
+}
+
+func GetLTCCurrentBlockReward(reductionInterval, currentBlockHeight int32) int64 {
+	numReduceToNextHalving := currentBlockHeight / reductionInterval
+	coinValue := LTCStartBlockReward / math.Pow(2, float64(numReduceToNextHalving))
+	ltcAmount, vErr := ltcutil.NewAmount(coinValue)
+	if vErr != nil {
+		return 0
+	}
+	return int64(ltcAmount)
+}
+
+func GetBTCNextBlockReward(reductionInterval, currentBlockHeight int32) int64 {
+	numReduceToNextHalving := currentBlockHeight/reductionInterval + 1
+	coinValue := BTCStartBlockReward / math.Pow(2, float64(numReduceToNextHalving))
+	btcAmount, vErr := btcutil.NewAmount(coinValue)
+	if vErr != nil {
+		return 0
+	}
+	return int64(btcAmount)
+}
+
+func GetLTCNextBlockReward(reductionInterval, currentBlockHeight int32) int64 {
+	numReduceToNextHalving := currentBlockHeight/reductionInterval + 1
+	coinValue := LTCStartBlockReward / math.Pow(2, float64(numReduceToNextHalving))
+	ltcAmount, vErr := ltcutil.NewAmount(coinValue)
+	if vErr != nil {
+		return 0
+	}
+	return int64(ltcAmount)
+}
+
+func GetNextBlockReward(chainType string, reductionInterval, currentBlockHeight int32) int64 {
+	switch chainType {
+	case TYPEBTC:
+		return GetBTCNextBlockReward(reductionInterval, currentBlockHeight)
+	case TYPELTC:
+		return GetLTCNextBlockReward(reductionInterval, currentBlockHeight)
+	default:
+		return 0
+	}
+}
+
+func GetCurrentBlockReward(chainType string, reductionInterval, currentBlockHeight int32) int64 {
+	switch chainType {
+	case TYPEBTC:
+		return GetBTCCurrentBlockReward(reductionInterval, currentBlockHeight)
+	case TYPELTC:
+		return GetLTCCurrentBlockReward(reductionInterval, currentBlockHeight)
+	default:
+		return 0
+	}
 }

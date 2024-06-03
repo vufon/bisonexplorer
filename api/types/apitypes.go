@@ -750,6 +750,8 @@ type BlockExplorerExtraInfo struct {
 	CoinValueSupply  float64                          `json:"coin_value_supply"`
 	BlockchainSize   int64                            `json:"blockchain_size"`
 	NextBlockSubsidy *chainjson.GetBlockSubsidyResult `json:"next_block_subsidy"`
+	NextBlockReward  int64                            `json:"next_block_reward"`
+	BlockReward      int64                            `json:"block_reward"`
 }
 
 // BlockTransactionCounts contains the regular and stake transaction counts for

@@ -11,6 +11,7 @@ import (
 
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/stakedb"
 	"github.com/ltcsuite/ltcd/btcjson"
 	"github.com/ltcsuite/ltcd/chaincfg"
@@ -129,6 +130,8 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 		CoinSupply:      int64(coinSupply),
 		CoinValueSupply: coinSupply.ToBTC(),
 		BlockchainSize:  sizeOnDisk,
+		NextBlockReward: mutilchain.GetNextBlockReward(mutilchain.TYPELTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
+		BlockReward: mutilchain.GetCurrentBlockReward(mutilchain.TYPELTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 	}
 	return blockdata, blockHeader, extrainfo, msgBlock, err
 }

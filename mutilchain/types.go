@@ -9,3 +9,8 @@ type BlockchainInfo struct {
 	BlockchainSize    int64
 	Difficulty        float64
 }
+
+const (
+	LTCStartBlockReward = 50
+	BTCStartBlockReward = 50
+)
