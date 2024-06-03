@@ -215,6 +215,7 @@ func _main(ctx context.Context) error {
 		AddrCacheAddrCap:     cfg.AddrCacheLimit,
 		AddrCacheRowCap:      rowCap,
 		AddrCacheUTXOByteCap: cfg.AddrCacheUXTOCap,
+		ChainDBDisabled:      cfg.DisableChainDB,
 	}
 
 	mpChecker := rpcutils.NewMempoolAddressChecker(dcrdClient, activeChain)
@@ -1322,29 +1323,31 @@ func _main(ctx context.Context) error {
 		}
 		if err != nil {
 			log.Infof("Create external API socket failed. Start initialize mempool data with Mempool collector")
-			//handler mempool with Mempool monitor
-			ltcMempoolSavers := []mempoolltc.MempoolDataSaver{chainDB.LTCMPC}
-			ltcMempoolSavers = append(ltcMempoolSavers, explore)
-			// Create the mempool data collector.
-			ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
-			if ltcMpoolCollector == nil {
-				// Shutdown goroutines.
-				requestShutdown()
-				return fmt.Errorf("Failed to create LTC mempool data collector")
+			if !chainDB.ChainDBDisabled {
+				//handler mempool with Mempool monitor
+				ltcMempoolSavers := []mempoolltc.MempoolDataSaver{chainDB.LTCMPC}
+				ltcMempoolSavers = append(ltcMempoolSavers, explore)
+				// Create the mempool data collector.
+				ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
+				if ltcMpoolCollector == nil {
+					// Shutdown goroutines.
+					requestShutdown()
+					return fmt.Errorf("Failed to create LTC mempool data collector")
+				}
+
+				mpm, err := mempoolltc.NewMempoolMonitor(ctx, ltcMpoolCollector, ltcMempoolSavers,
+					ltcActiveChain, true)
+
+				// Ensure the initial collect/store succeeded.
+				if err != nil {
+					// Shutdown goroutines.
+					requestShutdown()
+					return fmt.Errorf("NewMempoolMonitor: %v", err)
+				}
+
+				// Use the MempoolMonitor in DB to get unconfirmed transaction data.
+				chainDB.UseLTCMempoolChecker(mpm)
 			}
-
-			mpm, err := mempoolltc.NewMempoolMonitor(ctx, ltcMpoolCollector, ltcMempoolSavers,
-				ltcActiveChain, true)
-
-			// Ensure the initial collect/store succeeded.
-			if err != nil {
-				// Shutdown goroutines.
-				requestShutdown()
-				return fmt.Errorf("NewMempoolMonitor: %v", err)
-			}
-
-			// Use the MempoolMonitor in DB to get unconfirmed transaction data.
-			chainDB.UseLTCMempoolChecker(mpm)
 		}
 
 		//Start - LTC Sync handler
@@ -1392,43 +1395,34 @@ func _main(ctx context.Context) error {
 		}
 		// Dump the cache charts data into a file for future use on system exit.
 		defer ltcCharts.Dump(ltcDumpPath)
-		//finish handler ltc chart data
-		ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightFromDB)
-		if ltcBlocksBehind < 0 {
-			return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
-				"DB height = %d", ltcHeight, ltcHeightFromDB)
-		}
+		if !chainDB.ChainDBDisabled {
+			//finish handler ltc chart data
+			ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightFromDB)
+			if ltcBlocksBehind < 0 {
+				return fmt.Errorf("LTC Node is still syncing. Node height = %d, "+
+					"DB height = %d", ltcHeight, ltcHeightFromDB)
+			}
 
-		// Check for missing indexes.
-		ltcMissingIndexes, ltcDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPELTC)
-		if err != nil {
-			return err
-		}
-		// If any indexes are missing, forcibly drop any existing indexes, and
-		// create them all after block sync.
-		if len(ltcMissingIndexes) > 0 {
-			ltcNewPGIndexes = true
-			ltcUpdateAllAddresses = true
-			// Warn if this is not a fresh sync.
-			if chainDB.MutilchainHeight(mutilchain.TYPELTC) > 0 {
-				log.Warnf("Some table indexes not found on %s!", mutilchain.TYPELTC)
-				for im, mi := range ltcMissingIndexes {
-					log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPELTC, mi, ltcDescs[im])
+			// Check for missing indexes.
+			ltcMissingIndexes, ltcDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPELTC)
+			if err != nil {
+				return err
+			}
+			// If any indexes are missing, forcibly drop any existing indexes, and
+			// create them all after block sync.
+			if len(ltcMissingIndexes) > 0 {
+				ltcNewPGIndexes = true
+				ltcUpdateAllAddresses = true
+				// Warn if this is not a fresh sync.
+				if chainDB.MutilchainHeight(mutilchain.TYPELTC) > 0 {
+					log.Warnf("Some table indexes not found on %s!", mutilchain.TYPELTC)
+					for im, mi := range ltcMissingIndexes {
+						log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPELTC, mi, ltcDescs[im])
+					}
+					log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPELTC)
 				}
-				log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPELTC)
 			}
 		}
-
-		// if ltcBlocksBehind > 7500 {
-		// 	log.Infof("Setting LTC PSQL sync to rebuild address table after large "+
-		// 		"import (%d blocks).", ltcBlocksBehind)
-		// 	ltcUpdateAllAddresses = true
-		// 	if ltcBlocksBehind > 40000 {
-		// 		log.Infof("Setting LTC PSQL sync to drop indexes prior to bulk data "+
-		// 			"import (%d blocks).", ltcBlocksBehind)
-		// 		ltcNewPGIndexes = true
-		// 	}
-		// }
 
 		//start init collector for ltc
 		ltcCollector = blockdataltc.NewCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
@@ -1528,31 +1522,6 @@ func _main(ctx context.Context) error {
 			log.Infof("Create external API socket failed. Start initialize mempool data with Mempool collector")
 		}
 
-		// //handler mempool : TODO: Optimize mempool processing for BTC (Because the volume is quite large)
-		// btcMempoolSavers := []mempoolbtc.MempoolDataSaver{chainDB.BTCMPC}
-		// btcMempoolSavers = append(btcMempoolSavers, explore)
-		// // Create the mempool data collector.
-		// btcMpoolCollector := mempoolbtc.NewDataCollector(btcdClient, btcCoreClient, btcActiveChain)
-		// if btcMpoolCollector == nil {
-		// 	// Shutdown goroutines.
-		// 	requestShutdown()
-		// 	return fmt.Errorf("Failed to create BTC mempool data collector")
-		// }
-
-		// mpm, err := mempoolbtc.NewMempoolMonitor(ctx, btcMpoolCollector, btcMempoolSavers,
-		// 	btcActiveChain, true)
-
-		// // Ensure the initial collect/store succeeded.
-		// if err != nil {
-		// 	// Shutdown goroutines.
-		// 	requestShutdown()
-		// 	return fmt.Errorf("NewMempoolMonitor: %v", err)
-		// }
-
-		// // Use the MempoolMonitor in DB to get unconfirmed transaction data.
-		// chainDB.UseBTCMempoolChecker(mpm)
-		// //end handler mempool
-
 		//Start - BTC Sync handler
 		var btcHash *btcchainhash.Hash
 		btcHash, btcHeight, err = btcdClient.GetBestBlock()
@@ -1593,30 +1562,32 @@ func _main(ctx context.Context) error {
 		}
 		// Dump the cache charts data into a file for future use on system exit.
 		defer btcCharts.Dump(btcDumpPath)
-		//finish handler btc chart data
-		btcBlocksBehind := int64(btcHeight) - int64(btcHeightFromDB)
-		if btcBlocksBehind < 0 {
-			return fmt.Errorf("BTC Node is still syncing. Node height = %d, "+
-				"DB height = %d", btcHeight, btcHeightFromDB)
-		}
+		if !chainDB.ChainDBDisabled {
+			//finish handler btc chart data
+			btcBlocksBehind := int64(btcHeight) - int64(btcHeightFromDB)
+			if btcBlocksBehind < 0 {
+				return fmt.Errorf("BTC Node is still syncing. Node height = %d, "+
+					"DB height = %d", btcHeight, btcHeightFromDB)
+			}
 
-		// Check for missing indexes.
-		btcMissingIndexes, btcDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPEBTC)
-		if err != nil {
-			return err
-		}
-		// If any indexes are missing, forcibly drop any existing indexes, and
-		// create them all after block sync.
-		if len(btcMissingIndexes) > 0 {
-			btcNewPGIndexes = true
-			btcUpdateAllAddresses = true
-			// Warn if this is not a fresh sync.
-			if chainDB.MutilchainHeight(mutilchain.TYPEBTC) > 0 {
-				log.Warnf("Some table indexes not found on %s!", mutilchain.TYPEBTC)
-				for im, mi := range btcMissingIndexes {
-					log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPEBTC, mi, btcDescs[im])
+			// Check for missing indexes.
+			btcMissingIndexes, btcDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPEBTC)
+			if err != nil {
+				return err
+			}
+			// If any indexes are missing, forcibly drop any existing indexes, and
+			// create them all after block sync.
+			if len(btcMissingIndexes) > 0 {
+				btcNewPGIndexes = true
+				btcUpdateAllAddresses = true
+				// Warn if this is not a fresh sync.
+				if chainDB.MutilchainHeight(mutilchain.TYPEBTC) > 0 {
+					log.Warnf("Some table indexes not found on %s!", mutilchain.TYPEBTC)
+					for im, mi := range btcMissingIndexes {
+						log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPEBTC, mi, btcDescs[im])
+					}
+					log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPEBTC)
 				}
-				log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPEBTC)
 			}
 		}
 
@@ -1682,7 +1653,7 @@ func _main(ctx context.Context) error {
 	//end - init rpcclient
 	//Start mutilchain support
 	//CHeck LTC enabled
-	if !ltcDisabled && ltcdClient != nil {
+	if !ltcDisabled && ltcdClient != nil && !chainDB.ChainDBDisabled {
 		quit := make(chan struct{})
 		// Only accept a single CTRL+C
 		c := make(chan os.Signal, 1)
@@ -1728,7 +1699,7 @@ func _main(ctx context.Context) error {
 	}
 
 	//Check BTC enabled
-	if !btcDisabled {
+	if !btcDisabled && btcdClient != nil && !chainDB.ChainDBDisabled {
 		quit := make(chan struct{})
 		// Only accept a single CTRL+C
 		c := make(chan os.Signal, 1)

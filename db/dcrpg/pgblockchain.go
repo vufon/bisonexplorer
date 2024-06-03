@@ -316,6 +316,7 @@ type ChainDB struct {
 	BtcCoreClient     *btcClient.Client
 	tipMtx            sync.Mutex
 	tipSummary        *apitypes.BlockDataBasic
+	ChainDBDisabled   bool
 	lastExplorerBlock struct {
 		sync.Mutex
 		hash      string
@@ -530,6 +531,7 @@ type ChainDBCfg struct {
 	DevPrefetch, HidePGConfig         bool
 	AddrCacheRowCap, AddrCacheAddrCap int
 	AddrCacheUTXOByteCap              int
+	ChainDBDisabled                   bool
 }
 
 // The minimum required PostgreSQL version in integer format as returned by
@@ -815,6 +817,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		heightClients:      make([]chan uint32, 0),
 		shutdownDcrdata:    shutdown,
 		Client:             client,
+		ChainDBDisabled:    cfg.ChainDBDisabled,
 	}
 	chainDB.lastExplorerBlock.difficulties = make(map[int64]float64)
 	// Update the current chain state in the ChainDB
