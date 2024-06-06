@@ -3963,22 +3963,39 @@ func (exp *ExplorerUI) StakeRewardCalcPage(w http.ResponseWriter, r *http.Reques
 	}
 
 	exp.pageData.RLock()
-
-	ticketReward := exp.pageData.HomeInfo.TicketReward
-	rewardPeriod := exp.pageData.HomeInfo.RewardPeriod
-
+	homeInfo := exp.pageData.HomeInfo
 	exp.pageData.RUnlock()
+
+	type ChainParam struct {
+		TargetTimePerBlock float64 //in seconds
+		TicketExpiry       uint32
+		TicketMaturity     uint16
+		CoinbaseMaturity   uint16
+		TicketsPerBlock    uint16
+		TicketPoolSize     uint16
+	}
+
+	param := &ChainParam{
+		TargetTimePerBlock: exp.ChainParams.TargetTimePerBlock.Seconds(),
+		TicketExpiry:       exp.ChainParams.TicketExpiry,
+		TicketMaturity:     exp.ChainParams.TicketMaturity,
+		CoinbaseMaturity:   exp.ChainParams.CoinbaseMaturity,
+		TicketsPerBlock:    exp.ChainParams.TicketsPerBlock,
+		TicketPoolSize:     exp.ChainParams.TicketPoolSize,
+	}
 
 	str, err := exp.templates.execTemplateToString("stakingreward", struct {
 		*CommonPageData
-		RewardPeriod string
-		TicketReward float64
-		DCRPrice     float64
+		Info        *types.HomeInfo
+		BlockHeight int64
+		DCRPrice    float64
+		Param       *ChainParam
 	}{
 		CommonPageData: exp.commonData(r),
-		RewardPeriod:   rewardPeriod,
-		TicketReward:   ticketReward,
+		Info:           homeInfo,
+		BlockHeight:    exp.dataSource.Height(),
 		DCRPrice:       price,
+		Param:          param,
 	})
 
 	if err != nil {

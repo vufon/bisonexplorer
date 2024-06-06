@@ -256,7 +256,7 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 	})
 
 	mux.Route("/stakingcalc", func(r chi.Router) {
-		r.Get("/get-future-reward", app.getStakeRewardCalc)
+		r.Get("/getBlocksReward", app.getBlocksReward)
 	})
 
 	mux.Route("/finance-report", func(r chi.Router) {

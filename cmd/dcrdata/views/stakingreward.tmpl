@@ -5,11 +5,23 @@
   {{ $topBlock := 0 }}
   {{ template "html-head" headData .CommonPageData "Staking Reward Calculator" }}
   {{ template "navbar". }}
+  {{$HomeInfo := .Info}}
+  {{$Param := .Param}}
   <div class="content">
     <div class="container px-0 main pt-1" 
       data-controller="stakingreward"
-      data-stakingreward-ticket-reward="{{.TicketReward}}" 
-      data-stakingreward-reward-period="{{.RewardPeriod}}"
+      data-stakingreward-ticket-reward="{{$HomeInfo.TicketReward}}" 
+      data-stakingreward-reward-period="{{$HomeInfo.RewardPeriod}}"
+      data-stakingreward-time-perblock="{{$Param.TargetTimePerBlock}}"
+      data-stakingreward-ticket-expiry="{{$Param.TicketExpiry}}"
+      data-stakingreward-ticket-maturity="{{$Param.TicketMaturity}}"
+      data-stakingreward-coinbase-maturity="{{$Param.CoinbaseMaturity}}"
+      data-stakingreward-tickets-perblock="{{$Param.TicketsPerBlock}}"
+      data-stakingreward-ticket-price="{{$HomeInfo.StakeDiff}}"
+      data-stakingreward-pool-value="{{$HomeInfo.PoolInfo.Value}}"
+      data-stakingreward-pool-size="{{$Param.TicketPoolSize}}"
+      data-stakingreward-block-height="{{.BlockHeight}}"
+      data-stakingreward-coin-supply="{{$HomeInfo.CoinSupply}}"
       data-stakingreward-dcrprice="{{.DCRPrice}}">
       <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/decred">Decred</a>&nbsp;> Staking Reward Calculator</p>
       <div class="px-1">

@@ -54,7 +54,7 @@
       </div>
       <div class="row">
         <div class="col-24 col-sm-18 col-md-16 d-flex justify-content-between">
-          <span>Halving Date</span>
+          <span>{{if eq $ChainType "dcr"}}Target{{else}}Halving{{end}} Date</span>
           <div class="fw-600 fs-17">{{TimeConversion .TargetTime}}</div>
         </div>
       </div>
