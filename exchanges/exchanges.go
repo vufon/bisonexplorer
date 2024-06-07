@@ -1445,6 +1445,14 @@ func (r GeminiCandlestickResponse) translate() Candlesticks {
 	return sticks
 }
 
+func ReverseCandlesticks(input Candlesticks) Candlesticks {
+	res := make(Candlesticks, 0)
+	for i := len(input) - 1; i >= 0; i-- {
+		res = append(res, input[i])
+	}
+	return res
+}
+
 func (r KucoinCandlestickResponse) translate() Candlesticks {
 	sticks := make(Candlesticks, 0, len(r.Data))
 	for _, rawStick := range r.Data {
@@ -1656,11 +1664,13 @@ func (r *GeminiDepthResponse) translate() *DepthData {
 		log.Errorf("%v", err)
 		return nil
 	}
+	depth.Asks = ReverseDepthArray(depth.Asks)
 	depth.Bids, err = parseGeminiDepthPoints(r.Bids)
 	if err != nil {
 		log.Errorf("%v", err)
 		return nil
 	}
+	depth.Bids = ReverseDepthArray(depth.Bids)
 	return depth
 }
 
@@ -1676,12 +1686,22 @@ func (r *KucoinDepthResponse) translate() *DepthData {
 		log.Errorf("%v", err)
 		return nil
 	}
+	depth.Asks = ReverseDepthArray(depth.Asks)
 	depth.Bids, err = parseBinanceDepthPoints(r.Data.Bids)
 	if err != nil {
 		log.Errorf("%v", err)
 		return nil
 	}
+	depth.Bids = ReverseDepthArray(depth.Bids)
 	return depth
+}
+
+func ReverseDepthArray(input []DepthPoint) []DepthPoint {
+	res := make([]DepthPoint, 0)
+	for i := len(input) - 1; i >= 0; i-- {
+		res = append(res, input[i])
+	}
+	return res
 }
 
 // Refresh retrieves and parses API data from Binance.
@@ -1812,7 +1832,7 @@ func (kucoin *KucoinExchange) Refresh() {
 				continue
 			}
 			sticks := response.translate()
-
+			sticks = ReverseCandlesticks(sticks)
 			if !found || sticks.time().After(oldSticks.time()) {
 				candlesticks[bin] = sticks
 			}
@@ -1930,7 +1950,7 @@ func (gemini *GeminiExchange) Refresh() {
 				continue
 			}
 			sticks := response.translate()
-
+			sticks = ReverseCandlesticks(sticks)
 			if !found || sticks.time().After(oldSticks.time()) {
 				candlesticks[bin] = sticks
 			}
