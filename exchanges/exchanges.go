@@ -1664,13 +1664,11 @@ func (r *GeminiDepthResponse) translate() *DepthData {
 		log.Errorf("%v", err)
 		return nil
 	}
-	depth.Asks = ReverseDepthArray(depth.Asks)
 	depth.Bids, err = parseGeminiDepthPoints(r.Bids)
 	if err != nil {
 		log.Errorf("%v", err)
 		return nil
 	}
-	depth.Bids = ReverseDepthArray(depth.Bids)
 	return depth
 }
 
@@ -1686,22 +1684,12 @@ func (r *KucoinDepthResponse) translate() *DepthData {
 		log.Errorf("%v", err)
 		return nil
 	}
-	depth.Asks = ReverseDepthArray(depth.Asks)
 	depth.Bids, err = parseBinanceDepthPoints(r.Data.Bids)
 	if err != nil {
 		log.Errorf("%v", err)
 		return nil
 	}
-	depth.Bids = ReverseDepthArray(depth.Bids)
 	return depth
-}
-
-func ReverseDepthArray(input []DepthPoint) []DepthPoint {
-	res := make([]DepthPoint, 0)
-	for i := len(input) - 1; i >= 0; i-- {
-		res = append(res, input[i])
-	}
-	return res
 }
 
 // Refresh retrieves and parses API data from Binance.
