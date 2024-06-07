@@ -321,3 +321,18 @@ body.darkBG [data-tooltip]:hover::after {
   display: inline-block;
   margin-top: 10px;
 }
+
+@media (max-width: 768px) {
+  .timer-countdown .countdown-tiles > span {
+    min-width: 70px;
+    max-width: 80px;
+    font: bold 40px "Droid Sans", "Arial", sans-serif;
+    padding: 12px 0;
+  }
+
+  .timer-countdown .labels li {
+    width: 80px;
+    font: bold 12px "Droid Sans", "Arial", sans-serif;
+    margin-top: 10px;
+  }
+}

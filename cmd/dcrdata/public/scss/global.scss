@@ -2232,3 +2232,9 @@ body.darkBG {
 .cursor-pointer {
   cursor: pointer;
 }
+
+@media (max-width: 1120px) {
+  .chain-selected-btn span {
+    display: none;
+  }
+}

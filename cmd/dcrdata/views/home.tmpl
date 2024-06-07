@@ -12,10 +12,9 @@
          <p class="fs-22 nav-bar-area fw-600">Supported Blockchains</p>
             <section>
                <h2 class="fs-40 fw-600 d-none"> Blocks Explorer</h2>
-               <div class="hp-explore__cards-wrap mt-3">
-                  <div class="hp-explore__cards-content-2-1 home-chain-card">
+                  <div class="row home-chain-card">
                     {{range .HomeInfoList}}
-                     <div class="info-right-card">
+                     <div class="col-24 col-md-12 mt-3 info-right-card">
                         <!-- Start Blocks Card -->
                         <div class="explore-card-wrap">
                            <div class="explore-card-content">
@@ -84,7 +83,6 @@
                      </div>
                      {{end}}
                   </div>
-               </div>
             </section>
          </div>
       </div>

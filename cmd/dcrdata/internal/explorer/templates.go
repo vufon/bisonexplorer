@@ -194,6 +194,24 @@ func hashratePostfix(v float64) string {
 	return "PH/s"
 }
 
+func difficultyDisp(d float64) string {
+	if d < 1e5 {
+		return float64Formatting(d, 0, true)[0]
+	}
+	if d < 1e6 {
+		diff := math.Floor(float64(d / 1e3))
+		return fmt.Sprintf("%fK", diff)
+	}
+	if d < 1e9 {
+		diff := float64(d / 1e6)
+		format := float64Formatting(diff, 2, true)
+		return fmt.Sprintf("%s.%sM", format[0], format[1])
+	}
+	diff := float64(d / 1e9)
+	format := float64Formatting(diff, 2, true)
+	return fmt.Sprintf("%s.%sB", format[0], format[1])
+}
+
 func amountAsDecimalPartsTrimmed(v, numPlaces int64, useCommas bool) []string {
 	// Filter numPlaces to only allow up to 8 decimal places trimming (eg. 1.12345678)
 	if numPlaces > 8 {
@@ -429,6 +447,7 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"float64AsDecimalParts": float64Formatting,
 		"hashrateDecimalParts":  hashrateFormatting,
 		"hashratePostfix":       hashratePostfix,
+		"difficultyDisp":        difficultyDisp,
 		"amountAsDecimalParts": func(v int64, useCommas bool) []string {
 			return float64Formatting(dcrutil.Amount(v).ToCoin(), 8, useCommas)
 		},

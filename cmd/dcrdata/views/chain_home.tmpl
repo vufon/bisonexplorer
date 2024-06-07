@@ -38,8 +38,8 @@
                                  </div>
                               </div>
                            </a>
-                           <div class="explore-card__values-content market-chart-content">
-                              <section>
+                           <div class="explore-card__values-content market-chart-content pb-2">
+                              <section class="ms-3">
                                  {{- if $botState -}}
                                  <div class="row border-1-grey chart-wrapper">
                                     <!-- market chart start -->
@@ -238,7 +238,7 @@
                                                 </div>
                                              </div>
                                              {{- /* CHART */ -}}
-                                             <div class="flex-grow-1 ps-3 pe-4 mb-2 market-chart-box d-flex">
+                                             <div class="flex-grow-1 ps-3 mb-2 market-chart-box d-flex">
                                                 <div class="d-flex w-100 position-relative market-chart">
                                                    <div class="market-chart-title d-flex align-items-center">
                                                       <div data-chainmarket-target="xcLogo"></div>
@@ -283,7 +283,7 @@
                               <div class="explore-card__values-content">
                                  {{with .Info -}}
                                  <div class="row">
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Exchange Rate</span>
                                           <div class="network-stats-content d-inline-block mt-4">
@@ -301,7 +301,7 @@
                                        </div>
                                     </div>
                                     -->
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
                                           <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=tx-count">
@@ -325,7 +325,7 @@
                                        </div>
                                     </div>
                                     -->
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
                                            <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=coin-supply">
@@ -344,7 +344,7 @@
                                           </div>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
                                           <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=blockchain-size">
@@ -356,7 +356,7 @@
                                           </span>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                     <p class="network-stats-block">
                                           <span class="network-stats-title">Average Block Time</span>
                                           <span class="network-stats-content d-inline-block mt-4" data-type="duration" class="jsonly" data-time-target="duration" id="blockTimeAvg" data-duration="{{.BlockTimeAvg}}" id="blockTimeAvg">0</span>
@@ -392,7 +392,7 @@
                               <div class="explore-card__values-content">
                                  {{with .MempoolInfo -}}
                                  <div class="row justify-content-between">
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">
                                            <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=mempool-txs">
@@ -404,7 +404,7 @@
                                           </div>
                                        </div>
                                     </div>
-                                     <div class="col-24 col-sm-12 col-md-8">
+                                     <div class="col-24 col-sm-12 col-lg-8">
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Processing Outputs</span>
                                           <span class="network-stats-content d-inline-block mt-4" id="txOutCount">
@@ -412,7 +412,7 @@
                                           </span>
                                        </p>
                                     </div>
-                                     <div class="col-24 col-sm-12 col-md-8">
+                                     <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Total Sent</span>
                                           <div class="network-stats-content d-inline-block mt-4" id="totalSent">
@@ -421,7 +421,7 @@
                                           <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Fee Total</span>
                                           <div class="network-stats-content d-inline-block mt-4" id="totalFee">
@@ -430,7 +430,7 @@
                                           <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Fee span</span>
                                           <div class="network-stats-content d-inline-block mt-4 fs-18">
@@ -440,7 +440,7 @@
                                           </div>
                                        </div>
                                     </div>
-                                    <div class="col-24 col-sm-12 col-md-8">
+                                    <div class="col-24 col-sm-12 col-lg-8">
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">
                                            <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=mempool-size">
@@ -542,7 +542,7 @@
                                           Difficulty</a>
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-4" data-homepage-target="difficulty">
-                                             {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty 1.0) 0 true)}}
+                                             {{difficultyDisp .Difficulty}}
                                           </div>
                                        </div>
                                     </div>
