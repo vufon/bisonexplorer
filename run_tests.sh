@@ -13,7 +13,7 @@ set -ex
 GV=$(go version | sed "s/^.*go\([0-9.]*\).*/\1/")
 echo "Go version: $GV"
 
-if [[ -v TESTTAGS ]]; then
+if [[ -n "${TESTTAGS}" ]]; then
   TESTTAGS="-tags \"${TESTTAGS}\""
 else
   TESTTAGS=
@@ -46,14 +46,15 @@ MODPATHS="./go.mod ./exchanges/go.mod ./gov/go.mod ./db/dcrpg/go.mod ./cmd/dcrda
     ./testutil/apiload/go.mod ./exchanges/rateserver/go.mod"
 #MODPATHS=$(find . -name go.mod -type f -print)
 
+ROOT=$PWD
 # run tests on all modules
 for MODPATH in $MODPATHS; do
   module=$(dirname "$MODPATH")
   echo "==> ${module}"
   (cd "${module}"
     go test $TESTTAGS ./...
-    golangci-lint run
-    if [[ "$GV" =~ ^1.20 ]]; then
+    golangci-lint run -c ${ROOT}/.golangci.yml
+    if [[ "$GV" =~ ^1.21 ]]; then
       MOD_STATUS=$(git status --porcelain go.mod go.sum)
       go mod tidy
       UPDATED_MOD_STATUS=$(git status --porcelain go.mod go.sum)

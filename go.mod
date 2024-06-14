@@ -20,10 +20,11 @@ require (
 	github.com/decred/dcrd/wire v1.6.0
 	github.com/decred/slog v1.2.0
 	github.com/dgraph-io/badger v1.6.2
+	github.com/dustin/go-humanize v1.0.1-0.20210705192016-249ff6c91207
 	github.com/ltcsuite/ltcd v0.23.5
 	github.com/ltcsuite/ltcd/chaincfg/chainhash v1.0.2
 	github.com/ltcsuite/ltcd/ltcutil v1.1.3
-	golang.org/x/net v0.8.0
+	golang.org/x/net v0.20.0
 )
 
 require (
@@ -33,8 +34,6 @@ require (
 	github.com/btcsuite/btclog v0.0.0-20170628155309-84c8d2346e9f // indirect
 	github.com/btcsuite/go-socks v0.0.0-20170105172521-4720035b7bfd // indirect
 	github.com/btcsuite/websocket v0.0.0-20150119174127-31079b680792 // indirect
-	github.com/carterjones/go-cloudflare-scraper v0.1.2 // indirect
-	github.com/carterjones/signalr v0.3.5 // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
@@ -46,7 +45,6 @@ require (
 	github.com/decred/dcrd/gcs/v4 v4.0.0 // indirect
 	github.com/decred/go-socks v1.1.0 // indirect
 	github.com/dgraph-io/ristretto v0.0.2 // indirect
-	github.com/dustin/go-humanize v1.0.1-0.20210705192016-249ff6c91207 // indirect
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.5.4 // indirect
@@ -55,8 +53,8 @@ require (
 	github.com/ltcsuite/ltcd/btcec/v2 v2.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a // indirect
-	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
