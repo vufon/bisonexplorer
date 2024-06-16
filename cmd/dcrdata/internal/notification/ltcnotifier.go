@@ -23,23 +23,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/ltcsuite/ltcd/btcjson"
 	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
 	"github.com/ltcsuite/ltcd/rpcclient"
 )
-
-type LtcBlockHeader struct {
-	Hash   chainhash.Hash
-	Height int32
-	Time   time.Time
-}
 
 // TxHandler is a function that will be called when dcrd reports new mempool
 // transactions.
 type LtcTxHandler func(*btcjson.TxRawResult) error
 
 // BlockHandler is a function that will be called when dcrd reports a new block.
-type LtcBlockHandler func(*LtcBlockHeader) error
+type LtcBlockHandler func(*mutilchain.LtcBlockHeader) error
 
 // BlockHandlerLite is a simpler trigger using only bultin types, also called
 // when dcrd reports a new block.
@@ -52,9 +47,13 @@ type LtcBlockHandlerLite func(uint32, string) error
 type LTCNotifier struct {
 	node LTCDNode
 	// The anyQ sequences all dcrd notification in the order they are received.
-	anyQ  chan interface{}
-	tx    [][]LtcTxHandler
-	block [][]LtcBlockHandler
+	anyQ     chan interface{}
+	tx       [][]LtcTxHandler
+	block    [][]LtcBlockHandler
+	previous struct {
+		hash   chainhash.Hash
+		height uint32
+	}
 }
 
 // NewNotifier is the constructor for a Notifier.
@@ -72,8 +71,8 @@ func NewLtcNotifier() *LTCNotifier {
 // DCRDNode is an interface to wrap a dcrd rpcclient.Client. The interface
 // allows testing with a dummy node.
 type LTCDNode interface {
-	NotifyBlocks(context.Context) error
-	NotifyNewTransactions(context.Context, bool) error
+	NotifyBlocks() error
+	NotifyNewTransactions(bool) error
 }
 
 // Listen must be called once, but only after all handlers are registered.
@@ -82,13 +81,13 @@ func (notifier *LTCNotifier) Listen(ctx context.Context, ltcdClient LTCDNode) *C
 	notifier.node = ltcdClient
 
 	var err error
-	if err = ltcdClient.NotifyBlocks(ctx); err != nil {
+	if err = ltcdClient.NotifyBlocks(); err != nil {
 		return newContextualError("block notification "+
 			"registration failed", err)
 	}
 
 	// Register for tx accepted into mempool ntfns
-	if err = ltcdClient.NotifyNewTransactions(ctx, true); err != nil {
+	if err = ltcdClient.NotifyNewTransactions(true); err != nil {
 		return newContextualError("new transaction verbose notification registration failed", err)
 	}
 
@@ -120,14 +119,14 @@ out:
 			// Do not allow new blocks to process while running reorg. Only allow
 			// them to be processed after this reorg completes.
 			switch msg := rawMsg.(type) {
-			case *LtcBlockHeader:
+			case *mutilchain.LtcBlockHeader:
 				// Process the new block.
-				log.Infof("superQueue: Processing new block %v. Height: %d", msg.Hash, msg.Height)
+				log.Infof("LTCSuperQueue: Processing new block %v. Height: %d", msg.Hash, msg.Height)
 				notifier.processBlock(msg)
 			case *btcjson.TxRawResult:
 				notifier.processTx(msg)
 			default:
-				log.Warn("unknown message type in superQueue: %T", rawMsg)
+				log.Warn("unknown message type in superQueue LTC: %T", rawMsg)
 			}
 		case <-ctx.Done():
 			break out
@@ -135,10 +134,15 @@ out:
 	}
 }
 
+func (notifier *LTCNotifier) SetPreviousBlock(prevHash chainhash.Hash, prevHeight uint32) {
+	notifier.previous.hash = prevHash
+	notifier.previous.height = prevHeight
+}
+
 // rpcclient.NotificationHandlers.OnBlockConnected
 // TODO: considering using txns [][]byte to save on downstream RPCs.
 func (notifier *LTCNotifier) onBlockConnected(hash *chainhash.Hash, height int32, t time.Time) {
-	blockHeader := LtcBlockHeader{
+	blockHeader := &mutilchain.LtcBlockHeader{
 		Hash:   *hash,
 		Height: height,
 		Time:   t,
@@ -197,9 +201,8 @@ func (notifier *LTCNotifier) RegisterBlockHandlerLiteGroup(handlers ...LtcBlockH
 
 // processBlock calls the BlockHandler/BlockHandlerLite groups one at a time in
 // the order that they were registered.
-func (notifier *LTCNotifier) processBlock(bh *LtcBlockHeader) {
+func (notifier *LTCNotifier) processBlock(bh *mutilchain.LtcBlockHeader) {
 	start := time.Now()
-
 	for _, handlers := range notifier.block {
 		wg := new(sync.WaitGroup)
 		for _, h := range handlers {

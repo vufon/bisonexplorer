@@ -1479,6 +1479,24 @@ func _main(ctx context.Context) error {
 				return fmt.Errorf("Failed to store initial block data for explorer pages: %w", err)
 			}
 		}
+		//start - handler notifier for ltc
+		ltcReorgBlockDataSavers := []blockdataltc.BlockDataSaver{explore}
+		ltcBlockDataSavers := []blockdataltc.BlockDataSaver{}
+		ltcBlockDataSavers = append(ltcBlockDataSavers, chainDB)
+		ltcBlockDataSavers = append(ltcBlockDataSavers, psHub)
+		ltcBlockDataSavers = append(ltcBlockDataSavers, explore)
+		ltcBdChainMonitor := blockdataltc.NewChainMonitor(ctx, ltcCollector, ltcBlockDataSavers,
+			ltcReorgBlockDataSavers)
+
+		ltcNotifier.RegisterBlockHandlerGroup(ltcBdChainMonitor.ConnectBlock)
+		// Register for notifications from dcrd. This also sets the daemon RPC
+		// client used by other functions in the notify/notification package (i.e.
+		// common ancestor identification in processReorg).
+		cerr := ltcNotifier.Listen(ctx, ltcdClient)
+		if cerr != nil {
+			return fmt.Errorf("LTC RPC client error: %v (%v)", cerr.Error(), cerr.Cause())
+		}
+		//end - handler notifier for ltc
 		//end init collector for ltc
 	}
 
@@ -1647,6 +1665,24 @@ func _main(ctx context.Context) error {
 				return fmt.Errorf("Failed to store initial block data for explorer pages: %w", err)
 			}
 		}
+		//start - handler notifier for ltc
+		btcBlockDataSavers := []blockdatabtc.BlockDataSaver{}
+		btcBlockDataSavers = append(btcBlockDataSavers, chainDB)
+		btcBlockDataSavers = append(btcBlockDataSavers, psHub)
+		btcBlockDataSavers = append(btcBlockDataSavers, explore)
+		btcReorgBlockDataSavers := []blockdatabtc.BlockDataSaver{explore}
+		btcBdChainMonitor := blockdatabtc.NewChainMonitor(ctx, btcCollector, btcBlockDataSavers,
+			btcReorgBlockDataSavers)
+
+		btcNotifier.RegisterBlockHandlerGroup(btcBdChainMonitor.ConnectBlock)
+		// Register for notifications from dcrd. This also sets the daemon RPC
+		// client used by other functions in the notify/notification package (i.e.
+		// common ancestor identification in processReorg).
+		cerr := btcNotifier.Listen(ctx, btcdClient)
+		if cerr != nil {
+			return fmt.Errorf("BTC RPC client error: %v (%v)", cerr.Error(), cerr.Cause())
+		}
+		//end - handler notifier for ltc
 		//end init collector for btc
 	}
 

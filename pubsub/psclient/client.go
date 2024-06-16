@@ -491,6 +491,14 @@ func DecodeMsg(msg *pstypes.WebSocketMessage) (interface{}, error) {
 		var newblock exptypes.WebsocketBlock
 		err := json.Unmarshal(msg.Message, &newblock)
 		return &newblock, err
+	case "newltcblock":
+		var newblock exptypes.WebsocketBlock
+		err := json.Unmarshal(msg.Message, &newblock)
+		return &newblock, err
+	case "newbtcblock":
+		var newblock exptypes.WebsocketBlock
+		err := json.Unmarshal(msg.Message, &newblock)
+		return &newblock, err
 	case "mempool":
 		var mpshort exptypes.MempoolShort
 		err := json.Unmarshal(msg.Message, &mpshort)

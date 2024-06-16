@@ -34,6 +34,8 @@ var (
 	sigSubscribe        = pstypes.SigSubscribe
 	sigUnsubscribe      = pstypes.SigUnsubscribe
 	sigNewBlock         = pstypes.SigNewBlock
+	sigNewLTCBlock      = pstypes.SigNewLTCBlock
+	sigNewBTCBlock      = pstypes.SigNewBTCBlock
 	sigMempoolUpdate    = pstypes.SigMempoolUpdate
 	sigPingAndUserCount = pstypes.SigPingAndUserCount
 	sigNewTx            = pstypes.SigNewTx
@@ -226,6 +228,16 @@ func (wsh *WebsocketHub) run() {
 				// Do not log when explorer update status is active.
 				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
 					log.Infof("Signaling new block to %d websocket clients.", clientsCount)
+				}
+			case sigNewLTCBlock:
+				// Do not log when explorer update status is active.
+				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling new LTC block to %d websocket clients.", clientsCount)
+				}
+			case sigNewBTCBlock:
+				// Do not log when explorer update status is active.
+				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling new BTC block to %d websocket clients.", clientsCount)
 				}
 			case sigPingAndUserCount:
 				log.Tracef("Signaling ping/user count to %d websocket clients.", clientsCount)

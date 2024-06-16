@@ -278,6 +278,30 @@ func (exp *ExplorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 					} else {
 						log.Errorf("json.Encode(WebsocketBlock) failed: %v", err)
 					}
+				case sigNewLTCBlock:
+					exp.LtcPageData.RLock()
+					err := enc.Encode(types.WebsocketBlock{
+						Block: exp.LtcPageData.BlockInfo,
+						Extra: exp.LtcPageData.HomeInfo,
+					})
+					exp.LtcPageData.RUnlock()
+					if err == nil {
+						webData.Message = buff.String()
+					} else {
+						log.Errorf("json.Encode(WebsocketLTCBlock) failed: %v", err)
+					}
+				case sigNewBTCBlock:
+					exp.BtcPageData.RLock()
+					err := enc.Encode(types.WebsocketBlock{
+						Block: exp.BtcPageData.BlockInfo,
+						Extra: exp.BtcPageData.HomeInfo,
+					})
+					exp.BtcPageData.RUnlock()
+					if err == nil {
+						webData.Message = buff.String()
+					} else {
+						log.Errorf("json.Encode(WebsocketBTCBlock) failed: %v", err)
+					}
 				case sigMempoolUpdate:
 					inv := exp.MempoolInventory()
 					inv.RLock()

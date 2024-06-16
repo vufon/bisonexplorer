@@ -51,6 +51,8 @@ import (
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/blockdata"
+	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
@@ -308,6 +310,8 @@ type ChainDB struct {
 	// in StoreBlock for quick retrieval without a DB query.
 	BlockCache        *apitypes.APICache
 	heightClients     []chan uint32
+	ltcHeightClients  []chan uint32
+	btcHeightClients  []chan uint32
 	shutdownDcrdata   func()
 	Client            *rpcclient.Client
 	LtcClient         *ltcClient.Client
@@ -4362,6 +4366,77 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	return err
 }
 
+// Store satisfies BlockDataSaver. Blocks stored this way are considered valid
+// and part of mainchain. Store should not be used for batch block processing;
+// instead, use StoreBlock and specify appropriate flags.
+func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwire.MsgBlock) error {
+	// This function must handle being run when pgb is nil (not constructed).
+	if pgb == nil {
+		return nil
+	}
+	// update blockchain state
+	pgb.UpdateLTCChainState(blockData.BlockchainInfo)
+	if !pgb.ChainDBDisabled {
+		isValid := true
+		// Since Store should not be used in batch block processing, address'
+		// spending information is updated.
+		updateAddressesSpendingInfo := true
+
+		_, _, err := pgb.StoreLTCBlock(pgb.LtcClient, msgBlock, isValid, updateAddressesSpendingInfo)
+		if err != nil {
+			return err
+		}
+	}
+	//update best ltc block
+	pgb.LtcBestBlock.Hash = blockData.Header.Hash
+	pgb.LtcBestBlock.Height = int64(blockData.Header.Height)
+	pgb.LtcBestBlock.Time = blockData.Header.Time
+
+	// Signal updates to any subscribed heightClients.
+	pgb.SignalLTCHeight(uint32(blockData.Header.Height))
+
+	return nil
+}
+
+// Store satisfies BlockDataSaver. Blocks stored this way are considered valid
+// and part of mainchain. Store should not be used for batch block processing;
+// instead, use StoreBlock and specify appropriate flags.
+func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwire.MsgBlock) error {
+	// This function must handle being run when pgb is nil (not constructed).
+	if pgb == nil {
+		return nil
+	}
+
+	// update blockchain state
+	pgb.UpdateBTCChainState(blockData.BlockchainInfo)
+
+	// New blocks stored this way are considered valid and part of mainchain,
+	// warranting updates to existing records. When adding side chain blocks
+	// manually, call StoreBlock directly with appropriate flags for isValid,
+	// isMainchain, and updateExistingRecords, and nil winningTickets.
+	if !pgb.ChainDBDisabled {
+		isValid := true
+
+		// Since Store should not be used in batch block processing, address'
+		// spending information is updated.
+		updateAddressesSpendingInfo := true
+		_, _, err := pgb.StoreBTCBlock(pgb.BtcClient, msgBlock, isValid, updateAddressesSpendingInfo)
+		if err != nil {
+			return err
+		}
+	}
+
+	//update best ltc block
+	pgb.BtcBestBlock.Hash = blockData.Header.Hash
+	pgb.BtcBestBlock.Height = int64(blockData.Header.Height)
+	pgb.BtcBestBlock.Time = blockData.Header.Time
+
+	// Signal updates to any subscribed heightClients.
+	pgb.SignalBTCHeight(uint32(blockData.Header.Height))
+
+	return nil
+}
+
 // PurgeBestBlocks deletes all data for the N best blocks in the DB.
 func (pgb *ChainDB) PurgeBestBlocks(N int64) (*dbtypes.DeletionSummary, int64, error) {
 	res, height, _, err := DeleteBlocks(pgb.ctx, N, pgb.db)
@@ -7436,6 +7511,7 @@ func makeBTCExplorerBlockBasic(data *btcjson.GetBlockVerboseTxResult) *exptypes.
 		Transactions:   numReg,
 		TxCount:        uint32(numReg),
 		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
+		BlockTimeUnix:  data.Time,
 		FormattedBytes: humanize.Bytes(uint64(data.Size)),
 		Total:          total,
 	}
@@ -7462,6 +7538,7 @@ func makeLTCExplorerBlockBasicFromTxResult(data *ltcjson.GetBlockVerboseTxResult
 		Transactions:   numReg,
 		TxCount:        uint32(numReg),
 		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
+		BlockTimeUnix:  data.Time,
 		FormattedBytes: humanize.Bytes(uint64(data.Size)),
 		Total:          total,
 	}
@@ -8942,6 +9019,28 @@ func (pgb *ChainDB) SignalHeight(height uint32) {
 		case c <- height:
 		case <-time.NewTimer(time.Minute).C:
 			log.Criticalf("(*DBDataSaver).SignalHeight: heightClients[%d] timed out. Forcing a shutdown.", i)
+			pgb.shutdownDcrdata()
+		}
+	}
+}
+
+func (pgb *ChainDB) SignalLTCHeight(height uint32) {
+	for i, c := range pgb.ltcHeightClients {
+		select {
+		case c <- height:
+		case <-time.NewTimer(time.Minute).C:
+			log.Criticalf("(*LTCDBDataSaver).SignalLTCHeight: ltcHeightClients[%d] timed out. Forcing a shutdown.", i)
+			pgb.shutdownDcrdata()
+		}
+	}
+}
+
+func (pgb *ChainDB) SignalBTCHeight(height uint32) {
+	for i, c := range pgb.btcHeightClients {
+		select {
+		case c <- height:
+		case <-time.NewTimer(time.Minute).C:
+			log.Criticalf("(*BTCDBDataSaver).SignalBTCHeight: btcHeightClients[%d] timed out. Forcing a shutdown.", i)
 			pgb.shutdownDcrdata()
 		}
 	}

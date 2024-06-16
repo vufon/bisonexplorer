@@ -54,7 +54,7 @@ func main() {
 
 	// Subscribe/unsubscribe to several events.
 	var currentSubs []string
-	allSubs := []string{"ping", "newtxs", "newblock", "mempool", "address:Dcur2mcGjmENx4DhNqDctW5wJCVyT3Qeqkx", "address"}
+	allSubs := []string{"ping", "newtxs", "newblock", "newltcblock", "newbtcblock", "mempool", "address:Dcur2mcGjmENx4DhNqDctW5wJCVyT3Qeqkx", "address"}
 	subscribe := func(newsubs []string) error {
 		for _, sub := range newsubs {
 			if subd, _ := strInSlice(currentSubs, sub); subd {

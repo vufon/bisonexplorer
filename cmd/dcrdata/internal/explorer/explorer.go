@@ -825,13 +825,19 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.Unlock()
+	go func() {
+		select {
+		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewBTCBlock}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigNewBTCBlock send failed: Timeout waiting for WebsocketHub.")
+		}
+	}()
 	return nil
 }
 
 func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwire.MsgBlock) error {
 	// Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetLTCExplorerBlock(msgBlock.BlockHash().String())
-
 	// Use the latest block's blocktime to get the last 24hr timestamp.
 	day := 24 * time.Hour
 	targetTimePerBlock := float64(exp.LtcChainParams.TargetTimePerBlock)
@@ -852,7 +858,6 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	var chainErr error
 	var blockchainInfo *mutilchain.BlockchainInfo
 	//Get transactions total count
-
 	blockchainInfo, chainErr = exp.dataSource.MutilchainGetBlockchainInfo(mutilchain.TYPELTC)
 	if chainErr != nil {
 		difficulty = blockData.Header.Difficulty
@@ -893,6 +898,13 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.Unlock()
+	go func() {
+		select {
+		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewLTCBlock}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
+		}
+	}()
 	return nil
 }
 

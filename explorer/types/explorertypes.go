@@ -131,6 +131,7 @@ type BlockBasic struct {
 	BlockTime      TimeDef `json:"time"`
 	FormattedBytes string  `json:"formatted_bytes"`
 	Total          float64 `json:"total"`
+	BlockTimeUnix  int64   `json:"blocktime_unix"`
 }
 
 // WebBasicBlock is used for quick DB data without rpc calls

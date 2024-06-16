@@ -8,6 +8,9 @@
    {{ template "mutilchain_navbar" . }}
    <div class="main-container homepage-class" data-controller="time chainhome"
    data-chainhome-chain-type="{{$ChainType}}"
+   {{- if $conv -}}
+   data-chainhome-exchange-rate="{{$conv.ExchangeRate}}"
+   {{end}}
    >
       <!-- start explorer wrap -->
       <div class="hp-explore-wrap mutilchain-explore-wrap" id="hp-explore-wrap">
@@ -287,7 +290,7 @@
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Exchange Rate</span>
                                           <div class="network-stats-content d-inline-block mt-4">
-                                             <span data-homepage-target="exchangeRate">{{$conv.ExchangeRate.TwoDecimals}}</span>
+                                             <span data-chainhome-target="exchangeRate">{{$conv.ExchangeRate.TwoDecimals}}</span>
                                              <span class="info-line-2-sub">{{$conv.ExchangeRate.Index}}</span>
                                           </div>
                                        </div>
@@ -308,7 +311,7 @@
                                           Total Transactions
                                           </a>
                                           </span>
-                                          <span class="network-stats-content d-inline-block mt-2">
+                                          <span data-chainhome-target="totalTransactions" class="network-stats-content d-inline-block mt-2">
                                           {{int64Comma .TotalTransactions}}
                                           </span>
                                        </div>
@@ -333,12 +336,12 @@
                                           </a>
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-2">
-                                             {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 true)}} 
+                                             <span data-chainhome-target="coinSupply">{{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 true)}}</span>
                                              <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                              </span>
                                              <span class="stats-subinfo">
                                              {{if $conv -}}
-                                             <span data-homepage-target="convertedSupply">{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
+                                             <span data-chainhome-target="convertedSupply">{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
                                              {{- end}}
                                              </span>
                                           </div>
@@ -486,7 +489,7 @@
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Lastest Block</span>
                                           <span class="network-stats-content d-inline-block mt-4">
-                                          <a class="fs-28" href="/chain/{{$ChainType}}/block/{{.Hash}}" data-homepage-target="blockHeight">{{.Height}}</a>
+                                          <a class="fs-28" href="/chain/{{$ChainType}}/block/{{.Hash}}" data-chainhome-target="blockHeight">{{.Height}}</a>
                                           </span>
                                        </p>
                                     </div>
@@ -494,7 +497,7 @@
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Value</span>
                                           <span class="network-stats-content d-inline-block mt-4">
-                                          <span data-homepage-target="blockTotal">
+                                          <span data-chainhome-target="blockTotal">
                                           {{threeSigFigs .Total}}</span>
                                           <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                           </span>
@@ -503,13 +506,13 @@
                                     <div class="col-12">
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Size</span>
-                                          <span class="network-stats-content d-inline-block mt-4" data-homepage-target="blockSize">{{.FormattedBytes}}</span>
+                                          <span class="network-stats-content d-inline-block mt-4" data-chainhome-target="blockSize">{{.FormattedBytes}}</span>
                                        </p>
                                     </div>
                                     <div class="col-12">
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Age</span>
-                                          <span class="network-stats-content d-inline-block mt-4" data-type="age" class="jsonly" data-time-target="age" data-age="{{.BlockTime.UNIX}}" data-homepage-target="blockTime">{{.BlockTime}}</span>
+                                          <span class="network-stats-content d-inline-block mt-4" data-type="age" class="jsonly" data-time-target="age" data-age="{{.BlockTime.UNIX}}" data-chainhome-target="blockTime">-</span>
                                        </p>
                                     </div>
                                  </div>
@@ -541,7 +544,7 @@
                                           <a class="link-hover-underline" href="/chain/{{$ChainType}}/charts?chart=pow-difficulty">
                                           Difficulty</a>
                                           </span>
-                                          <div class="network-stats-content d-inline-block mt-4" data-homepage-target="difficulty">
+                                          <div class="network-stats-content d-inline-block mt-4" data-chainhome-target="difficulty">
                                              {{difficultyDisp .Difficulty}}
                                           </div>
                                        </div>
@@ -554,7 +557,7 @@
                                           </a>
                                           </span>
                                           <span class="network-stats-content d-inline-block mt-2">
-                                             <div data-homepage-target="hashrate" class="d-inline-block">
+                                             <div data-chainhome-target="hashrate" class="d-inline-block">
                                                 {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
                                              </div>
                                              <span class="info-line-2-sub">{{hashratePostfix .HashRate}}</span>

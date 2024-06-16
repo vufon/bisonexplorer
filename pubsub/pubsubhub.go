@@ -18,14 +18,24 @@ import (
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/dustin/go-humanize"
 
+	btcjson "github.com/btcsuite/btcd/btcjson"
+	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
+	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrdata/v8/blockdata"
+	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
+	"github.com/decred/dcrdata/v8/mutilchain"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	ltcjson "github.com/ltcsuite/ltcd/btcjson"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
 	"golang.org/x/net/websocket"
 )
 
@@ -44,11 +54,18 @@ const (
 // DataSource defines the interface for collecting required data.
 type DataSource interface {
 	GetExplorerBlock(hash string) *exptypes.BlockInfo
+	GetBTCExplorerBlock(hash string) *exptypes.BlockInfo
+	GetLTCExplorerBlock(hash string) *exptypes.BlockInfo
 	DecodeRawTransaction(txhex string) (*chainjson.TxRawResult, error)
 	SendRawTransaction(txhex string) (string, error)
 	GetChainParams() *chaincfg.Params
+	GetBTCChainParams() *btcchaincfg.Params
+	GetLTCChainParams() *ltcchaincfg.Params
 	BlockSubsidy(height int64, voters uint16) *chainjson.GetBlockSubsidyResult
 	Difficulty(timestamp int64) float64
+	MutilchainDifficulty(timestamp int64, chainType string) float64
+	MutilchainGetBlockchainInfo(chainType string) (*mutilchain.BlockchainInfo, error)
+	MutilchainGetTransactionCount(chainType string) int64
 }
 
 // State represents the current state of block chain.
@@ -60,15 +77,20 @@ type State struct {
 	// GeneralInfo contains a variety of high level status information. Much of
 	// GeneralInfo is constant, set in the constructor, while many fields are
 	// set when Store provides new block details.
-	GeneralInfo *exptypes.HomeInfo
-
+	GeneralInfo    *exptypes.HomeInfo
+	LTCGeneralInfo *exptypes.HomeInfo
+	BTCGeneralInfo *exptypes.HomeInfo
 	// BlockInfo contains details on the most recent block. It is updated when
 	// Store provides new block details.
-	BlockInfo *exptypes.BlockInfo
+	BlockInfo    *exptypes.BlockInfo
+	LTCBlockInfo *exptypes.BlockInfo
+	BTCBlockInfo *exptypes.BlockInfo
 
 	// BlockchainInfo contains the result of the getblockchaininfo RPC. It is
 	// updated when Store provides new block details.
-	BlockchainInfo *chainjson.GetBlockChainInfoResult
+	BlockchainInfo    *chainjson.GetBlockChainInfoResult
+	LTCBlockchainInfo *ltcjson.GetBlockChainInfoResult
+	BTCBlockchainInfo *btcjson.GetBlockChainInfoResult
 }
 
 type connection struct {
@@ -84,6 +106,8 @@ type PubSubHub struct {
 	WsHub      *WebsocketHub
 	State      *State
 	params     *chaincfg.Params
+	ltcParams  *ltcchaincfg.Params
+	btcParams  *btcchaincfg.Params
 	invsMtx    sync.RWMutex
 	invs       *exptypes.MempoolInfo
 	ver        pstypes.Ver
@@ -100,7 +124,11 @@ func NewPubSubHub(dataSource DataSource) (*PubSubHub, error) {
 
 	// Retrieve chain parameters.
 	params := psh.sourceBase.GetChainParams()
+	ltcParams := psh.sourceBase.GetLTCChainParams()
+	btcParams := psh.sourceBase.GetBTCChainParams()
 	psh.params = params
+	psh.ltcParams = ltcParams
+	psh.btcParams = btcParams
 
 	sv := Version()
 	psh.ver = pstypes.NewVer(sv.Split())
@@ -125,6 +153,10 @@ func NewPubSubHub(dataSource DataSource) (*PubSubHub, error) {
 				Target: uint32(params.TicketPoolSize) * uint32(params.TicketsPerBlock),
 			},
 		},
+		// Set the constant parameters of LTCGeneralInfo.
+		LTCGeneralInfo: &exptypes.HomeInfo{},
+		// Set the constant parameters of BTCGeneralInfo.
+		BTCGeneralInfo: &exptypes.HomeInfo{},
 		// BlockInfo and BlockchainInfo are set by Store()
 	}
 
@@ -468,7 +500,38 @@ loop:
 			}
 
 			pushMsg.Message = buff.Bytes()
+		case sigNewLTCBlock:
+			psh.State.mtx.RLock()
+			if psh.State.LTCBlockInfo == nil {
+				psh.State.mtx.RUnlock()
+				break // from switch to send empty message
+			}
+			err := enc.Encode(exptypes.WebsocketBlock{
+				Block: psh.State.LTCBlockInfo,
+				Extra: psh.State.LTCGeneralInfo,
+			})
+			psh.State.mtx.RUnlock()
+			if err != nil {
+				log.Warnf("Encode(WebsocketLTCBlock) failed: %v", err)
+			}
 
+			pushMsg.Message = buff.Bytes()
+		case sigNewBTCBlock:
+			psh.State.mtx.RLock()
+			if psh.State.BTCBlockInfo == nil {
+				psh.State.mtx.RUnlock()
+				break // from switch to send empty message
+			}
+			err := enc.Encode(exptypes.WebsocketBlock{
+				Block: psh.State.BTCBlockInfo,
+				Extra: psh.State.BTCGeneralInfo,
+			})
+			psh.State.mtx.RUnlock()
+			if err != nil {
+				log.Warnf("Encode(WebsocketBTCBlock) failed: %v", err)
+			}
+
+			pushMsg.Message = buff.Bytes()
 		case sigMempoolUpdate:
 			// You probably want the sigNewTxs event. sigMempoolUpdate sends
 			// a summary of mempool contents, and the NumLatestMempoolTxns
@@ -760,5 +823,151 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 		}
 	}()
 
+	return nil
+}
+
+func (psh *PubSubHub) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwire.MsgBlock) error {
+	// Retrieve block data for the passed block hash.
+	newBlockData := psh.sourceBase.GetBTCExplorerBlock(msgBlock.BlockHash().String())
+	// Use the latest block's blocktime to get the last 24hr timestamp.
+	day := 24 * time.Hour
+	targetTimePerBlock := float64(psh.btcParams.TargetTimePerBlock)
+
+	// Hashrate change over last day
+	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	last24hrDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+
+	// Hashrate change over last month
+	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	lastMonthDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+
+	totalTransactionCount := int64(0)
+	chainSize := int64(0)
+	difficulty := float64(0)
+	var chainErr error
+	var blockchainInfo *mutilchain.BlockchainInfo
+	//Get transactions total count
+	blockchainInfo, chainErr = psh.sourceBase.MutilchainGetBlockchainInfo(mutilchain.TYPEBTC)
+	if chainErr != nil {
+		difficulty = blockData.Header.Difficulty
+		totalTransactionCount = psh.sourceBase.MutilchainGetTransactionCount(mutilchain.TYPEBTC)
+		chainSize = blockData.ExtraInfo.BlockchainSize
+	} else {
+		totalTransactionCount = blockchainInfo.TotalTransactions
+		chainSize = blockchainInfo.BlockchainSize
+		difficulty = blockchainInfo.Difficulty
+	}
+
+	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+	// Update pageData with block data and chain (home) info.
+	p := psh.State
+	p.mtx.Lock()
+
+	// Store current block and blockchain data.
+	p.BTCBlockInfo = newBlockData
+	p.BTCBlockchainInfo = blockData.BlockchainInfo
+
+	// Update GeneralInfo, keeping constant parameters set in NewPubSubHub.
+	p.BTCGeneralInfo.HashRate = hashrate
+	p.BTCGeneralInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	p.BTCGeneralInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	p.BTCGeneralInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
+	p.BTCGeneralInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
+	p.BTCGeneralInfo.Difficulty = difficulty
+	p.BTCGeneralInfo.TotalTransactions = totalTransactionCount
+	p.BTCGeneralInfo.TotalSize = chainSize
+	p.BTCGeneralInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
+	p.BTCGeneralInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
+	p.BTCGeneralInfo.BlockReward = blockData.ExtraInfo.BlockReward
+	p.BTCGeneralInfo.IdxInRewardWindow = int(newBlockData.Height%int64(psh.btcParams.SubsidyReductionInterval)) + 1
+	p.mtx.Unlock()
+
+	// Signal to the websocket hub that a new block was received, but do not
+	// block Store(), and do not hang forever in a goroutine waiting to send.
+	go func() {
+		select {
+		case psh.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewBTCBlock}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigNewBTCBlock send failed: Timeout waiting for WebsocketHub.")
+		}
+	}()
+
+	log.Debugf("Got new BTC block %d for the pubsubhub.", newBlockData.Height)
+	return nil
+}
+
+// Store processes and stores new LTC block data, then signals to the WebSocketHub
+// that the new data is available.
+func (psh *PubSubHub) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwire.MsgBlock) error {
+	// Retrieve block data for the passed block hash.
+	newBlockData := psh.sourceBase.GetLTCExplorerBlock(msgBlock.BlockHash().String())
+	// Use the latest block's blocktime to get the last 24hr timestamp.
+	day := 24 * time.Hour
+	targetTimePerBlock := float64(psh.ltcParams.TargetTimePerBlock)
+
+	// Hashrate change over last day
+	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	last24hrDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+
+	// Hashrate change over last month
+	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	lastMonthDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+
+	totalTransactionCount := int64(0)
+	chainSize := int64(0)
+	difficulty := float64(0)
+	var chainErr error
+	var blockchainInfo *mutilchain.BlockchainInfo
+	//Get transactions total count
+	blockchainInfo, chainErr = psh.sourceBase.MutilchainGetBlockchainInfo(mutilchain.TYPELTC)
+	if chainErr != nil {
+		difficulty = blockData.Header.Difficulty
+		totalTransactionCount = psh.sourceBase.MutilchainGetTransactionCount(mutilchain.TYPELTC)
+		chainSize = blockData.ExtraInfo.BlockchainSize
+	} else {
+		totalTransactionCount = blockchainInfo.TotalTransactions
+		chainSize = blockchainInfo.BlockchainSize
+		difficulty = blockchainInfo.Difficulty
+	}
+
+	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+	// Update pageData with block data and chain (home) info.
+	p := psh.State
+	p.mtx.Lock()
+
+	// Store current block and blockchain data.
+	p.LTCBlockInfo = newBlockData
+	p.LTCBlockchainInfo = blockData.BlockchainInfo
+
+	// Update GeneralInfo, keeping constant parameters set in NewPubSubHub.
+	p.LTCGeneralInfo.HashRate = hashrate
+	p.LTCGeneralInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	p.LTCGeneralInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	p.LTCGeneralInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
+	p.LTCGeneralInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
+	p.LTCGeneralInfo.Difficulty = difficulty
+	p.LTCGeneralInfo.TotalTransactions = totalTransactionCount
+	p.LTCGeneralInfo.TotalSize = chainSize
+	p.LTCGeneralInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
+	p.LTCGeneralInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
+	p.LTCGeneralInfo.BlockReward = blockData.ExtraInfo.BlockReward
+	p.LTCGeneralInfo.IdxInRewardWindow = int(newBlockData.Height%int64(psh.ltcParams.SubsidyReductionInterval)) + 1
+	p.mtx.Unlock()
+
+	// Signal to the websocket hub that a new block was received, but do not
+	// block Store(), and do not hang forever in a goroutine waiting to send.
+	go func() {
+		select {
+		case psh.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewLTCBlock}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
+		}
+	}()
+
+	log.Debugf("Got new LTC block %d for the pubsubhub.", newBlockData.Height)
 	return nil
 }

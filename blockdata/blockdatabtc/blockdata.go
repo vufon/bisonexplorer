@@ -132,7 +132,7 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 		NextBlockReward: mutilchain.GetNextBlockReward(mutilchain.TYPEBTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 		BlockReward:     mutilchain.GetCurrentBlockReward(mutilchain.TYPEBTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 	}
-	return blockdata, blockHeader, extrainfo, msgBlock, err
+	return blockdata, blockHeader, extrainfo, msgBlock, nil
 }
 
 // CollectHash collects chain data at the block with the specified hash.

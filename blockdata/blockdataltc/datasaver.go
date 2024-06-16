@@ -21,7 +21,7 @@ import (
 
 // BlockDataSaver is an interface for saving/storing BlockData
 type BlockDataSaver interface {
-	Store(*BlockData, *wire.MsgBlock) error
+	LTCStore(*BlockData, *wire.MsgBlock) error
 }
 
 // BlockDataToJSONStdOut implements BlockDataSaver interface for JSON output to
@@ -80,7 +80,7 @@ func NewBlockDataToJSONFiles(folder string, fileBase string, m ...*sync.Mutex) *
 }
 
 // Store writes BlockData to stdout in JSON format
-func (s *BlockDataToJSONStdOut) Store(data *BlockData, _ *wire.MsgBlock) error {
+func (s *BlockDataToJSONStdOut) LTCStore(data *BlockData, _ *wire.MsgBlock) error {
 	if s.mtx != nil {
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
@@ -102,7 +102,7 @@ func (s *BlockDataToJSONStdOut) Store(data *BlockData, _ *wire.MsgBlock) error {
 
 // Store writes BlockData to a file in JSON format
 // The file name is nameBase+height+".json".
-func (s *BlockDataToJSONFiles) Store(data *BlockData, _ *wire.MsgBlock) error {
+func (s *BlockDataToJSONFiles) LTCStore(data *BlockData, _ *wire.MsgBlock) error {
 	if s.mtx != nil {
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
@@ -166,7 +166,7 @@ type BlockTrigger struct {
 
 // Store reduces the block data to the hash and height in builtin types,
 // and passes the data to the saver.
-func (s BlockTrigger) Store(bd *BlockData, _ *wire.MsgBlock) error {
+func (s BlockTrigger) LTCStore(bd *BlockData, _ *wire.MsgBlock) error {
 	if s.Async {
 		go func() {
 			err := s.Saver(bd.Header.Hash, uint32(bd.Header.Height))

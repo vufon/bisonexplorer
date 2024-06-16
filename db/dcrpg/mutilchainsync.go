@@ -380,6 +380,11 @@ func (pgb *ChainDB) StoreBTCBlock(client *btcClient.Client, msgBlock *btcwire.Ms
 		return
 	}
 
+	pgb.BtcBestBlock.Mtx.Lock()
+	pgb.BtcBestBlock.Height = int64(dbBlock.Height)
+	pgb.BtcBestBlock.Hash = dbBlock.Hash
+	pgb.BtcBestBlock.Mtx.Unlock()
+
 	// Update last block in db with this block's hash as it's next. Also update
 	// isValid flag in last block if votes in this block invalidated it.
 	lastBlockHash := msgBlock.Header.PrevBlock
@@ -443,6 +448,11 @@ func (pgb *ChainDB) StoreLTCBlock(client *ltcClient.Client, msgBlock *wire.MsgBl
 		log.Error("InsertBlockPrevNext:", err)
 		return
 	}
+
+	pgb.LtcBestBlock.Mtx.Lock()
+	pgb.LtcBestBlock.Height = int64(dbBlock.Height)
+	pgb.LtcBestBlock.Hash = dbBlock.Hash
+	pgb.LtcBestBlock.Mtx.Unlock()
 
 	// Update last block in db with this block's hash as it's next. Also update
 	// isValid flag in last block if votes in this block invalidated it.

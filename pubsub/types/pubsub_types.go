@@ -99,6 +99,8 @@ const (
 	SigSendTx
 	SigVersion
 	SigNewBlock
+	SigNewLTCBlock
+	SigNewBTCBlock
 	SigMempoolUpdate
 	SigPingAndUserCount
 	SigNewTx
@@ -111,6 +113,8 @@ const (
 
 var Subscriptions = map[string]HubSignal{
 	"newblock":       SigNewBlock,
+	"newltcblock":    SigNewLTCBlock,
+	"newbtcblock":    SigNewBTCBlock,
 	"mempool":        SigMempoolUpdate,
 	"ping":           SigPingAndUserCount,
 	"newtxs":         SigNewTxs,
@@ -127,6 +131,8 @@ var eventIDs = map[HubSignal]string{
 	SigSendTx:           "sendtx",
 	SigVersion:          "getversion",
 	SigNewBlock:         "newblock",
+	SigNewLTCBlock:      "newltcblock",
+	SigNewBTCBlock:      "newbtcblock",
 	SigMempoolUpdate:    "mempool",
 	SigPingAndUserCount: "ping",
 	SigNewTx:            "newtx",

@@ -56,6 +56,24 @@ async function createWebSocket (loc) {
     globalEventBus.publish('BLOCK_RECEIVED', newBlock)
   }
 
+  const updateLtcBlockData = function (event) {
+    const newBlock = JSON.parse(event)
+    if (window.loggingDebug) {
+      console.log('LTC Block received:', newBlock)
+    }
+    newBlock.block.unixStamp = new Date(newBlock.block.time).getTime() / 1000
+    globalEventBus.publish('LTC_BLOCK_RECEIVED', newBlock)
+  }
+
+  const updateBtcBlockData = function (event) {
+    const newBlock = JSON.parse(event)
+    if (window.loggingDebug) {
+      console.log('BTC Block received:', newBlock)
+    }
+    newBlock.block.unixStamp = new Date(newBlock.block.time).getTime() / 1000
+    globalEventBus.publish('BTC_BLOCK_RECEIVED', newBlock)
+  }
+
   const updateLtcMempoolData = function (event) {
     const newMempool = JSON.parse(event)
     if (window.loggingDebug) {
@@ -73,6 +91,8 @@ async function createWebSocket (loc) {
   }
 
   ws.registerEvtHandler('newblock', updateBlockData)
+  ws.registerEvtHandler('newltcblock', updateLtcBlockData)
+  ws.registerEvtHandler('newbtcblock', updateBtcBlockData)
   ws.registerEvtHandler('newltcmempool', updateLtcMempoolData)
   ws.registerEvtHandler('newbtcmempool', updateBtcMempoolData)
   ws.registerEvtHandler('exchange', e => {

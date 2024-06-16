@@ -13,6 +13,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrdata/v8/mutilchain"
 )
 
 // for getblock, ticketfeeinfo, estimatestakediff, etc.
@@ -78,24 +79,22 @@ func (p *chainMonitor) collect(hash *chainhash.Hash) (*wire.MsgBlock, *BlockData
 // ConnectBlock is a synchronous version of BlockConnectedHandler that collects
 // and stores data for a block. ConnectBlock satisfies
 // notification.BlockHandler, and is registered as a handler in main.go.
-func (p *chainMonitor) ConnectBlock(header *wire.BlockHeader) error {
+func (p *chainMonitor) ConnectBlock(header *mutilchain.BtcBlockHeader) error {
 	// Do not handle reorg and block connects simultaneously.
-	hash := header.BlockHash()
+	hash := header.Hash
 	p.reorgLock.Lock()
 	defer p.reorgLock.Unlock()
-
 	// Collect block data.
 	msgBlock, blockData, err := p.collect(&hash)
 	if err != nil {
 		return err
 	}
-
 	// Store block data with each saver.
 	for _, s := range p.dataSavers {
 		if s != nil {
 			tStart := time.Now()
 			// Save data to wherever the saver wants to put it.
-			if err0 := s.Store(blockData, msgBlock); err0 != nil {
+			if err0 := s.BTCStore(blockData, msgBlock); err0 != nil {
 				log.Errorf("(%v).Store failed: %v", reflect.TypeOf(s), err0)
 				err = err0
 			}

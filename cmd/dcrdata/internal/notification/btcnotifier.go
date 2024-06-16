@@ -8,20 +8,15 @@ import (
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/decred/dcrdata/v8/mutilchain"
 )
-
-type BtcBlockHeader struct {
-	Hash   chainhash.Hash
-	Height int32
-	Time   time.Time
-}
 
 // TxHandler is a function that will be called when dcrd reports new mempool
 // transactions.
 type BtcTxHandler func(*btcjson.TxRawResult) error
 
 // BlockHandler is a function that will be called when dcrd reports a new block.
-type BtcBlockHandler func(*BtcBlockHeader) error
+type BtcBlockHandler func(*mutilchain.BtcBlockHeader) error
 
 // BlockHandlerLite is a simpler trigger using only bultin types, also called
 // when dcrd reports a new block.
@@ -34,9 +29,13 @@ type BtcBlockHandlerLite func(uint32, string) error
 type BTCNotifier struct {
 	node BTCDNode
 	// The anyQ sequences all dcrd notification in the order they are received.
-	anyQ  chan interface{}
-	tx    [][]BtcTxHandler
-	block [][]BtcBlockHandler
+	anyQ     chan interface{}
+	tx       [][]BtcTxHandler
+	block    [][]BtcBlockHandler
+	previous struct {
+		hash   chainhash.Hash
+		height uint32
+	}
 }
 
 // NewNotifier is the constructor for a Notifier.
@@ -54,8 +53,8 @@ func NewBtcNotifier() *BTCNotifier {
 // DCRDNode is an interface to wrap a dcrd rpcclient.Client. The interface
 // allows testing with a dummy node.
 type BTCDNode interface {
-	NotifyBlocks(context.Context) error
-	NotifyNewTransactions(context.Context, bool) error
+	NotifyBlocks() error
+	NotifyNewTransactions(bool) error
 }
 
 // Listen must be called once, but only after all handlers are registered.
@@ -64,13 +63,13 @@ func (notifier *BTCNotifier) Listen(ctx context.Context, btcdClient BTCDNode) *C
 	notifier.node = btcdClient
 
 	var err error
-	if err = btcdClient.NotifyBlocks(ctx); err != nil {
+	if err = btcdClient.NotifyBlocks(); err != nil {
 		return newContextualError("block notification "+
 			"registration failed", err)
 	}
 
 	// Register for tx accepted into mempool ntfns
-	if err = btcdClient.NotifyNewTransactions(ctx, true); err != nil {
+	if err = btcdClient.NotifyNewTransactions(true); err != nil {
 		return newContextualError("new transaction verbose notification registration failed", err)
 	}
 
@@ -91,6 +90,11 @@ func (notifier *BTCNotifier) BtcdHandlers() *rpcclient.NotificationHandlers {
 	}
 }
 
+func (notifier *BTCNotifier) SetPreviousBlock(prevHash chainhash.Hash, prevHeight uint32) {
+	notifier.previous.hash = prevHash
+	notifier.previous.height = prevHeight
+}
+
 // superQueue should be run as a goroutine. The dcrd-registered block and reorg
 // handlers should perform any pre-processing and type conversion and then
 // deposit the payload into the anyQ channel.
@@ -102,14 +106,14 @@ out:
 			// Do not allow new blocks to process while running reorg. Only allow
 			// them to be processed after this reorg completes.
 			switch msg := rawMsg.(type) {
-			case *BtcBlockHeader:
+			case *mutilchain.BtcBlockHeader:
 				// Process the new block.
-				log.Infof("superQueue: Processing new block %v. Height: %d", msg.Hash, msg.Height)
+				log.Infof("BTCSuperQueue: Processing new block %v. Height: %d", msg.Hash, msg.Height)
 				notifier.processBlock(msg)
 			case *btcjson.TxRawResult:
 				notifier.processTx(msg)
 			default:
-				log.Warn("unknown message type in superQueue: %T", rawMsg)
+				log.Warn("unknown message type in superQueue BTC: %T", rawMsg)
 			}
 		case <-ctx.Done():
 			break out
@@ -120,7 +124,7 @@ out:
 // rpcclient.NotificationHandlers.OnBlockConnected
 // TODO: considering using txns [][]byte to save on downstream RPCs.
 func (notifier *BTCNotifier) onBlockConnected(hash *chainhash.Hash, height int32, t time.Time) {
-	blockHeader := BtcBlockHeader{
+	blockHeader := &mutilchain.BtcBlockHeader{
 		Hash:   *hash,
 		Height: height,
 		Time:   t,
@@ -179,7 +183,7 @@ func (notifier *BTCNotifier) RegisterBlockHandlerLiteGroup(handlers ...BtcBlockH
 
 // processBlock calls the BlockHandler/BlockHandlerLite groups one at a time in
 // the order that they were registered.
-func (notifier *BTCNotifier) processBlock(bh *BtcBlockHeader) {
+func (notifier *BTCNotifier) processBlock(bh *mutilchain.BtcBlockHeader) {
 	start := time.Now()
 
 	for _, handlers := range notifier.block {

@@ -4,6 +4,13 @@
 
 package mutilchain
 
+import (
+	"time"
+
+	btcchainhash "github.com/btcsuite/btcd/chaincfg/chainhash"
+	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+)
+
 type BlockchainInfo struct {
 	TotalTransactions int64
 	BlockchainSize    int64
@@ -14,3 +21,15 @@ const (
 	LTCStartBlockReward = 50
 	BTCStartBlockReward = 50
 )
+
+type BtcBlockHeader struct {
+	Hash   btcchainhash.Hash
+	Height int32
+	Time   time.Time
+}
+
+type LtcBlockHeader struct {
+	Hash   ltcchainhash.Hash
+	Height int32
+	Time   time.Time
+}
