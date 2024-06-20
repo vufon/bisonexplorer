@@ -261,12 +261,116 @@ func _main(ctx context.Context) error {
 	var ltcCoreClient *ltcClient.Client
 	var btcdClient *btcClient.Client
 	var btcCoreClient *btcClient.Client
+	var ltcNotifier *notify.LTCNotifier
+	var btcNotifier *notify.BTCNotifier
+	var ltcHeight int32
+	var btcHeight int32
 	var ltcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPELTC)
 	var btcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEBTC)
 	var dcrDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEDCR)
 	chainDB.ChainDisabledMap[mutilchain.TYPEBTC] = btcDisabled
 	chainDB.ChainDisabledMap[mutilchain.TYPELTC] = ltcDisabled
 	chainDB.ChainDisabledMap[mutilchain.TYPEDCR] = dcrDisabled
+
+	//init mutilchain rpc client and set to chainDB
+	if !ltcDisabled {
+		//Start create rpcclient
+		ltcNotifier = notify.NewLtcNotifier()
+		var ltcNodeVer semver.Semver
+		var ltcConnectErr, ltcCoreErr error
+		ltcdClient, ltcNodeVer, ltcConnectErr = connectLTCNodeRPC(cfg, ltcNotifier.LtcdHandlers())
+		ltcCoreClient, ltcCoreErr = connectLTCCoreRPC(cfg)
+		if ltcConnectErr != nil || ltcdClient == nil {
+			return fmt.Errorf("Connection to ltcd failed: %v", ltcConnectErr)
+		}
+		if ltcCoreErr != nil || ltcCoreClient == nil {
+			return fmt.Errorf("Connection to litecoin core failed: %v", ltcCoreErr)
+		}
+		ltcCurnet, ltcErr := ltcdClient.GetCurrentNet()
+		if ltcErr != nil {
+			return fmt.Errorf("Unable to get current network from ltcd: %v", ltcErr)
+		}
+		chainDB.LtcClient = ltcdClient
+		chainDB.LtcCoreClient = ltcCoreClient
+		log.Infof("Connected to ltcd and litecoin core (JSON-RPC API v%s) on %v", ltcNodeVer.String(), ltcCurnet.String())
+
+		if ltcCurnet != ltcActiveNet.Net {
+			log.Criticalf("LTCD: Network of connected node, %s, does not match expected "+
+				"network, %s.", ltcActiveNet.Net, ltcCurnet)
+			return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
+		}
+
+		var ltcHash *ltcchainhash.Hash
+		ltcHash, ltcHeight, err = ltcdClient.GetBestBlock()
+		ltcTime := int64(0)
+		if err != nil {
+			return fmt.Errorf("Unable to get block from ltc node: %v", err)
+		}
+		blockhash, err := ltcdClient.GetBlockHash(int64(ltcHeight))
+		if err == nil {
+			blockRst, rstErr := ltcdClient.GetBlockVerbose(blockhash)
+			if rstErr == nil {
+				ltcTime = blockRst.Time
+			}
+		}
+		//create bestblock object
+		bestBlock := &dcrpg.MutilchainBestBlock{
+			Height: int64(ltcHeight),
+			Hash:   ltcHash.String(),
+			Time:   ltcTime,
+		}
+		chainDB.LtcBestBlock = bestBlock
+	}
+
+	if !btcDisabled {
+		//Start create rpcclient
+		btcNotifier = notify.NewBtcNotifier()
+		var btcNodeVer semver.Semver
+		var btcConnectErr, btcCoreErr error
+		btcdClient, btcNodeVer, btcConnectErr = connectBTCNodeRPC(cfg, btcNotifier.BtcdHandlers())
+		btcCoreClient, btcCoreErr = connectBTCCoreRPC(cfg)
+		if btcConnectErr != nil || btcdClient == nil {
+			return fmt.Errorf("Connection to btcd failed: %v", btcConnectErr)
+		}
+
+		if btcCoreErr != nil || btcCoreClient == nil {
+			return fmt.Errorf("Connection to bitcoin core failed: %v", btcCoreErr)
+		}
+		btcCurnet, btcErr := btcdClient.GetCurrentNet()
+		if btcErr != nil {
+			return fmt.Errorf("Unable to get current network from btcd: %v", btcErr)
+		}
+		log.Infof("Connected to btcd and bitcoin core (JSON-RPC API v%s) on %v", btcNodeVer.String(), btcCurnet.String())
+		if btcCurnet != btcActiveNet.Net {
+			log.Criticalf("BTCD: Network of connected node, %s, does not match expected "+
+				"network, %s.", btcActiveNet.Net, btcCurnet)
+			return fmt.Errorf("expected network %s, got %s", btcActiveNet.Net, btcCurnet)
+		}
+		chainDB.BtcClient = btcdClient
+		chainDB.BtcCoreClient = btcCoreClient
+
+		var btcHash *btcchainhash.Hash
+		btcHash, btcHeight, err = btcdClient.GetBestBlock()
+		btcTime := int64(0)
+		if err != nil {
+			return fmt.Errorf("Unable to get block from btc node: %v", err)
+		}
+		blockhash, err := btcdClient.GetBlockHash(int64(btcHeight))
+		if err == nil {
+			blockRst, rstErr := btcdClient.GetBlockVerbose(blockhash)
+			if rstErr == nil {
+				btcTime = blockRst.Time
+			}
+		}
+		//create bestblock object
+		bestBlock := &dcrpg.MutilchainBestBlock{
+			Height: int64(btcHeight),
+			Hash:   btcHash.String(),
+			Time:   btcTime,
+		}
+		chainDB.BtcBestBlock = bestBlock
+	}
+
 	defer func() {
 		if dcrdClient != nil {
 			log.Infof("Closing connection to dcrd.")
@@ -1280,8 +1384,6 @@ func _main(ctx context.Context) error {
 	var btcCollector *blockdatabtc.Collector
 	var ltcCollector *blockdataltc.Collector
 	var ltcNewPGIndexes, ltcUpdateAllAddresses bool
-	var ltcHeight int32
-	var btcHeight int32
 	var btcNewPGIndexes, btcUpdateAllAddresses bool
 	//start - init rpcclient for all blockchain
 	if !ltcDisabled {
@@ -1290,32 +1392,6 @@ func _main(ctx context.Context) error {
 		if checkErr != nil {
 			return fmt.Errorf("Check and create table for blockchain %s errors: %w", mutilchain.TYPELTC, checkErr)
 		}
-		//Start create rpcclient
-		ltcNotifier := notify.NewLtcNotifier()
-		var ltcNodeVer semver.Semver
-		var ltcConnectErr, ltcCoreErr error
-		ltcdClient, ltcNodeVer, ltcConnectErr = connectLTCNodeRPC(cfg, ltcNotifier.LtcdHandlers())
-		ltcCoreClient, ltcCoreErr = connectLTCCoreRPC(cfg)
-		if ltcConnectErr != nil || ltcdClient == nil {
-			return fmt.Errorf("Connection to ltcd failed: %v", ltcConnectErr)
-		}
-		if ltcCoreErr != nil || ltcCoreClient == nil {
-			return fmt.Errorf("Connection to litecoin core failed: %v", ltcCoreErr)
-		}
-		ltcCurnet, ltcErr := ltcdClient.GetCurrentNet()
-		if ltcErr != nil {
-			return fmt.Errorf("Unable to get current network from ltcd: %v", ltcErr)
-		}
-		chainDB.LtcClient = ltcdClient
-		chainDB.LtcCoreClient = ltcCoreClient
-		log.Infof("Connected to ltcd and litecoin core (JSON-RPC API v%s) on %v", ltcNodeVer.String(), ltcCurnet.String())
-
-		if ltcCurnet != ltcActiveNet.Net {
-			log.Criticalf("LTCD: Network of connected node, %s, does not match expected "+
-				"network, %s.", ltcActiveNet.Net, ltcCurnet)
-			return fmt.Errorf("expected network %s, got %s", ltcActiveNet.Net, ltcCurnet)
-		}
-
 		//first, use external socket api to get mempool info
 		mainSocket, err := chainsocket.NewMutilchainInfoSocket(explore, mutilchain.TYPELTC)
 		if err == nil {
@@ -1351,31 +1427,6 @@ func _main(ctx context.Context) error {
 		}
 
 		//Start - LTC Sync handler
-		var ltcHash *ltcchainhash.Hash
-		ltcHash, ltcHeight, err = ltcdClient.GetBestBlock()
-		ltcTime := int64(0)
-		if err != nil {
-			return fmt.Errorf("Unable to get block from ltc node: %v", err)
-		}
-		blockhash, err := ltcdClient.GetBlockHash(int64(ltcHeight))
-		if err == nil {
-			blockRst, rstErr := ltcdClient.GetBlockVerbose(blockhash)
-			if rstErr == nil {
-				ltcTime = blockRst.Time
-			}
-		}
-		//init bestblock height chainDB
-		// dbHeight, dbHash, lastDBBlockErr := chainDB.GetMutilchainBestDBBlock(ctx, mutilchain.TYPELTC)
-		// if lastDBBlockErr != nil {
-		// 	return fmt.Errorf("Get best block from DB failed for ltcd: %v", lastDBBlockErr)
-		// }
-		//create bestblock object
-		bestBlock := &dcrpg.MutilchainBestBlock{
-			Height: int64(ltcHeight),
-			Hash:   ltcHash.String(),
-			Time:   ltcTime,
-		}
-		chainDB.LtcBestBlock = bestBlock
 		ltcHeightFromDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPELTC)
 		if err != nil {
 			if err != sql.ErrNoRows {
@@ -1506,30 +1557,6 @@ func _main(ctx context.Context) error {
 		if checkErr != nil {
 			return fmt.Errorf("Check and create table for blockchain %s errors: %w", mutilchain.TYPEBTC, checkErr)
 		}
-		btcNotifier := notify.NewBtcNotifier()
-		var btcNodeVer semver.Semver
-		var btcConnectErr, btcCoreErr error
-		btcdClient, btcNodeVer, btcConnectErr = connectBTCNodeRPC(cfg, btcNotifier.BtcdHandlers())
-		btcCoreClient, btcCoreErr = connectBTCCoreRPC(cfg)
-		if btcConnectErr != nil || btcdClient == nil {
-			return fmt.Errorf("Connection to btcd failed: %v", btcConnectErr)
-		}
-
-		if btcCoreErr != nil || btcCoreClient == nil {
-			return fmt.Errorf("Connection to bitcoin core failed: %v", btcCoreErr)
-		}
-		btcCurnet, btcErr := btcdClient.GetCurrentNet()
-		if btcErr != nil {
-			return fmt.Errorf("Unable to get current network from btcd: %v", btcErr)
-		}
-		log.Infof("Connected to btcd and bitcoin core (JSON-RPC API v%s) on %v", btcNodeVer.String(), btcCurnet.String())
-		if btcCurnet != btcActiveNet.Net {
-			log.Criticalf("BTCD: Network of connected node, %s, does not match expected "+
-				"network, %s.", btcActiveNet.Net, btcCurnet)
-			return fmt.Errorf("expected network %s, got %s", btcActiveNet.Net, btcCurnet)
-		}
-		chainDB.BtcClient = btcdClient
-		chainDB.BtcCoreClient = btcCoreClient
 
 		//first, use external socket api to get mempool info
 		mainSocket, err := chainsocket.NewMutilchainInfoSocket(explore, mutilchain.TYPEBTC)
@@ -1541,26 +1568,6 @@ func _main(ctx context.Context) error {
 		}
 
 		//Start - BTC Sync handler
-		var btcHash *btcchainhash.Hash
-		btcHash, btcHeight, err = btcdClient.GetBestBlock()
-		btcTime := int64(0)
-		if err != nil {
-			return fmt.Errorf("Unable to get block from btc node: %v", err)
-		}
-		blockhash, err := btcdClient.GetBlockHash(int64(btcHeight))
-		if err == nil {
-			blockRst, rstErr := btcdClient.GetBlockVerbose(blockhash)
-			if rstErr == nil {
-				btcTime = blockRst.Time
-			}
-		}
-		//create bestblock object
-		bestBlock := &dcrpg.MutilchainBestBlock{
-			Height: int64(btcHeight),
-			Hash:   btcHash.String(),
-			Time:   btcTime,
-		}
-		chainDB.BtcBestBlock = bestBlock
 		btcHeightFromDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPEBTC)
 		if err != nil {
 			if err != sql.ErrNoRows {
