@@ -1323,6 +1323,9 @@ func (pgb *ChainDB) BestBlock() (*chainhash.Hash, int64) {
 }
 
 func (pgb *ChainDB) BTCBestBlock() (*btc_chainhash.Hash, int64) {
+	if pgb.BtcBestBlock == nil {
+		return nil, 0
+	}
 	pgb.BtcBestBlock.Mtx.RLock()
 	defer pgb.BtcBestBlock.Mtx.RUnlock()
 	hash, _ := btc_chainhash.NewHashFromStr(pgb.BtcBestBlock.Hash)
@@ -1330,6 +1333,9 @@ func (pgb *ChainDB) BTCBestBlock() (*btc_chainhash.Hash, int64) {
 }
 
 func (pgb *ChainDB) LTCBestBlock() (*ltc_chainhash.Hash, int64) {
+	if pgb.LtcBestBlock == nil {
+		return nil, 0
+	}
 	pgb.LtcBestBlock.Mtx.RLock()
 	defer pgb.LtcBestBlock.Mtx.RUnlock()
 	hash, _ := ltc_chainhash.NewHashFromStr(pgb.LtcBestBlock.Hash)
@@ -3040,10 +3046,16 @@ func (pgb *ChainDB) GetMutilchainHashHeight(chainType string) (hash string, heig
 	switch chainType {
 	case mutilchain.TYPEBTC:
 		chainHash, btcheight := pgb.BTCBestBlock()
+		if chainHash == nil {
+			return "", 0
+		}
 		hash = chainHash.String()
 		height = btcheight
 	case mutilchain.TYPELTC:
 		chainHash, ltcheight := pgb.LTCBestBlock()
+		if chainHash == nil {
+			return "", 0
+		}
 		hash = chainHash.String()
 		height = ltcheight
 	default:
@@ -4371,7 +4383,7 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 // instead, use StoreBlock and specify appropriate flags.
 func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwire.MsgBlock) error {
 	// This function must handle being run when pgb is nil (not constructed).
-	if pgb == nil {
+	if pgb == nil || pgb.LtcBestBlock == nil {
 		return nil
 	}
 	// update blockchain state
@@ -4391,7 +4403,6 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 	pgb.LtcBestBlock.Hash = blockData.Header.Hash
 	pgb.LtcBestBlock.Height = int64(blockData.Header.Height)
 	pgb.LtcBestBlock.Time = blockData.Header.Time
-
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalLTCHeight(uint32(blockData.Header.Height))
 
@@ -4403,7 +4414,7 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 // instead, use StoreBlock and specify appropriate flags.
 func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwire.MsgBlock) error {
 	// This function must handle being run when pgb is nil (not constructed).
-	if pgb == nil {
+	if pgb == nil || pgb.BtcBestBlock == nil {
 		return nil
 	}
 
@@ -4430,7 +4441,6 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 	pgb.BtcBestBlock.Hash = blockData.Header.Hash
 	pgb.BtcBestBlock.Height = int64(blockData.Header.Height)
 	pgb.BtcBestBlock.Time = blockData.Header.Time
-
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalBTCHeight(uint32(blockData.Header.Height))
 
@@ -8197,6 +8207,9 @@ func (pgb *ChainDB) LtcTxResult(txhash *ltc_chainhash.Hash) (*ltcjson.TxRawResul
 }
 
 func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
+	if pgb.LtcClient == nil {
+		return &exptypes.TxInfo{}
+	}
 	txhash, err := ltc_chainhash.NewHashFromStr(txid)
 	if err != nil {
 		log.Errorf("Invalid transaction hash %s", txid)
@@ -8308,6 +8321,9 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 }
 
 func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
+	if pgb.BtcClient == nil {
+		return &exptypes.TxInfo{}
+	}
 	txhash, err := btc_chainhash.NewHashFromStr(txid)
 	if err != nil {
 		log.Errorf("Invalid transaction hash %s", txid)

@@ -1,12 +1,20 @@
 {{define "chain_block" -}}
 <!DOCTYPE html>
 {{$ChainType := .ChainType}}
+{{$Txs := .Txs}}
+{{$Offset := .Offset}}
+{{$Rows := .Rows}}
+{{$TotalRows := .TotalRows}}
+{{$Pages := .Pages}}
+{{$LastStart := .LastStart}}
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "%s Block %d" (chainName $ChainType) .Data.Height)}}
 {{ template "mutilchain_navbar" . }}
-<div class="container main pt-1" data-controller="time">
-<p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Block</p>
-{{- with .Data -}}
+<div class="container main pt-1" data-controller="time pagenavigation">
+	<p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18"
+			href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Block</p>
+	{{- with .Data -}}
+	{{- $Hash := .Hash -}}
 	<div class="row mx-2 my-2">
 		<div class="col-24 col-xl-12 bg-green-3 p-3 position-relative common-card">
 			<div class="card-pointer pointer-right d-none d-xl-block"></div>
@@ -17,27 +25,20 @@
 						<span class="dcricon-block h5"></span>
 						<span class="h5 d-inline-block ps-2">Block #{{.Height}}</span>
 						{{- if gt .Confirmations 0}}
-						<div class="d-inline-block confirmations-box confirmed mx-2 fs14"
-							data-controller="newblock"
-							data-newblock-target="confirmations"
-							data-confirmations="{{.Confirmations}}"
-							data-yes="# confirmation@"
-							data-no="best block"
-							data-confirmation-block-height="{{.Height}}"
-							>{{.Confirmations}} confirmations
+						<div class="d-inline-block confirmations-box confirmed mx-2 fs14" data-controller="newblock"
+							data-newblock-target="confirmations" data-confirmations="{{.Confirmations}}"
+							data-yes="# confirmation@" data-no="best block"
+							data-confirmation-block-height="{{.Height}}">{{.Confirmations}} confirmations
 						</div>
 						{{- else if .MainChain}}
-						<div class="d-inline-block confirmations-box mx-2 fs14"
-							data-controller="newblock"
-							data-newblock-target="confirmations"
-							data-confirmations="{{.Confirmations}}"
-							data-yes="# confirmation@"
-							data-no="best block"
-							data-confirmation-block-height="{{.Height}}"
-							>best block
+						<div class="d-inline-block confirmations-box mx-2 fs14" data-controller="newblock"
+							data-newblock-target="confirmations" data-confirmations="{{.Confirmations}}"
+							data-yes="# confirmation@" data-no="best block"
+							data-confirmation-block-height="{{.Height}}">best block
 						</div>
 						{{- else}}
-						<div class="d-inline-block confirmations-box mx-2 fs14"><a href="/side" class="attention">side chain</a></div>
+						<div class="d-inline-block confirmations-box mx-2 fs14"><a href="/side" class="attention">side
+								chain</a></div>
 						{{- end}}
 					</div>
 					<div class="d-inline-block text-nowrap">
@@ -56,8 +57,9 @@
 				<div class="col-10 col-sm-8 text-start">
 					<span class="text-secondary fs13">Total Sent</span>
 					<br>
-					<span class="lh1rem d-inline-block pt-1"
-						><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}</span><span class="text-secondary fs14"> {{$ChainType}}</span>
+					<span class="lh1rem d-inline-block pt-1"><span class="fs18 fs14-decimal fw-bold">{{template
+							"decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}</span><span
+							class="text-secondary fs14"> {{$ChainType}}</span>
 					</span>
 				</div>
 				<div class="col-7 col-sm-8 text-start">
@@ -65,14 +67,16 @@
 					<br>
 					<span class="fs18 fw-bold lh1rem d-inline-block pt-1">{{.FormattedBytes}}</span>
 					<br>
-					<span class="fs14 text-secondary">{{.TxCount}} <span class="d-sm-none">txs</span><span class="d-none d-sm-inline">transactions</span></span>
+					<span class="fs14 text-secondary">{{.TxCount}} <span class="d-sm-none">txs</span><span
+							class="d-none d-sm-inline">transactions</span></span>
 				</div>
 				<div class="col-7 col-sm-8 text-start">
 					<span class="text-secondary fs13">Block Time</span>
 					<br>
 					<span class="fs18 fw-bold lh1rem d-inline-block pt-1">{{.BlockTime.PrettyMDY}}</span>
 					<br>
-					<span class="fs14 text-secondary">{{.BlockTime.HMSTZ}} <span class="jsonly">(<span data-time-target="age" data-age="{{.BlockTime.UNIX}}"></span> ago)</span></span>
+					<span class="fs14 text-secondary">{{.BlockTime.HMSTZ}} <span class="jsonly">(<span
+								data-time-target="age" data-age="{{.BlockTime.UNIX}}"></span> ago)</span></span>
 				</div>
 			</div>
 		</div>
@@ -81,13 +85,12 @@
 			<table class="w-100 fs14 mt-2 details">
 				<tbody>
 					<tr>
-						<td class="text-end fw-bold text-nowrap pe-2"
-							><span class="d-none d-sm-inline">Difficulty</span
-							><span class="d-sm-none">Diff</span>: </td>
-						<td class="text-start">{{template "decimalParts" (float64AsDecimalParts .Difficulty 0 true)}}</td>
-						<td class="text-end fw-bold text-nowrap pe-2"
-							><span class="d-none d-sm-inline">Block Version</span
-							><span class="d-sm-none">Blk Ver</span>: </td>
+						<td class="text-end fw-bold text-nowrap pe-2"><span
+								class="d-none d-sm-inline">Difficulty</span><span class="d-sm-none">Diff</span>: </td>
+						<td class="text-start">{{template "decimalParts" (float64AsDecimalParts .Difficulty 0 true)}}
+						</td>
+						<td class="text-end fw-bold text-nowrap pe-2"><span class="d-none d-sm-inline">Block
+								Version</span><span class="d-sm-none">Blk Ver</span>: </td>
 						<td class="text-start">{{.Version}}</td>
 						<td class="d-none d-sm-table-cell text-end fw-bold text-nowrap pe-2">Nonce: </td>
 						<td class="d-none d-sm-table-cell text-start">{{.Nonce}}</td>
@@ -96,53 +99,104 @@
 			</table>
 		</div>
 	</div>
-
 	<div>
-	<span class="d-inline-block pt-4 pb-1 h4">Transactions</span>
-		{{if not .TxAvailable -}}
-		 <div class="br-8 b--def bgc-plain-bright pb-10">
-   		<div class="btable-table-wrap maxh-none">
-            <table class="btable-table w-100">
-			<tr class="bg-none">
-				<td>No standard transactions mined this block.</td>
-			</tr>
-		</table>
+		<div class="d-flex justify-content-between align-items-end">
+			<span class="h4 d-flex pt-2 pb-1 pe-2">
+				Transactions
+			</span>
+			<div class="pb-1 d-flex justify-content-end align-items-center flex-wrap">
+				<span class="fs12 nowrap text-secondary px-2 my-2">
+					{{intComma (add $Offset 1)}} &ndash; {{intComma (add $Offset (int64 $Rows))}} of {{intComma $TotalRows}} rows
+				</span>
+                {{$pending := (subtract $TotalRows $Offset)}}
+				<div class="d-inline-block text-end">
+					<label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
+					<select
+                                id="tbPagesize"
+                                data-pagenavigation-target="pagesize"
+                                data-action="change->pagenavigation#setPageSize"
+                                data-offset="{{$Offset}}"
+                                data-offsetkey="start"
+                                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $Rows 20}}disabled{{end}}"
+                                {{if lt $Rows 20}}disabled="disabled"{{end}}
+                            >
+							{{if ge $pending 20}}<option {{if eq $Rows 20}}selected{{end}} value="20">20</option>{{end}}
+                            {{if ge $pending 30}}<option {{if eq $Rows 30}}selected{{end}} value="30">30</option>{{end}}
+                            {{if ge $pending 50}}<option {{if eq $Rows 50}}selected{{end}} value="50">50</option>{{end}}
+							{{- if lt $TotalRows 160}}
+								<option {{if eq $Rows $TotalRows}}selected {{end}}value="{{$TotalRows}}" {{if le $TotalRows 160}} disabled{{end}}>{{$TotalRows}}</option>
+							{{- else}}
+					  			<option {{if ge $Rows 160}}selected {{end}}value="160">160</option>
+							{{- end}}
+                            </select>
+				  </div>
+			</div>
 		</div>
+		{{if not .TxAvailable -}}
+		<div class="br-8 b--def bgc-plain-bright pb-10">
+			<div class="btable-table-wrap maxh-none">
+				<table class="btable-table w-100">
+					<tr class="bg-none">
+						<td>No standard transactions mined this block.</td>
+					</tr>
+				</table>
+			</div>
 		</div>
 		{{- else -}}
 		<div class="br-8 b--def bgc-plain-bright pb-10">
-   <div class="btable-table-wrap maxh-none">
-            <table class="btable-table w-100">
-			<thead>
-				<tr class="bg-none">
-					<th>Transaction ID</th>
-					<th class="text-end">Total {{$ChainType}}</th>
-					<th class="text-end">Size</th>
-				</tr>
-			</thead>
-			<tbody class="bgc-white">
-			{{- range .Tx -}}
-			{{- if eq .Coinbase false}}
-				<tr>
-					<td class="break-word">
-						<span><a class="hash" href="/chain/{{$ChainType}}/tx/{{.TxID}}">{{.TxID}}</a></span>
-					</td>
-					<td class="mono fs15 text-end">
-						{{- template "decimalParts" (float64AsDecimalParts .Total 8 false) -}}
-					</td>
-					<td class="mono fs15 text-end">{{.FormattedSize}}</td>
-				</tr>
-			{{- end}}
-			{{- end}}
-			</tbody>
-		</table>
-		</div></div>
+			<div class="btable-table-wrap maxh-none">
+				<table class="btable-table w-100">
+					<thead>
+						<tr class="bg-none">
+							<th>Transaction ID</th>
+							<th class="text-end">Total {{$ChainType}}</th>
+							<th class="text-end">Size</th>
+						</tr>
+					</thead>
+					<tbody class="bgc-white">
+						{{- range $Txs -}}
+						{{- if eq .Coinbase false}}
+						<tr>
+							<td class="break-word">
+								<span><a class="hash" href="/chain/{{$ChainType}}/tx/{{.TxID}}">{{.TxID}}</a></span>
+							</td>
+							<td class="mono fs15 text-end">
+								{{- template "decimalParts" (float64AsDecimalParts .Total 8 false) -}}
+							</td>
+							<td class="mono fs15 text-end">{{.FormattedSize}}</td>
+						</tr>
+						{{- end}}
+						{{- end}}
+					</tbody>
+				</table>
+			</div>
+			{{if len $Pages}}
+			<div class="text-end mt-2 pe-3">
+				{{if ge $Offset $Rows}}
+				<a href="/chain/{{$ChainType}}/block/{{$Hash}}?rows={{$Rows}}"
+					class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fs20"></a>
+				{{end}}
+				{{range $index, $page := $Pages}}
+				{{if eq $page.Link ""}}
+				<span>{{$page.Str}}</span>
+				{{else}}
+				<a href="{{$page.Link}}" class="fs18 pager pagination-number {{if $page.Active}} active{{end}}">{{.Str}}</a>
+				{{end}}
+				{{end}}
+				{{if lt (add $Offset (int64 $Rows)) $TotalRows}}
+				<a href="/chain/{{$ChainType}}/block/{{$Hash}}?start={{$LastStart}}&rows={{$Rows}}"
+					class="d-inline-block pagination-number pagination-narrow dcricon-arrow-right m-1 fs20"></a>
+				{{end}}
+			</div>
+			{{end}}
+		</div>
 		{{- end}}
 	</div>
-{{- end}}{{/* with .Data */}}
+	{{- end}}{{/* with .Data */}}
 </div>
 
 {{ template "footer" . }}
 </body>
+
 </html>
 {{- end }}

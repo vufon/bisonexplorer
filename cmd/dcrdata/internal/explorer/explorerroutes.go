@@ -1330,6 +1330,34 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 	if chainType == "" {
 		return
 	}
+	limitN := defaultAddressRows
+	if nParam := r.URL.Query().Get("rows"); nParam != "" {
+		val, err := strconv.ParseUint(nParam, 10, 64)
+		if err != nil {
+			exp.StatusPage(w, defaultErrorCode, "invalid n value", "", ExpStatusError)
+			return
+		}
+		if int64(val) > MaxAddressRows {
+			log.Warnf("MutilchainBlockDetailPage: requested up to %d tx rows, "+
+				"limiting to %d", limitN, MaxAddressRows)
+			limitN = MaxAddressRows
+		} else {
+			limitN = int64(val)
+		}
+	}
+
+	// Number of txns to skip (OFFSET in database query). For UX reasons, the
+	// "start" URL query parameter is used.
+	var offset int64
+	if startParam := r.URL.Query().Get("start"); startParam != "" {
+		val, err := strconv.ParseUint(startParam, 10, 64)
+		if err != nil {
+			exp.StatusPage(w, defaultErrorCode, "invalid start value", "", ExpStatusError)
+			return
+		}
+		offset = int64(val)
+	}
+
 	// Retrieve the block specified on the path.
 	hash := getBlockHashCtx(r)
 	var data *types.BlockInfo
@@ -1341,16 +1369,46 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	txRows := make([]*types.TrimmedTxInfo, 0)
+	if len(data.Tx) > 0 {
+		if len(data.Tx) > int(offset) {
+			if len(data.Tx) < int(offset+limitN) {
+				txRows = data.Tx[offset : len(data.Tx)-1]
+			} else {
+				txRows = data.Tx[offset : offset+limitN-1]
+			}
+		}
+	}
+	linkTemplate := fmt.Sprintf("/block/%s?rows=%d&start=%%d", hash, limitN)
+	linkTemplate = fmt.Sprintf("/chain/%s%s", chainType, linkTemplate)
+
 	// Check if there are any regular non-coinbase transactions in the block.
 	data.TxAvailable = len(data.Tx) > 1
+	pages := calcPages(len(data.Tx), int(limitN), int(offset), linkTemplate)
+	lastPageStart := (len(data.Tx) / int(limitN)) * int(limitN)
+	if len(data.Tx)%int(limitN) == 0 {
+		lastPageStart -= int(limitN)
+	}
 	pageData := struct {
 		*CommonPageData
 		Data      *types.BlockInfo
+		Pages     pageNumbers
 		ChainType string
+		Rows      int
+		Offset    int64
+		TotalRows int64
+		LastStart int64
+		Txs       []*types.TrimmedTxInfo
 	}{
 		CommonPageData: exp.commonData(r),
 		Data:           data,
 		ChainType:      chainType,
+		Txs:            txRows,
+		Rows:           int(limitN),
+		Offset:         offset,
+		TotalRows:      int64(len(data.Tx)),
+		LastStart:      int64(lastPageStart),
+		Pages:          pages,
 	}
 
 	str, err := exp.templates.exec("chain_block", pageData)
