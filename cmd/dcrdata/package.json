@@ -14,15 +14,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/decred/dcrdata.git"
+    "url": "git+https://github.com/chaineco/blockcare.git"
   },
   "keywords": [],
   "author": "The Decred developers",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/decred/dcrdata/issues"
+    "url": "https://github.com/chaineco/blockcare/issues"
   },
-  "homepage": "https://github.com/decred/dcrdata#readme",
+  "homepage": "https://github.com/chaineco/blockcare#readme",
   "devDependencies": {
     "@babel/core": "^7.21.3",
     "@babel/eslint-parser": "^7.21.3",

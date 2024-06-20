@@ -6,7 +6,7 @@
    {{template "mutilchain_navbar" . }}
    {{with .Data}}
    <div class="container main pt-1" data-controller="time tx" data-tx-txid="{{.TxID}}">
-   <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Transaction Detail</p>
+   <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Top</a>&nbsp;> <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Transaction Detail</p>
       <div class="row mx-2 my-2">
          <div class="col-24 col-xl-12 bg-green-3 p-3 p-sm-4 position-relative common-card">
             <div class="card-pointer pointer-right d-none d-xl-block"></div>

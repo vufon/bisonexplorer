@@ -8,7 +8,7 @@
     {{template "navbar" . }}
     {{template "blocksBanner" .}}
     <div data-controller="pagenavigation" class="container main">
-    <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Homepage</a>&nbsp;> <a class="fs-18" href="/decred">Decred</a>&nbsp;> Windows List</p>
+    <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Top</a>&nbsp;> <a class="fs-18" href="/decred">Decred</a>&nbsp;> Windows List</p>
         {{$windowsCount := (int64 (len .Data))}}
         <div class="px-1 mb-1">
             {{if gt $windowsCount 0}}
