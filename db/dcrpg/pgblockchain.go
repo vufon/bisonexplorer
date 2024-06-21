@@ -7497,6 +7497,7 @@ func makeExplorerBlockBasic(data *chainjson.GetBlockVerboseResult, params *chain
 		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
 		FormattedBytes: humanize.Bytes(uint64(data.Size)),
 		Total:          total,
+		BlockTimeUnix:  data.Time,
 	}
 
 	return block

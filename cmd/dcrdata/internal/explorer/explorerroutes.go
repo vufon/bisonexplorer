@@ -326,14 +326,14 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	chainList := make([]string, 0)
 	chainList = append(chainList, mutilchain.TYPEDCR)
 	chainList = append(chainList, dbtypes.MutilchainList...)
-
+	chainStrList := make([]string, 0)
 	homeChainInfoList := make([]MutilchainHomeInfo, 0)
-
 	for _, chainType := range chainList {
 		disabled, exist := exp.ChainDisabledMap[chainType]
 		if !exist || disabled {
 			continue
 		}
+		chainStrList = append(chainStrList, chainType)
 		height, err := exp.dataSource.GetMutilchainHeight(chainType)
 		if err != nil {
 			log.Errorf("GetMutilchainHeight failed: %v", err)
@@ -398,10 +398,12 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		*CommonPageData
 		HomeInfoList []MutilchainHomeInfo
 		XcState      *exchanges.ExchangeBotState
+		ActiveChain  string
 	}{
 		CommonPageData: commonData,
 		HomeInfoList:   homeChainInfoList,
 		XcState:        exp.getExchangeState(),
+		ActiveChain:    strings.Join(chainStrList, ","),
 	})
 
 	if err != nil {

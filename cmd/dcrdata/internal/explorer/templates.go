@@ -199,8 +199,9 @@ func difficultyDisp(d float64) string {
 		return float64Formatting(d, 0, true)[0]
 	}
 	if d < 1e6 {
-		diff := math.Floor(float64(d / 1e3))
-		return fmt.Sprintf("%fK", diff)
+		diff := float64(d / 1e3)
+		format := float64Formatting(diff, 2, true)
+		return fmt.Sprintf("%s.%sK", format[0], format[1])
 	}
 	if d < 1e9 {
 		diff := float64(d / 1e6)
