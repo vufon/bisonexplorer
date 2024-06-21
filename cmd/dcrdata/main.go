@@ -810,6 +810,7 @@ func _main(ctx context.Context) error {
 		ProposalsDB:       proposalsDB,
 		MaxAddrs:          cfg.MaxCSVAddrs,
 		Charts:            charts,
+		ChainDisabledMap: chainDisabledMap,
 	})
 	// Start the notification hander for keeping /status up-to-date.
 	wg.Add(1)

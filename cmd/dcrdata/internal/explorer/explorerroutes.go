@@ -397,9 +397,11 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
 		HomeInfoList []MutilchainHomeInfo
+		XcState      *exchanges.ExchangeBotState
 	}{
 		CommonPageData: commonData,
 		HomeInfoList:   homeChainInfoList,
+		XcState:        exp.getExchangeState(),
 	})
 
 	if err != nil {

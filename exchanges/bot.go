@@ -186,6 +186,7 @@ type TokenedExchange struct {
 func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 	xcList := make([]*TokenedExchange, 0, len(state.DcrBtc))
 	for token, state := range state.DcrBtc {
+		state.Sticks = state.StickList()
 		xcList = append(xcList, &TokenedExchange{
 			Token: token,
 			State: state,
@@ -201,6 +202,7 @@ func (state *ExchangeBotState) MutilchainVolumeOrderedExchanges(chainType string
 	currentChainState := state.GetMutilchainExchangeState(chainType)
 	xcList := make([]*TokenedExchange, 0, len(currentChainState))
 	for token, state := range currentChainState {
+		state.Sticks = state.StickList()
 		xcList = append(xcList, &TokenedExchange{
 			Token: token,
 			State: state,
@@ -1300,6 +1302,7 @@ func (bot *ExchangeBot) MutilchainQuickSticks(token string, rawBin string, chain
 		Sticks:     sticks,
 		Expiration: expiration.Unix(),
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("JSON encode error for %s and bin %s", token, rawBin)
 	}

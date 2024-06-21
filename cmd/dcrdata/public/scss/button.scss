@@ -27,3 +27,18 @@
   background: #36a6e9;
   color: white !important;
 }
+
+.home-chart-toggle-btn {
+  height: 28px !important;
+  border-radius: unset !important;
+}
+
+.first-toggle-btn {
+  border-top-left-radius: 7px !important;
+  border-bottom-left-radius: 7px !important;
+}
+
+.last-toggle-btn {
+  border-top-right-radius: 7px !important;
+  border-bottom-right-radius: 7px !important;
+}

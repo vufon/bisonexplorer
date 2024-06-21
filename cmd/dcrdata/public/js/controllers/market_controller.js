@@ -1031,9 +1031,9 @@ export default class extends Controller {
     const bin = settings.bin
     this.binButtons.forEach(button => {
       if (button.name === bin) {
-        button.classList.add('btn-selected')
+        button.classList.add('active')
       } else {
-        button.classList.remove('btn-selected')
+        button.classList.remove('active')
       }
     })
   }

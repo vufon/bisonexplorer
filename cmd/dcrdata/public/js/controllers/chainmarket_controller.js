@@ -556,26 +556,24 @@ function calcStickWindow (start, end, bin) {
   ]
 }
 
+let exchangeStateMap
+
 export default class extends Controller {
   static get targets () {
     return ['chartSelect', 'exchanges', 'bin', 'chart', 'legend', 'conversion',
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
-      'aggStack', 'zoom']
+      'aggStack', 'zoom', 'chainTypeSelected']
   }
 
   async connect () {
     this.isHomepage = !window.location.href.includes('/market')
     this.chainType = this.data.get('chainType')
-    globalChainType = this.chainType
-    this.exchangeLinks = {
-      binance: 'https://www.binance.com/en/trade/' + this.chainType.toUpperCase() + '_USDT',
-      bittrex: 'https://bittrex.com/Market/Index?MarketName=USD-' + this.chainType.toUpperCase(),
-      poloniex: 'https://poloniex.com/exchange#usd_' + this.chainType,
-      dragonex: 'https://dragonex.io/en-us/trade/index/' + this.chainType + '_usd',
-      huobi: 'https://www.hbg.com/en-us/exchange/?s=' + this.chainType + '_usd',
-      dcrdex: 'https://dex.decred.org'
+    if (!this.chainType || this.chainType === '') {
+      this.chainType = 'dcr'
     }
+    globalChainType = this.chainType
+    this.setExchaneLinks()
     this.query = new TurboQuery()
     settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin'])
     if (!this.isHomepage) {
@@ -600,6 +598,7 @@ export default class extends Controller {
         }
       }
     }
+    this.initMutilchainExchangeStates()
     this.processors = {
       orders: this.processOrders,
       candlestick: this.processCandlesticks,
@@ -662,6 +661,94 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+  }
+
+  async initMutilchainExchangeStates () {
+    const url = '/api/chainchart/exchanges'
+    if (exchangeStateMap !== undefined) {
+      return
+    }
+    const response = await requestJSON(url)
+    exchangeStateMap = {}
+    response.forEach((chainState) => {
+      exchangeStateMap[chainState.chain_type] = chainState.exchanges
+    })
+  }
+
+  setExchaneLinks () {
+    this.exchangeLinks = {
+      binance: 'https://www.binance.com/en/trade/' + this.chainType.toUpperCase() + '_USDT',
+      bittrex: 'https://bittrex.com/Market/Index?MarketName=USD-' + this.chainType.toUpperCase(),
+      poloniex: 'https://poloniex.com/exchange#usd_' + this.chainType,
+      dragonex: 'https://dragonex.io/en-us/trade/index/' + this.chainType + '_usd',
+      huobi: 'https://www.hbg.com/en-us/exchange/?s=' + this.chainType + '_usd',
+      dcrdex: 'https://dex.decred.org',
+      kucoin: 'https://www.kucoin.com/vi/trade/' + this.chainType.toUpperCase() + '-USDT',
+      gemini: 'https://exchange.gemini.com/trade/' + this.chainType.toUpperCase() + 'USD'
+    }
+  }
+
+  chainTypeChange (e) {
+    if (e.target.name === this.chainType) {
+      return
+    }
+    const target = e.srcElement || e.target
+    this.chainTypeSelectedTargets.forEach((cTypeTarget) => {
+      cTypeTarget.classList.remove('active')
+    })
+    target.classList.add('active')
+    this.chainType = e.target.name
+    // reload data
+    globalChainType = this.chainType
+    this.updateOptions()
+    this.setExchaneLinks()
+    this.setExchangeName()
+    orderZoom = undefined
+    this.fetchChart()
+  }
+
+  updateOptions () {
+    const _this = this
+    if (!exchangeStateMap) {
+      return
+    }
+    const volumnedExchanges = exchangeStateMap[this.chainType]
+    // if is top page, update exchange options
+    let selectOptions = ''
+    const exchangeBefore = this.exchangesTarget.value
+    let newHasExchange = false
+    if (volumnedExchanges && volumnedExchanges.length > 0) {
+      volumnedExchanges.forEach((exchange) => {
+        if (exchange.State) {
+          selectOptions += `<option value="${exchange.Token}" ${exchange.State.candlesticks ? `data-sticks="1" data-bins="${exchange.State.sticks}"` : ''} `
+          selectOptions += `${exchange.State.depth ? 'data-depth="1"' : ''}>${_this.getExchangeDispName(exchange.Token)}</option>`
+          if (exchange.Token === exchangeBefore) {
+            newHasExchange = true
+          }
+        }
+      })
+      selectOptions += '<option data-chainmarket-target="aggOption" value="aggregated" data-depth="1">Aggregated</option>'
+      this.exchangesTarget.innerHTML = selectOptions
+      availableCandlesticks = {}
+      availableDepths = []
+      this.exchangeOptions = []
+      const opts = this.exchangesTarget.options
+      for (let i = 0; i < opts.length; i++) {
+        const option = opts[i]
+        this.exchangeOptions.push(option)
+        if (option.dataset.sticks) {
+          availableCandlesticks[option.value] = option.dataset.bins.split(';')
+        }
+        if (option.dataset.depth) availableDepths.push(option.value)
+      }
+      // set current exchange
+      if (newHasExchange) {
+        this.exchangesTarget.value = exchangeBefore
+      } else {
+        this.exchangesTarget.value = volumnedExchanges[0].Token
+        this.changeExchangeSetting()
+      }
+    }
   }
 
   disconnect () {
@@ -795,6 +882,19 @@ export default class extends Controller {
     this.chartLoaderTarget.classList.remove('loading')
     this.lastUrl = url
     refreshAvailable = false
+  }
+
+  getExchangeDispName (token) {
+    switch (token) {
+      case 'dcrdex':
+        return 'dex.decred.org'
+      default:
+        return this.upperFirstCase(token)
+    }
+  }
+
+  upperFirstCase (token) {
+    return token.charAt(0).toUpperCase() + token.slice(1)
   }
 
   processCandlesticks (response) {
@@ -1032,9 +1132,9 @@ export default class extends Controller {
     const bin = settings.bin
     this.binButtons.forEach(button => {
       if (button.name === bin) {
-        button.classList.add('btn-selected')
+        button.classList.add('active')
       } else {
-        button.classList.remove('btn-selected')
+        button.classList.remove('active')
       }
     })
   }
@@ -1047,6 +1147,21 @@ export default class extends Controller {
     }
     this.setButtons()
     this.fetchChart()
+  }
+
+  changeExchangeSetting () {
+    settings.xc = this.exchangesTarget.value
+    this.setExchangeName()
+    if (usesCandlesticks(settings.chart)) {
+      if (!availableCandlesticks[settings.xc]) {
+        // exchange does not have candlestick data
+        // show the depth chart.
+        settings.chart = depth
+      } else {
+        this.justifyBins()
+      }
+    }
+    this.setButtons()
   }
 
   changeExchange () {
@@ -1062,8 +1177,8 @@ export default class extends Controller {
       }
     }
     this.setButtons()
+    orderZoom = undefined
     this.fetchChart()
-    this.resetZoom()
   }
 
   setExchange (e) {

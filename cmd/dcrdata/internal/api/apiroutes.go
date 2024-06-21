@@ -139,17 +139,18 @@ type DataSource interface {
 
 // dcrdata application context used by all route handlers
 type appContext struct {
-	nodeClient  *rpcclient.Client
-	Params      *chaincfg.Params
-	DataSource  DataSource
-	Status      *apitypes.Status
-	xcBot       *exchanges.ExchangeBot
-	AgendaDB    *agendas.AgendaDB
-	ProposalsDB *politeia.ProposalsDB
-	maxCSVAddrs int
-	charts      *cache.ChartData
-	LtcCharts   *cache.MutilchainChartData
-	BtcCharts   *cache.MutilchainChartData
+	nodeClient       *rpcclient.Client
+	Params           *chaincfg.Params
+	DataSource       DataSource
+	Status           *apitypes.Status
+	xcBot            *exchanges.ExchangeBot
+	AgendaDB         *agendas.AgendaDB
+	ProposalsDB      *politeia.ProposalsDB
+	maxCSVAddrs      int
+	charts           *cache.ChartData
+	LtcCharts        *cache.MutilchainChartData
+	BtcCharts        *cache.MutilchainChartData
+	ChainDisabledMap map[string]bool
 }
 
 // AppContextConfig is the configuration for the appContext and the only
@@ -166,6 +167,7 @@ type AppContextConfig struct {
 	LtcCharts         *cache.MutilchainChartData
 	BtcCharts         *cache.MutilchainChartData
 	AppVer            string
+	ChainDisabledMap  map[string]bool
 }
 
 type simulationRow struct {
@@ -192,15 +194,16 @@ func NewContext(cfg *AppContextConfig) *appContext {
 	}
 
 	return &appContext{
-		nodeClient:  cfg.Client,
-		Params:      cfg.Params,
-		DataSource:  cfg.DataSource,
-		xcBot:       cfg.XcBot,
-		AgendaDB:    cfg.AgendasDBInstance,
-		ProposalsDB: cfg.ProposalsDB,
-		Status:      apitypes.NewStatus(uint32(nodeHeight), conns, APIVersion, cfg.AppVer, cfg.Params.Name),
-		maxCSVAddrs: cfg.MaxAddrs,
-		charts:      cfg.Charts,
+		nodeClient:       cfg.Client,
+		Params:           cfg.Params,
+		DataSource:       cfg.DataSource,
+		xcBot:            cfg.XcBot,
+		AgendaDB:         cfg.AgendasDBInstance,
+		ProposalsDB:      cfg.ProposalsDB,
+		Status:           apitypes.NewStatus(uint32(nodeHeight), conns, APIVersion, cfg.AppVer, cfg.Params.Name),
+		maxCSVAddrs:      cfg.MaxAddrs,
+		charts:           cfg.Charts,
+		ChainDisabledMap: cfg.ChainDisabledMap,
 	}
 }
 
@@ -2843,10 +2846,41 @@ func (c *appContext) GetMutilchainChartData(chainType string) *cache.MutilchainC
 	}
 }
 
+func (c *appContext) getExchangeData(w http.ResponseWriter, r *http.Request) {
+	type ExchangeStateMap struct {
+		ChainType string                       `json:"chain_type"`
+		Exchanges []*exchanges.TokenedExchange `json:"exchanges,omitempty"`
+	}
+
+	result := make([]ExchangeStateMap, 0)
+	//get decred chart state
+	if !c.ChainDisabledMap[mutilchain.TYPEDCR] {
+		result = append(result, ExchangeStateMap{
+			ChainType: mutilchain.TYPEDCR,
+			Exchanges: c.xcBot.State().VolumeOrderedExchanges(),
+		})
+	}
+
+	for _, chain := range dbtypes.MutilchainList {
+		if c.ChainDisabledMap[chain] {
+			continue
+		}
+		result = append(result, ExchangeStateMap{
+			ChainType: chain,
+			Exchanges: c.xcBot.State().MutilchainVolumeOrderedExchanges(chain),
+		})
+	}
+	writeJSON(w, result, m.GetIndentCtx(r))
+}
+
 // route: chainchart/market/{token}/candlestick/{bin}
 func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
+		return
+	}
+	if chainType == mutilchain.TYPEDCR {
+		c.getCandlestickChart(w, r)
 		return
 	}
 	if c.xcBot == nil {
@@ -2866,6 +2900,7 @@ func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *htt
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
+
 	writeJSONBytes(w, chart)
 }
 
@@ -2894,6 +2929,10 @@ func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request)
 func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
+		return
+	}
+	if chainType == mutilchain.TYPEDCR {
+		c.getDepthChart(w, r)
 		return
 	}
 	if c.xcBot == nil {

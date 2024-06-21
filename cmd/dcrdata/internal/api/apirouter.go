@@ -252,6 +252,7 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 			rd.With(m.StickWidthContext).Get("/candlestick/{bin}", app.getMutilchainCandlestickChart)
 			rd.Get("/depth", app.getMutilchainDepthChart)
 		})
+		r.Get("/exchanges", app.getExchangeData)
 		r.With(m.ChartTypeCtx).Get("/{chaintype}/{charttype}", app.MutilchainChartTypeData)
 	})
 

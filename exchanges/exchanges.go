@@ -401,6 +401,7 @@ type ExchangeState struct {
 	BaseState
 	Depth        *DepthData                      `json:"depth,omitempty"`
 	Candlesticks map[candlestickKey]Candlesticks `json:"candlesticks,omitempty"`
+	Sticks       string                          `json:"sticks"`
 }
 
 /*
