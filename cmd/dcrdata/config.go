@@ -121,6 +121,7 @@ var (
 	defaultTestnetLink  = "https://testnet.dcrdata.org/"
 	defaultBinanceAPI   = "https://api.binance.com"
 	defaultOnionAddress = ""
+	defaultCoinCaps     = "bitcoin,litecoin,decred,ethereum,monero"
 
 	maxSyncStatusLimit = 5000
 )
@@ -197,6 +198,8 @@ type config struct {
 	NoBlockPrefetch  bool   `long:"no-dcrd-block-prefetch" description:"Disable block pre-fetch from dcrd during startup sync." env:"DCRDATA_NO_BLOCK_PREFETCH"`
 	//disabled mutilchains support
 	DisabledChain string `long:"disabledchain" description:"Blockchain types are disabled" env:"DCRDATA_DISABLED_CHAINS"`
+	//coin market cap support list
+	CoincapActive string `long:"coincapactive" description:"List of blockchains that support getting coin market cap data" env:"DCRDATA_COINCAP_ACTIVE"`
 	// LTC RPC client options
 	LtcdUser    string `long:"ltcduser" description:"Daemon RPC user name" env:"DCRDATA_LTCD_USER"`
 	LtcdPass    string `long:"ltcdpass" description:"Daemon RPC password" env:"DCRDATA_LTCD_PASS"`
@@ -273,6 +276,7 @@ var (
 		TestnetLink:         defaultTestnetLink,
 		OnionAddress:        defaultOnionAddress,
 		BinanceAPI:          defaultBinanceAPI,
+		CoincapActive:       defaultCoinCaps,
 	}
 )
 

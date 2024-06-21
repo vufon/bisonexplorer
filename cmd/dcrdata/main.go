@@ -45,6 +45,7 @@ import (
 	"github.com/decred/dcrdata/v8/mempool/mempoolltc"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
+	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/pubsub"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
@@ -640,6 +641,18 @@ func _main(ctx context.Context) error {
 	chainDisabledMap[mutilchain.TYPEBTC] = btcDisabled
 	chainDisabledMap[mutilchain.TYPELTC] = ltcDisabled
 	chainDisabledMap[mutilchain.TYPEDCR] = dcrDisabled
+
+	coinCapArr := strings.Split(cfg.CoincapActive, ",")
+	coinCaps := make([]string, 0)
+	if len(coinCapArr) > 0 {
+		for _, coin := range coinCapArr {
+			if coin == "" {
+				continue
+			}
+			coinCaps = append(coinCaps, coin)
+		}
+	}
+
 	// Create the explorer system.
 	explore := explorer.New(&explorer.ExplorerConfig{
 		DataSource:       chainDB,
@@ -658,6 +671,7 @@ func _main(ctx context.Context) error {
 		ReloadHTML:       cfg.ReloadHTML,
 		OnionAddress:     cfg.OnionAddress,
 		ChainDisabledMap: chainDisabledMap,
+		CoinCaps:         coinCaps,
 	})
 	// TODO: allow views config
 	if explore == nil {
@@ -810,8 +824,34 @@ func _main(ctx context.Context) error {
 		ProposalsDB:       proposalsDB,
 		MaxAddrs:          cfg.MaxCSVAddrs,
 		Charts:            charts,
-		ChainDisabledMap: chainDisabledMap,
+		ChainDisabledMap:  chainDisabledMap,
+		CoinCaps:          coinCaps,
 	})
+
+	getMarketCapData := func() {
+		//get coin cap data from extenal api
+		coinCapData := externalapi.GetMarketCapData(coinCaps)
+		explore.CoinCapDataList = coinCapData
+		app.CoinCapDataList = coinCapData
+		log.Infof("Get Coincap data successfully. Blockchain list: %s", cfg.CoincapActive)
+	}
+
+	getMarketCapData()
+	ticker := time.NewTicker(300 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				getMarketCapData()
+				// do stuff
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	// Start the notification hander for keeping /status up-to-date.
 	wg.Add(1)
 	go app.StatusNtfnHandler(ctx, &wg, chainDB.UpdateChan())

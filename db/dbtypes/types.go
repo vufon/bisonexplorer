@@ -2460,3 +2460,15 @@ func GetMonthFromString(month string) int64 {
 	}
 	return monthParse
 }
+
+type MarketCapData struct {
+	Symbol        string  `json:"symbol"`
+	SymbolDisplay string  `json:"symbolDisplay"`
+	Name          string  `json:"name"`
+	Price         float64 `json:"price"`
+	Percentage1D  float64 `json:"percentage1D"`
+	Percentage7D  float64 `json:"percentage7D"`
+	MarketCap     float64 `json:"marketCap"`
+	Volumn        float64 `json:"volumn"`
+	IconUrl       string  `json:"iconUrl"`
+}

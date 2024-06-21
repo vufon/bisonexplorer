@@ -151,6 +151,8 @@ type appContext struct {
 	LtcCharts        *cache.MutilchainChartData
 	BtcCharts        *cache.MutilchainChartData
 	ChainDisabledMap map[string]bool
+	CoinCaps         []string
+	CoinCapDataList  []*dbtypes.MarketCapData
 }
 
 // AppContextConfig is the configuration for the appContext and the only
@@ -168,6 +170,7 @@ type AppContextConfig struct {
 	BtcCharts         *cache.MutilchainChartData
 	AppVer            string
 	ChainDisabledMap  map[string]bool
+	CoinCaps          []string
 }
 
 type simulationRow struct {
@@ -204,6 +207,7 @@ func NewContext(cfg *AppContextConfig) *appContext {
 		maxCSVAddrs:      cfg.MaxAddrs,
 		charts:           cfg.Charts,
 		ChainDisabledMap: cfg.ChainDisabledMap,
+		CoinCaps:         cfg.CoinCaps,
 	}
 }
 

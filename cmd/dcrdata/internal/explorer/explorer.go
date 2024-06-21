@@ -295,11 +295,13 @@ type ExplorerUI struct {
 	displaySyncStatusPage atomic.Value
 	politeiaURL           string
 
-	invsMtx        sync.RWMutex
-	invs           *types.MempoolInfo
-	LtcMempoolInfo *types.MutilchainMempoolInfo
-	BtcMempoolInfo *types.MutilchainMempoolInfo
-	premine        int64
+	invsMtx         sync.RWMutex
+	invs            *types.MempoolInfo
+	LtcMempoolInfo  *types.MutilchainMempoolInfo
+	BtcMempoolInfo  *types.MutilchainMempoolInfo
+	premine         int64
+	CoinCaps        []string
+	CoinCapDataList []*dbtypes.MarketCapData
 }
 
 // AreDBsSyncing is a thread-safe way to fetch the boolean in dbsSyncing.
@@ -366,6 +368,7 @@ type ExplorerConfig struct {
 	OnionAddress     string
 	ReloadHTML       bool
 	ChainDisabledMap map[string]bool
+	CoinCaps         []string
 }
 
 // New returns an initialized instance of explorerUI
@@ -387,11 +390,11 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 	exp.proposals = cfg.Proposals
 	exp.politeiaURL = cfg.PoliteiaURL
 	exp.ChainDisabledMap = cfg.ChainDisabledMap
+	exp.CoinCaps = cfg.CoinCaps
 	explorerLinks.Mainnet = cfg.MainnetLink
 	explorerLinks.Testnet = cfg.TestnetLink
 	explorerLinks.MainnetSearch = cfg.MainnetLink + "search?search="
 	explorerLinks.TestnetSearch = cfg.TestnetLink + "search?search="
-
 	if cfg.OnionAddress != "" {
 		explorerLinks.OnionURL = fmt.Sprintf("http://%s/", cfg.OnionAddress)
 	}

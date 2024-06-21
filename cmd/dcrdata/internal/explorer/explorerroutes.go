@@ -396,14 +396,16 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
-		HomeInfoList []MutilchainHomeInfo
-		XcState      *exchanges.ExchangeBotState
-		ActiveChain  string
+		HomeInfoList  []MutilchainHomeInfo
+		XcState       *exchanges.ExchangeBotState
+		ActiveChain   string
+		MarketCapList []*dbtypes.MarketCapData
 	}{
 		CommonPageData: commonData,
 		HomeInfoList:   homeChainInfoList,
 		XcState:        exp.getExchangeState(),
 		ActiveChain:    strings.Join(chainStrList, ","),
+		MarketCapList:  exp.CoinCapDataList,
 	})
 
 	if err != nil {
