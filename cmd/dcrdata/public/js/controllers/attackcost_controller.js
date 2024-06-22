@@ -2,6 +2,7 @@ import { Controller } from '@hotwired/stimulus'
 import TurboQuery from '../helpers/turbolinks_helper'
 import { getDefault } from '../helpers/module_helper'
 import globalEventBus from '../services/event_bus_service'
+import humanize from '../helpers/humanize_helper'
 import dompurify from 'dompurify'
 
 function digitformat (amount, decimalPlaces, noComma) {
@@ -134,7 +135,7 @@ export default class extends Controller {
     this.query.update(this.settings)
 
     height = parseInt(this.data.get('height'))
-    hashrate = parseInt(this.data.get('hashrate'))
+    hashrate = parseFloat(this.data.get('hashrate'))
     dcrPrice = parseFloat(this.data.get('dcrprice'))
     tpPrice = parseFloat(this.data.get('ticketPrice'))
     tpValue = parseFloat(this.data.get('ticketPoolValue'))
@@ -439,7 +440,6 @@ export default class extends Controller {
     this.projectedTicketPriceIncreaseTarget.innerHTML = digitformat(100 * Math.abs(projectedTicketPrice - tpPrice) / tpPrice, 2)
     this.projectedTicketPriceSignTarget.innerHTML = projectedTicketPrice > tpPrice ? 'increase' : 'decrease'
     this.ticketPoolValueTarget.innerHTML = digitformat(hashrate, 3)
-
     const totalDCRPos = this.settings.attack_type === externalAttackType ? DCRNeed - tpValue : ticketAttackSize * projectedTicketPrice
     const totalPos = totalDCRPos * dcrPrice
     const timeStr = this.attackPeriodTarget.value
@@ -447,10 +447,10 @@ export default class extends Controller {
     const timeHourStr = timeStr + ' ' + hourStr
     const devicePronounStr = deviceCount > 1 ? 'them' : 'it'
     const deviceSuffixStr = deviceCount > 1 ? 's' : ''
-    this.ticketPoolSizeLabelTarget.innerHTML = digitformat(tpSize, 2)
+    this.ticketPoolSizeLabelTarget.innerHTML = humanize.commaWithDecimal(tpSize, 0)
     this.setAllValues(this.actualHashRateTargets, digitformat(hashrate, 4))
-    this.priceDCRTarget.value = digitformat(dcrPrice, 2)
-    this.setAllInputs(this.targetPosTargets, digitformat(parseFloat(this.targetPosTarget.value), 2))
+    this.priceDCRTarget.value = dcrPrice.toFixed(2)
+    this.setAllInputs(this.targetPosTargets, parseFloat(this.targetPosTarget.value).toFixed(2))
     this.ticketPriceTarget.innerHTML = digitformat(tpPrice, 4)
     this.setAllValues(this.targetHashRateTargets, digitformat(this.targetHashRate, 4))
     this.setAllValues(this.additionalHashRateTargets, digitformat(this.targetHashRate, 4))
