@@ -35,7 +35,7 @@ export default class extends Controller {
     document.addEventListener('scroll', function () {
       // Get the scroll position
       const scrollPos = window.pageYOffset
-      if (scrollPos > 80) {
+      if (scrollPos > 20) {
         navTarget.classList.add('scroll-topbar')
         $('#menuDivider').addClass('d-none')
       } else {

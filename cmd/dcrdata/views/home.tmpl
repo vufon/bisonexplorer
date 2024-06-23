@@ -90,7 +90,7 @@
                         {{range .MarketCapList}}
                         <tr>
                 <td class="text-start">
-                  <img src="{{.IconUrl}}" width="25" height="25" />
+                  <img src="{{if eq .Symbol "litecoin"}}/images/ltc-icon.png{{else}}{{.IconUrl}}{{end}}" width="25" height="25" />
                   <span class="ms-2 fs-17">{{.Name}}</span>
                   <span class="fs-17">({{toUpperCase .SymbolDisplay}})</span>
                 </td>
