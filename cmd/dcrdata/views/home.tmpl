@@ -11,24 +11,84 @@
       <!-- start explorer wrap -->
       <div class="hp-explore-wrap" id="hp-explore-wrap">
          <div class="container pt-1">
-         <p class="fs-22 nav-bar-area fw-600">Coin Market Cap</p>
-         <div class="bg-white pb-4">
-            <div class="br-8 b--def bgc-plain-bright pb-10">
-<div class="btable-table-wrap maxh-none">
-    <table class="btable-table w-100">
-        <thead>
-            <tr class="text-secondary bg-none">
-                <th class="text-start">Name</th>
-                <th class="text-start">Price</th>
-                <th class="text-start">24h Change</th>
-                <th class="text-start">7D Change</th>
-                <th class="text-start">Market Cap</th>
-                <th class="text-start">24h Volumn</th>
-            </tr>
-        </thead>
-        <tbody  class="bgc-white" data-top-target="table">
-        {{range .MarketCapList}}
-            <tr>
+            <div class="bg-white pb-3 mt-3">
+               <div class="br-8 b--def bgc-plain-bright pb-10 pt-2">
+                  <span class="ms-3 fs-22 fw-600 pt-4">Supported Blockchains</span>
+                  <div class="btable-table-wrap mt-2 maxh-none">
+                     <table class="btable-table w-100">
+                        <thead>
+                           <tr class="text-secondary bg-none">
+                              <th class="text-start">Name</th>
+                              <th class="text-start">Lastest Block</th>
+                              <th class="text-start">Difficulty</th>
+                              <th class="text-start">Age</th>
+                              <th class="text-start">Total Transactions</th>
+                              <th class="text-start">Coin Supply</th>
+                              <th class="text-start">Blockchain Size</th>
+                           </tr>
+                        </thead>
+                        <tbody  class="bgc-white" data-top-target="supportedTable">
+                           {{range .HomeInfoList}}
+                           <tr>
+                   <td class="text-start">
+                     <a href="{{if eq .Chain "dcr"}}/decred{{else}}/chain/{{.Chain}}{{end}}">
+                     <img src="/images/{{.Chain}}-icon.png" width="25" height="25" />
+                     <span class="ms-2 fs-17">{{chainName .Chain}}</span>
+                     <span class="fs-17">({{toUpperCase .Chain}})</span>
+                  </a>
+                   </td>
+                   <td class="text-start">
+                     <a class="fs-16" id="{{.Chain}}_blockHeight" data-top-target="blockHeight" {{if eq .Chain "dcr"}}href="/block/{{.BestBlock.Height}}"{{else}}href="/chain/{{.Chain}}/block/{{.BestBlock.Height}}"{{end}}>{{.BestBlock.Height}}</a>
+                   </td>
+                   <td class="text-start">
+                     <a class="fs-16" id="{{.Chain}}_difficulty" data-top-target="difficulty" {{if eq .Chain "dcr"}}href="/charts?chart=pow-difficulty"{{else}}href="/chain/{{.Chain}}/charts?chart=pow-difficulty"{{end}}>{{difficultyDisp .HomeInfo.Difficulty}}</a>
+                   </td>
+                   <td class="text-start">
+                     <span data-type="age" class="jsonly" 
+                           data-time-target="age" 
+                           data-top-target="blockTime"
+                           id="{{.Chain}}_blockTime"
+                           data-age="{{.BestBlock.BlockTime.UNIX}}">{{.BestBlock.BlockTime}}</span>
+                   </td>
+                   <td class="text-start">
+                     <span id="{{.Chain}}_txcount">{{int64Comma .HomeInfo.TotalTransactions}}</span>          
+                   </td>
+                   <td class="text-start">
+                     <span id="{{.Chain}}_coinSupply" data-top-target="coinSupply">
+                        {{template "decimalParts" (float64AsDecimalParts .HomeInfo.CoinValueSupply 2 true)}}
+                     </span>
+                     <span>{{toUpperCase .Chain}}</span>
+                   </td>
+                   <td class="text-start">
+                     <span>
+                        {{.HomeInfo.FormattedSize}}
+                     </span>
+                   </td>
+               </tr>
+           {{end}}
+           </tbody>
+       </table>
+       </div>
+       </div>
+      </div>
+         <div class="bg-white pb-3">
+            <div class="br-8 b--def bgc-plain-bright pb-10 pt-2">
+               <span class="ms-3 fs-22 fw-600 pt-4">Coin Market Cap</span>
+               <div class="btable-table-wrap mt-2 maxh-none">
+                  <table class="btable-table w-100">
+                     <thead>
+                        <tr class="text-secondary bg-none">
+                           <th class="text-start">Name</th>
+                           <th class="text-start">Price</th>
+                           <th class="text-start">24h Change</th>
+                           <th class="text-start">7D Change</th>
+                           <th class="text-start">Market Cap</th>
+                           <th class="text-start">24h Volumn</th>
+                        </tr>
+                     </thead>
+                     <tbody  class="bgc-white" data-top-target="capTable">
+                        {{range .MarketCapList}}
+                        <tr>
                 <td class="text-start">
                   <img src="{{.IconUrl}}" width="25" height="25" />
                   <span class="ms-2 fs-17">{{.Name}}</span>
@@ -304,79 +364,6 @@
                         </div>
                      </div>
                   </div>
-                  </div>
-                  <div class="row home-chain-card">
-                    {{range .HomeInfoList}}
-                     <div class="col-24 col-md-12 mt-3 info-right-card">
-                        <!-- Start Blocks Card -->
-                        <div class="explore-card-wrap">
-                           <div class="explore-card-content">
-                              <a href='{{if eq .Chain "dcr"}}/decred{{else}}/chain/{{.Chain}}{{end}}' class="link-to-subpage">
-                                 <div class="explore-card__header">
-                                    <img src="/images/{{.Chain}}-icon.png" width="50" height="50" />
-                                    <div class="explore-card__header__text ml-15">
-                                       <h5 class="explore-card__header__text__name"> {{chainName .Chain}} </h5>
-                                       <span class="explore-card__header__arrow">
-                                       <span class='the-arrow -right'>
-                                       <span class='shaft'></span>
-                                       </span>
-                                       </span>
-                                       {{if .ExchangeRate}}
-                                       <div class="explore-card__header__text__price">
-                                          <div class="price-wrap d-flex ai-center">
-                                             <span>{{.ExchangeRate.TwoDecimals}}&nbsp;</span>
-                                             <span class="info-line-2-sub">{{.ExchangeRate.Index}}</span>
-                                          </div>
-                                       </div>
-                                       {{end}}
-                                    </div>
-                                 </div>
-                              </a>
-                              <div class="explore-card__values-content">
-                                 <div class="row justify-content-between">
-                                    <div class="col-12">
-                                       <p class="network-stats-block">
-                                          <span class="network-stats-title">Lastest Block</span>
-                                          <span class="network-stats-content d-inline-block mt-4">
-                                          <a class="fs-28" id="{{.Chain}}_blockHeight" data-top-target="blockHeight" {{if eq .Chain "dcr"}}href="/block/{{.BestBlock.Height}}"{{else}}href="/chain/{{.Chain}}/block/{{.BestBlock.Height}}"{{end}}>{{.BestBlock.Height}}</a>
-                                          </span>
-                                       </p>
-                                    </div>
-                                    <div class="col-12">
-                                       <div class="network-stats-block">
-                                          <span class="network-stats-title">
-                                          <a class="link-hover-underline" {{if eq .Chain "dcr"}}href="/charts?chart=pow-difficulty"{{else}}href="/chain/{{.Chain}}/charts?chart=pow-difficulty"{{end}}>
-                                          Difficulty</a>
-                                          </span>
-                                          <div class="network-stats-content d-inline-block mt-4" id="{{.Chain}}_difficulty" data-top-target="difficulty">
-                                             {{difficultyDisp .HomeInfo.Difficulty}}
-                                          </div>
-                                       </div>
-                                    </div>
-                                    <div class="col-12">
-                                       <p class="network-stats-block">
-                                          <span class="network-stats-title">Age</span>
-                                          <span class="network-stats-content d-inline-block mt-4"
-                                           data-type="age" class="jsonly" 
-                                           data-time-target="age" 
-                                           data-top-target="blockTime"
-                                           id="{{.Chain}}_blockTime"
-                                           data-age="{{.BestBlock.BlockTime.UNIX}}">{{.BestBlock.BlockTime}}</span>
-                                       </p>
-                                    </div>
-                                    <div class="col-12">
-                                       <p class="network-stats-block">
-                                          <span class="network-stats-title">Size</span>
-                                          <span class="network-stats-content d-inline-block mt-4" id="{{.Chain}}_blockSize" data-top-target="blockSize">{{.BestBlock.FormattedBytes}}</span>
-                                       </p>
-                                    </div>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                        <!-- End Blocks Card -->
-                     </div>
-                     {{end}}
                   </div>
             </section>
          </div>

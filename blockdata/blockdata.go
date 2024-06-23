@@ -6,6 +6,7 @@ package blockdata
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -111,6 +112,7 @@ type NodeClient interface {
 	GetConnectionCount(ctx context.Context) (int64, error)
 	EstimateStakeDiff(ctx context.Context, tickets *uint32) (*chainjson.EstimateStakeDiffResult, error)
 	GetStakeDifficulty(ctx context.Context) (*chainjson.GetStakeDifficultyResult, error)
+	RawRequest(ctx context.Context, method string, params []json.RawMessage) (json.RawMessage, error)
 }
 
 // Collector models a structure for the source of the blockdata
@@ -220,7 +222,14 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 	// Work/Stake difficulty
 	diff := txhelpers.GetDifficultyRatio(header.Bits, t.netParams)
 	sdiff := dcrutil.Amount(header.SBits).ToCoin()
-
+	//Gettxoutsetinfo for get Coin Supply
+	rsltMsg, err := t.dcrdChainSvr.RawRequest(ctx, "gettxoutsetinfo", nil)
+	var rslt chainjson.GetTxOutSetInfoResult
+	parseErr := json.Unmarshal(rsltMsg, &rslt)
+	sizeOnDisk := int64(0)
+	if parseErr == nil {
+		sizeOnDisk = rslt.DiskSize
+	}
 	// Output
 	blockdata := &apitypes.BlockDataBasic{
 		Height:     height,
@@ -234,7 +243,9 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 	extrainfo := &apitypes.BlockExplorerExtraInfo{
 		TxLen:            txLen,
 		CoinSupply:       int64(coinSupply),
+		CoinValueSupply:  coinSupply.ToCoin(),
 		NextBlockSubsidy: nbSubsidy,
+		BlockchainSize:   sizeOnDisk,
 	}
 	return blockdata, feeInfoBlock, blockHeaderResults, extrainfo, msgBlock, err
 }

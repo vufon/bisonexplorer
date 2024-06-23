@@ -4,7 +4,7 @@ import globalEventBus from '../services/event_bus_service'
 
 export default class extends Controller {
   static get targets () {
-    return ['difficulty', 'blockHeight', 'blockSize', 'blockTime']
+    return ['difficulty', 'blockHeight', 'blockTime', 'supportedTable', 'capTable']
   }
 
   connect () {
@@ -69,14 +69,22 @@ export default class extends Controller {
     const blockHeightObj = document.getElementById(chainType + '_blockHeight')
     const difficultyObj = document.getElementById(chainType + '_difficulty')
     const blockTimeObj = document.getElementById(chainType + '_blockTime')
-    const blockSizeObj = document.getElementById(chainType + '_blockSize')
+    const txCountObj = document.getElementById(chainType + '_txcount')
+    const coinSupplyObj = document.getElementById(chainType + '_coinSupply')
     const ex = blockData.extra
     difficultyObj.innerHTML = humanize.threeSigFigs(ex.difficulty)
     const block = blockData.block
     blockHeightObj.textContent = block.height
     blockHeightObj.href = (chainType === 'dcr' ? '' : '/chain/' + chainType) + `/block/${block.hash}`
-    blockSizeObj.textContent = humanize.bytes(block.size)
     blockTimeObj.dataset.age = block.blocktime_unix
     blockTimeObj.textContent = humanize.timeSince(block.blocktime_unix)
+
+    // handler extra data
+    const extra = blockData.extra
+    if (!extra) {
+      return
+    }
+    txCountObj.textContent = humanize.commaWithDecimal(extra.total_transactions, 0)
+    coinSupplyObj.textContent = humanize.commaWithDecimal(extra.coin_value_supply, 2)
   }
 }

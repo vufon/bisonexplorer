@@ -8930,6 +8930,22 @@ func (pgb *ChainDB) MutilchainGetTotalAddressesCount(chainType string) int64 {
 	return txCount
 }
 
+func (pgb *ChainDB) GetDecredBlockchainSize() int64 {
+	size, err := retrieveBlockchainSize(pgb.ctx, pgb.db)
+	if err != nil {
+		return 0
+	}
+	return size
+}
+
+func (pgb *ChainDB) GetDecredTotalTransactions() int64 {
+	txcount, err := retrieveTotalTransactions(pgb.ctx, pgb.db)
+	if err != nil {
+		return 0
+	}
+	return txcount
+}
+
 func (pgb *ChainDB) MutilchainDifficulty(timestamp int64, chainType string) float64 {
 	switch chainType {
 	case mutilchain.TYPEBTC:

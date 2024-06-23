@@ -288,6 +288,8 @@ const (
 			AND mixed AND value>0
 			AND fund_tx.is_mainchain
 		ORDER BY fund_tx.block_height;`
+
+	SelectTotalTransactions = `SELECT COUNT(*) FROM transactions WHERE is_valid AND is_mainchain;`
 )
 
 var (

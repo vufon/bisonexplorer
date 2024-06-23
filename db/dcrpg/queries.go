@@ -1727,6 +1727,16 @@ func retrieveAddressTxsCount(ctx context.Context, db *sql.DB, address, interval 
 	return
 }
 
+func retrieveBlockchainSize(ctx context.Context, db *sql.DB) (size int64, err error) {
+	err = db.QueryRowContext(ctx, internal.SelectBlockchainSize).Scan(&size)
+	return
+}
+
+func retrieveTotalTransactions(ctx context.Context, db *sql.DB) (txcount int64, err error) {
+	err = db.QueryRowContext(ctx, internal.SelectTotalTransactions).Scan(&txcount)
+	return
+}
+
 func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
 	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }

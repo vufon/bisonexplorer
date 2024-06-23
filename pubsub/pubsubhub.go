@@ -66,6 +66,7 @@ type DataSource interface {
 	MutilchainDifficulty(timestamp int64, chainType string) float64
 	MutilchainGetBlockchainInfo(chainType string) (*mutilchain.BlockchainInfo, error)
 	MutilchainGetTransactionCount(chainType string) int64
+	GetDecredTotalTransactions() int64
 }
 
 // State represents the current state of block chain.
@@ -724,6 +725,8 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 	p.GeneralInfo.NBlockSubsidy.PoS = blockData.ExtraInfo.NextBlockSubsidy.PoS
 	p.GeneralInfo.NBlockSubsidy.PoW = blockData.ExtraInfo.NextBlockSubsidy.PoW
 	p.GeneralInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockSubsidy.Total
+	p.GeneralInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
+	p.GeneralInfo.TotalTransactions = psh.sourceBase.GetDecredTotalTransactions()
 
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.GeneralInfo.PoolInfo = exptypes.TicketPoolInfo{}

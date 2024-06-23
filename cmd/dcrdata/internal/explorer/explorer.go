@@ -159,6 +159,8 @@ type explorerDataSource interface {
 	MutilchainValidBlockhash(hash string, chainType string) bool
 	MutilchainValidTxhash(hash string, chainType string) bool
 	MutilchainBestBlockTime(chainType string) int64
+	GetDecredBlockchainSize() int64
+	GetDecredTotalTransactions() int64
 }
 
 type PoliteiaBackend interface {
@@ -646,6 +648,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
 	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
+	p.HomeInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
 	p.HomeInfo.StakeDiff = blockData.CurrentStakeDiff.CurrentStakeDifficulty
 	p.HomeInfo.NextExpectedStakeDiff = blockData.EstStakeDiff.Expected
 	p.HomeInfo.NextExpectedBoundsMin = blockData.EstStakeDiff.Min
@@ -658,6 +661,10 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.NBlockSubsidy.PoS = blockData.ExtraInfo.NextBlockSubsidy.PoS
 	p.HomeInfo.NBlockSubsidy.PoW = blockData.ExtraInfo.NextBlockSubsidy.PoW
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockSubsidy.Total
+	p.HomeInfo.TotalSize = exp.dataSource.GetDecredBlockchainSize()
+	p.HomeInfo.TotalTransactions = exp.dataSource.GetDecredTotalTransactions()
+	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(p.HomeInfo.TotalSize))
+
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {

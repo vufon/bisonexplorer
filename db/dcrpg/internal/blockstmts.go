@@ -313,6 +313,7 @@ const (
 		WHERE time >= $1
 		ORDER BY time
 		LIMIT 1;`
+	SelectBlockchainSize = `SELECT SUM(size) FROM blocks WHERE is_mainchain;`
 )
 
 func BlockInsertStatement(checked bool) string {
