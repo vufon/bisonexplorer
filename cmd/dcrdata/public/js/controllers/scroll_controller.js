@@ -11,6 +11,15 @@ $(document).mouseup(function (e) {
   }
 })
 
+$(window).on('resize', function (event) {
+  const winWidth = $(window).width()
+  if (winWidth > 700) {
+    $('#menu').css('width', $('#topBarLeft').width())
+    return
+  }
+  $('#menu').css('width', 'auto')
+})
+
 export default class extends Controller {
   static get targets () {
     return ['navbar', 'coinSelect']
@@ -79,6 +88,7 @@ export default class extends Controller {
     $('.chain-selected-btn').click(function () {
       $('.selection-area').toggle()
     })
+    $('#menu').css('width', $('#topBarLeft').width())
   }
 
   changeCoin (e) {

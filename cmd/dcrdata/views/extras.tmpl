@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.d378e2e6748fc6e4.css" rel="stylesheet">
+	<link href="/dist/css/style.d2ed71de1e1637a4.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 	<script>
@@ -66,7 +66,7 @@
 <body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} {{if .IsHomepage}}homepage-body{{end}}" data-controller="scroll">
    <header class="top-nav align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
       <div class="container d-flex justify-content-between align-items-center my-1">
-         <div class="d-flex ai-center">
+         <div id="topBarLeft" class="d-flex ai-center">
             <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
             <select
                data-scroll-target="coinSelect"
@@ -113,14 +113,14 @@
             data-controller="menu" 
             data-turbolinks-permanent
             data-menu-homepage="{{.IsHomepage}}">
-            <div id="menu-toggle">
+            <div id="menu-toggle" class="px-0">
                <div data-menu-target="homeMenu">
                   <input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
                   <span class="patty d-none"></span>
                   <span class="patty d-none"></span>
                   <span class="patty short d-none"></span>
-                  <div id="menu" class="row">
-                     <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1">
+                  <div id="menu" class="row justify-content-end">
+                     <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
                         <input type="hidden" name="darkmode" value="darkmode">
                         <input type="hidden" name="requestURI" value="{{.RequestURI}}">
                         <button type="submit" data-action="click->menu#onSunClick"
@@ -213,7 +213,7 @@
 <body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} {{if .IsHomepage}}homepage-body{{end}}" data-controller="scroll">
 <header class="top-nav align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
    <div class="container d-flex justify-content-between align-items-center my-1">
-      <div class="d-flex ai-center">
+      <div id="topBarLeft" class="d-flex ai-center">
 	  <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
 	  </div>
 	  <form
@@ -240,14 +240,14 @@
 		  	data-controller="menu" 
 			data-turbolinks-permanent
 			data-menu-homepage="{{.IsHomepage}}">
-            <div id="menu-toggle">
+            <div id="menu-toggle" class="px-0">
 			<div data-menu-target="homeMenu">
                <input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
                <span class="patty d-none"></span>
                <span class="patty d-none"></span>
                <span class="patty short d-none"></span>
-               <div id="menu" class="row">
-                  <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1">
+               <div id="menu" class="row justify-content-end">
+                  <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
                      <input type="hidden" name="darkmode" value="darkmode">
                      <input type="hidden" name="requestURI" value="{{.RequestURI}}">
                      <button type="submit" data-action="click->menu#onSunClick"
@@ -341,7 +341,7 @@
 <body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} {{if .IsHomepage}}homepage-body{{end}}" data-controller="scroll">
    <header class="top-nav align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
       <div class="container d-flex justify-content-between align-items-center my-1">
-         <div class="d-flex ai-center">
+         <div id="topBarLeft" class="d-flex ai-center">
             <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
             <select
                data-scroll-target="coinSelect"
@@ -388,14 +388,14 @@
             data-controller="menu" 
             data-turbolinks-permanent
             data-menu-homepage="{{.IsHomepage}}">
-            <div id="menu-toggle">
+            <div id="menu-toggle" class="px-0">
                <div data-menu-target="homeMenu">
                   <input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
                   <span class="patty d-none"></span>
                   <span class="patty d-none"></span>
                   <span class="patty short d-none"></span>
-                  <div id="menu" class="row">
-                     <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1">
+                  <div id="menu" class="row justify-content-end">
+                     <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
                         <input type="hidden" name="darkmode" value="darkmode">
                         <input type="hidden" name="requestURI" value="{{.RequestURI}}">
                         <button type="submit" data-action="click->menu#onSunClick"
@@ -560,7 +560,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.a833e380d2ad00c9.bundle.js"
+	src="/dist/js/app.30dbe2486bbba035.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
