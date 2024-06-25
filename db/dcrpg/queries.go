@@ -207,6 +207,10 @@ func DeleteDuplicateVins(db *sql.DB) (int64, error) {
 	return sqlExec(db, internal.DeleteVinsDuplicateRows, execErrPrefix)
 }
 
+func DeleteInvalid24hBlocksRow(db *sql.DB) (int64, error) {
+	return sqlExec(db, internal.DeleteInvalidBlocks, "failed to delete 24hblocks row")
+}
+
 // DeleteDuplicateVouts deletes rows in vouts with duplicate tx information,
 // leaving the one row with the lowest id.
 func DeleteDuplicateVouts(db *sql.DB) (int64, error) {
@@ -776,6 +780,12 @@ func checkExistAndCreateProposalMetaTable(db *sql.DB) error {
 // Check exist and create address_summary table
 func checkExistAndCreateAddressSummaryTable(db *sql.DB) error {
 	err := createTable(db, "address_summary", internal.CreateAddressSummaryTable)
+	return err
+}
+
+// Check exist and create proposal_meta table
+func checkExistAndCreate24BlocksTable(db *sql.DB) error {
+	err := createTable(db, "blocks24h", internal.Create24hBlocksTable)
 	return err
 }
 
@@ -2408,6 +2418,12 @@ func RetrieveAddressIDsByOutpoint(ctx context.Context, db *sql.DB, txHash string
 func retrieveOldestTxBlockTime(ctx context.Context, db *sql.DB, addr string) (blockTime dbtypes.TimeDef, err error) {
 	err = db.QueryRowContext(ctx, internal.SelectAddressOldestTxBlockTime, addr).Scan(&blockTime)
 	return
+}
+
+func retrieve24hMetricsData(ctx context.Context, db *sql.DB, chainType string) (*dbtypes.Block24hInfo, error) {
+	res := dbtypes.Block24hInfo{}
+	err := db.QueryRowContext(ctx, internal.Select24hMetricsSummary, chainType).Scan(&res.Blocks, &res.Spent24h, &res.Sent24h, &res.Fees24h, &res.NumTx24h, &res.NumVin24h, &res.NumVout24h)
+	return &res, err
 }
 
 // retrieveTxHistoryByType fetches the transaction types count for all the
@@ -5222,6 +5238,29 @@ func RetrieveBlockSummary(ctx context.Context, db *sql.DB, ind int64) (*apitypes
 	bd.StakeDiff = dcrutil.Amount(sbits).ToCoin()
 
 	return bd, nil
+}
+
+// RetrieveBlockSummary fetches basic block data for block ind.
+func Retrieve24hBlockData(ctx context.Context, db *sql.DB) ([]*apitypes.Block24hData, error) {
+	rows, err := db.QueryContext(ctx, internal.Select24hBlockData)
+	result := make([]*apitypes.Block24hData, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	for rows.Next() {
+		block24hData := apitypes.Block24hData{}
+		err = rows.Scan(&block24hData.BlockHash, &block24hData.BlockHeight, &block24hData.BlockTime, &block24hData.NumTx)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, &block24hData)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // RetrieveBlockSummaryByHash fetches basic block data for block hash.

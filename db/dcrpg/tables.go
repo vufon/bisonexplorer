@@ -33,6 +33,7 @@ var createTableStatements = [][2]string{
 	{"treasury", internal.CreateTreasuryTable},
 	{"swaps", internal.CreateAtomicSwapTable},
 	{"monthly_price", internal.CreateMonthlyPriceTable},
+	{"blocks24h", internal.Create24hBlocksTable},
 }
 
 func GetCreateDBTables() [][2]string {

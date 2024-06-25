@@ -238,6 +238,11 @@ const (
 		FROM blocks INNER JOIN stats ON blocks.id = stats.blocks_id
 		WHERE blocks.height = $1;`
 
+	Select24hBlockData = `
+		SELECT hash,height,time,numtx
+		FROM blocks
+		WHERE time >= (SELECT NOW() - INTERVAL '1 DAY')`
+
 	SelectBlockDataRange = `
 		SELECT blocks.hash, blocks.height, blocks.size,
 			blocks.difficulty, blocks.sbits, blocks.time, stats.pool_size,

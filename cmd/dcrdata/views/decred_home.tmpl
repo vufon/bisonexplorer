@@ -882,7 +882,7 @@
             <h2 class="fs-40 fw-600 d-none"> Analysis</h2>
             <div class="hp-explore__cards-wrap mt-3">
                <div class="hp-explore__cards-content-1">
-                  <!-- Start Votes Card -->
+                  <!-- Start Ticket Pool Card -->
                   <div class="explore-card-wrap">
                      <div class="explore-card-content">
                         <a href='/ticketpool' class="link-to-subpage">
@@ -1030,7 +1030,102 @@
                         </div>
                      </div>
                   </div>
-                  <!-- End Votes Card -->
+                  <!-- End Ticket Pool Card -->
+                  <!-- Start 24h Metrics Card -->
+                  <div class="explore-card-wrap">
+                     <div class="explore-card-content">
+                           <div class="explore-card__header bg-for-header">
+                              <span class="homeicon-candle explore-card__header__logo" alt="Ticket Pool route"
+                                 loading="lazy"></span>
+                              <div class="explore-card__header__text ml-15">
+                                 <h5 class="explore-card__header__text__name"> 24h Metrics </h5>
+                                 <span class="explore-card__header__arrow">
+                                    <span class='the-arrow -right'>
+                                       <span class='shaft'></span>
+                                    </span>
+                                 </span>
+                                 <div class="explore-card__header__text__price">
+                                    <div class="price-wrap d-flex ai-center">
+                                       <span class="price-usd fs-13">Some statistics from the past 24 hours</span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        <div class="explore-card__values-content">
+                           <div class="row">
+                              {{if .Info.Block24hInfo}}
+                              {{with .Info.Block24hInfo}}
+                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
+                                 <div class="network-stats-block">
+                                    <span class="network-stats-title">
+                                       Mined Blocks
+                                      </span>
+                                      <div class="network-stats-content d-inline-block mt-4">
+                                      {{int64Comma .Blocks}}
+                                      </div>
+                                 </div>
+                              </div>
+                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
+                                 <p class="network-stats-block">
+                                    <span class="network-stats-title">Total Transactions</span>
+                                    <span class="network-stats-content d-inline-block mt-4">
+                                       {{int64Comma .NumTx24h}}
+                                    </span>
+                                 </p>
+                              </div>
+                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
+                                 <div class="network-stats-block">
+                                    <span class="network-stats-title">Total Sent</span>
+                                    <div class="network-stats-content d-inline-block mt-4">
+                                       {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Sent24h) 2 true)}}
+                                    </div>
+                                    <span class="info-line-2-sub">DCR</span>
+                                    {{if $conv -}}
+                                    <span class="stats-subinfo">
+                                    {{threeSigFigs $conv.Sent24h.Value}}
+                                    {{$conv.Sent24h.Index}}</span>
+                                    {{end}}
+                                 </div>
+                              </div>
+                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
+                                 <div class="network-stats-block">
+                                    <span class="network-stats-title">Total Fees</span>
+                                    <div class="network-stats-content d-inline-block mt-4">
+                                       {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Fees24h) 2 true)}}
+                                    </div>
+                                    <span class="info-line-2-sub">DCR</span>
+                                    {{if $conv -}}
+                                    <span class="stats-subinfo">
+                                    {{threeSigFigs $conv.Fees24h.Value}}
+                                    {{$conv.Fees24h.Index}}</span>
+                                    {{end}}
+                                 </div>
+                              </div>
+                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
+                                 <p class="network-stats-block">
+                                    <span class="network-stats-title">Total Outputs</span>
+                                    <span class="network-stats-content d-inline-block mt-4">
+                                       {{int64Comma .NumVout24h}}
+                                    </span>
+                                 </p>
+                              </div>
+                              {{end}}
+                              {{end}}
+                              {{if .MarketCap}}
+                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
+                                 <p class="network-stats-block">
+                                    <span class="network-stats-title">Market Volumn</span>
+                                    <span class="network-stats-content d-inline-block mt-4">
+                                       ${{difficultyDisp .MarketCap.Volumn}}
+                                    </span>
+                                 </p>
+                              </div>
+                              {{end}}
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  <!-- End Metrics 24h Card -->
                   <!-- Start Chain Charts Card -->
                   <div class="explore-card-wrap">
                      <div class="explore-card-content">

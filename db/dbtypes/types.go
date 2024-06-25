@@ -27,6 +27,11 @@ import (
 
 var scriptClassNames map[string]ScriptClass
 var MutilchainList = []string{"btc", "ltc"}
+var ChainSymbolMap = map[string]string{
+	mutilchain.TYPEBTC: "bitcoin",
+	mutilchain.TYPELTC: "litecoin",
+	mutilchain.TYPEDCR: "decred",
+}
 
 func init() {
 	// Set up the map for the NewScriptClassFromString function.
@@ -2189,6 +2194,16 @@ type TreasuryBalance struct {
 	TBase          int64 `json:"tbase"`
 	ImmatureCount  int64 `json:"immature_count"`
 	Immature       int64 `json:"immature"`
+}
+
+type Block24hInfo struct {
+	Blocks     int64 `json:"blocks"`
+	Spent24h   int64 `json:"spent24h"`
+	Sent24h    int64 `json:"sent24h"`
+	Fees24h    int64 `json:"fees24h"`
+	NumTx24h   int64 `json:"numTx24h"`
+	NumVin24h  int64 `json:"numVin24h"`
+	NumVout24h int64 `json:"numVout24h"`
 }
 
 // AddressTransactions collects the transactions for an address as AddressTx

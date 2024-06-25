@@ -161,6 +161,7 @@ type explorerDataSource interface {
 	MutilchainBestBlockTime(chainType string) int64
 	GetDecredBlockchainSize() int64
 	GetDecredTotalTransactions() int64
+	SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType string) (*dbtypes.Block24hInfo, error)
 }
 
 type PoliteiaBackend interface {
@@ -251,6 +252,7 @@ type pageData struct {
 	BlockInfo      *types.BlockInfo
 	BlockchainInfo *chainjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
+	Syncing24h     bool
 }
 
 type BtcPageData struct {
@@ -258,6 +260,7 @@ type BtcPageData struct {
 	BlockInfo      *types.BlockInfo
 	BlockchainInfo *btcjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
+	Syncing24h     bool
 }
 
 type LtcPageData struct {
@@ -265,6 +268,7 @@ type LtcPageData struct {
 	BlockInfo      *types.BlockInfo
 	BlockchainInfo *ltcjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
+	Syncing24h     bool
 }
 
 type ExplorerUI struct {
@@ -768,6 +772,25 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		}()
 	}
 
+	go func(height int64) {
+		//Get 24h metrics summary info
+		p.Lock()
+		//if syncing, ignore
+		if p.Syncing24h {
+			return
+		}
+		p.Unlock()
+		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEDCR)
+		p.Lock()
+		if err24h == nil {
+			p.HomeInfo.Block24hInfo = summary24h
+		} else {
+			log.Errorf("Sync DCR 24h Metrics Failed: %v", err24h)
+		}
+		p.Syncing24h = false
+		p.Unlock()
+	}(int64(blockData.Header.Height))
+
 	return nil
 }
 
@@ -834,6 +857,7 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.IdxInRewardWindow = int(newBlockData.Height%int64(exp.BtcChainParams.SubsidyReductionInterval)) + 1
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
+	p.HomeInfo.SubsidyInterval = int64(exp.BtcChainParams.SubsidyReductionInterval)
 	p.Unlock()
 	go func() {
 		select {
@@ -842,6 +866,25 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 			log.Errorf("sigNewBTCBlock send failed: Timeout waiting for WebsocketHub.")
 		}
 	}()
+
+	go func(height int64) {
+		//Get 24h metrics summary info
+		p.Lock()
+		//if syncing, ignore
+		if p.Syncing24h {
+			return
+		}
+		p.Unlock()
+		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEBTC)
+		p.Lock()
+		if err24h == nil {
+			p.HomeInfo.Block24hInfo = summary24h
+		} else {
+			log.Errorf("Sync BTC 24h Metrics Failed: %v", err24h)
+		}
+		p.Syncing24h = false
+		p.Unlock()
+	}(int64(blockData.Header.Height))
 	return nil
 }
 
@@ -907,6 +950,7 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.IdxInRewardWindow = int(newBlockData.Height%int64(exp.LtcChainParams.SubsidyReductionInterval)) + 1
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
+	p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
 	p.Unlock()
 	go func() {
 		select {
@@ -915,6 +959,24 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 			log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
 		}
 	}()
+	go func(height int64) {
+		//Get 24h metrics summary info
+		p.Lock()
+		//if syncing, ignore
+		if p.Syncing24h {
+			return
+		}
+		p.Unlock()
+		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPELTC)
+		p.Lock()
+		if err24h == nil {
+			p.HomeInfo.Block24hInfo = summary24h
+		} else {
+			log.Errorf("Sync LTC 24h Metrics Failed: %v", err24h)
+		}
+		p.Syncing24h = false
+		p.Unlock()
+	}(int64(blockData.Header.Height))
 	return nil
 }
 

@@ -722,6 +722,19 @@ type BlockDataBasic struct {
 	PoolInfo *TicketPoolInfo `json:"ticket_pool,omitempty"`
 }
 
+type Block24hData struct {
+	ChainType   string          `json:"chain_type"`
+	BlockHash   string          `json:"block_hash"`
+	BlockHeight int64           `json:"block_height"`
+	BlockTime   dbtypes.TimeDef `json:"block_time"`
+	Spent       int64           `json:"spent"`
+	Sent        int64           `json:"sent"`
+	Fees        int64           `json:"fees"`
+	NumTx       int64           `json:"num_tx"`
+	NumVin      int64           `json:"num_vin"`
+	NumVout     int64           `json:"num_vout"`
+}
+
 // NewBlockDataBasic constructs a *BlockDataBasic with pointer fields allocated.
 func NewBlockDataBasic() *BlockDataBasic {
 	return &BlockDataBasic{

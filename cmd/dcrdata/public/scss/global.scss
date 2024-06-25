@@ -260,7 +260,7 @@ textarea::placeholder {
 }
 
 .bgc-plain-bright {
-  background-color: var(--c-plain-bright);
+  background-color: #eaf0f5;
 }
 
 .bgc-plain-d1 {
@@ -2224,9 +2224,9 @@ body.darkBG {
   padding-top: 5px;
   padding-bottom: 5px;
   padding-left: 15px;
-  background-color: #ececec;
+  background-color: #eaf0f5;
   border-radius: 8px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid #cee3e3;
 }
 
 .cursor-pointer {
@@ -2250,4 +2250,10 @@ body.darkBG {
     overflow: hidden;
     width: 35px;
   }
+}
+
+.table-card {
+  border: 1px solid #cee3e3;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
 }

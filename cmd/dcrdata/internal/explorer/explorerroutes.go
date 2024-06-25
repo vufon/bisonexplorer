@@ -186,12 +186,16 @@ type homeConversions struct {
 	PowSplit        *exchanges.Conversion
 	TreasurySplit   *exchanges.Conversion
 	TreasuryBalance *exchanges.Conversion
+	Sent24h         *exchanges.Conversion
+	Fees24h         *exchanges.Conversion
 }
 
 // For the exchange rates on the homepage
 type MutilchainHomeConversions struct {
 	ExchangeRate *exchanges.Conversion
 	CoinSupply   *exchanges.Conversion
+	Sent24h      *exchanges.Conversion
+	Fees24h      *exchanges.Conversion
 }
 
 type MutilchainHomeInfo struct {
@@ -268,6 +272,10 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 			TreasurySplit:   xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.Dev).ToCoin()),
 			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + homeInfo.TreasuryBalance.Balance).ToCoin()),
 		}
+		if homeInfo.Block24hInfo != nil {
+			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())
+			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Fees24h).ToCoin())
+		}
 	}
 
 	exp.pageData.RUnlock()
@@ -275,6 +283,14 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
+
+	var marketCap *dbtypes.MarketCapData
+	for _, capData := range exp.CoinCapDataList {
+		if capData.Symbol == dbtypes.ChainSymbolMap[mutilchain.TYPEDCR] {
+			marketCap = capData
+			break
+		}
+	}
 
 	str, err := exp.templates.exec("decred_home", struct {
 		*CommonPageData
@@ -292,6 +308,7 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		VotingSummary    *agendas.VoteSummary
 		ProposalCountMap string
 		VotesStatus      string
+		MarketCap        *dbtypes.MarketCapData
 	}{
 		CommonPageData:   commonData,
 		Info:             homeInfo,
@@ -308,6 +325,7 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		VotingSummary:    exp.voteTracker.Summary(),
 		ProposalCountMap: proposalCountJsonStr,
 		VotesStatus:      voteStatusJsonStr,
+		MarketCap:        marketCap,
 	})
 
 	if err != nil {
@@ -463,13 +481,17 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		homeInfo = exp.pageData.HomeInfo
 		exp.pageData.RUnlock()
 	}
-
 	var conversions *MutilchainHomeConversions
 	xcBot := exp.xcBot
 	if xcBot != nil {
 		conversions = &MutilchainHomeConversions{
 			ExchangeRate: xcBot.MutilchainConversion(1.0, chainType),
 			CoinSupply:   xcBot.MutilchainConversion(homeInfo.CoinValueSupply, chainType),
+		}
+
+		if homeInfo.Block24hInfo != nil {
+			conversions.Sent24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Sent24h).ToBTC(), chainType)
+			conversions.Fees24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Fees24h).ToBTC(), chainType)
 		}
 	}
 
@@ -482,6 +504,17 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
 		FiatIndices:   allXcState.FiatIndices,
 		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+	}
+
+	var marketCap *dbtypes.MarketCapData
+
+	if exp.CoinCapDataList != nil {
+		for _, capData := range exp.CoinCapDataList {
+			if capData.Symbol == dbtypes.ChainSymbolMap[chainType] {
+				marketCap = capData
+				break
+			}
+		}
 	}
 
 	var commonData = exp.commonData(r)
@@ -498,6 +531,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		PercentChange      float64
 		ChainType          string
 		TargetTimePerBlock float64
+		MarketCap          *dbtypes.MarketCapData
 	}{
 		CommonPageData:     commonData,
 		MempoolInfo:        mempoolInfo,
@@ -508,6 +542,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		Conversions:        conversions,
 		XcState:            xcState,
 		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
+		MarketCap:          marketCap,
 	})
 
 	if err != nil {
@@ -4114,8 +4149,7 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		exp.pageData.RLock()
 		homeInfo = exp.pageData.HomeInfo
 		blockHeight = exp.pageData.BlockInfo.Height
-		blockSubsidy := exp.dataSource.BlockSubsidy(blockHeight,
-			exp.ChainParams.TicketsPerBlock)
+		blockSubsidy := exp.dataSource.BlockSubsidy(blockHeight, exp.ChainParams.TicketsPerBlock)
 		blockReward = blockSubsidy.Total
 		blockTime = exp.pageData.BlockInfo.BlockTime.UNIX()
 		exp.pageData.RUnlock()

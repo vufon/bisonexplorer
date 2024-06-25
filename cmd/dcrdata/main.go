@@ -257,6 +257,12 @@ func _main(ctx context.Context) error {
 		}
 	}
 
+	//Create 24h blocks table
+	create24hBlocksErr := chainDB.CheckCreate24hBlocksTable()
+	if create24hBlocksErr != nil {
+		return fmt.Errorf("Check and create 24hblocks table failed: %w", create24hBlocksErr)
+	}
+
 	var barLoad chan *dbtypes.ProgressBarLoad
 	var ltcdClient *ltcClient.Client
 	var ltcCoreClient *ltcClient.Client
@@ -1733,6 +1739,10 @@ func _main(ctx context.Context) error {
 		//end - handler notifier for ltc
 		//end init collector for btc
 	}
+
+	//Start sync 24h metrics
+	// go chainDB.Sync24BlocksAsync()
+	//End sync 24h metrics
 
 	//end - init rpcclient
 	//Start mutilchain support

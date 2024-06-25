@@ -445,6 +445,10 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			p := (float64(i) / float64(params.SubsidyReductionInterval)) * 100
 			return p
 		},
+		"mutilchainRewardAdjustmentProgress": func(i int, subsidyInterval int64) float64 {
+			p := (float64(i) / float64(subsidyInterval)) * 100
+			return p
+		},
 		"float64AsDecimalParts": float64Formatting,
 		"hashrateDecimalParts":  hashrateFormatting,
 		"hashratePostfix":       hashratePostfix,
@@ -488,6 +492,31 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			}
 			if allsecs > 0 {
 				str += fmt.Sprintf("%ds ", allsecs)
+			}
+			return str + "remaining"
+		},
+		"chainremaining": func(idx int, max, t int64) string {
+			x := (max - int64(idx)) * t
+			if x == 0 {
+				return "imminent"
+			}
+			allsecs := int(time.Duration(x).Seconds())
+			str := ""
+
+			if allsecs > 604799 {
+				weeks := allsecs / 604800
+				allsecs %= 604800
+				str += fmt.Sprintf("%dw ", weeks)
+			}
+			if allsecs > 86399 {
+				days := allsecs / 86400
+				allsecs %= 86400
+				str += fmt.Sprintf("%dd ", days)
+			}
+			if allsecs > 3599 {
+				hours := allsecs / 3600
+				allsecs %= 3600
+				str += fmt.Sprintf("%dh ", hours)
 			}
 			return str + "remaining"
 		},

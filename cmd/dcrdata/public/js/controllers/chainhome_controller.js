@@ -5,7 +5,8 @@ import globalEventBus from '../services/event_bus_service'
 export default class extends Controller {
   static get targets () {
     return ['blockHeight', 'blockTotal', 'blockSize', 'blockTime',
-      'exchangeRate', 'totalTransactions', 'coinSupply', 'convertedSupply']
+      'exchangeRate', 'totalTransactions', 'coinSupply', 'convertedSupply',
+      'powBar', 'rewardIdx']
   }
 
   async connect () {

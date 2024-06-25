@@ -15,10 +15,13 @@ import (
 	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	btcClient "github.com/btcsuite/btcd/rpcclient"
 	btcwire "github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
+	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/ltcsuite/ltcd/chaincfg"
 	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 	"github.com/ltcsuite/ltcd/wire"
@@ -292,7 +295,7 @@ func (db *ChainDB) SyncLTCChainDB(client *ltcClient.Client, quit chan struct{},
 		}
 		var numVins, numVouts int64
 		if numVins, numVouts, err = db.StoreLTCBlock(client, block.MsgBlock(), true, !updateAllAddresses); err != nil {
-			return ib - 1, fmt.Errorf("StoreBlock failed: %v", err)
+			return ib - 1, fmt.Errorf("LTC StoreBlock failed: %v", err)
 		}
 		totalVins += numVins
 		totalVouts += numVouts
@@ -648,4 +651,298 @@ func (pgb *ChainDB) storeBTCTxns(client *btcClient.Client, block *dbtypes.Block,
 	}
 
 	return txRes
+}
+
+func (pgb *ChainDB) Sync24BlocksAsync() {
+	//delete all invalid row
+	numRow, delErr := DeleteInvalid24hBlocksRow(pgb.db)
+	if delErr != nil {
+		log.Errorf("failed to delete invalid block from DB: %v", delErr)
+		return
+	}
+
+	if numRow > 0 {
+		log.Infof("Deleted %d rows on 24hblocks table", numRow)
+	}
+	chainList := []string{mutilchain.TYPEDCR}
+	chainList = append(chainList, dbtypes.MutilchainList...)
+	//Get valid blockchain
+	for _, chain := range chainList {
+		pgb.Sync24hMetricsByChainType(chain)
+	}
+}
+
+func (pgb *ChainDB) Sync24hMetricsByChainType(chain string) {
+	if pgb.ChainDisabledMap[chain] {
+		return
+	}
+	if chain == mutilchain.TYPEDCR {
+		log.Infof("Start syncing for 24hblocks info. ChainType: %s", mutilchain.TYPEDCR)
+		pgb.SyncDecred24hBlocks()
+		log.Infof("Finish syncing for 24hblocks info. ChainType: %s", mutilchain.TYPEDCR)
+		return
+	}
+	bbheight, _ := pgb.GetMutilchainBestBlock(chain)
+	if bbheight == 0 {
+		return
+	}
+	pgb.SyncMutilchain24hBlocks(bbheight, chain)
+}
+
+func (pgb *ChainDB) SyncDecred24hBlocks() {
+	blockList, err := Retrieve24hBlockData(pgb.ctx, pgb.db)
+	if err != nil {
+		log.Errorf("Sync Decred blocks in 24h failed: %v", err)
+		return
+	}
+	dbTx, err := pgb.db.BeginTx(pgb.ctx, nil)
+	if err != nil {
+		log.Errorf("failed to start new DB transaction: %v", err)
+		return
+	}
+	//prepare query
+	stmt, err := dbTx.Prepare(internal.Insert24hBlocksRow)
+	if err != nil {
+		dbTx.Rollback()
+		log.Errorf("insert block info to 24hblocks table failed: %v", err)
+		return
+	}
+	for _, block := range blockList {
+		var exist bool
+		//check exist on DB
+		err := pgb.db.QueryRowContext(pgb.ctx, internal.CheckExist24Blocks, mutilchain.TYPEDCR, block.BlockHeight).Scan(&exist)
+		if err != nil || exist {
+			continue
+		}
+		var txnum, spent, sent, numvin, numvout int64
+		pgb.db.QueryRowContext(pgb.ctx, internal.Select24hBlockSummary, block.BlockHeight).Scan(&txnum, &spent, &sent, &numvin, &numvout)
+		//handler for fees
+		block.Fees, _ = pgb.GetDecredBlockFees(block.BlockHash)
+		log.Infof("%s: Insert to 24h blocks metric: Height: %d, TxNum: %d", mutilchain.TYPEDCR, block.BlockHeight, txnum)
+		//insert to db
+		var id uint64
+		err = stmt.QueryRow(mutilchain.TYPEDCR, block.BlockHash, block.BlockHeight, block.BlockTime,
+			spent, sent, block.Fees, txnum, numvin, numvout).Scan(&id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				continue
+			}
+			_ = stmt.Close() // try, but we want the QueryRow error back
+			if errRoll := dbTx.Rollback(); errRoll != nil {
+				log.Errorf("Rollback failed: %v", errRoll)
+			}
+			return
+		}
+	}
+	stmt.Close()
+	dbTx.Commit()
+}
+
+func (pgb *ChainDB) GetDecredBlockFees(blockHash string) (int64, error) {
+	data := pgb.GetBlockVerboseByHash(blockHash, true)
+	if data == nil {
+		return 0, fmt.Errorf("Unable to get block for block hash: %s", blockHash)
+	}
+	totalFees := int64(0)
+	//Get fees from stake txs
+	for i := range data.RawTx {
+		stx := &data.RawTx[i]
+		msgTx, err := txhelpers.MsgTxFromHex(stx.Hex)
+		if err != nil {
+			continue
+		}
+		fees, _ := txhelpers.TxFeeRate(msgTx)
+		if int64(fees) < 0 {
+			continue
+		}
+		totalFees += int64(fees)
+	}
+	return totalFees, nil
+}
+
+func (pgb *ChainDB) SyncMutilchain24hBlocks(height int64, chainType string) {
+	log.Infof("Start syncing for 24hblocks info. ChainType: %s", chainType)
+	dbTx, err := pgb.db.BeginTx(pgb.ctx, nil)
+	if err != nil {
+		log.Errorf("failed to start new DB transaction: %v", err)
+		return
+	}
+	//prepare query
+	stmt, err := dbTx.Prepare(internal.Insert24hBlocksRow)
+	if err != nil {
+		log.Errorf("%s: Prepare insert block info to 24hblocks table failed: %v", chainType, err)
+		_ = dbTx.Rollback()
+		return
+	}
+	for {
+		var exist bool
+		//check exist on DB
+		err := pgb.db.QueryRowContext(pgb.ctx, internal.CheckExist24Blocks, chainType, height).Scan(&exist)
+		if err != nil {
+			log.Errorf("%s: Check block exist in 24hblocks table failed: %v", chainType, err)
+			_ = stmt.Close()
+			_ = dbTx.Rollback()
+			return
+		}
+
+		if exist {
+			height--
+			continue
+		}
+
+		//Get block hash
+		bHash, hashErr := pgb.GetDaemonMutilchainBlockHash(height, chainType)
+		if hashErr != nil {
+			log.Errorf("%s: Get block hash from height failed: %v", chainType, err)
+			_ = stmt.Close()
+			_ = dbTx.Rollback()
+			return
+		}
+
+		var blockData *apitypes.Block24hData
+		var isBreak bool
+		switch chainType {
+		case mutilchain.TYPELTC:
+			blockData, isBreak = pgb.GetLTCBlockData(bHash, height)
+		case mutilchain.TYPEBTC:
+			blockData, isBreak = pgb.GetBTCBlockData(bHash, height)
+		}
+
+		if isBreak {
+			break
+		}
+
+		log.Infof("%s: Insert to 24h blocks metric: Height: %d, TxNum: %d", chainType, blockData.BlockHeight, blockData.NumTx)
+
+		//insert to db
+		var id uint64
+		err = stmt.QueryRow(chainType, blockData.BlockHash, blockData.BlockHeight, blockData.BlockTime,
+			blockData.Spent, blockData.Sent, blockData.Fees, blockData.NumTx, blockData.NumVin, blockData.NumVout).Scan(&id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				continue
+			}
+			_ = stmt.Close() // try, but we want the QueryRow error back
+			if errRoll := dbTx.Rollback(); errRoll != nil {
+				log.Errorf("Rollback failed: %v", errRoll)
+			}
+			return
+		}
+		height--
+	}
+	stmt.Close()
+	dbTx.Commit()
+	log.Infof("Finish syncing for 24hblocks info. ChainType: %s", chainType)
+}
+
+func (pgb *ChainDB) GetLTCBlockData(hash string, height int64) (*apitypes.Block24hData, bool) {
+	yeserDayTimeInt := time.Now().Add(-24 * time.Hour).Unix()
+	//Get block verbose
+	blockData := pgb.GetLTCBlockVerboseTxByHash(hash)
+	if blockData.Time < yeserDayTimeInt {
+		log.Infof("LTC: Synchronization of 24h blocks successfully. Stop at height: %d", height)
+		return nil, true
+	}
+
+	block := &apitypes.Block24hData{
+		BlockHash:   blockData.Hash,
+		BlockHeight: blockData.Height,
+		BlockTime:   dbtypes.NewTimeDef(time.Unix(blockData.Time, 0)),
+		NumTx:       int64(len(blockData.RawTx)),
+	}
+
+	var totalSent, totalSpent, totalFees, numVin, numVout int64
+	for _, tx := range blockData.RawTx {
+		msgTx, err := txhelpers.MsgLTCTxFromHex(tx.Hex, int32(tx.Version))
+		if err != nil {
+			log.Errorf("LTC: Unknown transaction %s: %v", tx.Txid, err)
+			break
+		}
+		var sent int64
+		for _, txout := range msgTx.TxOut {
+			sent += txout.Value
+		}
+		numVout += int64(len(msgTx.TxOut))
+		numVin += int64(len(msgTx.TxIn))
+		var isCoinbase = len(tx.Vin) > 0 && tx.Vin[0].IsCoinBase()
+		spent := int64(0)
+		if !isCoinbase {
+			for _, txin := range msgTx.TxIn {
+				//Txin
+				unitAmount := int64(0)
+				//Get transaction by txin
+				txInResult, txinErr := ltcrpcutils.GetRawTransactionByTxidStr(pgb.LtcClient, txin.PreviousOutPoint.Hash.String())
+				if txinErr == nil {
+					unitAmount = dbtypes.GetLTCValueInFromRawTransction(txInResult, txin)
+					spent += unitAmount
+				}
+			}
+			totalFees += spent - sent
+		}
+
+		totalSent += sent
+		totalSpent += spent
+	}
+	block.Fees = totalFees
+	block.Spent = totalSpent
+	block.Sent = totalSent
+	block.NumVin = numVin
+	block.NumVout = numVout
+	return block, false
+}
+
+func (pgb *ChainDB) GetBTCBlockData(hash string, height int64) (*apitypes.Block24hData, bool) {
+	yeserDayTimeInt := time.Now().Add(-24 * time.Hour).Unix()
+	//Get block verbose
+	blockData := pgb.GetBTCBlockVerboseTxByHash(hash)
+	if blockData.Time < yeserDayTimeInt {
+		log.Infof("BTC: Synchronization of 24h blocks successfully. Stop at height: %d", height)
+		return nil, true
+	}
+
+	block := &apitypes.Block24hData{
+		BlockHash:   blockData.Hash,
+		BlockHeight: blockData.Height,
+		BlockTime:   dbtypes.NewTimeDef(time.Unix(blockData.Time, 0)),
+		NumTx:       int64(len(blockData.RawTx)),
+	}
+
+	var totalSent, totalSpent, totalFees, numVin, numVout int64
+	for _, tx := range blockData.RawTx {
+		msgTx, err := txhelpers.MsgBTCTxFromHex(tx.Hex, int32(tx.Version))
+		if err != nil {
+			log.Errorf("BTC: Unknown transaction %s: %v", tx.Txid, err)
+			break
+		}
+		var sent int64
+		for _, txout := range msgTx.TxOut {
+			sent += txout.Value
+		}
+		numVout += int64(len(msgTx.TxOut))
+		numVin += int64(len(msgTx.TxIn))
+		var isCoinbase = len(tx.Vin) > 0 && tx.Vin[0].IsCoinBase()
+		spent := int64(0)
+		if !isCoinbase {
+			for _, txin := range msgTx.TxIn {
+				//Txin
+				unitAmount := int64(0)
+				//Get transaction by txin
+				txInResult, txinErr := btcrpcutils.GetRawTransactionByTxidStr(pgb.BtcClient, txin.PreviousOutPoint.Hash.String())
+				if txinErr == nil {
+					unitAmount = dbtypes.GetBTCValueInFromRawTransction(txInResult, txin)
+					spent += unitAmount
+				}
+			}
+			totalFees += spent - sent
+		}
+
+		totalSent += sent
+		totalSpent += spent
+	}
+	block.Fees = totalFees
+	block.Spent = totalSpent
+	block.Sent = totalSent
+	block.NumVin = numVin
+	block.NumVout = numVout
+	return block, false
 }

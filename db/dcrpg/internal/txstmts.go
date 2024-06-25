@@ -289,6 +289,8 @@ const (
 			AND fund_tx.is_mainchain
 		ORDER BY fund_tx.block_height;`
 
+	Select24hBlockSummary = `SELECT COUNT(*),SUM(spent),SUM(sent),SUM(num_vin),SUM(num_vout) FROM transactions WHERE block_height=$1 AND tx_type=0`
+
 	SelectTotalTransactions = `SELECT COUNT(*) FROM transactions WHERE is_valid AND is_mainchain;`
 )
 

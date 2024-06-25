@@ -381,8 +381,16 @@
   content: "\e944";
 }
 
+.homeicon-meter::before {
+  content: "\e9a6";
+}
+
 .homeicon-frame::before {
   content: "\f1d8";
+}
+
+.homeicon-candle::before {
+  content: "\e99d";
 }
 
 .chart-embed {
@@ -773,22 +781,22 @@
 }
 
 .link-to-subpage {
-  background-color: #efefef;
+  background-color: #eaf0f5;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
 }
 
 .link-to-subpage:hover {
-  background-color: #d1d0d0;
+  background-color: #d7e5f0;
 }
 
 .bg-for-header {
-  background-color: #efefef !important;
+  background-color: #eaf0f5 !important;
 }
 
 .explore-card-wrap {
   box-shadow: rgb(170 169 169 / 20%) 0 2px 8px 0 !important;
-  border: 1px solid #d7d8d8;
+  border: 1px solid #cee3e3;
   border-radius: 10px;
   display: block;
   height: 100%;
@@ -1213,7 +1221,7 @@ body.darkBG .day-night-icon {
 }
 
 .home-menu-link:hover {
-  background-color: #eeeef0;
+  background-color: #d7e5f0;
 }
 
 .explore-card__header__logo {

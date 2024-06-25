@@ -1255,6 +1255,38 @@ func (pgb *ChainDB) MutilchainHeight(chainType string) int64 {
 	}
 }
 
+func (pgb *ChainDB) GetMutilchainBestBlock(chainType string) (int64, string) {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		if pgb.LtcBestBlock != nil {
+			return pgb.LtcBestBlock.MutilchainHeightHash()
+		}
+		err := pgb.GetLTCBestBlock()
+		if err != nil {
+			return 0, ""
+		}
+		return pgb.LtcBestBlock.MutilchainHeightHash()
+	case mutilchain.TYPEBTC:
+		if pgb.BtcBestBlock != nil {
+			return pgb.BtcBestBlock.MutilchainHeightHash()
+		}
+		err := pgb.GetBTCBestBlock()
+		if err != nil {
+			return 0, ""
+		}
+		return pgb.BtcBestBlock.MutilchainHeightHash()
+	default:
+		if pgb.bestBlock != nil {
+			return pgb.bestBlock.HeightHash()
+		}
+		err := pgb.GetDecredBestBlock()
+		if err != nil {
+			return 0, ""
+		}
+		return pgb.bestBlock.HeightHash()
+	}
+}
+
 func (pgb *ChainDB) MutilchainBestBlockTime(chainType string) int64 {
 	switch chainType {
 	case mutilchain.TYPELTC:
@@ -1273,10 +1305,22 @@ func (block *BestBlock) Height() int64 {
 	return block.height
 }
 
+func (block *BestBlock) HeightHash() (int64, string) {
+	block.mtx.RLock()
+	defer block.mtx.RUnlock()
+	return block.height, block.hash
+}
+
 func (block *MutilchainBestBlock) MutilchainHeight() int64 {
 	block.Mtx.RLock()
 	defer block.Mtx.RUnlock()
 	return block.Height
+}
+
+func (block *MutilchainBestBlock) MutilchainHeightHash() (int64, string) {
+	block.Mtx.RLock()
+	defer block.Mtx.RUnlock()
+	return block.Height, block.Hash
 }
 
 func (block *MutilchainBestBlock) MutilchainTime() int64 {
@@ -1621,6 +1665,11 @@ func (pgb *ChainDB) CheckCreateProposalMetaTable() (err error) {
 	return checkExistAndCreateProposalMetaTable(pgb.db)
 }
 
+// Check exist or create a new proposal_meta table
+func (pgb *ChainDB) CheckCreate24hBlocksTable() (err error) {
+	return checkExistAndCreate24BlocksTable(pgb.db)
+}
+
 // Check exist or create a new address_summary table
 func (pgb *ChainDB) CheckCreateAddressSummaryTable() (err error) {
 	return checkExistAndCreateAddressSummaryTable(pgb.db)
@@ -1684,6 +1733,24 @@ func (pgb *ChainDB) GetProposalMetaByYear(year int) (list []map[string]string, e
 // AllAgendas returns all the agendas stored currently.
 func (pgb *ChainDB) AllAgendas() (map[string]dbtypes.MileStone, error) {
 	return retrieveAllAgendas(pgb.db)
+}
+
+func (pgb *ChainDB) SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType string) (*dbtypes.Block24hInfo, error) {
+	//delete all invalid row
+	numRow, delErr := DeleteInvalid24hBlocksRow(pgb.db)
+	if delErr != nil {
+		log.Errorf("failed to delete invalid block from DB: %v", delErr)
+		return nil, delErr
+	}
+
+	if numRow > 0 {
+		log.Infof("Deleted %d rows on 24hblocks table", numRow)
+	}
+
+	pgb.Sync24hMetricsByChainType(chainType)
+
+	//check and sync new block
+	return retrieve24hMetricsData(pgb.ctx, pgb.db, chainType)
 }
 
 // NumAddressIntervals gets the number of unique time intervals for the
@@ -9143,4 +9210,63 @@ func (pgb *ChainDB) MixedUtxosByHeight() (heights, utxoCountReg, utxoValueReg, u
 	err = rows.Err()
 	return
 
+}
+
+func (pgb *ChainDB) GetLTCBestBlock() error {
+	ltcHash, ltcHeight, err := pgb.LtcClient.GetBestBlock()
+	ltcTime := int64(0)
+	if err != nil {
+		return fmt.Errorf("Unable to get block from ltc node: %v", err)
+	}
+	blockhash, err := pgb.LtcClient.GetBlockHash(int64(ltcHeight))
+	if err == nil {
+		blockRst, rstErr := pgb.LtcClient.GetBlockVerbose(blockhash)
+		if rstErr == nil {
+			ltcTime = blockRst.Time
+		}
+	}
+	//create bestblock object
+	bestBlock := &MutilchainBestBlock{
+		Height: int64(ltcHeight),
+		Hash:   ltcHash.String(),
+		Time:   ltcTime,
+	}
+	pgb.LtcBestBlock = bestBlock
+	return nil
+}
+
+func (pgb *ChainDB) GetBTCBestBlock() error {
+	btcHash, btcHeight, err := pgb.BtcClient.GetBestBlock()
+	btcTime := int64(0)
+	if err != nil {
+		return fmt.Errorf("Unable to get block from btc node: %v", err)
+	}
+	blockhash, err := pgb.BtcClient.GetBlockHash(int64(btcHeight))
+	if err == nil {
+		blockRst, rstErr := pgb.BtcClient.GetBlockVerbose(blockhash)
+		if rstErr == nil {
+			btcTime = blockRst.Time
+		}
+	}
+	//create bestblock object
+	bestBlock := &MutilchainBestBlock{
+		Height: int64(btcHeight),
+		Hash:   btcHash.String(),
+		Time:   btcTime,
+	}
+	pgb.BtcBestBlock = bestBlock
+	return nil
+}
+
+func (pgb *ChainDB) GetDecredBestBlock() error {
+	bestHeight, bestHash, err := RetrieveBestBlock(pgb.ctx, pgb.db)
+	if err != nil {
+		return fmt.Errorf("RetrieveBestBlock: %w", err)
+	}
+	bestBlock := &BestBlock{
+		height: bestHeight,
+		hash:   bestHash,
+	}
+	pgb.bestBlock = bestBlock
+	return nil
 }

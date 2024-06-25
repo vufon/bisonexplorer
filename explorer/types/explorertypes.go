@@ -538,6 +538,8 @@ type HomeInfo struct {
 	TimeRemaining         int64                    `json:"timeRemaining"`
 	BlockTimeAvg          int64                    `json:"blockTimeAvg"`
 	BlockReward           int64                    `json:"blockReward"`
+	SubsidyInterval       int64                    `json:"subsidyInterval"`
+	Block24hInfo          *dbtypes.Block24hInfo    `json:"block24hInfo"`
 }
 
 type MutilchainHomeInfo struct {

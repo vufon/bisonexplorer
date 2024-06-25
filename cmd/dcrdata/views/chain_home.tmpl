@@ -274,7 +274,7 @@
                         <div class="explore-card-wrap">
                            <div class="explore-card-content">
                               <div class="explore-card__header bg-for-header">
-                                 <span class="dcricon-tree explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
+                                 <span class="homeicon-calc explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
                                  <div class="explore-card__header__text ml-15">
                                     <h5 class="explore-card__header__text__name"> Summary </h5>
                                     <div class="explore-card__header__text__price">
@@ -460,6 +460,100 @@
                            </div>
                         </div>
                         <!-- End Mempool Card -->
+                        <!-- Start 24h Metrics Card -->
+                        <div class="explore-card-wrap mt-3">
+                           <div class="explore-card-content">
+                                 <div class="explore-card__header bg-for-header">
+                                    <span class="homeicon-candle explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
+                                    <div class="explore-card__header__text ml-15">
+                                       <h5 class="explore-card__header__text__name"> 24h Metrics </h5>
+                                       <span class="explore-card__header__arrow">
+                                       <span class='the-arrow -right'>
+                                       <span class='shaft'></span>
+                                       </span>
+                                       </span>
+                                       <div class="explore-card__header__text__price">
+                                          <div class="price-wrap d-flex ai-center">
+                                             <span class="price-usd fs-13">Some statistics from the past 24 hours</span>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              <div class="explore-card__values-content">
+                                 <div class="row">
+                                    {{if .Info.Block24hInfo}}
+                                    {{with .Info.Block24hInfo}}
+                                    <div class="col-24 col-sm-12 col-lg-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                           Mined Blocks
+                                          </span>
+                                          <div class="network-stats-content d-inline-block mt-4">
+                                          {{int64Comma .Blocks}}
+                                          </div>
+                                       </div>
+                                    </div>
+                                     <div class="col-24 col-sm-12 col-lg-8">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Transactions</span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                             {{int64Comma .NumTx24h}}
+                                          </span>
+                                       </p>
+                                    </div>
+                                    <div class="col-24 col-sm-12 col-lg-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">Sent</span>
+                                          <div class="network-stats-content d-inline-block mt-4">
+                                             {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Sent24h) 2 true)}}
+                                          </div>
+                                          <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                          {{if $conv -}}
+                                          <span class="stats-subinfo">
+                                          {{threeSigFigs $conv.Sent24h.Value}}
+                                          {{$conv.Sent24h.Index}}</span>
+                                          {{end}}
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12 col-lg-8">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">Fees</span>
+                                          <div class="network-stats-content d-inline-block mt-4">
+                                             {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Fees24h) 2 true)}}
+                                          </div>
+                                          <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                          {{if $conv -}}
+                                          <span class="stats-subinfo">
+                                          {{threeSigFigs $conv.Fees24h.Value}}
+                                          {{$conv.Fees24h.Index}}</span>
+                                          {{end}}
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12 col-lg-8">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Outputs</span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                             {{int64Comma .NumVout24h}}
+                                          </span>
+                                       </p>
+                                    </div>
+                                    {{end}}
+                                    {{end}}
+                                    {{if .MarketCap}}
+                                    <div class="col-24 col-sm-12 col-lg-8">
+                                       <p class="network-stats-block">
+                                          <span class="network-stats-title">Market Volumn</span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                             ${{difficultyDisp .MarketCap.Volumn}}
+                                          </span>
+                                       </p>
+                                    </div>
+                                    {{end}}
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <!-- End Mempool Card -->
                      </div>
                      <div class="info-right-card">
                         <!-- Start Blocks Card -->
@@ -597,6 +691,79 @@
                            </div>
                         </div>
                         <!-- End Mining Card -->
+                         <!-- Start Halving Card -->
+                         <div class="explore-card-wrap mt-3">
+                           <div class="explore-card-content">
+                              <a href="/chain/{{$ChainType}}/supply" class="link-to-subpage">
+                              <div class="explore-card__header">
+                                 <span class="homeicon-meter explore-card__header__logo" alt="Mining Card" loading="lazy"></span>
+                                 <div class="explore-card__header__text ml-15">
+                                    <h5 class="explore-card__header__text__name"> Halving </h5>
+                                    <div class="explore-card__header__text__price">
+                                       <div class="price-wrap d-flex ai-center">
+                                          <span class="price-usd fs-13">Halving countdown</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                              </a>
+                              <div class="explore-card__values-content">
+                                 <div class="row justify-content-between">
+                                    {{with .Info -}}
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                             Current Block Reward
+                                          </span>
+                                          <div class="network-stats-content d-inline-block mt-4">
+                                             {{toFloat64Amount .BlockReward}}
+                                          </div>
+                                          <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 col-sm-12">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                             Next Block Reward
+                                          </span>
+                                          <span class="network-stats-content d-inline-block mt-4">
+                                                {{toFloat64Amount .NBlockSubsidy.Total}}
+                                           </span>
+                                          <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                       </div>
+                                    </div>
+                                    <div class="col-24">
+                                       <div class="network-stats-block">
+                                          <span class="network-stats-title">
+                                           Remaining Blocks
+                                          </span>
+                                          <div class="network-stats-content">
+                                             <div class="row justify-content-center">
+                                                <div class="progress progress-frame mt-3 p-0">
+                                                   <div class="progress-bar rounded" data-chainhome-target="powBar"
+                                                      role="progressbar"
+                                                      style="width: {{mutilchainRewardAdjustmentProgress .IdxInRewardWindow .SubsidyInterval}}%;"
+                                                      aria-valuenow="{{.IdxInRewardWindow}}" aria-valuemin="0"
+                                                      aria-valuemax="{{.Params.RewardWindowSize}}">
+                                                      <span id="powreward" class="nowrap ps-1">
+                                                         block <span
+                                                            data-chainhome-target="rewardIdx">{{.IdxInRewardWindow}}</span>
+                                                         of {{.Params.RewardWindowSize}}
+                                                      </span>
+                                                   </div>
+                                                </div>
+                                                <span class="stats-subinfo fw-400 mt-2">{{chainremaining .IdxInRewardWindow
+                                                   .Params.RewardWindowSize .Params.BlockTime}}</span>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    {{end}}
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <!-- End Halving Card -->
                      </div>
                   </div>
                   <!-- Start Chain Charts -->
