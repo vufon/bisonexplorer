@@ -4,7 +4,7 @@ import globalEventBus from '../services/event_bus_service'
 
 export default class extends Controller {
   static get targets () {
-    return ['difficulty', 'blockHeight', 'blockTime', 'supportedTable', 'capTable']
+    return ['difficulty', 'blockHeight', 'blockTime', 'supportedTable']
   }
 
   connect () {

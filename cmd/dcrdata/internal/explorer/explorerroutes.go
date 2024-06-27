@@ -338,6 +338,29 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+// Home
+func (exp *ExplorerUI) CoinCapPage(w http.ResponseWriter, r *http.Request) {
+	var commonData = exp.commonData(r)
+	commonData.IsHomepage = true
+
+	str, err := exp.templates.exec("marketlist", struct {
+		*CommonPageData
+		MarketCapList []*dbtypes.MarketCapData
+	}{
+		CommonPageData: commonData,
+		MarketCapList:  exp.CoinCapDataList,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // Home is the page handler for the "/" path.
 func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	//Get mutilchainList
@@ -414,16 +437,14 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
-		HomeInfoList  []MutilchainHomeInfo
-		XcState       *exchanges.ExchangeBotState
-		ActiveChain   string
-		MarketCapList []*dbtypes.MarketCapData
+		HomeInfoList []MutilchainHomeInfo
+		XcState      *exchanges.ExchangeBotState
+		ActiveChain  string
 	}{
 		CommonPageData: commonData,
 		HomeInfoList:   homeChainInfoList,
 		XcState:        exp.getExchangeState(),
 		ActiveChain:    strings.Join(chainStrList, ","),
-		MarketCapList:  exp.CoinCapDataList,
 	})
 
 	if err != nil {

@@ -998,6 +998,7 @@ func _main(ctx context.Context) error {
 		r.Get("/stats", explore.StatsPage)
 		r.Get("/market", explore.MarketPage)
 		r.Get("/decred", explore.DecredHome)
+		r.Get("/marketlist", explore.CoinCapPage)
 		r.Get("/statistics", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/stats", http.StatusPermanentRedirect)
 		})
