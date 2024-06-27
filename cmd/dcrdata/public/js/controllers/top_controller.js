@@ -67,17 +67,11 @@ export default class extends Controller {
 
   processMutilchainBlock (blockData, chainType) {
     const blockHeightObj = document.getElementById(chainType + '_blockHeight')
-    const difficultyObj = document.getElementById(chainType + '_difficulty')
-    const blockTimeObj = document.getElementById(chainType + '_blockTime')
     const txCountObj = document.getElementById(chainType + '_txcount')
     const coinSupplyObj = document.getElementById(chainType + '_coinSupply')
-    const ex = blockData.extra
-    difficultyObj.innerHTML = humanize.threeSigFigs(ex.difficulty)
     const block = blockData.block
     blockHeightObj.textContent = block.height
     blockHeightObj.href = (chainType === 'dcr' ? '' : '/chain/' + chainType) + `/block/${block.hash}`
-    blockTimeObj.dataset.age = block.blocktime_unix
-    blockTimeObj.textContent = humanize.timeSince(block.blocktime_unix)
 
     // handler extra data
     const extra = blockData.extra

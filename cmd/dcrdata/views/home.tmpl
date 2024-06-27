@@ -19,12 +19,12 @@
                         <thead>
                            <tr class="text-secondary bg-none">
                               <th class="text-start">Name</th>
-                              <th class="text-start">Lastest Block</th>
-                              <th class="text-start">Difficulty</th>
-                              <th class="text-start">Age</th>
-                              <th class="text-start">Total Transactions</th>
-                              <th class="text-start">Coin Supply</th>
-                              <th class="text-start">Blockchain Size</th>
+                              <th class="text-end pe-2 pe-lg-5">Lastest Block</th>
+                              <th class="text-end pe-2 pe-lg-5">Market Cap</th>
+                              <th class="text-end pe-2 pe-lg-5">24h Volumn</th>
+                              <th class="text-end pe-2 pe-lg-5">Total Transactions</th>
+                              <th class="text-end pe-2 pe-lg-5">Coin Supply</th>
+                              <th class="text-end pe-2 pe-lg-3">Blockchain Size</th>
                            </tr>
                         </thead>
                         <tbody  class="bgc-white" data-top-target="supportedTable">
@@ -37,29 +37,25 @@
                      <span class="fs-17">({{toUpperCase .Chain}})</span>
                   </a>
                    </td>
-                   <td class="text-start">
+                   <td class="text-end pe-2 pe-lg-5">
                      <a class="fs-16" id="{{.Chain}}_blockHeight" data-top-target="blockHeight" {{if eq .Chain "dcr"}}href="/block/{{.BestBlock.Height}}"{{else}}href="/chain/{{.Chain}}/block/{{.BestBlock.Height}}"{{end}}>{{.BestBlock.Height}}</a>
                    </td>
-                   <td class="text-start">
-                     <a class="fs-16" id="{{.Chain}}_difficulty" data-top-target="difficulty" {{if eq .Chain "dcr"}}href="/charts?chart=pow-difficulty"{{else}}href="/chain/{{.Chain}}/charts?chart=pow-difficulty"{{end}}>{{difficultyDisp .HomeInfo.Difficulty}}</a>
-                   </td>
-                   <td class="text-start">
-                     <span data-type="age" class="jsonly" 
-                           data-time-target="age" 
-                           data-top-target="blockTime"
-                           id="{{.Chain}}_blockTime"
-                           data-age="{{.BestBlock.BlockTime.UNIX}}">{{.BestBlock.BlockTime}}</span>
-                   </td>
-                   <td class="text-start">
+                   <td class="text-end pe-2 pe-lg-5">
+                     {{difficultyDisp .MarketCap}}
+                  </td>
+                  <td class="text-end pe-2 pe-lg-5">
+                     {{difficultyDisp .Volumn}}
+                  </td>
+                   <td class="text-end pe-2 pe-lg-5">
                      <span id="{{.Chain}}_txcount">{{int64Comma .HomeInfo.TotalTransactions}}</span>          
                    </td>
-                   <td class="text-start">
+                   <td class="text-end pe-2 pe-lg-5">
                      <span id="{{.Chain}}_coinSupply" data-top-target="coinSupply">
                         {{template "decimalParts" (float64AsDecimalParts .HomeInfo.CoinValueSupply 2 true)}}
                      </span>
                      <span>{{toUpperCase .Chain}}</span>
                    </td>
-                   <td class="text-start">
+                   <td class="text-end pe-2 pe-lg-3">
                      <span>
                         {{.HomeInfo.FormattedSize}}
                      </span>

@@ -204,6 +204,8 @@ type MutilchainHomeInfo struct {
 	CoinSupply   *exchanges.Conversion
 	BestBlock    *types.BlockBasic
 	HomeInfo     *types.HomeInfo
+	MarketCap    float64
+	Volumn       float64
 }
 
 // Home is the page handler for the "/" path.
@@ -428,6 +430,15 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			CoinSupply:   coinSupply,
 			BestBlock:    bestBlock,
 			HomeInfo:     homeInfo,
+		}
+		if len(exp.CoinCapDataList) > 0 {
+			for _, capData := range exp.CoinCapDataList {
+				if capData.Symbol == dbtypes.ChainSymbolMap[chainType] {
+					chainHomeInfo.MarketCap = capData.MarketCap
+					chainHomeInfo.Volumn = capData.Volumn
+					break
+				}
+			}
 		}
 		homeChainInfoList = append(homeChainInfoList, chainHomeInfo)
 	}
