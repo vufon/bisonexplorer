@@ -206,6 +206,7 @@ type MutilchainHomeInfo struct {
 	HomeInfo     *types.HomeInfo
 	MarketCap    float64
 	Volumn       float64
+	Price        float64
 }
 
 // Home is the page handler for the "/" path.
@@ -436,6 +437,7 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 				if capData.Symbol == dbtypes.ChainSymbolMap[chainType] {
 					chainHomeInfo.MarketCap = capData.MarketCap
 					chainHomeInfo.Volumn = capData.Volumn
+					chainHomeInfo.Price = capData.Price
 					break
 				}
 			}
