@@ -85,6 +85,7 @@ type CommonPageData struct {
 	Path           string
 	RequestURI     string // path?query
 	IsHomepage     bool
+	IsToppage      bool
 	ChainType      string
 }
 
@@ -447,6 +448,7 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
+	commonData.IsToppage = true
 
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData

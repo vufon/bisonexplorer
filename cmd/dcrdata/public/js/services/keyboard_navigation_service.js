@@ -17,7 +17,10 @@ let searchBar, keyNavToggle, menuToggle
 function bindElements () {
   searchBar = document.getElementById('search')
   keyNavToggle = document.getElementById('keynav-toggle')
-  menuToggle = document.getElementById('menu-toggle').querySelector('#common-menu-input')
+  const menuToggleObj = document.getElementById('menu-toggle')
+  if (menuToggleObj) {
+    menuToggle = menuToggleObj.querySelector('#common-menu-input')
+  }
 }
 bindElements()
 
@@ -60,7 +63,7 @@ function toggleKeyNav () {
 export function keyNav (event, pulsate, preserveIndex) {
   if (!keyNavEnabled()) return
   bindElements()
-  if (menuToggle.checked) {
+  if (menuToggle && menuToggle.checked) {
     targets = Array.from(document.getElementById('hamburger-menu').querySelectorAll('a'))
     currentIndex = 0
   } else {
@@ -167,7 +170,17 @@ if (keyNavEnabled()) {
   Mousetrap.pause()
 }
 
-keyNavToggle.querySelector('.text').textContent = keyNavEnabled() ? 'Disable Hot Keys' : 'Enable Hot Keys'
+if (keyNavToggle) {
+  keyNavToggle.querySelector('.text').textContent = keyNavEnabled() ? 'Disable Hot Keys' : 'Enable Hot Keys'
+  keyNavToggle.addEventListener('click', (e) => {
+    if (e.offsetX === 0) {
+    // prevent duplicate click handling when turbolinks re-attaches handlers
+    // TODO find a more semantic way to deal with this
+      return
+    }
+    toggleKeyNav()
+  })
+}
 
 document.addEventListener('turbolinks:load', function (e) {
   closeMenu(e)
@@ -176,17 +189,10 @@ document.addEventListener('turbolinks:load', function (e) {
   }
 })
 
-keyNavToggle.addEventListener('click', (e) => {
-  if (e.offsetX === 0) {
-    // prevent duplicate click handling when turbolinks re-attaches handlers
-    // TODO find a more semantic way to deal with this
-    return
-  }
-  toggleKeyNav()
-})
-
-menuToggle.addEventListener('change', (e) => {
-  if (keyNavEnabled()) {
-    keyNav(e, true)
-  }
-})
+if (menuToggle) {
+  menuToggle.addEventListener('change', (e) => {
+    if (keyNavEnabled()) {
+      keyNav(e, true)
+    }
+  })
+}

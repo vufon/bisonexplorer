@@ -3,11 +3,10 @@
 {{- $botState := .XcState -}}
 <html lang="en">
    {{ template "html-head" headData .CommonPageData "Mutilple Blockchains Explorer by blockcare.pro"}}
-   {{ template "home_navbar" . }}
+   {{ template "top_navbar" . }}
    <div class="main-container homepage-class" data-controller="time top"
       data-top-active-chain="{{.ActiveChain}}"
       >
-      <div class="hp-header-wrap area"></div>
       <!-- start explorer wrap -->
       <div class="hp-explore-wrap" id="hp-explore-wrap">
          <div class="container pt-1">

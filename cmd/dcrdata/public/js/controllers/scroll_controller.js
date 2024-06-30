@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
+import { toggleSun } from '../services/theme_service'
 
 let navTarget
 
@@ -226,5 +227,9 @@ export default class extends Controller {
       return href.replaceAll('/chain/' + oldCoin + '/' + endsWith, '/' + endsWith)
     }
     return href.replaceAll('/' + oldCoin + '/' + endsWith, '/' + newCoin + '/' + endsWith)
+  }
+
+  topSunClick () {
+    toggleSun()
   }
 }
