@@ -321,6 +321,7 @@ type ChainDB struct {
 	tipMtx            sync.Mutex
 	tipSummary        *apitypes.BlockDataBasic
 	ChainDBDisabled   bool
+	OkLinkAPIKey      string
 	lastExplorerBlock struct {
 		sync.Mutex
 		hash      string
@@ -536,6 +537,7 @@ type ChainDBCfg struct {
 	AddrCacheRowCap, AddrCacheAddrCap int
 	AddrCacheUTXOByteCap              int
 	ChainDBDisabled                   bool
+	OkLinkAPIKey                      string
 }
 
 // The minimum required PostgreSQL version in integer format as returned by
@@ -822,6 +824,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		shutdownDcrdata:    shutdown,
 		Client:             client,
 		ChainDBDisabled:    cfg.ChainDBDisabled,
+		OkLinkAPIKey:       cfg.OkLinkAPIKey,
 	}
 	chainDB.lastExplorerBlock.difficulties = make(map[int64]float64)
 	// Update the current chain state in the ChainDB
@@ -3327,6 +3330,7 @@ func (pgb *ChainDB) MutilchainAddressHistory(address string, N, offset int64,
 	// Try the address rows cache
 	hash, height := pgb.GetMutilchainHashHeight(chainType)
 	addressRows, validBlock, err := pgb.AddressCache.MutilchainTransactions(address, N, offset, txnView, chainType)
+	fmt.Println("Check address row: err; ", err, ", rows: ", len(addressRows))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -3406,7 +3410,7 @@ func (pgb *ChainDB) MutilchainAddressHistory(address string, N, offset int64,
 			return nil, nil, err
 		}
 	}
-
+	fmt.Println("Check addressRows: ", len(addressRows))
 	log.Infof("From DB: Address: %s: %d spent totalling %f %s, %d unspent totalling %f %s",
 		address, balance.NumSpent, dbtypes.GetMutilchainCoinAmount(balance.TotalSpent, chainType), strings.ToUpper(chainType),
 		balance.NumUnspent, dbtypes.GetMutilchainCoinAmount(balance.TotalUnspent, chainType), strings.ToUpper(chainType))
@@ -3761,18 +3765,20 @@ SPENDING_TX_DUPLICATE_CHECK:
 // AddressData returns comprehensive, paginated information for an address.
 func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts int64,
 	txnType dbtypes.AddrTxnViewType, chainType string) (addrData *dbtypes.AddressInfo, err error) {
-	addrHist, balance, err := pgb.MutilchainAddressHistory(address, limitN, offsetAddrOuts, txnType, chainType)
-	if dbtypes.IsTimeoutErr(err) {
-		return nil, err
+	var addrHist []*dbtypes.MutilchainAddressRow
+	var balance *dbtypes.AddressBalance
+	if !pgb.ChainDBDisabled {
+		addrHist, balance, err = pgb.MutilchainAddressHistory(address, limitN, offsetAddrOuts, txnType, chainType)
+		if dbtypes.IsTimeoutErr(err) {
+			return nil, err
+		}
 	}
-
 	populateTemplate := func() {
 		addrData.Offset = offsetAddrOuts
 		addrData.Limit = limitN
 		addrData.TxnType = txnType.String()
 		addrData.Address = address
 	}
-
 	useAPI := false
 	if err != nil || (err == nil && len(addrHist) == 0) {
 		// We do not have any confirmed transactions. Prep to display ONLY
@@ -3782,18 +3788,25 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 		//set client for api
 		externalapi.BTCClient = pgb.BtcClient
 		externalapi.LTCClient = pgb.LtcClient
-		apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType), txnType)
+		apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(pgb.OkLinkAPIKey, address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType), txnType)
 		useAPI = true
-		if err != nil {
-			addrData.Balance = &dbtypes.AddressBalance{}
+		if err != nil || apiAddrInfo == nil {
+			fmt.Println("Xay ra loix: ", err)
+			addrData.Balance = &dbtypes.AddressBalance{
+				NumSpent:     0,
+				NumUnspent:   0,
+				TotalSpent:   0,
+				TotalUnspent: 0,
+			}
 			log.Tracef("AddressHistory: No confirmed transactions for address %s.", address)
 		} else {
 			balance = &dbtypes.AddressBalance{
-				Address:      address,
-				NumSpent:     apiAddrInfo.NumSpendingTxns,
-				NumUnspent:   apiAddrInfo.NumFundingTxns - apiAddrInfo.NumSpendingTxns,
-				TotalSpent:   apiAddrInfo.Sent,
-				TotalUnspent: apiAddrInfo.Unspent,
+				Address:       address,
+				NumSpent:      apiAddrInfo.NumSpendingTxns,
+				NumUnspent:    apiAddrInfo.NumFundingTxns - apiAddrInfo.NumSpendingTxns,
+				TotalSpent:    apiAddrInfo.Sent,
+				TotalReceived: apiAddrInfo.Received,
+				TotalUnspent:  apiAddrInfo.Unspent,
 			}
 			addrData.Address = address
 			addrData.Transactions = apiAddrInfo.Transactions
@@ -3803,9 +3816,9 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 			addrData.NumTransactions = apiAddrInfo.NumTransactions
 			addrData.TxnCount = addrData.NumTransactions
 			//update balance cache
-			hash, height := pgb.GetMutilchainHashHeight(chainType)
-			blockID := cache.NewMutilchainBlockID(hash, height)
-			pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType)
+			// hash, height := pgb.GetMutilchainHashHeight(chainType)
+			// blockID := cache.NewMutilchainBlockID(hash, height)
+			// pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType)
 		}
 	} else /*err == nil*/ {
 		// Generate AddressInfo skeleton from the address table rows.
@@ -4256,7 +4269,7 @@ func (pgb *ChainDB) AddressTransactionDetails(addr string, count, skip int64,
 func (pgb *ChainDB) MutilchainAddressTransactionDetails(addr, chainType string, count, skip int64,
 	txnType dbtypes.AddrTxnViewType) (*apitypes.Address, error) {
 
-	apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(addr, chainType, count, skip, pgb.MutilchainHeight(chainType), txnType)
+	apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(pgb.OkLinkAPIKey, addr, chainType, count, skip, pgb.MutilchainHeight(chainType), txnType)
 	if err != nil {
 		return &apitypes.Address{
 			Address:      addr,
@@ -8280,18 +8293,21 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 	}
 	txhash, err := ltc_chainhash.NewHashFromStr(txid)
 	if err != nil {
+		fmt.Println("check1: ", err)
 		log.Errorf("Invalid transaction hash %s", txid)
 		return nil
 	}
 
 	txraw, err := pgb.LtcTxResult(txhash)
 	if err != nil {
+		fmt.Println("check2: ", err)
 		log.Errorf("Mutilchain Tx Info: %v", err)
 		return nil
 	}
 
 	msgTx, err := txhelpers.LTCMsgTxFromHex(txraw.Hex, int32(txraw.Version))
 	if err != nil {
+		fmt.Println("check3: ", err)
 		log.Errorf("Cannot create MsgTx for tx %v: %v", txhash, err)
 		return nil
 	}

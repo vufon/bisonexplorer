@@ -217,6 +217,7 @@ func _main(ctx context.Context) error {
 		AddrCacheRowCap:      rowCap,
 		AddrCacheUTXOByteCap: cfg.AddrCacheUXTOCap,
 		ChainDBDisabled:      cfg.DisableChainDB,
+		OkLinkAPIKey:         cfg.OkLinkKey,
 	}
 
 	mpChecker := rpcutils.NewMempoolAddressChecker(dcrdClient, activeChain)

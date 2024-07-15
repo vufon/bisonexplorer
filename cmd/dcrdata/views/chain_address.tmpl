@@ -56,14 +56,12 @@
                   <br>
                   <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
                   {{- if .Balance}}
-                  {{- $received := add .Balance.TotalSpent .Balance.TotalUnspent}}
+                  {{- $received := .Balance.TotalReceived}}
                   {{- template "decimalParts" (amountAsDecimalParts $received true)}} <span class="text-secondary fs14">{{$ChainType}}</span>
                   {{- else}}
                   <span class="fs18">0</span> <span class="text-secondary fs14">{{$ChainType}}</span>
                   {{- end}}
                   </span>
-                  <br>
-                  <span class="text-secondary fs16 lh1rem">{{intComma (add .Balance.NumSpent .Balance.NumUnspent)}} outputs</span>
                </div>
                <div class="d-inline-block text-start pe-2 pb-3">
                   <span class="text-secondary fs13">Spent</span>
@@ -75,8 +73,6 @@
                   <span class="fs18">0</span> <span class="text-secondary fs14">{{$ChainType}}</span>
                   {{- end}}
                   </span>
-                  <br>
-                  <span class="text-secondary fs16 lh1rem">{{intComma .Balance.NumSpent}} inputs</span>
                </div>
                <span></span>
             </div>

@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
+	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/dustin/go-humanize"
 )
 
@@ -25,6 +26,7 @@ type BlockcypherAddressData struct {
 	UnconfirmedNTx     int64                            `json:"unconfirmed_n_tx"`
 	FinalNTx           int64                            `json:"final_n_tx"`
 	TxRefs             []BlockcypherAddressTransactions `json:"txrefs"`
+	UnconfirmedTxRefs  []BlockcypherAddressTransactions `json:"unconfirmed_txrefs"`
 	HasMore            bool                             `json:"hasMore"`
 	TxUrl              string                           `json:"tx_url"`
 }
@@ -40,6 +42,7 @@ type BlockcypherAddressTransactions struct {
 	SpentBy       string `json:"spent_by"`
 	Confirmations int64  `json:"confirmations"`
 	Confirmed     string `json:"confirmed"`
+	Received      string `json:"received"`
 	DoubleSpend   bool   `json:"double_spend"`
 }
 
@@ -82,12 +85,14 @@ func GetBlockcypherAddressInfoAPI(address string, chainType string, limit, offse
 	countTx := int64(0)
 	isFull := false
 	newTxRefs := make([]BlockcypherAddressTransactions, 0)
-	for i := 0; i < len(fetchData.TxRefs); i++ {
+	fullData := fetchData.TxRefs
+	fullData = append(fullData, fetchData.UnconfirmedTxRefs...)
+	for i := 0; i < len(fullData); i++ {
 		if countTx >= offset+limit {
 			isFull = true
 		}
-		txRef := fetchData.TxRefs[i]
-		isFunding := txRef.TxOutputN >= 0
+		txRef := fullData[i]
+		isFunding := txRef.TxOutputN == 0
 		if isFunding {
 			totalFunding++
 			if txRef.Spent {
@@ -116,11 +121,19 @@ func GetBlockcypherAddressInfoAPI(address string, chainType string, limit, offse
 			Time:          dbtypes.NewTimeDef(time.Unix(txTime, 0)),
 		}
 
+		//if is confirmed tx
+		addrTx.IsUnconfirmed = txRef.Confirmed == ""
+		if addrTx.IsUnconfirmed && txRef.Received != "" {
+			parsTime, err := txhelpers.ParsingTime(txRef.Received)
+			if err == nil {
+				addrTx.Time = dbtypes.NewTimeDef(parsTime)
+			}
+		}
 		addrTx.Confirmations = uint64(txRef.Confirmations)
 		if addrTx.Confirmations <= 0 {
 			numUnconfirmed++
 		}
-		isFunding := txRef.TxOutputN >= 0
+		isFunding := txRef.TxOutputN == 0
 		coin := dbtypes.GetMutilchainCoinAmount(txRef.Value, chainType)
 		if isFunding {
 			addrTx.ReceivedTotal = coin

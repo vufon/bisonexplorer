@@ -3,13 +3,14 @@
 <html lang="en">
 {{template "html-head" headData .CommonPageData "Decred Decentralized Treasury"}}
   {{template "navbar" . }}
+  {{- $Mempool := .Mempool -}}
   {{- with .Data}}
   {{- $bal := .Balance -}}
   {{- $TxnCount := $bal.TxCount}}
   {{- $txType := .TxnType -}}
   {{- $Time := .Time -}}
   <div class="container main pt-1"
-    data-controller="address"
+    data-controller="address time"
     data-address-dcraddress="treasury"
     data-address-offset="{{.Offset}}"
     data-address-txn-count="{{ $bal.TxCount}}"
@@ -146,8 +147,43 @@
         </div>
       </div>
     </div>
-    
-    <div class="position-relative" data-address-target="listbox">
+    {{with $Mempool -}}
+    {{if gt .NumTSpends 0 -}}
+    <div class="row">
+      <div class="col-sm-24">
+      <h4 class="pt-2 pb-2"><span>Unconfirmed Transactions</span></h4>
+      <div class="br-8 b--def bgc-plain-bright pb-10">
+       <div class="btable-table-wrap maxh-none">
+           <table class="btable-table w-100">
+              <thead>
+                <tr class="bg-none">
+                  <th>Transaction ID</th>
+                  <th class="text-end">Total DCR</th>
+                  <th class="text-end">Time in Mempool</th>
+                </tr>
+              </thead>
+              <tbody class="bgc-white" data-mempool-target="tspendTransactions">
+                  {{- range .TSpends -}}
+                  <tr>
+                      <td class="break-word clipboard">
+                        <a class="hash lh1rem" href="/tx/{{.Hash}}" title="{{.Hash}}">{{.Hash}}</a>
+                        {{template "copyTextIcon"}}
+                      </td>
+                      <td class="mono fs15 text-end">
+                        {{template "decimalParts" (float64AsDecimalParts .TotalOut 8 false)}}
+                      </td>
+                      <td class="mono fs15 text-end" data-time-target="age" data-age="{{.Time}}"></td>
+                  </tr>
+                  {{- end -}}
+              </tbody>
+          </table>
+          </div>
+          </div>
+      </div>
+  </div>
+  {{end}}
+  {{end}}
+    <div class="position-relative mt-5" data-address-target="listbox">
       <div class="row align-items-center">
         <div class="me-auto mb-0 h4 col-24 col-sm-6 d-flex ai-center">Transactions
           <nav aria-label="address transactions navigation"

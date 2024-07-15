@@ -2329,14 +2329,18 @@ func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 	if txTime != "" {
 		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, txTime)
 	}
+	inv := exp.MempoolInventory()
+	inv.RLock()
 	pageData := struct {
 		*CommonPageData
 		Data        *TreasuryInfo
+		Mempool     *types.MempoolInfo
 		FiatBalance *exchanges.Conversion
 		Pages       []pageNumber
 	}{
 		CommonPageData: exp.commonData(r),
 		Data:           treasuryData,
+		Mempool:        inv,
 		FiatBalance:    exp.xcBot.Conversion(dcrutil.Amount(treasuryBalance.Balance).ToCoin()),
 		Pages:          calcPages(int(typeCount), int(limitN), int(offset), linkTemplate),
 	}
@@ -2346,6 +2350,7 @@ func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
 		return
 	}
+	inv.RUnlock()
 
 	w.Header().Set("Content-Type", "text/html")
 	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())

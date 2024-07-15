@@ -2099,6 +2099,7 @@ type AddressTx struct {
 	MatchedTxIndex uint32
 	MergedTxnCount uint64 `json:",omitempty"`
 	BlockHeight    uint32
+	IsUnconfirmed  bool
 }
 
 type MonthlyUsdPrice struct {
@@ -2143,6 +2144,7 @@ type TreasuryTx struct {
 	BlockHash   string
 	BlockHeight int64
 	BlockTime   TimeDef
+	Status      string
 }
 
 type TreasuryAddSummary struct {
@@ -2266,13 +2268,14 @@ type AddressInfo struct {
 // AddressBalance represents the number and value of spent and unspent outputs
 // for an address.
 type AddressBalance struct {
-	Address      string  `json:"address"`
-	NumSpent     int64   `json:"num_stxos"`
-	NumUnspent   int64   `json:"num_utxos"`
-	TotalSpent   int64   `json:"amount_spent"`
-	TotalUnspent int64   `json:"amount_unspent"`
-	FromStake    float64 `json:"from_stake"`
-	ToStake      float64 `json:"to_stake"`
+	Address       string  `json:"address"`
+	NumSpent      int64   `json:"num_stxos"`
+	NumUnspent    int64   `json:"num_utxos"`
+	TotalSpent    int64   `json:"amount_spent"`
+	TotalUnspent  int64   `json:"amount_unspent"`
+	TotalReceived int64   `json:"amount_received"`
+	FromStake     float64 `json:"from_stake"`
+	ToStake       float64 `json:"to_stake"`
 }
 
 // HasStakeOutputs checks whether any of the Address tx outputs were
@@ -2486,4 +2489,40 @@ type MarketCapData struct {
 	MarketCap     float64 `json:"marketCap"`
 	Volumn        float64 `json:"volumn"`
 	IconUrl       string  `json:"iconUrl"`
+}
+
+type APITransactionData struct {
+	Txid     string         `json:"txid"`
+	Version  int            `json:"version"`
+	LockTime int64          `json:"locktime"`
+	Vin      []APITxVinData `json:"vin"`
+	Vout     []APIVOutData  `json:"vout"`
+	Size     int64          `json:"size"`
+	Weight   int64          `json:"weight"`
+	Sigops   int64          `json:"sigops"`
+	Fee      int64          `json:"fee"`
+	Status   APITxStatus    `json:"status"`
+}
+
+type APITxStatus struct {
+	Confirmed bool `json:"confirmed"`
+}
+
+type APITxVinData struct {
+	Txid          string      `json:"txid"`
+	Vout          int64       `json:"vout"`
+	PrevOut       APIVOutData `json:"prevout"`
+	ScriptSig     string      `json:"scriptsig"`
+	ScriptSig_Asm string      `json:"scriptsig_asm"`
+	Witness       []string    `json:"witness"`
+	IsCoinbase    bool        `json:"is_coinbase"`
+	Sequence      int64       `json:"sequence"`
+}
+
+type APIVOutData struct {
+	ScriptPubKey         string `json:"scriptpubkey"`
+	ScriptPubKey_Asm     string `json:"scriptpubkey_asm"`
+	ScriptPubKey_Type    string `json:"scriptpubkey_type"`
+	ScriptPubKey_Address string `json:"scriptpubkey_address"`
+	Value                int64  `json:"value"`
 }

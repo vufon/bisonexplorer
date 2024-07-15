@@ -106,7 +106,7 @@
                            {{- range .Transactions -}}
                            <tr>
                               <td class="break-word clipboard">
-                                 <a class="hash lh1rem" href="/tx/{{.Hash}}">{{.Hash}}</a>
+                                 <a class="hash lh1rem" href="/chain/{{$ChainType}}/tx/{{.Hash}}">{{.Hash}}</a>
                                  {{template "copyTextIcon"}}
                               </td>
                               <td class="mono fs15 text-end">
@@ -210,7 +210,7 @@ var init = async () => {
                 const totalOut = tx.value
                 const fees = tx.fee
                 const rate = tx.rate
-                inner += `<tr><td class="break-word clipboard"><a class="hash lh1rem" href="/tx/${txHash}">${txHash}</a>{{template "copyTextIcon"}}</td>`
+                inner += `<tr><td class="break-word clipboard"><a class="hash lh1rem" href="/chain/${chainType}/tx/${txHash}">${txHash}</a>{{template "copyTextIcon"}}</td>`
                 inner += `<td class="mono fs15 text-end">${decimalParts(totalOut / 1e8, false, 8, 2)}</td>`
                 inner += `<td class="mono fs15 text-end">${decimalParts(fees / 1e8, false, 8, 2)}</td>`
                 inner += `<td class="mono fs15 text-end">${decimalParts(rate, false, 8, 2)}</td></tr>`

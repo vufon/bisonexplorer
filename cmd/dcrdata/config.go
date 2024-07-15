@@ -232,6 +232,7 @@ type config struct {
 	TestnetLink    string `long:"testnet-link" description:"When dcrdata is on mainnet, this address will be used to direct a user to a dcrdata on testnet when appropriate." env:"DCRDATA_TESTNET_LINK"`
 	OnionAddress   string `long:"onion-address" description:"Hidden service address" env:"DCRDATA_ONION_ADDRESS"`
 	DisableChainDB bool   `long:"disablechaindb" description:"Disable mutilchain sync to DB" env:"DISABLED_CHAIN_DB"`
+	OkLinkKey      string `long:"oklinkkey" description:"Setting up oklink api key" env:"OKLINK_KEY"`
 }
 
 var (

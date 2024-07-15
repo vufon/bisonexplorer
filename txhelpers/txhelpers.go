@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/decred/base58"
 	"github.com/decred/dcrd/blockchain/stake/v5"
@@ -1418,4 +1419,9 @@ func AddressValidation(address string, params *chaincfg.Params) (stdaddr.Address
 	}
 
 	return addr, addrType, AddressErrorNoError
+}
+
+func ParsingTime(str string) (time.Time, error) {
+	layout := "2006-01-02T15:04:05.000Z"
+	return time.Parse(layout, str)
 }

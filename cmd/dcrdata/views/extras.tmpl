@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.fe0378ecb5567203.css" rel="stylesheet">
+	<link href="/dist/css/style.055898668a8130bf.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 	<script>
@@ -804,26 +804,8 @@
 	<thead>
 		<tr class="bg-none">
 		<th class="text-start">Input/&#8203;Output ID</th>
-	{{- if eq $txType "merged_debit"}}
-		<th class="text-end"><span class="d-sm-none position-relative" data-tooltip="merged input count">Cnt</span
-			><span class="d-none d-sm-inline">Inputs</span>
-		</th>
-		<th class="text-end">Debit ({{toUpperCase $ChainType}})</th>
-	{{- else if eq $txType "merged_credit" }}
-		<th class="text-end"><span class="d-sm-none position-relative" data-tooltip="merged output count">Cnt</span
-			><span class="d-none d-sm-inline">Outputs</span>
-		</th>
-		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
-	{{- else if eq $txType "merged" }}
-		<th title="Count of address's inputs and outputs in the transaction." class="text-end"><span class="d-none d-sm-inline-block">I/O Count</span><span class="d-sm-none position-relative" data-tooltip="# of inputs and outputs">#</span></th>
 		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
 		<th class="text-end">Debit ({{toUpperCase $ChainType}})</th>
-	{{- else if eq $txType "unspent" }}
-		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
-	{{- else}}
-		<th class="text-end">Credit ({{toUpperCase $ChainType}})</th>
-		<th class="text-end">Debit ({{toUpperCase $ChainType}})</th>
-	{{- end}}
 		<th class="d-none d-sm-table-cell text-end">Time (UTC)</th>
 		<th class="text-end">Age</th>
 		<th class="text-end"><span class="d-sm-none position-relative" data-tooltip="Confirmations">Cons</span><span class="d-none d-sm-inline">Confirms</span></th>
@@ -834,43 +816,16 @@
 	{{- range .Transactions}}
 		<tr{{if eq .Confirmations 0}} data-address-target="pending" data-txid="{{.TxID}}"{{end}}>
 			<td class="clipboard">{{template "hashElide" (hashlink .TxID (print "/chain/" $ChainType "/tx/" .TxID))}}</td>
-		{{- if eq $txType "merged_debit"}}
-			<td class="text-end">{{.MergedTxnCount}}</td>
-			<td class="text-end fs15">{{template "decimalParts" (float64AsDecimalParts .SentTotal 8 false)}}</td>
-		{{- else if eq $txType "merged_credit"}}
-			<td class="text-end">{{.MergedTxnCount}}</td>
-			<td class="text-end fs15">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
-		{{- else if eq $txType "merged"}}
-			<td class="text-end">{{.MergedTxnCount}}</td>
-			{{- if .IsFunding}}
-			<td class="text-end fs15">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
-			<td class="text-end">&mdash;</td>
-			{{- else}}
-			<td class="text-end">&mdash;</td>
-			<td class="text-end fs15">{{template "decimalParts" (float64AsDecimalParts .SentTotal 8 false)}}</td>
-			{{- end}}
-		{{- else if eq $txType "unspent"}}
-			<td class="text-end fs15">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
-		{{- else if or (eq $txType "credit") .IsFunding}}{{/* .IsFunding = true && txType = "all" is a credit */}}
-			<td class="text-end fs15">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
-			{{- if ne .MatchedTx ""}}
-			<td class="text-end"><a href="/chain/{{$ChainType}}/tx/{{.MatchedTx}}/in/{{.MatchedTxIndex}}"
-				data-txid="{{.MatchedTx}}"
-				data-action="mouseover->address#hashOver mouseout->address#hashOut"
-				>spent</a></td>
-			{{- else}}
-			<td class="text-end">unspent</td>
-			{{- end}}
-		{{- else}}{{/* either "debit", or "all" with .IsFunding = false */ -}}
-			{{- if eq .SentTotal 0.0}}
-			<td class="text-end">sstxcommitment</td>
-			{{- else if ne .MatchedTx ""}}
-			<td class="text-end"><a href="/chain/{{$ChainType}}/tx/{{.MatchedTx}}/out/{{.MatchedTxIndex}}" data-action="mouseover->address#hashOver mouseout->address#hashOut">source</a></td>
+			{{- if ne .ReceivedTotal 0.0}}
+			<td class="text-end">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
 			{{- else}}
 			<td class="text-end">N/A</td>
 			{{- end}}
+			{{- if ne .SentTotal 0.0}}
 			<td class="text-end fs15">{{template "decimalParts" (float64AsDecimalParts .SentTotal 8 false)}}</td>
-		{{- end}}
+			{{- else}}
+			<td class="text-end">N/A</td>
+			{{- end}}
 			<td class="addr-tx-time d-none d-sm-table-cell text-end">{{if eq .Confirmations 0}}Unconfirmed{{else}}{{.Time.DatetimeWithoutTZ}}{{end}}</td>
 			<td class="addr-tx-age text-end">
 			{{- if eq (.Time.T.Unix) 0}}
@@ -879,13 +834,13 @@
 				<span data-controller="time" data-time-target="age" data-age="{{.Time.UNIX}}"></span>
 			{{- end}}
 			</td>
-			<td class="addr-tx-confirms text-end"	{{/*Update confirmations with Stimulus*/ -}}
-				data-newblock-target="confirmations" {{/*trim*/ -}}
-				data-confirmations="{{.Confirmations}}" {{/*trim*/ -}}
-				data-confirmation-block-height="{{if eq .Confirmations 0}}-1{{else}}{{.BlockHeight}}{{end}}" {{/*trim*/ -}}
-				data-yes="#" {{/*trim*/ -}}
-				data-no="(unconfirmed)" {{/*trim*/ -}}
-			>{{.Confirmations}}</td>
+			<td class="text-end">
+				{{if eq .Confirmations 0}}
+				(unconfirmed)
+				{{else}}
+				{{.Confirmations}}
+				{{end}}
+			</td>
 			<td class="text-end d-none d-sm-table-cell text-end">{{.FormattedSize}}</td>
 		</tr>
 	{{- end}}
