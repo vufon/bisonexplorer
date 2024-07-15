@@ -3791,7 +3791,6 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 		apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(pgb.OkLinkAPIKey, address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType), txnType)
 		useAPI = true
 		if err != nil || apiAddrInfo == nil {
-			fmt.Println("Xay ra loix: ", err)
 			addrData.Balance = &dbtypes.AddressBalance{
 				NumSpent:     0,
 				NumUnspent:   0,

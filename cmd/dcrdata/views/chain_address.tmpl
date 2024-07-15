@@ -120,20 +120,6 @@
                   <span></span>{{/*This dummy span ensures left/right alignment of the buttons, even if one is hidden.*/}}
                   <div class="d-flex flex-row">
                      <div class="d-flex ai-center text-end">
-                        <label class="mb-0 me-1" for="txntype">Type</label>
-                        <select
-                           name="txntype"
-                           data-chainaddress-target="txntype"
-                           data-action="change->chainaddress#changeTxType"
-                           class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8"
-                           >
-                        <option {{if eq $txType "all"}}selected{{end}} value="all">All</option>
-                        <option {{if eq $txType "unspent"}}selected{{end}} value="unspent">Unspent</option>
-                        <option {{if eq $txType "credit"}}selected{{end}} value="credit">Credits</option>
-                        <option {{if eq $txType "debit"}}selected{{end}} value="debit">Debits</option>
-                        </select>
-                     </div>
-                     <div class="d-flex ai-center text-end">
                         <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
                         <select
                         name="pagesize"

@@ -1340,19 +1340,6 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			})
 		}
 	} // tx == nil (not found by dcrd)
-
-	// Details on all the blocks containing this transaction
-	blocks, blockInds, err := exp.dataSource.MutilchainTransactionBlocks(tx.TxID, chainType)
-	if exp.timeoutErrorPage(w, err, "TransactionBlocks") {
-		return
-	}
-	if err != nil {
-		log.Errorf("Unable to retrieve blocks for transaction %s: %v",
-			hash, err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, tx.TxID, ExpStatusError)
-		return
-	}
-
 	// For each output of this transaction, look up any spending transactions,
 	// and the index of the spending transaction input.
 	spendingTxHashes, spendingTxVinInds, voutInds, err := exp.dataSource.MutilchainSpendingTransactions(hash, chainType)
@@ -1378,14 +1365,10 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	pageData := struct {
 		*CommonPageData
 		Data      *types.TxInfo
-		Blocks    []*dbtypes.BlockStatus
-		BlockInds []uint32
 		ChainType string
 	}{
 		CommonPageData: exp.commonData(r),
 		Data:           tx,
-		Blocks:         blocks,
-		BlockInds:      blockInds,
 		ChainType:      chainType,
 	}
 
