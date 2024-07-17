@@ -134,20 +134,20 @@ export default class extends Controller {
     const oldChain = this.currentChain
     this.currentChain = coin
     //  if is chainhome
-    if (originUrl.endsWith('/decred') || originUrl.endsWith('/chain/' + oldChain)) {
+    if (window.location.pathname === '/' || originUrl.endsWith('/chain/' + oldChain)) {
       //  if current is decred home, coin difference with dcr
-      if (originUrl.endsWith('/decred')) {
+      if (window.location.pathname === '/') {
         if (coin === 'dcr') {
           return
         }
-        window.location.href = originUrl.replaceAll('/decred', '/chain/' + coin)
+        window.location.href = originUrl + 'chain/' + coin
         return
       }
       if (oldChain === coin) {
         return
       }
       if (coin === 'dcr') {
-        window.location.href = originUrl.replaceAll('/chain/' + oldChain, '/decred')
+        window.location.href = originUrl.replaceAll('/chain/' + oldChain, '/')
       } else {
         window.location.href = originUrl.replaceAll('/chain/' + oldChain, '/chain/' + coin)
       }
@@ -202,7 +202,7 @@ export default class extends Controller {
     //  else
     switch (coin) {
       case 'dcr':
-        window.location.href = '/decred'
+        window.location.href = '/'
         break
       default:
         window.location.href = '/chain/' + coin

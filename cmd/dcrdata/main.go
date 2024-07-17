@@ -906,7 +906,7 @@ func _main(ctx context.Context) error {
 	}
 
 	webMux.With(explore.SyncStatusPageIntercept).Group(func(r chi.Router) {
-		r.Get("/", explore.Home)
+		r.Get("/", explore.DecredHome)
 		r.Get("/visualblocks", explore.VisualBlocks)
 	})
 	webMux.Get("/ws", explore.RootWebsocket)
@@ -998,7 +998,6 @@ func _main(ctx context.Context) error {
 		r.Get("/ticketpool", explore.Ticketpool)
 		r.Get("/stats", explore.StatsPage)
 		r.Get("/market", explore.MarketPage)
-		r.Get("/decred", explore.DecredHome)
 		r.Get("/marketlist", explore.CoinCapPage)
 		r.Get("/statistics", func(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/stats", http.StatusPermanentRedirect)
@@ -1016,6 +1015,7 @@ func _main(ctx context.Context) error {
 
 		//mutilchain support
 		r.Route("/chain", func(rd chi.Router) {
+			rd.Get("/", explore.Home)
 			rd.Get("/{chaintype}", explore.MutilchainHome)
 			rd.Get("/{chaintype}/blocks", explore.MutilchainBlocks)
 			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/{chaintype}/block/{blockhash}", explore.MutilchainBlockDetail)

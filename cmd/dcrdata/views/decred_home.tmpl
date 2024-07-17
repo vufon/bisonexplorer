@@ -23,10 +23,9 @@
    data-charts-mul-subsidy="{{.ChainParams.MulSubsidy}}" data-charts-div-subsidy="{{.ChainParams.DivSubsidy}}"
    data-charts-window-size="{{.ChainParams.StakeDiffWindowSize}}"
    data-charts-block-time="{{.ChainParams.TargetTimePerBlock.Seconds}}">
-   <div class="hp-header-wrap area">
+   <div class="hp-header-wrap area pb-5">
       <div class="container">
-         <p class="fs-18 nav-bar-area mt-4 nav-bar-area"><a class="fs-18" href="/">Top</a>&nbsp;> Decred</p>
-         <div class="row homepage-search-area mt-2">
+         <div class="row homepage-search-area mt-4 pt-2">
             <div class="col-12 col-md-6 mt-2 px-1">
                <div class="explore-card-wrap home-menu-column">
                   <div class="home-menu-card">
@@ -164,6 +163,13 @@
                         </div>
                      </div>
                      <div class="home-menu-content group-menu-content">
+                        <a href="/chain"
+                        class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                        <div class="ta-center">
+                           <p class="fw-600 m-0 home-menu-item-title">Other Blockchains</p>
+                           <span class="fs-13 menu-item-description">All supported blockchains</span>
+                        </div>
+                        </a>
                         <a href="/stakingcalc"
                            class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                            <div class="ta-center">
@@ -178,13 +184,6 @@
                               <span class="fs-13 menu-item-description">Estimated cost of attack</span>
                            </div>
                         </a>
-                        <a href="/parameters"
-                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                           <div class="ta-center">
-                              <p class="fw-600 m-0 home-menu-item-title">Parameters</p>
-                              <span class="fs-13 menu-item-description">Parameters for mainnet</span>
-                           </div>
-                        </a>
                         <a href="/supply" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                            <div class="ta-center">
                               <p class="fw-600 m-0 home-menu-item-title">Supply</p>
@@ -197,6 +196,7 @@
                                  <a class="fw-600 home-menu-item-title c-grey-5"><span>More</span><span
                                        class="dcricon-arrow-down ms-2"></span></a>
                                  <ul class="submenu w-100i">
+                                    <li class="w-100i"><a class="dropdown-item c-grey-5" href="/parameters">Parameters</a></li>
                                     <li class="w-100i"><a class="dropdown-item c-grey-5" href="/decodetx">Decode
                                           /Broadcast Tx</a></li>
                                     <li class="w-100i"><a class="dropdown-item c-grey-5" href="#">Verify Message</a>

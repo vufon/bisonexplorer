@@ -11,7 +11,7 @@
 {{template "html-head" headData .CommonPageData (printf "%s Block %d" (chainName $ChainType) .Data.Height)}}
 {{ template "mutilchain_navbar" . }}
 <div class="container main pt-1" data-controller="time pagenavigation">
-	<p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Top</a>&nbsp;> <a class="fs-18"
+	<p class="fs-18 nav-bar-area"><a class="fs-18" href="/chain">Blockchains</a>&nbsp;> <a class="fs-18"
 			href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Block</p>
 	{{- with .Data -}}
 	{{- $Hash := .Hash -}}
