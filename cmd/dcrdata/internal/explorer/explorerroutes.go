@@ -49,6 +49,8 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+
+	agents "github.com/monperrus/crawler-user-agents"
 )
 
 var (
@@ -2343,6 +2345,9 @@ func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 
 // AddressPage is the page handler for the "/address" path.
 func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
+	if agents.IsCrawler(r.UserAgent()) {
+		return
+	}
 	// AddressPageData is the data structure passed to the HTML template
 	type AddressPageData struct {
 		*CommonPageData
@@ -2463,7 +2468,9 @@ func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 // AddressPage is the page handler for the "/address" path.
 func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
 	// AddressPageData is the data structure passed to the HTML template
-
+	if agents.IsCrawler(r.UserAgent()) {
+		return
+	}
 	type AddressPageData struct {
 		*CommonPageData
 		Data      *dbtypes.AddressInfo
@@ -2544,6 +2551,9 @@ func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 
 // AddressTable is the page handler for the "/addresstable" path.
 func (exp *ExplorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Request) {
+	if agents.IsCrawler(r.UserAgent()) {
+		return
+	}
 	// Grab the URL query parameters
 	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
 	if err != nil {
@@ -2604,6 +2614,9 @@ func (exp *ExplorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Req
 
 // AddressTable is the page handler for the "/addresstable" path.
 func (exp *ExplorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
+	if agents.IsCrawler(r.UserAgent()) {
+		return
+	}
 	// Grab the URL query parameters
 	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
 	if err != nil {

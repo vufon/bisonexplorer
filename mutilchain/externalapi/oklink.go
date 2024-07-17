@@ -139,7 +139,8 @@ func GetOkLinkAddressInfoAPI(apiKey, address, chainType string, limit, offset, c
 	}
 	transactions := make([]*dbtypes.AddressTx, 0)
 	for _, txData := range addrTxsResponse.Data[0].TransactionLists {
-		isFunding := IsCredit(address, txData.To)
+		coin, _ := strconv.ParseFloat(txData.Amount, 64)
+		isFunding := coin >= 0
 		txTime, txSize, confirmations := GetMutilchainTxTimeSizeConfirmations(txData.Txid, chainType)
 		addrTx := dbtypes.AddressTx{
 			TxID:          txData.Txid,
@@ -148,7 +149,6 @@ func GetOkLinkAddressInfoAPI(apiKey, address, chainType string, limit, offset, c
 			Time:          dbtypes.NewTimeDef(time.Unix(txTime, 0)),
 			Confirmations: uint64(confirmations),
 		}
-		coin, _ := strconv.ParseFloat(txData.Amount, 64)
 		if isFunding {
 			addrTx.ReceivedTotal = coin
 		} else {

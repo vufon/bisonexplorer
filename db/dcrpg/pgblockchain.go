@@ -8949,7 +8949,7 @@ func (pgb *ChainDB) BTCDifficulty(timestamp int64) float64 {
 
 	diff, err := RetrieveMutilchainDiff(pgb.ctx, pgb.db, timestamp, mutilchain.TYPEBTC)
 	if err != nil {
-		log.Errorf("Unable to retrieve difficulty: %v", err)
+		log.Errorf("BTC: Unable to retrieve difficulty: %v", err)
 		return -1
 	}
 	pgb.btcLastExplorerBlock.Lock()
@@ -8968,7 +8968,7 @@ func (pgb *ChainDB) LTCDifficulty(timestamp int64) float64 {
 
 	diff, err := RetrieveMutilchainDiff(pgb.ctx, pgb.db, timestamp, mutilchain.TYPELTC)
 	if err != nil {
-		log.Errorf("Unable to retrieve difficulty: %v", err)
+		log.Errorf("LTC: Unable to retrieve difficulty: %v", err)
 		return -1
 	}
 	pgb.ltcLastExplorerBlock.Lock()
