@@ -43,8 +43,8 @@ import (
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mutilchain"
+	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
-	agents "github.com/monperrus/crawler-user-agents"
 )
 
 // maxBlockRangeCount is the maximum number of blocks that can be requested at
@@ -2554,7 +2554,7 @@ func (c *appContext) getStakeDiffRange(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) addressTotals(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -2697,7 +2697,7 @@ func (c *appContext) addressIoCsv(crlf bool, w http.ResponseWriter, r *http.Requ
 }
 
 func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -2734,7 +2734,7 @@ func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Reques
 }
 
 func (c *appContext) getAddressTxAmountFlowData(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -2889,7 +2889,7 @@ func (c *appContext) getExchangeData(w http.ResponseWriter, r *http.Request) {
 
 // route: chainchart/market/{token}/candlestick/{bin}
 func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	chainType := chi.URLParam(r, "chaintype")
@@ -2944,7 +2944,7 @@ func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request)
 }
 
 func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	chainType := chi.URLParam(r, "chaintype")
@@ -2996,7 +2996,7 @@ func (c *appContext) getDepthChart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) getAddressTransactions(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -3032,7 +3032,7 @@ func (c *appContext) getAddressTransactions(w http.ResponseWriter, r *http.Reque
 }
 
 func (c *appContext) getMutilchainAddressTransactions(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -3073,7 +3073,7 @@ func (c *appContext) getMutilchainAddressTransactions(w http.ResponseWriter, r *
 // getAddressTransactionsRaw handles the various /address/{addr}/.../raw API
 // endpoints.
 func (c *appContext) getAddressTransactionsRaw(w http.ResponseWriter, r *http.Request) {
-	if agents.IsCrawler(r.UserAgent()) {
+	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)

@@ -19,7 +19,7 @@ const (
 
 	//select last row from monthly price
 	SelectLastMonthlyPrice = `SELECT month,last_updated FROM monthly_price WHERE is_complete = false ORDER BY month DESC LIMIT 1`
-
+	SelectLastMonth        = `SELECT month FROM monthly_price ORDER BY month DESC LIMIT 1`
 	//select rows by period of month
 	SelectMonthlyPriceRowsByPeriod = `SELECT month,price FROM monthly_price WHERE EXTRACT(EPOCH FROM month AT TIME ZONE 'UTC') >= $1 AND EXTRACT(EPOCH FROM month AT TIME ZONE 'UTC') <= $2 ORDER BY month`
 

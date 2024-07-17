@@ -9,7 +9,10 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
+
+	agents "github.com/monperrus/crawler-user-agents"
 )
 
 type HttpClient struct {
@@ -40,6 +43,13 @@ func newClient() (c *HttpClient) {
 			Transport: http.DefaultTransport.(*http.Transport).Clone(),
 		},
 	}
+}
+
+func IsCrawlerUserAgent(userAgent string) bool {
+	if strings.Contains(userAgent, "facebookexternalhit") {
+		return true
+	}
+	return agents.IsCrawler(userAgent)
 }
 
 func (c *HttpClient) getRequestBody(method string, body interface{}) ([]byte, error) {

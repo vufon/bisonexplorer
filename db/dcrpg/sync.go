@@ -31,37 +31,23 @@ const (
 )
 
 func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
-	projectFundAddress, addressErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
-	if addressErr != nil {
-		log.Warnf("ChainDB.GetLegacySummary: %v", addressErr)
-		return addressErr
+	//check lastest on monthly_table, if is same month, ignore
+	var lastestMonth time.Time
+	err := pgb.db.QueryRow(internal.SelectLastMonth).Scan(&lastestMonth)
+	now := time.Now()
+	if err != sql.ErrNoRows && (err != nil || lastestMonth.After(now) || (lastestMonth.Year() == now.Year() && lastestMonth.Month() == now.Month())) {
+		log.Infof("No need to sync monthly price data")
+		return nil
 	}
-	//get oldest time of legacy address
-	var oldestTime dbtypes.TimeDef
-	err := pgb.db.QueryRow(internal.SelectOldestAddressCreditTime, projectFundAddress).Scan(&oldestTime)
-	if err != nil {
-		return err
-	}
-
-	//get oldest time of treasury record
-	var treasuryOldestTime dbtypes.TimeDef
-	treasuryErr := pgb.db.QueryRow(internal.SelectOldestTreasuryTime).Scan(&treasuryOldestTime)
-	if treasuryErr != nil {
-		return treasuryErr
-	}
-	var oldest dbtypes.TimeDef
-	if oldestTime.T.After(treasuryOldestTime.T) {
-		oldest = treasuryOldestTime
-	} else {
-		oldest = oldestTime
-	}
+	//check table exist and create new
 	createTableErr := pgb.CheckCreateMonthlyPriceTable()
 	if createTableErr != nil {
-		log.Errorf("Check exist and create monthly_price table failed: %v", err)
-		return err
+		log.Errorf("Check exist and create monthly_price table failed: %v", createTableErr)
+		return createTableErr
 	}
 
-	monthPriceMap := pgb.GetCurrencyPriceMap(oldest.T, time.Now())
+	//Get lastest monthly on monthly_table
+	monthPriceMap := pgb.GetBitDegreeAllPriceMap()
 
 	pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
 	return nil

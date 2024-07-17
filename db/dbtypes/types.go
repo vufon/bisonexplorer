@@ -2175,11 +2175,12 @@ type TreasuryMonthDataObject struct {
 	Expense    float64 `json:"expense"`
 }
 
-type CurrencyResponse struct {
-	Prices       [][]float64 `json:"prices"`
-	MarketCaps   [][]float64 `json:"market_caps"`
-	TotalVolumes [][]float64 `json:"total_volumes"`
+type BitDegreeOhlcResponse struct {
+	Ohlc    [][]float64 `json:"ohlc"`
+	Volumns [][]float64 `json:"volumes"`
 }
+
+type MexcMonthlyPriceResponse [][]interface{}
 
 // TreasuryBalance is the current balance, spent amount, and tx count for the
 // treasury.

@@ -55,6 +55,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/ltcsuite/ltcd/btcec/v2 v2.3.2 // indirect
+	github.com/monperrus/crawler-user-agents v0.0.0-20240519135500-708b496e7e7b // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	golang.org/x/crypto v0.18.0 // indirect

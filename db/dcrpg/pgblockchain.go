@@ -12,7 +12,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"sort"
@@ -2555,31 +2554,6 @@ func (pgb *ChainDB) GetTreasuryAddSummary() ([]*dbtypes.TreasuryAddSummary, erro
 	return summaryList, nil
 }
 
-func (pgb *ChainDB) GetHandlerCurrencyPrice(res dbtypes.CurrencyResponse, result map[string]float64, countMap map[string]int) {
-	for _, resItem := range res.Prices {
-		date := time.Unix(int64(resItem[0])/1000, 0)
-		key := fmt.Sprintf("%d-%s", date.Year(), dbtypes.GetFullMonthDisplay(int(date.Month())))
-		val, ok := result[key]
-		if ok {
-			result[key] = val + resItem[1]
-			countMap[key] = countMap[key] + 1
-		} else {
-			result[key] = resItem[1]
-			countMap[key] = 1
-		}
-	}
-}
-
-func (pgb *ChainDB) GetCurrencyPrice(res dbtypes.CurrencyResponse) map[string]float64 {
-	result := make(map[string]float64)
-	countMap := make(map[string]int)
-	pgb.GetHandlerCurrencyPrice(res, result, countMap)
-	for k, v := range result {
-		result[k] = v / float64(countMap[k])
-	}
-	return result
-}
-
 func (pgb *ChainDB) SyncTreasuryMonthlyPrice() {
 	//check last month in database
 	var lastestMonthly time.Time
@@ -2593,7 +2567,7 @@ func (pgb *ChainDB) SyncTreasuryMonthlyPrice() {
 
 	//sync from first day of next month of last month
 	fistOfLastMonth := lastestMonthly.AddDate(0, 0, -lastestMonthly.Day()+1)
-	currencyPriceMap := pgb.GetCurrencyPriceMap(fistOfLastMonth, now)
+	currencyPriceMap := pgb.GetMexcPriceMap(fistOfLastMonth.Unix(), now.Unix())
 	createTableErr := pgb.CheckCreateMonthlyPriceTable()
 	if createTableErr != nil {
 		log.Errorf("Check exist and create monthly_price table failed: %v", err)
@@ -2646,63 +2620,120 @@ func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[strin
 	}
 }
 
-// Get Decred - USd Exchange map value
-func (pgb *ChainDB) GetCurrencyPriceMap(from time.Time, to time.Time) map[string]float64 {
-	//if period less then or equal 2 years
-	var period = ((to.Year()-from.Year())*12 + int(to.Month()) - int(from.Month()) + 1)
-	if period <= 24 {
-		usdExchangeValue := pgb.GetUSDExchangeValue(from, to)
-		return pgb.GetCurrencyPrice(*usdExchangeValue)
+func (pgb *ChainDB) GetPriceAll() (*dbtypes.BitDegreeOhlcResponse, error) {
+	var result dbtypes.BitDegreeOhlcResponse
+	fetchUrl := "https://www.bitdegree.org/api/cryptocurrencies/ohlc-chart/decred-dcr"
+	query := map[string]string{
+		"period": "all",
 	}
-	var tmpFrom = from
+	req := &externalapi.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fetchUrl,
+		Payload: query,
+	}
+	if err := externalapi.HttpRequest(req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (pgb *ChainDB) GetMexcPriceData(from, to int64) (dbtypes.MexcMonthlyPriceResponse, error) {
+	var result dbtypes.MexcMonthlyPriceResponse
+	fetchUrl := "https://api.mexc.com/api/v3/klines"
+	query := map[string]string{
+		"symbol":    "DCRUSDT",
+		"interval":  "1M",
+		"startTime": fmt.Sprintf("%d", from*1000),
+		"endTime":   fmt.Sprintf("%d", to*1000),
+	}
+	req := &externalapi.ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fetchUrl,
+		Payload: query,
+	}
+	if err := externalapi.HttpRequest(req, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (pgb *ChainDB) GetMexcPriceMap(from, to int64) map[string]float64 {
 	result := make(map[string]float64)
-	countMap := make(map[string]int)
-	for period > 24 {
-		var tmpTo = tmpFrom.AddDate(2, 0, 0)
-		tmpRes := pgb.GetUSDExchangeValue(tmpFrom, tmpTo)
-		pgb.GetHandlerCurrencyPrice(*tmpRes, result, countMap)
-		tmpFrom = tmpTo.AddDate(0, 0, 1)
-		period = ((to.Year()-tmpFrom.Year())*12 + int(to.Month()) - int(tmpFrom.Month()) + 1)
+	res, err := pgb.GetMexcPriceData(from, to)
+	if err != nil {
+		return result
 	}
-	res := pgb.GetUSDExchangeValue(tmpFrom, to)
-	pgb.GetHandlerCurrencyPrice(*res, result, countMap)
+	countMap := make(map[string]int)
+	if len(res) == 0 {
+		return result
+	}
+	for _, dataArr := range res {
+		if len(dataArr) < 8 {
+			continue
+		}
+
+		timeInt, ok := dataArr[0].(int64)
+		if !ok {
+			continue
+		}
+
+		date := time.Unix(timeInt/1000, 0)
+		key := fmt.Sprintf("%d-%s", date.Year(), dbtypes.GetFullMonthDisplay(int(date.Month())))
+		val, ok := result[key]
+		priceStr, ok := dataArr[4].(string)
+		if !ok {
+			continue
+		}
+		price, err := strconv.ParseFloat(priceStr, 64)
+		if err != nil {
+			continue
+		}
+
+		if ok {
+			result[key] = val + price
+			countMap[key] = countMap[key] + 1
+		} else {
+			result[key] = price
+			countMap[key] = 1
+		}
+	}
 	for k, v := range result {
 		result[k] = v / float64(countMap[k])
 	}
 	return result
 }
 
-// If the distance between from and to is less than or equal to 2 years, then get the data directly from the api without dividing it.
-func (pgb *ChainDB) GetUSDExchangeValue(from time.Time, to time.Time) *dbtypes.CurrencyResponse {
-	result := dbtypes.CurrencyResponse{}
-	dcrUsdURL := fmt.Sprintf("https://api.coingecko.com/api/v3/coins/decred/market_chart/range?vs_currency=usd&from=%d&to=%d", from.Unix(), to.Unix())
-	dcrUsdData, err := pgb.FetchCurrency(dcrUsdURL)
+func (pgb *ChainDB) GetBitDegreeAllPriceMap() map[string]float64 {
+	result := make(map[string]float64)
+	res, err := pgb.GetPriceAll()
 	if err != nil {
-		return &result
+		return result
 	}
-	return dcrUsdData
-}
-
-func (pgb *ChainDB) FetchCurrency(apiURL string) (*dbtypes.CurrencyResponse, error) {
-	resp, err := http.Get(apiURL)
-	if err != nil {
-		return nil, err
+	countMap := make(map[string]int)
+	if len(res.Ohlc) == 0 {
+		return result
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP request failed with status: %s", resp.Status)
+	for _, dataArr := range res.Ohlc {
+		if len(dataArr) < 4 {
+			continue
+		}
+		date := time.Unix(int64(dataArr[0])/1000, 0)
+		key := fmt.Sprintf("%d-%s", date.Year(), dbtypes.GetFullMonthDisplay(int(date.Month())))
+		val, ok := result[key]
+		if ok {
+			result[key] = val + dataArr[4]
+			countMap[key] = countMap[key] + 1
+		} else {
+			result[key] = dataArr[4]
+			countMap[key] = 1
+		}
 	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
+	for k, v := range result {
+		result[k] = v / float64(countMap[k])
 	}
-
-	var items *dbtypes.CurrencyResponse
-	if err := json.Unmarshal(body, &items); err != nil {
-		return nil, err
-	}
-	return items, nil
+	b, _ := json.Marshal(result)
+	fmt.Println("Check result: ", string(b))
+	return result
 }
 
 // Get legacy summary data
@@ -2811,7 +2842,7 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 			startOfMonth := time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.Local)
 			//if last month, get from api
 			if endDayOfToMonth.Month() == currentTime.Month() && endDayOfToMonth.Year() == currentTime.Year() {
-				mapData := pgb.GetCurrencyPriceMap(startOfMonth, endDayOfToMonth)
+				mapData := pgb.GetMexcPriceMap(startOfMonth.Unix(), endDayOfToMonth.Unix())
 				for k, v := range mapData {
 					if _, keyOk := priceMap[k]; !keyOk {
 						priceMap[k] = v
@@ -2820,7 +2851,7 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 				breakFlg = true
 			} else {
 				endOfMonth := time.Date(currentTime.Year(), currentTime.Month()+1, 1, 0, 0, 0, -1, time.Local)
-				mapData := pgb.GetCurrencyPriceMap(startOfMonth, endOfMonth)
+				mapData := pgb.GetMexcPriceMap(startOfMonth.Unix(), endOfMonth.Unix())
 				for k, v := range mapData {
 					if _, keyOk := priceMap[k]; !keyOk {
 						priceMap[k] = v
