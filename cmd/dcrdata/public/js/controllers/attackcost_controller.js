@@ -470,7 +470,7 @@ export default class extends Controller {
     this.setAllValues(this.totalPosTargets, digitformat(totalPos))
     this.setAllValues(this.ticketPoolValueTargets, digitformat(tpValue))
     this.setAllValues(this.ticketPoolSizeTargets, digitformat(tpSize))
-    this.blockHeightTarget.innerHTML = digitformat(height)
+    this.blockHeightTarget.innerHTML = height
     this.totalTarget.innerHTML = digitformat(totalPow + totalPos, 2)
     this.projectedTicketPriceTarget.innerHTML = digitformat(projectedTicketPrice, 2)
     // this.attackPosPercentNeededLabelTarget.innerHTML = digitformat(this.targetPosTarget.value, 2)
