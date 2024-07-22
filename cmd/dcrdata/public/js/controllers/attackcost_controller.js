@@ -55,20 +55,36 @@ function rateCalculation (y) {
 
 const deviceList = {
   0: {
-    hashrate: 34, // Th/s
+    hashrate: 15.6, // Th/s. Convert to GH when display
     units: 'Th/s',
-    power: 1610, // W
-    cost: 1282, // $
-    name: 'DCR5',
-    link: 'https://www.cryptocompare.com/mining/bitmain/antminer-dr5-blake256r14-34ths/'
+    power: 3510, // W
+    cost: 41800, // $
+    name: 'ALPH Miner AL1',
+    link: 'https://shop.bitmain.com/product/detail?pid=00020240720091017398FxBBmL000652'
   },
   1: {
-    hashrate: 44, // Th/s
+    hashrate: 0.72, // Th/s. Convert to GH when display
     units: 'Th/s',
-    power: 2200, // W
-    cost: 4199, // $
-    name: 'D1',
-    link: 'https://www.cryptocompare.com/mining/crypto-drilling/microbt-whatsminer-d1-plus-psu-dcr-44ths/'
+    power: 360, // W
+    cost: 2850, // $
+    name: 'Goldshell AL BOX II',
+    link: 'https://bitmars.io/product/goldshell-al-box-ii-720gh-s-360w-alephium-miner-without-psu/'
+  },
+  2: {
+    hashrate: 0.00516, // Th/s. Convert to GH when display
+    units: 'Th/s',
+    power: 450, // W
+    cost: 1739, // $
+    name: 'RTX 4090',
+    link: 'https://poolbay.io/gpu-miner-profit/119/rtx-4090'
+  },
+  3: {
+    hashrate: 0.00272, // Th/s. Convert to GH when display
+    units: 'Th/s',
+    power: 320, // W
+    cost: 899, // $
+    name: 'RTX 4080',
+    link: 'https://poolbay.io/gpu-miner-profit/122/rtx-4080'
   }
 }
 
