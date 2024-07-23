@@ -1,6 +1,8 @@
 module github.com/decred/dcrdata/cmd/dcrdata
 
-go 1.18
+go 1.21
+
+toolchain go1.21.6
 
 replace (
 	github.com/decred/dcrdata/db/dcrpg/v8 => ../../db/dcrpg/
@@ -196,6 +198,7 @@ require (
 	github.com/tklauser/numcpus v0.6.0 // indirect
 	github.com/tyler-smith/go-bip39 v1.1.0 // indirect
 	github.com/urfave/cli/v2 v2.17.2-0.20221006022127-8f469abc00aa // indirect
+	github.com/x-way/crawlerdetect v0.2.21 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zquestz/grab v0.0.0-20190224022517-abcee96e61b1 // indirect
 	go.etcd.io/bbolt v1.3.7-0.20220130032806-d5db64bdbfde // indirect

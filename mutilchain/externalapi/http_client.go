@@ -13,6 +13,7 @@ import (
 	"time"
 
 	agents "github.com/monperrus/crawler-user-agents"
+	crawlerdetect "github.com/x-way/crawlerdetect"
 )
 
 type HttpClient struct {
@@ -47,6 +48,10 @@ func newClient() (c *HttpClient) {
 
 func IsCrawlerUserAgent(userAgent string) bool {
 	if strings.Contains(userAgent, "facebookexternalhit") {
+		return true
+	}
+	//check isCrawler
+	if crawlerdetect.IsCrawler(userAgent) {
 		return true
 	}
 	return agents.IsCrawler(userAgent)
