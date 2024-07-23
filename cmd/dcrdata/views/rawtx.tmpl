@@ -3,9 +3,16 @@
 <html lang="en">
     {{template "html-head" headData .CommonPageData "Decode Raw Decred Transaction"}}
         {{template "navbar" . }}
-        <div class="container main pt-1" data-controller="rawtx">
-            <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Raw Transaction</p>
-            <h4 class="mb-2">Decred transaction to decode or broadcast</h4>
+        <div class="container mt-2" data-controller="rawtx">
+            <nav class="breadcrumbs mt-0">
+                <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+                   <span class="homeicon-tags me-1"></span>
+                   <span class="link-underline">Blockchains</span>
+                </a>
+                <a href="/" class="breadcrumbs__item item-link">Decred</a>
+                <span class="breadcrumbs__item is-active">Raw Transaction</span>
+             </nav>
+           <h4 class="mb-2">Decred transaction to decode or broadcast</h4>
             <form>
                 <textarea
                     autofocus

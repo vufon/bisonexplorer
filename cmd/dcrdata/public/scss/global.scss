@@ -536,6 +536,10 @@ textarea::placeholder {
   vertical-align: bottom;
 }
 
+.link-underline {
+  text-decoration: underline !important;
+}
+
 .link-hover-underline:hover {
   text-decoration: underline !important;
 }

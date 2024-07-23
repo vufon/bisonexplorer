@@ -3,8 +3,15 @@
 <html lang="en">
     {{ template "html-head" headData .CommonPageData "Decred Chain Parameters"}}
         {{template "navbar" . }}
-        <div class="container main pt-1">
-        <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Paramenters</p>
+        <div class="container mt-2">
+            <nav class="breadcrumbs mt-0">
+                <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+                   <span class="homeicon-tags me-1"></span>
+                   <span class="link-underline">Blockchains</span>
+                </a>
+                <a href="/" class="breadcrumbs__item item-link">Decred</a>
+                <span class="breadcrumbs__item is-active">Paramenters</span>
+             </nav>
             <div class="row justify-content-between">
                 <div class="col-lg-14 col-sm-12 d-flex">
                     <h4 class="mb-2">Parameters for Decred {{.ChainParams.Name}}

@@ -4,8 +4,15 @@
 
 {{template "html-head" headData .CommonPageData "Insight API"}}
     {{template "navbar" . }}
-    <div class="container main">
-        <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Decred</a>&nbsp;> Insight API</p>
+    <div class="container mt-2">
+        <nav class="breadcrumbs">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <span class="breadcrumbs__item is-active">Insight API</span>
+         </nav>
         <div>
             <h2 style="text-align: center; margin-top: 0px">Looking for the Insight API?</h2>
             <p style="text-align: center; margin-bottom: 5px">

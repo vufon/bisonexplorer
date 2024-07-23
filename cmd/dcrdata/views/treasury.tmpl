@@ -9,14 +9,22 @@
   {{- $TxnCount := $bal.TxCount}}
   {{- $txType := .TxnType -}}
   {{- $Time := .Time -}}
-  <div class="container main pt-1"
+  <div class="container mt-2"
     data-controller="address time"
     data-address-dcraddress="treasury"
     data-address-offset="{{.Offset}}"
     data-address-txn-count="{{ $bal.TxCount}}"
     data-address-balance="{{toFloat64Amount $bal.Balance}}"
   >
-  <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Treasury</p>
+  <div class="container mt-2">
+    <nav class="breadcrumbs mt-0">
+      <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+         <span class="homeicon-tags me-1"></span>
+         <span class="link-underline">Blockchains</span>
+      </a>
+      <a href="/" class="breadcrumbs__item item-link">Decred</a>
+      <span class="breadcrumbs__item is-active">Treasury</span>
+   </nav>
     <div class="fullscreen d-none" data-address-target="fullscreen" data-action="click->address#exitFullscreen">
       <div class="secondary-card d-inline-block w-100 h-100 p-4" data-address-target="bigchart"></div>
     </div>

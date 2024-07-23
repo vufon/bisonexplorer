@@ -4,14 +4,20 @@
 {{template "html-head" headData .CommonPageData "Decred Mempool"}}
     {{template "navbar" . }}
         {{with .Mempool -}}
-        <div class="container main pt-1"
+        <div class="container mt-2 pb-5"
         data-controller="mempool time"
         data-mempool-target="mempool"
         {{template "mempoolDump" .}}
         >
-        <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Mempool</p>
-            <div class="pb-2 h4">Mempool</div>
-
+        <nav class="breadcrumbs mt-0">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <span class="breadcrumbs__item is-active">Mempool</span>
+         </nav>
+            <div class="pb-2 h4 mt-2">Mempool</div>
             <div class="row mx-0 my-2">
                 <div class="col-24 col-sm-12 col-md-24 col-lg-12 bg-green-3 py-3 px-3 position-relative common-card">
                     <div class="card-pointer pointer-right d-none d-sm-block d-md-none d-lg-block"></div>

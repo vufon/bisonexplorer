@@ -26,7 +26,7 @@ export default class extends Controller {
       'proposalSpanRow', 'prevBtn', 'nextBtn', 'upLevel',
       'toVote', 'toDiscussion', 'sameOwnerProposalArea', 'otherProposalSummary',
       'expendiduteValue', 'prevNextButtons', 'toUpReport',
-      'currentDetail', 'yearBreadcumb']
+      'currentDetail', 'yearBreadcumb', 'proposalSumCard']
   }
 
   async initialize () {
@@ -209,12 +209,12 @@ export default class extends Controller {
     if (this.settings.type === 'domain') {
       this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-16" href="/finance-report?type=domain">Domains</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=domain">Domains</a>>'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-16" href="/finance-report?type=author">Authors</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=author">Authors</a>>'
     } else {
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-16" href="/finance-report">Proposals</a>>'
+      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report">Proposals</a>>'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -275,7 +275,7 @@ export default class extends Controller {
       tokenList = response.tokenList
       this.handlerNextPrevButton('proposal', this.settings.token)
       this.currentDetailTarget.textContent = response.proposalInfo ? response.proposalInfo.name : ''
-      this.proposalSpanRowTarget.classList.remove('d-none')
+      this.proposalSumCardTarget.classList.remove('d-none')
       const remainingStr = response.proposalInfo.totalRemaining === 0.0 ? '<p>Status: <span class="fw-600">Finished</span></p>' : `<p>Total Remaining (Est): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalRemaining, 2, 2)}</span></p>`
       this.proposalSpanRowTarget.innerHTML = `<p>Owner: <a href="${'/finance-report/detail?type=owner&name=' + response.proposalInfo.author}" class="fw-600 link-hover-underline">${response.proposalInfo.author}</a></p>` +
       `<p>Domain: <a href="${'/finance-report/detail?type=domain&name=' + response.proposalInfo.domain}" class="link-hover-underline fw-600">${response.proposalInfo.domain.charAt(0).toUpperCase() + response.proposalInfo.domain.slice(1)}</a></p>` +
@@ -306,7 +306,7 @@ export default class extends Controller {
   }
 
   setDomainGeneralInfo (data, type) {
-    this.proposalSpanRowTarget.classList.remove('d-none')
+    this.proposalSumCardTarget.classList.remove('d-none')
     let totalBudget = 0; let totalSpent = 0; let totalRemaining = 0
     if (data.proposalInfos && data.proposalInfos.length > 0) {
       data.proposalInfos.forEach((proposal) => {
@@ -540,7 +540,7 @@ export default class extends Controller {
   async yearMonthCalculate () {
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
-    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-16" href="/finance-report">Proposals</a> > '
+    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-18" href="/finance-report">Proposals</a> > '
     if (this.settings.type === 'year') {
       this.yearBreadcumbTarget.classList.add('d-none')
     } else {

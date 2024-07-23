@@ -7,15 +7,12 @@
       <div class="content pb-40 container" 
          data-controller="financedetail"
          data-financedetail-politeia-url="{{.PoliteiaURL}}">
-         <div class="d-flex w-100 pb-1 fs-16 mt-2 ai-end">
+         <div class="d-flex w-100 fs-18 mt-2 ai-end nav-bar-area">
                <span class="me-2">
-               <a class="fs-16" href="/">Decred</a><span class="me-2 ms-2">></span>
-               <a class="link-hover-underline fs-16" href="/home-report">
-                  Financial Reports
-               </a></span><span>></span><span class="ms-2 me-2 fs-16" data-financedetail-target="toUpReport"></span>
-               <span class="me-2 fs-18" data-financedetail-target="yearBreadcumb">
-               <a data-financedetail-target="upLevel" class="link-hover-underline me-2 fs-16" href="#">
-               </a></span>
+               <a class="fs-18" href="/chain">Blockchains</a><span class="me-2 ms-2">></span><a class="fs-18" href="/">Decred</a><span class="me-2 ms-2">></span><a class="link-hover-underline fs-18" href="/home-report">Financial Reports</a></span><span>></span><span class="ms-2 me-2 fs-18" data-financedetail-target="toUpReport"></span>
+               <span class="fs-18" data-financedetail-target="yearBreadcumb">
+               <a data-financedetail-target="upLevel" class="link-hover-underline fs-18" href="#">
+               </a><span class="ms-2 me-2">></span></span>
                <span data-financedetail-target="currentDetail" class="fs-20"></span>
                <p class="ms-3 d-flex mt-0" data-financedetail-target="prevNextButtons">
                   <a class="fs13 cursor-pointer" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
@@ -24,16 +21,16 @@
          </div>
          <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
          <div class="d-none" data-financedetail-target="reportArea">
-            <div class="common-card py-2 ps-3 w-500px">
-            <div class="mt-1 d-none" data-financedetail-target="proposalSpanRow">
+            <div class="common-card py-2 ps-3 w-500px mt-3 d-none" data-financedetail-target="proposalSumCard">
+            <div data-financedetail-target="proposalSpanRow">
             </div>
-            <div class="d-flex pb-2">
+            <div class="d-flex">
                <a data-financedetail-target="toVote" class="d-none d-block" href="#">
-               <span class="dcricon-check me-1 pt-1"></span>
+               <span class="dcricon-check me-1 py-1"></span>
                Voting Details
                </a>
                <a data-financedetail-target="toDiscussion" class="d-none d-block ms-4" href="#">
-               <span class="dcricon-discussion me-1 pt-1"></span>
+               <span class="dcricon-discussion me-1 py-1"></span>
                Proposal Details
                </a>
             </div>

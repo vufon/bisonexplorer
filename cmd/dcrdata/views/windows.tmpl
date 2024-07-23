@@ -6,9 +6,18 @@
 
 {{template "html-head" headData .CommonPageData "Decred Windows List"}}
     {{template "navbar" . }}
+    <div class="container mt-2">
+      <nav class="breadcrumbs mt-0">
+        <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+           <span class="homeicon-tags me-1"></span>
+           <span class="link-underline">Blockchains</span>
+        </a>
+        <a href="/" class="breadcrumbs__item item-link">Decred</a>
+        <span class="breadcrumbs__item is-active">Windows List</span>
+     </nav>
+    </div>
     {{template "blocksBanner" .}}
-    <div data-controller="pagenavigation" class="container main">
-    <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Windows List</p>
+    <div data-controller="pagenavigation" class="container mt-2">
         {{$windowsCount := (int64 (len .Data))}}
         <div class="px-1 mb-1">
             {{if gt $windowsCount 0}}

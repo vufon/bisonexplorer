@@ -2,20 +2,33 @@
 <!DOCTYPE html>
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "Distribution Information Page")}}
-{{template "navbar" . }}
-{{$HomeInfo := .Info}}
 {{$ChainType := .ChainType}}
-<div class="container py-1"
+{{if ne $ChainType "dcr"}}
+{{template "mutilchain_navbar" . }}
+{{else}}
+{{template "navbar" . }}
+{{end}}
+{{$HomeInfo := .Info}}
+<div class="container"
       data-controller="supply" 
       data-supply-target-time="{{.TargetTime}}"
       data-supply-ticket-time="{{.TicketTargetTime}}">
-  <p class="nav-bar-area fs-18">
-  {{if eq $ChainType "dcr"}}
-    <a class="fs-18" href="/">Decred</a>
-  {{else}}
-    <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>
-  {{end}}
-  &nbsp;> Supply</p>
+      {{if ne $ChainType "dcr"}}
+      <nav class="breadcrumbs mt-0">
+      {{else}}
+      <nav class="breadcrumbs">
+      {{end}}
+      <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+           <span class="homeicon-tags me-1"></span>
+           <span class="link-underline">Blockchains</span>
+        </a>
+        {{if eq $ChainType "dcr"}}
+        <a href="/" class="breadcrumbs__item item-link">Decred</a>
+        {{else}}
+        <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+        {{end}}
+        <span class="breadcrumbs__item is-active">Supply</span>
+     </nav>
   <div class="row">
     <div class="col-24 col-sm-16 col-lg-12 col-xl-9 mt-3">
       <p class="fs-20">Next Block Reward Reduction</p>

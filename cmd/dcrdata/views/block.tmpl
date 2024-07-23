@@ -3,8 +3,16 @@
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "Decred Block %d" .Data.Height)}}
 {{ template "navbar" . }}
-<div class="container main" data-controller="time">
-<p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Decred</a>&nbsp;> Block</p>
+<div class="container mt-2" data-controller="time">
+	<nav class="breadcrumbs">
+		<a href="/chain" class="breadcrumbs__item no-underline ps-2">
+		   <span class="homeicon-tags me-1"></span>
+		   <span class="link-underline">Blockchains</span>
+		</a>
+		<a href="/" class="breadcrumbs__item item-link">Decred</a>
+		<a href="/blocks" class="breadcrumbs__item item-link">All Blocks</a>
+		<span class="breadcrumbs__item is-active">Block</span>
+	 </nav>
 {{- with .Data -}}
 {{$Invalidated := and (gt .Confirmations 1) (not .Valid) }}
 	<div class="row mx-2 my-2">

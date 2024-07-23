@@ -4,12 +4,17 @@
     {{template "html-head" headData .CommonPageData "Decred Agenda Charts"}}
         {{template "navbar" .}}
         {{with .Ai}}
-        <div class="container main pt-1">
-            <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Decred</a>&nbsp;> Agenda</p>
+        <div class="container mt-2">
+            <nav class="breadcrumbs">
+                <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+                   <span class="homeicon-tags me-1"></span>
+                   <span class="link-underline">Blockchains</span>
+                </a>
+                <a href="/" class="breadcrumbs__item item-link">Decred</a>
+                <a href="/agendas" class="breadcrumbs__item item-link">All Agendas</a>
+                <span class="breadcrumbs__item is-active">Agenda</span>
+             </nav>
             <div class="row justify-content-between">
-                <div class="col-lg-14 col-sm-12 d-flex ms-2">
-                    <a class="small row" href="/agendas">All Agendas</a>
-                </div>
                 <div class="col-lg-14 col-sm-12 d-flex">
                     <h4 class="mb-2">{{.ID}}
                     </h4>

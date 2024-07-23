@@ -4,8 +4,15 @@
 
 {{template "html-head" headData .CommonPageData "Stakeholder Disapproved Blocks"}}
     {{template "navbar" . }}
-    <div class="container main" data-controller="time">
-        <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Disapproved</p>
+    <div class="container mt-2" data-controller="time">
+        <nav class="breadcrumbs">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <span class="breadcrumbs__item is-active">Disapproved</span>
+         </nav>
         <h4><span title="blocks disapproved by stakeholder voting"><img class="h30 p2tb" src="/images/pos-hammer.svg" alt="pos hammer"> Stakeholder Disapproved Blocks</span></h4>
         <h6>There are currently {{len .Data}} blocks that have been <a href="{{.Links.POSExplanation}}">disapproved via PoS voting.</a></h6>
         <div class="row">

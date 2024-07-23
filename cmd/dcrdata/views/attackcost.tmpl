@@ -3,9 +3,8 @@
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Majority Attack Cost Calculator"}}
 {{template "navbar" . }}
-
    <div
-      class="container py-1 mb-5"
+      class="container pb-1 mb-5"
       data-controller="attackcost"
       data-attackcost-height="{{.Height}}"
       data-attackcost-hashrate="{{.HashRate}}"
@@ -15,8 +14,15 @@
       data-attackcost-ticket-pool-size="{{.TicketPoolSize}}"
      data-attackcost-coin-supply="{{.CoinSupply}}"
     >
-    <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Decred</a>&nbsp;> Attack Cost</p>
-    <div class="col-md-24 p-0 mb-4">
+    <nav class="breadcrumbs">
+      <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+         <span class="homeicon-tags me-1"></span>
+         <span class="link-underline">Blockchains</span>
+      </a>
+      <a href="/" class="breadcrumbs__item item-link">Decred</a>
+      <span class="breadcrumbs__item is-active">Attack Cost</span>
+   </nav>
+     <div class="col-md-24 p-0 mb-4">
       <div class="bg-white mb-2 pt-2 pb-0 my-0">
         <div class="d-inline-block position-relative p-2">
           <span class="card-icon dcricon-two blocks h1 me-2"></span>

@@ -5,9 +5,16 @@
    {{template "html-head" headData .CommonPageData (printf "%s Transaction %.20s..." (chainName $ChainType) .Data.TxID)}}
    {{template "mutilchain_navbar" . }}
    {{with .Data}}
-   <div class="container main pt-1" data-controller="time tx" data-tx-txid="{{.TxID}}">
-   <p class="fs-18 nav-bar-area"><a class="fs-18" href="/chain">Blockchains</a>&nbsp;> <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Transaction Detail</p>
-      <div class="row mx-2 my-2">
+   <div class="container mt-3" data-controller="time tx" data-tx-txid="{{.TxID}}">
+      <nav class="breadcrumbs mt-0">
+         <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+            <span class="homeicon-tags me-1"></span>
+            <span class="link-underline">Blockchains</span>
+         </a>
+         <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+         <span class="breadcrumbs__item is-active">Transaction Detail</span>
+      </nav>
+     <div class="row mx-2 my-2">
          <div class="col-24 col-xl-12 bg-green-3 p-3 p-sm-4 position-relative common-card">
             <div class="card-pointer pointer-right d-none d-xl-block"></div>
             <div class="card-pointer pointer-bottom d-xl-none"></div>

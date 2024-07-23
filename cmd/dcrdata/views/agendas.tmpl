@@ -21,8 +21,15 @@
 <html lang="en">
     {{template "html-head" headData .CommonPageData "Consensus Deployment Agendas"}}
         {{template "navbar" .}}
-        <div class="container pt-1 main pb-5" data-controller="agendas">
-          <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Decred</a>&nbsp;> Agendas</p>
+        <div class="container mt-2 pb-5" data-controller="agendas">
+          <nav class="breadcrumbs">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <span class="breadcrumbs__item is-active">Agendas</span>
+         </nav>
             {{- /* PRIMARY INFO CARD. LISTS AGENDAS AND SHOWS RCI/SVI PROGRESS BARS */}}
             {{with .VotingSummary}}
             <div class="row">

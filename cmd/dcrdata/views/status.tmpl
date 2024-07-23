@@ -7,8 +7,15 @@
     <div class="container py-1" data-controller="status"
         data-status-is-mutilchain="{{.StatusType.IsMutilchainResult}}"
         data-status-add-info="{{.AdditionalInfo}}"    >
-    <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Status</p>
-        <br/>
+        <nav class="breadcrumbs mt-0">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <span class="breadcrumbs__item is-active">Status</span>
+         </nav>
+       <br/>
         <div class="alert alert-info" data-status-target="message">
             {{if .StatusType.IsMutilchainResult}}
              <h4>{{.Message}}</h4>

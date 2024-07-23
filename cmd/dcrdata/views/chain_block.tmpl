@@ -10,9 +10,16 @@
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "%s Block %d" (chainName $ChainType) .Data.Height)}}
 {{ template "mutilchain_navbar" . }}
-<div class="container main pt-1" data-controller="time pagenavigation">
-	<p class="fs-18 nav-bar-area"><a class="fs-18" href="/chain">Blockchains</a>&nbsp;> <a class="fs-18"
-			href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Block</p>
+<div class="container mt-3" data-controller="time pagenavigation">
+			<nav class="breadcrumbs mt-0">
+				<a href="/chain" class="breadcrumbs__item no-underline ps-2">
+				   <span class="homeicon-tags me-1"></span>
+				   <span class="link-underline">Blockchains</span>
+				</a>
+				<a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+				<a href="/chain/{{$ChainType}}/blocks" class="breadcrumbs__item item-link">All Blocks</a>
+				<span class="breadcrumbs__item is-active">Block</span>
+			 </nav>
 	{{- with .Data -}}
 	{{- $Hash := .Hash -}}
 	<div class="row mx-2 my-2">

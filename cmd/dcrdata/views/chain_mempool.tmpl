@@ -5,9 +5,16 @@
    {{template "html-head" headData .CommonPageData (printf "%s Mempool" (chainName $ChainType))}}
    {{ template "mutilchain_navbar" . }}
    {{with .Mempool -}}
-   <div class="container main pt-1"
+   <div class="container mt-3"
       data-controller="time">
-      <p class="fs-18 nav-bar-area"><a class="fs-18" href="/chain">Blockchains</a>&nbsp;> <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Mempool</p>
+      <nav class="breadcrumbs mt-0">
+         <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+            <span class="homeicon-tags me-1"></span>
+            <span class="link-underline">Blockchains</span>
+         </a>
+         <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+         <span class="breadcrumbs__item is-active">Mempool</span>
+      </nav>
       <div class="pb-2 h4">Mempool</div>
       <div class="row mx-0 my-2">
          <div class="col-24 col-sm-12 col-md-24 col-lg-12 bg-green-3 py-3 px-3 position-relative common-card">

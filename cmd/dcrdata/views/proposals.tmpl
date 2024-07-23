@@ -3,8 +3,15 @@
 <html lang="en">
     {{template "html-head" headData .CommonPageData "Politeia Proposals"}}
         {{template "navbar" .}}
-        <div class="container main pt-1" data-controller="pagenavigation">
-        <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Proposals</p>
+        <div class="container mt-2" data-controller="pagenavigation">
+            <nav class="breadcrumbs mt-0">
+                <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+                   <span class="homeicon-tags me-1"></span>
+                   <span class="link-underline">Blockchains</span>
+                </a>
+                <a href="/" class="breadcrumbs__item item-link">Decred</a>
+                <span class="breadcrumbs__item is-active">Proposals</span>
+             </nav>
             <div class="row justify-content-between">
                 <div class="col-sm-lg-14 col-sm-12 d-flex">
                     <h4 class="mb-2">

@@ -4,8 +4,15 @@
 
 {{template "html-head" headData .CommonPageData "Decred Side Chains"}}
     {{template "navbar" . }}
-    <div class="container main" data-controller="time">
-    <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Decred</a>&nbsp;> Side Chains</p>
+    <div class="container mt-2" data-controller="time">
+    <nav class="breadcrumbs mt-0">
+        <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+           <span class="homeicon-tags me-1"></span>
+           <span class="link-underline">Blockchains</span>
+        </a>
+        <a href="/" class="breadcrumbs__item item-link">Decred</a>
+        <span class="breadcrumbs__item is-active">Side Chains</span>
+     </nav>
         <h4><span title="side chain blocks known to this dcrdata instance"><img class="h30 p2tb" src="/images/dcr-side-chains.svg" alt="side chain"> Side Chain Blocks</span></h4>
 
         <div class="row">

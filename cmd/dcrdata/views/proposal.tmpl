@@ -5,9 +5,17 @@
         {{template "navbar" .}}
         {{$metadata := .Metadata}}
         {{with .Data}}
-        <div class="container pb-4 pt-1" data-controller="proposal">
-        <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> <a class="fs-18" href="/proposals">Proposals</a>&nbsp;>&nbsp;Proposal</p>
-          <div class="row pt-2 px-2">
+        <div class="container pb-4" data-controller="proposal">
+          <nav class="breadcrumbs mt-0">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <a href="/proposals" class="breadcrumbs__item item-link">All Proposals</a>
+            <span class="breadcrumbs__item is-active">Proposal</span>
+         </nav>
+         <div class="row pt-2 px-2">
             <div class="col-24 col-xl-11 bg-white pe-1 position-relative">
               <div class="common-card mt-2 px-xl-5 py-3 d-flex flex-column justify-content-between align-items-start">
               {{$status := $metadata.VoteStatusDesc}}

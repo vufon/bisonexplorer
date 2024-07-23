@@ -7,7 +7,7 @@
    {{- with .Data}}
    {{- $TxnCount := add .TxnCount .NumUnconfirmed}}
    {{- $txType := .TxnType -}}
-   <div class="container main pt-1"
+   <div class="container mt-3"
       data-controller="chainaddress newblock"
       data-chainaddress-offset="{{.Offset}}"
       data-chainaddress-dcraddress="{{.Address}}"
@@ -15,7 +15,14 @@
       data-chainaddress-chain-type="{{$ChainType}}"
       data-chainaddress-balance="{{toFloat64Amount .Balance.TotalUnspent}}"
       >
-   <p class="fs-18 nav-bar-area"><a class="fs-18" href="/chain">Blockchains</a>&nbsp;> <a class="fs-18" href="/chain/{{$ChainType}}">{{chainName $ChainType}}</a>&nbsp;> Address</p>
+      <nav class="breadcrumbs mt-0">
+         <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+            <span class="homeicon-tags me-1"></span>
+            <span class="link-underline">Blockchains</span>
+         </a>
+         <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+         <span class="breadcrumbs__item is-active">Address</span>
+      </nav>
    <div class="row pb-4 px-2">
       <div class="col-24 col-xl-11 bg-white pe-1 position-relative mt-2">
          <div class="py-3 px-3 common-card h-100">

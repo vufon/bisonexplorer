@@ -5,7 +5,14 @@
 {{template "html-head" headData .CommonPageData "Decred Blocks List"}}
     {{template "navbar" . }}
     <div class="container mt-2">
-    <p class="fs-18 nav-bar-area"><a class="fs-18" href="/">Decred</a>&nbsp;> Blocks</p>
+        <nav class="breadcrumbs">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <span class="breadcrumbs__item is-active">Blocks</span>
+         </nav>
     </div>
     {{template "blocksBanner" .}}
     <div class="container px-0 main" data-controller="time pagenavigation blocklist">

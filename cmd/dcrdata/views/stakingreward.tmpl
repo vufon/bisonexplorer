@@ -8,7 +8,7 @@
   {{$HomeInfo := .Info}}
   {{$Param := .Param}}
   <div class="content">
-    <div class="container px-0 main pt-1" 
+    <div class="container px-0 mt-2" 
       data-controller="stakingreward"
       data-stakingreward-ticket-reward="{{$HomeInfo.TicketReward}}" 
       data-stakingreward-reward-period="{{$HomeInfo.RewardPeriod}}"
@@ -23,8 +23,15 @@
       data-stakingreward-block-height="{{.BlockHeight}}"
       data-stakingreward-coin-supply="{{$HomeInfo.CoinSupply}}"
       data-stakingreward-dcrprice="{{.DCRPrice}}">
-      <p class="nav-bar-area fs-18"><a class="fs-18" href="/">Decred</a>&nbsp;> Staking Reward Calculator</p>
-      <div class="px-1">
+      <nav class="breadcrumbs mt-0">
+        <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+           <span class="homeicon-tags me-1"></span>
+           <span class="link-underline">Blockchains</span>
+        </a>
+        <a href="/" class="breadcrumbs__item item-link">Decred</a>
+        <span class="breadcrumbs__item is-active">Staking Reward Calculator</span>
+     </nav>
+     <div class="px-1">
         <div class="d-flex justify-content-between mt-3 align-items-end">
           <span class="h2 d-flex p-2">
             Staking Reward Calculator
