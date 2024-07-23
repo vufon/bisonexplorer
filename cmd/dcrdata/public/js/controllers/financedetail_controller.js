@@ -23,7 +23,7 @@ export default class extends Controller {
       'nextButton', 'proposalArea', 'noReport',
       'totalSpanRow', 'monthlyArea', 'yearlyArea',
       'monthlyReport', 'yearlyReport', 'summaryArea', 'summaryReport',
-      'proposalSpanRow', 'prevBtn', 'nextBtn', 'upLevel',
+      'proposalSpanRow', 'prevBtn', 'nextBtn',
       'toVote', 'toDiscussion', 'sameOwnerProposalArea', 'otherProposalSummary',
       'expendiduteValue', 'prevNextButtons', 'toUpReport',
       'currentDetail', 'yearBreadcumb', 'proposalSumCard']
@@ -209,12 +209,15 @@ export default class extends Controller {
     if (this.settings.type === 'domain') {
       this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=domain">Domains</a>>'
+      this.toUpReportTarget.href = '/finance-report?type=domain'
+      this.toUpReportTarget.innerHTML = 'Domains'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report?type=author">Authors</a>>'
+      this.toUpReportTarget.href = '/finance-report?type=author'
+      this.toUpReportTarget.innerHTML = 'Authors'
     } else {
-      this.toUpReportTarget.innerHTML = '<a class="link-hover-underline me-2 fs-18" href="/finance-report">Proposals</a>>'
+      this.toUpReportTarget.href = '/finance-report'
+      this.toUpReportTarget.innerHTML = 'Proposals'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -540,7 +543,8 @@ export default class extends Controller {
   async yearMonthCalculate () {
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
-    this.toUpReportTarget.innerHTML = '<a class="link-hover-underline fs-18" href="/finance-report">Proposals</a> > '
+    this.toUpReportTarget.href = '/finance-report'
+    this.toUpReportTarget.innerHTML = 'Proposals'
     if (this.settings.type === 'year') {
       this.yearBreadcumbTarget.classList.add('d-none')
     } else {
@@ -549,8 +553,8 @@ export default class extends Controller {
         const timeArr = this.settings.time.trim().split('_')
         if (timeArr.length >= 2) {
           const year = parseInt(timeArr[0])
-          this.upLevelTarget.href = '/finance-report/detail?type=year&time=' + year
-          this.upLevelTarget.textContent = year
+          this.yearBreadcumbTarget.href = '/finance-report/detail?type=year&time=' + year
+          this.yearBreadcumbTarget.textContent = year
         }
       }
       const myArr = this.settings.time.toString().split('_')

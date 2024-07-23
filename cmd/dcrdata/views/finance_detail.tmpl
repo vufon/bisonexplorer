@@ -7,18 +7,23 @@
       <div class="content pb-40 container" 
          data-controller="financedetail"
          data-financedetail-politeia-url="{{.PoliteiaURL}}">
-         <div class="d-flex w-100 fs-18 mt-2 ai-end nav-bar-area">
-               <span class="me-2">
-               <a class="fs-18" href="/chain">Blockchains</a><span class="me-2 ms-2">></span><a class="fs-18" href="/">Decred</a><span class="me-2 ms-2">></span><a class="link-hover-underline fs-18" href="/home-report">Financial Reports</a></span><span>></span><span class="ms-2 me-2 fs-18" data-financedetail-target="toUpReport"></span>
-               <span class="fs-18" data-financedetail-target="yearBreadcumb">
-               <a data-financedetail-target="upLevel" class="link-hover-underline fs-18" href="#">
-               </a><span class="ms-2 me-2">></span></span>
-               <span data-financedetail-target="currentDetail" class="fs-20"></span>
-               <p class="ms-3 d-flex mt-0" data-financedetail-target="prevNextButtons">
-                  <a class="fs13 cursor-pointer" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
-                  <a class="fs13 cursor-pointer" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">&nbsp;next </a>
-               </p>
-         </div>
+         <nav class="breadcrumbs mt-0">
+            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <span class="homeicon-tags me-1"></span>
+               <span class="link-underline">Blockchains</span>
+            </a>
+            <a href="/" class="breadcrumbs__item item-link">Decred</a>
+            <a href="/home-report" class="breadcrumbs__item item-link">Financial Reports</a>
+            <a href="/" class="breadcrumbs__item item-link" data-financedetail-target="toUpReport"></a>
+            <a href="/" class="breadcrumbs__item item-link d-none" data-financedetail-target="yearBreadcumb"></a>
+            <span class="breadcrumbs__item is-active d-flex">
+               <span data-financedetail-target="currentDetail"></span>
+               <span class="ms-3 d-flex mt-0" data-financedetail-target="prevNextButtons">
+                  <a class="fs13 cursor-pointer c-white item-link hover-grey" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
+                  <a class="fs13 cursor-pointer c-white item-link hover-grey" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">&nbsp;next </a>
+               </span>
+            </span>
+         </nav>
          <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
          <div class="d-none" data-financedetail-target="reportArea">
             <div class="common-card py-2 ps-3 w-500px mt-3 d-none" data-financedetail-target="proposalSumCard">
