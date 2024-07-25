@@ -1,17 +1,18 @@
 import { Controller } from '@hotwired/stimulus'
 import dompurify from 'dompurify'
 import { assign, map, merge } from 'lodash-es'
-import { animationFrame } from '../helpers/animation_helper'
-import { isEqual } from '../helpers/chart_helper'
-import { requestJSON } from '../helpers/http'
-import humanize from '../helpers/humanize_helper'
-import { getDefault } from '../helpers/module_helper'
-import TurboQuery from '../helpers/turbolinks_helper'
-import Zoom from '../helpers/zoom_helper'
-import globalEventBus from '../services/event_bus_service'
-import { darkEnabled } from '../services/theme_service'
+import { animationFrame } from '../helpers/animation_helper.js'
+import { isEqual } from '../helpers/chart_helper.js'
+import { requestJSON } from '../helpers/http.js'
+import humanize from '../helpers/humanize_helper.js'
+import { getDefault } from '../helpers/module_helper.js'
+import TurboQuery from '../helpers/turbolinks_helper.js'
+import Zoom from '../helpers/zoom_helper.js'
+import globalEventBus from '../services/event_bus_service.js'
+import { darkEnabled } from '../services/theme_service.js'
 
 let selectedChart
+let selectedType
 let Dygraph // lazy loaded on connect
 
 const aDay = 86400 * 1000 // in milliseconds
@@ -22,9 +23,14 @@ const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation']
+const decredChartOpts = ['ticket-price', 'ticket-pool-size', 'ticket-pool-value', 'stake-participation',
+  'privacy-participation', 'missed-votes', 'block-size', 'blockchain-size', 'tx-count', 'duration-btw-blocks',
+  'pow-difficulty', 'chainwork', 'hashrate', 'coin-supply', 'fees']
+const mutilchainChartOpts = ['block-size', 'blockchain-size', 'tx-count', 'tx-per-block', 'address-number',
+  'pow-difficulty', 'hashrate', 'mined-blocks', 'mempool-size', 'mempool-txs', 'coin-supply', 'fees']
+let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
-const chainworkUnits = ['exahash', 'zettahash', 'yottahash']
 const hashrateUnits = ['Th/s', 'Ph/s', 'Eh/s']
 let ticketPoolSizeTarget, premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
@@ -54,6 +60,89 @@ function hasMultipleVisibility (chart) {
 function intComma (amount) {
   if (!amount) return ''
   return amount.toLocaleString(undefined, { maximumFractionDigits: 0 })
+}
+
+function zipWindowHvYZ (ys, zs, winSize, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 0
+  return ys.map((y, i) => {
+    return [i * winSize + offset, y * yMult, zs[i] * zMult]
+  })
+}
+
+function zipWindowTvYZ (times, ys, zs, yMult, zMult) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  return times.map((t, i) => {
+    return [new Date(t * 1000), ys[i] * yMult, zs[i] * zMult]
+  })
+}
+
+function ticketPriceFunc (data) {
+  if (data.t) return zipWindowTvYZ(data.t, data.price, data.count, atomsToDCR)
+  return zipWindowHvYZ(data.price, data.count, data.window, atomsToDCR)
+}
+
+function poolSizeFunc (data) {
+  let out = []
+  if (data.axis === 'height') {
+    if (data.bin === 'block') out = zipIvY(data.count)
+    else out = zipHvY(data.h, data.count)
+  } else {
+    out = zipTvY(data.t, data.count)
+  }
+  out.forEach(pt => pt.push(null))
+  if (out.length) {
+    out[0][2] = ticketPoolSizeTarget
+    out[out.length - 1][2] = ticketPoolSizeTarget
+  }
+  return out
+}
+
+function percentStakedFunc (data) {
+  rawCoinSupply = data.circulation.map(v => v * atomsToDCR)
+  rawPoolValue = data.poolval.map(v => v * atomsToDCR)
+  const ys = rawPoolValue.map((v, i) => [v / rawCoinSupply[i] * 100])
+  if (data.axis === 'height') {
+    if (data.bin === 'block') return zipIvY(ys)
+    return zipHvY(data.h, ys)
+  }
+  return zipTvY(data.t, ys)
+}
+
+function anonymitySetFunc (data) {
+  let d
+  let start = -1
+  let end = 0
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      d = data.anonymitySet.map((y, i) => {
+        if (start === -1 && y > 0) {
+          start = i
+        }
+        end = i
+        return [i, y * atomsToDCR]
+      })
+    } else {
+      d = data.anonymitySet.map((y, i) => {
+        if (start === -1 && y > 0) {
+          start = i
+        }
+        end = data.h[i]
+        return [data.h[i], y * atomsToDCR]
+      })
+    }
+  } else {
+    d = data.t.map((t, i) => {
+      if (start === -1 && data.anonymitySet[i] > 0) {
+        start = t * 1000
+      }
+      end = t * 1000
+      return [new Date(t * 1000), data.anonymitySet[i] * atomsToDCR]
+    })
+  }
+  return { data: d, limits: [start, end] }
 }
 
 function axesToRestoreYRange (chartName, origYRange, newYRange) {
@@ -134,28 +223,11 @@ function nightModeOptions (nightModeOn) {
   }
 }
 
-function zipWindowHvYZ (ys, zs, winSize, yMult, zMult, offset) {
-  yMult = yMult || 1
-  zMult = zMult || 1
-  offset = offset || 0
-  return ys.map((y, i) => {
-    return [i * winSize + offset, y * yMult, zs[i] * zMult]
-  })
-}
-
 function zipWindowHvY (ys, winSize, yMult, offset) {
   yMult = yMult || 1
   offset = offset || 0
   return ys.map((y, i) => {
     return [i * winSize + offset, y * yMult]
-  })
-}
-
-function zipWindowTvYZ (times, ys, zs, yMult, zMult) {
-  yMult = yMult || 1
-  zMult = zMult || 1
-  return times.map((t, i) => {
-    return [new Date(t * 1000), ys[i] * yMult, zs[i] * zMult]
   })
 }
 
@@ -198,72 +270,6 @@ function zip2D (data, ys, yMult, offset) {
   return zipTvY(data.t, ys, yMult)
 }
 
-function anonymitySetFunc (data) {
-  let d
-  let start = -1
-  let end = 0
-  if (data.axis === 'height') {
-    if (data.bin === 'block') {
-      d = data.anonymitySet.map((y, i) => {
-        if (start === -1 && y > 0) {
-          start = i
-        }
-        end = i
-        return [i, y * atomsToDCR]
-      })
-    } else {
-      d = data.anonymitySet.map((y, i) => {
-        if (start === -1 && y > 0) {
-          start = i
-        }
-        end = data.h[i]
-        return [data.h[i], y * atomsToDCR]
-      })
-    }
-  } else {
-    d = data.t.map((t, i) => {
-      if (start === -1 && data.anonymitySet[i] > 0) {
-        start = t * 1000
-      }
-      end = t * 1000
-      return [new Date(t * 1000), data.anonymitySet[i] * atomsToDCR]
-    })
-  }
-  return { data: d, limits: [start, end] }
-}
-
-function ticketPriceFunc (data) {
-  if (data.t) return zipWindowTvYZ(data.t, data.price, data.count, atomsToDCR)
-  return zipWindowHvYZ(data.price, data.count, data.window, atomsToDCR)
-}
-
-function poolSizeFunc (data) {
-  let out = []
-  if (data.axis === 'height') {
-    if (data.bin === 'block') out = zipIvY(data.count)
-    else out = zipHvY(data.h, data.count)
-  } else {
-    out = zipTvY(data.t, data.count)
-  }
-  out.forEach(pt => pt.push(null))
-  if (out.length) {
-    out[0][2] = ticketPoolSizeTarget
-    out[out.length - 1][2] = ticketPoolSizeTarget
-  }
-  return out
-}
-
-function percentStakedFunc (data) {
-  rawCoinSupply = data.circulation.map(v => v * atomsToDCR)
-  rawPoolValue = data.poolval.map(v => v * atomsToDCR)
-  const ys = rawPoolValue.map((v, i) => [v / rawCoinSupply[i] * 100])
-  if (data.axis === 'height') {
-    if (data.bin === 'block') return zipIvY(ys)
-    return zipHvY(data.h, ys)
-  }
-  return zipTvY(data.t, ys)
-}
-
 function powDiffFunc (data) {
   if (data.t) return zipWindowTvY(data.t, data.diff)
   return zipWindowHvY(data.diff, data.window)
@@ -281,7 +287,6 @@ function circulationFunc (chartData) {
   const heights = chartData.h
   const times = chartData.t
   const supplies = chartData.supply
-  const anonymitySet = chartData.anonymitySet
   const isHeightAxis = chartData.axis === 'height'
   let xFunc, hFunc
   if (chartData.bin === 'day') {
@@ -297,7 +302,7 @@ function circulationFunc (chartData) {
     const height = hFunc(i)
     addDough(height)
     inflation.push(yMax)
-    return [xFunc(i), supplies[i] * atomsToDCR, null, anonymitySet[i] * atomsToDCR]
+    return [xFunc(i), supplies[i] * atomsToDCR, null, 0]
   })
 
   const dailyBlocks = aDay / avgBlockTime
@@ -316,11 +321,6 @@ function circulationFunc (chartData) {
     data.push([xFunc(x), null, yMax, null])
   }
   return { data, inflation }
-}
-
-function missedVotesFunc (data) {
-  if (data.t) return zipWindowTvY(data.t, data.missed)
-  return zipWindowHvY(data.missed, data.window, 1, data.offset * data.window)
 }
 
 function mapDygraphOptions (data, labelsVal, isDrawPoint, yLabel, labelsMG, labelsMG2) {
@@ -347,11 +347,6 @@ export default class extends Controller {
       'axisOption',
       'binSelector',
       'scaleSelector',
-      'ticketsPurchase',
-      'ticketsPrice',
-      'anonymitySet',
-      'vSelectorItem',
-      'vSelector',
       'binSize',
       'legendEntry',
       'legendMarker',
@@ -359,22 +354,28 @@ export default class extends Controller {
       'modeOption',
       'rawDataURL',
       'chartName',
-      'chartTitleName'
+      'chartTitleName',
+      'chainTypeSelected',
+      'vSelectorItem',
+      'vSelector',
+      'ticketsPurchase',
+      'anonymitySet',
+      'ticketsPrice'
     ]
   }
 
   async connect () {
     this.isHomepage = !window.location.href.includes('/charts')
     this.query = new TurboQuery()
-    ticketPoolSizeTarget = parseInt(this.data.get('tps'))
     premine = parseInt(this.data.get('premine'))
     stakeValHeight = parseInt(this.data.get('svh'))
     stakeShare = parseInt(this.data.get('pos')) / 10.0
     baseSubsidy = parseInt(this.data.get('bs'))
     subsidyInterval = parseInt(this.data.get('sri'))
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
-    windowSize = parseInt(this.data.get('windowSize'))
-    avgBlockTime = parseInt(this.data.get('blockTime')) * 1000
+    this.chainType = 'dcr'
+    avgBlockTime = parseInt(this.data.get(this.chainType + 'BlockTime')) * 1000
+    globalChainType = this.chainType
     legendElement = this.labelsTarget
 
     // Prepare the legend element generators.
@@ -400,6 +401,9 @@ export default class extends Controller {
       this.query.update(this.settings)
     }
     this.settings.chart = this.settings.chart || 'ticket-price'
+    this.zoomButtons = this.zoomSelectorTarget.querySelectorAll('button')
+    this.binButtons = this.binSelectorTarget.querySelectorAll('button')
+    this.scaleButtons = this.scaleSelectorTarget.querySelectorAll('button')
     this.zoomCallback = this._zoomCallback.bind(this)
     this.drawCallback = this._drawCallback.bind(this)
     this.limits = null
@@ -420,6 +424,31 @@ export default class extends Controller {
       )
     }
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
+  }
+
+  setVisibility (e) {
+    switch (this.chartSelectTarget.value) {
+      case 'ticket-price':
+        if (!this.ticketsPriceTarget.checked && !this.ticketsPurchaseTarget.checked) {
+          e.currentTarget.checked = true
+          return
+        }
+        this.visibility = [this.ticketsPriceTarget.checked, this.ticketsPurchaseTarget.checked]
+        break
+      case 'coin-supply':
+        this.visibility = [true, true, this.anonymitySetTarget.checked]
+        break
+      case 'privacy-participation':
+        this.visibility = [true, this.anonymitySetTarget.checked]
+        break
+      default:
+        return
+    }
+    this.chartsView.updateOptions({ visibility: this.visibility })
+    this.settings.visibility = this.visibility.join('-')
+    if (!this.isHomepage) {
+      this.query.replace(this.settings)
+    }
   }
 
   disconnect () {
@@ -460,9 +489,9 @@ export default class extends Controller {
     this.chartSelectTarget.value = this.settings.chart
 
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
-    if (this.settings.scale === 'log') this.setScale(this.settings.scale)
-    if (this.settings.zoom) this.setZoom(this.settings.zoom)
-    this.setBin(this.settings.bin ? this.settings.bin : 'day')
+    if (this.settings.scale === 'log') this.setSelectScale(this.settings.scale)
+    if (this.settings.zoom) this.setSelectZoom(this.settings.zoom)
+    this.setSelectBin(this.settings.bin ? this.settings.bin : 'day')
     this.setMode(this.settings.mode ? this.settings.mode : 'smooth')
 
     const ogLegendGenerator = Dygraph.Plugins.Legend.generateLegendHTML
@@ -522,7 +551,6 @@ export default class extends Controller {
         }
         yFormatter = customYFormatter(y => `${intComma(y)} tickets &nbsp;&nbsp; (network target ${intComma(ticketPoolSizeTarget)})`)
         break
-
       case 'stake-participation':
         d = percentStakedFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Stake Participation'], true,
@@ -533,40 +561,76 @@ export default class extends Controller {
           div.appendChild(legendEntry(`${legendMarker()} Coin Supply: ${intComma(rawCoinSupply[i])} DCR`))
         }
         break
-
+      case 'privacy-participation': { // anonymity set graph
+          d = anonymitySetFunc(data)
+          this.customLimits = d.limits
+          const label = 'Mix Rate'
+          assign(gOptions, mapDygraphOptions(d.data, [xlabel, label], false, `${label} (DCR)`, true, false))
+  
+          yFormatter = (div, data, i) => {
+            addLegendEntryFmt(div, data.series[0], y => y > 0 ? intComma(y) : '0' + ' DCR')
+          }
+          break
+        }
       case 'ticket-pool-value': // pool value graph
         d = zip2D(data, data.poolval, atomsToDCR)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Ticket Pool Value'], true,
           'Ticket Pool Value (DCR)', true, false))
         yFormatter = customYFormatter(y => intComma(y) + ' DCR')
         break
-
       case 'block-size': // block size graph
         d = zip2D(data, data.size)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', true, false))
         break
-
       case 'blockchain-size': // blockchain size graph
         d = zip2D(data, data.size)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Blockchain Size'], true,
           'Blockchain Size', false, true))
         break
-
       case 'tx-count': // tx per block graph
         d = zip2D(data, data.count)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Number of Transactions'], false,
-          '# of Transactions', false, false))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Transactions'], false,
+          'Total Transactions', false, false))
         break
-
+      case 'tx-per-block': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg TXs Per Block'], false,
+          'Avg TXs Per Block', false, false))
+        break
+      case 'mined-blocks': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mined Blocks'], false,
+          'Mined Blocks', false, false))
+        break
+      case 'mempool-txs': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mempool Transactions'], false,
+          'Mempool Transactions', false, false))
+        break
+      case 'mempool-size': // blockchain size graph
+        d = zip2D(data, data.size)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mempool Size'], true,
+          'Mempool Size', false, true))
+        break
+      case 'address-number': // tx per block graph
+        d = zip2D(data, data.count)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Active Addresses'], false,
+          'Active Addresses', false, false))
+        break
       case 'pow-difficulty': // difficulty graph
         d = powDiffFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
         break
-
       case 'coin-supply': // supply graph
+        if (this.settings.bin === 'day') {
+          d = zip2D(data, data.supply)
+          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply'], false,
+            'Coins Supply', false, false))
+          break
+        }
         d = circulationFunc(data)
         assign(gOptions, mapDygraphOptions(d.data, [xlabel, 'Coin Supply', 'Inflation Limit', 'Mix Rate'],
-          true, 'Coin Supply (DCR)', true, false))
+          true, 'Coin Supply (' + this.chainType.toUpperCase() + ')', true, false))
         gOptions.y2label = 'Inflation Limit'
         gOptions.y3label = 'Mix Rate'
         gOptions.series = { 'Inflation Limit': { axis: 'y2' }, 'Mix Rate': { axis: 'y3' } }
@@ -584,50 +648,34 @@ export default class extends Controller {
         }
         gOptions.inflation = d.inflation
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' DCR')
+          addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' ' + globalChainType.toUpperCase())
           let change = 0
           if (i < d.inflation.length) {
-            const supply = data.series[0].y
-            if (this.anonymitySetTarget.checked) {
-              const mixed = data.series[2].y
-              const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
-              div.appendChild(legendEntry(`${legendMarker()} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
+            if (selectedType === 'dcr') {
+              const supply = data.series[0].y
+              if (this.anonymitySetTarget.checked) {
+                const mixed = data.series[2].y
+                const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
+                div.appendChild(legendEntry(`${legendMarker()} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
+              }
             }
             const predicted = d.inflation[i]
             const unminted = predicted - data.series[0].y
             change = ((unminted / predicted) * 100).toFixed(2)
-            div.appendChild(legendEntry(`${legendMarker()} Unminted: ${intComma(unminted)} DCR (${change}%)`))
+            div.appendChild(legendEntry(`${legendMarker()} Unminted: ${intComma(unminted)} ` + globalChainType.toUpperCase() + ` (${change}%)`))
           }
         }
         break
 
       case 'fees': // block fee graph
         d = zip2D(data, data.fees, atomsToDCR)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (DCR)', true, false))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (' + globalChainType.toUpperCase() + ')', true, false))
         break
 
-      case 'privacy-participation': { // anonymity set graph
-        d = anonymitySetFunc(data)
-        this.customLimits = d.limits
-        const label = 'Mix Rate'
-        assign(gOptions, mapDygraphOptions(d.data, [xlabel, label], false, `${label} (DCR)`, true, false))
-
-        yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => y > 0 ? intComma(y) : '0' + ' DCR')
-        }
-        break
-      }
       case 'duration-btw-blocks': // Duration between blocks graph
         d = zip2D(data, data.duration, 1, 1)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Duration Between Blocks'], false,
           'Duration Between Blocks (seconds)', false, false))
-        break
-
-      case 'chainwork': // Total chainwork over time
-        d = zip2D(data, data.work)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Cumulative Chainwork (exahash)'],
-          false, 'Cumulative Chainwork (exahash)', true, false))
-        yFormatter = customYFormatter(y => withBigUnits(y, chainworkUnits))
         break
 
       case 'hashrate': // Total chainwork over time
@@ -636,21 +684,182 @@ export default class extends Controller {
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
         break
-
-      case 'missed-votes':
-        d = missedVotesFunc(data)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Missed Votes'], false,
-          'Missed Votes per Window', true, false))
-        break
     }
 
     const baseURL = `${this.query.url.protocol}//${this.query.url.host}`
-    this.rawDataURLTarget.textContent = `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
+    this.rawDataURLTarget.textContent = this.chainType === 'dcr' ? `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}` :
+     `${baseURL}/api/chainchart/${this.chainType}/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
 
     this.chartsView.plotter_.clear()
     this.chartsView.updateOptions(gOptions, false)
     if (yValueRanges[chartName]) this.supportedYRange = this.chartsView.yAxisRanges()
     this.validateZoom()
+  }
+
+  updateVSelector (chart) {
+    if (!chart) {
+      chart = this.chartSelectTarget.value
+    }
+    const that = this
+    let showWrapper = false
+    this.vSelectorItemTargets.forEach(el => {
+      let show = el.dataset.charts.indexOf(chart) > -1
+      if (el.dataset.bin && el.dataset.bin.indexOf(that.selectedBin()) === -1) {
+        show = false
+      }
+      if (show) {
+        el.classList.remove('d-hide')
+        showWrapper = true
+      } else {
+        el.classList.add('d-hide')
+      }
+    })
+    if (showWrapper) {
+      this.vSelectorTarget.classList.remove('d-hide')
+    } else {
+      this.vSelectorTarget.classList.add('d-hide')
+    }
+    this.setVisibilityFromSettings()
+  }
+
+  async chainTypeChange (e) {
+    if (e.target.name === this.chainType) {
+      return
+    }
+    const target = e.srcElement || e.target
+    this.chainTypeSelectedTargets.forEach((cTypeTarget) => {
+      cTypeTarget.classList.remove('active')
+    })
+    target.classList.add('active')
+    let reinitChartType = false
+    reinitChartType = this.chainType === 'dcr' || e.target.name === 'dcr'
+    this.chainType = e.target.name
+    // reinit
+    if (reinitChartType) {
+      this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
+    }
+    // determind select chart
+    this.settings.chart = this.getSelectedChart()
+    this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
+    this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
+    this.customLimits = null
+    this.chartWrapperTarget.classList.add('loading')
+    if (isScaleDisabled(this.settings.chart)) {
+      this.scaleSelectorTarget.classList.add('d-hide')
+    } else {
+      this.scaleSelectorTarget.classList.remove('d-hide')
+    }
+    if (isModeEnabled(this.settings.chart)) {
+      this.modeSelectorTarget.classList.remove('d-hide')
+    } else {
+      this.modeSelectorTarget.classList.add('d-hide')
+    }
+    if (hasMultipleVisibility(this.settings.chart)) {
+      this.vSelectorTarget.classList.remove('d-hide')
+      this.updateVSelector(this.settings.chart)
+    } else {
+      this.vSelectorTarget.classList.add('d-hide')
+    }
+    if (selectedType !== this.chainType || (selectedType === this.chainType && selectedChart !== this.settings.chart) ||
+    this.settings.bin !== this.selectedBin() || this.settings.axis !== this.selectedAxis()) {
+      let url = this.chainType === 'dcr' ? '/api/chart/' + this.settings.chart : `/api/chainchart/${this.chainType}/` + this.settings.chart
+      if (usesWindowUnits(this.settings.chart) && !usesHybridUnits(this.settings.chart)) {
+        this.binSelectorTarget.classList.add('d-hide')
+        this.settings.bin = 'window'
+      } else {
+        this.settings.bin = this.selectedBin()
+        if (this.chainType === 'dcr') {
+          this.binSelectorTarget.classList.remove('d-hide')
+          this.binButtons.forEach(btn => {
+            if (btn.name !== 'window') return
+            if (usesHybridUnits(this.settings.chart)) {
+              btn.classList.remove('d-hide')
+            } else {
+              btn.classList.add('d-hide')
+              if (this.settings.bin === 'window') {
+                this.settings.bin = 'day'
+                this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+              }
+            }
+          })
+        } else {
+          this.binSelectorTarget.classList.add('d-hide')
+        }
+      }
+      url += `?bin=${this.settings.bin}`
+      this.settings.axis = this.selectedAxis()
+      if (!this.settings.axis) this.settings.axis = 'time' // Set the default.
+      url += `&axis=${this.settings.axis}`
+      this.setActiveOptionBtn(this.settings.axis, this.axisOptionTargets)
+      const chartResponse = await requestJSON(url)
+      selectedType = this.chainType
+      selectedChart = this.settings.chart
+      this.plotGraph(this.settings.chart, chartResponse)
+    } else {
+      this.chartWrapperTarget.classList.remove('loading')
+    }
+  }
+
+  getSelectedChart () {
+    let hasChart = false
+    const chartOpts = this.chainType === 'dcr' ? decredChartOpts : mutilchainChartOpts
+    chartOpts.forEach((opt) => {
+      if (this.settings.chart === opt) {
+        hasChart = true
+      }
+    })
+    if (hasChart) {
+      this.chartSelectTarget.value = this.settings.chart
+      return this.settings.chart
+    }
+    return chartOpts[0]
+  }
+
+  getDecredChartOptsHtml () {
+    return '<optgroup label="Staking">' +
+    '<option value="ticket-price">Ticket Price</option>' +
+    '<option value="ticket-pool-size">Ticket Pool Size</option>' +
+    '<option value="ticket-pool-value">Ticket Pool Value</option>' +
+    '<option value="stake-participation">Stake Participation</option>' +
+    '<option value="privacy-participation">Privacy Participation</option>' +
+    '<option value="missed-votes">Missed Votes</option>' +
+    '</optgroup>' +
+    '<optgroup label="Chain">' +
+    '<option value="block-size">Block Size</option>' +
+    '<option value="blockchain-size">Blockchain Size</option>' +
+    '<option value="tx-count">Transaction Count</option>' +
+    '<option value="duration-btw-blocks">Duration Between Blocks</option>' +
+    '</optgroup>' +
+    '<optgroup label="Mining">' +
+    '<option value="pow-difficulty">PoW Difficulty</option>' +
+    '<option value="chainwork">Total Work</option>' +
+    '<option value="hashrate">Hashrate</option>' +
+    '</optgroup>' +
+    '<optgroup label="Distribution">' +
+    '<option value="coin-supply">Circulation</option>' +
+    '<option value="fees">Fees</option>' +
+    '</optgroup>'
+  }
+
+  getMutilchainChartOptsHtml () {
+    return '<optgroup label="Chain">' +
+    '<option value="block-size">Block Size</option>' +
+    '<option value="blockchain-size">Blockchain Size</option>' +
+    '<option value="tx-count">Transaction Count</option>' +
+    '<option value="tx-per-block">TXs Per Blocks</option>' +
+    '<option value="address-number">Active Addresses</option>' +
+    '</optgroup>' +
+    '<optgroup label="Mining">' +
+    '<option value="pow-difficulty">Difficulty</option>' +
+    '<option value="hashrate">Hashrate</option>' +
+    '<option value="mined-blocks">Mined Blocks</option>' +
+    '<option value="mempool-size">Mempool Size</option>' +
+    '<option value="mempool-txs">Mempool TXs</option>' +
+    '</optgroup>' +
+    '<optgroup label="Distribution">' +
+    '<option value="coin-supply">Circulation</option>' +
+    '<option value="fees">Fees</option>' +
+    '</optgroup>'
   }
 
   async selectChart () {
@@ -678,34 +887,38 @@ export default class extends Controller {
     }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
       this.settings.axis !== this.selectedAxis()) {
-      let url = '/api/chart/' + selection
+      let url = this.chainType === 'dcr' ? '/api/chart/' + selection : `/api/chainchart/${this.chainType}/` + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.binSelectorTarget.classList.add('d-hide')
         this.settings.bin = 'window'
       } else {
-        this.binSelectorTarget.classList.remove('d-hide')
         this.settings.bin = this.selectedBin()
-        this.binSizeTargets.forEach(el => {
-          if (el.dataset.option !== 'window') return
-          if (usesHybridUnits(selection)) {
-            el.classList.remove('d-hide')
-          } else {
-            el.classList.add('d-hide')
-            if (this.settings.bin === 'window') {
-              this.settings.bin = 'day'
-              this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+        if (this.chainType === 'dcr') {
+          this.binSelectorTarget.classList.remove('d-hide')
+          this.binButtons.forEach(btn => {
+            if (btn.name !== 'window') return
+            if (usesHybridUnits(selection)) {
+              btn.classList.remove('d-hide')
+            } else {
+              btn.classList.add('d-hide')
+              if (this.settings.bin === 'window') {
+                this.settings.bin = 'day'
+                this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+              }
             }
-          }
-        })
+          })
+        } else {
+          this.binSelectorTarget.classList.add('d-hide')
+        }
       }
       url += `?bin=${this.settings.bin}`
-
       this.settings.axis = this.selectedAxis()
       if (!this.settings.axis) this.settings.axis = 'time' // Set the default.
       url += `&axis=${this.settings.axis}`
       this.setActiveOptionBtn(this.settings.axis, this.axisOptionTargets)
       const chartResponse = await requestJSON(url)
       selectedChart = selection
+      selectedType = this.chainType
       this.plotGraph(selection, chartResponse)
     } else {
       this.chartWrapperTarget.classList.remove('loading')
@@ -714,18 +927,6 @@ export default class extends Controller {
 
   getChartName (chartValue) {
     switch (chartValue) {
-      case 'ticket-price':
-        return 'Ticket Price'
-      case 'ticket-pool-size':
-        return 'Ticket Pool Size'
-      case 'ticket-pool-value':
-        return 'Ticket Pool Value'
-      case 'stake-participation':
-        return 'Stake Participation'
-      case 'privacy-participation':
-        return 'Privacy Participation'
-      case 'missed-votes':
-        return 'Missed Votes'
       case 'block-size':
         return 'Block Size'
       case 'blockchain-size':
@@ -736,14 +937,22 @@ export default class extends Controller {
         return 'Duration Between Blocks'
       case 'pow-difficulty':
         return 'PoW Difficulty'
-      case 'chainwork':
-        return 'Total Work'
       case 'hashrate':
         return 'Hashrate'
       case 'coin-supply':
         return 'Circulation'
       case 'fees':
         return 'Fees'
+      case 'tx-per-block':
+        return 'TXs Per Blocks'
+      case 'mined-blocks':
+        return 'Mined Blocks'
+      case 'mempool-txs':
+        return 'Mempool TXs'
+      case 'mempool-size':
+        return 'Mempool Size'
+      case 'address-number':
+        return 'Active Addresses'
       default:
         return ''
     }
@@ -791,7 +1000,7 @@ export default class extends Controller {
     }
     const ex = this.chartsView.xAxisExtremes()
     const option = Zoom.mapKey(this.settings.zoom, ex, this.isTimeAxis() ? 1 : avgBlockTime)
-    this.setActiveOptionBtn(option, this.zoomOptionTargets)
+    this.setActiveToggleBtn(option, this.zoomButtons)
     const axesData = axesToRestoreYRange(this.settings.chart,
       this.supportedYRange, this.chartsView.yAxisRanges())
     if (axesData) this.chartsView.updateOptions({ axes: axesData })
@@ -809,42 +1018,77 @@ export default class extends Controller {
     this._zoomCallback(start, end)
   }
 
-  setZoom (e) {
-    const target = e.srcElement || e.target
+  setSelectZoom (e) {
+    const btn = e.target || e.srcElement
     let option
-    if (!target) {
+    if (btn.nodeName === 'BUTTON') {
+      option = btn.name
+    } else {
       const ex = this.chartsView.xAxisExtremes()
       option = Zoom.mapKey(e, ex, this.isTimeAxis() ? 1 : avgBlockTime)
-    } else {
-      option = target.dataset.option
     }
-    this.setActiveOptionBtn(option, this.zoomOptionTargets)
-    if (!target) return // Exit if running for the first time
+    this.setActiveToggleBtn(option, this.zoomButtons)
+    if (!e.target) return // Exit if running for the first time\
     this.validateZoom()
   }
 
-  setBin (e) {
-    const target = e.srcElement || e.target
-    const option = target ? target.dataset.option : e
-    if (!option) return
-    this.setActiveOptionBtn(option, this.binSizeTargets)
-    // hide vSelector
+  setSelectBin (e) {
+    const btn = e.target || e.srcElement
+    if (!btn) {
+      return
+    }
+    let option
+    if (btn.nodeName === 'BUTTON') {
+      option = btn.name
+    }
+    if (!option) {
+      return
+    }
+    this.setActiveToggleBtn(option, this.binButtons)
     this.updateVSelector()
-    if (!target) return // Exit if running for the first time.
     selectedChart = null // Force fetch
     this.selectChart()
   }
 
-  setScale (e) {
-    const target = e.srcElement || e.target
-    const option = target ? target.dataset.option : e
-    if (!option) return
-    this.setActiveOptionBtn(option, this.scaleTypeTargets)
-    if (!target) return // Exit if running for the first time.
+  setSelectScale (e) {
+    const btn = e.target || e.srcElement
+    if (!btn) {
+      return
+    }
+    let option
+    if (btn.nodeName === 'BUTTON') {
+      option = btn.name
+    }
+    if (!option) {
+      return
+    }
+    this.setActiveToggleBtn(option, this.scaleButtons)
     if (this.chartsView) {
       this.chartsView.updateOptions({ logscale: option === 'log' })
     }
     this.settings.scale = option
+    if (!this.isHomepage) {
+      this.query.replace(this.settings)
+    }
+  }
+
+  setSelectMode (e) {
+    const btn = e.target || e.srcElement
+    if (!btn) {
+      return
+    }
+    let option
+    if (btn.nodeName === 'BUTTON') {
+      option = btn.name
+    }
+    if (!option) {
+      return
+    }
+    this.setActiveOptionBtn(option, this.modeOptionTargets)
+    if (this.chartsView) {
+      this.chartsView.updateOptions({ stepPlot: option === 'stepped' })
+    }
+    this.settings.mode = option
     if (!this.isHomepage) {
       this.query.replace(this.settings)
     }
@@ -873,32 +1117,6 @@ export default class extends Controller {
     if (!target) return // Exit if running for the first time.
     this.settings.axis = null
     this.selectChart()
-  }
-
-  updateVSelector (chart) {
-    if (!chart) {
-      chart = this.chartSelectTarget.value
-    }
-    const that = this
-    let showWrapper = false
-    this.vSelectorItemTargets.forEach(el => {
-      let show = el.dataset.charts.indexOf(chart) > -1
-      if (el.dataset.bin && el.dataset.bin.indexOf(that.selectedBin()) === -1) {
-        show = false
-      }
-      if (show) {
-        el.classList.remove('d-hide')
-        showWrapper = true
-      } else {
-        el.classList.add('d-hide')
-      }
-    })
-    if (showWrapper) {
-      this.vSelectorTarget.classList.remove('d-hide')
-    } else {
-      this.vSelectorTarget.classList.add('d-hide')
-    }
-    this.setVisibilityFromSettings()
   }
 
   setVisibilityFromSettings () {
@@ -931,31 +1149,6 @@ export default class extends Controller {
     }
   }
 
-  setVisibility (e) {
-    switch (this.chartSelectTarget.value) {
-      case 'ticket-price':
-        if (!this.ticketsPriceTarget.checked && !this.ticketsPurchaseTarget.checked) {
-          e.currentTarget.checked = true
-          return
-        }
-        this.visibility = [this.ticketsPriceTarget.checked, this.ticketsPurchaseTarget.checked]
-        break
-      case 'coin-supply':
-        this.visibility = [true, true, this.anonymitySetTarget.checked]
-        break
-      case 'privacy-participation':
-        this.visibility = [true, this.anonymitySetTarget.checked]
-        break
-      default:
-        return
-    }
-    this.chartsView.updateOptions({ visibility: this.visibility })
-    this.settings.visibility = this.visibility.join('-')
-    if (!this.isHomepage) {
-      this.query.replace(this.settings)
-    }
-  }
-
   setActiveOptionBtn (opt, optTargets) {
     optTargets.forEach(li => {
       if (li.dataset.option === opt) {
@@ -966,15 +1159,33 @@ export default class extends Controller {
     })
   }
 
-  selectedZoom () { return this.selectedOption(this.zoomOptionTargets) }
-  selectedBin () { return this.selectedOption(this.binSizeTargets) }
-  selectedScale () { return this.selectedOption(this.scaleTypeTargets) }
+  setActiveToggleBtn (opt, optTargets) {
+    optTargets.forEach(button => {
+      if (button.name === opt) {
+        button.classList.add('active')
+      } else {
+        button.classList.remove('active')
+      }
+    })
+  }
+
+  selectedZoom () { return this.selectedButtons(this.zoomButtons) }
+  selectedBin () { return this.selectedButtons(this.binButtons) }
+  selectedScale () { return this.selectedButtons(this.scaleButtons) }
   selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
 
   selectedOption (optTargets) {
     let key = false
     optTargets.forEach((el) => {
       if (el.classList.contains('active')) key = el.dataset.option
+    })
+    return key
+  }
+
+  selectedButtons (btnTargets) {
+    let key = false
+    btnTargets.forEach((btn) => {
+      if (btn.classList.contains('active')) key = btn.name
     })
     return key
   }

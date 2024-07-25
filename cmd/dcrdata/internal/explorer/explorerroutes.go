@@ -450,17 +450,36 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
 	commonData.IsToppage = true
+	type TargetTimeData struct {
+		ChainType          string
+		TargetTimePerBlock float64
+	}
+
+	targetsTimeArr := make([]TargetTimeData, 0)
+	//get mutilchain hash
+	for _, mutilchain := range dbtypes.MutilchainList {
+		if exp.ChainDisabledMap[mutilchain] {
+			continue
+		}
+		newTargetData := TargetTimeData{
+			ChainType:          mutilchain,
+			TargetTimePerBlock: exp.GetTargetTimePerBlock(mutilchain),
+		}
+		targetsTimeArr = append(targetsTimeArr, newTargetData)
+	}
 
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
-		HomeInfoList []MutilchainHomeInfo
-		XcState      *exchanges.ExchangeBotState
-		ActiveChain  string
+		HomeInfoList                []MutilchainHomeInfo
+		XcState                     *exchanges.ExchangeBotState
+		ActiveChain                 string
+		ChainListTargetTimePerBlock []TargetTimeData
 	}{
-		CommonPageData: commonData,
-		HomeInfoList:   homeChainInfoList,
-		XcState:        exp.getExchangeState(),
-		ActiveChain:    strings.Join(chainStrList, ","),
+		CommonPageData:              commonData,
+		HomeInfoList:                homeChainInfoList,
+		XcState:                     exp.getExchangeState(),
+		ActiveChain:                 strings.Join(chainStrList, ","),
+		ChainListTargetTimePerBlock: targetsTimeArr,
 	})
 
 	if err != nil {

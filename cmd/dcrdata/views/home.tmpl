@@ -318,7 +318,7 @@
                                           </div>
                                        </div>
                                     </div>
-                                    <!-- market chart end -->
+                                    <!-- market chart end -->     
                                  </div>
                                  {{- else -}} {{/* EXCHANGE MONITORING DISABLED */}}
                                  <h4 class="py-5 text-center">Exchange monitoring disabled</h4>
@@ -329,6 +329,241 @@
                      </div>
                   </div>
                   </div>
+            </section>
+            <section>
+                    <!-- Start Chain Charts -->
+                    <div class="hp-explore__cards-content-1 mt-3">
+                     <div class="explore-card-wrap" data-controller="homecharts"
+                     {{range .ChainListTargetTimePerBlock}}
+                        data-homecharts-{{.ChainType}}-blocktime="{{.TargetTimePerBlock}}"
+                     {{end}}
+                     >
+                        <div class="explore-card-content">
+                           <div class="bg-for-header">
+                              <div class="row">
+                                 <div class="col-md-8 col-lg-7 col-xl-5">
+                                    <div class="row">
+                                       <div class="explore-card__header ps-4">
+                                          <span class="homeicon-chart explore-card__header__logo" alt="Charts route" loading="lazy"></span>
+                                          <div class="explore-card__header__text ml-15">
+                                             <h5 class="explore-card__header__text__name"> Chain Charts </h5>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div class="col-md-3 col-lg-3 col-xl-4"></div>
+                                 <div class="col-md-10 col-lg-11 col-xl-11 ta-center chart-title-name pt-15">
+                                    <span class="fs-22 fw-600" data-homecharts-target="chartTitleName"></span>
+                                 </div>
+                                 <div class="col-md-3 col-lg-3 col-xl-4 ta-right p-relative">
+                                    <span class="explore-card__header__arrow">
+                                    <span class='the-arrow -right'>
+                                    <span class='shaft'></span>
+                                    </span>
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div class="explore-card__values-content market-chart-content">
+                              <section>
+                                 <div class="row border-1-grey chart-wrapper">
+                                    <!-- market chart start -->
+                                    <div class="row w-100 align-items-top">
+                                       <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 p-0">
+                                          <div class="col me-2 flex-grow-1 d-flex flex-column bg-white position-relative">
+                                             {{- /* CHART ONTROLS */ -}}
+                                             <div class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
+                                                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                                                   <label>Chain</label>
+                                                   <div class="d-flex ai-center">
+                                                      <div class="btn-group" data-toggle="buttons">
+                                                         <input data-homecharts-target="chainTypeSelected" data-action="click->homecharts#chainTypeChange" type="button" class="tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn active" value="DCR" name="dcr">
+                                                         <input data-homecharts-target="chainTypeSelected" data-action="click->homecharts#chainTypeChange" type="button" class="tab-button home-chart-toggle-btn white c-txt-main" value="LTC" name="ltc">
+                                                         <input data-homecharts-target="chainTypeSelected" data-action="click->homecharts#chainTypeChange" type="button" class="tab-button home-chart-toggle-btn white last-toggle-btn c-txt-main" value="BTC" name="btc">
+                                                      </div>
+                                                   </div>
+                                                </div>
+                                                {{- /* CHART TYPE SELECTION */ -}}
+                                                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                                                   <label>Chart</label>
+                                                   <select
+                                             id="selectBox"
+                                             class="chart-box d-inline-flex"
+                                             data-homecharts-target="chartSelect"
+                                             data-action="homecharts#selectChart"
+                                             >
+                                             <optgroup label="Staking">
+                                                <option value="ticket-price">Ticket Price</option>
+                                                <option value="ticket-pool-size">Ticket Pool Size</option>
+                                                <option value="ticket-pool-value">Ticket Pool Value</option>
+                                                <option value="stake-participation">Stake Participation</option>
+                                                <option value="privacy-participation">Privacy Participation</option>
+                                                <option value="missed-votes">Missed Votes</option>
+                                             </optgroup>
+                                             <optgroup label="Chain">
+                                                <option value="block-size">Block Size</option>
+                                                <option value="blockchain-size">Blockchain Size</option>
+                                                <option value="tx-count">Transaction Count</option>
+                                                <option value="duration-btw-blocks">Duration Between Blocks</option>
+                                             </optgroup>
+                                             <optgroup label="Mining">
+                                                <option value="pow-difficulty">PoW Difficulty</option>
+                                                <option value="chainwork">Total Work</option>
+                                                <option value="hashrate">Hashrate</option>
+                                             </optgroup>
+                                             <optgroup label="Distribution">
+                                                <option value="coin-supply">Circulation</option>
+                                                <option value="fees">Fees</option>
+                                             </optgroup>
+                                          </select>
+                                                </div>
+                                                {{- /* ZOOM SELECTIONS */ -}}
+                                                <div
+                                                   class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                                   data-homecharts-target="zoomSelector"
+                                                   data-action="click->homecharts#setSelectZoom"
+                                                   >
+                                                   <label class="text-nowrap">ZOOM</label>
+                                                   <div class="btn-group">
+                                                      <button name="all" class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">All</button>
+                                                      <button name="year" class="tab-button home-chart-toggle-btn white c-txt-main">Year</button>
+                                                      <button name="month" class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
+                                                      <button name="week" class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
+                                                      <button name="day" class="tab-button home-chart-toggle-btn white last-toggle-btn c-txt-main">Day</button>
+                                                   </div>
+                                                </div>
+                                                {{- /* BIN SELECTIONS */ -}}
+                                                <div
+                                                   class="d-hide btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                                   data-homecharts-target="binSelector"
+                                                   data-action="click->homecharts#setSelectBin"
+                                                   >
+                                                   <label class="text-nowrap">BIN</label>
+                                                   <div class="btn-group">
+                                                      <button name="day" class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">Day</button>
+                                                      <button name="block" class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Blocks</button>
+                                                   </div>
+                                                </div>
+                                                {{- /* SCALE SELECTIONS */ -}}
+                                                <div
+                                                   class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                                   data-homecharts-target="scaleSelector"
+                                                   data-action="click->homecharts#setSelectScale"
+                                                   >
+                                                   <label class="text-nowrap">SCALE</label>
+                                                   <div class="btn-group">
+                                                      <button name="linear" class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">Linear</button>
+                                                      <button name="log" class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Log</button>
+                                                   </div>
+                                                </div>
+                                                {{- /* SCALE SELECTIONS */ -}}
+                                                <div
+                                                   class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                                   data-homecharts-target="vSelector"
+                                                   >
+                                                   <label class="text-nowrap">VISIBILITY</label>
+                                                   <ul class="nav nav-pills">
+                                                      <li class="nav-item" data-homecharts-target="vSelectorItem"
+                                                         data-charts="ticket-price">
+                                                         <label class="customcheck ms-2 d-inline-flex">Price
+                                                            <input type="checkbox" checked="checked"
+                                                               data-action="click->homecharts#setVisibility"
+                                                               data-homecharts-target="ticketsPrice">
+                                                            <span class="checkmark tickets-price"></span>
+                                                         </label>
+                                                      </li>
+                                                      <li class="nav-item" data-homecharts-target="vSelectorItem"
+                                                         data-charts="ticket-price">
+                                                         <label class="customcheck mx-2 d-inline-flex">Tickets Bought
+                                                            <input type="checkbox" data-action="click->homecharts#setVisibility"
+                                                               data-homecharts-target="ticketsPurchase">
+                                                            <span class="checkmark tickets-bought"></span>
+                                                         </label>
+                                                      </li>
+                                                      <li class="nav-item">
+                                                         <label class="customcheck mx-2 d-inline-flex"
+                                                            data-homecharts-target="vSelectorItem" data-charts="coin-supply">Mixed
+                                                            Coins
+                                                            <input type="checkbox" data-action="click->homecharts#setVisibility"
+                                                               data-homecharts-target="anonymitySet">
+                                                            <span class="checkmark total-mixed"></span>
+                                                         </label>
+                                                      </li>
+                                                   </ul>
+                                                </div>
+                                                {{- /* MODE SELECTIONS */ -}}
+                                                <div
+                                                   class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                                   data-homecharts-target="modeSelector"
+                                                   data-action="click->homecharts#setSelectMode"
+                                                   >
+                                                   <label class="text-nowrap">MODE</label>
+                                                   <div class="btn-group">
+                                                      <button name="smooth" class="tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">Smooth</button>
+                                                      <button name="stepped" class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Stepped</button>
+                                                   </div>
+                                                </div>
+                                             </div> 
+                                             {{- /* CHART */ -}}
+                                             <div class="ps-3 mb-2 market-chart-box"  data-homecharts-target="chartWrapper">
+                                                <div class="d-flex w-100 position-relative">
+                                                   <div class="chart-name-label d-flex align-items-center">
+                                                      <div class="homeicon-chartbar fs-20"></div>
+                                                      <span class="chart-name-content" data-homecharts-target="chartName"></span>
+                                                   </div>
+                                                   <div
+                                                      class="chartview"
+                                                      data-homecharts-target="chartsView">
+                                                   </div>
+                                                </div>
+                                                <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
+                                                   <div class="row">
+                                                      <div class="col-4 column-center chart-control chart-control-wrapper">
+                                                         <ul class="nav nav-pills">
+                                                            <li class="nav-item nav-link active"
+                                                               data-homecharts-target="axisOption"
+                                                               data-action="click->homecharts#setAxis"
+                                                               data-option="time">
+                                                               Time
+                                                            </li>
+                                                            <li class="nav-item nav-link"
+                                                               data-homecharts-target="axisOption"
+                                                               data-action="click->homecharts#setAxis"
+                                                               data-option="height">
+                                                               Blocks
+                                                            </li>
+                                                         </ul>
+                                                      </div>
+                                                   </div>
+                                                </div>
+                                                <span class="d-none" data-homecharts-target="rawDataURL"></span>
+                                                <div class="spinner-wrapper">
+                                                   <div class="spinner-centerer d-flex align-items-center justify-content-center">
+                                                      <div class="spinner">
+                                                         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                                                      </div>
+                                                   </div>
+                                                </div>
+                                                <div class="d-flex justify-content-center legend-wrapper">
+                                                   <div class="legend d-flex align-items-center" data-homecharts-target="labels">
+                                                      <div class="pe-3" data-homecharts-target="legendEntry">
+                                                         <div class="dygraph-legend-line" data-homecharts-target="legendMarker"></div>
+                                                      </div>
+                                                   </div>
+                                                </div>
+                                             </div>
+                                             {{- /* TODO: Test this data controller (time & market) */ -}}
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              <section>
+                           </div>
+                        </div>
+                     </div>
+                     </div>
+                     <!-- End Chain Charts -->
             </section>
          </div>
       </div>
