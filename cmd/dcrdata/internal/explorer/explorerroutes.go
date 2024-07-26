@@ -3331,15 +3331,18 @@ func (exp *ExplorerUI) MutilchainParametersPage(w http.ResponseWriter, r *http.R
 	}
 	var chainParams any
 	var addrPrefixes []types.AddrPrefix
+	var refLink string
 	switch chainType {
 	case mutilchain.TYPEBTC:
 		btcParams := exp.dataSource.GetBTCChainParams()
 		addrPrefixes = types.BTCAddressPrefixes(btcParams)
 		chainParams = btcParams
+		refLink = "https://github.com/btcsuite/btcd/blob/master/chaincfg/params.go"
 	case mutilchain.TYPELTC:
 		ltcParams := exp.dataSource.GetLTCChainParams()
 		addrPrefixes = types.LTCAddressPrefixes(ltcParams)
 		chainParams = ltcParams
+		refLink = "https://github.com/ltcsuite/ltcd/blob/master/chaincfg/params.go"
 	default:
 		return
 	}
@@ -3353,6 +3356,7 @@ func (exp *ExplorerUI) MutilchainParametersPage(w http.ResponseWriter, r *http.R
 		ExtendedParams
 		MutilchainParams any
 		ChainType        string
+		RefLink          string
 	}{
 		CommonPageData: exp.commonData(r),
 		ExtendedParams: ExtendedParams{
@@ -3360,6 +3364,7 @@ func (exp *ExplorerUI) MutilchainParametersPage(w http.ResponseWriter, r *http.R
 		},
 		MutilchainParams: chainParams,
 		ChainType:        chainType,
+		RefLink:          refLink,
 	})
 
 	if err != nil {
