@@ -1026,6 +1026,7 @@ func _main(ctx context.Context) error {
 			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
 			rd.Get("/{chaintype}/market", explore.MutilchainMarketPage)
 			rd.Get("/{chaintype}/supply", explore.SupplyPage)
+			rd.Get("/{chaintype}/parameters", explore.MutilchainParametersPage)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})

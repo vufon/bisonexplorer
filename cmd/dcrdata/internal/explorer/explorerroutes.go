@@ -3323,6 +3323,55 @@ func (exp *ExplorerUI) ParametersPage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+// MutilchainParametersPage is the page handler for the "/chain/{chainType}/parameters" path.
+func (exp *ExplorerUI) MutilchainParametersPage(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	var chainParams any
+	var addrPrefixes []types.AddrPrefix
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		btcParams := exp.dataSource.GetBTCChainParams()
+		addrPrefixes = types.BTCAddressPrefixes(btcParams)
+		chainParams = btcParams
+	case mutilchain.TYPELTC:
+		ltcParams := exp.dataSource.GetLTCChainParams()
+		addrPrefixes = types.LTCAddressPrefixes(ltcParams)
+		chainParams = ltcParams
+	default:
+		return
+	}
+
+	type ExtendedParams struct {
+		AddressPrefix []types.AddrPrefix
+	}
+
+	str, err := exp.templates.exec("chain_parameters", struct {
+		*CommonPageData
+		ExtendedParams
+		MutilchainParams any
+		ChainType        string
+	}{
+		CommonPageData: exp.commonData(r),
+		ExtendedParams: ExtendedParams{
+			AddressPrefix: addrPrefixes,
+		},
+		MutilchainParams: chainParams,
+		ChainType:        chainType,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // AgendaPage is the page handler for the "/agenda" path.
 func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 	errPageInvalidAgenda := func(err error) {

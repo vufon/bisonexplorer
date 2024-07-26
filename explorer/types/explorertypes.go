@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/v3"
@@ -20,6 +21,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	ltcwire "github.com/ltcsuite/ltcd/wire"
 )
 
@@ -1186,6 +1188,66 @@ func AddressPrefixes(params *chaincfg.Params) []AddrPrefix {
 		return nil
 	}
 
+	addrPrefix := make([]AddrPrefix, 0, len(Descriptions))
+	for i, desc := range Descriptions {
+		addrPrefix = append(addrPrefix, AddrPrefix{
+			Name:        Name[i],
+			Description: desc,
+			Prefix:      netPrefixes[i],
+		})
+	}
+	return addrPrefix
+}
+
+func LTCAddressPrefixes(params *ltcchaincfg.Params) []AddrPrefix {
+	Descriptions := []string{"P2PKH Public Key Hash Address",
+		"P2SH Script Hash Address",
+		"WIF Private Key",
+		"P2WPKH Witness Public Key Hash Address",
+		"P2WSH Witness Script Hash Address",
+		"BIP32 hierarchical deterministic extended key magics. Private Key",
+		"BIP32 hierarchical deterministic extended key magics. Public Key",
+	}
+	Name := []string{"PubKeyHashAddrID",
+		"ScriptHashAddrID",
+		"PrivateKeyID",
+		"WitnessPubKeyHashAddrID",
+		"WitnessScriptHashAddrID",
+		"HDPrivateKeyID",
+		"HDPublicKeyID",
+	}
+
+	netPrefixes := []string{"L", "M", "6 or T", "p2", "7Xh", "xprv", "xpub"}
+	addrPrefix := make([]AddrPrefix, 0, len(Descriptions))
+	for i, desc := range Descriptions {
+		addrPrefix = append(addrPrefix, AddrPrefix{
+			Name:        Name[i],
+			Description: desc,
+			Prefix:      netPrefixes[i],
+		})
+	}
+	return addrPrefix
+}
+
+func BTCAddressPrefixes(params *btcchaincfg.Params) []AddrPrefix {
+	Descriptions := []string{"P2PKH Public Key Hash Address",
+		"P2SH Script Hash Address",
+		"WIF Private Key",
+		"P2WPKH Witness Public Key Hash Address",
+		"P2WSH Witness Script Hash Address",
+		"BIP32 hierarchical deterministic extended key magics. Private Key",
+		"BIP32 hierarchical deterministic extended key magics. Public Key",
+	}
+	Name := []string{"PubKeyHashAddrID",
+		"ScriptHashAddrID",
+		"PrivateKeyID",
+		"WitnessPubKeyHashAddrID",
+		"WitnessScriptHashAddrID",
+		"HDPrivateKeyID",
+		"HDPublicKeyID",
+	}
+
+	netPrefixes := []string{"1", "3", "5", "p2", "7Xh", "xprv", "xpub"}
 	addrPrefix := make([]AddrPrefix, 0, len(Descriptions))
 	for i, desc := range Descriptions {
 		addrPrefix = append(addrPrefix, AddrPrefix{
