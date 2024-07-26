@@ -404,6 +404,7 @@ export default class extends Controller {
     this.zoomButtons = this.zoomSelectorTarget.querySelectorAll('button')
     this.binButtons = this.binSelectorTarget.querySelectorAll('button')
     this.scaleButtons = this.scaleSelectorTarget.querySelectorAll('button')
+    this.modeButtons = this.modeSelectorTarget.querySelectorAll('button')
     this.zoomCallback = this._zoomCallback.bind(this)
     this.drawCallback = this._drawCallback.bind(this)
     this.limits = null
@@ -492,7 +493,7 @@ export default class extends Controller {
     if (this.settings.scale === 'log') this.setSelectScale(this.settings.scale)
     if (this.settings.zoom) this.setSelectZoom(this.settings.zoom)
     this.setSelectBin(this.settings.bin ? this.settings.bin : 'day')
-    this.setMode(this.settings.mode ? this.settings.mode : 'smooth')
+    this.setSelectMode(this.settings.mode ? this.settings.mode : 'smooth')
 
     const ogLegendGenerator = Dygraph.Plugins.Legend.generateLegendHTML
     Dygraph.Plugins.Legend.generateLegendHTML = (g, x, pts, w, row) => {
@@ -562,16 +563,16 @@ export default class extends Controller {
         }
         break
       case 'privacy-participation': { // anonymity set graph
-          d = anonymitySetFunc(data)
-          this.customLimits = d.limits
-          const label = 'Mix Rate'
-          assign(gOptions, mapDygraphOptions(d.data, [xlabel, label], false, `${label} (DCR)`, true, false))
-  
-          yFormatter = (div, data, i) => {
-            addLegendEntryFmt(div, data.series[0], y => y > 0 ? intComma(y) : '0' + ' DCR')
-          }
-          break
+        d = anonymitySetFunc(data)
+        this.customLimits = d.limits
+        const label = 'Mix Rate'
+        assign(gOptions, mapDygraphOptions(d.data, [xlabel, label], false, `${label} (DCR)`, true, false))
+
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => y > 0 ? intComma(y) : '0' + ' DCR')
         }
+        break
+      }
       case 'ticket-pool-value': // pool value graph
         d = zip2D(data, data.poolval, atomsToDCR)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Ticket Pool Value'], true,
@@ -687,8 +688,9 @@ export default class extends Controller {
     }
 
     const baseURL = `${this.query.url.protocol}//${this.query.url.host}`
-    this.rawDataURLTarget.textContent = this.chainType === 'dcr' ? `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}` :
-     `${baseURL}/api/chainchart/${this.chainType}/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
+    this.rawDataURLTarget.textContent = this.chainType === 'dcr'
+      ? `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
+      : `${baseURL}/api/chainchart/${this.chainType}/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
 
     this.chartsView.plotter_.clear()
     this.chartsView.updateOptions(gOptions, false)
@@ -1084,22 +1086,7 @@ export default class extends Controller {
     if (!option) {
       return
     }
-    this.setActiveOptionBtn(option, this.modeOptionTargets)
-    if (this.chartsView) {
-      this.chartsView.updateOptions({ stepPlot: option === 'stepped' })
-    }
-    this.settings.mode = option
-    if (!this.isHomepage) {
-      this.query.replace(this.settings)
-    }
-  }
-
-  setMode (e) {
-    const target = e.srcElement || e.target
-    const option = target ? target.dataset.option : e
-    if (!option) return
-    this.setActiveOptionBtn(option, this.modeOptionTargets)
-    if (!target) return // Exit if running for the first time.
+    this.setActiveToggleBtn(option, this.modeButtons)
     if (this.chartsView) {
       this.chartsView.updateOptions({ stepPlot: option === 'stepped' })
     }

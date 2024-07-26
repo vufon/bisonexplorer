@@ -372,7 +372,6 @@
                                     <div class="row w-100 align-items-top">
                                        <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 p-0">
                                           <div class="col me-2 flex-grow-1 d-flex flex-column bg-white position-relative">
-                                             {{- /* CHART ONTROLS */ -}}
                                              <div class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
                                                 <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                                                    <label>Chain</label>
@@ -384,6 +383,9 @@
                                                       </div>
                                                    </div>
                                                 </div>
+                                             </div>
+                                             {{- /* CHART ONTROLS */ -}}
+                                             <div class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
                                                 {{- /* CHART TYPE SELECTION */ -}}
                                                 <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                                                    <label>Chart</label>
@@ -500,7 +502,7 @@
                                                    >
                                                    <label class="text-nowrap">MODE</label>
                                                    <div class="btn-group">
-                                                      <button name="smooth" class="tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">Smooth</button>
+                                                      <button name="smooth" class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">Smooth</button>
                                                       <button name="stepped" class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Stepped</button>
                                                    </div>
                                                 </div>
