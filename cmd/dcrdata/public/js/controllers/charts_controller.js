@@ -375,6 +375,7 @@ export default class extends Controller {
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
     windowSize = parseInt(this.data.get('windowSize'))
     avgBlockTime = parseInt(this.data.get('blockTime')) * 1000
+    const supplyPage = this.data.get('supplyPage')
     legendElement = this.labelsTarget
 
     // Prepare the legend element generators.
@@ -400,6 +401,9 @@ export default class extends Controller {
       this.query.update(this.settings)
     }
     this.settings.chart = this.settings.chart || 'ticket-price'
+    if (supplyPage === 'true') {
+      this.settings.chart = 'coin-supply'
+    }
     this.zoomCallback = this._zoomCallback.bind(this)
     this.drawCallback = this._drawCallback.bind(this)
     this.limits = null

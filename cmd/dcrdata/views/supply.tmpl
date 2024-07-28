@@ -3,6 +3,7 @@
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "Distribution Information Page")}}
 {{$ChainType := .ChainType}}
+{{$TargetTimePerBlock := .TargetTimePerBlock}}
 {{if ne $ChainType "dcr"}}
 {{template "mutilchain_navbar" . }}
 {{else}}
@@ -151,6 +152,457 @@
     </div>
     {{end}}
   </div>
+  <div class="hp-explore-wrap mt-3">
+  <section>
+    <div class="hp-explore__cards-wrap">
+       <div class="hp-explore__cards-content-1">
+          {{if eq $ChainType "dcr"}}
+                    <!-- Start Chain Charts Card -->
+                    <div class="explore-card-wrap" data-controller="charts"
+                        data-charts-supply-page="true">
+                      <div class="explore-card-content">
+                         <a href="/charts" class="link-to-subpage">
+                            <div class="row">
+                               <div class="col-md-8 col-lg-7 col-xl-5">
+                                  <div class="row">
+                                     <div class="explore-card__header ps-4">
+                                        <span class="homeicon-chart explore-card__header__logo" alt="Charts route"
+                                           loading="lazy"></span>
+                                        <div class="explore-card__header__text ml-15">
+                                           <h5 class="explore-card__header__text__name"> Coin Supply Charts </h5>
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
+                               <div class="col-md-3 col-lg-3 col-xl-4"></div>
+                               <div class="col-md-10 col-lg-11 col-xl-11 ta-center chart-title-name pt-15">
+                                  <span class="fs-22 fw-600 d-hide" data-charts-target="chartTitleName"></span>
+                               </div>
+                               <div class="col-md-3 col-lg-3 col-xl-4 ta-right p-relative">
+                                  <span class="explore-card__header__arrow">
+                                     <span class='the-arrow -right'>
+                                        <span class='shaft'></span>
+                                     </span>
+                                  </span>
+                               </div>
+                            </div>
+                         </a>
+                         <div class="explore-card__values-content market-chart-content">
+                            <section>
+                               <div class="row chart-header-row border-1-grey">
+                                  <div
+                                     class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center border-right-1-grey">
+                                     <div class="chart-control-wrapper chart-filter-tools me-4 mb-1 chart-select-option d-hide">
+                                        <div class="chart-control-label">CHART</div>
+                                        <div class="chart-control">
+                                           <select id="selectBox" class="form-control chart-form-control"
+                                              data-charts-target="chartSelect" data-action="charts#selectChart">
+                                              <optgroup label="Staking">
+                                                 <option value="ticket-price">Ticket Price</option>
+                                                 <option value="ticket-pool-size">Ticket Pool Size</option>
+                                                 <option value="ticket-pool-value">Ticket Pool Value</option>
+                                                 <option value="stake-participation">Stake Participation</option>
+                                                 <option value="privacy-participation">Privacy Participation</option>
+                                                 <option value="missed-votes">Missed Votes</option>
+                                              </optgroup>
+                                              <optgroup label="Chain">
+                                                 <option value="block-size">Block Size</option>
+                                                 <option value="blockchain-size">Blockchain Size</option>
+                                                 <option value="tx-count">Transaction Count</option>
+                                                 <option value="duration-btw-blocks">Duration Between Blocks</option>
+                                              </optgroup>
+                                              <optgroup label="Mining">
+                                                 <option value="pow-difficulty">PoW Difficulty</option>
+                                                 <option value="chainwork">Total Work</option>
+                                                 <option value="hashrate">Hashrate</option>
+                                              </optgroup>
+                                              <optgroup label="Distribution">
+                                                 <option value="coin-supply">Coin Supply</option>
+                                                 <option value="fees">Fees</option>
+                                              </optgroup>
+                                           </select>
+                                        </div>
+                                     </div>
+                                     <div class="chart-control-wrapper chart-filter-tools me-4 mb-1"
+                                        data-charts-target="zoomSelector">
+                                        <div class="chart-control-label">ZOOM</div>
+                                        <div class="chart-control chart-filter-selection ps-2">
+                                           <ul class="nav nav-pills">
+                                              <li class="nav-item nav-link active" data-charts-target="zoomOption"
+                                                 data-action="click->charts#setZoom" data-option="all">
+                                                 All
+                                              </li>
+                                              <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                                 data-action="click->charts#setZoom" data-option="year">
+                                                 Year
+                                              </li>
+                                              <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                                 data-action="click->charts#setZoom" data-option="month">
+                                                 Month
+                                              </li>
+                                              <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                                 data-action="click->charts#setZoom" data-option="week">
+                                                 Week
+                                              </li>
+                                              <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                                 data-action="click->charts#setZoom" data-option="day">
+                                                 Day
+                                              </li>
+                                           </ul>
+                                        </div>
+                                     </div>
+                                     <div class="chart-control-wrapper chart-filter-tools me-4 mb-1"
+                                        data-charts-target="binSelector">
+                                        <div class="chart-control-label">BIN</div>
+                                        <div class="chart-control chart-filter-selection ps-2">
+                                           <ul class="nav nav-pills">
+                                              <li class="nav-item nav-link active" data-charts-target="binSize"
+                                                 data-action="click->charts#setBin" data-option="day">
+                                                 Day
+                                              </li>
+                                              <li class="nav-item nav-link" data-charts-target="binSize"
+                                                 data-action="click->charts#setBin" data-option="block">
+                                                 Blocks
+                                              </li>
+                                           </ul>
+                                        </div>
+                                     </div>
+                                     <div class="chart-control-wrapper chart-filter-tools me-4 mb-1"
+                                        data-charts-target="scaleSelector">
+                                        <div class="chart-control-label">SCALE</div>
+                                        <div class="chart-control chart-filter-selection ps-2">
+                                           <ul class="nav nav-pills">
+                                              <li class="nav-item nav-link active" data-charts-target="scaleType"
+                                                 data-action="click->charts#setScale" data-option="linear">
+                                                 Linear
+                                              </li>
+                                              <li class="nav-item nav-link" data-charts-target="scaleType"
+                                                 data-action="click->charts#setScale" data-option="log">
+                                                 Log
+                                              </li>
+                                           </ul>
+                                        </div>
+                                     </div>
+                                     <div class="chart-control-wrapper chart-filter-tools me-4 mb-1"
+                                        data-charts-target="vSelector">
+                                        <div class="chart-control-label">VISIBILITY</div>
+                                        <div class="chart-control chart-filter-selection ps-2">
+                                           <ul class="nav nav-pills">
+                                              <li class="nav-item" data-charts-target="vSelectorItem"
+                                                 data-charts="ticket-price">
+                                                 <label class="customcheck ms-2 d-inline-flex">Price
+                                                    <input type="checkbox" checked="checked"
+                                                       data-action="click->charts#setVisibility"
+                                                       data-charts-target="ticketsPrice">
+                                                    <span class="checkmark tickets-price"></span>
+                                                 </label>
+                                              </li>
+                                              <li class="nav-item" data-charts-target="vSelectorItem"
+                                                 data-charts="ticket-price">
+                                                 <label class="customcheck mx-2 d-inline-flex">Tickets Bought
+                                                    <input type="checkbox" data-action="click->charts#setVisibility"
+                                                       data-charts-target="ticketsPurchase">
+                                                    <span class="checkmark tickets-bought"></span>
+                                                 </label>
+                                              </li>
+                                              <li class="nav-item">
+                                                 <label class="customcheck mx-2 d-inline-flex"
+                                                    data-charts-target="vSelectorItem" data-charts="coin-supply">Mixed
+                                                    Coins
+                                                    <input type="checkbox" data-action="click->charts#setVisibility"
+                                                       data-charts-target="anonymitySet">
+                                                    <span class="checkmark total-mixed"></span>
+                                                 </label>
+                                              </li>
+                                           </ul>
+                                        </div>
+                                     </div>
+                                     <div class="chart-control-wrapper chart-filter-tools me-4 mb-1"
+                                        data-charts-target="modeSelector">
+                                        <div class="chart-control-label">MODE</div>
+                                        <div class="chart-control chart-filter-selection ps-2">
+                                           <ul class="nav nav-pills">
+                                              <li class="nav-item nav-link active" data-charts-target="modeOption"
+                                                 data-action="click->charts#setMode" data-option="smooth">
+                                                 Smooth
+                                              </li>
+                                              <li class="nav-item nav-link" data-charts-target="modeOption"
+                                                 data-action="click->charts#setMode" data-option="stepped">
+                                                 Stepped
+                                              </li>
+                                           </ul>
+                                        </div>
+                                     </div>
+                                  </div>
+                                  <div
+                                     class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-19 border-1-grey home-chart-wrapper pe-0 supply-charts"
+                                     data-charts-target="chartWrapper">
+                                     <div class="d-flex w-100 position-relative">
+                                        <div class="chart-name-label d-flex align-items-center d-hide">
+                                           <div class="homeicon-chartbar fs-20"></div>
+                                           <span class="chart-name-content" data-charts-target="chartName"></span>
+                                        </div>
+                                        <div class="chartview" data-charts-target="chartsView">
+                                        </div>
+                                     </div>
+                                     <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
+                                        <div class="row">
+                                           <div class="col-4 column-center chart-control chart-control-wrapper">
+                                              <ul class="nav nav-pills">
+                                                 <li class="nav-item nav-link active" data-charts-target="axisOption"
+                                                    data-action="click->charts#setAxis" data-option="time">
+                                                    Time
+                                                 </li>
+                                                 <li class="nav-item nav-link" data-charts-target="axisOption"
+                                                    data-action="click->charts#setAxis" data-option="height">
+                                                    Blocks
+                                                 </li>
+                                              </ul>
+                                           </div>
+                                        </div>
+                                     </div>
+                                     <span class="d-none" data-charts-target="rawDataURL"></span>
+                                     <div class="spinner-wrapper">
+                                        <div class="spinner-centerer d-flex align-items-center justify-content-center">
+                                           <div class="spinner">
+                                              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                                           </div>
+                                        </div>
+                                     </div>
+                                     <div class="d-flex justify-content-center legend-wrapper">
+                                        <div class="legend d-flex align-items-center" data-charts-target="labels">
+                                           <div class="pe-3" data-charts-target="legendEntry">
+                                              <div class="dygraph-legend-line" data-charts-target="legendMarker"></div>
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </div>
+                               </div>
+                               <section>
+                         </div>
+                      </div>
+                   </div>
+                   <!-- End Chain Charts Card -->
+                  {{else}}
+                   <!-- Start mutilchain Chain Charts -->
+                    <div class="explore-card-wrap" data-controller="chaincharts"
+                    data-chaincharts-block-time="{{$TargetTimePerBlock}}"
+                    data-chaincharts-chain-type="{{$ChainType}}"
+                    data-chaincharts-supply-page="true"
+                    >
+                       <div class="explore-card-content">
+                          <a href="/chain/{{$ChainType}}/charts" class="link-to-subpage">
+                             <div class="row">
+                                <div class="col-md-8 col-lg-7 col-xl-5">
+                                   <div class="row">
+                                      <div class="explore-card__header ps-4">
+                                         <span class="homeicon-chart explore-card__header__logo" alt="Charts route" loading="lazy"></span>
+                                         <div class="explore-card__header__text ml-15">
+                                            <h5 class="explore-card__header__text__name"> Coin Supply Charts </h5>
+                                         </div>
+                                      </div>
+                                   </div>
+                                </div>
+                                <div class="col-md-3 col-lg-3 col-xl-4"></div>
+                                <div class="col-md-10 col-lg-11 col-xl-11 ta-center chart-title-name pt-15">
+                                   <span class="fs-22 fw-600 d-hide" data-chaincharts-target="chartTitleName"></span>
+                                </div>
+                                <div class="col-md-3 col-lg-3 col-xl-4 ta-right p-relative">
+                                   <span class="explore-card__header__arrow">
+                                   <span class='the-arrow -right'>
+                                   <span class='shaft'></span>
+                                   </span>
+                                   </span>
+                                </div>
+                             </div>
+                          </a>
+                          <div class="explore-card__values-content market-chart-content">
+                             <section>
+                             <div class="row chart-header-row border-1-grey">
+                                <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center border-right-1-grey">
+                                   <div class="chart-control-wrapper chart-filter-tools me-4 mb-1 chart-select-option d-hide">
+                                      <div class="chart-control-label">CHART</div>
+                                      <div class="chart-control">
+                                         <select
+                                            id="selectBox"
+                                            class="form-control chart-form-control"
+                                            data-chaincharts-target="chartSelect"
+                                            data-action="chaincharts#selectChart"
+                                            >
+                                            <optgroup label="Chain">
+                                               <option value="block-size">Block Size</option>
+                                               <option value="blockchain-size">Blockchain Size</option>
+                                               <option value="tx-count">Transaction Count</option>
+                                               <option value="tx-per-block">TXs Per Blocks</option>
+                                               <option value="address-number">Active Addresses</option>
+                                            </optgroup>
+                                            <optgroup label="Mining">
+                                               <option value="pow-difficulty">Difficulty</option>
+                                               <option value="hashrate">Hashrate</option>
+                                               <option value="mined-blocks">Mined Blocks</option>
+                                               <option value="mempool-size">Mempool Size</option>
+                                               <option value="mempool-txs">Mempool TXs</option>
+                                            </optgroup>
+                                            <optgroup label="Distribution">
+                                               <option value="coin-supply">Coin Supply</option>
+                                               <option value="fees">Fees</option>
+                                            </optgroup>
+                                         </select>
+                                      </div>
+                                   </div>
+                                   <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="zoomSelector">
+                                      <div class="chart-control-label">ZOOM</div>
+                                      <div class="chart-control chart-filter-selection ps-2">
+                                         <ul class="nav nav-pills">
+                                            <li class="nav-item nav-link active"
+                                               data-chaincharts-target="zoomOption"
+                                               data-action="click->chaincharts#setZoom"
+                                               data-option="all">
+                                               All
+                                            </li>
+                                            <li class="nav-item nav-link"
+                                               data-chaincharts-target="zoomOption"
+                                               data-action="click->chaincharts#setZoom"
+                                               data-option="year">
+                                               Year
+                                            </li>
+                                            <li class="nav-item nav-link"
+                                               data-chaincharts-target="zoomOption"
+                                               data-action="click->chaincharts#setZoom"
+                                               data-option="month">
+                                               Month
+                                            </li>
+                                            <li class="nav-item nav-link"
+                                               data-chaincharts-target="zoomOption"
+                                               data-action="click->chaincharts#setZoom"
+                                               data-option="week">
+                                               Week
+                                            </li>
+                                            <li class="nav-item nav-link"
+                                               data-chaincharts-target="zoomOption"
+                                               data-action="click->chaincharts#setZoom"
+                                               data-option="day">
+                                               Day
+                                            </li>
+                                         </ul>
+                                      </div>
+                                   </div>
+                                   <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="binSelector">
+                                      <div class="chart-control-label">BIN</div>
+                                      <div class="chart-control chart-filter-selection ps-2">
+                                         <ul class="nav nav-pills">
+                                            <li class="nav-item nav-link active"
+                                               data-chaincharts-target="binSize"
+                                               data-action="click->chaincharts#setBin"
+                                               data-option="day">
+                                               Day
+                                            </li>
+                                            <li class="nav-item nav-link"
+                                               data-chaincharts-target="binSize"
+                                               data-action="click->chaincharts#setBin"
+                                               data-option="block">
+                                               Blocks
+                                            </li>
+                                         </ul>
+                                      </div>
+                                   </div>
+                                   <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="scaleSelector">
+                                      <div class="chart-control-label">SCALE</div>
+                                      <div class="chart-control chart-filter-selection ps-2">
+                                         <ul class="nav nav-pills">
+                                            <li class="nav-item nav-link active"
+                                               data-chaincharts-target="scaleType"
+                                               data-action="click->chaincharts#setScale"
+                                               data-option="linear">
+                                               Linear
+                                            </li>
+                                            <li class="nav-item nav-link"
+                                               data-chaincharts-target="scaleType"
+                                               data-action="click->chaincharts#setScale"
+                                               data-option="log">
+                                               Log
+                                            </li>
+                                         </ul>
+                                      </div>
+                                   </div>
+                                   <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="modeSelector">
+                                      <div class="chart-control-label">MODE</div>
+                                      <div class="chart-control chart-filter-selection ps-2">
+                                         <ul class="nav nav-pills">
+                                            <li class="nav-item nav-link active"
+                                               data-chaincharts-target="modeOption"
+                                               data-action="click->chaincharts#setMode"
+                                               data-option="smooth">
+                                               Smooth
+                                            </li>
+                                            <li class="nav-item nav-link"
+                                               data-chaincharts-target="modeOption"
+                                               data-action="click->chaincharts#setMode"
+                                               data-option="stepped">
+                                               Stepped
+                                            </li>
+                                         </ul>
+                                      </div>
+                                   </div>
+                                </div>
+                                <div class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-19 border-1-grey home-chart-wrapper pe-0 supply-charts" data-chaincharts-target="chartWrapper">
+                                   <div class="d-flex w-100 position-relative">
+                                      <div class="chart-name-label d-flex align-items-center d-hide">
+                                         <div class="homeicon-chartbar fs-20"></div>
+                                         <span class="chart-name-content" data-chaincharts-target="chartName"></span>
+                                      </div>
+                                      <div
+                                         class="chartview"
+                                         data-chaincharts-target="chartsView">
+                                      </div>
+                                   </div>
+                                   <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
+                                      <div class="row">
+                                         <div class="col-4 column-center chart-control chart-control-wrapper">
+                                            <ul class="nav nav-pills">
+                                               <li class="nav-item nav-link active"
+                                                  data-chaincharts-target="axisOption"
+                                                  data-action="click->chaincharts#setAxis"
+                                                  data-option="time">
+                                                  Time
+                                               </li>
+                                               <li class="nav-item nav-link"
+                                                  data-chaincharts-target="axisOption"
+                                                  data-action="click->chaincharts#setAxis"
+                                                  data-option="height">
+                                                  Blocks
+                                               </li>
+                                            </ul>
+                                         </div>
+                                      </div>
+                                   </div>
+                                   <span class="d-none" data-chaincharts-target="rawDataURL"></span>
+                                   <div class="spinner-wrapper">
+                                      <div class="spinner-centerer d-flex align-items-center justify-content-center">
+                                         <div class="spinner">
+                                            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                                         </div>
+                                      </div>
+                                   </div>
+                                   <div class="d-flex justify-content-center legend-wrapper">
+                                      <div class="legend d-flex align-items-center" data-chaincharts-target="labels">
+                                         <div class="pe-3" data-chaincharts-target="legendEntry">
+                                            <div class="dygraph-legend-line" data-chaincharts-target="legendMarker"></div>
+                                         </div>
+                                      </div>
+                                   </div>
+                                </div>
+                             </div>
+                             <section>
+                          </div>
+                       </div>
+                    </div>
+                    <!-- End mutilchain Chain Charts -->
+                  {{end}}
+                </div>
+                </div>
+                </section>
+                </div>
 </div>
 {{ template "footer" . }}
 </body>

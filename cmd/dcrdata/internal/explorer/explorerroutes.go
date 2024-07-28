@@ -4338,6 +4338,7 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 	var blockHeight int64
 	var blockTime int64
 	var nextTicketTime int64
+	targetTimePerBlock := exp.GetTargetTimePerBlock(chainType)
 
 	switch chainType {
 	case mutilchain.TYPEBTC:
@@ -4375,22 +4376,24 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 
 	str, err := exp.templates.execTemplateToString("supply", struct {
 		*CommonPageData
-		Info             *types.HomeInfo
-		BlockHeight      int64
-		ChainType        string
-		TargetTime       uint64
-		TicketTargetTime uint64
-		BlockReward      int64
-		NextBlockReward  int64
+		Info               *types.HomeInfo
+		BlockHeight        int64
+		ChainType          string
+		TargetTime         uint64
+		TicketTargetTime   uint64
+		BlockReward        int64
+		NextBlockReward    int64
+		TargetTimePerBlock float64
 	}{
-		CommonPageData:   exp.commonData(r),
-		ChainType:        chainType,
-		Info:             homeInfo,
-		TargetTime:       uint64(targetTime),
-		BlockHeight:      blockHeight,
-		BlockReward:      blockReward,
-		NextBlockReward:  nextBlockReward,
-		TicketTargetTime: uint64(nextTicketTime),
+		CommonPageData:     exp.commonData(r),
+		ChainType:          chainType,
+		Info:               homeInfo,
+		TargetTime:         uint64(targetTime),
+		BlockHeight:        blockHeight,
+		BlockReward:        blockReward,
+		NextBlockReward:    nextBlockReward,
+		TicketTargetTime:   uint64(nextTicketTime),
+		TargetTimePerBlock: targetTimePerBlock,
 	})
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)

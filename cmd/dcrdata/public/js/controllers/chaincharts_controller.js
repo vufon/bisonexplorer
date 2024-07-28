@@ -275,6 +275,7 @@ export default class extends Controller {
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
     avgBlockTime = parseInt(this.data.get('blockTime')) * 1000
     this.chainType = this.data.get('chainType')
+    const supplyPage = this.data.get('supplyPage')
     globalChainType = this.chainType
     legendElement = this.labelsTarget
 
@@ -301,6 +302,9 @@ export default class extends Controller {
       this.query.update(this.settings)
     }
     this.settings.chart = this.settings.chart || 'block-size'
+    if (supplyPage === 'true') {
+      this.settings.chart = 'coin-supply'
+    }
     this.zoomCallback = this._zoomCallback.bind(this)
     this.drawCallback = this._drawCallback.bind(this)
     this.limits = null
@@ -438,9 +442,12 @@ export default class extends Controller {
         break
       case 'coin-supply': // supply graph
         if (this.settings.bin === 'day') {
-          d = zip2D(data, data.supply)
-          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply'], false,
-            'Coins Supply', false, false))
+          d = zip2D(data, data.supply, 1e-6)
+          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply (' + globalChainType.toUpperCase() + ')'], false,
+            'Coins Supply (Millions ' + globalChainType.toUpperCase() + ')', false, false))
+          yFormatter = (div, data, i) => {
+            addLegendEntryFmt(div, data.series[0], y => intComma(y * 1e6) + ' ' + globalChainType.toUpperCase())
+          }
           break
         }
         d = circulationFunc(data)
