@@ -374,11 +374,14 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	chainList = append(chainList, dbtypes.MutilchainList...)
 	chainStrList := make([]string, 0)
 	homeChainInfoList := make([]MutilchainHomeInfo, 0)
+	paramsList := make([]*types.ChainParamData, 0)
 	for _, chainType := range chainList {
 		disabled, exist := exp.ChainDisabledMap[chainType]
 		if !exist || disabled {
 			continue
 		}
+		//set params data
+		paramsList = append(paramsList, exp.CreateMutilchainParameters(chainType))
 		chainStrList = append(chainStrList, chainType)
 		height, err := exp.dataSource.GetMutilchainHeight(chainType)
 		if err != nil {
@@ -471,12 +474,14 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
 		HomeInfoList                []MutilchainHomeInfo
+		ParamsList                  []*types.ChainParamData
 		XcState                     *exchanges.ExchangeBotState
 		ActiveChain                 string
 		ChainListTargetTimePerBlock []TargetTimeData
 	}{
 		CommonPageData:              commonData,
 		HomeInfoList:                homeChainInfoList,
+		ParamsList:                  paramsList,
 		XcState:                     exp.getExchangeState(),
 		ActiveChain:                 strings.Join(chainStrList, ","),
 		ChainListTargetTimePerBlock: targetsTimeArr,
@@ -3013,6 +3018,103 @@ func (exp *ExplorerUI) GetTargetTimePerBlock(chainType string) float64 {
 	default:
 		return exp.ChainParams.TargetTimePerBlock.Seconds()
 	}
+}
+
+func (exp *ExplorerUI) CreateMutilchainParameters(chainType string) *types.ChainParamData {
+	switch chainType {
+	case mutilchain.TYPEDCR:
+		return exp.GetDecredParamsData()
+	case mutilchain.TYPELTC:
+		return exp.GetLitecoinParamsData()
+	case mutilchain.TYPEBTC:
+		return exp.GetBitcoinParamsData()
+	}
+	return &types.ChainParamData{}
+}
+
+func (exp *ExplorerUI) GetLitecoinParamsData() *types.ChainParamData {
+	params := exp.dataSource.GetLTCChainParams()
+	if params == nil {
+		return &types.ChainParamData{}
+	}
+	res := &types.ChainParamData{
+		ChainType:                mutilchain.TYPELTC,
+		ReduceMinDifficulty:      params.ReduceMinDifficulty,
+		MinDiffReductionTime:     params.MinDiffReductionTime,
+		GenerateSupported:        params.GenerateSupported,
+		TargetTimespan:           params.TargetTimespan,
+		TargetTimePerBlock:       params.TargetTimePerBlock,
+		RetargetAdjustmentFactor: params.RetargetAdjustmentFactor,
+		CoinbaseMaturity:         params.CoinbaseMaturity,
+		SubsidyReductionInterval: params.SubsidyReductionInterval,
+	}
+	exp.LtcPageData.RLock()
+	homeInfo := exp.LtcPageData.HomeInfo
+	blockTime := exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPELTC)
+	exp.LtcPageData.RUnlock()
+	if homeInfo != nil {
+		res.NextBlockReward = homeInfo.NBlockSubsidy.Total
+		x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
+		allsecs := int64(time.Duration(x).Seconds())
+		res.NextTime = uint64(blockTime + allsecs)
+		res.RemainingBlocks = homeInfo.Params.RewardWindowSize - int64(homeInfo.IdxInRewardWindow)
+	}
+	return res
+}
+
+func (exp *ExplorerUI) GetBitcoinParamsData() *types.ChainParamData {
+	params := exp.dataSource.GetBTCChainParams()
+	if params == nil {
+		return &types.ChainParamData{}
+	}
+	res := &types.ChainParamData{
+		ChainType:                mutilchain.TYPEBTC,
+		ReduceMinDifficulty:      params.ReduceMinDifficulty,
+		MinDiffReductionTime:     params.MinDiffReductionTime,
+		GenerateSupported:        params.GenerateSupported,
+		TargetTimespan:           params.TargetTimespan,
+		TargetTimePerBlock:       params.TargetTimePerBlock,
+		RetargetAdjustmentFactor: params.RetargetAdjustmentFactor,
+		CoinbaseMaturity:         params.CoinbaseMaturity,
+		SubsidyReductionInterval: params.SubsidyReductionInterval,
+	}
+	exp.BtcPageData.RLock()
+	homeInfo := exp.BtcPageData.HomeInfo
+	blockTime := exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPEBTC)
+	exp.BtcPageData.RUnlock()
+	if homeInfo != nil {
+		res.NextBlockReward = homeInfo.NBlockSubsidy.Total
+		x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
+		allsecs := int64(time.Duration(x).Seconds())
+		res.NextTime = uint64(blockTime + allsecs)
+		res.RemainingBlocks = homeInfo.Params.RewardWindowSize - int64(homeInfo.IdxInRewardWindow)
+	}
+	return res
+}
+
+func (exp *ExplorerUI) GetDecredParamsData() *types.ChainParamData {
+	params := exp.ChainParams
+	res := &types.ChainParamData{
+		ChainType:                mutilchain.TYPEDCR,
+		ReduceMinDifficulty:      params.ReduceMinDifficulty,
+		MinDiffReductionTime:     params.MinDiffReductionTime,
+		GenerateSupported:        params.GenerateSupported,
+		TargetTimespan:           params.TargetTimespan,
+		TargetTimePerBlock:       params.TargetTimePerBlock,
+		RetargetAdjustmentFactor: params.RetargetAdjustmentFactor,
+		CoinbaseMaturity:         params.CoinbaseMaturity,
+		SubsidyReductionInterval: int32(params.SubsidyReductionInterval),
+	}
+	exp.pageData.RLock()
+	homeInfo := exp.pageData.HomeInfo
+	blockTime := exp.pageData.BlockInfo.BlockTime.UNIX()
+	exp.pageData.RUnlock()
+	res.NextBlockReward = homeInfo.NBlockSubsidy.Total
+	x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
+	allsecs := int64(time.Duration(x).Seconds())
+	res.NextTime = uint64(blockTime + allsecs)
+	res.RemainingBlocks = homeInfo.Params.RewardWindowSize - int64(homeInfo.IdxInRewardWindow)
+	return res
 }
 
 // Search implements a primitive search algorithm by checking if the value in

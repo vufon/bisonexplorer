@@ -1151,6 +1151,21 @@ type AddrPrefix struct {
 	Description string
 }
 
+type ChainParamData struct {
+	ChainType                string
+	ReduceMinDifficulty      bool
+	MinDiffReductionTime     time.Duration
+	GenerateSupported        bool
+	TargetTimespan           time.Duration
+	TargetTimePerBlock       time.Duration
+	RetargetAdjustmentFactor int64
+	CoinbaseMaturity         uint16
+	SubsidyReductionInterval int32
+	NextBlockReward          int64
+	RemainingBlocks          int64
+	NextTime                 uint64
+}
+
 // AddressPrefixes generates an array AddrPrefix by using chaincfg.Params
 func AddressPrefixes(params *chaincfg.Params) []AddrPrefix {
 	Descriptions := []string{"P2PK address",
