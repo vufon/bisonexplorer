@@ -838,7 +838,7 @@ export default class extends Controller {
     '<option value="hashrate">Hashrate</option>' +
     '</optgroup>' +
     '<optgroup label="Distribution">' +
-    '<option value="coin-supply">Circulation</option>' +
+    '<option value="coin-supply">Coin Supply</option>' +
     '<option value="fees">Fees</option>' +
     '</optgroup>'
   }
@@ -859,7 +859,7 @@ export default class extends Controller {
     '<option value="mempool-txs">Mempool TXs</option>' +
     '</optgroup>' +
     '<optgroup label="Distribution">' +
-    '<option value="coin-supply">Circulation</option>' +
+    '<option value="coin-supply">Coin Supply</option>' +
     '<option value="fees">Fees</option>' +
     '</optgroup>'
   }
@@ -942,7 +942,7 @@ export default class extends Controller {
       case 'hashrate':
         return 'Hashrate'
       case 'coin-supply':
-        return 'Circulation'
+        return 'Coin Supply'
       case 'fees':
         return 'Fees'
       case 'tx-per-block':

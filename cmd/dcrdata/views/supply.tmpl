@@ -10,7 +10,8 @@
 {{end}}
 {{$HomeInfo := .Info}}
 <div class="container"
-      data-controller="supply" 
+      data-controller="supply"
+      data-supply-chain-type="{{$ChainType}}"
       data-supply-target-time="{{.TargetTime}}"
       data-supply-ticket-time="{{.TicketTargetTime}}">
       {{if ne $ChainType "dcr"}}
@@ -35,6 +36,8 @@
       <div class="timer-countdown">
         <div data-supply-target="tiles" class="countdown-tiles"></div>
         <div class="labels">
+          <li class="d-hide" data-supply-target="yearTile">Years</li>
+          <li class="d-hide" data-supply-target="weekTile">Weeks</li>
           <li>Days</li>
           <li>Hours</li>
           <li>Mins</li>

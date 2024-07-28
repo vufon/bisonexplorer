@@ -285,9 +285,9 @@ body.darkBG [data-tooltip]:hover::after {
 }
 
 .timer-countdown .countdown-tiles > span {
-  min-width: 92px;
-  max-width: 140px;
-  font: bold 48px "Droid Sans", "Arial", sans-serif;
+  min-width: 65px;
+  max-width: 95px;
+  font: bold 30px "Droid Sans", "Arial", sans-serif;
   text-align: center;
   color: #4d4d4d;
   background-color: #e6e3e3;
@@ -299,7 +299,7 @@ body.darkBG [data-tooltip]:hover::after {
   border-radius: 3px;
   box-shadow: 0 0 8px rgb(232 232 232 / 70%);
   margin: 0 7px;
-  padding: 18px 0;
+  padding: 13px 0;
   display: inline-block;
   position: relative;
 }
@@ -312,8 +312,8 @@ body.darkBG [data-tooltip]:hover::after {
 }
 
 .timer-countdown .labels li {
-  width: 102px;
-  font: bold 15px "Droid Sans", "Arial", sans-serif;
+  width: 75px;
+  font: bold 14px "Droid Sans", "Arial", sans-serif;
   color: #4b9db7;
   text-align: center;
   text-transform: uppercase;
@@ -323,15 +323,16 @@ body.darkBG [data-tooltip]:hover::after {
 
 @media (max-width: 768px) {
   .timer-countdown .countdown-tiles > span {
-    min-width: 70px;
-    max-width: 80px;
-    font: bold 40px "Droid Sans", "Arial", sans-serif;
-    padding: 12px 0;
+    min-width: 45px;
+    max-width: 65px;
+    font: bold 25px "Droid Sans", "Arial", sans-serif;
+    padding: 9px 0;
+    margin: 0 4px;
   }
 
   .timer-countdown .labels li {
-    width: 80px;
-    font: bold 12px "Droid Sans", "Arial", sans-serif;
+    width: 50px;
+    font: bold 11px "Droid Sans", "Arial", sans-serif;
     margin-top: 10px;
   }
 }

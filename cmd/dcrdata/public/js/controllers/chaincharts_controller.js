@@ -570,7 +570,7 @@ export default class extends Controller {
       case 'hashrate':
         return 'Hashrate'
       case 'coin-supply':
-        return 'Circulation'
+        return 'Coin Supply'
       case 'fees':
         return 'Fees'
       case 'tx-per-block':

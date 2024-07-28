@@ -29,7 +29,7 @@
                         {{range .HomeInfoList}}
                         <tr>
                            <td class="text-start">
-                              <a href="{{if eq .Chain " dcr"}}/{{else}}/chain/{{.Chain}}{{end}}">
+                              <a href="{{if eq .Chain "dcr"}}/{{else}}/chain/{{.Chain}}{{end}}">
                                  <img src="/images/{{.Chain}}-icon.png" width="25" height="25" />
                                  <span class="ms-2 fs-17">{{chainName .Chain}}</span>
                                  <span class="fs-17">({{toUpperCase .Chain}})</span>
@@ -433,7 +433,7 @@
                                                    <option value="hashrate">Hashrate</option>
                                                 </optgroup>
                                                 <optgroup label="Distribution">
-                                                   <option value="coin-supply">Circulation</option>
+                                                   <option value="coin-supply">Coin Supply</option>
                                                    <option value="fees">Fees</option>
                                                 </optgroup>
                                              </select>
