@@ -44,98 +44,6 @@
     background-color: #d4d4d4 !important;
   }
 
-  .network-stats-block {
-    padding: 0;
-    color: #3f3f3f;
-    border: 1px solid #e0e0e0;
-    height: 130px;
-    border-radius: 4px;
-    margin: 0.5em 0;
-    text-align: center;
-  }
-
-  .network-stats-title {
-    padding: 5px 0;
-    font-weight: bold;
-    width: 100%;
-    display: block;
-    border-bottom: 1px solid #e0e0e0;
-    color: #727272;
-    font-size: 17px;
-  }
-
-  .network-stats-content {
-    font-size: 25px;
-    letter-spacing: 0;
-    color: #656363;
-    border-radius: 4px;
-    text-align: center;
-    margin-top: 5px;
-  }
-
-  .stats-subinfo {
-    color: #9d9d9d;
-    font-size: 13px;
-    display: block;
-  }
-
-  .market-chart-box {
-    min-height: 350px;
-  }
-
-  .progress-frame {
-    border-radius: 13px;
-    height: 28px;
-    background: #e7e6e6;
-    width: 80%;
-
-    .progress-bar {
-      border-radius: 10px;
-      background: #96eeae;
-      height: 100%;
-
-      span {
-        font-size: 14px;
-      }
-    }
-  }
-
-  .stats-block {
-    padding: 0;
-    color: #3f3f3f;
-    text-align: center;
-    border: 1px solid #8d8989;
-    height: 40px;
-    border-radius: 4px;
-    width: 150px;
-
-    .stats-title {
-      font-weight: 400;
-      font-size: 13px;
-      line-height: 20px;
-      letter-spacing: 1px;
-      color: #545454;
-      position: absolute;
-      top: -2px;
-      left: 0;
-      width: 100%;
-      padding: 0 15px;
-    }
-
-    .stats-title span {
-      background: #f2f2f2;
-    }
-
-    .stats-content {
-      display: block;
-      font-weight: 600;
-      font-size: 22px;
-      line-height: 40px;
-      letter-spacing: 0;
-      color: #3f3f3f;
-    }
-  }
-
   .martket-chart-converted {
     position: relative;
     margin-top: 5px;
@@ -272,6 +180,131 @@
 
 .chart-select-option {
   margin-top: 0;
+}
+
+.supply-stats-block {
+  padding: 0;
+  color: #3f3f3f;
+  border: 1px solid #ebebeb;
+  height: 90px;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  text-align: center;
+}
+
+.network-stats-block {
+  padding: 0;
+  color: #3f3f3f;
+  border: 1px solid #e0e0e0;
+  height: 130px;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  text-align: center;
+}
+
+.network-stats-title {
+  padding: 5px 0;
+  font-weight: bold;
+  width: 100%;
+  display: block;
+  border-bottom: 1px solid #e0e0e0;
+  color: #727272;
+  font-size: 17px;
+}
+
+.supply-stats-title {
+  padding: 5px 0;
+  font-weight: bold;
+  width: 100%;
+  display: block;
+  border-bottom: 1px solid #ebebeb;
+  color: #727272;
+  font-size: 15px;
+}
+
+.network-stats-content {
+  font-size: 25px;
+  letter-spacing: 0;
+  color: #656363;
+  border-radius: 4px;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.supply-stats-content {
+  font-size: 22px;
+  letter-spacing: 0;
+  color: #656363;
+  border-radius: 4px;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.date-stats-content {
+  font-size: 19px;
+}
+
+.stats-subinfo {
+  color: #9d9d9d;
+  font-size: 13px;
+  display: block;
+}
+
+.market-chart-box {
+  min-height: 350px;
+}
+
+.progress-frame {
+  border-radius: 13px;
+  height: 28px;
+  background: #e7e6e6;
+  width: 80%;
+
+  .progress-bar {
+    border-radius: 10px;
+    background: #96eeae;
+    height: 100%;
+
+    span {
+      font-size: 14px;
+    }
+  }
+}
+
+.stats-block {
+  padding: 0;
+  color: #3f3f3f;
+  text-align: center;
+  border: 1px solid #8d8989;
+  height: 40px;
+  border-radius: 4px;
+  width: 150px;
+
+  .stats-title {
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 20px;
+    letter-spacing: 1px;
+    color: #545454;
+    position: absolute;
+    top: -2px;
+    left: 0;
+    width: 100%;
+    padding: 0 15px;
+  }
+
+  .stats-title span {
+    background: #f2f2f2;
+  }
+
+  .stats-content {
+    display: block;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 40px;
+    letter-spacing: 0;
+    color: #3f3f3f;
+  }
 }
 
 [class^="homeicon-"],
@@ -901,14 +934,6 @@ body.darkBG.homepage-body {
   .explore-card-wrap {
     border: 1px solid #555050;
     background: linear-gradient(107.34deg, #121c23, #040808);
-  }
-
-  .network-stats-block {
-    border: 1px solid #595959;
-  }
-
-  .network-stats-title {
-    border-bottom: 1px solid #595959;
   }
 
   .the-arrow > .shaft,

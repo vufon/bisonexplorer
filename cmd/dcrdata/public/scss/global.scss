@@ -1334,6 +1334,10 @@ textarea::placeholder {
   border: 1px solid var(--c-bg-plain);
 }
 
+.border--2_top {
+  border-top: 2px solid #e9ebed;
+}
+
 .border--0_left {
   border-left: 0;
 }
@@ -1990,6 +1994,26 @@ body.darkBG {
 
   .dropdownmenu li:hover a {
     background: #929292;
+  }
+
+  .network-stats-block {
+    border: 1px solid #595959;
+  }
+
+  .supply-stats-block {
+    border: 1px solid #595959;
+  }
+
+  .network-stats-title {
+    border-bottom: 1px solid #595959;
+  }
+
+  .supply-stats-title {
+    border-bottom: 1px solid #595959;
+  }
+
+  .supply-stats-content {
+    color: white;
   }
 }
 

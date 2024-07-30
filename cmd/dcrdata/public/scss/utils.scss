@@ -285,9 +285,9 @@ body.darkBG [data-tooltip]:hover::after {
 }
 
 .timer-countdown .countdown-tiles > span {
-  min-width: 65px;
-  max-width: 95px;
-  font: bold 30px "Droid Sans", "Arial", sans-serif;
+  min-width: 95px;
+  max-width: 110px;
+  font: bold 45px "Droid Sans", "Arial", sans-serif;
   text-align: center;
   color: #4d4d4d;
   background-color: #e6e3e3;
@@ -299,7 +299,7 @@ body.darkBG [data-tooltip]:hover::after {
   border-radius: 3px;
   box-shadow: 0 0 8px rgb(232 232 232 / 70%);
   margin: 0 7px;
-  padding: 13px 0;
+  padding: 16px 0;
   display: inline-block;
   position: relative;
 }
@@ -312,8 +312,8 @@ body.darkBG [data-tooltip]:hover::after {
 }
 
 .timer-countdown .labels li {
-  width: 75px;
-  font: bold 14px "Droid Sans", "Arial", sans-serif;
+  width: 105px;
+  font: bold 15px "Droid Sans", "Arial", sans-serif;
   color: #4b9db7;
   text-align: center;
   text-transform: uppercase;

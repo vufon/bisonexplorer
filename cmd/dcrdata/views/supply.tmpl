@@ -31,79 +31,102 @@
         {{end}}
         <span class="breadcrumbs__item is-active">Supply</span>
      </nav>
-  <div class="row">
-    <div class="col-24 col-sm-16 col-lg-12 col-xl-9 mt-3">
-      <p class="fs-20">Next Block Reward Reduction</p>
-      <div class="timer-countdown">
-        <div data-supply-target="tiles" class="countdown-tiles"></div>
-        <div class="labels">
-          <li class="d-hide" data-supply-target="yearTile">Years</li>
-          <li class="d-hide" data-supply-target="weekTile">Weeks</li>
-          <li>Days</li>
-          <li>Hours</li>
-          <li>Mins</li>
-          <li>Secs</li>
-        </div>
+     <div>
+      <h2 style="text-align: center; margin-top: 0px">Live {{chainName $ChainType}} {{if eq $ChainType "dcr"}}Reduction{{else}}Halving{{end}} Countdown</h2>
+      <p style="text-align: center; margin-bottom: 5px">
+         Countdown to next block reward reduction
+      </p>
+    </div>
+   <div class="row d-flex justify-content-center">
+      <div class="timer-countdown w-auto px-3">
+         <div data-supply-target="tiles" class="countdown-tiles"></div>
+         <div class="labels">
+           <li class="d-hide" data-supply-target="yearTile">Years</li>
+           <li class="d-hide" data-supply-target="weekTile">Weeks</li>
+           <li>Days</li>
+           <li>Hours</li>
+           <li>Mins</li>
+           <li>Secs</li>
+         </div>
+       </div>
+   </div>
+   <div class="row">
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">Current Block</span>
+            <span class="supply-stats-content d-inline-block mt-2">
+               {{.BlockHeight}}
+            </span>
+         </div>
       </div>
-      <div class="row mt-2">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Current Block</span>
-          <span class="fw-600 fs-17">{{.BlockHeight}}</span>
-        </div>
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">Current Block Reward</span>
+            <div class="supply-stats-content d-inline-block mt-2">
+               {{template "decimalParts" (amountAsDecimalParts .BlockReward true)}} {{toUpperCase $ChainType}}
+            </div>
+         </div>
       </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Current Block Reward</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (amountAsDecimalParts .BlockReward true)}} {{toUpperCase $ChainType}}</div>
-        </div>
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">Next Block Reward (Est)</span>
+            <div class="supply-stats-content d-inline-block mt-2">
+               {{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase $ChainType}}
+            </div>
+         </div>
       </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Next Block Reward (Est)</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase $ChainType}}</div>
-        </div>
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">Remaining Blocks</span>
+            <span class="supply-stats-content d-inline-block mt-2">
+               {{subtract $HomeInfo.Params.RewardWindowSize (toint64 $HomeInfo.IdxInRewardWindow)}}
+            </span>
+         </div>
       </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Remaining Blocks</span>
-          <div class="fw-600 fs-17">{{subtract $HomeInfo.Params.RewardWindowSize (toint64 $HomeInfo.IdxInRewardWindow)}}</div>
-        </div>
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">{{if eq $ChainType "dcr"}}Target{{else}}Halving{{end}} Date</span>
+            <span class="supply-stats-content date-stats-content d-inline-block mt-2">
+               {{TimeConversion .TargetTime}}
+            </span>
+         </div>
       </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>{{if eq $ChainType "dcr"}}Target{{else}}Halving{{end}} Date</span>
-          <div class="fw-600 fs-17">{{TimeConversion .TargetTime}}</div>
-        </div>
-      </div>
-      <p class="fs-20 mt-3">Distribution informations</p>
-      <div class="row mt-2">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Total Coin Supply</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-            $HomeInfo.CoinSupply) 0 true)}} {{toUpperCase $ChainType}}</div>
-        </div>
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">Total Coin Supply</span>
+            <div class="supply-stats-content d-inline-block mt-2">
+               {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount $HomeInfo.CoinSupply) 0 true)}} {{toUpperCase $ChainType}}
+            </div>
+         </div>
       </div>
       {{if eq $ChainType "dcr"}}
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Treasury</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add
-            $HomeInfo.DevFund $HomeInfo.TreasuryBalance.Balance)) 0 true)}} {{toUpperCase $ChainType}}</div>
-        </div>
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">Treasury</span>
+            <div class="supply-stats-content d-inline-block mt-2">
+               {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add $HomeInfo.DevFund $HomeInfo.TreasuryBalance.Balance)) 0 true)}} {{toUpperCase $ChainType}}
+            </div>
+         </div>
       </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Treasury Block Reward</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-            $HomeInfo.NBlockSubsidy.Dev) 8 true 2)}} {{toUpperCase $ChainType}}</div>
-        </div>
+      <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+         <div class="supply-stats-block">
+            <span class="supply-stats-title">Treasury Block Reward</span>
+            <div class="supply-stats-content d-inline-block mt-2">
+               {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount $HomeInfo.NBlockSubsidy.Dev) 8 true 2)}} {{toUpperCase $ChainType}}
+            </div>
+         </div>
       </div>
       {{end}}
+   </div>
+   {{if eq $ChainType "dcr"}}
+   <div class="mt-4 border--2_top pt-3">
+      <h2 style="text-align: center; margin-top: 0px">Next Ticket Price Change</h2>
+      <p style="text-align: center; margin-bottom: 5px">
+         Countdown to next ticket price adjustment
+      </p>
     </div>
-    {{if eq $ChainType "dcr"}}
-    <div class="col-24 col-sm-16 col-lg-12 col-xl-9 mt-3">
-      <p class="fs-20">Next Ticket Price Change</p>
-      <div class="timer-countdown">
+  <div class="row d-flex justify-content-center">
+      <div class="timer-countdown w-auto px-3">
         <div data-supply-target="ticketTiles" class="countdown-tiles"></div>
         <div class="labels">
           <li>Days</li>
@@ -112,46 +135,58 @@
           <li>Secs</li>
         </div>
       </div>
-      <div class="row mt-2">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Current Ticket Price</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (float64AsDecimalParts $HomeInfo.StakeDiff 8 false 2)}} DCR</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Next Ticket Price</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (float64AsDecimalParts $HomeInfo.NextExpectedStakeDiff 2 false)}} DCR</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Vote Reward</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (divide
-            $HomeInfo.NBlockSubsidy.PoS 5)) 8 true 2)}} DCR/vote</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Remaining Blocks</span>
-          <div class="fw-600 fs-17">{{subtract $HomeInfo.Params.WindowSize (toint64 $HomeInfo.IdxBlockInWindow)}}</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Next Ticket Price Change Date</span>
-          <div class="fw-600 fs-17">{{TimeConversion .TicketTargetTime}}</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-24 d-flex justify-content-between">
-          <span>Total Staked</span>
-          <div class="fw-600 fs-17">{{template "decimalParts" (float64AsDecimalParts $HomeInfo.PoolInfo.Value 0 true)}} DCR</div>
-        </div>
-      </div>
-    </div>
-    {{end}}
   </div>
+  <div class="row">
+   <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+      <div class="supply-stats-block">
+         <span class="supply-stats-title">Current Ticket Price</span>
+         <div class="supply-stats-content d-inline-block mt-2">
+            {{template "decimalParts" (float64AsDecimalParts $HomeInfo.StakeDiff 8 false 2)}} DCR
+         </div>
+      </div>
+   </div>
+   <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+      <div class="supply-stats-block">
+         <span class="supply-stats-title">Next Ticket Price</span>
+         <div class="supply-stats-content d-inline-block mt-2">
+            {{template "decimalParts" (float64AsDecimalParts $HomeInfo.NextExpectedStakeDiff 2 false)}} DCR
+         </div>
+      </div>
+   </div>
+   <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+      <div class="supply-stats-block">
+         <span class="supply-stats-title">Vote Reward</span>
+         <div class="supply-stats-content d-inline-block mt-2">
+            {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (divide $HomeInfo.NBlockSubsidy.PoS 5)) 8 true 2)}} DCR/vote
+         </div>
+      </div>
+   </div>
+   <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+      <div class="supply-stats-block">
+         <span class="supply-stats-title">Remaining Blocks</span>
+         <span class="supply-stats-content d-inline-block mt-2">
+            {{subtract $HomeInfo.Params.WindowSize (toint64 $HomeInfo.IdxBlockInWindow)}}
+         </span>
+      </div>
+   </div>
+   <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+      <div class="supply-stats-block">
+         <span class="supply-stats-title">Next Ticket Price Change Date</span>
+         <span class="supply-stats-content date-stats-content d-inline-block mt-2">
+            {{TimeConversion .TicketTargetTime}}
+         </span>
+      </div>
+   </div>
+   <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+      <div class="supply-stats-block">
+         <span class="supply-stats-title">Total Staked</span>
+         <div class="supply-stats-content d-inline-block mt-2">
+            {{template "decimalParts" (float64AsDecimalParts $HomeInfo.PoolInfo.Value 0 true)}} DCR
+         </div>
+      </div>
+   </div>
+   </div>
+  {{end}}
   <div class="hp-explore-wrap mt-3">
   <section>
     <div class="hp-explore__cards-wrap">
@@ -223,7 +258,7 @@
                                            </select>
                                         </div>
                                      </div>
-                                     <div class="chart-control-wrapper chart-filter-tools me-4 mb-1"
+                                     <div class="chart-control-wrapper chart-filter-tools mt-0 me-4 mb-1"
                                         data-charts-target="zoomSelector">
                                         <div class="chart-control-label">ZOOM</div>
                                         <div class="chart-control chart-filter-selection ps-2">
@@ -450,7 +485,7 @@
                                          </select>
                                       </div>
                                    </div>
-                                   <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="zoomSelector">
+                                   <div class="chart-control-wrapper chart-filter-tools me-4 mb-1 mt-0" data-chaincharts-target="zoomSelector">
                                       <div class="chart-control-label">ZOOM</div>
                                       <div class="chart-control chart-filter-selection ps-2">
                                          <ul class="nav nav-pills">
