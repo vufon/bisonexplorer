@@ -991,6 +991,7 @@ func _main(ctx context.Context) error {
 		r.Get("/agendas", explore.AgendasPage)
 		r.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)
 		r.Get("/proposals", explore.ProposalsPage)
+		r.Get("/whatsnew", explore.WhatsNewPage)
 		r.With(explorer.ProposalPathCtx).Get("/proposal/{proposaltoken}", explore.ProposalPage)
 		r.Get("/decodetx", explore.DecodeTxPage)
 		r.Get("/search", explore.Search)

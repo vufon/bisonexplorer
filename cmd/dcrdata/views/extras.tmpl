@@ -176,6 +176,7 @@
                      <div class="border-top-grey">
                         <p class="row ps-1">
                            <a class="menu-item col-12" data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a>
+						   <a class="menu-item col-12" data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a>
                            {{- if eq .NetName "Mainnet"}}
                            <a class="menu-item col-12" data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>
                            {{- else}}
@@ -304,6 +305,7 @@
 					<div class="border-top-grey">
 					<p class="row ps-1">
 					<a class="menu-item col-12" data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a>
+					<a class="menu-item col-12" data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a>
 				{{- if eq .NetName "Mainnet"}}
 					<a class="menu-item col-12" data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>
 				{{- else}}
@@ -488,6 +490,7 @@
                      <div class="border-top-grey">
                         <p class="row ps-1">
                            <a class="menu-item col-12" data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a>
+						   <a class="menu-item col-12" data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a>
                            {{- if eq .NetName "Mainnet"}}
                            <a class="menu-item col-12" data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>
                            {{- else}}
@@ -564,6 +567,7 @@
         <li><a data-keynav-skip href="/parameters" title="Chain Parameters">Parameters</a></li>
         <li><a data-keynav-skip href="/decodetx" title="Decode or send a raw transaction">Decode/Broadcast Tx</a></li>
 		<li><a data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a></li>
+		<li><a data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a></li>
 		<li>
 		{{- if eq .NetName "Mainnet"}}
 					<a data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>

@@ -1,0 +1,201 @@
+{{define "whatsnew"}}
+<!DOCTYPE html>
+<html lang="en">
+    {{ template "html-head" headData .CommonPageData "Whats new in Blockcare"}}
+        {{template "navbar" . }}
+        <div class="container mt-2 pb-5">
+            <nav class="breadcrumbs mt-0">
+                <a href="/" class="breadcrumbs__item no-underline ps-2">
+                   <span class="homeicon-tags me-1"></span>
+                   <span class="link-underline">Home</span>
+                </a>
+                <span class="breadcrumbs__item is-active">Whats New In Blockcare</span>
+             </nav>
+            <div class="row justify-content-between">
+                <div class="col-lg-14 col-sm-12 d-flex">
+                    <h4 class="mb-2 mt-2">Whats New</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <h5 class="mt-2"><span>Decred Support</span></h5>
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+                    <div class="btable-table-wrap maxh-none">
+                    <table class="btable-table w-100">
+                        <thead>
+                          <tr class="bg-none">
+                            <th>New Features</th>
+                            <th>Description</th>
+                            <th>Link</th>
+                          </tr>
+                        </thead>
+                        <tbody class="bgc-white">
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Unconfirmed Txs Display</td>
+                                <td class="mono">Displays all unconfirmed Treasury transactions and other transactions in the mempool.</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Chain Charts Improvement</td>
+                                <td class="mono">Group chart list and improve filter and chart UI enhance the user experience</td>
+                                <td><a href="/charts">/Chain Charts</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Market Charts Improvement</td>
+                                <td class="mono">Add support for the Kucoin API data option, change the chart zoom method, and improve the overall page style.</td>
+                                <td><a href="/market">/Market Page</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Display Visual Blocks</td>
+                                <td class="mono">Restore the Visual Blocks page display.</td>
+                                <td><a href="/visualblocks">/Visual Blocks</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Add Staking Reward Calculator</td>
+                                <td class="mono">Add Staking Reward Calculator. Improve calculations on js side.</td>
+                                <td><a href="/stakingcalc">/Staking Reward Calculator</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Add Supply page</td>
+                                <td class="mono">Add supply page that includes countdown to the next block reward reduction and ticket price adjustment time. Displays coin supply data and other distribution data. Additionally, coin supply chart is shown.</td>
+                                <td><a href="/supply">/Supply</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Improve Attack Cost page</td>
+                                <td class="mono">Fix parameter data errors to support calculations. Replace outdated mining devices with Blake3-enabled devices.</td>
+                                <td><a href="/attack-cost">/Attack Cost</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Home page development with new data display design</td>
+                                <td class="mono">Redesign to display more useful information. It now shows market charts, blockchain charts, and an improved menu, among other enhancements.</td>
+                                <td><a href="/">/Decred</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Support 24h metrics data</td>
+                                <td class="mono">Synchronize data processing and calculations to display information within 24 hours.</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Financial reports development</td>
+                                <td class="mono">Develop many various types of financial reports covers treasury expenditures, including inflow and outflow statistics of treasury, the budget for proposals</td>
+                                <td><a href="/home-report">/Financial Reports</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">New Design</td>
+                                <td class="mono">Adjust the overall design of all components to match the overall style of Blockcare</td>
+                                <td><a href="/">/</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Fix existing errors</td>
+                                <td class="mono">Improve and fix bugs that exist on old source code since fork</td>
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                    </div>
+                    <h5 class="mt-3"><span>Multi-chain Support</span></h5>
+                    <div class="br-8 b--def bgc-plain-bright pb-10">
+                    <div class="btable-table-wrap maxh-none">
+                    <table class="btable-table w-100">
+                        <thead>
+                          <tr class="bg-none">
+                            <th>New Features</th>
+                            <th>Description</th>
+                            <th>Link</th>
+                          </tr>
+                        </thead>
+                        <tbody class="bgc-white">
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Blockchains List Page</td>
+                                <td class="mono">Develop page that displays the list of supported blockchains. Includes summary information, Market Charts, Chain Charts for all blockchains, Comparison table of some parameters</td>
+                                <td><a href="/chain">/Blockchain List</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Chain Charts Support</td>
+                                <td class="mono">Support chain charts for supported blockchains. Use Coinex API to get data for charts</td>
+                                <td><a href="/chain/ltc/charts">/LTC Charts</a><br /><a href="/chain/btc/charts">/BTC Charts</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Market Charts Support</td>
+                                <td class="mono">Support market charts for supported blockchains. Supported exchanges: Binance, Gemini, Huobi, Kucoin</td>
+                                <td><a href="/chain/ltc/market">/LTC Market</a><br /><a href="/chain/btc/market">/BTC Market</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Support Multi-chain Search</td>
+                                <td class="mono">Support searching by block, transaction, address for all supported blockchains</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Support blockchain data storage</td>
+                                <td class="mono">Support synchronizing daemon data of various blockchain types into DB. Serves to display data on the system.</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Support non-DB data</td>
+                                <td class="mono">Provide more solution to display blockchain data without using DB using external APIs. Support Blocks, Address data,...</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Provide market list page</td>
+                                <td class="mono">Support market summary data of some blockchains. Including: Price, 24h volume,...</td>
+                                <td><a href="/marketlist">/Market List</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Mempool data support</td>
+                                <td class="mono">Use mempool space websocket to display multi-chain Mempool data</td>
+                                <td><a href="/chain/ltc/mempool">/LTC Mempool</a><br /><a href="/chain/btc/mempool">/BTC Mempool</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Multi-chain Blocks data</td>
+                                <td class="mono">Support displaying block list information and block details for multi-chain</td>
+                                <td><a href="/chain/ltc/blocks">/LTC Blocks</a><br /><a href="/chain/btc/blocks">/BTC Blocks</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Multi-chain Transaction Detail page</td>
+                                <td class="mono">Support displaying transaction details for multi-chain</td>
+                                <td><a href="/chain/ltc/tx/932a6d79b11e655156430a63fe2f64de866e2af9e5dc2a81b595802d182a3bfe">/LTC Transaction Detail</a>
+                                    <br /><a href="/chain/btc/tx/cc07b2f4c7d1785a0b3f59b9450f41ffd550342b93f955eaac9249293a01a239">/BTC Transaction Detail</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Multi-chain Address Detail page</td>
+                                <td class="mono">Support displaying address details with summary information and transaction list</td>
+                                <td><a href="/chain/ltc/address/MJXo4nmMVi8Wnf4KxY5Z9oPSvJD7KiHg3C">/LTC Address</a><br />
+                                    <a href="/chain/btc/address/bc1qawcdxplxprc64fh38ryy4crndmfgwrffpac743">/BTC Address</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Support 24h metrics data</td>
+                                <td class="mono">Synchronize data processing and calculations to display information within 24 hours for all blockchains</td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Develop Supply page</td>
+                                <td class="mono">Add countdown to next Halving. Distribution data and Coin Supply charts</td>
+                                <td><a href="/chain/ltc/supply">/LTC Supply</a><br /><a href="/chain/btc/supply">/BTC Supply</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Develop homepage for multi-chain</td>
+                                <td class="mono">Develop homepage for multi-chain that displays summary information, last block, market charts, chain charts, Mempool, Mining, 24h Metrics, Halving Info</td>
+                                <td><a href="/chain/ltc">/LTC Homepage</a><br /><a href="/chain/btc">/BTC Homepage</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Multi-chain Parameters Page</td>
+                                <td class="mono">Show parameters for supported blockchains</td>
+                                <td><a href="/chain/ltc/parameters">/LTC Parameters</a><br /><a href="/chain/btc/parameters">/BTC Parameters</a></td>
+                            </tr>
+                            <tr>
+                                <td class="mono text-start pe-2 nowrap p03rem0 fw-600">Visual Blocks page</td>
+                                <td class="mono">Develope Visual Blocks pages for supported blockchains</td>
+                                <td><a href="/">/Multi-chain Visual Blocks</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{ template "footer" . }}
+    </body>
+</html>
+{{end}}
