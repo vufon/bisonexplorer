@@ -63,7 +63,11 @@
          <div class="supply-stats-block">
             <span class="supply-stats-title">Current Block Reward</span>
             <div class="supply-stats-content d-inline-block mt-2">
-               {{template "decimalParts" (amountAsDecimalParts .BlockReward true)}} {{toUpperCase $ChainType}}
+               {{if eq $ChainType "dcr"}}
+                  {{template "decimalParts" (amountAsDecimalParts .BlockReward true)}} {{toUpperCase $ChainType}}
+               {{else}}
+                  {{toFloat64Amount .BlockReward}} {{toUpperCase $ChainType}}
+               {{end}}
             </div>
          </div>
       </div>
@@ -71,7 +75,11 @@
          <div class="supply-stats-block">
             <span class="supply-stats-title">Next Block Reward (Est)</span>
             <div class="supply-stats-content d-inline-block mt-2">
-               {{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase $ChainType}}
+               {{if eq $ChainType "dcr"}}
+                  {{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase $ChainType}}
+               {{else}}
+                  {{toFloat64Amount .NextBlockReward}} {{toUpperCase $ChainType}}
+               {{end}}
             </div>
          </div>
       </div>
