@@ -9,7 +9,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -2731,8 +2730,6 @@ func (pgb *ChainDB) GetBitDegreeAllPriceMap() map[string]float64 {
 	for k, v := range result {
 		result[k] = v / float64(countMap[k])
 	}
-	b, _ := json.Marshal(result)
-	fmt.Println("Check result: ", string(b))
 	return result
 }
 

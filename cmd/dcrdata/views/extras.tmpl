@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.028286ccd000b138.css" rel="stylesheet">
+	<link href="/dist/css/style.e72119ce23192f61.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 	<script>
@@ -114,26 +114,26 @@
             data-turbolinks-permanent
             data-menu-homepage="{{.IsHomepage}}">
             <div id="menu-toggle" class="px-0">
-               <div data-menu-target="homeMenu">
-                  <input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
-                  <span class="patty d-none"></span>
-                  <span class="patty d-none"></span>
-                  <span class="patty short d-none"></span>
-                  <div id="menu" class="row justify-content-end">
-                     <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
-                        <input type="hidden" name="darkmode" value="darkmode">
-                        <input type="hidden" name="requestURI" value="{{.RequestURI}}">
-                        <button type="submit" data-action="click->menu#onSunClick"
-                           class="menu-submit text-start w-100 p-0"
-                           data-keynav-skip>
-                           <div class="menu-item">
-                              <span id="sun-icon" class="dcricon-sun-fill no-underline pe-2 fs-22"></span>
-                           </div>
-                        </button>
-                     </form>
-                  </div>
-               </div>
-               <div class="d-none" data-menu-target="commonMenu">
+				<div data-menu-target="homeMenu">
+					<input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
+					<span class="patty d-none"></span>
+					<span class="patty d-none"></span>
+					<span class="patty short d-none"></span>
+					<div id="menu" class="row justify-content-end">
+					   <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
+						  <input type="hidden" name="darkmode" value="darkmode">
+						  <input type="hidden" name="requestURI" value="{{.RequestURI}}">
+						  <button type="submit" data-action="click->menu#onSunClick"
+							 class="menu-submit text-start w-100 p-0"
+							 data-keynav-skip>
+							 <div class="menu-item">
+								<span id="sun-icon" class="dcricon-sun-fill no-underline pe-2 fs-22"></span>
+							 </div>
+						  </button>
+					   </form>
+					</div>
+				 </div>
+               <div class="d-none">
                   <input type="checkbox" id="common-menu-input" data-menu-target="toggle" data-action="change->menu#toggle"/>
                   <span class="patty"></span>
                   <span class="patty"></span>
@@ -206,6 +206,10 @@
                </div>
             </div>
          </nav>
+      </div>
+	  <hr class="style-two m-0">
+      <div class="d-flex container justify-content-center">
+         {{template "multichain_menu_bar" .}}
       </div>
    </header>
 {{end}}
@@ -583,6 +587,33 @@
 						<span class="text">Enable Hot Keys</span><br /><span class="keys-hint">(<span class="arrows"> &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
 					</a>
 		</li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+{{end}}
+
+{{define "multichain_menu_bar"}}
+<nav class="dropdownmenu">
+  <ul>
+	 <li><a class="menu-item-title">Information</a>
+      <ul class="submenu info-menu-column">
+        <li><a data-keynav-skip href="/chain/{{.ChainType}}/blocks" title="Decred blocks">Blocks</a></li>
+        <li><a data-keynav-skip href="/chain/{{.ChainType}}/mempool" title="Decred mempool">Mempool</a></li>
+      </ul>
+    </li>
+	 <li><a class="menu-item-title">Graphics</a>
+      <ul class="submenu charts-menu-column">
+        <li><a data-keynav-skip href="/chain/{{.ChainType}}/charts" title="Decred charts">Chain Charts</a></li>
+        <li><a data-keynav-skip href="/chain/{{.ChainType}}/market" title="Market">Market</a></li>
+		<li><a data-keynav-skip href="/chain/{{.ChainType}}/visualblocks" title="Decred visual lastest blocks">Visual Blocks</a></li>
+      </ul>
+    </li>
+	 <li><a class="menu-item-title">Tools</a>
+      <ul class="submenu tools-menu-column last-submenu-item">
+		<li><a data-keynav-skip href="/chain/{{.ChainType}}/supply" title="Next Block Reward Reduction">Supply</a></li>
+        <li><a data-keynav-skip href="/chain/{{.ChainType}}/parameters" title="Chain Parameters">Parameters</a></li>
+		<li><a data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a></li>
       </ul>
     </li>
   </ul>
