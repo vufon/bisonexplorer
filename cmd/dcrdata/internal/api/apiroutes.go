@@ -1097,10 +1097,6 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 		//calculate cost every month
 		for i := 0; i < int(countMonths); i++ {
 			handlerTime := tempTime.AddDate(0, i, 0)
-			//if month is this month or future months, break loop
-			if handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year()) {
-				break
-			}
 			key := fmt.Sprintf("%d-%s", handlerTime.Year(), apitypes.GetFullMonthDisplay(int(handlerTime.Month())))
 			var costOfMonth float64
 			//if start month
@@ -1126,7 +1122,10 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 				Month:   key,
 				Expense: costOfMonth,
 			}
-			totalSpent += costOfMonth
+			isAfter := handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year())
+			if !isAfter {
+				totalSpent += costOfMonth
+			}
 			monthDatas = append(monthDatas, itemData)
 		}
 	}

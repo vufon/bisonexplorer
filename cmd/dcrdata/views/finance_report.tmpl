@@ -26,6 +26,18 @@
             <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
          </div>
          <div class="mt-2 mb-2 container">
+            <div class="d-flex ai-center my-3 d-none" data-financereport-target="proposalSelectType">
+               <label>Type: </label>
+               <div class="btn-group" data-toggle="buttons">
+                  <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
+                     type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposals">
+                  <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
+                     type="button" class="tab-button white me-1 c-txt-main" value="Domains"
+                     name="domains">
+                  <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
+                     type="button" class="tab-button white me-1 c-txt-main" value="Authors" name="authors">
+               </div>
+            </div>
             <div class="d-none" data-financereport-target="nameMatrixSwitch">
                <span class="me-1" style="position:sticky;left:10px;">Name</span>
                <label class="switch mt-2" style="position:sticky;left:60px;">
@@ -42,12 +54,12 @@
                <label data-financereport-target="typeLabel">Type: </label>
                <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
+                     type="button" class="tab-button white me-1 c-txt-main" value="Combined" name="combined">
+                  <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Decentralized Treasury"
                      name="current">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Admin Treasury" name="legacy">
-                  <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
-                     type="button" class="tab-button white me-1 c-txt-main" value="Combined" name="combined">
                </div>
             </div>
             <!-- Start treasury chart -->

@@ -189,7 +189,7 @@ export default class extends Controller {
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
-      'netSelectRadio', 'selectTreasuryType']
+      'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType']
   }
 
   async connect () {
@@ -767,13 +767,15 @@ export default class extends Controller {
   async initialize () {
     this.query = new TurboQuery()
     this.settings = TurboQuery.nullTemplate([
-      'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'psort', 'stype', 'order', 'interval', 'search', 'usd', 'active', 'year', 'ttype'
+      'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'psort', 'stype',
+      'order', 'interval', 'search', 'usd', 'active', 'year', 'ttype', 'pgroup'
     ])
 
     this.defaultSettings = {
       type: 'summary',
       tsort: 'newest',
       psort: 'newest',
+      pgroup: 'proposals',
       stype: 'startdt',
       order: 'desc',
       interval: 'month',
@@ -794,6 +796,9 @@ export default class extends Controller {
     }
     if (!this.settings.active) {
       this.settings.active = this.defaultSettings.active
+    }
+    if (!this.settings.pgroup) {
+      this.settings.pgroup = this.defaultSettings.pgroup
     }
     if (this.settings.type && this.settings.type === 'treasury') {
       this.defaultSettings.stype = ''
@@ -1008,6 +1013,19 @@ export default class extends Controller {
     this.settings.ttype = e.target.name
     this.changedTType = e.target.name
     this.calculate(true)
+  }
+
+  proposalTypeChange (e) {
+    if (e.target.name === this.settings.pgroup) {
+      return
+    }
+    const target = e.srcElement || e.target
+    this.proposalTypeTargets.forEach((proposalTypeTarget) => {
+      proposalTypeTarget.classList.remove('active')
+    })
+    target.classList.add('active')
+    this.settings.pgroup = e.target.name
+    this.calculate(false)
   }
 
   intervalChange (e) {
@@ -2636,6 +2654,7 @@ export default class extends Controller {
 
     if (!this.settings.type || this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       this.nameMatrixSwitchTarget.classList.remove('d-none')
+      this.proposalSelectTypeTarget.classList.remove('d-none')
       if (this.settings.type === 'proposal') {
         document.getElementById('nameMonthSwitchInput').checked = true
       } else {
@@ -2643,6 +2662,7 @@ export default class extends Controller {
       }
     } else {
       this.nameMatrixSwitchTarget.classList.add('d-none')
+      this.proposalSelectTypeTarget.classList.add('d-none')
     }
     // disabled group button for loading
     this.disabledGroupButton()
