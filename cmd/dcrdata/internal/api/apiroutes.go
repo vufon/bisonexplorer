@@ -738,6 +738,7 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 	report := make(map[string][]apitypes.MonthReportData)
 	proposalReportData := make([]apitypes.ProposalReportData, 0)
 	domainList := make([]string, 0)
+	authorList := make([]string, 0)
 	proposalList := make([]string, 0)
 	proposalTokenMap := make(map[string]string)
 	now := time.Now()
@@ -778,6 +779,9 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 		}
 		if !slices.Contains(domainList, domain) {
 			domainList = append(domainList, domain)
+		}
+		if !slices.Contains(authorList, author) {
+			authorList = append(authorList, author)
 		}
 		if minDate.After(startTime) {
 			minDate = startTime
@@ -946,6 +950,30 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 				}
 				domainDataArr = append(domainDataArr, domainData)
 			}
+			//count by author
+			authorMap := make(map[string]float64)
+			for _, data := range val {
+				dataObj, ok := authorMap[data.Author]
+				if ok {
+					authorMap[data.Author] = dataObj + data.Expense
+				} else {
+					authorMap[data.Author] = data.Expense
+				}
+			}
+			//hanlder author list for month object data
+			authorDataArr := make([]apitypes.AuthorReportData, 0)
+			for _, author := range authorList {
+				authorData := apitypes.AuthorReportData{}
+				authorValue, authorHas := authorMap[author]
+				if authorHas {
+					authorData.Author = author
+					authorData.Expense = math.Ceil(authorValue*100) / 100
+				} else {
+					authorData.Author = ""
+					authorData.Expense = 0.0
+				}
+				authorDataArr = append(authorDataArr, authorData)
+			}
 			for _, proposal := range proposalList {
 				var hasData = false
 				var putData apitypes.MonthReportData
@@ -969,6 +997,7 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 				Month:      key,
 				AllData:    monthAllData,
 				DomainData: domainDataArr,
+				AuthorData: authorDataArr,
 				Total:      math.Ceil(total*100) / 100,
 			}
 			monthReportList = append(monthReportList, reportMonthObj)

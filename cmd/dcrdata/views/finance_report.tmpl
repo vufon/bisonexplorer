@@ -39,13 +39,13 @@
                </div>
             </div>
             <div class="d-none" data-financereport-target="nameMatrixSwitch">
-               <span class="me-1" style="position:sticky;left:10px;">Name</span>
+               <span class="me-1" data-financereport-target="listLabel" style="position:sticky;left:10px;">List</span>
                <label class="switch mt-2" style="position:sticky;left:60px;">
                   <input type="checkbox" data-action="change->financereport#nameMatrixSwitchEvent"
                      id="nameMonthSwitchInput">
                   <span class="legacy-slider round"></span>
                </label>
-               <span class="ms-1" style="position:sticky;left:125px;">Month</span>
+               <span class="ms-1" data-financereport-target="monthLabel" style="position:sticky;left:125px;">Month</span>
             </div>
             <div class="mb-2">
                <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
@@ -133,7 +133,7 @@
                </div>
             </div>
             <!-- Finish treasury chart -->
-            <div class="mb-2" data-financereport-target="colorNoteRow">
+            <div class="mb-2 d-none" data-financereport-target="colorNoteRow">
                <label class="color-note-label report-tool-bar border-radius-8"
                   data-financereport-target="colorLabel"></label>
                <span class="c-grey-2 ps-2 fw-600 color-description" data-financereport-target="colorDescription">Valid

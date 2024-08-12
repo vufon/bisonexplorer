@@ -948,6 +948,11 @@ type DomainReportData struct {
 	Expense float64 `json:"expense"`
 }
 
+type AuthorReportData struct {
+	Author  string  `json:"author"`
+	Expense float64 `json:"expense"`
+}
+
 type MonthDataObject struct {
 	Month         string  `json:"month"`
 	Expense       float64 `json:"expense"`
@@ -958,6 +963,7 @@ type MonthReportObject struct {
 	Month      string             `json:"month"`
 	AllData    []MonthReportData  `json:"allData"`
 	DomainData []DomainReportData `json:"domainData"`
+	AuthorData []AuthorReportData `json:"authorData"`
 	Total      float64            `json:"total"`
 }
 
