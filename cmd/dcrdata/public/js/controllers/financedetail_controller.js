@@ -209,11 +209,11 @@ export default class extends Controller {
     if (this.settings.type === 'domain') {
       this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
-      this.toUpReportTarget.href = '/finance-report?type=domain'
+      this.toUpReportTarget.href = '/finance-report?pgroup=domains'
       this.toUpReportTarget.innerHTML = 'Domains'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
-      this.toUpReportTarget.href = '/finance-report?type=author'
+      this.toUpReportTarget.href = '/finance-report?pgroup=authors'
       this.toUpReportTarget.innerHTML = 'Authors'
     } else {
       this.toUpReportTarget.href = '/finance-report'

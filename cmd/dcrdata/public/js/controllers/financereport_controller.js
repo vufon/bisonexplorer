@@ -1206,7 +1206,7 @@ export default class extends Controller {
       this.reportAllPageTarget.classList.remove('proposal-report-page')
     }
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
-      if (this.settings.pgroup === 'proposals' || (this.settings.pgroup === 'authors' && this.settings.ptype === 'month')) {
+      if (this.settings.pgroup === 'proposals' || this.settings.pgroup === 'authors') {
         const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
         const tableWidth = parseFloat(tableWidthStr.trim())
         const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
@@ -1237,7 +1237,7 @@ export default class extends Controller {
             $('#scroller').removeClass('d-none')
           }
         }
-        if (this.settings.type === 'proposal') {
+        if ((this.settings.type === 'proposal' && this.settings.pgroup === 'proposals') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'month')) {
           // handler for scroll default
           if (this.settings.psort === 'oldest') {
             if (this.settings.tsort === 'newest') {
@@ -1660,7 +1660,7 @@ export default class extends Controller {
       const index = this.settings.psort === 'oldest' ? (handlerData.authorReport.length - i - 1) : i
       const author = handlerData.authorReport[index]
       const budget = author.budget
-      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a href="#" class="link-hover-underline fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${author.name}</a></td>`
+      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a href="/finance-report/detail?type=owner&name=${author.name}" class="link-hover-underline fw-600 fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${author.name}</a></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
