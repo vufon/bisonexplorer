@@ -118,7 +118,7 @@ var (
 	defaultRateCertFile      = filepath.Join(defaultHomeDir, "rpc.cert")
 
 	defaultMainnetLink  = "https://blockcare.pro/"
-	defaultTestnetLink  = "https://testnet.dcrdata.org/"
+	defaultTestnetLink  = "https://testnet.blockcare.pro/"
 	defaultBinanceAPI   = "https://api.binance.com"
 	defaultOnionAddress = ""
 	defaultCoinCaps     = "bitcoin,litecoin,decred,ethereum,monero"
