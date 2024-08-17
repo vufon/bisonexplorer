@@ -370,7 +370,7 @@
                                     <div class="col-24 col-sm-12 col-lg-8">
                                     <p class="network-stats-block">
                                           <span class="network-stats-title">Average Block Time</span>
-                                          <span class="network-stats-content d-inline-block mt-4" data-type="duration" class="jsonly" data-time-target="duration" id="blockTimeAvg" data-duration="{{.BlockTimeAvg}}" id="blockTimeAvg">0</span>
+                                          <span class="network-stats-content d-inline-block mt-4" data-type="duration" class="jsonly" data-time-target="duration" data-chainhome-target="blockTimeAvg" data-duration="{{.BlockTimeAvg}}">0</span>
                                     </p>
                                     </div>
                                  </div>
@@ -410,7 +410,7 @@
                                           Transactions
                                           </a>
                                           </span>
-                                          <div class="network-stats-content d-inline-block mt-4" id="txCount">
+                                          <div class="network-stats-content d-inline-block mt-4" data-chainhome-target="txCount">
                                           {{int64Comma .TotalTransactions}}
                                           </div>
                                        </div>
@@ -418,7 +418,7 @@
                                      <div class="col-24 col-sm-12 col-lg-8">
                                        <p class="network-stats-block">
                                           <span class="network-stats-title">Processing Outputs</span>
-                                          <span class="network-stats-content d-inline-block mt-4" id="txOutCount">
+                                          <span class="network-stats-content d-inline-block mt-4" data-chainhome-target="txOutCount">
                                           {{int64Comma .OutputsCount}}
                                           </span>
                                        </p>
@@ -426,7 +426,7 @@
                                      <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Total Sent</span>
-                                          <div class="network-stats-content d-inline-block mt-4" id="totalSent">
+                                          <div class="network-stats-content d-inline-block mt-4" data-chainhome-target="totalSent">
                                              {{template "decimalParts" (float64AsDecimalParts .TotalOut 3 true)}}
                                           </div>
                                           <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
@@ -435,7 +435,7 @@
                                     <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Fee Total</span>
-                                          <div class="network-stats-content d-inline-block mt-4" id="totalFee">
+                                          <div class="network-stats-content d-inline-block mt-4" data-chainhome-target="totalFee">
                                              {{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}
                                           </div>
                                           <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
@@ -445,8 +445,8 @@
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Fee span</span>
                                           <div class="network-stats-content d-inline-block mt-4 fs-18">
-                                          <span id="minFeeRate">{{template "decimalParts" (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> - 
-                                          <span id="maxFeeRate">{{template "decimalParts" (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
+                                          <span data-chainhome-target="minFeeRate">{{template "decimalParts" (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> - 
+                                          <span data-chainhome-target="maxFeeRate">{{template "decimalParts" (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
                                           {{if eq $ChainType "ltc"}}lit{{else}}sat{{end}}/vB
                                           </div>
                                        </div>
@@ -458,7 +458,7 @@
                                           Size
                                           </a>
                                           </span>
-                                          <span id="totalSize" class="network-stats-content d-inline-block mt-4">{{.FormattedTotalSize}}</span>
+                                          <span data-chainhome-target="totalSize" class="network-stats-content d-inline-block mt-4">{{.FormattedTotalSize}}</span>
                                        </p>
                                     </div>
                                  </div>
@@ -672,9 +672,9 @@
                                            Remaining Blocks
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-3">
-                                             <span id="remainingBlocks">{{int64Comma .RemainingBlocks}}</span>
+                                             <span data-chainhome-target="remainingBlocks">{{int64Comma .RemainingBlocks}}</span>
                                              <span class="stats-subinfo">
-                                             In ~<span data-type="duration" class="jsonly" id="timeRemaning" data-time-target="duration" data-duration="{{.TimeRemaining}}">0</span>
+                                             In ~<span data-type="duration" class="jsonly" data-chainhome-target="timeRemaning" data-time-target="duration" data-duration="{{.TimeRemaining}}">0</span>
                                              </span>
                                           </div>
                                        </div>
@@ -685,9 +685,9 @@
                                            Difficulty Change
                                           </span>
                                           <div class="network-stats-content d-inline-block mt-3">
-                                             <span id="diffChange" class="{{if gt .DifficultyChange 0.0}}c-green-2{{else}}c-red{{end}}">{{commaWithDecimal .DifficultyChange 2}}</span> %
+                                             <span data-chainhome-target="diffChange" class="{{if gt .DifficultyChange 0.0}}c-green-2{{else}}c-red{{end}}">{{commaWithDecimal .DifficultyChange 2}}</span> %
                                               <span class="stats-subinfo">
-                                                Previous: <span id="prevRetarget">{{threeSigFigs .PreviousRetarget}}</span> %
+                                                Previous: <span data-chainhome-target="prevRetarget">{{threeSigFigs .PreviousRetarget}}</span> %
                                              </span>
                                           </div>
                                        </div>
@@ -994,97 +994,6 @@
       </div>
       <!--end block 2 -->
    </div>
-   {{if eq $ChainType "ltc"}}
-   <script src="https://litecoinspace.org/mempool.js"></script>
-   {{else}}
-   <script src="https://mempool.space/mempool.js"></script>
-   {{end}}
-   <script src="/js/action/action_common.js"></script>
-   <script>
-var chainType = {{$ChainType}}
-var wsHostName = chainType === 'ltc' ? ltcHostname : btcHostname
-var init = async () => {
-    const {bitcoin: {websocket}} = mempoolJS({
-        hostname: wsHostName
-    });
-    const ws = websocket.initClient({
-        options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart'],
-    });
-    ws.addEventListener('message', function incoming({data}) {
-        const res = JSON.parse(data.toString());
-        if (res.mempoolInfo) {
-            $("#txCount").html(decimalParts(res.mempoolInfo.size, true, 0))
-            if (chainType === 'btc') {
-                $("#totalFee").html(decimalParts(res.mempoolInfo.total_fee, false, 8, 2))
-            }
-        }
-        if (res["mempool-blocks"]) {
-            let totalSize = 0
-            let ltcTotalFee = 0
-            let minFeeRatevB = Number.MAX_VALUE
-            let maxFeeRatevB = 0
-            res["mempool-blocks"].forEach(memBlock => {
-                totalSize += memBlock.blockSize
-                if (chainType === 'ltc') {
-                    ltcTotalFee += memBlock.totalFees
-                }
-                if (memBlock.feeRange) {
-                    memBlock.feeRange.forEach(feevB => {
-                        if (minFeeRatevB > feevB) {
-                            minFeeRatevB = feevB
-                        }
-                        if (maxFeeRatevB < feevB) {
-                            maxFeeRatevB = feevB
-                        }
-                    })
-                }
-            })
-            if (chainType === 'ltc') {
-                $("#totalFee").html(decimalParts(ltcTotalFee / 1e8, false, 8, 2))
-            }
-            $("#minFeeRate").html(decimalParts(minFeeRatevB, true, 0))
-            $("#maxFeeRate").html(decimalParts(maxFeeRatevB, true, 0))
-            $("#totalSize").html(bytes(totalSize))
-        }
-          if (res.block) {
-             const extras = res.block.extras
-             $("#txOutCount").html(decimalParts(extras.totalOutputs, true, 0))
-             $("#totalSent").html(decimalParts(extras.totalOutputAmt / 1e8, false, 8, 2))
-          }
-          if (res.blocks) {
-            let txOutCount = 0
-            let totalSent = 0
-             res.blocks.forEach(block => {
-                  const extras = block.extras
-                  txOutCount += extras.totalOutputs
-                  totalSent += extras.totalOutputAmt
-             })
-            $("#txOutCount").html(decimalParts(txOutCount, true, 0))
-            $("#totalSent").html(decimalParts(totalSent / 1e8, false, 3, 2))
-         }
-         if (res.da) {
-            const diffChange = res.da.difficultyChange
-            const prevRetarget = res.da.previousRetarget
-            const remainingBlocks = res.da.remainingBlocks
-            const timeRemaining = res.da.remainingTime
-            const timeAvg = res.da.timeAvg
-            $("#diffChange").html(decimalParts(diffChange, false, 2, 0))
-            if (diffChange > 0) {
-               $("#diffChange").removeClass('c-red')
-               $("#diffChange").addClass('c-green-2')
-            } else {
-               $("#diffChange").addClass('c-red')
-               $("#diffChange").removeClass('c-green-2')
-            }
-            $("#prevRetarget").html(threeSigFigs(prevRetarget))
-            $("#remainingBlocks").html(decimalParts(remainingBlocks, true, 0))
-            $("#timeRemaning").attr("data-duration", timeRemaining)
-            $("#blockTimeAvg").attr("data-duration", timeAvg)
-         }
-    });
-};
-init();
-   </script>
    {{  template "footer_embed" . }}
    </body>
 </html>

@@ -465,6 +465,18 @@ type TrimmedBlockInfo struct {
 	Transactions []*TrimmedTxInfo
 }
 
+// TrimmedBlockInfo models data needed to display block info on the new home page
+type MultichainTrimmedBlockInfo struct {
+	Time        TimeDef
+	Height      int64
+	Total       float64
+	Fees        float64
+	BlockReward int64
+	TxCount     int64
+	Inputs      int64
+	Outputs     int64
+}
+
 // BlockInfo models data for display on the block page
 type BlockInfo struct {
 	*BlockBasic
