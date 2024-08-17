@@ -499,7 +499,7 @@
                                           <a class="link-hover-underline" href="/treasury">
                                              Treasury</a>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="devFund">
                                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add
                                              .DevFund .TreasuryBalance.Balance)) 0 true)}}
@@ -523,7 +523,7 @@
                                              Total Coin Supply<span class="nowrap fw-600">&nbsp(of 21 mil)</span>
                                           </a>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="coinSupply">
                                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                              .CoinSupply) 0 true)}}
@@ -543,7 +543,7 @@
                                  <div class="col-24 col-sm-12">
                                     <div class="network-stats-block">
                                        <span class="network-stats-title">Treasury Block Reward</span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="bsubsidyDev" class="fs15-decimal">
                                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                              .NBlockSubsidy.Dev) 8 true 2)}}
@@ -617,7 +617,7 @@
                                              Hashrate
                                           </a>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="hashrate">
                                              {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
                                           </span>
@@ -632,7 +632,7 @@
                                  <div class="col-24 col-sm-12">
                                     <div class="network-stats-block">
                                        <span class="network-stats-title">PoW reward</span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="bsubsidyPow" class="fs15-decimal">
                                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                              .NBlockSubsidy.PoW) 8 true 2)}}
@@ -903,7 +903,7 @@
                                        </a>
                                     </span>
                                     <span class="network-stats-content">
-                                       <span class="fs15-decimal d-inline-block mt-2" data-homepage-target="blocksdiff">
+                                       <span class="fs15-decimal d-inline-block mt-3" data-homepage-target="blocksdiff">
                                           {{template "decimalParts" (float64AsDecimalParts .StakeDiff 8 false 2)}}
                                        </span>
                                        <span class="info-line-2-sub">DCR</span>
@@ -918,7 +918,7 @@
                               <div class="col-24 col-md-8">
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">Next Ticket Price</span>
-                                    <span class="network-stats-content d-inline-block mt-2">
+                                    <span class="network-stats-content d-inline-block mt-3">
                                        <span>~<span data-homepage-target="nextExpectedSdiff">
                                              {{template "decimalParts" (float64AsDecimalParts .NextExpectedStakeDiff 2
                                              false)}}
@@ -946,7 +946,7 @@
                                           Ticket Pool Size
                                        </a>
                                     </span>
-                                    <span class="network-stats-content d-inline-block mt-2"
+                                    <span class="network-stats-content d-inline-block mt-3"
                                        data-homepage-target="poolSize">
                                        {{intComma .PoolInfo.Size}}
                                     </span>
@@ -1001,7 +1001,7 @@
                                  <div class="network-stats-block">
                                     <span class="network-stats-title"><a class="link-hover-underline"
                                           href="/charts?chart=stake-participation">Total Staked DCR</a></span>
-                                    <span class="network-stats-content d-inline-block mt-2">
+                                    <span class="network-stats-content d-inline-block mt-3">
                                        <span data-homepage-target="poolValue">
                                           {{template "decimalParts" (float64AsDecimalParts .PoolInfo.Value 0 true)}}
                                        </span>
@@ -1064,7 +1064,7 @@
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">Total Sent</span>
-                                    <div class="network-stats-content d-inline-block mt-4">
+                                    <div class="network-stats-content d-inline-block mt-3">
                                        {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Sent24h) 2 true)}}
                                     </div>
                                     <span class="info-line-2-sub">DCR</span>
@@ -1078,7 +1078,7 @@
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">Total Fees</span>
-                                    <div class="network-stats-content d-inline-block mt-4">
+                                    <div class="network-stats-content d-inline-block mt-3">
                                        {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Fees24h) 2 true)}}
                                     </div>
                                     <span class="info-line-2-sub">DCR</span>

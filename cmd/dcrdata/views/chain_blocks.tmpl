@@ -7,10 +7,11 @@
     {{template "mutilchain_navbar" . }}
     <div class="container px-0" data-controller="time pagenavigation blocklist">
         <nav class="breadcrumbs mt-0">
-            <a href="/chain" class="breadcrumbs__item no-underline ps-2">
-               <span class="homeicon-tags me-1"></span>
-               <span class="link-underline">Blockchains</span>
-            </a>
+            <a href="/" class="breadcrumbs__item no-underline ps-2">
+                <span class="homeicon-tags me-1"></span>
+                <span class="link-underline">Homepage</span>
+             </a>
+             <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
             <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
             <span class="breadcrumbs__item is-active">Blocks</span>
          </nav>

@@ -16,10 +16,11 @@
       <div class="hp-explore-wrap mutilchain-explore-wrap" id="hp-explore-wrap">
          <div class="container mt-2">
             <nav class="breadcrumbs mt-0">
-               <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+               <a href="/" class="breadcrumbs__item no-underline ps-2">
                   <span class="homeicon-tags me-1"></span>
-                  <span class="link-underline">Blockchains</span>
+                  <span class="link-underline">Homepage</span>
                </a>
+               <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
                <span class="breadcrumbs__item is-active">{{chainName $ChainType}}</span>
             </nav>
             <section>
@@ -318,7 +319,7 @@
                                           Total Transactions
                                           </a>
                                           </span>
-                                          <span data-chainhome-target="totalTransactions" class="network-stats-content d-inline-block mt-2">
+                                          <span data-chainhome-target="totalTransactions" class="network-stats-content d-inline-block mt-4">
                                           {{int64Comma .TotalTransactions}}
                                           </span>
                                        </div>
@@ -342,7 +343,7 @@
                                           Coin Supply
                                           </a>
                                           </span>
-                                          <div class="network-stats-content d-inline-block mt-2">
+                                          <div class="network-stats-content d-inline-block mt-3">
                                              <span data-chainhome-target="coinSupply">{{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 true)}}</span>
                                              <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                              </span>
@@ -361,7 +362,7 @@
                                           Blockchain Size
                                           </a>
                                           </span>
-                                          <span class="network-stats-content d-inline-block mt-2">
+                                          <span class="network-stats-content d-inline-block mt-4">
                                           {{.FormattedSize}}
                                           </span>
                                        </div>
@@ -510,7 +511,7 @@
                                     <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Sent</span>
-                                          <div class="network-stats-content d-inline-block mt-4">
+                                          <div class="network-stats-content d-inline-block mt-3">
                                              {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Sent24h) 2 true)}}
                                           </div>
                                           <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
@@ -524,7 +525,7 @@
                                     <div class="col-24 col-sm-12 col-lg-8">
                                        <div class="network-stats-block">
                                           <span class="network-stats-title">Fees</span>
-                                          <div class="network-stats-content d-inline-block mt-4">
+                                          <div class="network-stats-content d-inline-block mt-3">
                                              {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Fees24h) 2 true)}}
                                           </div>
                                           <span class="info-line-2-sub">{{toUpperCase $ChainType}}</span>
@@ -657,7 +658,7 @@
                                           Hashrate
                                           </a>
                                           </span>
-                                          <span class="network-stats-content d-inline-block mt-2">
+                                          <span class="network-stats-content d-inline-block mt-4">
                                              <div data-chainhome-target="hashrate" class="d-inline-block">
                                                 {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
                                              </div>
@@ -670,7 +671,7 @@
                                           <span class="network-stats-title">
                                            Remaining Blocks
                                           </span>
-                                          <div class="network-stats-content d-inline-block mt-2">
+                                          <div class="network-stats-content d-inline-block mt-3">
                                              <span id="remainingBlocks">{{int64Comma .RemainingBlocks}}</span>
                                              <span class="stats-subinfo">
                                              In ~<span data-type="duration" class="jsonly" id="timeRemaning" data-time-target="duration" data-duration="{{.TimeRemaining}}">0</span>
@@ -683,7 +684,7 @@
                                           <span class="network-stats-title">
                                            Difficulty Change
                                           </span>
-                                          <div class="network-stats-content d-inline-block mt-2">
+                                          <div class="network-stats-content d-inline-block mt-3">
                                              <span id="diffChange" class="{{if gt .DifficultyChange 0.0}}c-green-2{{else}}c-red{{end}}">{{commaWithDecimal .DifficultyChange 2}}</span> %
                                               <span class="stats-subinfo">
                                                 Previous: <span id="prevRetarget">{{threeSigFigs .PreviousRetarget}}</span> %

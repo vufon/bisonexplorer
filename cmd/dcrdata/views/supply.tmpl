@@ -20,13 +20,11 @@
       {{else}}
       <nav class="breadcrumbs">
       {{end}}
-      <a href="/chain" class="breadcrumbs__item no-underline ps-2">
+      <a href="/" class="breadcrumbs__item no-underline ps-2">
            <span class="homeicon-tags me-1"></span>
-           <span class="link-underline">Blockchains</span>
+           <span class="link-underline">Homepage</span>
         </a>
-        {{if eq $ChainType "dcr"}}
-        <a href="/" class="breadcrumbs__item item-link">Decred</a>
-        {{else}}
+        {{if ne $ChainType "dcr"}}
         <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
         {{end}}
         <span class="breadcrumbs__item is-active">Supply</span>
