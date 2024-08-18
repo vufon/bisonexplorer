@@ -63,7 +63,7 @@ export default class extends Controller {
         _this.bestBlockTimeTarget.setAttribute('data-age', res.block.timestamp)
         const extras = res.block.extras
         _this.txOutCountTarget.innerHTML = humanize.decimalParts(extras.totalOutputs, true, 0)
-        _this.totalSentTarget.innerHTML = humanize.decimalParts(extras.totalOutputAmt / 1e8, false, 8, 2)
+        _this.totalSentTarget.innerHTML = humanize.threeSigFigs(extras.totalOutputAmt / 1e8)
       }
       if (res.blocks) {
         let txOutCount = 0
@@ -74,7 +74,7 @@ export default class extends Controller {
           totalSent += extras.totalOutputAmt
         })
         _this.txOutCountTarget.innerHTML = humanize.decimalParts(txOutCount, true, 0)
-        _this.totalSentTarget.innerHTML = humanize.decimalParts(totalSent / 1e8, false, 8, 2)
+        _this.totalSentTarget.innerHTML = humanize.threeSigFigs(totalSent / 1e8)
       }
       if (res.transactions) {
         let inner = ''
@@ -83,7 +83,8 @@ export default class extends Controller {
           const totalOut = tx.value
           const fees = tx.fee
           const rate = tx.rate
-          inner += `<tr><td class="break-word clipboard"><a class="hash lh1rem" href="/chain/${_this.chainType}/tx/${txHash}">${txHash}</a>{{template "copyTextIcon"}}</td>`
+          inner += `<tr><td class="break-word clipboard"><a class="hash lh1rem" href="/chain/${_this.chainType}/tx/${txHash}">${txHash}</a><span class="dcricon-copy clickable" data-controller="clipboard"` +
+                  'data-action="click->clipboard#copyTextToClipboard"></span><span class="alert alert-secondary alert-copy"></span></td>'
           inner += `<td class="mono fs15 text-end">${humanize.decimalParts(totalOut / 1e8, false, 8, 2)}</td>`
           inner += `<td class="mono fs15 text-end">${humanize.decimalParts(fees / 1e8, false, 8, 2)}</td>`
           inner += `<td class="mono fs15 text-end">${humanize.decimalParts(rate, false, 8, 2)}</td></tr>`
