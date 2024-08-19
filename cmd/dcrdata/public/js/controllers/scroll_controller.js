@@ -192,6 +192,12 @@ export default class extends Controller {
       window.location.href = newHref
       return
     }
+    //  if visualblocks page
+    if (href.includes('/visualblocks')) {
+      const newHref = this.replaceChainFromURL(originUrl, 'visualblocks', oldChain, coin)
+      window.location.href = newHref
+      return
+    }
     //  if charts page
     if (href.includes('/charts')) {
       let newHref = this.replaceChainFromURL(originUrl, 'charts', oldChain, coin)

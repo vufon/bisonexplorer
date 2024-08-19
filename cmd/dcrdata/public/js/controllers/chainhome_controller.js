@@ -30,6 +30,12 @@ export default class extends Controller {
     }
     this.processXcUpdate = this._processXcUpdate.bind(this)
     globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
+    const { bitcoin: { websocket } } = mempoolJS({
+      hostname: this.wsHostName
+    })
+    this.ws = websocket.initClient({
+      options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
+    })
     this.mempoolSocketInit()
   }
 
@@ -52,6 +58,7 @@ export default class extends Controller {
         globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBlock)
     }
     globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
+    this.ws.close()
   }
 
   _processBlock (blockData) {
@@ -76,14 +83,8 @@ export default class extends Controller {
   }
 
   async mempoolSocketInit () {
-    const { bitcoin: { websocket } } = mempoolJS({
-      hostname: this.wsHostName
-    })
-    const ws = websocket.initClient({
-      options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
-    })
     const _this = this
-    ws.addEventListener('message', function incoming ({ data }) {
+    this.ws.addEventListener('message', function incoming ({ data }) {
       const res = JSON.parse(data.toString())
       if (res.mempoolInfo) {
         _this.txCountTarget.innerHTML = humanize.decimalParts(res.mempoolInfo.size, true, 0)

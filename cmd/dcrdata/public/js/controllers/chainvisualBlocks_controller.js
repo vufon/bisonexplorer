@@ -14,7 +14,6 @@ export default class extends Controller {
   connect () {
     this.chainType = this.data.get('chainType')
     this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
-    this.mempoolSocketInit()
     this.processBlock = this._processBlock.bind(this)
     switch (this.chainType) {
       case 'ltc':
@@ -23,6 +22,13 @@ export default class extends Controller {
       case 'btc':
         globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBlock)
     }
+    const { bitcoin: { websocket } } = mempoolJS({
+      hostname: this.wsHostName
+    })
+    this.ws = websocket.initClient({
+      options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
+    })
+    this.mempoolSocketInit()
   }
 
   disconnect () {
@@ -33,6 +39,8 @@ export default class extends Controller {
       case 'btc':
         globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBlock)
     }
+    // close websocket for mempool
+    this.ws.close()
   }
 
   _processBlock (blockData) {
@@ -52,7 +60,7 @@ export default class extends Controller {
           }
         })
         if (!exist) {
-          // if not exist, remove
+        // if not exist, remove
           blockTarget.remove()
         }
       }
@@ -91,26 +99,26 @@ export default class extends Controller {
     mempoolBlock.remove()
     blocks.forEach(block => {
       if (block.height > firstBlockHeight) {
-        // Create best block target
+      // Create best block target
         const bestBlockTarget = '<div class="block-info">' +
-          `<a class="color-code" href="/chain/${_this.chainType}/block/${block.height}">${block.height}</a>` +
-          '<div class="mono amount" style="line-height: 1;">' +
-          `<span>${humanize.threeSigFigs(block.TotalSentSats / 1e8)}</span>` +
-          `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
-          `</div><span class="timespan"><span data-time-target="age" data-age="${block.blocktime_unix}"></span>&nbsp;ago</span></div>` +
-          '<div class="block-rows"><div class="block-rewards" style="flex-grow: 1">' +
-          `<span class="pow" style="flex-grow: ${block.BlockReward / 1e8}"` +
-          `title='{"object": "Block Reward", "value": "${block.BlockReward / 1e8} ${_this.chainType.toUpperCase()}"}'` +
-          'data-chainvisualBlocks-target="tooltip"><a class="block-element-link" href="#"></a>' +
-          `</span><span class="fees" style="flex-grow: ${block.FeesSats / 1e8}" ` +
-          `title='{"object": "Tx Fees", "value": "${block.FeesSats / 1e8} ${_this.chainType.toUpperCase()}"}' data-chainvisualBlocks-target="tooltip">` +
-          '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions" style="flex-grow: 1">' +
-          `<span class="block-tx" style="flex-grow: ${block.tx_count}" title='{"object": "Tx Count", "count": "${block.tx_count}"}'>` +
-          '<a class="block-element-link" href="#"></a></span>' +
-          `<span class="block-tx" style="flex-grow: ${block.TotalInputs}" title='{"object": "Inputs Count", "count": "${block.TotalInputs}"}'>` +
-          '<a class="block-element-link" href="#"></a></span>' +
-          `<span class="block-tx" style="flex-grow: ${block.TotalOutputs}" title='{"object": "Outputs Count", "count": "${block.TotalOutputs}"}'>` +
-          '<a class="block-element-link" href="#"></a></span></div></div>'
+        `<a class="color-code" href="/chain/${_this.chainType}/block/${block.height}">${block.height}</a>` +
+        '<div class="mono amount" style="line-height: 1;">' +
+        `<span>${humanize.threeSigFigs(block.TotalSentSats / 1e8)}</span>` +
+        `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
+        `</div><span class="timespan"><span data-time-target="age" data-age="${block.blocktime_unix}"></span>&nbsp;ago</span></div>` +
+        '<div class="block-rows"><div class="block-rewards" style="flex-grow: 1">' +
+        `<span class="pow" style="flex-grow: ${block.BlockReward / 1e8}"` +
+        `title='{"object": "Block Reward", "value": "${block.BlockReward / 1e8} ${_this.chainType.toUpperCase()}"}'` +
+        'data-chainvisualBlocks-target="tooltip"><a class="block-element-link" href="#"></a>' +
+        `</span><span class="fees" style="flex-grow: ${block.FeesSats / 1e8}" ` +
+        `title='{"object": "Tx Fees", "value": "${block.FeesSats / 1e8} ${_this.chainType.toUpperCase()}"}' data-chainvisualBlocks-target="tooltip">` +
+        '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions" style="flex-grow: 1">' +
+        `<span class="block-tx" style="flex-grow: ${block.tx_count}" title='{"object": "Tx Count", "count": "${block.tx_count}"}'>` +
+        '<a class="block-element-link" href="#"></a></span>' +
+        `<span class="block-tx" style="flex-grow: ${block.TotalInputs}" title='{"object": "Inputs Count", "count": "${block.TotalInputs}"}'>` +
+        '<a class="block-element-link" href="#"></a></span>' +
+        `<span class="block-tx" style="flex-grow: ${block.TotalOutputs}" title='{"object": "Outputs Count", "count": "${block.TotalOutputs}"}'>` +
+        '<a class="block-element-link" href="#"></a></span></div></div>'
         // create first block
         const theFirst = document.createElement('div')
         theFirst.setAttribute('data-chainvisualBlocks-target', 'block')
@@ -135,13 +143,7 @@ export default class extends Controller {
     return this.boxTarget.querySelectorAll('.visible')
   }
 
-  async mempoolSocketInit () {
-    const { bitcoin: { websocket } } = mempoolJS({
-      hostname: this.wsHostName
-    })
-    const ws = websocket.initClient({
-      options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
-    })
+  mempoolSocketInit () {
     const _this = this
     // mempool local data
     this.txCount = Number(this.memTxCountTarget.getAttribute('data-value'))
@@ -149,7 +151,8 @@ export default class extends Controller {
     this.totalSent = parseFloat(this.memTotalSentTarget.getAttribute('data-value'))
     this.inputsCount = Number(this.memInputCountTarget.getAttribute('data-value'))
     this.outputsCount = Number(this.memOutputCountTarget.getAttribute('data-value'))
-    ws.addEventListener('message', function incoming ({ data }) {
+    this.memRewardBlockOuter = this.memBlockRewardTarget.outerHTML
+    this.ws.addEventListener('message', function incoming ({ data }) {
       let hasChange = false
       const res = JSON.parse(data.toString())
       if (res.mempoolInfo) {
@@ -195,29 +198,28 @@ export default class extends Controller {
       }
       if (hasChange) {
         const mempoolBox = document.getElementById('memblocks')
-        if (!mempoolBox) {
-          return
+        if (mempoolBox) {
+          mempoolBox.remove()
         }
         // Create best block target
         const mempoolInnerTarget = '<div class="block-info">' +
-          `<a class="color-code" href="/chain/${_this.chainType}/mempool">Mempool</a>` +
-          '<div class="mono amount" style="line-height: 1;">' +
-          `<span>${humanize.threeSigFigs(_this.totalSent)}</span>` +
-          `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
-          '</div><span class="timespan">now</span></div>' +
-          '<div class="block-rows"><div class="block-rewards" style="flex-grow: 1">' +
-          _this.memBlockRewardTarget.outerHTML +
-          `<span class="fees" style="flex-grow: ${_this.fees / 1e8}" ` +
-          `title='{"object": "Tx Fees", "value": "${_this.fees} ${_this.chainType.toUpperCase()}"}' data-chainvisualBlocks-target="tooltip">` +
-          '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions" style="flex-grow: 1">' +
-          `<span class="block-tx" style="flex-grow: ${_this.txCount}" title='{"object": "Tx Count", "count": "${_this.txCount}"}'>` +
-          '<a class="block-element-link" href="#"></a></span>' +
-          `<span class="block-tx" style="flex-grow: ${_this.inputsCount}" title='{"object": "Inputs Count", "count": "${_this.inputsCount}"}'>` +
-          '<a class="block-element-link" href="#"></a></span>' +
-          `<span class="block-tx" style="flex-grow: ${_this.outputsCount}" title='{"object": "Outputs Count", "count": "${_this.outputsCount}"}'>` +
-          '<a class="block-element-link" href="#"></a></span></div></div>'
+        `<a class="color-code" href="/chain/${_this.chainType}/mempool">Mempool</a>` +
+        '<div class="mono amount" style="line-height: 1;">' +
+        `<span>${humanize.threeSigFigs(_this.totalSent)}</span>` +
+        `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
+        '</div><span class="timespan">now</span></div>' +
+        '<div class="block-rows"><div class="block-rewards" style="flex-grow: 1">' +
+        _this.memRewardBlockOuter +
+        `<span class="fees" style="flex-grow: ${_this.fees / 1e8}" ` +
+        `title='{"object": "Tx Fees", "value": "${_this.fees} ${_this.chainType.toUpperCase()}"}' data-chainvisualBlocks-target="tooltip">` +
+        '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions" style="flex-grow: 1">' +
+        `<span class="block-tx" style="flex-grow: ${_this.txCount}" title='{"object": "Tx Count", "count": "${_this.txCount}"}'>` +
+        '<a class="block-element-link" href="#"></a></span>' +
+        `<span class="block-tx" style="flex-grow: ${_this.inputsCount}" title='{"object": "Inputs Count", "count": "${_this.inputsCount}"}'>` +
+        '<a class="block-element-link" href="#"></a></span>' +
+        `<span class="block-tx" style="flex-grow: ${_this.outputsCount}" title='{"object": "Outputs Count", "count": "${_this.outputsCount}"}'>` +
+        '<a class="block-element-link" href="#"></a></span></div></div>'
         // remove old mempool box
-        mempoolBox.remove()
         const theKid = document.createElement('div')
         theKid.setAttribute('data-chainvisualBlocks-target', 'block')
         theKid.id = 'memblocks'

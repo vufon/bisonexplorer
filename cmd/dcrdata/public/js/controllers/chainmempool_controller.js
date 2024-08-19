@@ -10,18 +10,25 @@ export default class extends Controller {
   initialize () {
     this.chainType = this.data.get('chainType')
     this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
-    this.mempoolSocketInit()
   }
 
-  async mempoolSocketInit () {
+  connect () {
     const { bitcoin: { websocket } } = mempoolJS({
       hostname: this.wsHostName
     })
-    const ws = websocket.initClient({
+    this.ws = websocket.initClient({
       options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
     })
+    this.mempoolSocketInit()
+  }
+
+  disconnect () {
+    this.ws.close()
+  }
+
+  async mempoolSocketInit () {
     const _this = this
-    ws.addEventListener('message', function incoming ({ data }) {
+    this.ws.addEventListener('message', function incoming ({ data }) {
       const res = JSON.parse(data.toString())
       if (res.mempoolInfo) {
         _this.txCountTarget.innerHTML = humanize.decimalParts(res.mempoolInfo.size, true, 0)
