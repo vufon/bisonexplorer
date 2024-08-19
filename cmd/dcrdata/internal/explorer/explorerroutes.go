@@ -1603,15 +1603,29 @@ func (exp *ExplorerUI) Block(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	trimmedBlock := &types.TrimmedBlockInfo{
+		Time:         data.BlockTime,
+		Height:       data.Height,
+		Total:        data.TotalSent,
+		Fees:         data.MiningFee,
+		Subsidy:      data.Subsidy,
+		Votes:        data.Votes,
+		Tickets:      data.Tickets,
+		Revocations:  data.Revs,
+		Transactions: types.FilterRegularTx(data.Tx),
+	}
+
 	pageData := struct {
 		*CommonPageData
-		Data           *types.BlockInfo
-		AltBlocks      []*dbtypes.BlockStatus
-		FiatConversion *exchanges.Conversion
+		Data             *types.BlockInfo
+		AltBlocks        []*dbtypes.BlockStatus
+		FiatConversion   *exchanges.Conversion
+		TrimmedBlockInfo *types.TrimmedBlockInfo
 	}{
-		CommonPageData: exp.commonData(r),
-		Data:           data,
-		AltBlocks:      altBlocks,
+		CommonPageData:   exp.commonData(r),
+		Data:             data,
+		AltBlocks:        altBlocks,
+		TrimmedBlockInfo: trimmedBlock,
 	}
 
 	if exp.xcBot != nil && time.Since(data.BlockTime.T) < time.Hour {
@@ -1634,16 +1648,19 @@ func (exp *ExplorerUI) Block(w http.ResponseWriter, r *http.Request) {
 func (exp *ExplorerUI) Mempool(w http.ResponseWriter, r *http.Request) {
 	// Safely retrieve the inventory pointer, which can be reset in StoreMPData.
 	inv := exp.MempoolInventory()
-
+	mempoolInfo := inv.Trim()
 	// Prevent modifications to the shared inventory struct (e.g. in the
 	// MempoolMonitor) while marshaling the inventory.
 	inv.RLock()
+	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
 	str, err := exp.templates.exec("mempool", struct {
 		*CommonPageData
-		Mempool *types.MempoolInfo
+		Mempool        *types.MempoolInfo
+		TrimmedMempool *types.TrimmedMempoolInfo
 	}{
 		CommonPageData: exp.commonData(r),
 		Mempool:        inv,
+		TrimmedMempool: mempoolInfo,
 	})
 	inv.RUnlock()
 

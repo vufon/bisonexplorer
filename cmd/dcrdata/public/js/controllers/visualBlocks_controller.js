@@ -87,25 +87,25 @@ function makeRewardsElement (subsidy, fee, voteCount, rewardTxId) {
   const totalDCR = 1
   return `<div class="block-rewards" style="flex-grow: ${totalDCR}">
                 <span class="pow" style="flex-grow: ${pow}"
-                    title='{"object": "PoW Reward", "total": "${pow}"}'>
+                    title='{"object": "PoW Reward", "total": "${pow}"}' data-visualBlocks-target="tooltip">
                     <a class="block-element-link" href="/tx/${rewardTxId}">
                         <span class="paint" ${backgroundColorRelativeToVotes}></span>
                     </a>
                 </span>
                 <span class="pos" style="flex-grow: ${pos}"
-                    title='{"object": "PoS Reward", "total": "${pos}"}'>
+                    title='{"object": "PoS Reward", "total": "${pos}"}' data-visualBlocks-target="tooltip">
                     <a class="block-element-link" href="/tx/${rewardTxId}">
                         <span class="paint" ${backgroundColorRelativeToVotes}></span>
                     </a>
                 </span>
                 <span class="fund" style="flex-grow: ${fund}"
-                    title='{"object": "Project Fund", "total": "${fund}"}'>
+                    title='{"object": "Project Fund", "total": "${fund}"}' data-visualBlocks-target="tooltip">
                     <a class="block-element-link" href="/tx/${rewardTxId}">
                         <span class="paint" ${backgroundColorRelativeToVotes}></span>
                     </a>
                 </span>
                 <span class="fees" style="flex-grow: ${fee}"
-                    title='{"object": "Tx Fees", "total": "${fee}"}'>
+                    title='{"object": "Tx Fees", "total": "${fee}"}' data-visualBlocks-target="tooltip">
                     <a class="block-element-link" href="/tx/${rewardTxId}"></a>
                 </span>
             </div>`
@@ -116,7 +116,7 @@ function makeVoteElements (votes) {
   const voteElements = (votes || []).map(vote => {
     totalDCR += vote.Total
     return `<span style="background-color: ${vote.VoteValid ? '#2971ff' : 'rgba(253, 113, 74, 0.8)'}"
-                    title='{"object": "Vote", "total": "${vote.Total}", "voteValid": "${vote.VoteValid}"}'>
+                    title='{"object": "Vote", "total": "${vote.Total}", "voteValid": "${vote.VoteValid}"}' data-visualBlocks-target="tooltip">
                     <a class="block-element-link" href="/tx/${vote.TxID}"></a>
                 </span>`
   })
@@ -195,7 +195,7 @@ function makeTxElement (tx, className, type, appendFlexGrow) {
     style.push(`flex-grow: ${Math.round(tx.Total)}`)
   }
 
-  return `<span class="${className}" style="${style.join('; ')}"
+  return `<span class="${className}" style="${style.join('; ')}" data-visualBlocks-target="tooltip"
                 title='{"object": "${type}", "total": "${tx.Total}", "vout": "${tx.VoutCount}", "vin": "${tx.VinCount}"}'>
                 <a class="block-element-link" href="/tx/${tx.TxID}"></a>
             </span>`

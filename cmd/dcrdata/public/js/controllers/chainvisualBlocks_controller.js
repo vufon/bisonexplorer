@@ -6,9 +6,7 @@ import humanize from '../helpers/humanize_helper'
 export default class extends Controller {
   static get targets () {
     return ['box', 'title', 'showmore', 'root', 'txs', 'tooltip', 'block',
-      'memTotalSent', 'memTime', 'memFeeSpan', 'memTxCount', 'memInputCount',
-      'memOutputCount', 'memBlockReward'
-    ]
+      'memTotalSent', 'memTime']
   }
 
   connect () {
@@ -107,17 +105,17 @@ export default class extends Controller {
         `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
         `</div><span class="timespan"><span data-time-target="age" data-age="${block.blocktime_unix}"></span>&nbsp;ago</span></div>` +
         '<div class="block-rows"><div class="block-rewards" style="flex-grow: 1">' +
-        `<span class="pow" style="flex-grow: ${block.BlockReward / 1e8}"` +
-        `title='{"object": "Block Reward", "value": "${block.BlockReward / 1e8} ${_this.chainType.toUpperCase()}"}'` +
+        `<span class="pow" style="flex-grow: ${block.BlockReward / 1e8}" ` +
+        `title='{"object": "Block Reward", "total": "${block.BlockReward / 1e8}"}' ` +
         'data-chainvisualBlocks-target="tooltip"><a class="block-element-link" href="#"></a>' +
         `</span><span class="fees" style="flex-grow: ${block.FeesSats / 1e8}" ` +
-        `title='{"object": "Tx Fees", "value": "${block.FeesSats / 1e8} ${_this.chainType.toUpperCase()}"}' data-chainvisualBlocks-target="tooltip">` +
+        `title='{"object": "Tx Fees", "total": "${block.FeesSats / 1e8}"}' data-chainvisualBlocks-target="tooltip">` +
         '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions" style="flex-grow: 1">' +
-        `<span class="block-tx" style="flex-grow: ${block.tx_count}" title='{"object": "Tx Count", "count": "${block.tx_count}"}'>` +
+        `<span class="block-tx" style="flex-grow: ${block.tx_count}" data-chainvisualBlocks-target="tooltip" title='{"object": "Tx Count", "count": "${block.tx_count}"}'>` +
         '<a class="block-element-link" href="#"></a></span>' +
-        `<span class="block-tx" style="flex-grow: ${block.TotalInputs}" title='{"object": "Inputs Count", "count": "${block.TotalInputs}"}'>` +
+        `<span class="block-tx" style="flex-grow: ${block.TotalInputs}" data-chainvisualBlocks-target="tooltip" title='{"object": "Inputs Count", "count": "${block.TotalInputs}"}'>` +
         '<a class="block-element-link" href="#"></a></span>' +
-        `<span class="block-tx" style="flex-grow: ${block.TotalOutputs}" title='{"object": "Outputs Count", "count": "${block.TotalOutputs}"}'>` +
+        `<span class="block-tx" style="flex-grow: ${block.TotalOutputs}" data-chainvisualBlocks-target="tooltip" title='{"object": "Outputs Count", "count": "${block.TotalOutputs}"}'>` +
         '<a class="block-element-link" href="#"></a></span></div></div>'
         // create first block
         const theFirst = document.createElement('div')
@@ -137,6 +135,7 @@ export default class extends Controller {
     mempoolBox.classList.add('visible')
     mempoolBox.innerHTML = meminnerHtml
     this.boxTarget.prepend(mempoolBox)
+    this.setupTooltips()
   }
 
   visibleBlocks () {
@@ -145,13 +144,18 @@ export default class extends Controller {
 
   mempoolSocketInit () {
     const _this = this
+    const memBlockReward = document.getElementById('memBlockReward')
+    const memFeeSpan = document.getElementById('memFeeSpan')
+    const memTxCount = document.getElementById('memTxCount')
+    const memInputCount = document.getElementById('memInputCount')
+    const memOutputCount = document.getElementById('memOutputCount')
     // mempool local data
-    this.txCount = Number(this.memTxCountTarget.getAttribute('data-value'))
-    this.fees = parseFloat(this.memFeeSpanTarget.getAttribute('data-value'))
+    this.txCount = Number(memTxCount.getAttribute('data-value'))
+    this.fees = parseFloat(memFeeSpan.getAttribute('data-value'))
     this.totalSent = parseFloat(this.memTotalSentTarget.getAttribute('data-value'))
-    this.inputsCount = Number(this.memInputCountTarget.getAttribute('data-value'))
-    this.outputsCount = Number(this.memOutputCountTarget.getAttribute('data-value'))
-    this.memRewardBlockOuter = this.memBlockRewardTarget.outerHTML
+    this.inputsCount = Number(memInputCount.getAttribute('data-value'))
+    this.outputsCount = Number(memOutputCount.getAttribute('data-value'))
+    this.memRewardBlockOuter = memBlockReward.outerHTML
     this.ws.addEventListener('message', function incoming ({ data }) {
       let hasChange = false
       const res = JSON.parse(data.toString())
@@ -211,13 +215,13 @@ export default class extends Controller {
         '<div class="block-rows"><div class="block-rewards" style="flex-grow: 1">' +
         _this.memRewardBlockOuter +
         `<span class="fees" style="flex-grow: ${_this.fees / 1e8}" ` +
-        `title='{"object": "Tx Fees", "value": "${_this.fees} ${_this.chainType.toUpperCase()}"}' data-chainvisualBlocks-target="tooltip">` +
+        `title='{"object": "Tx Fees", "total": "${_this.fees}"}' data-chainvisualBlocks-target="tooltip">` +
         '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions" style="flex-grow: 1">' +
-        `<span class="block-tx" style="flex-grow: ${_this.txCount}" title='{"object": "Tx Count", "count": "${_this.txCount}"}'>` +
+        `<span class="block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.txCount}" title='{"object": "Tx Count", "count": "${_this.txCount}"}'>` +
         '<a class="block-element-link" href="#"></a></span>' +
-        `<span class="block-tx" style="flex-grow: ${_this.inputsCount}" title='{"object": "Inputs Count", "count": "${_this.inputsCount}"}'>` +
+        `<span class="block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.inputsCount}" title='{"object": "Inputs Count", "count": "${_this.inputsCount}"}'>` +
         '<a class="block-element-link" href="#"></a></span>' +
-        `<span class="block-tx" style="flex-grow: ${_this.outputsCount}" title='{"object": "Outputs Count", "count": "${_this.outputsCount}"}'>` +
+        `<span class="block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.outputsCount}" title='{"object": "Outputs Count", "count": "${_this.outputsCount}"}'>` +
         '<a class="block-element-link" href="#"></a></span></div></div>'
         // remove old mempool box
         const theKid = document.createElement('div')
@@ -228,6 +232,40 @@ export default class extends Controller {
         theKid.innerHTML = mempoolInnerTarget
         _this.boxTarget.prepend(theKid)
       }
+    })
+    this.setupTooltips()
+  }
+
+  setupTooltips () {
+    const _this = this
+    this.tooltipTargets.forEach((tooltipElement) => {
+      try {
+        // parse the content
+        const data = JSON.parse(tooltipElement.title)
+        let newContent
+        if (data.count) {
+          newContent = `<b>${data.object}</b><br>${data.count}`
+        } else {
+          newContent = `<b>${data.object}</b><br>${data.total} ` + _this.chainType.toUpperCase()
+        }
+        tooltipElement.title = newContent
+      } catch (error) {}
+    })
+
+    import(/* webpackChunkName: "tippy" */ '../vendor/tippy.all').then(module => {
+      const tippy = module.default
+      tippy('.block-rows [title]', {
+        allowTitleHTML: true,
+        animation: 'shift-away',
+        arrow: true,
+        createPopperInstanceOnInit: true,
+        dynamicTitle: true,
+        performance: true,
+        placement: 'top',
+        size: 'small',
+        sticky: true,
+        theme: 'light'
+      })
     })
   }
 }

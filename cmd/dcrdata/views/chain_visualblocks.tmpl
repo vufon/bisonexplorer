@@ -34,33 +34,33 @@
                 </div>
                 <div class="block-rows">
                     <div class="block-rewards" style="flex-grow: 1">
-                        <span data-chainvisualBlocks-target="memBlockReward" class="pow"
+                        <span id="memBlockReward" class="pow"
                             style="flex-grow: {{toFloat64Amount .BlockReward}}"
-                            title='{"object": "Block Reward", "value": "{{toFloat64Amount .BlockReward}} {{toUpperCase $ChainType}}"}'
+                            title='{"object": "Block Reward","total": "{{toFloat64Amount .BlockReward}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
-                        <span data-chainvisualBlocks-target="memFeeSpan" data-value="{{.TotalFee}}" class="fees"
+                        <span id="memFeeSpan" data-value="{{.TotalFee}}" class="fees"
                             style="flex-grow: {{.TotalFee}}"
-                            title='{"object": "Tx Fees", "value": "{{.TotalFee}} {{toUpperCase $ChainType}}"}'
+                            title='{"object": "Tx Fees", "total": "{{.TotalFee}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
                     </div>
                     <div class="block-transactions" style="flex-grow: 1">
-                        <span data-chainvisualBlocks-target="memTxCount" data-value="{{.TotalTransactions}}"
+                        <span id="memTxCount" data-value="{{.TotalTransactions}}"
                             class="block-tx" style="flex-grow: {{.TotalTransactions}}"
-                            title='{"object": "Tx Count", "count": "{{.TotalTransactions}}"}'>
+                            title='{"object": "Tx Count", "count": "{{.TotalTransactions}}"}' data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
-                        <span data-chainvisualBlocks-target="memInputCount" data-value="{{.InputsCount}}"
+                        <span id="memInputCount" data-value="{{.InputsCount}}"
                             class="block-tx" style="flex-grow: {{.InputsCount}}"
-                            title='{"object": "Inputs Count", "count": "{{.InputsCount}}"}'>
+                            title='{"object": "Inputs Count", "count": "{{.InputsCount}}"}' data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
-                        <span data-chainvisualBlocks-target="memOutputCount" data-value="{{.OutputsCount}}"
+                        <span id="memOutputCount" data-value="{{.OutputsCount}}"
                             class="block-tx" style="flex-grow: {{.OutputsCount}}"
-                            title='{"object": "Outputs Count", "count": "{{.OutputsCount}}"}'>
+                            title='{"object": "Outputs Count", "count": "{{.OutputsCount}}"}' data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
                     </div>
@@ -83,27 +83,27 @@
                 <div class="block-rows">
                     <div class="block-rewards" style="flex-grow: 1">
                         <span class="pow" style="flex-grow: {{toFloat64Amount .BlockReward}}"
-                            title='{"object": "Block Reward", "value": "{{toFloat64Amount .BlockReward}} {{toUpperCase $ChainType}}"}'
+                            title='{"object": "Block Reward", "total": "{{toFloat64Amount .BlockReward}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
                         <span class="fees" style="flex-grow: {{toFloat64Amount .FeesSats}}"
-                            title='{"object": "Tx Fees", "value": "{{toFloat64Amount .FeesSats}} {{toUpperCase $ChainType}}"}'
+                            title='{"object": "Tx Fees", "total": "{{toFloat64Amount .FeesSats}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
                     </div>
                     <div class="block-transactions" style="flex-grow: 1">
                         <span class="block-tx" style="flex-grow: {{.TxCount}}"
-                            title='{"object": "Tx Count", "count": "{{.TxCount}}"}'>
+                            title='{"object": "Tx Count", "count": "{{.TxCount}}"}' data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
                         <span class="block-tx" style="flex-grow: {{.TotalInputs}}"
-                            title='{"object": "Inputs Count", "count": "{{.TotalInputs}}"}'>
+                            title='{"object": "Inputs Count", "count": "{{.TotalInputs}}"}' data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
                         <span class="block-tx" style="flex-grow: {{.TotalOutputs}}"
-                            title='{"object": "Outputs Count", "count": "{{.TotalOutputs}}"}'>
+                            title='{"object": "Outputs Count", "count": "{{.TotalOutputs}}"}' data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
                         </span>
                     </div>
