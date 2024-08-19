@@ -1,0 +1,128 @@
+{{define "chain_visualblocks"}}
+<!DOCTYPE html>
+<html lang="en">
+{{$ChainType := .ChainType}}
+{{ template "html-head" headData .CommonPageData (printf "%s Visual Blocks" (chainName $ChainType))}}
+{{template "mutilchain_navbar" . }}
+<div id="mainContainer" class="container" data-controller="time">
+    <div class="blocks-section" data-controller="chainvisualBlocks" data-chainvisualBlocks-target="root"
+        data-chainvisualBlocks-chain-type="{{$ChainType}}">
+        <nav class="breadcrumbs mt-0">
+            <a href="/" class="breadcrumbs__item no-underline ps-2">
+                <span class="homeicon-tags me-1"></span>
+                <span class="link-underline">Homepage</span>
+            </a>
+            <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
+            <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+            <span class="breadcrumbs__item is-active">Visual Blocks</span>
+        </nav>
+        <br />
+        <a class="no-underline title fw-bold my-2" href="/blocks" data-chainvisualBlocks-target="title"
+            href="/blocks">Latest
+            Blocks</a>
+        <div class="blocks-holder" data-chainvisualBlocks-target="box">
+            <!-- add mempool element -->
+            {{with .Mempool}}
+            <div class="block visible" data-chainvisualBlocks-target="block" id="memblocks">
+                <div class="block-info">
+                    <a class="color-code" href="/chain/{{$ChainType}}/mempool">Mempool</a>
+                    <div class="mono amount" style="line-height: 1;">
+                        <span data-chainvisualBlocks-target="memTotalSent" data-value="{{.TotalOut}}">{{threeSigFigs .TotalOut}}</span>
+                        <span class="unit"> {{toUpperCase $ChainType}}</span>
+                    </div>
+                    <span class="timespan">now</span>
+                </div>
+                <div class="block-rows">
+                    <div class="block-rewards" style="flex-grow: 1">
+                        <span data-chainvisualBlocks-target="memBlockReward" class="pow"
+                            style="flex-grow: {{toFloat64Amount .BlockReward}}"
+                            title='{"object": "Block Reward", "value": "{{toFloat64Amount .BlockReward}} {{toUpperCase $ChainType}}"}'
+                            data-chainvisualBlocks-target="tooltip">
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                        <span data-chainvisualBlocks-target="memFeeSpan" data-value="{{.TotalFee}}" class="fees"
+                            style="flex-grow: {{.TotalFee}}"
+                            title='{"object": "Tx Fees", "value": "{{.TotalFee}} {{toUpperCase $ChainType}}"}'
+                            data-chainvisualBlocks-target="tooltip">
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                    </div>
+                    <div class="block-transactions" style="flex-grow: 1">
+                        <span data-chainvisualBlocks-target="memTxCount" data-value="{{.TotalTransactions}}"
+                            class="block-tx" style="flex-grow: {{.TotalTransactions}}"
+                            title='{"object": "Tx Count", "count": "{{.TotalTransactions}}"}'>
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                        <span data-chainvisualBlocks-target="memInputCount" data-value="{{.InputsCount}}"
+                            class="block-tx" style="flex-grow: {{.InputsCount}}"
+                            title='{"object": "Inputs Count", "count": "{{.InputsCount}}"}'>
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                        <span data-chainvisualBlocks-target="memOutputCount" data-value="{{.OutputsCount}}"
+                            class="block-tx" style="flex-grow: {{.OutputsCount}}"
+                            title='{"object": "Outputs Count", "count": "{{.OutputsCount}}"}'>
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {{end}}
+            {{range $index, $block := .BlockInfos}}
+            <div class="block visible" data-chainvisualBlocks-target="block" id="{{$block.Height}}">
+                {{with $block}}
+                <div class="block-info">
+                    <a class="color-code" href="/chain/{{$ChainType}}/block/{{.Height}}">{{.Height}}</a>
+                    <div class="mono amount" style="line-height: 1;">
+                        <span>{{threeSigFigs (toFloat64Amount .TotalSentSats)}}</span>
+                        <span class="unit"> {{toUpperCase $ChainType}}</span>
+                    </div>
+                    <span class="timespan">
+                        <span data-time-target="age" data-age="{{.BlockTimeUnix}}"></span>&nbsp;ago
+                    </span>
+                </div>
+                <div class="block-rows">
+                    <div class="block-rewards" style="flex-grow: 1">
+                        <span class="pow" style="flex-grow: {{toFloat64Amount .BlockReward}}"
+                            title='{"object": "Block Reward", "value": "{{toFloat64Amount .BlockReward}} {{toUpperCase $ChainType}}"}'
+                            data-chainvisualBlocks-target="tooltip">
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                        <span class="fees" style="flex-grow: {{toFloat64Amount .FeesSats}}"
+                            title='{"object": "Tx Fees", "value": "{{toFloat64Amount .FeesSats}} {{toUpperCase $ChainType}}"}'
+                            data-chainvisualBlocks-target="tooltip">
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                    </div>
+                    <div class="block-transactions" style="flex-grow: 1">
+                        <span class="block-tx" style="flex-grow: {{.TxCount}}"
+                            title='{"object": "Tx Count", "count": "{{.TxCount}}"}'>
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                        <span class="block-tx" style="flex-grow: {{.TotalInputs}}"
+                            title='{"object": "Inputs Count", "count": "{{.TotalInputs}}"}'>
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                        <span class="block-tx" style="flex-grow: {{.TotalOutputs}}"
+                            title='{"object": "Outputs Count", "count": "{{.TotalOutputs}}"}'>
+                            <a class="block-element-link" href="#"></a>
+                        </span>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+        <a class="no-underline d-block mt-4" data-chainvisualBlocks-target="showmore"
+            href="/chain/{{$ChainType}}/blocks">
+            <div class="showmore">
+                <p>View BlockChain History</p>
+            </div>
+        </a>
+    </div>
+</div>
+
+{{ template "footer" . }}
+</body>
+
+</html>
+{{end}}

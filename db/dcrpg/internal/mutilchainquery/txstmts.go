@@ -109,10 +109,15 @@ const (
 	WHERE block_height > $1
 	GROUP BY block_height
 	ORDER BY block_height;`
+	DeleteTxsOfOlderThan20Blocks = `DELETE FROM %stransactions WHERE block_height < $1;`
 )
 
 func MakeSelectFeesPerBlockAboveHeight(chainType string) string {
 	return fmt.Sprintf(SelectFeesPerBlockAboveHeight, chainType)
+}
+
+func MakeDeleteTxsOfOlderThan20Blocks(chainType string) string {
+	return fmt.Sprintf(DeleteTxsOfOlderThan20Blocks, chainType)
 }
 
 func MakeSelectTotalTransaction(chainType string) string {
@@ -134,7 +139,6 @@ func MakeDeindexTransactionTableOnBlockIn(chainType string) string {
 	return fmt.Sprintf(DeindexTransactionTableOnBlockIn, chainType)
 }
 
-//
 func MakeIndexTransactionTableOnHashes(chainType string) string {
 	return fmt.Sprintf(IndexTransactionTableOnHashes, chainType, chainType)
 }
@@ -143,7 +147,6 @@ func MakeDeindexTransactionTableOnHashes(chainType string) string {
 	return fmt.Sprintf(DeindexTransactionTableOnHashes, chainType)
 }
 
-//
 func MakeIndexTransactionTableOnBlockHeight(chainType string) string {
 	return fmt.Sprintf(IndexTransactionTableOnBlockHeight, chainType, chainType)
 }

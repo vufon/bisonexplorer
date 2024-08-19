@@ -2034,6 +2034,10 @@ type Block struct {
 	Height       uint32 `json:"height"`
 	Version      uint32 `json:"version"`
 	NumTx        uint32
+	NumVins      uint32
+	NumVouts     uint32
+	Fees         uint64
+	TotalSent    uint64
 	NumRegTx     uint32
 	Tx           []string `json:"tx"`
 	TxDbIDs      []uint64
@@ -2503,6 +2507,28 @@ type APITransactionData struct {
 	Sigops   int64          `json:"sigops"`
 	Fee      int64          `json:"fee"`
 	Status   APITxStatus    `json:"status"`
+}
+
+// TrimmedBlockInfo models data needed to display block info on the new home page
+type MultichainTrimmedBlockInfo struct {
+	Time        TimeDef
+	Height      int64
+	Total       int64
+	Fees        int64
+	BlockReward int64
+	TxCount     int64
+	Inputs      int64
+	Outputs     int64
+}
+
+type MutilchainDBBlockInfo struct {
+	Time    int64
+	Height  int64
+	Total   int64
+	Fees    int64
+	TxCount int64
+	Inputs  int64
+	Outputs int64
 }
 
 type APITxStatus struct {

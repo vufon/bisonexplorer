@@ -306,21 +306,23 @@ type ChainDB struct {
 	BTCMPC             *mempoolbtc.DataCache
 	// BlockCache stores apitypes.BlockDataBasic and apitypes.StakeInfoExtended
 	// in StoreBlock for quick retrieval without a DB query.
-	BlockCache        *apitypes.APICache
-	heightClients     []chan uint32
-	ltcHeightClients  []chan uint32
-	btcHeightClients  []chan uint32
-	shutdownDcrdata   func()
-	Client            *rpcclient.Client
-	LtcClient         *ltcClient.Client
-	BtcClient         *btcClient.Client
-	LtcCoreClient     *ltcClient.Client
-	BtcCoreClient     *btcClient.Client
-	tipMtx            sync.Mutex
-	tipSummary        *apitypes.BlockDataBasic
-	ChainDBDisabled   bool
-	OkLinkAPIKey      string
-	lastExplorerBlock struct {
+	BlockCache         *apitypes.APICache
+	heightClients      []chan uint32
+	ltcHeightClients   []chan uint32
+	btcHeightClients   []chan uint32
+	shutdownDcrdata    func()
+	Client             *rpcclient.Client
+	LtcClient          *ltcClient.Client
+	BtcClient          *btcClient.Client
+	LtcCoreClient      *ltcClient.Client
+	BtcCoreClient      *btcClient.Client
+	tipMtx             sync.Mutex
+	tipSummary         *apitypes.BlockDataBasic
+	ChainDBDisabled    bool
+	OkLinkAPIKey       string
+	BTC20BlocksSyncing bool
+	LTC20BlocksSyncing bool
+	lastExplorerBlock  struct {
 		sync.Mutex
 		hash      string
 		blockInfo *exptypes.BlockInfo
@@ -3358,7 +3360,6 @@ func (pgb *ChainDB) MutilchainAddressHistory(address string, N, offset int64,
 	// Try the address rows cache
 	hash, height := pgb.GetMutilchainHashHeight(chainType)
 	addressRows, validBlock, err := pgb.AddressCache.MutilchainTransactions(address, N, offset, txnView, chainType)
-	fmt.Println("Check address row: err; ", err, ", rows: ", len(addressRows))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -3438,7 +3439,6 @@ func (pgb *ChainDB) MutilchainAddressHistory(address string, N, offset int64,
 			return nil, nil, err
 		}
 	}
-	fmt.Println("Check addressRows: ", len(addressRows))
 	log.Infof("From DB: Address: %s: %d spent totalling %f %s, %d unspent totalling %f %s",
 		address, balance.NumSpent, dbtypes.GetMutilchainCoinAmount(balance.TotalSpent, chainType), strings.ToUpper(chainType),
 		balance.NumUnspent, dbtypes.GetMutilchainCoinAmount(balance.TotalUnspent, chainType), strings.ToUpper(chainType))
@@ -4542,6 +4542,18 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 		if err != nil {
 			return err
 		}
+	} else {
+		if !pgb.BTC20BlocksSyncing {
+			go func() {
+				err := pgb.SyncLast20BTCBlocks(blockData.Header.Height)
+				if err != nil {
+					log.Error(err)
+				} else {
+					log.Infof("Sync last 20 BTC Blocks successfully")
+				}
+				pgb.BTC20BlocksSyncing = false
+			}()
+		}
 	}
 
 	//update best ltc block
@@ -5562,11 +5574,11 @@ func (pgb *ChainDB) UpdateLastBlock(msgBlock *wire.MsgBlock, isMainchain bool) e
 // storeTxnsResult is the type of object sent back from the goroutines wrapping
 // storeBlockTxnTree in StoreBlock.
 type storeTxnsResult struct {
-	numVins, numVouts, numAddresses int64
-	txDbIDs                         []uint64
-	err                             error
-	addresses                       map[string]struct{}
-	mixSetDelta                     int64
+	numVins, numVouts, numAddresses, fees, totalSent int64
+	txDbIDs                                          []uint64
+	err                                              error
+	addresses                                        map[string]struct{}
+	mixSetDelta                                      int64
 }
 
 func (r *storeTxnsResult) Error() string {
@@ -8320,21 +8332,18 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 	}
 	txhash, err := ltc_chainhash.NewHashFromStr(txid)
 	if err != nil {
-		fmt.Println("check1: ", err)
 		log.Errorf("Invalid transaction hash %s", txid)
 		return nil
 	}
 
 	txraw, err := pgb.LtcTxResult(txhash)
 	if err != nil {
-		fmt.Println("check2: ", err)
 		log.Errorf("Mutilchain Tx Info: %v", err)
 		return nil
 	}
 
 	msgTx, err := txhelpers.LTCMsgTxFromHex(txraw.Hex, int32(txraw.Version))
 	if err != nil {
-		fmt.Println("check3: ", err)
 		log.Errorf("Cannot create MsgTx for tx %v: %v", txhash, err)
 		return nil
 	}
@@ -8916,6 +8925,50 @@ func (pgb *ChainDB) TxHeight(txid *chainhash.Hash) (height int64) {
 	}
 	height = txraw.BlockHeight
 	return
+}
+
+func (pgb *ChainDB) GetMutilchainExplorerFullBlocks(chainType string, start, end int) []*exptypes.BlockInfo {
+	result := make([]*exptypes.BlockInfo, 0)
+	blockInfos, err := RetrieveLastestBlocksInfo(pgb.ctx, pgb.db, chainType, int64(start), int64(end))
+	if err != nil {
+		return result
+	}
+	for _, blockInfo := range blockInfos {
+		resItem := &exptypes.BlockInfo{
+			BlockBasic: &exptypes.BlockBasic{
+				Height:        blockInfo.Height,
+				BlockTime:     exptypes.NewTimeDef(time.Unix(blockInfo.Time, 0)),
+				BlockTimeUnix: blockInfo.Time,
+				TxCount:       uint32(blockInfo.TxCount),
+			},
+			TotalSentSats: blockInfo.Total,
+			FeesSats:      blockInfo.Fees,
+			TotalInputs:   blockInfo.Inputs,
+			TotalOutputs:  blockInfo.Outputs,
+			BlockReward:   mutilchain.GetCurrentBlockReward(chainType, pgb.GetSubsidyReductionInterval(chainType), int32(blockInfo.Height)),
+		}
+		result = append(result, resItem)
+	}
+	return result
+}
+
+func (pgb *ChainDB) GetSubsidyReductionInterval(chainType string) int32 {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return pgb.ltcChainParams.SubsidyReductionInterval
+	case mutilchain.TYPEBTC:
+		return pgb.btcChainParams.SubsidyReductionInterval
+	default:
+		return 0
+	}
+}
+
+func (pgb *ChainDB) GetDBBlockDetailInfo(chainType string, height int64) *dbtypes.MutilchainDBBlockInfo {
+	dbBlockInfo, err := RetrieveBlockInfo(pgb.ctx, pgb.db, chainType, height)
+	if err != nil {
+		return nil
+	}
+	return dbBlockInfo
 }
 
 // GetExplorerFullBlocks gets the *exptypes.BlockInfo's for a range of block

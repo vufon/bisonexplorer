@@ -465,18 +465,6 @@ type TrimmedBlockInfo struct {
 	Transactions []*TrimmedTxInfo
 }
 
-// TrimmedBlockInfo models data needed to display block info on the new home page
-type MultichainTrimmedBlockInfo struct {
-	Time        TimeDef
-	Height      int64
-	Total       float64
-	Fees        float64
-	BlockReward int64
-	TxCount     int64
-	Inputs      int64
-	Outputs     int64
-}
-
 // BlockInfo models data for display on the block page
 type BlockInfo struct {
 	*BlockBasic
@@ -504,7 +492,12 @@ type BlockInfo struct {
 	NextHash              string
 	TotalSent             float64
 	MiningFee             float64
+	TotalInputs           int64
+	TotalOutputs          int64
 	TotalMixed            int64
+	TotalSentSats         int64
+	FeesSats              int64
+	BlockReward           int64
 	StakeValidationHeight int64
 	Subsidy               *chainjson.GetBlockSubsidyResult
 }
@@ -615,6 +608,7 @@ type MutilchainMempoolInfo struct {
 	Transactions       []MempoolTx `json:"tx"`
 	OutputsCount       int64       `json:"outputsCount"`
 	InputsCount        int64       `json:"inputsCount"`
+	BlockReward        int64       `json:"blockReward"`
 	TotalTransactions  int64       `json:"totalTransactions"`
 }
 
@@ -1038,8 +1032,9 @@ type ChainParams struct {
 
 // WebsocketBlock wraps the new block info for use in the websocket
 type WebsocketBlock struct {
-	Block *BlockInfo `json:"block"`
-	Extra *HomeInfo  `json:"extra"`
+	Block  *BlockInfo   `json:"block"`
+	Blocks []*BlockInfo `json:"blocks"`
+	Extra  *HomeInfo    `json:"extra"`
 }
 
 // BlockID provides basic identifying information about a block.

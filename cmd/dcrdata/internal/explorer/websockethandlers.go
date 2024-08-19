@@ -281,8 +281,9 @@ func (exp *ExplorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 				case sigNewLTCBlock:
 					exp.LtcPageData.RLock()
 					err := enc.Encode(types.WebsocketBlock{
-						Block: exp.LtcPageData.BlockInfo,
-						Extra: exp.LtcPageData.HomeInfo,
+						Block:  exp.LtcPageData.BlockInfo,
+						Extra:  exp.LtcPageData.HomeInfo,
+						Blocks: exp.LtcPageData.BlockDetails,
 					})
 					exp.LtcPageData.RUnlock()
 					if err == nil {
@@ -293,8 +294,9 @@ func (exp *ExplorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 				case sigNewBTCBlock:
 					exp.BtcPageData.RLock()
 					err := enc.Encode(types.WebsocketBlock{
-						Block: exp.BtcPageData.BlockInfo,
-						Extra: exp.BtcPageData.HomeInfo,
+						Block:  exp.BtcPageData.BlockInfo,
+						Extra:  exp.BtcPageData.HomeInfo,
+						Blocks: exp.BtcPageData.BlockDetails,
 					})
 					exp.BtcPageData.RUnlock()
 					if err == nil {

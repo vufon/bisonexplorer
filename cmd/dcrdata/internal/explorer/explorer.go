@@ -147,6 +147,7 @@ type explorerDataSource interface {
 	DCP0012ActivationHeight() int64
 	BlockSubsidy(height int64, voters uint16) *chainjson.GetBlockSubsidyResult
 	GetExplorerFullBlocks(start int, end int) []*types.BlockInfo
+	GetMutilchainExplorerFullBlocks(chainType string, start, end int) []*types.BlockInfo
 	CurrentDifficulty() (float64, error)
 	Difficulty(timestamp int64) float64
 	MutilchainDifficulty(timestamp int64, chainType string) float64
@@ -161,6 +162,9 @@ type explorerDataSource interface {
 	MutilchainBestBlockTime(chainType string) int64
 	GetDecredBlockchainSize() int64
 	GetDecredTotalTransactions() int64
+	SyncLast20LTCBlocks(nodeHeight int32) error
+	SyncLast20BTCBlocks(nodeHeight int32) error
+	GetDBBlockDetailInfo(chainType string, height int64) *dbtypes.MutilchainDBBlockInfo
 	SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType string) (*dbtypes.Block24hInfo, error)
 }
 
@@ -258,6 +262,7 @@ type pageData struct {
 type BtcPageData struct {
 	sync.RWMutex
 	BlockInfo      *types.BlockInfo
+	BlockDetails   []*types.BlockInfo
 	BlockchainInfo *btcjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
 	Syncing24h     bool
@@ -266,6 +271,7 @@ type BtcPageData struct {
 type LtcPageData struct {
 	sync.RWMutex
 	BlockInfo      *types.BlockInfo
+	BlockDetails   []*types.BlockInfo
 	BlockchainInfo *ltcjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
 	Syncing24h     bool
@@ -481,7 +487,8 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"verify_message", "stakingreward", "finance_report", "finance_detail",
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
-		"chain_addresstable", "supply", "marketlist", "chain_parameters", "whatsnew"}
+		"chain_addresstable", "supply", "marketlist", "chain_parameters",
+		"whatsnew", "chain_visualblocks"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -858,6 +865,15 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.BtcChainParams.SubsidyReductionInterval)
+	err := exp.dataSource.SyncLast20BTCBlocks(blockData.Header.Height)
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Infof("Sync last 25 BTC Blocks successfully")
+	}
+	//get and set 25 last block
+	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEBTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
+	p.BlockDetails = blocks
 	p.Unlock()
 	go func() {
 		select {
@@ -951,6 +967,15 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
+	err := exp.dataSource.SyncLast20LTCBlocks(blockData.Header.Height)
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Infof("Sync last 25 LTC Blocks successfully")
+	}
+	//get and set 25 last block
+	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPELTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
+	p.BlockDetails = blocks
 	p.Unlock()
 	go func() {
 		select {

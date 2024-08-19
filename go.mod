@@ -27,6 +27,7 @@ require (
 	github.com/ltcsuite/ltcd/chaincfg/chainhash v1.0.2
 	github.com/ltcsuite/ltcd/ltcutil v1.1.3
 	github.com/monperrus/crawler-user-agents v0.0.0-20240519135500-708b496e7e7b
+	github.com/x-way/crawlerdetect v0.2.21
 	golang.org/x/net v0.20.0
 )
 
@@ -56,7 +57,6 @@ require (
 	github.com/ltcsuite/ltcd/btcec/v2 v2.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
-	github.com/x-way/crawlerdetect v0.2.21 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect

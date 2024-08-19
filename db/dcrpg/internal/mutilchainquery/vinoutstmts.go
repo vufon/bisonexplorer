@@ -130,10 +130,21 @@ const (
 	AND {chaintype}transactions.block_height > $1
 	GROUP BY {chaintype}transactions.block_time, {chaintype}transactions.block_height
 	ORDER BY {chaintype}transactions.block_time;`
+
+	DeleteVinsOfOlderThan20Blocks  = `DELETE FROM %svins WHERE tx_hash IN (SELECT tx_hash FROM %stransactions WHERE block_height < $1);`
+	DeleteVoutsOfOlderThan20Blocks = `DELETE FROM %svouts WHERE tx_hash IN (SELECT tx_hash FROM %stransactions WHERE block_height < $1);`
 )
 
 func MakeSelectCoinSupply(chainType string) string {
 	return strings.ReplaceAll(SelectCoinSupply, "{chaintype}", chainType)
+}
+
+func MakeDeleteVinsOfOlderThan20Blocks(chainType string) string {
+	return fmt.Sprintf(DeleteVinsOfOlderThan20Blocks, chainType, chainType)
+}
+
+func MakeDeleteVoutsOfOlderThan20Blocks(chainType string) string {
+	return fmt.Sprintf(DeleteVoutsOfOlderThan20Blocks, chainType, chainType)
 }
 
 func MakeCountTotalVouts(chainType string) string {

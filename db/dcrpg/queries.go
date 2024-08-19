@@ -5521,6 +5521,33 @@ func RetrieveLatestBlockSummary(ctx context.Context, db *sql.DB) (*apitypes.Bloc
 	return bd, nil
 }
 
+func RetrieveLastestBlocksInfo(ctx context.Context, db *sql.DB, chainType string, startHeight, endHeight int64) ([]*dbtypes.MutilchainDBBlockInfo, error) {
+	var infoList []*dbtypes.MutilchainDBBlockInfo
+	rows, err := db.QueryContext(ctx, mutilchainquery.MakeRetrieveBlockInfoData(chainType), startHeight, endHeight)
+	if err != nil {
+		return infoList, err
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var blockInfo dbtypes.MutilchainDBBlockInfo
+		err := rows.Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs)
+		if err != nil {
+			return infoList, err
+		}
+		infoList = append(infoList, &blockInfo)
+	}
+	if err := rows.Err(); err != nil {
+		return infoList, fmt.Errorf("appendChartBlocks: iteration error: %w", err)
+	}
+	return infoList, err
+}
+
+func RetrieveBlockInfo(ctx context.Context, db *sql.DB, chainType string, height int64) (*dbtypes.MutilchainDBBlockInfo, error) {
+	var blockInfo dbtypes.MutilchainDBBlockInfo
+	err := db.QueryRowContext(ctx, mutilchainquery.MakeRetrieveBlockDetail(chainType), height).Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs)
+	return &blockInfo, err
+}
+
 // RetrieveDiff returns the difficulty for the first block mined after the
 // provided UNIX timestamp.
 func RetrieveDiff(ctx context.Context, db *sql.DB, timestamp int64) (float64, error) {

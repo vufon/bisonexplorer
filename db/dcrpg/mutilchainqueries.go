@@ -213,7 +213,7 @@ func InsertMutilchainBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, checked 
 		nil, dbBlock.Voters, dbBlock.FreshStake,
 		dbBlock.Revocations, dbBlock.PoolSize, dbBlock.Bits,
 		dbBlock.SBits, dbBlock.Difficulty, nil,
-		dbBlock.StakeVersion, dbBlock.PreviousHash).Scan(&id)
+		dbBlock.StakeVersion, dbBlock.PreviousHash, dbBlock.NumVins, dbBlock.NumVouts, dbBlock.Fees, dbBlock.TotalSent).Scan(&id)
 	return id, err
 }
 
@@ -415,6 +415,37 @@ func RetrieveMutilchainVoutsCount(ctx context.Context, db *sql.DB, chainType str
 	var count int64
 	err := db.QueryRowContext(ctx, mutilchainquery.MakeCountTotalVouts(chainType)).Scan(&count)
 	return count, err
+}
+
+func DeleteOlderThan20Blocks(ctx context.Context, db *sql.DB, chainType string, oldestBlockHeight int64) error {
+	queryBuilder := mutilchainquery.MakeDeleteOlderThan20Blocks(chainType)
+	_, err := db.Exec(queryBuilder, oldestBlockHeight)
+	return err
+}
+
+func DeleteTxsOfOlderThan20Blocks(ctx context.Context, db *sql.DB, chainType string, oldestBlockHeight int64) error {
+	queryBuilder := mutilchainquery.MakeDeleteTxsOfOlderThan20Blocks(chainType)
+	_, err := db.Exec(queryBuilder, oldestBlockHeight)
+	return err
+}
+
+func DeleteVinsOfOlderThan20Blocks(ctx context.Context, db *sql.DB, chainType string, oldestBlockHeight int64) error {
+	queryBuilder := mutilchainquery.MakeDeleteVinsOfOlderThan20Blocks(chainType)
+	_, err := db.Exec(queryBuilder, oldestBlockHeight)
+	return err
+}
+
+func DeleteVoutsOfOlderThan20Blocks(ctx context.Context, db *sql.DB, chainType string, oldestBlockHeight int64) error {
+	queryBuilder := mutilchainquery.MakeDeleteVoutsOfOlderThan20Blocks(chainType)
+	_, err := db.Exec(queryBuilder, oldestBlockHeight)
+	return err
+}
+
+func CheckBlockExistOnDB(ctx context.Context, db *sql.DB, chainType string, height int64) (bool, error) {
+	queryBuilder := mutilchainquery.MakeCheckExistBLock(chainType)
+	var exist bool
+	err := db.QueryRowContext(ctx, queryBuilder, height).Scan(&exist)
+	return exist, err
 }
 
 func RetrieveMutilchainAddressesCount(ctx context.Context, db *sql.DB, chainType string) (int64, error) {

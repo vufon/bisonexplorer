@@ -158,6 +158,7 @@ func (e expStatus) IsSyncing() bool {
 
 // number of blocks displayed on /visualblocks
 const homePageBlocksMaxCount = 30
+const MultichainHomepageBlocksMaxCount = 23
 
 // netName returns the name used when referring to a decred network.
 func netName(chainParams *chaincfg.Params) string {
@@ -694,6 +695,58 @@ func (exp *ExplorerUI) DisapprovedBlocks(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, str)
+}
+
+// VisualBlocks is the page handler for the "/visualblocks" path.
+func (exp *ExplorerUI) MultichainVisualBlocks(w http.ResponseWriter, r *http.Request) {
+	// Get top N blocks and trim each block to have just the fields required for
+	// this page.
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	height, err := exp.dataSource.GetMutilchainHeight(chainType)
+	if err != nil {
+		log.Errorf("GetHeight failed: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(chainType, int(height)-MultichainHomepageBlocksMaxCount, int(height))
+	// Safely retrieve the inventory pointer, which can be reset in StoreMPData.
+	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
+	mempoolInfo.BlockReward = mutilchain.GetCurrentBlockReward(chainType, exp.GetSubsidyReductionInterval(chainType), int32(height+1))
+	mempoolInfo.RLock()
+	str, err := exp.templates.exec("chain_visualblocks", struct {
+		*CommonPageData
+		Mempool    *types.MutilchainMempoolInfo
+		BlockInfos []*types.BlockInfo
+		ChainType  string
+	}{
+		CommonPageData: exp.commonData(r),
+		Mempool:        mempoolInfo,
+		BlockInfos:     blocks,
+		ChainType:      chainType,
+	})
+	mempoolInfo.RUnlock()
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+func (exp *ExplorerUI) GetSubsidyReductionInterval(chainType string) int32 {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return exp.LtcChainParams.SubsidyReductionInterval
+	case mutilchain.TYPEBTC:
+		return exp.BtcChainParams.SubsidyReductionInterval
+	default:
+		return 0
+	}
 }
 
 // VisualBlocks is the page handler for the "/visualblocks" path.

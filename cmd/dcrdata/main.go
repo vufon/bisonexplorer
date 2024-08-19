@@ -1027,6 +1027,7 @@ func _main(ctx context.Context) error {
 			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
 			rd.Get("/{chaintype}/market", explore.MutilchainMarketPage)
 			rd.Get("/{chaintype}/supply", explore.SupplyPage)
+			rd.Get("/{chaintype}/visualblocks", explore.MultichainVisualBlocks)
 			rd.Get("/{chaintype}/parameters", explore.MutilchainParametersPage)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
@@ -1600,6 +1601,17 @@ func _main(ctx context.Context) error {
 		}
 		//end - handler notifier for ltc
 		//end init collector for ltc
+		//sync last 20 blocks
+		if chainDB.ChainDBDisabled {
+			go func() {
+				err = chainDB.SyncLast20LTCBlocks(ltcHeight)
+				if err != nil {
+					log.Error(err)
+				} else {
+					log.Infof("Sync last 20 LTC Blocks successfully")
+				}
+			}()
+		}
 	}
 
 	if !btcDisabled {
@@ -1742,8 +1754,18 @@ func _main(ctx context.Context) error {
 		}
 		//end - handler notifier for ltc
 		//end init collector for btc
+		//sync last 25 blocks
+		if chainDB.ChainDBDisabled {
+			go func() {
+				err = chainDB.SyncLast20BTCBlocks(btcHeight)
+				if err != nil {
+					log.Error(err)
+				} else {
+					log.Infof("Sync last 20 BTC Blocks successfully")
+				}
+			}()
+		}
 	}
-
 	//Start sync 24h metrics
 	// go chainDB.Sync24BlocksAsync()
 	//End sync 24h metrics

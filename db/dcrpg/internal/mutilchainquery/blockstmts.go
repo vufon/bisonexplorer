@@ -13,12 +13,12 @@ const (
 		numtx, num_rtx, tx, txDbIDs, num_stx, stx, stxDbIDs,
 		time, nonce, vote_bits, final_state, voters,
 		fresh_stake, revocations, pool_size, bits, sbits, 
-		difficulty, extra_data, stake_version, previous_hash)
+		difficulty, extra_data, stake_version, previous_hash, num_vins, num_vouts, fees, total_sent)
 	VALUES ($1, $2, $3, $4, $5, $6, $7,
 		$8, $9, %s, %s, $10, %s, %s,
 		$11, $12, $13, $14, $15, 
 		$16, $17, $18, $19, $20,
-		$21, $22, $23, $24) `
+		$21, $22, $23, $24, $25, $26, $27, $28) `
 	insertBlockRow         = insertBlockRow0 + `RETURNING id;`
 	insertBlockRowChecked  = insertBlockRow0 + `ON CONFLICT (hash) DO NOTHING RETURNING id;`
 	insertBlockRowReturnId = `WITH ins AS (` +
@@ -65,6 +65,10 @@ const (
 		extra_data BYTEA,
 		stake_version INT4,
 		previous_hash TEXT,
+		num_vins INT4,
+		num_vouts INT4,
+		fees INT8,
+		total_sent INT8,
 		CONSTRAINT ux_%sblock_hash UNIQUE (hash)
 	);`
 
@@ -84,7 +88,8 @@ const (
 
 	RetrieveBestBlock       = `SELECT * FROM %sblocks ORDER BY height DESC LIMIT 0, 1;`
 	RetrieveBestBlockHeight = `SELECT id, hash, height FROM %sblocks ORDER BY height DESC LIMIT 1;`
-
+	RetrieveBlockInfoData   = `SELECT time,height,total_sent,fees,numtx,num_vins,num_vouts FROM %sblocks WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
+	RetrieveBlockDetail     = `SELECT time,height,total_sent,fees,numtx,num_vins,num_vouts FROM %sblocks WHERE height = $1;`
 	// block_chain, with primary key that is not a SERIAL
 	CreateBlockPrevNextTable = `CREATE TABLE IF NOT EXISTS %sblock_chain (
 		block_db_id INT8 PRIMARY KEY,
@@ -112,12 +117,30 @@ const (
 		WHERE height > $1
 		ORDER BY height;`
 
+	CheckExistBLock         = `SELECT EXISTS(SELECT 1 FROM %sblocks WHERE height = $1);`
 	SelectBlockHeightByHash = `SELECT height FROM %sblocks WHERE hash = $1;`
 	SelectBlockHashByHeight = `SELECT hash FROM %sblocks WHERE height = $1;`
+	DeleteOlderThan20Blocks = `DELETE FROM %sblocks WHERE height < $1;`
 )
 
 func MakeSelectBlockStats(chainType string) string {
 	return fmt.Sprintf(SelectBlockStats, chainType)
+}
+
+func MakeRetrieveBlockInfoData(chainType string) string {
+	return fmt.Sprintf(RetrieveBlockInfoData, chainType)
+}
+
+func MakeRetrieveBlockDetail(chainType string) string {
+	return fmt.Sprintf(RetrieveBlockDetail, chainType)
+}
+
+func MakeCheckExistBLock(chainType string) string {
+	return fmt.Sprintf(CheckExistBLock, chainType)
+}
+
+func MakeDeleteOlderThan20Blocks(chainType string) string {
+	return fmt.Sprintf(DeleteOlderThan20Blocks, chainType)
 }
 
 func MakeSelectBlockHeightByHash(chainType string) string {
