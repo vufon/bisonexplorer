@@ -2404,8 +2404,8 @@ export default class extends Controller {
     }
     let treasuryData = this.getTreasuryDataWithType(data)
     if (this.settings.ttype === 'combined') {
-      this.initLegacyBalanceMap(data.legacySummary)
-      this.initTreasuryBalanceMap(data.treasurySummary)
+      this.initLegacyBalanceMap(data.legacySummary, combinedData)
+      this.initTreasuryBalanceMap(data.treasurySummary, combinedData)
       if (combinedData !== null) {
         this.initCombinedBalanceMap(combinedData)
       }
@@ -2659,26 +2659,46 @@ export default class extends Controller {
     return mainResult
   }
 
-  initTreasuryBalanceMap (treasuryData) {
-    if (treasuryBalanceMap != null) {
-      return treasuryBalanceMap
-    }
-    treasuryBalanceMap = new Map()
-    treasuryData.forEach(summary => {
-      treasuryBalanceMap.set(summary.month, summary.balance)
-    })
-    return treasuryBalanceMap
-  }
-
-  initLegacyBalanceMap (legacyData) {
+  initLegacyBalanceMap (legacyData, combinedData) {
     if (adminBalanceMap != null) {
       return adminBalanceMap
     }
-    adminBalanceMap = new Map()
+    const tempBalanceMap = new Map()
     legacyData.forEach(summary => {
-      adminBalanceMap.set(summary.month, summary.balance)
+      tempBalanceMap.set(summary.month, summary.balance)
     })
+    // for each combined data
+    let currentBalance = 0
+    adminBalanceMap = new Map()
+    for (let i = combinedData.length - 1; i >= 0; i--) {
+      const combined = combinedData[i]
+      if (tempBalanceMap.has(combined.month)) {
+        currentBalance = tempBalanceMap.get(combined.month)
+      }
+      adminBalanceMap.set(combined.month, currentBalance)
+    }
     return adminBalanceMap
+  }
+
+  initTreasuryBalanceMap (treasuryData, combinedData) {
+    if (treasuryBalanceMap != null) {
+      return treasuryBalanceMap
+    }
+    const tempBalanceMap = new Map()
+    treasuryData.forEach(summary => {
+      tempBalanceMap.set(summary.month, summary.balance)
+    })
+    // for each combined data
+    let currentBalance = 0
+    treasuryBalanceMap = new Map()
+    for (let i = combinedData.length - 1; i >= 0; i--) {
+      const combined = combinedData[i]
+      if (tempBalanceMap.has(combined.month)) {
+        currentBalance = tempBalanceMap.get(combined.month)
+      }
+      treasuryBalanceMap.set(combined.month, currentBalance)
+    }
+    return treasuryBalanceMap
   }
 
   initCombinedBalanceMap (summaryData) {
@@ -2733,7 +2753,7 @@ export default class extends Controller {
         '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst"> Dev Spent (%)</label></th>'
     }
     if (isCombined) {
-      thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Decentralized/Admin(%)</label>' +
+      thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Decentralized / Admin (%)</label>' +
         `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     }
     if (usdDisp) {
@@ -2764,7 +2784,7 @@ export default class extends Controller {
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
-      lastBalanceStr = `${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + '/' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + '%'}`
+      lastBalanceStr = `${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + ' / ' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + ' %'}`
     }
     const treasuryList = this.sortTreasury(summary)
     treasuryList.forEach((item) => {
@@ -2798,7 +2818,6 @@ export default class extends Controller {
         if (item.outvalue > 0) {
           devSentPercent = 100 * 1e8 * item.outEstimate / item.outvalue
         }
-        console.log('dev sent: ' + devSentPercent)
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && item.outEstimate !== 0.0 ? '$' : ''}${item.outEstimate === 0.0 ? 'No meta data' : usdDisp ? humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>`
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? 'No dev expenses' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>`
       }
@@ -2819,7 +2838,7 @@ export default class extends Controller {
             }
             const legacyRate = 100 * legacyBalance / combinedBalance
             const treasuryRate = 100 * treasuryBalance / combinedBalance
-            treasuryRateStr = `${humanize.formatToLocalString(treasuryRate, 2, 2) + '/' + humanize.formatToLocalString(legacyRate, 2, 2) + '%'}`
+            treasuryRateStr = `${humanize.formatToLocalString(treasuryRate, 2, 2) + ' / ' + humanize.formatToLocalString(legacyRate, 2, 2) + ' %'}`
           }
         }
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${treasuryRateStr}</td>`
