@@ -1198,6 +1198,7 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 	proposalSummaryList := make([]apitypes.ProposalReportData, 0)
 	monthDatas := make([]apitypes.MonthDataObject, 0)
 	monthExpenseMap := make(map[string]float64)
+	monthTotalBudgetMap := make(map[string]float64)
 	monthWeightMap := make(map[string]int)
 	for _, proposalMeta := range proposals {
 		proposalInfo := apitypes.ProposalReportData{}
@@ -1248,6 +1249,12 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 			} else {
 				monthExpenseMap[key] = amountFloat
 			}
+			totalBudget, monthTotalExist := monthTotalBudgetMap[key]
+			if monthTotalExist {
+				monthTotalBudgetMap[key] = totalBudget + proposalInfo.Budget
+			} else {
+				monthTotalBudgetMap[key] = proposalInfo.Budget
+			}
 		} else {
 			//calculate cost every month
 			for i := 0; i < int(countMonths); i++ {
@@ -1287,6 +1294,12 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 				} else {
 					monthExpenseMap[key] = costOfMonth
 				}
+				totalBudget, monthTotalExist := monthTotalBudgetMap[key]
+				if monthTotalExist {
+					monthTotalBudgetMap[key] = totalBudget + proposalInfo.Budget
+				} else {
+					monthTotalBudgetMap[key] = proposalInfo.Budget
+				}
 			}
 		}
 		if now.After(endTime) {
@@ -1324,8 +1337,9 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 			continue
 		}
 		itemData := apitypes.MonthDataObject{
-			Month:   key,
-			Expense: v,
+			Month:       key,
+			Expense:     v,
+			TotalBudget: monthTotalBudgetMap[key],
 		}
 		monthDatas = append(monthDatas, itemData)
 	}
@@ -1655,14 +1669,20 @@ func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 	proposalMetaList, err := c.DataSource.GetAllProposalMeta("")
 	if err == nil {
 		monthDataMap := make(map[string]float64)
+		totalBudgetMap := make(map[string]float64)
 		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList, true)
 		for _, monthData := range monthDatas {
 			monthDataMap[monthData.Month] = monthData.Expense
+			totalBudgetMap[monthData.Month] = monthData.TotalBudget
 		}
 		//merge with summary report data
 		for _, treasuryItem := range treasurySummary {
 			monthProposalData, exist := monthDataMap[treasuryItem.Month]
+			monthTotalBudget, tbExist := totalBudgetMap[treasuryItem.Month]
 			if exist {
+				if tbExist {
+					treasuryItem.DevSpentPercent = 100 * (monthProposalData / monthTotalBudget)
+				}
 				treasuryItem.OutEstimateUsd = monthProposalData
 				if treasuryItem.MonthPrice <= 0 {
 					treasuryItem.OutEstimate = 0.0

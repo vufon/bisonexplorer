@@ -2157,20 +2157,21 @@ type TreasuryAddSummary struct {
 }
 
 type TreasurySummary struct {
-	Month          string  `json:"month"`
-	Invalue        int64   `json:"invalue"`
-	InvalueUSD     float64 `json:"invalueUSD"`
-	Outvalue       int64   `json:"outvalue"`
-	OutvalueUSD    float64 `json:"outvalueUSD"`
-	Difference     int64   `json:"difference"`
-	DifferenceUSD  float64 `json:"differenceUSD"`
-	Balance        int64   `json:"balance"`
-	BalanceUSD     float64 `json:"balanceUSD"`
-	Total          int64   `json:"total"`
-	TotalUSD       float64 `json:"totalUSD"`
-	OutEstimate    float64 `json:"outEstimate"`
-	OutEstimateUsd float64 `json:"outEstimateUsd"`
-	MonthPrice     float64 `json:"monthPrice"`
+	Month           string  `json:"month"`
+	Invalue         int64   `json:"invalue"`
+	InvalueUSD      float64 `json:"invalueUSD"`
+	Outvalue        int64   `json:"outvalue"`
+	OutvalueUSD     float64 `json:"outvalueUSD"`
+	Difference      int64   `json:"difference"`
+	DifferenceUSD   float64 `json:"differenceUSD"`
+	Balance         int64   `json:"balance"`
+	BalanceUSD      float64 `json:"balanceUSD"`
+	Total           int64   `json:"total"`
+	TotalUSD        float64 `json:"totalUSD"`
+	OutEstimate     float64 `json:"outEstimate"`
+	OutEstimateUsd  float64 `json:"outEstimateUsd"`
+	DevSpentPercent float64 `json:"devSpentPercent"`
+	MonthPrice      float64 `json:"monthPrice"`
 }
 
 type TreasuryMonthDataObject struct {
