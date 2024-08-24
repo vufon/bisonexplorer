@@ -22,6 +22,8 @@ let combinedData = null
 let combineBalanceMap = null
 let treasuryBalanceMap = null
 let adminBalanceMap = null
+let treasuryHasDataBalanceMap = null
+let adminHasDataBalanceMap = null
 const treasurySummaryData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
@@ -2663,17 +2665,17 @@ export default class extends Controller {
     if (adminBalanceMap != null) {
       return adminBalanceMap
     }
-    const tempBalanceMap = new Map()
+    adminHasDataBalanceMap = new Map()
     legacyData.forEach(summary => {
-      tempBalanceMap.set(summary.month, summary.balance)
+      adminHasDataBalanceMap.set(summary.month, summary.balance)
     })
     // for each combined data
     let currentBalance = 0
     adminBalanceMap = new Map()
     for (let i = combinedData.length - 1; i >= 0; i--) {
       const combined = combinedData[i]
-      if (tempBalanceMap.has(combined.month)) {
-        currentBalance = tempBalanceMap.get(combined.month)
+      if (adminHasDataBalanceMap.has(combined.month)) {
+        currentBalance = adminHasDataBalanceMap.get(combined.month)
       }
       adminBalanceMap.set(combined.month, currentBalance)
     }
@@ -2684,17 +2686,17 @@ export default class extends Controller {
     if (treasuryBalanceMap != null) {
       return treasuryBalanceMap
     }
-    const tempBalanceMap = new Map()
+    treasuryHasDataBalanceMap = new Map()
     treasuryData.forEach(summary => {
-      tempBalanceMap.set(summary.month, summary.balance)
+      treasuryHasDataBalanceMap.set(summary.month, summary.balance)
     })
     // for each combined data
     let currentBalance = 0
     treasuryBalanceMap = new Map()
     for (let i = combinedData.length - 1; i >= 0; i--) {
       const combined = combinedData[i]
-      if (tempBalanceMap.has(combined.month)) {
-        currentBalance = tempBalanceMap.get(combined.month)
+      if (treasuryHasDataBalanceMap.has(combined.month)) {
+        currentBalance = treasuryHasDataBalanceMap.get(combined.month)
       }
       treasuryBalanceMap.set(combined.month, currentBalance)
     }
@@ -2784,7 +2786,7 @@ export default class extends Controller {
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
-      lastBalanceStr = `${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + ' / ' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + ' %'}`
+      lastBalanceStr = `<a class="white-link" href="/treasury">${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + '</a> / <a class="white-link" href="/address/' + this.devAddress + '">' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + '</a> %'}`
     }
     const treasuryList = this.sortTreasury(summary)
     treasuryList.forEach((item) => {
@@ -2838,7 +2840,18 @@ export default class extends Controller {
             }
             const legacyRate = 100 * legacyBalance / combinedBalance
             const treasuryRate = 100 * treasuryBalance / combinedBalance
-            treasuryRateStr = `${humanize.formatToLocalString(treasuryRate, 2, 2) + ' / ' + humanize.formatToLocalString(legacyRate, 2, 2) + ' %'}`
+            let treasuryRateDisp = humanize.formatToLocalString(treasuryRate, 2, 2)
+            let legacyRateDisp = humanize.formatToLocalString(legacyRate, 2, 2)
+            const tTime = this.getFullTimeParam(item.month, '-')
+            if (treasuryHasDataBalanceMap.has(item.month)) {
+              const tlink = '/treasury?txntype=all&time=' + (tTime === '' ? item.month : tTime)
+              treasuryRateDisp = `<a href="${tlink}">${treasuryRateDisp}</a>`
+            }
+            if (adminHasDataBalanceMap.has(item.month)) {
+              const tlink = '/address/' + this.devAddress + '?txntype=all&time=' + (tTime === '' ? item.month : tTime)
+              legacyRateDisp = `<a href="${tlink}">${legacyRateDisp}</a>`
+            }
+            treasuryRateStr = `${treasuryRateDisp + ' / ' + legacyRateDisp + ' %'}`
           }
         }
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${treasuryRateStr}</td>`
