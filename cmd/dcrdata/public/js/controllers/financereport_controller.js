@@ -18,6 +18,10 @@ let domainChartYearData = null
 let domainYearData = null
 let combinedChartData = null
 let combinedChartYearData = null
+let combinedData = null
+let combineBalanceMap = null
+let treasuryBalanceMap = null
+let adminBalanceMap = null
 const treasurySummaryData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
@@ -2398,8 +2402,14 @@ export default class extends Controller {
     if (!data.treasurySummary && !data.legacySummary) {
       return
     }
-
     let treasuryData = this.getTreasuryDataWithType(data)
+    if (this.settings.ttype === 'combined') {
+      this.initLegacyBalanceMap(data.legacySummary)
+      this.initTreasuryBalanceMap(data.treasurySummary)
+      if (combinedData !== null) {
+        this.initCombinedBalanceMap(combinedData)
+      }
+    }
     // if not init combined, hanlder data
     if (!combinedChartData || !combinedChartYearData) {
       this.handlerDataForCombinedChart(treasuryData)
@@ -2515,11 +2525,14 @@ export default class extends Controller {
   }
 
   getTreasuryDataWithType (data) {
-    if (!this.settings.ttype || this.settings.ttype === 'current') {
+    if (this.settings.ttype === 'current') {
       return data.treasurySummary
     }
     if (this.settings.ttype === 'legacy') {
       return data.legacySummary
+    }
+    if (combinedData !== null) {
+      return combinedData
     }
     const _this = this
     // create time map
@@ -2642,7 +2655,41 @@ export default class extends Controller {
     for (let i = result.length - 1; i >= 0; i--) {
       mainResult.push(result[i])
     }
+    combinedData = mainResult
     return mainResult
+  }
+
+  initTreasuryBalanceMap (treasuryData) {
+    if (treasuryBalanceMap != null) {
+      return treasuryBalanceMap
+    }
+    treasuryBalanceMap = new Map()
+    treasuryData.forEach(summary => {
+      treasuryBalanceMap.set(summary.month, summary.balance)
+    })
+    return treasuryBalanceMap
+  }
+
+  initLegacyBalanceMap (legacyData) {
+    if (adminBalanceMap != null) {
+      return adminBalanceMap
+    }
+    adminBalanceMap = new Map()
+    legacyData.forEach(summary => {
+      adminBalanceMap.set(summary.month, summary.balance)
+    })
+    return adminBalanceMap
+  }
+
+  initCombinedBalanceMap (summaryData) {
+    if (combineBalanceMap != null) {
+      return combineBalanceMap
+    }
+    combineBalanceMap = new Map()
+    summaryData.forEach(summary => {
+      combineBalanceMap.set(summary.month, summary.balance)
+    })
+    return combineBalanceMap
   }
 
   getTimeCompare (timStr) {
@@ -2667,6 +2714,7 @@ export default class extends Controller {
 
   createTreasuryLegacyTableContent (summary) {
     const isLegacy = this.settings.ttype === 'legacy'
+    const isCombined = !this.settings.ttype || this.settings.ttype === '' || this.settings.ttype === 'combined'
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
       `<th class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
@@ -2684,6 +2732,10 @@ export default class extends Controller {
         `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
         '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst"> Dev Spent (%)</label></th>'
     }
+    if (isCombined) {
+      thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Decentralized/Admin(%)</label>' +
+        `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+    }
     if (usdDisp) {
       thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
         `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
@@ -2694,9 +2746,25 @@ export default class extends Controller {
     // create tbody content
     let incomeTotal = 0; let outTotal = 0; let diffTotal = 0; let estimateOutTotal = 0
     let lastBalance = 0; let lastBalanceUSD = 0
+    let lastMonth = ''
+    let lastBalanceStr = ''
     if (summary.length > 0) {
       lastBalance = summary[0].balance
       lastBalanceUSD = summary[0].balanceUSD
+      lastMonth = summary[0].month
+    }
+    if (lastMonth !== '' && combineBalanceMap.has(lastMonth)) {
+      const combined = combineBalanceMap.get(lastMonth)
+      let legacy = 0; let tresury = 0
+      if (adminBalanceMap.has(lastMonth)) {
+        legacy = adminBalanceMap.get(lastMonth)
+      }
+      if (treasuryBalanceMap.has(lastMonth)) {
+        tresury = treasuryBalanceMap.get(lastMonth)
+      }
+      const lastLegacyRate = 100 * legacy / combined
+      const lastTreasuryRate = 100 * tresury / combined
+      lastBalanceStr = `${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + '/' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + '%'}`
     }
     const treasuryList = this.sortTreasury(summary)
     treasuryList.forEach((item) => {
@@ -2734,6 +2802,28 @@ export default class extends Controller {
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && item.outEstimate !== 0.0 ? '$' : ''}${item.outEstimate === 0.0 ? 'No meta data' : usdDisp ? humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>`
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? 'No dev expenses' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>`
       }
+      if (isCombined) {
+        let treasuryRateStr = ''
+        // get total balance of month from map
+        if (combinedData !== null) {
+          const combinedMap = this.initCombinedBalanceMap(combinedData)
+          // get balance
+          if (combinedMap.has(item.month)) {
+            const combinedBalance = combinedMap.get(item.month)
+            let legacyBalance = 0; let treasuryBalance = 0
+            if (adminBalanceMap != null && adminBalanceMap.has(item.month)) {
+              legacyBalance = adminBalanceMap.get(item.month)
+            }
+            if (treasuryBalanceMap != null && treasuryBalanceMap.has(item.month)) {
+              treasuryBalance = treasuryBalanceMap.get(item.month)
+            }
+            const legacyRate = 100 * legacyBalance / combinedBalance
+            const treasuryRate = 100 * treasuryBalance / combinedBalance
+            treasuryRateStr = `${humanize.formatToLocalString(treasuryRate, 2, 2) + '/' + humanize.formatToLocalString(legacyRate, 2, 2) + '%'}`
+          }
+        }
+        bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${treasuryRateStr}</td>`
+      }
       if (usdDisp) {
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>`
       }
@@ -2759,6 +2849,9 @@ export default class extends Controller {
     if (!isLegacy) {
       bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalEstimateOutgoing}</td>`
       bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'
+    }
+    if (isCombined) {
+      bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${lastBalanceStr}</td>`
     }
     if (usdDisp) {
       bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'
