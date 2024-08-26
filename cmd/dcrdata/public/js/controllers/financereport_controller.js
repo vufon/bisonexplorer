@@ -2298,7 +2298,7 @@ export default class extends Controller {
     if (this.settings.interval === 'year') {
       treasuryData = treasurySummaryData != null ? treasurySummaryData : this.getTreasuryYearlyData(treasuryData)
     }
-    const treasuryDataMap = this.getTreasuryValueMapByMonth(treasuryData)
+    const treasuryDataMap = this.getTreasuryMonthSpentMap(treasuryData)
     handlerData = this.getTreasuryDomainCombined(handlerData, treasuryDataMap)
 
     if (handlerData.report.length < 1) {
@@ -2344,7 +2344,7 @@ export default class extends Controller {
         }
       })
       bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td>` +
-        `<td class="va-mid text-right fw-600 fs-13i pe-4">${report.unaccounted === 0 ? '' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
+        `<td class="va-mid text-right fw-600 fs-13i pe-4">${report.unaccounted === 0 ? 'Not sent' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
@@ -2369,11 +2369,12 @@ export default class extends Controller {
     for (let i = report.length - 1; i >= 0; i--) {
       const reportItem = report[i]
       const monthFormat = reportItem.month.replace('/', '-')
-      const treasuryBalance = treasuryDataMap.get(monthFormat)
+      reportData.report[i].unaccounted = 0
       if (treasuryDataMap.has(monthFormat)) {
-        reportData.report[i].unaccounted = treasuryBalance - reportItem.total
-      } else {
-        reportData.report[i].unaccounted = 0
+        const treasurySpent = treasuryDataMap.get(monthFormat)
+        if (treasurySpent > reportItem.total) {
+          reportData.report[i].unaccounted = treasurySpent - reportItem.total
+        }
       }
     }
     return reportData
@@ -2469,6 +2470,17 @@ export default class extends Controller {
       options += `<option name="name_${year}" value="${year}" ${this.settings.year && this.settings.year.toString() === year ? 'selected' : ''}>${year}</option>`
     })
     this.yearSelectTarget.innerHTML = options
+  }
+
+  getTreasuryMonthSpentMap (treasurySummary) {
+    const spentMap = new Map()
+    if (!treasurySummary || treasurySummary.length < 1) {
+      return spentMap
+    }
+    treasurySummary.forEach((summary) => {
+      spentMap.set(summary.month, summary.outvalueUSD)
+    })
+    return spentMap
   }
 
   getTreasuryValueMapByMonth (treasurySummary) {
