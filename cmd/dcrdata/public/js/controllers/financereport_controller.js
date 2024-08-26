@@ -1541,7 +1541,7 @@ export default class extends Controller {
 
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
       '<th class="text-center ps-0 month-col border-right-grey report-first-header head-first-cell">' +
-      '<div class="c1"><span data-action="click->financereport#sortByDate" class="homeicon-swap vertical-sort"></span></div><div class="c2"><span data-action="click->financereport#sortByCreateDate" class="homeicon-swap horizontal-sort"></span></div></th>' +
+      '<div class="c1"><span data-action="click->financereport#sortByDate" class="homeicon-swap vertical-sort"></span></div><div class="c2"><span id="sortCreateDate" data-action="click->financereport#sortByCreateDate" class="homeicon-swap horizontal-sort"></span></div></th>' +
       '###' +
       '<th class="text-right ps-0 fw-600 month-col ta-center border-left-grey report-last-header va-mid">Total</th>' +
       '</tr></thead>'
@@ -1575,7 +1575,7 @@ export default class extends Controller {
       if (proposalTokenMap[proposal] && proposalTokenMap[proposal] !== '') {
         token = proposalTokenMap[proposal]
       }
-      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${proposal}</a></td>`
+      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a href="${'/finance-report/detail?type=proposal&token=' + token}" data-turbolinks="false" class="link-hover-underline fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${proposal}</a></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
@@ -1651,7 +1651,7 @@ export default class extends Controller {
       if (this.settings.interval === 'year') {
         headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid" id="${this.settings.interval + ';' + report.month}">`
         headList += '<div class="d-flex justify-content-center">'
-        headList += `<a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
+        headList += `<a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
         headList += '</a></div></th>'
       } else {
         headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky va-mid" ' +
@@ -1666,7 +1666,7 @@ export default class extends Controller {
       const index = this.settings.psort === 'oldest' ? (handlerData.authorReport.length - i - 1) : i
       const author = handlerData.authorReport[index]
       const budget = author.budget
-      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a href="/finance-report/detail?type=owner&name=${author.name}" class="link-hover-underline fw-600 fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${author.name}</a></td>`
+      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a data-turbolinks="false" href="/finance-report/detail?type=owner&name=${author.name}" class="link-hover-underline fw-600 fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${author.name}</a></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
