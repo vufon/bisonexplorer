@@ -1333,6 +1333,10 @@ export default class extends Controller {
     this.sortByType('balance')
   }
 
+  sortSpentPercent () {
+    this.sortByType('percent')
+  }
+
   sortByOutgoingEst () {
     this.sortByType('outest')
   }
@@ -1991,6 +1995,16 @@ export default class extends Controller {
         case 'balance':
           aData = a.balance
           bData = b.balance
+          break
+        case 'percent':
+          aData = 0
+          bData = 0
+          if (a.outvalue > 0) {
+            aData = 100 * 1e8 * a.outEstimate / a.outvalue
+          }
+          if (b.outvalue > 0) {
+            bData = 100 * 1e8 * b.outEstimate / b.outvalue
+          }
           break
         default:
           aData = a.invalue
@@ -2764,11 +2778,11 @@ export default class extends Controller {
     if (!isLegacy) {
       thead += `<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst">Dev Spent (Est)(${usdDisp ? 'USD' : 'DCR'})</label>` +
         `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-        '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst"> Dev Spent (%)</label></th>'
+        '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortSpentPercent"> Dev Spent (%)</label>' +
+        `<span data-action="click->financereport#sortSpentPercent" class="${(this.settings.stype === 'percent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'percent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     }
     if (isCombined) {
-      thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Decentralized / Admin (%)</label>' +
-        `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+      thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label>Decentralized / Admin (%)</label></th>'
     }
     if (usdDisp) {
       thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
