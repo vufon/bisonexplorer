@@ -3120,6 +3120,30 @@ func (c *appContext) getMutilchainAddressTransactions(w http.ResponseWriter, r *
 
 // getAddressTransactionsRaw handles the various /address/{addr}/.../raw API
 // endpoints.
+func (c *appContext) getAddressesTxs(w http.ResponseWriter, r *http.Request) {
+	addresses := chi.URLParam(r, "addresses")
+	if addresses == "" {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	result := make(map[string][]*apitypes.AddressTxRaw)
+	//get addresses array
+	addressArr := strings.Split(addresses, ",")
+	for _, address := range addressArr {
+		if strings.TrimSpace(address) == "" {
+			continue
+		}
+		txs := c.DataSource.GetAddressTransactionsRawWithSkip(address, int(10000), int(0))
+		if txs == nil {
+			continue
+		}
+		result[address] = txs
+	}
+	writeJSON(w, result, m.GetIndentCtx(r))
+}
+
+// getAddressTransactionsRaw handles the various /address/{addr}/.../raw API
+// endpoints.
 func (c *appContext) getAddressTransactionsRaw(w http.ResponseWriter, r *http.Request) {
 	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
 		return

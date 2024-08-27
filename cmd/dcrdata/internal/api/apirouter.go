@@ -196,8 +196,8 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 					})
 				})
 			})
-
 		})
+		r.Get("/addressesTxs/{addresses}", app.getAddressesTxs)
 	})
 
 	mux.Route("/chainaddress", func(r chi.Router) {
