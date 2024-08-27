@@ -19,11 +19,17 @@ let domainYearData = null
 let combinedChartData = null
 let combinedChartYearData = null
 let combinedData = null
+let combinedYearData = null
 let combineBalanceMap = null
+let combinedYearlyBalanceMap = null
 let treasuryBalanceMap = null
+let treasuryYearlyBalanceMap = null
 let adminBalanceMap = null
+let adminYearlyBalanceMap = null
 let treasuryHasDataBalanceMap = null
 let adminHasDataBalanceMap = null
+let treasuryYearlyHasDataBalanceMap = null
+let adminYearlyHasDataBalanceMap = null
 const treasurySummaryData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
@@ -2420,13 +2426,6 @@ export default class extends Controller {
       return
     }
     let treasuryData = this.getTreasuryDataWithType(data)
-    if (this.settings.ttype === 'combined') {
-      this.initLegacyBalanceMap(data.legacySummary, combinedData)
-      this.initTreasuryBalanceMap(data.treasurySummary, combinedData)
-      if (combinedData !== null) {
-        this.initCombinedBalanceMap(combinedData)
-      }
-    }
     // if not init combined, hanlder data
     if (!combinedChartData || !combinedChartYearData) {
       this.handlerDataForCombinedChart(treasuryData)
@@ -2437,6 +2436,7 @@ export default class extends Controller {
 
     if (this.settings.interval === 'year') {
       treasuryData = this.getTreasuryYearlyData(treasuryData)
+      combinedYearData = treasuryData
       this.yearSelectTitleTarget.classList.add('d-none')
       this.yearSelectTarget.classList.add('d-none')
     } else {
@@ -2445,7 +2445,6 @@ export default class extends Controller {
       // init year select options
       this.initYearSelectOptions(treasuryData)
     }
-
     // filter by year
     if (this.settings.interval !== 'year' && this.settings.year && this.settings.year.toString() !== '0') {
       const tmpData = []
@@ -2462,6 +2461,11 @@ export default class extends Controller {
       treasuryData = tmpData
     }
 
+    if (this.settings.ttype === 'combined') {
+      this.initLegacyBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.legacySummary) : data.legacySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
+      this.initTreasuryBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.treasurySummary) : data.treasurySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
+      this.initCombinedBalanceMap(treasuryData)
+    }
     this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData)
   }
 
@@ -2688,56 +2692,91 @@ export default class extends Controller {
   }
 
   initLegacyBalanceMap (legacyData, combinedData) {
-    if (adminBalanceMap != null) {
+    if (this.settings.interval !== 'year' && adminBalanceMap != null) {
       return adminBalanceMap
     }
-    adminHasDataBalanceMap = new Map()
+    if (this.settings.interval === 'year' && adminYearlyBalanceMap != null) {
+      return adminYearlyBalanceMap
+    }
+    const tempHasDataBalancemap = new Map()
     legacyData.forEach(summary => {
-      adminHasDataBalanceMap.set(summary.month, summary.balance)
+      tempHasDataBalancemap.set(summary.month, summary.balance)
     })
+    if (this.settings.interval === 'year') {
+      adminYearlyHasDataBalanceMap = tempHasDataBalancemap
+    } else {
+      adminHasDataBalanceMap = tempHasDataBalancemap
+    }
     // for each combined data
     let currentBalance = 0
-    adminBalanceMap = new Map()
+    const tempBalanceMap = new Map()
     for (let i = combinedData.length - 1; i >= 0; i--) {
       const combined = combinedData[i]
-      if (adminHasDataBalanceMap.has(combined.month)) {
-        currentBalance = adminHasDataBalanceMap.get(combined.month)
+      if (tempHasDataBalancemap.has(combined.month)) {
+        currentBalance = tempHasDataBalancemap.get(combined.month)
       }
-      adminBalanceMap.set(combined.month, currentBalance)
+      tempBalanceMap.set(combined.month, currentBalance)
     }
-    return adminBalanceMap
+    if (this.settings.interval === 'year') {
+      adminYearlyBalanceMap = tempBalanceMap
+    } else {
+      adminBalanceMap = tempBalanceMap
+    }
+    return tempBalanceMap
   }
 
   initTreasuryBalanceMap (treasuryData, combinedData) {
-    if (treasuryBalanceMap != null) {
+    if (this.settings.interval !== 'year' && treasuryBalanceMap != null) {
       return treasuryBalanceMap
     }
-    treasuryHasDataBalanceMap = new Map()
+    if (this.settings.interval === 'year' && treasuryYearlyBalanceMap != null) {
+      return treasuryYearlyBalanceMap
+    }
+    const tempHasDataBalancemap = new Map()
     treasuryData.forEach(summary => {
-      treasuryHasDataBalanceMap.set(summary.month, summary.balance)
+      tempHasDataBalancemap.set(summary.month, summary.balance)
     })
+    if (this.settings.interval === 'year') {
+      treasuryYearlyHasDataBalanceMap = tempHasDataBalancemap
+    } else {
+      treasuryHasDataBalanceMap = tempHasDataBalancemap
+    }
     // for each combined data
     let currentBalance = 0
-    treasuryBalanceMap = new Map()
+    const tempBalanceMap = new Map()
     for (let i = combinedData.length - 1; i >= 0; i--) {
       const combined = combinedData[i]
-      if (treasuryHasDataBalanceMap.has(combined.month)) {
-        currentBalance = treasuryHasDataBalanceMap.get(combined.month)
+      if (tempHasDataBalancemap.has(combined.month)) {
+        currentBalance = tempHasDataBalancemap.get(combined.month)
       }
-      treasuryBalanceMap.set(combined.month, currentBalance)
+      tempBalanceMap.set(combined.month, currentBalance)
     }
-    return treasuryBalanceMap
+    if (this.settings.interval === 'year') {
+      treasuryYearlyBalanceMap = tempBalanceMap
+    } else {
+      treasuryBalanceMap = tempBalanceMap
+    }
+    return tempBalanceMap
   }
 
   initCombinedBalanceMap (summaryData) {
-    if (combineBalanceMap != null) {
+    if (this.settings.interval === 'year' && combinedYearlyBalanceMap != null) {
+      return combinedYearlyBalanceMap
+    }
+    if (this.settings.interval !== 'year' && combineBalanceMap != null) {
       return combineBalanceMap
     }
-    combineBalanceMap = new Map()
+    const tmpCombineBalanceMap = new Map()
     summaryData.forEach(summary => {
-      combineBalanceMap.set(summary.month, summary.balance)
+      tmpCombineBalanceMap.set(summary.month, summary.balance)
     })
-    return combineBalanceMap
+
+    if (this.settings.interval === 'year') {
+      combinedYearlyBalanceMap = tmpCombineBalanceMap
+    } else {
+      combineBalanceMap = tmpCombineBalanceMap
+    }
+    return tmpCombineBalanceMap
   }
 
   getTimeCompare (timStr) {
@@ -2801,22 +2840,31 @@ export default class extends Controller {
       lastBalanceUSD = summary[0].balanceUSD
       lastMonth = summary[0].month
     }
-    if (lastMonth !== '' && combineBalanceMap.has(lastMonth)) {
-      const combined = combineBalanceMap.get(lastMonth)
+    const balanceMap = this.settings.interval === 'year' ? combinedYearlyBalanceMap : combineBalanceMap
+    if (lastMonth !== '' && balanceMap.has(lastMonth)) {
+      const combined = balanceMap.get(lastMonth)
       let legacy = 0; let tresury = 0
-      if (adminBalanceMap.has(lastMonth)) {
-        legacy = adminBalanceMap.get(lastMonth)
+      const adminBalanceDataMap = this.settings.interval === 'year' ? adminYearlyBalanceMap : adminBalanceMap
+      if (adminBalanceDataMap.has(lastMonth)) {
+        legacy = adminBalanceDataMap.get(lastMonth)
       }
-      if (treasuryBalanceMap.has(lastMonth)) {
-        tresury = treasuryBalanceMap.get(lastMonth)
+      const treasuryBalanceDataMap = this.settings.interval === 'year' ? treasuryYearlyBalanceMap : treasuryBalanceMap
+      if (treasuryBalanceDataMap.has(lastMonth)) {
+        tresury = treasuryBalanceDataMap.get(lastMonth)
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
       lastBalanceStr = `<a class="white-link" href="/treasury">${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + '</a> / <a class="white-link" href="/address/' + this.devAddress + '">' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + '</a> %'}`
     }
     const treasuryList = this.sortTreasury(summary)
+    const _this = this
+    let combinedMapData
+    if (isCombined) {
+      // get total balance of month from map
+      combinedMapData = _this.initCombinedBalanceMap(treasuryList)
+    }
     treasuryList.forEach((item) => {
-      const timeParam = this.getFullTimeParam(item.month, '-')
+      const timeParam = _this.getFullTimeParam(item.month, '-')
       incomeTotal += usdDisp ? item.invalueUSD : item.invalue
       outTotal += usdDisp ? item.outvalueUSD : item.outvalue
       estimateOutTotal += usdDisp ? item.outEstimateUsd : item.outEstimate
@@ -2828,14 +2876,14 @@ export default class extends Controller {
       let incomeHref = ''
       let outcomeHref = ''
       if (isLegacy) {
-        incomeHref = '/address/' + this.devAddress + '?txntype=credit&time=' + (timeParam === '' ? item.month : timeParam)
-        outcomeHref = '/address/' + this.devAddress + '?txntype=debit&time=' + (timeParam === '' ? item.month : timeParam)
-      } else if (this.settings.ttype === 'current') {
+        incomeHref = '/address/' + _this.devAddress + '?txntype=credit&time=' + (timeParam === '' ? item.month : timeParam)
+        outcomeHref = '/address/' + _this.devAddress + '?txntype=debit&time=' + (timeParam === '' ? item.month : timeParam)
+      } else if (_this.settings.ttype === 'current') {
         incomeHref = '/treasury?txntype=treasurybase&time=' + (timeParam === '' ? item.month : timeParam)
         outcomeHref = '/treasury?txntype=tspend&time=' + (timeParam === '' ? item.month : timeParam)
       }
       bodyList += '<tr>' +
-        `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
+        `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + incomeHref + '">' : ''}${usdDisp && incomDisplay !== '' ? '$' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + outcomeHref + '">' : ''}${usdDisp && outcomeDisplay !== '' ? '$' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${netNegative ? '-' : ''}${usdDisp && differenceDisplay !== '' ? '$' : ''}${differenceDisplay}</td>`
@@ -2852,29 +2900,32 @@ export default class extends Controller {
       if (isCombined) {
         let treasuryRateStr = ''
         // get total balance of month from map
-        if (combinedData !== null) {
-          const combinedMap = this.initCombinedBalanceMap(combinedData)
+        if (combinedMapData !== null) {
           // get balance
-          if (combinedMap.has(item.month)) {
-            const combinedBalance = combinedMap.get(item.month)
+          if (combinedMapData.has(item.month)) {
+            const combinedBalance = combinedMapData.get(item.month)
             let legacyBalance = 0; let treasuryBalance = 0
-            if (adminBalanceMap != null && adminBalanceMap.has(item.month)) {
-              legacyBalance = adminBalanceMap.get(item.month)
+            const adminBalanceDataMap = this.settings.interval === 'year' ? adminYearlyBalanceMap : adminBalanceMap
+            if (adminBalanceDataMap !== null && adminBalanceDataMap.has(item.month)) {
+              legacyBalance = adminBalanceDataMap.get(item.month)
             }
-            if (treasuryBalanceMap != null && treasuryBalanceMap.has(item.month)) {
-              treasuryBalance = treasuryBalanceMap.get(item.month)
+            const treasuryBalanceDataMap = this.settings.interval === 'year' ? treasuryYearlyBalanceMap : treasuryBalanceMap
+            if (treasuryBalanceDataMap !== null && treasuryBalanceDataMap.has(item.month)) {
+              treasuryBalance = treasuryBalanceDataMap.get(item.month)
             }
             const legacyRate = 100 * legacyBalance / combinedBalance
             const treasuryRate = 100 * treasuryBalance / combinedBalance
             let treasuryRateDisp = humanize.formatToLocalString(treasuryRate, 2, 2)
             let legacyRateDisp = humanize.formatToLocalString(legacyRate, 2, 2)
-            const tTime = this.getFullTimeParam(item.month, '-')
-            if (treasuryHasDataBalanceMap.has(item.month)) {
+            const tTime = _this.getFullTimeParam(item.month, '-')
+            const treasuryBalanceHasDataMap = this.settings.interval === 'year' ? treasuryYearlyHasDataBalanceMap : treasuryHasDataBalanceMap
+            if (treasuryBalanceHasDataMap.has(item.month)) {
               const tlink = '/treasury?txntype=all&time=' + (tTime === '' ? item.month : tTime)
               treasuryRateDisp = `<a href="${tlink}">${treasuryRateDisp}</a>`
             }
-            if (adminHasDataBalanceMap.has(item.month)) {
-              const tlink = '/address/' + this.devAddress + '?txntype=all&time=' + (tTime === '' ? item.month : tTime)
+            const adminBalanceHasDataMap = this.settings.interval === 'year' ? adminYearlyHasDataBalanceMap : adminHasDataBalanceMap
+            if (adminBalanceHasDataMap.has(item.month)) {
+              const tlink = '/address/' + _this.devAddress + '?txntype=all&time=' + (tTime === '' ? item.month : tTime)
               legacyRateDisp = `<a href="${tlink}">${legacyRateDisp}</a>`
             }
             treasuryRateStr = `${treasuryRateDisp + ' / ' + legacyRateDisp + ' %'}`
