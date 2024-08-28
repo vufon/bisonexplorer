@@ -285,6 +285,10 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		r.Get("/codes", app.getCurrencyCodes)
 	})
 
+	mux.Route("/broadcast", func(r chi.Router) {
+		r.Get("/", app.broadcastTx)
+	})
+
 	mux.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, r.URL.RequestURI()+" ain't no country I've ever heard of! (404)", http.StatusNotFound)
 	})

@@ -136,6 +136,7 @@ type DataSource interface {
 	GetAllProposalOwners() []string
 	GetAllProposalTokens() []string
 	GetProposalByOwner(name string) (proposalMetaList []map[string]string, err error)
+	SendRawTransaction(txhex string) (string, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -3134,12 +3135,31 @@ func (c *appContext) getAddressesTxs(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		txs := c.DataSource.GetAddressTransactionsRawWithSkip(address, int(10000), int(0))
-		if txs == nil {
+		if txs == nil || len(txs) < 1 {
 			continue
 		}
 		result[address] = txs
 	}
 	writeJSON(w, result, m.GetIndentCtx(r))
+}
+
+// broadcast tx to network
+func (c *appContext) broadcastTx(w http.ResponseWriter, r *http.Request) {
+	// Look up any spending transactions for each output of this transaction
+	// when the client requests spends with the URL query ?spends=true.
+	txhex := ""
+	if txhex = r.URL.Query().Get("hex"); txhex == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	txid, err := c.DataSource.SendRawTransaction(txhex)
+	if err != nil {
+		apiLog.Errorf("Broadcast transaction failed. Error: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, txid, m.GetIndentCtx(r))
 }
 
 // getAddressTransactionsRaw handles the various /address/{addr}/.../raw API
