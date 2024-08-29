@@ -1231,7 +1231,13 @@ export default class extends Controller {
           $('#scroller').removeClass('d-none')
         }
         this.reportTarget.classList.add('proposal-table-padding')
-        $('#reportTable').css('width', $('#reportTable thead').css('width'))
+        let widthFinal = $('#reportTable thead').css('width')
+        if (widthFinal !== '' && this.settings.pgroup === 'authors' && this.settings.ptype !== 'month') {
+          let width = parseFloat(widthFinal.replaceAll('px', ''))
+          width += 30
+          widthFinal = width + 'px'
+        }
+        $('#reportTable').css('width', widthFinal)
         $('html').css('overflow-x', 'hidden')
         // set overflow class
         $('#containerReportTable').addClass('of-x-hidden')
@@ -1265,6 +1271,8 @@ export default class extends Controller {
             }
           }
         }
+      } else {
+        $('#scroller').addClass('d-none')
       }
     } else {
       $('html').css('overflow-x', '')
@@ -1585,7 +1593,7 @@ export default class extends Controller {
       if (proposalTokenMap[proposal] && proposalTokenMap[proposal] !== '') {
         token = proposalTokenMap[proposal]
       }
-      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a href="${'/finance-report/detail?type=proposal&token=' + token}" data-turbolinks="false" class="link-hover-underline fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${proposal}</a></td>`
+      bodyList += `<tr class="odd-even-row"><td class="text-center fs-13i border-right-grey report-first-data"><a href="${'/finance-report/detail?type=proposal&token=' + token}" data-turbolinks="false" class="link-hover-underline fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${proposal}</a></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
@@ -1676,7 +1684,7 @@ export default class extends Controller {
       const index = this.settings.psort === 'oldest' ? (handlerData.authorReport.length - i - 1) : i
       const author = handlerData.authorReport[index]
       const budget = author.budget
-      bodyList += `<tr><td class="text-center fs-13i border-right-grey report-first-data"><a data-turbolinks="false" href="/finance-report/detail?type=owner&name=${author.name}" class="link-hover-underline fw-600 fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${author.name}</a></td>`
+      bodyList += `<tr class="odd-even-row"><td class="text-center fs-13i border-right-grey report-first-data"><a data-turbolinks="false" href="/finance-report/detail?type=owner&name=${author.name}" class="link-hover-underline fw-600 fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${author.name}</a></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
@@ -2354,7 +2362,7 @@ export default class extends Controller {
     for (let i = 0; i < domainList.length; i++) {
       const report = domainList[i]
       const timeParam = this.getFullTimeParam(report.month, '/')
-      bodyList += `<tr><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
+      bodyList += `<tr class="odd-even-row"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
         bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : ''}</td>`
         if (domainDataMap.has(domainData.domain)) {
@@ -2882,7 +2890,7 @@ export default class extends Controller {
         incomeHref = '/treasury?txntype=treasurybase&time=' + (timeParam === '' ? item.month : timeParam)
         outcomeHref = '/treasury?txntype=tspend&time=' + (timeParam === '' ? item.month : timeParam)
       }
-      bodyList += '<tr>' +
+      bodyList += '<tr class="odd-even-row">' +
         `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + incomeHref + '">' : ''}${usdDisp && incomDisplay !== '' ? '$' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + outcomeHref + '">' : ''}${usdDisp && outcomeDisplay !== '' ? '$' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +

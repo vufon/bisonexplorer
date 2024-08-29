@@ -164,7 +164,11 @@ table.table.v3 {
 }
 
 body.darkBG {
-  .report-table {
-    tr:nth-child(even) { background-color: #494949 !important; }
+  .last-row-header {
+    background-color: #5587a4 !important;
+  }
+
+  .odd-even-row {
+    background-color: #494949 !important;
   }
 }

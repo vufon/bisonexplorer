@@ -515,7 +515,7 @@ export default class extends Controller {
         allTable += '<tbody>'
       }
       const dataMonth = handlerData[i]
-      allTable += '<tr>'
+      allTable += '<tr class="odd-even-row">'
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
       allTable += `<td class="text-left px-3 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
       allTable += `<td class="text-right px-3 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : ''}</td>`
@@ -632,13 +632,13 @@ export default class extends Controller {
     this.expendiduteValueTarget.textContent = humanize.formatToLocalString((data.proposalTotal), 2, 2)
     const innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Treasury Type</th>' +
     '<th class="text-left px-3 fw-600">Value (DCR)</th><th class="text-left px-3 fw-600">Value (USD)</th></tr></thead>' +
-    `<tbody><tr><td class="text-left px-3 fs-13i">Decentralized Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tbody><tr class="odd-even-row"><td class="text-left px-3 fs-13i">Decentralized Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>` +
-    `<tr><td class="text-left px-3 fs-13i">Decentralized Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">Decentralized Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)}</td></tr>` +
-    `<tr><td class="text-left px-3 fs-13i">Admin Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">Admin Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)}</td></tr>` +
-    `<tr><td class="text-left px-3 fs-13i">Admin Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">Admin Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.legacySummary.outvalueUSD), 2, 2)}</td></tr>` +
     '</tbody>'
     this.yearMonthInfoTableTarget.innerHTML = innerHtml
@@ -721,7 +721,7 @@ export default class extends Controller {
     // sort by startdt
     const summaryList = this.sortSummary(data.reportDetail)
     for (let i = 0; i < summaryList.length; i++) {
-      bodyList += '<tr>'
+      bodyList += '<tr class="odd-even-row">'
       const report = summaryList[i]
       // add proposal name
       bodyList += '<td class="va-mid px-3 text-left fs-13i">' +
