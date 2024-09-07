@@ -223,21 +223,17 @@
                                                 </div>
                                              </div>
                                              {{- /* EXCHANGE SELECTION */ -}}
-                                             <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                                             <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-chainmarket-target="exchanges"
+                                             data-action="click->chainmarket#changeExchange">
                                                 <label>Exchange</label>
-                                                <select class="chart-box d-inline-flex"
-                                                   data-chainmarket-target="exchanges"
-                                                   data-action="change->chainmarket#changeExchange">
-                                                   {{range $botState.VolumeOrderedExchanges}}
-                                                   <option value="{{.Token}}" {{if .State.HasCandlesticks}}
-                                                      data-sticks="1" data-bins="{{.State.StickList}}" {{end}} {{if
-                                                      .State.HasDepth}} data-depth="1" {{end}}>{{xcDisplayName .Token}}
-                                                   </option>
+                                                <div class="btn-group" data-chainmarket-target="exchangeBtnArea">
+                                                   {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
+                                                   <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main {{if eq $index 0}}first-toggle-btn{{end}}">{{xcDisplayName $exchange.Token}}</button>
                                                    {{end}}
-                                                   <option data-chainmarket-target="aggOption" value="aggregated"
-                                                      data-depth="1">Aggregated
-                                                   </option>
-                                                </select>
+                                                   <button name="aggregated" data-chainmarket-target="aggOption" data-depth="1"
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Aggregated</button>
+                                                </div>
                                              </div>
                                              {{- /* CHART TYPE SELECTION */ -}}
                                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
