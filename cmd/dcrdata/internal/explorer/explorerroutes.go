@@ -2529,11 +2529,12 @@ func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 	if limitN == 0 {
 		limitN = 20
 	}
-
-	linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
-	if time != "" {
-		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
+	start := offsetAddrOuts
+	if addrData.MonthRowIndex > 0 {
+		start = limitN * (addrData.MonthRowIndex / limitN)
 	}
+	var linkTemplate string
+	linkTemplate = fmt.Sprintf("/address/%s?start=%d&n=%d&txntype=%v", addrData.Address, start, limitN, txnType)
 	// Execute the HTML template.
 	pageData := AddressPageData{
 		CommonPageData: exp.commonData(r),
@@ -2966,27 +2967,55 @@ func parsePaginationParams(r *http.Request) (txnType string, limitN, offset int6
 // for a given address.
 func (exp *ExplorerUI) AddressListData(address string, txnType dbtypes.AddrTxnViewType, limitN,
 	offsetAddrOuts int64, time string) (addrData *dbtypes.AddressInfo, err error) {
+	//count dev address row
 
 	year := int64(0)
 	month := int64(0)
 	var parseErr error
+	indexOfRow := int64(0)
 	if time != "" {
 		timeArr := strings.Split(strings.TrimSpace(time), "_")
 		year, parseErr = strconv.ParseInt(timeArr[0], 0, 32)
 		if parseErr != nil {
 			year = 0
 		} else {
+			txnCount, err := exp.dataSource.RetrieveCountAllLegacyAddressRows()
+			index := int64(-1)
+			if err == nil {
+				index = txnCount
+			}
 			if len(timeArr) > 1 {
 				month, parseErr = strconv.ParseInt(timeArr[1], 0, 32)
 				if parseErr != nil {
 					month = 0
+					//select index by year
+					addrIndex, err := exp.dataSource.RetrieveLegacyAddressYearRowIndex(int(year))
+					if err == nil {
+						index = addrIndex
+					}
+				} else {
+					//select index by month
+					addrIndex, err := exp.dataSource.RetrieveLegacyAddressMonthRowIndex(int(year), int(month))
+					if err == nil {
+						index = addrIndex
+					}
 				}
+			}
+			if index > 0 && txnCount >= index {
+				indexOfRow = txnCount - index
 			}
 		}
 	}
+	year = 0
+	month = 0
+	offset := offsetAddrOuts
+	if indexOfRow > 0 {
+		offset = limitN * (indexOfRow / limitN)
+	}
 	// Get addresses table rows for the address.
 	addrData, err = exp.dataSource.AddressData(address, limitN,
-		offsetAddrOuts, txnType, year, month)
+		offset, txnType, year, month)
+	addrData.MonthRowIndex = indexOfRow
 	if dbtypes.IsTimeoutErr(err) { //exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
 		return nil, err
 	} else if err != nil {

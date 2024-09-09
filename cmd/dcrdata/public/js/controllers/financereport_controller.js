@@ -1444,6 +1444,7 @@ export default class extends Controller {
           monthObj.count += 1
           if (monthInt > monthObj.monthInt) {
             monthObj.monthInt = monthInt
+            monthObj.link = item.link
             monthObj.balance = item.balance
             monthObj.balanceUSD = item.balanceUSD
           }
@@ -1464,6 +1465,7 @@ export default class extends Controller {
           monthObj.monthInt = monthInt
           monthObj.balance = item.balance
           monthObj.balanceUSD = item.balanceUSD
+          monthObj.link = item.link
         }
         dataMap.set(year, monthObj)
       }

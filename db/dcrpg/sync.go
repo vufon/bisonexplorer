@@ -89,6 +89,13 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 	startTime := firstRows[0].TxBlockTime.T
 	now := time.Now()
 
+	//Get all data of legacy address
+	//get data by month
+	monthCountRows, err := pgb.db.QueryContext(ctx, internal.SelectAddressRowCountByMonth, projectFundAddress)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	addressCountRows := pgb.ConvertMonthRowsCount(monthCountRows)
 	stopFlg := false
 	for !stopFlg {
 		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
@@ -128,9 +135,13 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 			continue
 		}
 		var thisMonth = false
+		index := int64(-1)
 		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
 			thisMonth = true
+		} else {
+			index = pgb.GetStartRevertIndexAddressRow(addressCountRows, startTime)
 		}
+		//set revert index
 		if summaryRow == nil {
 			//insert new row
 			newSumRow := dbtypes.AddressSummaryRow{
@@ -138,9 +149,10 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 				SpentValue:    spent,
 				ReceivedValue: received,
 				Saved:         !thisMonth,
+				MonthRowIndex: index,
 			}
 			var id uint64
-			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved).Scan(&id)
+			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved, newSumRow.MonthRowIndex).Scan(&id)
 			startTime = nextMonth
 			continue
 		}
@@ -151,12 +163,25 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 		summaryRow.SpentValue = spent
 		summaryRow.ReceivedValue = received
 		summaryRow.Saved = !thisMonth
+		summaryRow.MonthRowIndex = index
 		//update row
-		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, spent, received, !thisMonth, summaryRow.Id)
+		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, spent, received, !thisMonth, index, summaryRow.Id)
 		startTime = nextMonth
 	}
 
 	return nil
+}
+
+func (pgb *ChainDB) GetStartRevertIndexAddressRow(rowCountMonths []*dbtypes.AddressesMonthRowsCount, currentMonth time.Time) int64 {
+	count := int64(0)
+	for _, monthRow := range rowCountMonths {
+		count += int64(monthRow.Count)
+		// if is month
+		if monthRow.Month.T.Month() == currentMonth.Month() && monthRow.Month.T.Year() == currentMonth.Year() {
+			return count
+		}
+	}
+	return -1
 }
 
 func (pgb *ChainDB) CheckSavedSummary(summaryRows []*dbtypes.AddressSummaryRow, compareTime time.Time) (hasData bool, isSaved bool, sumRow *dbtypes.AddressSummaryRow) {
@@ -171,6 +196,22 @@ func (pgb *ChainDB) CheckSavedSummary(summaryRows []*dbtypes.AddressSummaryRow, 
 		}
 	}
 	return false, false, nil
+}
+
+func (pgb *ChainDB) ConvertMonthRowsCount(rows *sql.Rows) []*dbtypes.AddressesMonthRowsCount {
+	addressMonthCountRows := make([]*dbtypes.AddressesMonthRowsCount, 0)
+	for rows.Next() {
+		var rowRecord dbtypes.AddressesMonthRowsCount
+
+		err := rows.Scan(&rowRecord.Month, &rowRecord.Count)
+
+		if err != nil {
+			return addressMonthCountRows
+		}
+
+		addressMonthCountRows = append(addressMonthCountRows, &rowRecord)
+	}
+	return addressMonthCountRows
 }
 
 func (pgb *ChainDB) ConvertToAddressObj(rows *sql.Rows) []*dbtypes.AddressRow {

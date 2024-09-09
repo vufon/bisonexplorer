@@ -166,6 +166,9 @@ type explorerDataSource interface {
 	SyncLast20BTCBlocks(nodeHeight int32) error
 	GetDBBlockDetailInfo(chainType string, height int64) *dbtypes.MutilchainDBBlockInfo
 	SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType string) (*dbtypes.Block24hInfo, error)
+	RetrieveLegacyAddressMonthRowIndex(year, month int) (index int64, err error)
+	RetrieveLegacyAddressYearRowIndex(year int) (index int64, err error)
+	RetrieveCountAllLegacyAddressRows() (count int64, err error)
 }
 
 type PoliteiaBackend interface {

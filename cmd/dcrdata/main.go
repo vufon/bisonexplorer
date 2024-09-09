@@ -1752,7 +1752,7 @@ func _main(ctx context.Context) error {
 		if cerr != nil {
 			return fmt.Errorf("BTC RPC client error: %v (%v)", cerr.Error(), cerr.Cause())
 		}
-		//end - handler notifier for ltc
+		//end - handler notifier- for ltc
 		//end init collector for btc
 		//sync last 25 blocks
 		if chainDB.ChainDBDisabled {

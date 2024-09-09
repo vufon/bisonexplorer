@@ -1037,6 +1037,11 @@ type UTXO struct {
 	UTXOData
 }
 
+type AddressesMonthRowsCount struct {
+	Month TimeDef
+	Count uint64
+}
+
 // AddressRow represents a row in the addresses table
 type AddressRow struct {
 	Address        string
@@ -1082,6 +1087,7 @@ type AddressSummaryRow struct {
 	SpentValue    uint64
 	ReceivedValue uint64
 	Saved         bool
+	MonthRowIndex int64
 }
 
 // IsMerged indicates if the AddressRow represents data for a "merged" address
@@ -2157,21 +2163,23 @@ type TreasuryAddSummary struct {
 }
 
 type TreasurySummary struct {
-	Month           string  `json:"month"`
-	Invalue         int64   `json:"invalue"`
-	InvalueUSD      float64 `json:"invalueUSD"`
-	Outvalue        int64   `json:"outvalue"`
-	OutvalueUSD     float64 `json:"outvalueUSD"`
-	Difference      int64   `json:"difference"`
-	DifferenceUSD   float64 `json:"differenceUSD"`
-	Balance         int64   `json:"balance"`
-	BalanceUSD      float64 `json:"balanceUSD"`
-	Total           int64   `json:"total"`
-	TotalUSD        float64 `json:"totalUSD"`
-	OutEstimate     float64 `json:"outEstimate"`
-	OutEstimateUsd  float64 `json:"outEstimateUsd"`
-	DevSpentPercent float64 `json:"devSpentPercent"`
-	MonthPrice      float64 `json:"monthPrice"`
+	Month           string    `json:"month"`
+	MonthTime       time.Time `json:"monthTime"`
+	Invalue         int64     `json:"invalue"`
+	InvalueUSD      float64   `json:"invalueUSD"`
+	Outvalue        int64     `json:"outvalue"`
+	OutvalueUSD     float64   `json:"outvalueUSD"`
+	Difference      int64     `json:"difference"`
+	DifferenceUSD   float64   `json:"differenceUSD"`
+	Balance         int64     `json:"balance"`
+	BalanceUSD      float64   `json:"balanceUSD"`
+	Total           int64     `json:"total"`
+	TotalUSD        float64   `json:"totalUSD"`
+	OutEstimate     float64   `json:"outEstimate"`
+	OutEstimateUsd  float64   `json:"outEstimateUsd"`
+	DevSpentPercent float64   `json:"devSpentPercent"`
+	MonthPrice      float64   `json:"monthPrice"`
+	Link            string    `json:"link"`
 }
 
 type TreasuryMonthDataObject struct {
@@ -2240,6 +2248,7 @@ type AddressInfo struct {
 	Limit, Offset int64  // ?n=Limit&start=Offset
 	TxnType       string // ?txntype=TxnType
 	TxnCount      int64
+	MonthRowIndex int64
 	IsMerged      bool
 
 	// NumUnconfirmed is the number of unconfirmed txns for the address

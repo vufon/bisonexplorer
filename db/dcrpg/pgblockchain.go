@@ -1044,6 +1044,29 @@ func (pgb *ChainDB) blockChainDbID(ctx context.Context, hash string) (dbID uint6
 	return
 }
 
+func (pgb *ChainDB) RetrieveLegacyAddressMonthRowIndex(year, month int) (index int64, err error) {
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectFirstRowIndexByMonth, year, month).Scan(&index)
+	err = pgb.replaceCancelError(err)
+	return
+}
+
+func (pgb *ChainDB) RetrieveLegacyAddressYearRowIndex(year int) (index int64, err error) {
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectFirstRowIndexByYear, year).Scan(&index)
+	err = pgb.replaceCancelError(err)
+	return
+}
+
+func (pgb *ChainDB) RetrieveCountAllLegacyAddressRows() (count int64, err error) {
+	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
+	if addErr != nil {
+		log.Warnf("ChainDB.Get Legacy address failed: %v", addErr)
+		return 0, addErr
+	}
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.CountCreditsRowByAddress, projectFundAddress).Scan(&count)
+	err = pgb.replaceCancelError(err)
+	return
+}
+
 // BlockChainDbID gets the row ID of the given block hash in the block_chain
 // table. The cancellation context is used without timeout.
 func (pgb *ChainDB) BlockChainDbID(hash string) (dbID uint64, err error) {
@@ -2744,7 +2767,10 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		return nil, queryErr
 	}
 	defer rows.Close()
-
+	addrTxnCount, err := pgb.RetrieveCountAllLegacyAddressRows()
+	if err != nil {
+		return nil, err
+	}
 	var summaryList []*dbtypes.TreasurySummary
 	for rows.Next() {
 		var summary = dbtypes.TreasurySummary{}
@@ -2758,6 +2784,7 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		total := summary.Invalue + summary.Outvalue
 		summary.Difference = int64(difference)
 		summary.Total = int64(total)
+		summary.MonthTime = time.T
 		summaryList = append(summaryList, &summary)
 	}
 
@@ -2780,7 +2807,7 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 	}
 	//get min date
 	var oldestTime dbtypes.TimeDef
-	err := pgb.db.QueryRow(internal.SelectOldestAddressCreditTime, projectFundAddress).Scan(&oldestTime)
+	err = pgb.db.QueryRow(internal.SelectOldestAddressCreditTime, projectFundAddress).Scan(&oldestTime)
 	if err != nil {
 		return nil, err
 	}
@@ -2795,6 +2822,16 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		summary.BalanceUSD = monthPrice * float64(summary.Balance) / 1e8
 		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
 		summary.MonthPrice = monthPrice
+		//get select index by month
+		//select index by month
+		indexOfRows := int64(0)
+		addrIndex, err := pgb.RetrieveLegacyAddressMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
+		if err == nil {
+			indexOfRows = addrTxnCount - addrIndex
+		}
+		offset := 20 * (indexOfRows / 20)
+		link := fmt.Sprintf("/address/%s?n=20&start=%d&txntype=credit", projectFundAddress, offset)
+		summary.Link = link
 	}
 	return summaryList, nil
 }
