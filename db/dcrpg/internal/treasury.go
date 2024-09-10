@@ -21,30 +21,33 @@ const (
 			time TIMESTAMPTZ NOT NULL,
 			spent_value BIGINT,
 			received_value BIGINT,
-			start_revert_index INT8,
+			tbase_revert_index INT8,
+			spend_revert_index INT8,
 			saved BOOLEAN
 		);`
 
 	//insert to legacy  address summary table
-	InsertTreasurySummaryRow = `INSERT INTO treasury_summary (time, spent_value, received_value, saved, start_revert_index)
-			VALUES ($1, $2, $3, $4, $5)`
+	InsertTreasurySummaryRow = `INSERT INTO treasury_summary (time, spent_value, received_value, saved, tbase_revert_index, spend_revert_index)
+			VALUES ($1, $2, $3, $4, $5, $6)`
 
 	//select first from summary table
 	SelectTreasurySummaryRows = `SELECT * FROM treasury_summary ORDER BY time`
 
-	//select only data from summary table
-	SelectTreasurySummaryDataRows      = `SELECT time,spent_value,received_value FROM treasury_summary ORDER BY time DESC`
-	SelectTreasuryFirstRowIndexByMonth = `SELECT start_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
-	SelectTreasuryFirstRowIndexByYear  = `SELECT MAX(start_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	// select only data from summary table
+	SelectTreasurySummaryDataRows = `SELECT time,spent_value,received_value FROM treasury_summary ORDER BY time DESC`
+	SelectSpendRowIndexByMonth    = `SELECT spend_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectSpendRowIndexByYear     = `SELECT MAX(spend_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectTBaseRowIndexByMonth    = `SELECT tbase_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectTBaseRowIndexByYear     = `SELECT MAX(tbase_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 
 	SelectTreasurySummaryDataByMonth = `SELECT time,spent_value,received_value FROM treasury_summary 
-		WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
 
 	SelectTreasurySummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(spent_value) as spent_value,SUM(received_value) as received_value FROM treasury_summary
-		WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
+WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 
-	//update spent and total value
-	UpdateTreasurySummaryByTotalAndSpent = `UPDATE treasury_summary SET spent_value = $1, received_value = $2, saved = $3, start_revert_index = $4 WHERE id = $5`
+	// update spent and total value
+	UpdateTreasurySummaryByTotalAndSpent = `UPDATE treasury_summary SET spent_value = $1, received_value = $2, saved = $3, spend_revert_index = $4, tbase_revert_index = $5 WHERE id = $6`
 
 	IndexTreasuryOnTxHash   = `CREATE UNIQUE INDEX ` + IndexOfTreasuryTableOnTxHash + ` ON treasury(tx_hash, block_hash);`
 	DeindexTreasuryOnTxHash = `DROP INDEX ` + IndexOfTreasuryTableOnTxHash + ` CASCADE;`
@@ -182,6 +185,22 @@ const (
 	(SELECT SUM(value) as outvalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type = 5 GROUP BY month) ts2 
 	ON ts1.month = ts2.month ORDER BY ts1.month DESC;`
 	SelectOldestTreasuryTime = `SELECT block_time FROM treasury ORDER BY block_time LIMIT 1;`
+	CountTBaseRow            = `SELECT COUNT(*)
+		FROM treasury WHERE is_mainchain AND tx_type = 6`
+
+	SelectTreasuryTBaseRowCountByMonth = `SELECT DATE_TRUNC('month',block_time) as month ,COUNT(*) as row_num 
+		FROM treasury WHERE is_mainchain AND tx_type = 6 GROUP BY month ORDER BY month;`
+
+	CountSpendRow = `SELECT COUNT(*)
+		FROM treasury WHERE is_mainchain AND tx_type = 5`
+
+	SelectTreasurySpendRowCountByMonth = `SELECT DATE_TRUNC('month',block_time) as month ,COUNT(*) as row_num 
+		FROM treasury WHERE is_mainchain AND tx_type = 5 GROUP BY month ORDER BY month;`
+	SelectTreasuryFirstRowFromOldest = `SELECT block_time FROM treasury WHERE is_mainchain 
+		ORDER BY block_time, tx_hash ASC LIMIT 1`
+	SelectTreasuryRowsByPeriod = `SELECT *
+		FROM treasury WHERE is_mainchain AND block_time >= $1 AND block_time <= $2
+		ORDER BY block_time, tx_hash ASC;`
 )
 
 // MakeTreasuryInsertStatement returns the appropriate treasury insert statement

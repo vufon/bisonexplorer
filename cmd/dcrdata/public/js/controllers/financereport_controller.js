@@ -2874,12 +2874,9 @@ export default class extends Controller {
       const balanceDisplay = item.balance <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.balanceUSD, 2, 2) : humanize.formatToLocalString((item.balance / 100000000), 2, 2)
       let incomeHref = ''
       let outcomeHref = ''
-      if (isLegacy) {
+      if (isLegacy || _this.settings.ttype === 'current') {
         incomeHref = item.creditLink
         outcomeHref = item.debitLink
-      } else if (_this.settings.ttype === 'current') {
-        incomeHref = '/treasury?txntype=treasurybase&time=' + (timeParam === '' ? item.month : timeParam)
-        outcomeHref = '/treasury?txntype=tspend&time=' + (timeParam === '' ? item.month : timeParam)
       }
       bodyList += '<tr class="odd-even-row">' +
         `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
