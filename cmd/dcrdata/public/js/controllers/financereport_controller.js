@@ -1444,7 +1444,8 @@ export default class extends Controller {
           monthObj.count += 1
           if (monthInt > monthObj.monthInt) {
             monthObj.monthInt = monthInt
-            monthObj.link = item.link
+            monthObj.creditLink = item.creditLink
+            monthObj.debitLink = item.debitLink
             monthObj.balance = item.balance
             monthObj.balanceUSD = item.balanceUSD
           }
@@ -1465,7 +1466,8 @@ export default class extends Controller {
           monthObj.monthInt = monthInt
           monthObj.balance = item.balance
           monthObj.balanceUSD = item.balanceUSD
-          monthObj.link = item.link
+          monthObj.debitLink = item.debitLink
+          monthObj.creditLink = item.creditLink
         }
         dataMap.set(year, monthObj)
       }
@@ -2873,8 +2875,8 @@ export default class extends Controller {
       let incomeHref = ''
       let outcomeHref = ''
       if (isLegacy) {
-        incomeHref = '/address/' + _this.devAddress + '?txntype=credit&time=' + (timeParam === '' ? item.month : timeParam)
-        outcomeHref = '/address/' + _this.devAddress + '?txntype=debit&time=' + (timeParam === '' ? item.month : timeParam)
+        incomeHref = item.creditLink
+        outcomeHref = item.debitLink
       } else if (_this.settings.ttype === 'current') {
         incomeHref = '/treasury?txntype=treasurybase&time=' + (timeParam === '' ? item.month : timeParam)
         outcomeHref = '/treasury?txntype=tspend&time=' + (timeParam === '' ? item.month : timeParam)

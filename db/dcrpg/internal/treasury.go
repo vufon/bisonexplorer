@@ -15,6 +15,37 @@ const (
 		is_mainchain BOOLEAN
 	);`
 
+	// monthly legacy address summary table
+	CreateTreasurySummaryTable = `CREATE TABLE IF NOT EXISTS treasury_summary (
+			id SERIAL PRIMARY KEY,
+			time TIMESTAMPTZ NOT NULL,
+			spent_value BIGINT,
+			received_value BIGINT,
+			start_revert_index INT8,
+			saved BOOLEAN
+		);`
+
+	//insert to legacy  address summary table
+	InsertTreasurySummaryRow = `INSERT INTO treasury_summary (time, spent_value, received_value, saved, start_revert_index)
+			VALUES ($1, $2, $3, $4, $5)`
+
+	//select first from summary table
+	SelectTreasurySummaryRows = `SELECT * FROM treasury_summary ORDER BY time`
+
+	//select only data from summary table
+	SelectTreasurySummaryDataRows      = `SELECT time,spent_value,received_value FROM treasury_summary ORDER BY time DESC`
+	SelectTreasuryFirstRowIndexByMonth = `SELECT start_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectTreasuryFirstRowIndexByYear  = `SELECT MAX(start_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+
+	SelectTreasurySummaryDataByMonth = `SELECT time,spent_value,received_value FROM treasury_summary 
+		WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+
+	SelectTreasurySummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(spent_value) as spent_value,SUM(received_value) as received_value FROM treasury_summary
+		WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
+
+	//update spent and total value
+	UpdateTreasurySummaryByTotalAndSpent = `UPDATE treasury_summary SET spent_value = $1, received_value = $2, saved = $3, start_revert_index = $4 WHERE id = $5`
+
 	IndexTreasuryOnTxHash   = `CREATE UNIQUE INDEX ` + IndexOfTreasuryTableOnTxHash + ` ON treasury(tx_hash, block_hash);`
 	DeindexTreasuryOnTxHash = `DROP INDEX ` + IndexOfTreasuryTableOnTxHash + ` CASCADE;`
 

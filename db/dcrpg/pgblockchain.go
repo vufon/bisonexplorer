@@ -1044,25 +1044,48 @@ func (pgb *ChainDB) blockChainDbID(ctx context.Context, hash string) (dbID uint6
 	return
 }
 
-func (pgb *ChainDB) RetrieveLegacyAddressMonthRowIndex(year, month int) (index int64, err error) {
-	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectFirstRowIndexByMonth, year, month).Scan(&index)
+func (pgb *ChainDB) RetrieveLegacyAddressCreditMonthRowIndex(year, month int) (index int64, err error) {
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectCreditRowIndexByMonth, year, month).Scan(&index)
 	err = pgb.replaceCancelError(err)
 	return
 }
 
-func (pgb *ChainDB) RetrieveLegacyAddressYearRowIndex(year int) (index int64, err error) {
-	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectFirstRowIndexByYear, year).Scan(&index)
+func (pgb *ChainDB) RetrieveLegacyAddressCreditYearRowIndex(year int) (index int64, err error) {
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectCreditRowIndexByYear, year).Scan(&index)
 	err = pgb.replaceCancelError(err)
 	return
 }
 
-func (pgb *ChainDB) RetrieveCountAllLegacyAddressRows() (count int64, err error) {
+func (pgb *ChainDB) RetrieveLegacyAddressDebitMonthRowIndex(year, month int) (index int64, err error) {
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectDebitRowIndexByMonth, year, month).Scan(&index)
+	err = pgb.replaceCancelError(err)
+	return
+}
+
+func (pgb *ChainDB) RetrieveLegacyAddressDebitYearRowIndex(year int) (index int64, err error) {
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectDebitRowIndexByYear, year).Scan(&index)
+	err = pgb.replaceCancelError(err)
+	return
+}
+
+func (pgb *ChainDB) RetrieveCountLegacyCreditAddressRows() (count int64, err error) {
 	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
 	if addErr != nil {
-		log.Warnf("ChainDB.Get Legacy address failed: %v", addErr)
+		log.Warnf("ChainDB.Get count Legacy credit address failed: %v", addErr)
 		return 0, addErr
 	}
 	err = pgb.db.QueryRowContext(pgb.ctx, internal.CountCreditsRowByAddress, projectFundAddress).Scan(&count)
+	err = pgb.replaceCancelError(err)
+	return
+}
+
+func (pgb *ChainDB) RetrieveCountLegacyDebitAddressRows() (count int64, err error) {
+	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
+	if addErr != nil {
+		log.Warnf("ChainDB.Get count Legacy debit address failed: %v", addErr)
+		return 0, addErr
+	}
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.CountDebitRowByAddress, projectFundAddress).Scan(&count)
 	err = pgb.replaceCancelError(err)
 	return
 }
@@ -2767,9 +2790,13 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		return nil, queryErr
 	}
 	defer rows.Close()
-	addrTxnCount, err := pgb.RetrieveCountAllLegacyAddressRows()
+	addrCreditTxnCount, err := pgb.RetrieveCountLegacyCreditAddressRows()
 	if err != nil {
 		return nil, err
+	}
+	addrDebitTxnCount, debitErr := pgb.RetrieveCountLegacyCreditAddressRows()
+	if debitErr != nil {
+		return nil, debitErr
 	}
 	var summaryList []*dbtypes.TreasurySummary
 	for rows.Next() {
@@ -2824,14 +2851,23 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		summary.MonthPrice = monthPrice
 		//get select index by month
 		//select index by month
-		indexOfRows := int64(0)
-		addrIndex, err := pgb.RetrieveLegacyAddressMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
+		creditIndexOfRows := int64(0)
+		debitIndexOfRows := int64(0)
+		creditAddrIndex, err := pgb.RetrieveLegacyAddressCreditMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
 		if err == nil {
-			indexOfRows = addrTxnCount - addrIndex
+			creditIndexOfRows = addrCreditTxnCount - creditAddrIndex
 		}
-		offset := 20 * (indexOfRows / 20)
-		link := fmt.Sprintf("/address/%s?n=20&start=%d&txntype=credit", projectFundAddress, offset)
-		summary.Link = link
+		debitAddrIndex, err := pgb.RetrieveLegacyAddressDebitMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
+		if err == nil {
+			debitIndexOfRows = addrDebitTxnCount - debitAddrIndex
+		}
+		creditOffset := 20 * (creditIndexOfRows / 20)
+		debitOffset := 20 * (debitIndexOfRows / 20)
+
+		creditLink := fmt.Sprintf("/address/%s?n=20&start=%d&txntype=credit", projectFundAddress, creditOffset)
+		debitLink := fmt.Sprintf("/address/%s?n=20&start=%d&txntype=debit", projectFundAddress, debitOffset)
+		summary.CreditLink = creditLink
+		summary.DebitLink = debitLink
 	}
 	return summaryList, nil
 }

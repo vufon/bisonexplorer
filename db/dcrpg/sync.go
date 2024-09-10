@@ -65,7 +65,7 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 	sumRows, _ := pgb.db.QueryContext(ctx, internal.SelectAddressSummaryRows)
 	for sumRows.Next() {
 		var addrSum dbtypes.AddressSummaryRow
-		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.SpentValue, &addrSum.ReceivedValue, &addrSum.Saved)
+		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.SpentValue, &addrSum.ReceivedValue, &addrSum.MonthDebitRowIndex, &addrSum.MonthCreditRowIndex, &addrSum.Saved)
 		if err == nil {
 			summaryRows = append(summaryRows, &addrSum)
 		}
@@ -91,17 +91,21 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 
 	//Get all data of legacy address
 	//get data by month
-	monthCountRows, err := pgb.db.QueryContext(ctx, internal.SelectAddressRowCountByMonth, projectFundAddress)
+	monthCreditCountRows, err := pgb.db.QueryContext(ctx, internal.SelectAddressCreditRowCountByMonth, projectFundAddress)
 	if err != nil && err != sql.ErrNoRows {
 		return err
 	}
-	addressCountRows := pgb.ConvertMonthRowsCount(monthCountRows)
+	monthDeditCountRows, err := pgb.db.QueryContext(ctx, internal.SelectAddressDebitRowCountByMonth, projectFundAddress)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	addressCreditCountRows := pgb.ConvertMonthRowsCount(monthCreditCountRows)
+	addressDebitCountRows := pgb.ConvertMonthRowsCount(monthDeditCountRows)
 	stopFlg := false
 	for !stopFlg {
 		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
 			stopFlg = true
 		}
-
 		exist, isSavedFlg, summaryRow := pgb.CheckSavedSummary(summaryRows, startTime)
 		if exist && isSavedFlg {
 			startTime = startTime.AddDate(0, 1, 0)
@@ -135,24 +139,27 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 			continue
 		}
 		var thisMonth = false
-		index := int64(-1)
+		creditIndex := int64(-1)
+		debitIndex := int64(-1)
 		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
 			thisMonth = true
 		} else {
-			index = pgb.GetStartRevertIndexAddressRow(addressCountRows, startTime)
+			creditIndex = pgb.GetStartRevertIndexAddressRow(addressCreditCountRows, startTime)
+			debitIndex = pgb.GetStartRevertIndexAddressRow(addressDebitCountRows, startTime)
 		}
 		//set revert index
 		if summaryRow == nil {
 			//insert new row
 			newSumRow := dbtypes.AddressSummaryRow{
-				Time:          dbtypes.NewTimeDef(startDay),
-				SpentValue:    spent,
-				ReceivedValue: received,
-				Saved:         !thisMonth,
-				MonthRowIndex: index,
+				Time:                dbtypes.NewTimeDef(startDay),
+				SpentValue:          spent,
+				ReceivedValue:       received,
+				Saved:               !thisMonth,
+				MonthCreditRowIndex: creditIndex,
+				MonthDebitRowIndex:  debitIndex,
 			}
 			var id uint64
-			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved, newSumRow.MonthRowIndex).Scan(&id)
+			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved, newSumRow.MonthDebitRowIndex, newSumRow.MonthCreditRowIndex).Scan(&id)
 			startTime = nextMonth
 			continue
 		}
@@ -163,9 +170,10 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 		summaryRow.SpentValue = spent
 		summaryRow.ReceivedValue = received
 		summaryRow.Saved = !thisMonth
-		summaryRow.MonthRowIndex = index
+		summaryRow.MonthCreditRowIndex = creditIndex
+		summaryRow.MonthDebitRowIndex = debitIndex
 		//update row
-		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, spent, received, !thisMonth, index, summaryRow.Id)
+		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, spent, received, !thisMonth, debitIndex, creditIndex, summaryRow.Id)
 		startTime = nextMonth
 	}
 
@@ -187,12 +195,7 @@ func (pgb *ChainDB) GetStartRevertIndexAddressRow(rowCountMonths []*dbtypes.Addr
 func (pgb *ChainDB) CheckSavedSummary(summaryRows []*dbtypes.AddressSummaryRow, compareTime time.Time) (hasData bool, isSaved bool, sumRow *dbtypes.AddressSummaryRow) {
 	for _, summaryRow := range summaryRows {
 		if summaryRow.Time.T.Month() == compareTime.Month() && summaryRow.Time.T.Year() == compareTime.Year() {
-			var exist = true
-			var isSavedFlg bool
-			if summaryRow.Saved {
-				isSavedFlg = true
-			}
-			return exist, isSavedFlg, summaryRow
+			return true, summaryRow.Saved, summaryRow
 		}
 	}
 	return false, false, nil

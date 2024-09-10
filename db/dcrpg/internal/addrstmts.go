@@ -24,21 +24,24 @@ const (
 		time TIMESTAMPTZ NOT NULL,
 		spent_value BIGINT,
 		received_value BIGINT,
-		start_revert_index INT8,
+		debit_revert_index INT8,
+		credit_revert_index INT8,
 		saved BOOLEAN
 	);`
 
 	//insert to legacy  address summary table
-	InsertAddressSummaryRow = `INSERT INTO address_summary (time, spent_value, received_value, saved, start_revert_index)
-		VALUES ($1, $2, $3, $4, $5)`
+	InsertAddressSummaryRow = `INSERT INTO address_summary (time, spent_value, received_value, saved, debit_revert_index, credit_revert_index)
+		VALUES ($1, $2, $3, $4, $5, $6)`
 
-	//select first from summary table
+	//select all columns from summary table
 	SelectAddressSummaryRows = `SELECT * FROM address_summary ORDER BY time`
 
 	//select only data from summary table
 	SelectAddressSummaryDataRows = `SELECT time,spent_value,received_value FROM address_summary ORDER BY time DESC`
-	SelectFirstRowIndexByMonth   = `SELECT start_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
-	SelectFirstRowIndexByYear    = `SELECT MAX(start_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectDebitRowIndexByMonth   = `SELECT debit_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectDebitRowIndexByYear    = `SELECT MAX(debit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectCreditRowIndexByMonth  = `SELECT credit_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectCreditRowIndexByYear   = `SELECT MAX(credit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 
 	SelectAddressSummaryDataByMonth = `SELECT time,spent_value,received_value FROM address_summary 
 	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
@@ -47,7 +50,7 @@ const (
 	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 
 	//update spent and total value
-	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET spent_value = $1, received_value = $2, saved = $3, start_revert_index = $4 WHERE id = $5`
+	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET spent_value = $1, received_value = $2, saved = $3, debit_revert_index = $4, credit_revert_index = $5 WHERE id = $6`
 
 	// insertAddressRow is the basis for several address insert/upsert
 	// statements.
@@ -434,10 +437,16 @@ ORDER BY count, is_funding;`
 		FROM addresses WHERE address=$1 AND valid_mainchain ORDER BY block_time, tx_hash ASC;`
 
 	CountCreditsRowByAddress = `SELECT COUNT(*)
-		FROM addresses WHERE address=$1 AND valid_mainchain`
+		FROM addresses WHERE address=$1 AND valid_mainchain AND is_funding`
 
-	SelectAddressRowCountByMonth = `SELECT DATE_TRUNC('month',block_time) as month ,COUNT(*) as row_num 
-		FROM addresses WHERE address=$1 AND valid_mainchain GROUP BY month ORDER BY month;`
+	SelectAddressCreditRowCountByMonth = `SELECT DATE_TRUNC('month',block_time) as month ,COUNT(*) as row_num 
+		FROM addresses WHERE address=$1 AND valid_mainchain AND is_funding GROUP BY month ORDER BY month;`
+
+	CountDebitRowByAddress = `SELECT COUNT(*)
+		FROM addresses WHERE address=$1 AND valid_mainchain AND is_funding = false`
+
+	SelectAddressDebitRowCountByMonth = `SELECT DATE_TRUNC('month',block_time) as month ,COUNT(*) as row_num 
+		FROM addresses WHERE address=$1 AND valid_mainchain AND is_funding = false GROUP BY month ORDER BY month;`
 
 	SelectAddressIDsByFundingOutpoint = `SELECT id, address, value
 		FROM addresses

@@ -1082,12 +1082,13 @@ type MutilchainAddressRow struct {
 }
 
 type AddressSummaryRow struct {
-	Id            uint64
-	Time          TimeDef
-	SpentValue    uint64
-	ReceivedValue uint64
-	Saved         bool
-	MonthRowIndex int64
+	Id                  uint64
+	Time                TimeDef
+	SpentValue          uint64
+	ReceivedValue       uint64
+	Saved               bool
+	MonthCreditRowIndex int64
+	MonthDebitRowIndex  int64
 }
 
 // IsMerged indicates if the AddressRow represents data for a "merged" address
@@ -2179,7 +2180,8 @@ type TreasurySummary struct {
 	OutEstimateUsd  float64   `json:"outEstimateUsd"`
 	DevSpentPercent float64   `json:"devSpentPercent"`
 	MonthPrice      float64   `json:"monthPrice"`
-	Link            string    `json:"link"`
+	CreditLink      string    `json:"creditLink"`
+	DebitLink       string    `json:"debitLink"`
 }
 
 type TreasuryMonthDataObject struct {
