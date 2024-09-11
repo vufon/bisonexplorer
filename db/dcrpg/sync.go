@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
@@ -65,7 +66,7 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 	sumRows, _ := pgb.db.QueryContext(ctx, internal.SelectAddressSummaryRows)
 	for sumRows.Next() {
 		var addrSum dbtypes.AddressSummaryRow
-		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.SpentValue, &addrSum.ReceivedValue, &addrSum.Saved)
+		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.SpentValue, &addrSum.ReceivedValue, &addrSum.MonthDebitRowIndex, &addrSum.MonthCreditRowIndex, &addrSum.Saved)
 		if err == nil {
 			summaryRows = append(summaryRows, &addrSum)
 		}
@@ -89,12 +90,23 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 	startTime := firstRows[0].TxBlockTime.T
 	now := time.Now()
 
+	//Get all data of legacy address
+	//get data by month
+	monthCreditCountRows, err := pgb.db.QueryContext(ctx, internal.SelectAddressCreditRowCountByMonth, projectFundAddress)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	monthDeditCountRows, err := pgb.db.QueryContext(ctx, internal.SelectAddressDebitRowCountByMonth, projectFundAddress)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	addressCreditCountRows := pgb.ConvertMonthRowsCount(monthCreditCountRows)
+	addressDebitCountRows := pgb.ConvertMonthRowsCount(monthDeditCountRows)
 	stopFlg := false
 	for !stopFlg {
 		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
 			stopFlg = true
 		}
-
 		exist, isSavedFlg, summaryRow := pgb.CheckSavedSummary(summaryRows, startTime)
 		if exist && isSavedFlg {
 			startTime = startTime.AddDate(0, 1, 0)
@@ -128,19 +140,27 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 			continue
 		}
 		var thisMonth = false
+		creditIndex := int64(-1)
+		debitIndex := int64(-1)
 		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
 			thisMonth = true
+		} else {
+			creditIndex = pgb.GetStartRevertIndexAddressRow(addressCreditCountRows, startTime)
+			debitIndex = pgb.GetStartRevertIndexAddressRow(addressDebitCountRows, startTime)
 		}
+		//set revert index
 		if summaryRow == nil {
 			//insert new row
 			newSumRow := dbtypes.AddressSummaryRow{
-				Time:          dbtypes.NewTimeDef(startDay),
-				SpentValue:    spent,
-				ReceivedValue: received,
-				Saved:         !thisMonth,
+				Time:                dbtypes.NewTimeDef(startDay),
+				SpentValue:          spent,
+				ReceivedValue:       received,
+				Saved:               !thisMonth,
+				MonthCreditRowIndex: creditIndex,
+				MonthDebitRowIndex:  debitIndex,
 			}
 			var id uint64
-			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved).Scan(&id)
+			pgb.db.QueryRow(internal.InsertAddressSummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved, newSumRow.MonthDebitRowIndex, newSumRow.MonthCreditRowIndex).Scan(&id)
 			startTime = nextMonth
 			continue
 		}
@@ -151,26 +171,195 @@ func (pgb *ChainDB) SyncAddressSummary(ctx context.Context) error {
 		summaryRow.SpentValue = spent
 		summaryRow.ReceivedValue = received
 		summaryRow.Saved = !thisMonth
+		summaryRow.MonthCreditRowIndex = creditIndex
+		summaryRow.MonthDebitRowIndex = debitIndex
 		//update row
-		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, spent, received, !thisMonth, summaryRow.Id)
+		pgb.db.Exec(internal.UpdateAddressSummaryByTotalAndSpent, spent, received, !thisMonth, debitIndex, creditIndex, summaryRow.Id)
 		startTime = nextMonth
 	}
 
 	return nil
 }
 
+func (pgb *ChainDB) SyncTreasurySummary(ctx context.Context) error {
+	err := pgb.CheckCreateTreasurySummaryTable()
+	if err != nil {
+		log.Errorf("Check exist and create treasury summary table failed: %v", err)
+		return err
+	}
+
+	//check synchronized month
+	var summaryRows = make([]*dbtypes.AddressSummaryRow, 0)
+	sumRows, _ := pgb.db.QueryContext(ctx, internal.SelectTreasurySummaryRows)
+	for sumRows.Next() {
+		var addrSum dbtypes.AddressSummaryRow
+		var rowId, spentValue, receivedValue int64
+		err := sumRows.Scan(&rowId, &addrSum.Time, &spentValue, &receivedValue, &addrSum.MonthCreditRowIndex, &addrSum.MonthDebitRowIndex, &addrSum.Saved)
+		addrSum.Id = uint64(rowId)
+		addrSum.SpentValue = uint64(spentValue)
+		addrSum.ReceivedValue = uint64(receivedValue)
+		if err == nil {
+			summaryRows = append(summaryRows, &addrSum)
+		}
+	}
+
+	//get firt address item to get next time
+	var startTimeDef dbtypes.TimeDef
+	firstErr := pgb.db.QueryRowContext(ctx, internal.SelectTreasuryFirstRowFromOldest).Scan(&startTimeDef)
+	if firstErr != nil {
+		return nil
+	}
+	startTime := startTimeDef.T
+	now := time.Now()
+
+	//Get all data of treasury
+	//get data by month
+	monthCreditCountRows, err := pgb.db.QueryContext(ctx, internal.SelectTreasuryTBaseRowCountByMonth)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	monthDeditCountRows, err := pgb.db.QueryContext(ctx, internal.SelectTreasurySpendRowCountByMonth)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	creditCountRows := pgb.ConvertMonthRowsCount(monthCreditCountRows)
+	debitCountRows := pgb.ConvertMonthRowsCount(monthDeditCountRows)
+	stopFlg := false
+	for !stopFlg {
+		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
+			stopFlg = true
+		}
+		exist, isSavedFlg, summaryRow := pgb.CheckSavedSummary(summaryRows, startTime)
+		if exist && isSavedFlg {
+			startTime = startTime.AddDate(0, 1, 0)
+			continue
+		}
+		fmt.Println("Time: ", startTime)
+		//get start of month
+		startDay := startTime.AddDate(0, 0, -startTime.Day()+1)
+		startDay = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, time.Local)
+		//get end of month
+		endDay := startTime.AddDate(0, 1, -startTime.Day())
+		endDay = time.Date(endDay.Year(), endDay.Month(), endDay.Day(), 23, 59, 59, 999999999, time.Local)
+		//get data by month
+		rows, err := pgb.db.QueryContext(ctx, internal.SelectTreasuryRowsByPeriod, startDay, endDay)
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		treasuryRows := pgb.ConvertToTreasuryList(rows)
+		received := uint64(0)
+		spent := uint64(0)
+		for _, treasuryRow := range treasuryRows {
+			if treasuryRow.Type == int(stake.TxTypeTreasuryBase) || treasuryRow.Type == int(stake.TxTypeTAdd) {
+				received += uint64(treasuryRow.Amount)
+			} else if treasuryRow.Type == int(stake.TxTypeTSpend) {
+				spent += uint64(treasuryRow.Amount)
+			}
+		}
+		//next month
+		var nextMonth = startTime.AddDate(0, 1, 0)
+		if spent == 0 && received == 0 {
+			startTime = nextMonth
+			continue
+		}
+		var thisMonth = false
+		creditIndex := int64(-1)
+		debitIndex := int64(-1)
+		if now.Month() == startTime.Month() && now.Year() == startTime.Year() {
+			thisMonth = true
+		} else {
+			creditIndex = pgb.GetStartRevertIndexAddressRow(creditCountRows, startTime)
+			debitIndex = pgb.GetStartRevertIndexAddressRow(debitCountRows, startTime)
+		}
+		fmt.Println("Credit index: ", creditIndex)
+		fmt.Println("Debit index: ", debitIndex)
+		//set revert index
+		if summaryRow == nil {
+			//insert new row
+			newSumRow := dbtypes.AddressSummaryRow{
+				Time:                dbtypes.NewTimeDef(startDay),
+				SpentValue:          spent,
+				ReceivedValue:       received,
+				Saved:               !thisMonth,
+				MonthCreditRowIndex: creditIndex,
+				MonthDebitRowIndex:  debitIndex,
+			}
+			var id uint64
+			fmt.Println("create new row")
+			err = pgb.db.QueryRow(internal.InsertTreasurySummaryRow, newSumRow.Time, int64(newSumRow.SpentValue), int64(newSumRow.ReceivedValue), newSumRow.Saved, newSumRow.MonthCreditRowIndex, newSumRow.MonthDebitRowIndex).Scan(&id)
+			fmt.Println("check create err: ", err)
+			startTime = nextMonth
+			continue
+		}
+		if received == summaryRow.ReceivedValue && spent == summaryRow.SpentValue {
+			startTime = nextMonth
+			continue
+		}
+		summaryRow.SpentValue = spent
+		summaryRow.ReceivedValue = received
+		summaryRow.Saved = !thisMonth
+		summaryRow.MonthCreditRowIndex = creditIndex
+		summaryRow.MonthDebitRowIndex = debitIndex
+		//update row
+		fmt.Println("Update row")
+		_, err = pgb.db.Exec(internal.UpdateTreasurySummaryByTotalAndSpent, int64(spent), int64(received), !thisMonth, debitIndex, creditIndex, int64(summaryRow.Id))
+		fmt.Println("Update error : ", err)
+		startTime = nextMonth
+	}
+
+	return nil
+}
+
+func (pgb *ChainDB) GetStartRevertIndexAddressRow(rowCountMonths []*dbtypes.AddressesMonthRowsCount, currentMonth time.Time) int64 {
+	count := int64(0)
+	for _, monthRow := range rowCountMonths {
+		count += int64(monthRow.Count)
+		// if is month
+		if monthRow.Month.T.Month() == currentMonth.Month() && monthRow.Month.T.Year() == currentMonth.Year() {
+			return count
+		}
+	}
+	return -1
+}
+
 func (pgb *ChainDB) CheckSavedSummary(summaryRows []*dbtypes.AddressSummaryRow, compareTime time.Time) (hasData bool, isSaved bool, sumRow *dbtypes.AddressSummaryRow) {
 	for _, summaryRow := range summaryRows {
 		if summaryRow.Time.T.Month() == compareTime.Month() && summaryRow.Time.T.Year() == compareTime.Year() {
-			var exist = true
-			var isSavedFlg bool
-			if summaryRow.Saved {
-				isSavedFlg = true
-			}
-			return exist, isSavedFlg, summaryRow
+			return true, summaryRow.Saved, summaryRow
 		}
 	}
 	return false, false, nil
+}
+
+func (pgb *ChainDB) ConvertMonthRowsCount(rows *sql.Rows) []*dbtypes.AddressesMonthRowsCount {
+	addressMonthCountRows := make([]*dbtypes.AddressesMonthRowsCount, 0)
+	for rows.Next() {
+		var rowRecord dbtypes.AddressesMonthRowsCount
+
+		err := rows.Scan(&rowRecord.Month, &rowRecord.Count)
+
+		if err != nil {
+			return addressMonthCountRows
+		}
+
+		addressMonthCountRows = append(addressMonthCountRows, &rowRecord)
+	}
+	return addressMonthCountRows
+}
+
+func (pgb *ChainDB) ConvertToTreasuryList(rows *sql.Rows) []*dbtypes.TreasuryTx {
+	txns := make([]*dbtypes.TreasuryTx, 0)
+	var err error
+	for rows.Next() {
+		var tx dbtypes.TreasuryTx
+		var mainchain bool
+		err = rows.Scan(&tx.TxID, &tx.Type, &tx.Amount, &tx.BlockHash, &tx.BlockHeight, &tx.BlockTime, &mainchain)
+		if err != nil {
+			return txns
+		}
+		txns = append(txns, &tx)
+	}
+	return txns
 }
 
 func (pgb *ChainDB) ConvertToAddressObj(rows *sql.Rows) []*dbtypes.AddressRow {

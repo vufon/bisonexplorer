@@ -2966,7 +2966,6 @@ func parsePaginationParams(r *http.Request) (txnType string, limitN, offset int6
 // for a given address.
 func (exp *ExplorerUI) AddressListData(address string, txnType dbtypes.AddrTxnViewType, limitN,
 	offsetAddrOuts int64, time string) (addrData *dbtypes.AddressInfo, err error) {
-
 	year := int64(0)
 	month := int64(0)
 	var parseErr error

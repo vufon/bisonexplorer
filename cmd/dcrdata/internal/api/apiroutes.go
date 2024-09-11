@@ -1654,10 +1654,6 @@ func (c *appContext) getExpenseFromList(list []apitypes.MonthDataObject, month s
 
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 	treasurySummary, err := c.DataSource.GetTreasurySummary()
-	for _, summary := range treasurySummary {
-		summary.Outvalue = 0 - summary.Outvalue
-		summary.OutvalueUSD = 0 - summary.OutvalueUSD
-	}
 	legacySummary, legacyErr := c.DataSource.GetLegacySummary()
 	treasuryAddSummary, treasuryAddErr := c.DataSource.GetTreasuryAddSummary()
 

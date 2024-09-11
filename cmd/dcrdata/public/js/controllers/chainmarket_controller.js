@@ -563,7 +563,7 @@ export default class extends Controller {
     return ['chartSelect', 'exchanges', 'bin', 'chart', 'legend', 'conversion',
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
-      'aggStack', 'zoom', 'chainTypeSelected']
+      'aggStack', 'zoom', 'chainTypeSelected', 'exchangeBtnArea']
   }
 
   async connect () {
@@ -576,27 +576,25 @@ export default class extends Controller {
     this.setExchaneLinks()
     this.query = new TurboQuery()
     settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin'])
+    this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
+    const _this = this
     if (!this.isHomepage) {
       this.query.update(settings)
     } else {
       settings.chart = 'history'
       let hasBinance = false
-      if (this.exchangesTarget.options.length > 0) {
-        for (let i = 0; i < this.exchangesTarget.options.length; i++) {
-          const item = this.exchangesTarget.options[i]
-          // if exchange is binance, select
-          if (item.value === 'binance') {
-            hasBinance = true
-            settings.xc = item.value
-            settings.bin = '1mo'
-          }
+      this.exchangesButtons.forEach(button => {
+        if (button.name === 'binance') {
+          hasBinance = true
+          settings.xc = button.name
+          settings.bin = '1mo'
         }
         if (!hasBinance) {
-          const defaultOption = this.exchangesTarget.options[0]
-          settings.xc = defaultOption.value
+          const defaultOption = _this.exchangesButtons[0]
+          settings.xc = defaultOption.name
           settings.bin = '1d'
         }
-      }
+      })
     }
     this.initMutilchainExchangeStates()
     this.processors = {
@@ -617,18 +615,17 @@ export default class extends Controller {
     availableCandlesticks = {}
     availableDepths = []
     this.exchangeOptions = []
-    let opts = this.exchangesTarget.options
-    for (let i = 0; i < opts.length; i++) {
-      const option = opts[i]
+    for (let i = 0; i < this.exchangesButtons.length; i++) {
+      const option = this.exchangesButtons[i]
       this.exchangeOptions.push(option)
       if (option.dataset.sticks) {
-        availableCandlesticks[option.value] = option.dataset.bins.split(';')
+        availableCandlesticks[option.name] = option.dataset.bins.split(';')
       }
-      if (option.dataset.depth) availableDepths.push(option.value)
+      if (option.dataset.depth) availableDepths.push(option.name)
     }
 
     this.chartOptions = []
-    opts = this.chartSelectTarget.options
+    const opts = this.chartSelectTarget.options
     for (let i = 0; i < opts.length; i++) {
       this.chartOptions.push(opts[i])
     }
@@ -715,40 +712,62 @@ export default class extends Controller {
     const volumnedExchanges = exchangeStateMap[this.chainType]
     // if is top page, update exchange options
     let selectOptions = ''
-    const exchangeBefore = this.exchangesTarget.value
-    let newHasExchange = false
+    const exchangeBefore = this.getSelectedExchanges()
+    const selectedExchange = []
     if (volumnedExchanges && volumnedExchanges.length > 0) {
-      volumnedExchanges.forEach((exchange) => {
+      for (let i = 0; i < volumnedExchanges.length; i++) {
+        const exchange = volumnedExchanges[i]
         if (exchange.State) {
-          selectOptions += `<option value="${exchange.Token}" ${exchange.State.candlesticks ? `data-sticks="1" data-bins="${exchange.State.sticks}"` : ''} `
-          selectOptions += `${exchange.State.depth ? 'data-depth="1"' : ''}>${_this.getExchangeDispName(exchange.Token)}</option>`
-          if (exchange.Token === exchangeBefore) {
-            newHasExchange = true
+          selectOptions += `<button name="${exchange.Token}" ${exchange.State.candlesticks ? `data-sticks="1" data-bins="${exchange.State.sticks}"` : ''} ${exchange.State.depth ? 'data-depth="1"' : ''} ` +
+            `class="tab-button home-chart-toggle-btn white c-txt-main ${i === 0 ? 'first-toggle-btn' : ''}">${_this.getExchangeDispName(exchange.Token)}</button>`
+          if (exchangeBefore.includes(exchange.Token)) {
+            selectedExchange.push(exchange.Token)
           }
         }
-      })
-      selectOptions += '<option data-chainmarket-target="aggOption" value="aggregated" data-depth="1">Aggregated</option>'
-      this.exchangesTarget.innerHTML = selectOptions
+      }
+      selectOptions += '<button name="aggregated" data-chainmarket-target="aggOption" data-depth="1" ' +
+        'class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Aggregated</button>'
+      this.exchangeBtnAreaTarget.innerHTML = selectOptions
+      this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
       availableCandlesticks = {}
       availableDepths = []
       this.exchangeOptions = []
-      const opts = this.exchangesTarget.options
-      for (let i = 0; i < opts.length; i++) {
-        const option = opts[i]
+      for (let i = 0; i < this.exchangesButtons.length; i++) {
+        const option = this.exchangesButtons[i]
         this.exchangeOptions.push(option)
         if (option.dataset.sticks) {
-          availableCandlesticks[option.value] = option.dataset.bins.split(';')
+          availableCandlesticks[option.name] = option.dataset.bins.split(';')
         }
-        if (option.dataset.depth) availableDepths.push(option.value)
+        if (option.dataset.depth) availableDepths.push(option.name)
       }
       // set current exchange
-      if (newHasExchange) {
-        this.exchangesTarget.value = exchangeBefore
+      if (selectedExchange.length > 0) {
+        this.setActiveExchanges(selectedExchange)
       } else {
-        this.exchangesTarget.value = volumnedExchanges[0].Token
+        this.setActiveExchanges([volumnedExchanges[0].Token])
         this.changeExchangeSetting()
       }
     }
+  }
+
+  setActiveExchanges (activeExchanges) {
+    this.exchangesButtons.forEach(exchangeBtn => {
+      if (activeExchanges.includes(exchangeBtn.name)) {
+        exchangeBtn.classList.add('active')
+      } else if (exchangeBtn.classList.contains('active')) {
+        exchangeBtn.classList.remove('active')
+      }
+    })
+  }
+
+  getSelectedExchanges () {
+    const activeExchanges = []
+    this.exchangesButtons.forEach(button => {
+      if (button.classList.contains('active')) {
+        activeExchanges.push(button.name)
+      }
+    })
+    return activeExchanges
   }
 
   disconnect () {
@@ -1093,7 +1112,7 @@ export default class extends Controller {
 
   setButtons () {
     this.chartSelectTarget.value = settings.chart
-    this.exchangesTarget.value = settings.xc
+    this.setActiveExchanges(settings.xc.split(','))
     if (usesOrderbook(settings.chart)) {
       this.binTarget.classList.add('d-hide')
       this.aggOptionTarget.disabled = false
@@ -1150,7 +1169,7 @@ export default class extends Controller {
   }
 
   changeExchangeSetting () {
-    settings.xc = this.exchangesTarget.value
+    settings.xc = this.getSelectedExchanges().join(',')
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
       if (!availableCandlesticks[settings.xc]) {
@@ -1164,8 +1183,27 @@ export default class extends Controller {
     this.setButtons()
   }
 
-  changeExchange () {
-    settings.xc = this.exchangesTarget.value
+  setExchange (e) {
+    let node = e.target || e.srcElement
+    while (node && node.nodeName !== 'TR') node = node.parentNode
+    if (!node || !node.dataset || !node.dataset.token) return
+    this.setActiveExchanges([node.dataset.token])
+    this.changeExchange()
+  }
+
+  changeBin (e) {
+    const btn = e.target || e.srcElement
+    if (btn.nodeName !== 'BUTTON' || !this.graph) return
+    settings.bin = btn.name
+    this.justifyBins()
+    this.setBinSelection()
+    this.fetchChart()
+  }
+
+  changeExchange (e) {
+    const btn = e.target || e.srcElement
+    if (btn.nodeName !== 'BUTTON' || !this.graph) return
+    settings.xc = btn.name
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
       if (!availableCandlesticks[settings.xc]) {
@@ -1178,23 +1216,6 @@ export default class extends Controller {
     }
     this.setButtons()
     orderZoom = undefined
-    this.fetchChart()
-  }
-
-  setExchange (e) {
-    let node = e.target || e.srcElement
-    while (node && node.nodeName !== 'TR') node = node.parentNode
-    if (!node || !node.dataset || !node.dataset.token) return
-    this.exchangesTarget.value = node.dataset.token
-    this.changeExchange()
-  }
-
-  changeBin (e) {
-    const btn = e.target || e.srcElement
-    if (btn.nodeName !== 'BUTTON' || !this.graph) return
-    settings.bin = btn.name
-    this.justifyBins()
-    this.setBinSelection()
     this.fetchChart()
   }
 
@@ -1380,8 +1401,8 @@ export default class extends Controller {
     // Auto-update the chart if it makes sense.
     if (settings.xc !== aggregatedKey && settings.xc !== xc.token) return
     if (settings.xc === aggregatedKey &&
-        hasCache(this.lastUrl) &&
-        responseCache[this.lastUrl].tokens.indexOf(update.updater) === -1) return
+      hasCache(this.lastUrl) &&
+      responseCache[this.lastUrl].tokens.indexOf(update.updater) === -1) return
     if (usesOrderbook(settings.chart)) {
       clearCache(this.lastUrl)
       this.refreshChart()

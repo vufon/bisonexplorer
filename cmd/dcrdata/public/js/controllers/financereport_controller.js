@@ -26,10 +26,6 @@ let treasuryBalanceMap = null
 let treasuryYearlyBalanceMap = null
 let adminBalanceMap = null
 let adminYearlyBalanceMap = null
-let treasuryHasDataBalanceMap = null
-let adminHasDataBalanceMap = null
-let treasuryYearlyHasDataBalanceMap = null
-let adminYearlyHasDataBalanceMap = null
 const treasurySummaryData = null
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
@@ -201,7 +197,8 @@ export default class extends Controller {
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
-      'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel']
+      'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
+      'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate']
   }
 
   async connect () {
@@ -1153,11 +1150,13 @@ export default class extends Controller {
       this.treasuryChartTitleTarget.classList.remove('d-none')
       this.treasuryTypeTitleTarget.classList.remove('d-none')
       if (this.settings.type === 'treasury') {
+        this.currentBalanceAreaTarget.classList.remove('d-none')
         this.selectTreasuryTypeTarget.classList.remove('d-none')
         this.typeLabelTarget.classList.remove('d-none')
         this.typeSelectorTarget.classList.remove('d-none')
         this.treasuryChartTitleTarget.textContent = 'Treasury IO Chart'
       } else {
+        this.currentBalanceAreaTarget.classList.add('d-none')
         this.typeLabelTarget.classList.add('d-none')
         this.typeSelectorTarget.classList.add('d-none')
         this.treasuryChartTitleTarget.textContent = 'Domains Chart Data'
@@ -1445,6 +1444,8 @@ export default class extends Controller {
           monthObj.count += 1
           if (monthInt > monthObj.monthInt) {
             monthObj.monthInt = monthInt
+            monthObj.creditLink = item.creditLink
+            monthObj.debitLink = item.debitLink
             monthObj.balance = item.balance
             monthObj.balanceUSD = item.balanceUSD
           }
@@ -1465,6 +1466,8 @@ export default class extends Controller {
           monthObj.monthInt = monthInt
           monthObj.balance = item.balance
           monthObj.balanceUSD = item.balanceUSD
+          monthObj.debitLink = item.debitLink
+          monthObj.creditLink = item.creditLink
         }
         dataMap.set(year, monthObj)
       }
@@ -2473,6 +2476,9 @@ export default class extends Controller {
       this.initLegacyBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.legacySummary) : data.legacySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
       this.initTreasuryBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.treasurySummary) : data.treasurySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
       this.initCombinedBalanceMap(treasuryData)
+      this.treasuryTypeRateTarget.classList.remove('d-none')
+    } else {
+      this.treasuryTypeRateTarget.classList.add('d-none')
     }
     this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData)
   }
@@ -2710,11 +2716,6 @@ export default class extends Controller {
     legacyData.forEach(summary => {
       tempHasDataBalancemap.set(summary.month, summary.balance)
     })
-    if (this.settings.interval === 'year') {
-      adminYearlyHasDataBalanceMap = tempHasDataBalancemap
-    } else {
-      adminHasDataBalanceMap = tempHasDataBalancemap
-    }
     // for each combined data
     let currentBalance = 0
     const tempBalanceMap = new Map()
@@ -2744,11 +2745,6 @@ export default class extends Controller {
     treasuryData.forEach(summary => {
       tempHasDataBalancemap.set(summary.month, summary.balance)
     })
-    if (this.settings.interval === 'year') {
-      treasuryYearlyHasDataBalanceMap = tempHasDataBalancemap
-    } else {
-      treasuryHasDataBalanceMap = tempHasDataBalancemap
-    }
     // for each combined data
     let currentBalance = 0
     const tempBalanceMap = new Map()
@@ -2828,9 +2824,6 @@ export default class extends Controller {
         '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortSpentPercent"> Dev Spent (%)</label>' +
         `<span data-action="click->financereport#sortSpentPercent" class="${(this.settings.stype === 'percent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'percent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     }
-    if (isCombined) {
-      thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label>Decentralized / Admin (%)</label></th>'
-    }
     if (usdDisp) {
       thead += '<th class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
         `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
@@ -2848,8 +2841,10 @@ export default class extends Controller {
       lastBalanceUSD = summary[0].balanceUSD
       lastMonth = summary[0].month
     }
+    // display balance in top
+    this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2)
     const balanceMap = this.settings.interval === 'year' ? combinedYearlyBalanceMap : combineBalanceMap
-    if (lastMonth !== '' && balanceMap.has(lastMonth)) {
+    if (isCombined && lastMonth !== '' && balanceMap.has(lastMonth)) {
       const combined = balanceMap.get(lastMonth)
       let legacy = 0; let tresury = 0
       const adminBalanceDataMap = this.settings.interval === 'year' ? adminYearlyBalanceMap : adminBalanceMap
@@ -2862,15 +2857,11 @@ export default class extends Controller {
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
-      lastBalanceStr = `<a class="white-link" href="/treasury">${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + '</a> / <a class="white-link" href="/address/' + this.devAddress + '">' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + '</a> %'}`
+      lastBalanceStr = `${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + ' / ' + humanize.formatToLocalString(lastLegacyRate, 2, 2)}`
+      this.treasuryLegacyPercentTarget.textContent = lastBalanceStr
     }
     const treasuryList = this.sortTreasury(summary)
     const _this = this
-    let combinedMapData
-    if (isCombined) {
-      // get total balance of month from map
-      combinedMapData = _this.initCombinedBalanceMap(treasuryList)
-    }
     treasuryList.forEach((item) => {
       const timeParam = _this.getFullTimeParam(item.month, '-')
       incomeTotal += usdDisp ? item.invalueUSD : item.invalue
@@ -2883,12 +2874,9 @@ export default class extends Controller {
       const balanceDisplay = item.balance <= 0 ? '' : usdDisp ? humanize.formatToLocalString(item.balanceUSD, 2, 2) : humanize.formatToLocalString((item.balance / 100000000), 2, 2)
       let incomeHref = ''
       let outcomeHref = ''
-      if (isLegacy) {
-        incomeHref = '/address/' + _this.devAddress + '?txntype=credit&time=' + (timeParam === '' ? item.month : timeParam)
-        outcomeHref = '/address/' + _this.devAddress + '?txntype=debit&time=' + (timeParam === '' ? item.month : timeParam)
-      } else if (_this.settings.ttype === 'current') {
-        incomeHref = '/treasury?txntype=treasurybase&time=' + (timeParam === '' ? item.month : timeParam)
-        outcomeHref = '/treasury?txntype=tspend&time=' + (timeParam === '' ? item.month : timeParam)
+      if (isLegacy || _this.settings.ttype === 'current') {
+        incomeHref = item.creditLink
+        outcomeHref = item.debitLink
       }
       bodyList += '<tr class="odd-even-row">' +
         `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
@@ -2904,42 +2892,6 @@ export default class extends Controller {
         }
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${usdDisp && item.outEstimate !== 0.0 ? '$' : ''}${item.outEstimate === 0.0 ? 'No meta data' : usdDisp ? humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>`
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? 'No dev expenses' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>`
-      }
-      if (isCombined) {
-        let treasuryRateStr = ''
-        // get total balance of month from map
-        if (combinedMapData !== null) {
-          // get balance
-          if (combinedMapData.has(item.month)) {
-            const combinedBalance = combinedMapData.get(item.month)
-            let legacyBalance = 0; let treasuryBalance = 0
-            const adminBalanceDataMap = this.settings.interval === 'year' ? adminYearlyBalanceMap : adminBalanceMap
-            if (adminBalanceDataMap !== null && adminBalanceDataMap.has(item.month)) {
-              legacyBalance = adminBalanceDataMap.get(item.month)
-            }
-            const treasuryBalanceDataMap = this.settings.interval === 'year' ? treasuryYearlyBalanceMap : treasuryBalanceMap
-            if (treasuryBalanceDataMap !== null && treasuryBalanceDataMap.has(item.month)) {
-              treasuryBalance = treasuryBalanceDataMap.get(item.month)
-            }
-            const legacyRate = 100 * legacyBalance / combinedBalance
-            const treasuryRate = 100 * treasuryBalance / combinedBalance
-            let treasuryRateDisp = humanize.formatToLocalString(treasuryRate, 2, 2)
-            let legacyRateDisp = humanize.formatToLocalString(legacyRate, 2, 2)
-            const tTime = _this.getFullTimeParam(item.month, '-')
-            const treasuryBalanceHasDataMap = this.settings.interval === 'year' ? treasuryYearlyHasDataBalanceMap : treasuryHasDataBalanceMap
-            if (treasuryBalanceHasDataMap.has(item.month)) {
-              const tlink = '/treasury?txntype=all&time=' + (tTime === '' ? item.month : tTime)
-              treasuryRateDisp = `<a href="${tlink}">${treasuryRateDisp}</a>`
-            }
-            const adminBalanceHasDataMap = this.settings.interval === 'year' ? adminYearlyHasDataBalanceMap : adminHasDataBalanceMap
-            if (adminBalanceHasDataMap.has(item.month)) {
-              const tlink = '/address/' + _this.devAddress + '?txntype=all&time=' + (tTime === '' ? item.month : tTime)
-              legacyRateDisp = `<a href="${tlink}">${legacyRateDisp}</a>`
-            }
-            treasuryRateStr = `${treasuryRateDisp + ' / ' + legacyRateDisp + ' %'}`
-          }
-        }
-        bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">${treasuryRateStr}</td>`
       }
       if (usdDisp) {
         bodyList += `<td class="va-mid text-right-i fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>`
@@ -2966,9 +2918,6 @@ export default class extends Controller {
     if (!isLegacy) {
       bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${usdDisp ? '$' : ''}${totalEstimateOutgoing}</td>`
       bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'
-    }
-    if (isCombined) {
-      bodyList += `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${lastBalanceStr}</td>`
     }
     if (usdDisp) {
       bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'

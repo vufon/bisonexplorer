@@ -783,6 +783,12 @@ func checkExistAndCreateAddressSummaryTable(db *sql.DB) error {
 	return err
 }
 
+// Check exist and create address_summary table
+func checkExistAndCreateTreasurySummaryTable(db *sql.DB) error {
+	err := createTable(db, "treasury_summary", internal.CreateTreasurySummaryTable)
+	return err
+}
+
 // Check exist and create proposal_meta table
 func checkExistAndCreate24BlocksTable(db *sql.DB) error {
 	err := createTable(db, "blocks24h", internal.Create24hBlocksTable)

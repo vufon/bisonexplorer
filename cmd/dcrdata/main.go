@@ -1108,7 +1108,24 @@ func _main(ctx context.Context) error {
 			return err
 		}
 
-		log.Infof("Finished address summary sync")
+		//synchronize treasury summary data
+		log.Infof("Starting treasury summary sync...")
+
+		syncTreasurySummaryData := func() error {
+			err := chainDB.SyncTreasurySummary(ctx)
+			if err != nil {
+				log.Errorf("dcrpg.SyncTreasurySummary failed")
+				return err
+			}
+			return nil
+		}
+
+		err = syncTreasurySummaryData()
+		if err != nil {
+			return err
+		}
+
+		log.Infof("Finished treasury summary sync")
 
 		//Synchronize DCR's price by month
 		log.Infof("Starting DCR monthly price sync...")
@@ -1752,7 +1769,7 @@ func _main(ctx context.Context) error {
 		if cerr != nil {
 			return fmt.Errorf("BTC RPC client error: %v (%v)", cerr.Error(), cerr.Cause())
 		}
-		//end - handler notifier for ltc
+		//end - handler notifier- for ltc
 		//end init collector for btc
 		//sync last 25 blocks
 		if chainDB.ChainDBDisabled {

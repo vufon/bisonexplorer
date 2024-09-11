@@ -31,8 +31,7 @@
                   <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposals">
                   <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
-                     type="button" class="tab-button white me-1 c-txt-main" value="Domains"
-                     name="domains">
+                     type="button" class="tab-button white me-1 c-txt-main" value="Domains" name="domains">
                   <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Authors" name="authors">
                </div>
@@ -44,7 +43,8 @@
                      id="nameMonthSwitchInput">
                   <span class="legacy-slider round"></span>
                </label>
-               <span class="ms-1" data-financereport-target="monthLabel" style="position:sticky;left:125px;">Month</span>
+               <span class="ms-1" data-financereport-target="monthLabel"
+                  style="position:sticky;left:125px;">Month</span>
             </div>
             <div class="mb-2">
                <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
@@ -60,6 +60,14 @@
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Admin Treasury" name="legacy">
                </div>
+            </div>
+            <div class="fs-20 pb-2 d-none" data-financereport-target="currentBalanceArea">
+               <p class="fs-18">
+                  Balance: <span data-financereport-target="treasuryBalanceDisplay"></span> DCR
+               </p>
+               <p class="fs-18 d-none" data-financereport-target="treasuryTypeRate">
+                  Decentralized / Admin: <span data-financereport-target="treasuryLegacyPercent"></span> %
+               </p>
             </div>
             <!-- Start treasury chart -->
             <p class="fs-20 pb-2 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
