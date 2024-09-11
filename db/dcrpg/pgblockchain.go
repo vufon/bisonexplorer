@@ -2568,6 +2568,7 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		if err != nil {
 			return nil, err
 		}
+		summary.Outvalue = int64(math.Abs(float64(summary.Outvalue)))
 		summary.Month = time.Format("2006-01")
 		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
 		total := summary.Invalue + summary.Outvalue

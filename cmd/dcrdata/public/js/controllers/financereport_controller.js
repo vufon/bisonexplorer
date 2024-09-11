@@ -1149,13 +1149,14 @@ export default class extends Controller {
       this.groupByTarget.classList.remove('d-none')
       this.treasuryChartTitleTarget.classList.remove('d-none')
       this.treasuryTypeTitleTarget.classList.remove('d-none')
-      this.currentBalanceAreaTarget.classList.remove('d-none')
       if (this.settings.type === 'treasury') {
+        this.currentBalanceAreaTarget.classList.remove('d-none')
         this.selectTreasuryTypeTarget.classList.remove('d-none')
         this.typeLabelTarget.classList.remove('d-none')
         this.typeSelectorTarget.classList.remove('d-none')
         this.treasuryChartTitleTarget.textContent = 'Treasury IO Chart'
       } else {
+        this.currentBalanceAreaTarget.classList.add('d-none')
         this.typeLabelTarget.classList.add('d-none')
         this.typeSelectorTarget.classList.add('d-none')
         this.treasuryChartTitleTarget.textContent = 'Domains Chart Data'
@@ -1165,7 +1166,6 @@ export default class extends Controller {
       this.groupByTarget.classList.add('d-none')
       this.treasuryChartTitleTarget.classList.add('d-none')
       this.treasuryTypeTitleTarget.classList.add('d-none')
-      this.currentBalanceAreaTarget.classList.add('d-none')
     }
 
     // if treasury, get table content in other area

@@ -188,13 +188,13 @@ WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 	CountTBaseRow            = `SELECT COUNT(*)
 		FROM treasury WHERE is_mainchain AND tx_type = 6`
 
-	SelectTreasuryTBaseRowCountByMonth = `SELECT DATE_TRUNC('month',block_time) as month ,COUNT(*) as row_num 
+	SelectTreasuryTBaseRowCountByMonth = `SELECT DATE_TRUNC('month', block_time AT TIME ZONE 'UTC') as month ,COUNT(*) as row_num 
 		FROM treasury WHERE is_mainchain AND tx_type = 6 GROUP BY month ORDER BY month;`
 
 	CountSpendRow = `SELECT COUNT(*)
 		FROM treasury WHERE is_mainchain AND tx_type = 5`
 
-	SelectTreasurySpendRowCountByMonth = `SELECT DATE_TRUNC('month',block_time) as month ,COUNT(*) as row_num 
+	SelectTreasurySpendRowCountByMonth = `SELECT DATE_TRUNC('month', block_time AT TIME ZONE 'UTC') as month ,COUNT(*) as row_num 
 		FROM treasury WHERE is_mainchain AND tx_type = 5 GROUP BY month ORDER BY month;`
 	SelectTreasuryFirstRowFromOldest = `SELECT block_time FROM treasury WHERE is_mainchain 
 		ORDER BY block_time, tx_hash ASC LIMIT 1`

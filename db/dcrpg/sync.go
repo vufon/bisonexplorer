@@ -193,7 +193,11 @@ func (pgb *ChainDB) SyncTreasurySummary(ctx context.Context) error {
 	sumRows, _ := pgb.db.QueryContext(ctx, internal.SelectTreasurySummaryRows)
 	for sumRows.Next() {
 		var addrSum dbtypes.AddressSummaryRow
-		err := sumRows.Scan(&addrSum.Id, &addrSum.Time, &addrSum.SpentValue, &addrSum.ReceivedValue, &addrSum.MonthCreditRowIndex, &addrSum.MonthDebitRowIndex, &addrSum.Saved)
+		var rowId, spentValue, receivedValue int64
+		err := sumRows.Scan(&rowId, &addrSum.Time, &spentValue, &receivedValue, &addrSum.MonthCreditRowIndex, &addrSum.MonthDebitRowIndex, &addrSum.Saved)
+		addrSum.Id = uint64(rowId)
+		addrSum.SpentValue = uint64(spentValue)
+		addrSum.ReceivedValue = uint64(receivedValue)
 		if err == nil {
 			summaryRows = append(summaryRows, &addrSum)
 		}
@@ -230,6 +234,7 @@ func (pgb *ChainDB) SyncTreasurySummary(ctx context.Context) error {
 			startTime = startTime.AddDate(0, 1, 0)
 			continue
 		}
+		fmt.Println("Time: ", startTime)
 		//get start of month
 		startDay := startTime.AddDate(0, 0, -startTime.Day()+1)
 		startDay = time.Date(startDay.Year(), startDay.Month(), startDay.Day(), 0, 0, 0, 0, time.Local)
@@ -266,6 +271,8 @@ func (pgb *ChainDB) SyncTreasurySummary(ctx context.Context) error {
 			creditIndex = pgb.GetStartRevertIndexAddressRow(creditCountRows, startTime)
 			debitIndex = pgb.GetStartRevertIndexAddressRow(debitCountRows, startTime)
 		}
+		fmt.Println("Credit index: ", creditIndex)
+		fmt.Println("Debit index: ", debitIndex)
 		//set revert index
 		if summaryRow == nil {
 			//insert new row
@@ -278,7 +285,9 @@ func (pgb *ChainDB) SyncTreasurySummary(ctx context.Context) error {
 				MonthDebitRowIndex:  debitIndex,
 			}
 			var id uint64
-			pgb.db.QueryRow(internal.InsertTreasurySummaryRow, newSumRow.Time, newSumRow.SpentValue, newSumRow.ReceivedValue, newSumRow.Saved, newSumRow.MonthCreditRowIndex, newSumRow.MonthDebitRowIndex).Scan(&id)
+			fmt.Println("create new row")
+			err = pgb.db.QueryRow(internal.InsertTreasurySummaryRow, newSumRow.Time, int64(newSumRow.SpentValue), int64(newSumRow.ReceivedValue), newSumRow.Saved, newSumRow.MonthCreditRowIndex, newSumRow.MonthDebitRowIndex).Scan(&id)
+			fmt.Println("check create err: ", err)
 			startTime = nextMonth
 			continue
 		}
@@ -292,7 +301,9 @@ func (pgb *ChainDB) SyncTreasurySummary(ctx context.Context) error {
 		summaryRow.MonthCreditRowIndex = creditIndex
 		summaryRow.MonthDebitRowIndex = debitIndex
 		//update row
-		pgb.db.Exec(internal.UpdateTreasurySummaryByTotalAndSpent, spent, received, !thisMonth, debitIndex, creditIndex, summaryRow.Id)
+		fmt.Println("Update row")
+		_, err = pgb.db.Exec(internal.UpdateTreasurySummaryByTotalAndSpent, int64(spent), int64(received), !thisMonth, debitIndex, creditIndex, int64(summaryRow.Id))
+		fmt.Println("Update error : ", err)
 		startTime = nextMonth
 	}
 
