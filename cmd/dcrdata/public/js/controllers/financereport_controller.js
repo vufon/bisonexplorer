@@ -804,6 +804,7 @@ export default class extends Controller {
       ttype: 'combined'
     }
 
+    this.isListDisplay = false
     this.query.update(this.settings)
     if (!this.settings.type || this.settings.type === 'proposal') {
       this.defaultSettings.tsort = 'oldest'
@@ -940,6 +941,7 @@ export default class extends Controller {
       // set overflow class
       $('#scroller').css('width', $('#repotParentContainer').css('width'))
     })
+    this.isListDisplay = (this.settings.pgroup === 'proposals' && this.settings.type === 'proposal') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'month')
   }
 
   searchInputKeypress (e) {
@@ -1047,9 +1049,14 @@ export default class extends Controller {
     })
     target.classList.add('active')
     this.settings.pgroup = e.target.name
+    if (!this.settings.pgroup || this.settings.pgroup === '' || this.settings.pgroup === 'proposals') {
+      this.settings.type = this.isListDisplay ? 'proposal' : 'summary'
+      this.settings.ptype = this.defaultSettings.ptype
+    } else if (this.settings.pgroup === 'authors') {
+      this.settings.ptype = this.isListDisplay ? 'month' : ''
+      this.settings.type = this.defaultSettings.type
+    }
     this.settings.stype = this.defaultSettings.stype
-    this.settings.ptype = this.defaultSettings.ptype
-    this.settings.type = this.defaultSettings.type
     this.calculate(false)
   }
 
@@ -2954,12 +2961,7 @@ export default class extends Controller {
 
     if (!this.settings.type || this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       this.proposalSelectTypeTarget.classList.remove('d-none')
-      if ((this.settings.pgroup === 'proposals' && this.settings.type === 'proposal') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'month')) {
-        document.getElementById('nameMonthSwitchInput').checked = true
-      } else {
-        document.getElementById('nameMonthSwitchInput').checked = false
-      }
-
+      document.getElementById('nameMonthSwitchInput').checked = this.isListDisplay
       if ((this.settings.pgroup === 'proposals' && this.settings.type === 'summary') || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'month')) {
         this.colorLabelTarget.classList.remove('proposal-note-color')
         this.colorLabelTarget.classList.add('summary-note-color')
@@ -3187,6 +3189,7 @@ export default class extends Controller {
 
   nameMatrixSwitchEvent (e) {
     const switchCheck = document.getElementById('nameMonthSwitchInput').checked
+    this.isListDisplay = switchCheck
     // if is proposals group type
     if (this.settings.pgroup === 'proposals') {
       this.settings.type = !switchCheck || switchCheck === 'false' ? 'summary' : 'proposal'
