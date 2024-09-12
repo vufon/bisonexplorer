@@ -1095,7 +1095,7 @@ func _main(ctx context.Context) error {
 		log.Infof("Starting address summary sync...")
 
 		syncAdressSummaryData := func() error {
-			err := chainDB.SyncAddressSummary(ctx)
+			err := chainDB.SyncAddressSummary()
 			if err != nil {
 				log.Errorf("dcrpg.SyncAddressSummary failed")
 				return err
@@ -1112,7 +1112,7 @@ func _main(ctx context.Context) error {
 		log.Infof("Starting treasury summary sync...")
 
 		syncTreasurySummaryData := func() error {
-			err := chainDB.SyncTreasurySummary(ctx)
+			err := chainDB.SyncTreasurySummary()
 			if err != nil {
 				log.Errorf("dcrpg.SyncTreasurySummary failed")
 				return err

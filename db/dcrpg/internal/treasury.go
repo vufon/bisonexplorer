@@ -199,7 +199,7 @@ WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 	SelectTreasuryFirstRowFromOldest = `SELECT block_time FROM treasury WHERE is_mainchain 
 		ORDER BY block_time, tx_hash ASC LIMIT 1`
 	SelectTreasuryRowsByPeriod = `SELECT *
-		FROM treasury WHERE is_mainchain AND block_time >= $1 AND block_time <= $2
+		FROM treasury WHERE is_mainchain AND block_time >= $1 AND block_time <= $2 AND block_height <= $3
 		ORDER BY block_time, tx_hash ASC;`
 )
 

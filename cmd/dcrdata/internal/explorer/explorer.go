@@ -166,6 +166,8 @@ type explorerDataSource interface {
 	SyncLast20BTCBlocks(nodeHeight int32) error
 	GetDBBlockDetailInfo(chainType string, height int64) *dbtypes.MutilchainDBBlockInfo
 	SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType string) (*dbtypes.Block24hInfo, error)
+	SyncAddressSummary() error
+	SyncTreasurySummary() error
 }
 
 type PoliteiaBackend interface {
@@ -798,6 +800,17 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		p.Unlock()
 	}(int64(blockData.Header.Height))
 
+	//run sync address summary data
+	go func() {
+		err := exp.dataSource.SyncAddressSummary()
+		if err != nil {
+			log.Errorf("Sync address summary failed: %v", err)
+		}
+		err = exp.dataSource.SyncTreasurySummary()
+		if err != nil {
+			log.Errorf("Sync treasury summary failed: %v", err)
+		}
+	}()
 	return nil
 }
 

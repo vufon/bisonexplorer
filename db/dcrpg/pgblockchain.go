@@ -306,23 +306,25 @@ type ChainDB struct {
 	BTCMPC             *mempoolbtc.DataCache
 	// BlockCache stores apitypes.BlockDataBasic and apitypes.StakeInfoExtended
 	// in StoreBlock for quick retrieval without a DB query.
-	BlockCache         *apitypes.APICache
-	heightClients      []chan uint32
-	ltcHeightClients   []chan uint32
-	btcHeightClients   []chan uint32
-	shutdownDcrdata    func()
-	Client             *rpcclient.Client
-	LtcClient          *ltcClient.Client
-	BtcClient          *btcClient.Client
-	LtcCoreClient      *ltcClient.Client
-	BtcCoreClient      *btcClient.Client
-	tipMtx             sync.Mutex
-	tipSummary         *apitypes.BlockDataBasic
-	ChainDBDisabled    bool
-	OkLinkAPIKey       string
-	BTC20BlocksSyncing bool
-	LTC20BlocksSyncing bool
-	lastExplorerBlock  struct {
+	BlockCache             *apitypes.APICache
+	heightClients          []chan uint32
+	ltcHeightClients       []chan uint32
+	btcHeightClients       []chan uint32
+	shutdownDcrdata        func()
+	Client                 *rpcclient.Client
+	LtcClient              *ltcClient.Client
+	BtcClient              *btcClient.Client
+	LtcCoreClient          *ltcClient.Client
+	BtcCoreClient          *btcClient.Client
+	tipMtx                 sync.Mutex
+	tipSummary             *apitypes.BlockDataBasic
+	ChainDBDisabled        bool
+	OkLinkAPIKey           string
+	BTC20BlocksSyncing     bool
+	LTC20BlocksSyncing     bool
+	AddressSummarySyncing  bool
+	TreasurySummarySyncing bool
+	lastExplorerBlock      struct {
 		sync.Mutex
 		hash      string
 		blockInfo *exptypes.BlockInfo
