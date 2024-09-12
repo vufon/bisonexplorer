@@ -198,7 +198,7 @@ export default class extends Controller {
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
-      'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate']
+      'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'adminTypeRate', 'adminPercent']
   }
 
   async connect () {
@@ -2484,8 +2484,10 @@ export default class extends Controller {
       this.initTreasuryBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.treasurySummary) : data.treasurySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
       this.initCombinedBalanceMap(treasuryData)
       this.treasuryTypeRateTarget.classList.remove('d-none')
+      this.adminTypeRateTarget.classList.remove('d-none')
     } else {
       this.treasuryTypeRateTarget.classList.add('d-none')
+      this.adminTypeRateTarget.classList.add('d-none')
     }
     this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData)
   }
@@ -2592,12 +2594,6 @@ export default class extends Controller {
     const timeArr = []
     // return combined data
     const combinedDataMap = new Map()
-    const treasuryAddDataMap = new Map()
-    if (data.treasuryAddSummary) {
-      data.treasuryAddSummary.forEach((treasuryAdd) => {
-        treasuryAddDataMap.set(treasuryAdd.month, treasuryAdd.invalue)
-      })
-    }
     if (data.treasurySummary) {
       data.treasurySummary.forEach((treasury) => {
         timeArr.push(treasury.month)
@@ -2616,19 +2612,12 @@ export default class extends Controller {
           outEstimateUsd: treasury.outEstimateUsd,
           monthPrice: treasury.monthPrice
         }
-        // if has treasury add data, subtract from invalue
-        if (treasuryAddDataMap.has(treasury.month)) {
-          const addData = treasuryAddDataMap.get(treasury.month)
-          item.invalue = addData > item.invalue ? 0 : item.invalue - addData
-          item.difference = Math.abs(item.invalue - item.outvalue)
-          item.differenceUSD = (item.difference / 100000000) * item.monthPrice
-          item.invalueUSD = (item.invalue / 100000000) * item.monthPrice
-        }
         combinedDataMap.set(treasury.month, item)
       })
     }
     if (data.legacySummary) {
       data.legacySummary.forEach((legacy) => {
+        console.log('month: ' + legacy.month + ', outgoing: ' + legacy.outvalue)
         if (!timeArr.includes(legacy.month)) {
           timeArr.push(legacy.month)
           // create object and insert to map
@@ -2646,14 +2635,6 @@ export default class extends Controller {
             outEstimateUsd: legacy.outEstimateUsd,
             monthPrice: legacy.monthPrice
           }
-          // if has treasury add data, subtract from outvalue
-          if (treasuryAddDataMap.has(legacy.month)) {
-            const addData = treasuryAddDataMap.get(legacy.month)
-            item.outvalue = addData > item.outvalue ? 0 : item.outvalue - addData
-            item.difference = Math.abs(item.invalue - item.outvalue)
-            item.differenceUSD = (item.difference / 100000000) * item.monthPrice
-            item.outvalueUSD = (item.outvalue / 100000000) * item.monthPrice
-          }
           combinedDataMap.set(legacy.month, item)
         } else if (combinedDataMap.has(legacy.month)) {
           // if has in array (in map)
@@ -2662,18 +2643,8 @@ export default class extends Controller {
           item.invalueUSD += legacy.invalueUSD
           item.total += legacy.total
           item.totalUSD += legacy.totalUSD
-
-          if (treasuryAddDataMap.has(legacy.month)) {
-            const addData = treasuryAddDataMap.get(legacy.month)
-            item.outValue += legacy.outvalue - addData
-            if (item.outValue < 0) {
-              item.outValue = 0.0
-            }
-            item.outvalueUSD = (item.outvalue / 100000000) * item.monthPrice
-          } else {
-            item.outvalue += legacy.outvalue
-            item.outvalueUSD += legacy.outvalueUSD
-          }
+          item.outvalue += legacy.outvalue
+          item.outvalueUSD += legacy.outvalueUSD
           item.difference = Math.abs(item.invalue - item.outvalue)
           item.differenceUSD = (item.difference / 100000000) * item.monthPrice
           combinedDataMap.set(legacy.month, item)
@@ -2842,7 +2813,6 @@ export default class extends Controller {
     let incomeTotal = 0; let outTotal = 0; let diffTotal = 0; let estimateOutTotal = 0
     let lastBalance = 0; let lastBalanceUSD = 0
     let lastMonth = ''
-    let lastBalanceStr = ''
     if (summary.length > 0) {
       lastBalance = summary[0].balance
       lastBalanceUSD = summary[0].balanceUSD
@@ -2864,8 +2834,8 @@ export default class extends Controller {
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
-      lastBalanceStr = `${humanize.formatToLocalString(lastTreasuryRate, 2, 2) + ' / ' + humanize.formatToLocalString(lastLegacyRate, 2, 2)}`
-      this.treasuryLegacyPercentTarget.textContent = lastBalanceStr
+      this.treasuryLegacyPercentTarget.textContent = humanize.formatToLocalString((tresury / 100000000), 2, 2) + ' DCR (' + humanize.formatToLocalString(lastTreasuryRate, 2, 2) + ' %)'
+      this.adminPercentTarget.textContent = humanize.formatToLocalString((legacy / 100000000), 2, 2) + ' DCR (' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + ' %)'
     }
     const treasuryList = this.sortTreasury(summary)
     const _this = this
