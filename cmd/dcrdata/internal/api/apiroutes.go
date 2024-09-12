@@ -2775,6 +2775,22 @@ func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	if len(data.Time) > 0 {
+		lastTime := data.Time[len(data.Time)-1]
+		now := time.Now()
+		//one day before
+		oneDayBefore := now.AddDate(0, -1, 0)
+		addNow := lastTime.T.Before(oneDayBefore)
+		if addNow {
+			data.Time = append(data.Time, dbtypes.NewTimeDef(now))
+			data.SentRtx = append(data.SentRtx, 0)
+			data.ReceivedRtx = append(data.ReceivedRtx, 0)
+			data.Tickets = append(data.Tickets, 0)
+			data.Votes = append(data.Votes, 0)
+			data.RevokeTx = append(data.RevokeTx, 0)
+		}
+	}
+
 	writeJSON(w, data, m.GetIndentCtx(r))
 }
 
@@ -2810,7 +2826,19 @@ func (c *appContext) getAddressTxAmountFlowData(w http.ResponseWriter, r *http.R
 		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}
-
+	if len(data.Time) > 0 {
+		lastTime := data.Time[len(data.Time)-1]
+		now := time.Now()
+		//one day before
+		oneDayBefore := now.AddDate(0, -1, 0)
+		addNow := lastTime.T.Before(oneDayBefore)
+		if addNow {
+			data.Time = append(data.Time, dbtypes.NewTimeDef(now))
+			data.Sent = append(data.Sent, 0)
+			data.Received = append(data.Received, 0)
+			data.Net = append(data.Net, 0)
+		}
+	}
 	writeJSON(w, data, m.GetIndentCtx(r))
 }
 
@@ -2847,7 +2875,19 @@ func (c *appContext) getTreasuryIO(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 		return
 	}
-
+	if len(data.Time) > 0 {
+		lastTime := data.Time[len(data.Time)-1]
+		now := time.Now()
+		//one day before
+		oneDayBefore := now.AddDate(0, -1, 0)
+		addNow := lastTime.T.Before(oneDayBefore)
+		if addNow {
+			data.Time = append(data.Time, dbtypes.NewTimeDef(now))
+			data.Sent = append(data.Sent, 0)
+			data.Received = append(data.Received, 0)
+			data.Net = append(data.Net, 0)
+		}
+	}
 	writeJSON(w, data, m.GetIndentCtx(r))
 }
 
