@@ -1058,6 +1058,8 @@ export default class extends Controller {
     } else if (this.settings.pgroup === 'authors') {
       this.settings.ptype = this.isMonthDisplay ? '' : 'list'
       this.settings.type = this.defaultSettings.type
+    } else if (this.settings.pgroup === 'domains') {
+      this.settings.ptype = 'list'
     }
     this.settings.stype = this.defaultSettings.stype
     this.calculate(false)
@@ -1228,7 +1230,7 @@ export default class extends Controller {
       this.reportAllPageTarget.classList.remove('proposal-report-page')
     }
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
-      if (this.settings.pgroup === 'proposals' || this.settings.pgroup === 'authors') {
+      if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals' || this.settings.pgroup === 'authors' || this.settings.pgroup === 'domains') {
         const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
         const tableWidth = parseFloat(tableWidthStr.trim())
         const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
@@ -1242,7 +1244,7 @@ export default class extends Controller {
         }
         this.reportTarget.classList.add('proposal-table-padding')
         let widthFinal = $('#reportTable thead').css('width')
-        if (widthFinal !== '' && this.settings.pgroup === 'authors' && this.settings.ptype === 'list') {
+        if (widthFinal !== '' && (this.settings.pgroup === 'authors' || this.settings.pgroup === 'domains') && this.settings.ptype === 'list') {
           let width = parseFloat(widthFinal.replaceAll('px', ''))
           width += 30
           widthFinal = width + 'px'
@@ -2398,7 +2400,7 @@ export default class extends Controller {
         isFuture = compareDataTime > compareNowTime
       }
       bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td>` +
-        `<td class="va-mid text-right fw-600 fs-13i pe-4">${isFuture ? 'Not due yet' : report.unaccounted === -1 ? 'Not sent' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
+        `<td class="va-mid text-right fs-13i pe-4">${isFuture ? 'Not due yet' : report.unaccounted === -1 ? 'Not sent' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
