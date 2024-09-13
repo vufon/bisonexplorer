@@ -996,16 +996,19 @@ export default class extends Controller {
 
   setReportTitle () {
     switch (this.settings.type) {
+      case '':
       case 'proposal':
         this.bcnameTarget.textContent = proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
-        this.settings.interval = this.defaultSettings.interval
-        this.intervalTargets.forEach((intervalTarget) => {
-          intervalTarget.classList.remove('active')
-          if (intervalTarget.name === this.settings.interval) {
-            intervalTarget.classList.add('active')
-          }
-        })
+        if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals') {
+          this.settings.interval = this.defaultSettings.interval
+          this.intervalTargets.forEach((intervalTarget) => {
+            intervalTarget.classList.remove('active')
+            if (intervalTarget.name === this.settings.interval) {
+              intervalTarget.classList.add('active')
+            }
+          })
+        }
         break
       case 'summary':
         this.bcnameTarget.textContent = proposalTitle
@@ -1049,7 +1052,7 @@ export default class extends Controller {
     })
     target.classList.add('active')
     this.settings.pgroup = e.target.name
-    if (!this.settings.pgroup || this.settings.pgroup === '' || this.settings.pgroup === 'proposals') {
+    if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals') {
       this.settings.type = this.isMonthDisplay ? 'proposal' : 'summary'
       this.settings.ptype = this.defaultSettings.ptype
     } else if (this.settings.pgroup === 'authors') {
