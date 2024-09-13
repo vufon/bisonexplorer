@@ -1125,8 +1125,6 @@ export default class extends Controller {
       } else {
         document.getElementById('activeProposalInput').checked = true
       }
-    } else {
-      this.settings.active = 'false'
     }
     this.updateQueryString()
 
