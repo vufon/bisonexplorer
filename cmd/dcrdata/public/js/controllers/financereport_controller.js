@@ -2951,10 +2951,10 @@ export default class extends Controller {
         this.settings.flow = this.defaultSettings.flow
       }
       this.searchBoxTarget.classList.remove('d-none')
-      if (this.settings.type === 'author' || this.settings.type === 'proposal' || this.settings.type === '') {
-        this.searchBoxTarget.classList.remove('ms-3')
-      } else {
+      if (((this.settings.pgroup === '' || this.settings.pgroup === 'proposals') && this.settings.type === 'summary') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'list')) {
         this.searchBoxTarget.classList.add('ms-3')
+      } else {
+        this.searchBoxTarget.classList.remove('ms-3')
       }
       this.settings.usd = false
     }
