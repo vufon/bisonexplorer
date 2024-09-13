@@ -785,14 +785,14 @@ export default class extends Controller {
     ])
 
     this.defaultSettings = {
-      type: 'summary',
+      type: 'proposal',
       tsort: 'newest',
       psort: 'newest',
       pgroup: 'proposals',
       stype: 'startdt',
       order: 'desc',
       interval: 'month',
-      ptype: 'list',
+      ptype: 'month',
       search: '',
       usd: false,
       active: 'true',
@@ -804,7 +804,7 @@ export default class extends Controller {
       ttype: 'combined'
     }
 
-    this.isListDisplay = false
+    this.isMonthDisplay = false
     this.query.update(this.settings)
     if (!this.settings.type || this.settings.type === 'proposal') {
       this.defaultSettings.tsort = 'oldest'
@@ -843,7 +843,7 @@ export default class extends Controller {
       this.clearSearchBtnTarget.classList.add('d-none')
     }
 
-    if (this.settings.type !== 'proposal') {
+    if (this.settings.type !== 'proposal' && this.settings.type !== '') {
       this.intervalTargets.forEach((intervalTarget) => {
         intervalTarget.classList.remove('active')
         if (intervalTarget.name === this.settings.interval) {
@@ -860,7 +860,7 @@ export default class extends Controller {
     this.devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
 
-    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+    if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       const $scroller = document.getElementById('scroller')
       const $container = document.getElementById('containerBody')
 
@@ -941,7 +941,7 @@ export default class extends Controller {
       // set overflow class
       $('#scroller').css('width', $('#repotParentContainer').css('width'))
     })
-    this.isListDisplay = (this.settings.pgroup === 'proposals' && this.settings.type === 'proposal') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'month')
+    this.isMonthDisplay = (this.settings.pgroup === 'proposals' && (this.settings.type === 'proposal' || this.settings.type === '')) || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')
   }
 
   searchInputKeypress (e) {
@@ -1050,10 +1050,10 @@ export default class extends Controller {
     target.classList.add('active')
     this.settings.pgroup = e.target.name
     if (!this.settings.pgroup || this.settings.pgroup === '' || this.settings.pgroup === 'proposals') {
-      this.settings.type = this.isListDisplay ? 'proposal' : 'summary'
+      this.settings.type = this.isMonthDisplay ? 'proposal' : 'summary'
       this.settings.ptype = this.defaultSettings.ptype
     } else if (this.settings.pgroup === 'authors') {
-      this.settings.ptype = this.isListDisplay ? 'month' : ''
+      this.settings.ptype = this.isMonthDisplay ? '' : 'list'
       this.settings.type = this.defaultSettings.type
     }
     this.settings.stype = this.defaultSettings.stype
@@ -1110,7 +1110,7 @@ export default class extends Controller {
   }
 
   createReportTable (redrawFlg) {
-    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+    if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       $('#reportTable').css('width', '')
     }
     // if summary, display toggle for filter Proposals are active
@@ -1181,7 +1181,7 @@ export default class extends Controller {
     }
 
     // handler for group domains and authors
-    if (this.settings.type === 'proposal' || this.settings.type === 'summary') {
+    if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       if (this.settings.pgroup === 'domains') {
         this.treasuryChartTarget.classList.remove('d-none')
         this.initializeChart()
@@ -1213,7 +1213,7 @@ export default class extends Controller {
       }
     }
 
-    if (this.settings.type === 'proposal') {
+    if (this.settings.type === 'proposal' || this.settings.type === '') {
       // add proposal class for proposals
       if (this.settings.interval !== 'year') {
         this.reportAllPageTarget.classList.add('proposal-report-page')
@@ -1238,7 +1238,7 @@ export default class extends Controller {
         }
         this.reportTarget.classList.add('proposal-table-padding')
         let widthFinal = $('#reportTable thead').css('width')
-        if (widthFinal !== '' && this.settings.pgroup === 'authors' && this.settings.ptype !== 'month') {
+        if (widthFinal !== '' && this.settings.pgroup === 'authors' && this.settings.ptype === 'list') {
           let width = parseFloat(widthFinal.replaceAll('px', ''))
           width += 30
           widthFinal = width + 'px'
@@ -1261,7 +1261,7 @@ export default class extends Controller {
             $('#scroller').removeClass('d-none')
           }
         }
-        if ((this.settings.type === 'proposal' && this.settings.pgroup === 'proposals') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'month')) {
+        if (((this.settings.type === 'proposal' || this.settings.type === '') && this.settings.pgroup === 'proposals') || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')) {
           // handler for scroll default
           if (this.settings.psort === 'oldest') {
             if (this.settings.tsort === 'newest') {
@@ -1292,7 +1292,7 @@ export default class extends Controller {
         return this.createDomainTable(responseData)
       }
       if (this.settings.pgroup === 'authors') {
-        if (this.settings.ptype !== 'month') {
+        if (this.settings.ptype === 'list') {
           return this.createAuthorTable(responseData)
         } else {
           return this.createMonthAuthorTable(responseData)
@@ -2948,7 +2948,7 @@ export default class extends Controller {
         this.settings.flow = this.defaultSettings.flow
       }
       this.searchBoxTarget.classList.remove('d-none')
-      if (this.settings.type === 'author' || this.settings.type === 'proposal') {
+      if (this.settings.type === 'author' || this.settings.type === 'proposal' || this.settings.type === '') {
         this.searchBoxTarget.classList.remove('ms-3')
       } else {
         this.searchBoxTarget.classList.add('ms-3')
@@ -2956,13 +2956,13 @@ export default class extends Controller {
       this.settings.usd = false
     }
 
-    if (!this.settings.type || this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
+    if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       this.proposalSelectTypeTarget.classList.remove('d-none')
-      document.getElementById('nameMonthSwitchInput').checked = this.isListDisplay
-      if ((this.settings.pgroup === 'proposals' && this.settings.type === 'summary') || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'month')) {
+      document.getElementById('nameMonthSwitchInput').checked = this.isMonthDisplay
+      if ((this.settings.pgroup === 'proposals' && this.settings.type === 'summary') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'list')) {
         this.colorLabelTarget.classList.remove('proposal-note-color')
         this.colorLabelTarget.classList.add('summary-note-color')
-      } else if ((this.settings.pgroup === 'proposals' && this.settings.type === 'proposal') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'month')) {
+      } else if ((this.settings.pgroup === 'proposals' && (this.settings.type === 'proposal' || this.settings.type === '')) || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')) {
         this.colorLabelTarget.classList.remove('summary-note-color')
         this.colorLabelTarget.classList.add('proposal-note-color')
         this.colorDescriptionTarget.textContent = (this.settings.interval === 'year' ? 'Valid payment year' : 'Valid payment month') + ' (Estimate)'
@@ -2989,7 +2989,7 @@ export default class extends Controller {
       } else if (this.settings.pgroup === 'authors') {
         this.colorNoteRowTarget.classList.remove('d-none')
         this.nameMatrixSwitchTarget.classList.remove('d-none')
-        if (this.settings.ptype === 'month') {
+        if (this.settings.ptype !== 'list') {
           this.activeProposalSwitchAreaTarget.classList.add('d-none')
         } else {
           this.activeProposalSwitchAreaTarget.classList.remove('d-none')
@@ -3186,7 +3186,7 @@ export default class extends Controller {
 
   nameMatrixSwitchEvent (e) {
     const switchCheck = document.getElementById('nameMonthSwitchInput').checked
-    this.isListDisplay = switchCheck
+    this.isMonthDisplay = switchCheck
     // if is proposals group type
     if (this.settings.pgroup === 'proposals') {
       this.settings.type = !switchCheck || switchCheck === 'false' ? 'summary' : 'proposal'
