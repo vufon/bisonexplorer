@@ -198,7 +198,7 @@ export default class extends Controller {
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
-      'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'adminTypeRate', 'adminPercent']
+      'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'adminTypeRate', 'adminPercent', 'chartData']
   }
 
   async connect () {
@@ -1193,6 +1193,7 @@ export default class extends Controller {
         this.amountFlowOptionTarget.innerHTML = 'Domain'
         // hide balance select option
         this.balanceOptionTarget.classList.add('d-none')
+        this.chartDataTarget.classList.add('d-none')
         // change domain on radio button label
         this.sentRadioLabelTarget.textContent = 'Development'
         this.receivedRadioLabelTarget.textContent = 'Marketing'
