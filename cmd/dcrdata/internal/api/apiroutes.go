@@ -1016,11 +1016,6 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, nil, m.GetIndentCtx(r))
 		return
 	}
-	for _, summary := range treasurySummary {
-		summary.Outvalue = 0 - summary.Outvalue
-		summary.OutvalueUSD = 0 - summary.OutvalueUSD
-	}
-
 	//Get coin supply value
 	writeJSON(w, struct {
 		Report           []apitypes.MonthReportObject  `json:"report"`

@@ -2381,8 +2381,20 @@ export default class extends Controller {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
+      const timeYearMonth = this.getYearMonthArray(report.month, '/')
+      const nowDate = new Date()
+      const year = nowDate.getUTCFullYear()
+      const month = nowDate.getUTCMonth() + 1
+      let isFuture = false
+      if (this.settings.interval === 'year') {
+        isFuture = timeYearMonth[0] > year
+      } else {
+        const compareDataTime = timeYearMonth[0] * 12 + timeYearMonth[1]
+        const compareNowTime = year * 12 + month
+        isFuture = compareDataTime > compareNowTime
+      }
       bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td>` +
-        `<td class="va-mid text-right fw-600 fs-13i pe-4">${report.unaccounted === 0 ? 'Not sent' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
+        `<td class="va-mid text-right fw-600 fs-13i pe-4">${isFuture ? 'Not due yet' : report.unaccounted === -1 ? 'Not sent' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
@@ -2412,6 +2424,10 @@ export default class extends Controller {
         const treasurySpent = treasuryDataMap.get(monthFormat)
         if (treasurySpent > reportItem.total) {
           reportData.report[i].unaccounted = treasurySpent - reportItem.total
+        } else if (treasurySpent === 0) {
+          reportData.report[i].unaccounted = -1
+        } else {
+          reportData.report[i].unaccounted = 0
         }
       }
     }
@@ -2431,6 +2447,18 @@ export default class extends Controller {
       }
     }
     return timeParam
+  }
+
+  getYearMonthArray (timeInput, splitChar) {
+    const timeArr = timeInput.split(splitChar)
+    const result = []
+    if (timeArr.length < 2) {
+      result.push(parseInt(timeArr[0]))
+      return result
+    }
+    result.push(parseInt(timeArr[0]))
+    result.push(parseInt(timeArr[1]))
+    return result
   }
 
   createTreasuryTable (data) {
@@ -2617,7 +2645,6 @@ export default class extends Controller {
     }
     if (data.legacySummary) {
       data.legacySummary.forEach((legacy) => {
-        console.log('month: ' + legacy.month + ', outgoing: ' + legacy.outvalue)
         if (!timeArr.includes(legacy.month)) {
           timeArr.push(legacy.month)
           // create object and insert to map
