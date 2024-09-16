@@ -2328,7 +2328,7 @@ body.darkBG {
 }
 
 .chain-select-area {
-  margin-left: 20px;
+  margin-left: 5px;
   border: 1px solid #d9d9d9;
   padding: 5px 8px;
   border-radius: 8px;
@@ -2360,7 +2360,6 @@ body.darkBG {
 
 @media (max-width: 1120px) {
   .home-link {
-    height: 45px;
     object-fit: cover;
     overflow: hidden;
     width: 35px;

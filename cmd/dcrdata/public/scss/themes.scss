@@ -33,6 +33,10 @@ body.theme-testnet {
   .menu-item-title {
     color: white;
   }
+
+  .menu-item-title:hover {
+    color: black;
+  }
 }
 
 /**  simnet theme  **/
