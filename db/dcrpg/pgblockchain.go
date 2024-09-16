@@ -2614,11 +2614,11 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		creditIndexOfRows := int64(0)
 		debitIndexOfRows := int64(0)
 		creditAddrIndex, err := pgb.RetrieveTreasuryCreditMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
-		if err == nil {
+		if err == nil && creditAddrIndex > 0 {
 			creditIndexOfRows = treasuryCreditTxnCount - creditAddrIndex
 		}
 		debitAddrIndex, err := pgb.RetrieveTreasuryDebitMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
-		if err == nil {
+		if err == nil && debitAddrIndex > 0 {
 			debitIndexOfRows = treasuryDebitTxnCount - debitAddrIndex
 		}
 		creditOffset := 20 * (creditIndexOfRows / 20)
@@ -2914,11 +2914,11 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 		creditIndexOfRows := int64(0)
 		debitIndexOfRows := int64(0)
 		creditAddrIndex, err := pgb.RetrieveLegacyAddressCreditMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
-		if err == nil {
+		if err == nil && creditAddrIndex > 0 {
 			creditIndexOfRows = addrCreditTxnCount - creditAddrIndex
 		}
 		debitAddrIndex, err := pgb.RetrieveLegacyAddressDebitMonthRowIndex(summary.MonthTime.Year(), int(summary.MonthTime.Month()))
-		if err == nil {
+		if err == nil && debitAddrIndex > 0 {
 			debitIndexOfRows = addrDebitTxnCount - debitAddrIndex
 		}
 		creditOffset := 20 * (creditIndexOfRows / 20)
