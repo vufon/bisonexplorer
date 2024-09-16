@@ -69,8 +69,10 @@
                data-action="change->scroll#changeCoin"
                class="vodiapicker">
                <option name="dcr" value="dcr" class="test" data-thumbnail="/images/dcr-icon.png">Decred (DCR)</option>
+			   {{if eq .NetName "Mainnet"}} 
                <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">Bitcoin (BTC)</option>
                <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">Litecoin (LTC)</option>
+			   {{end}}
             </select>
             <div class="chain-select-area">
                <button class="chain-selected-btn" value="dcr">
@@ -79,7 +81,7 @@
                <div id="chainSelectList" class="selection-area" style="display: none;">
                   <ul id="selectUl" class="chain-select-list">
                      <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred (DCR)</span></li>
-                     {{if ne .NetName "Mainnet"}}
+                     {{if eq .NetName "Mainnet"}}
 					 <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin (BTC)</span></li>
                      <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin (LTC)</span></li>
 					 {{end}}
@@ -389,8 +391,10 @@
                data-action="change->scroll#changeCoin"
                class="vodiapicker">
                <option name="dcr" value="dcr" class="test" data-thumbnail="/images/dcr-icon.png">Decred (DCR)</option>
-               <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">Bitcoin (BTC)</option>
+			   {{if eq .NetName "Mainnet"}}  
+			   <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">Bitcoin (BTC)</option>
                <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">Litecoin (LTC)</option>
+			   {{end}}
             </select>
             <div class="chain-select-area">
                <button class="chain-selected-btn" value="dcr">
@@ -399,7 +403,7 @@
                <div id="chainSelectList" class="selection-area" style="display: none;">
                   <ul id="selectUl" class="chain-select-list">
                      <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred (DCR)</span></li>
-					 {{if ne .NetName "Mainnet"}}
+					 {{if eq .NetName "Mainnet"}}
                      <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin (BTC)</span></li>
                      <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin (LTC)</span></li>
 					 {{end}}
