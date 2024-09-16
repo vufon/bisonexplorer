@@ -149,6 +149,7 @@
                         </div>
                      </div>
                      <div class="home-menu-content group-menu-content">
+                        {{if eq .NetName "Mainnet"}}
                         <a href="/chain"
                         class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                         <div class="ta-center">
@@ -156,6 +157,7 @@
                            <span class="fs-13 menu-item-description">All supported blockchains</span>
                         </div>
                         </a>
+                        {{end}}
                         <a href="/stakingcalc"
                            class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                            <div class="ta-center">
