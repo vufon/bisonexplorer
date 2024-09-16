@@ -117,8 +117,8 @@ var (
 	defaultDisabledExchanges = "bittrex,dragonex,poloniex"
 	defaultRateCertFile      = filepath.Join(defaultHomeDir, "rpc.cert")
 
-	defaultMainnetLink  = "https://blockcare.pro/"
-	defaultTestnetLink  = "https://testnet.blockcare.pro/"
+	defaultMainnetLink  = "https://bisonexplorer.com/"
+	defaultTestnetLink  = "https://testnet.bisonexplorer.com/"
 	defaultBinanceAPI   = "https://api.binance.com"
 	defaultOnionAddress = ""
 	defaultCoinCaps     = "bitcoin,litecoin,decred,ethereum,monero"

@@ -4,7 +4,7 @@
 {{$ChainType := .ChainType}}
 {{- $botState := .XcState -}}
 <html lang="en">
-   {{ template "html-head" headData .CommonPageData (printf "%s Blockchain Explorer by blockcare.pro" (chainName $ChainType))}}
+   {{ template "html-head" headData .CommonPageData (printf "%s Blockchains Explorer by bisonexplorer.com" (chainName $ChainType))}}
    {{ template "mutilchain_navbar" . }}
    <div class="main-container homepage-class" data-controller="time chainhome"
    data-chainhome-chain-type="{{$ChainType}}"
