@@ -22,10 +22,17 @@
 }
 
 .tab-button.white.active,
-.tab-button.white:hover {
+.tab-button.white.active:hover {
   border-color: #36a6e9;
   background: #36a6e9;
   color: white !important;
+  cursor: default;
+}
+
+.tab-button.white:hover {
+  background: #d6f0ff;
+  color: #3f3f3f;
+  border-color: #dce8ee;
 }
 
 .home-chart-toggle-btn {
