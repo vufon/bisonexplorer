@@ -198,7 +198,8 @@ export default class extends Controller {
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
-      'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'adminTypeRate', 'adminPercent', 'chartData']
+      'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'chartData',
+      'specialTreasury', 'decentralizedData', 'adminData']
   }
 
   async connect () {
@@ -1008,6 +1009,14 @@ export default class extends Controller {
               intervalTarget.classList.add('active')
             }
           })
+          this.reportDescriptionTarget.classList.add('d-none')
+        } else if (this.settings.pgroup === 'authors') {
+          if (this.settings.ptype !== 'list') {
+            this.reportDescriptionTarget.classList.add('d-none')
+          } else {
+            this.reportDescriptionTarget.classList.remove('d-none')
+            this.reportDescriptionTarget.innerHTML = proposalNote
+          }
         }
         break
       case 'summary':
@@ -2515,13 +2524,13 @@ export default class extends Controller {
       this.initLegacyBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.legacySummary) : data.legacySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
       this.initTreasuryBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.treasurySummary) : data.treasurySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
       this.initCombinedBalanceMap(treasuryData)
+      this.specialTreasuryTarget.classList.add('d-none')
       this.treasuryTypeRateTarget.classList.remove('d-none')
-      this.adminTypeRateTarget.classList.remove('d-none')
     } else {
+      this.specialTreasuryTarget.classList.remove('d-none')
       this.treasuryTypeRateTarget.classList.add('d-none')
-      this.adminTypeRateTarget.classList.add('d-none')
     }
-    this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData)
+    this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData, data.treasurySummary, data.legacySummary)
   }
 
   initYearSelectOptions (treasuryData) {
@@ -2812,7 +2821,7 @@ export default class extends Controller {
     return year * 12 + month
   }
 
-  createTreasuryLegacyTableContent (summary) {
+  createTreasuryLegacyTableContent (summary, treasurySummary, legacySummary) {
     const isLegacy = this.settings.ttype === 'legacy'
     const isCombined = !this.settings.ttype || this.settings.ttype === '' || this.settings.ttype === 'combined'
     let thead = '<thead>' +
@@ -2843,30 +2852,51 @@ export default class extends Controller {
     // create tbody content
     let incomeTotal = 0; let outTotal = 0; let diffTotal = 0; let estimateOutTotal = 0
     let lastBalance = 0; let lastBalanceUSD = 0
+    let lastTreasuryItem, lastAdminItem
     let lastMonth = ''
     if (summary.length > 0) {
       lastBalance = summary[0].balance
       lastBalanceUSD = summary[0].balanceUSD
       lastMonth = summary[0].month
     }
+    if (treasurySummary.length > 0) {
+      lastTreasuryItem = treasurySummary[0]
+    }
+    if (legacySummary.length > 0) {
+      lastAdminItem = legacySummary[0]
+    }
     // display balance in top
-    this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2)
+    if (!isCombined) {
+      if (usdDisp) {
+        this.treasuryBalanceDisplayTarget.textContent = '$' + humanize.formatToLocalString(lastBalanceUSD, 2, 2)
+      } else {
+        this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2) + ' DCR'
+      }
+    }
     const balanceMap = this.settings.interval === 'year' ? combinedYearlyBalanceMap : combineBalanceMap
     if (isCombined && lastMonth !== '' && balanceMap.has(lastMonth)) {
       const combined = balanceMap.get(lastMonth)
       let legacy = 0; let tresury = 0
-      const adminBalanceDataMap = this.settings.interval === 'year' ? adminYearlyBalanceMap : adminBalanceMap
-      if (adminBalanceDataMap.has(lastMonth)) {
-        legacy = adminBalanceDataMap.get(lastMonth)
+      let legacyUSD = 0; let treasuryUSD = 0
+      if (lastAdminItem) {
+        legacy = lastAdminItem.balance
+        legacyUSD = lastAdminItem.balanceUSD
       }
-      const treasuryBalanceDataMap = this.settings.interval === 'year' ? treasuryYearlyBalanceMap : treasuryBalanceMap
-      if (treasuryBalanceDataMap.has(lastMonth)) {
-        tresury = treasuryBalanceDataMap.get(lastMonth)
+      if (lastTreasuryItem) {
+        tresury = lastTreasuryItem.balance
+        treasuryUSD = lastTreasuryItem.balanceUSD
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
-      this.treasuryLegacyPercentTarget.textContent = humanize.formatToLocalString((tresury / 100000000), 2, 2) + ' DCR (' + humanize.formatToLocalString(lastTreasuryRate, 2, 2) + ' %)'
-      this.adminPercentTarget.textContent = humanize.formatToLocalString((legacy / 100000000), 2, 2) + ' DCR (' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + ' %)'
+      if (usdDisp) {
+        this.treasuryLegacyPercentTarget.textContent = `$${humanize.formatToLocalString((lastBalanceUSD), 2, 2)} `
+        this.decentralizedDataTarget.textContent = `$${humanize.formatToLocalString(treasuryUSD, 2, 2)} (${humanize.formatToLocalString(lastTreasuryRate, 2, 2)}%)`
+        this.adminDataTarget.textContent = `$${humanize.formatToLocalString(legacyUSD, 2, 2)} (${humanize.formatToLocalString(lastLegacyRate, 2, 2)} %)`
+      } else {
+        this.treasuryLegacyPercentTarget.textContent = `${humanize.formatToLocalString((lastBalance / 100000000), 2, 2)} DCR`
+        this.decentralizedDataTarget.textContent = `${humanize.formatToLocalString((tresury / 100000000), 2, 2)} DCR (${humanize.formatToLocalString(lastTreasuryRate, 2, 2)}%)`
+        this.adminDataTarget.textContent = `${humanize.formatToLocalString((legacy / 100000000), 2, 2)} DCR (${humanize.formatToLocalString(lastLegacyRate, 2, 2)} %)`
+      }
     }
     const treasuryList = this.sortTreasury(summary)
     const _this = this
@@ -2966,10 +2996,14 @@ export default class extends Controller {
       if ((this.settings.pgroup === 'proposals' && this.settings.type === 'summary') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'list')) {
         this.colorLabelTarget.classList.remove('proposal-note-color')
         this.colorLabelTarget.classList.add('summary-note-color')
+        this.reportDescriptionTarget.classList.remove('d-none')
       } else if ((this.settings.pgroup === 'proposals' && (this.settings.type === 'proposal' || this.settings.type === '')) || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')) {
         this.colorLabelTarget.classList.remove('summary-note-color')
         this.colorLabelTarget.classList.add('proposal-note-color')
-        this.colorDescriptionTarget.textContent = (this.settings.interval === 'year' ? 'Valid payment year' : 'Valid payment month') + ' (Estimate)'
+        this.reportDescriptionTarget.classList.add('d-none')
+        this.colorDescriptionTarget.textContent = (this.settings.interval === 'year' ? 'Valid payment year (Estimated based on total budget and time period of proposal)' : 'Valid payment month (Estimated based on total budget and time period of proposal)')
+      } else {
+        this.reportDescriptionTarget.classList.remove('d-none')
       }
 
       // handler for group type
@@ -3003,6 +3037,7 @@ export default class extends Controller {
     } else {
       this.nameMatrixSwitchTarget.classList.add('d-none')
       this.proposalSelectTypeTarget.classList.add('d-none')
+      this.reportDescriptionTarget.classList.remove('d-none')
     }
     // disabled group button for loading
     this.disabledGroupButton()

@@ -53,7 +53,7 @@
                <label class="me-2" data-financereport-target="typeLabel">Type:</label>
                <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
-                     type="button" class="tab-button white me-1 c-txt-main" value="Combined" name="combined">
+                     type="button" class="tab-button white me-1 c-txt-main" value="Combined Treasury" name="combined">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Decentralized Treasury"
                      name="current">
@@ -62,14 +62,17 @@
                </div>
             </div>
             <div class="pb-2 d-none" data-financereport-target="currentBalanceArea">
-               <p class="fs-17">
-                  Balance: <span data-financereport-target="treasuryBalanceDisplay"></span> DCR
+               <p class="fs-17" data-financereport-target="specialTreasury">
+                  Balance: <span data-financereport-target="treasuryBalanceDisplay"></span>
                </p>
                <p class="fs-17 d-none" data-financereport-target="treasuryTypeRate">
-                  Decentralized: <span data-financereport-target="treasuryLegacyPercent"></span>
-               </p>
-               <p class="fs-17 d-none" data-financereport-target="adminTypeRate">
-                  Admin: <span data-financereport-target="adminPercent"></span>
+                  Combined Treasury Balance: <span data-financereport-target="treasuryLegacyPercent"></span>
+                  <br />
+                  <span class="fw-600">With</span>
+                  <br />
+                  Decentralized: <span data-financereport-target="decentralizedData"></span>
+                  <br />
+                  Admin: <span data-financereport-target="adminData"></span>
                </p>
             </div>
             <!-- Start treasury chart -->
@@ -90,10 +93,10 @@
                            <label>Chart</label>
                            <select class="chart-box d-inline-flex" data-financereport-target="options"
                               data-action="change->financereport#changeGraph">
-                              <option name="amountflow" data-financereport-target="amountFlowOption" value="amountflow">
-                                 Sent/Received</option>
                               <option name="balance" data-financereport-target="balanceOption" value="balance">Balance
                               </option>
+                              <option name="amountflow" data-financereport-target="amountFlowOption" value="amountflow">
+                                 Sent/Received</option>
                            </select>
                         </div>
                         <div class="btn-set secondary-card d-inline-flex flex-nowrap mx-2" data-toggle="buttons"
@@ -197,7 +200,8 @@
                </div>
             </div>
             <span class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total
-               estimated proposal spends from proposal budgets</span>
+               estimated proposal spends from proposal budgets
+            <br/>*Dev Spent (Est): Estimated costs covered for proposals</span>
          </div>
          <div class="container" id="repotParentContainer">
             <div class="report-table-wrapper" id="wrapperReportTable">
