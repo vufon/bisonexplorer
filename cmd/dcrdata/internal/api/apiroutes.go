@@ -1350,7 +1350,7 @@ func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.
 		allParamList = c.DataSource.GetAllProposalOwners()
 	}
 
-	proposalSummaryList, monthDatas := c.GetReportDataFromProposalList(proposals, false)
+	proposalSummaryList, monthDatas := c.GetReportDataFromProposalList(proposals, true)
 
 	if paramType == "domain" {
 		writeJSON(w, struct {

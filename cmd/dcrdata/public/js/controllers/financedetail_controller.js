@@ -315,7 +315,7 @@ export default class extends Controller {
       data.proposalInfos.forEach((proposal) => {
         totalBudget += proposal.budget
         totalSpent += proposal.totalSpent
-        totalRemaining += proposal.totalRemaining
+        totalRemaining += proposal.totalRemaining > 0 ? proposal.totalRemaining : 0
       })
     }
     this.proposalSpanRowTarget.innerHTML = `<p>Total Budget: <span class="fw-600">$${humanize.formatToLocalString(totalBudget, 2, 2)}</span></p>` +
@@ -403,7 +403,7 @@ export default class extends Controller {
       }
       totalBudget += summary.budget
       totalAllSpent += summary.totalSpent
-      totalRemaining += summary.totalRemaining
+      totalRemaining += summary.totalRemaining > 0 ? summary.totalRemaining : 0
       bodyList += `<tr class="${summary.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}">` +
         `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=proposal&token=' + summary.token}" class="link-hover-underline fs-13i">${summary.name}</a></td>`
       if (!hideAuthor) {
