@@ -199,7 +199,7 @@ export default class extends Controller {
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
       'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'chartData',
-      'specialTreasury', 'decentralizedData', 'adminData']
+      'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel']
   }
 
   async connect () {
@@ -2342,12 +2342,13 @@ export default class extends Controller {
       return ''
     }
     let handlerData = data
-    if (this.settings.interval === 'year') {
-      handlerData = domainYearData != null ? domainYearData : this.getProposalYearlyData(data)
-    }
     let treasuryData = data.treasurySummary
     if (this.settings.interval === 'year') {
+      handlerData = domainYearData != null ? domainYearData : this.getProposalYearlyData(data)
       treasuryData = treasurySummaryData != null ? treasurySummaryData : this.getTreasuryYearlyData(treasuryData)
+      this.futureLabelTarget.textContent = 'Years in the future'
+    } else {
+      this.futureLabelTarget.textContent = 'Months in the future'
     }
     const treasuryDataMap = this.getTreasuryMonthSpentMap(treasuryData)
     handlerData = this.getTreasuryDomainCombined(handlerData, treasuryDataMap)
@@ -2385,7 +2386,19 @@ export default class extends Controller {
     for (let i = 0; i < domainList.length; i++) {
       const report = domainList[i]
       const timeParam = this.getFullTimeParam(report.month, '/')
-      bodyList += `<tr class="odd-even-row"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
+      let isFuture = false
+      const timeYearMonth = this.getYearMonthArray(report.month, '/')
+      const nowDate = new Date()
+      const year = nowDate.getUTCFullYear()
+      const month = nowDate.getUTCMonth() + 1
+      if (this.settings.interval === 'year') {
+        isFuture = timeYearMonth[0] > year
+      } else {
+        const compareDataTime = timeYearMonth[0] * 12 + timeYearMonth[1]
+        const compareNowTime = year * 12 + month
+        isFuture = compareDataTime > compareNowTime
+      }
+      bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
         bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : ''}</td>`
         if (domainDataMap.has(domainData.domain)) {
@@ -2394,18 +2407,6 @@ export default class extends Controller {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
-      const timeYearMonth = this.getYearMonthArray(report.month, '/')
-      const nowDate = new Date()
-      const year = nowDate.getUTCFullYear()
-      const month = nowDate.getUTCMonth() + 1
-      let isFuture = false
-      if (this.settings.interval === 'year') {
-        isFuture = timeYearMonth[0] > year
-      } else {
-        const compareDataTime = timeYearMonth[0] * 12 + timeYearMonth[1]
-        const compareNowTime = year * 12 + month
-        isFuture = compareDataTime > compareNowTime
-      }
       bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td>` +
         `<td class="va-mid text-right fs-13i pe-4">${isFuture ? 'Not due yet' : report.unaccounted === -1 ? 'Not sent' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
     }
@@ -3004,6 +3005,12 @@ export default class extends Controller {
         this.colorDescriptionTarget.textContent = (this.settings.interval === 'year' ? 'Valid payment year (Estimated based on total budget and time period of proposal)' : 'Valid payment month (Estimated based on total budget and time period of proposal)')
       } else {
         this.reportDescriptionTarget.classList.remove('d-none')
+      }
+
+      if (this.settings.pgroup === 'domains') {
+        this.domainFutureRowTarget.classList.remove('d-none')
+      } else {
+        this.domainFutureRowTarget.classList.add('d-none')
       }
 
       // handler for group type

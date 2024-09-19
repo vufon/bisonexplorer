@@ -515,7 +515,19 @@ export default class extends Controller {
         allTable += '<tbody>'
       }
       const dataMonth = handlerData[i]
-      allTable += '<tr class="odd-even-row">'
+      let isFuture = false
+      const timeYearMonth = this.getYearMonthArray(dataMonth.month, '-')
+      const nowDate = new Date()
+      const year = nowDate.getUTCFullYear()
+      const month = nowDate.getUTCMonth() + 1
+      if (type === 'year') {
+        isFuture = timeYearMonth[0] > year
+      } else if (type === 'month') {
+        const compareDataTime = timeYearMonth[0] * 12 + timeYearMonth[1]
+        const compareNowTime = year * 12 + month
+        isFuture = compareDataTime > compareNowTime
+      }
+      allTable += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}">`
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
       allTable += `<td class="text-left px-3 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
       allTable += `<td class="text-right px-3 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : ''}</td>`
@@ -828,5 +840,17 @@ export default class extends Controller {
     })
 
     return summary
+  }
+
+  getYearMonthArray (timeInput, splitChar) {
+    const timeArr = timeInput.split(splitChar)
+    const result = []
+    if (timeArr.length < 2) {
+      result.push(parseInt(timeArr[0]))
+      return result
+    }
+    result.push(parseInt(timeArr[0]))
+    result.push(parseInt(timeArr[1]))
+    return result
   }
 }

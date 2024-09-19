@@ -163,6 +163,14 @@ table.table.v3 {
   }
 }
 
+.future-row-data {
+  background-color: #ddf0ff !important;
+}
+
+.future-color {
+  background-color: #ddf0ff;
+}
+
 body.darkBG {
   .last-row-header {
     background-color: #5587a4 !important;
@@ -170,5 +178,13 @@ body.darkBG {
 
   .odd-even-row {
     background-color: #494949 !important;
+  }
+
+  .future-row-data {
+    background-color: #1a4e6f !important;
+  }
+
+  .future-color {
+    background-color: #1a4e6f !important;
   }
 }
