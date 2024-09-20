@@ -809,13 +809,20 @@ export default class extends Controller {
     }
     this.query.update(this.settings)
     this.treasuryChart = 'balance'
+    this.proposalTSort = ''
+    this.treasuryTSort = ''
     this.initData()
   }
 
   async initData () {
     this.isMonthDisplay = false
-    if (!this.settings.type || this.settings.type === 'proposal') {
+    if (!this.settings.type) {
+      this.settings.type = this.defaultSettings.type
+    }
+    if ((!this.settings.type || this.settings.type === 'proposal' || this.settings.type === 'summary') && !this.isDomainType()) {
       this.defaultSettings.tsort = 'oldest'
+    } else {
+      this.defaultSettings.tsort = 'newest'
     }
     if (!this.settings.active) {
       this.settings.active = this.defaultSettings.active
@@ -829,11 +836,13 @@ export default class extends Controller {
     if (this.settings.type && this.settings.type === 'treasury') {
       this.defaultSettings.stype = ''
     }
-    if (this.settings.type === 'treasury' && (!this.settings.tsort || this.settings.tsort === '')) {
+    if (!this.settings.tsort || this.settings.tsort === '') {
       this.settings.tsort = this.defaultSettings.tsort
-    }
-    if (!this.settings.type) {
-      this.settings.type = this.defaultSettings.type
+      if (this.settings.type === 'treasury') {
+        this.treasuryTSort = this.settings.tsort
+      } else {
+        this.proposalTSort = this.settings.tsort
+      }
     }
     if (!this.settings.interval) {
       this.settings.interval = this.defaultSettings.interval
@@ -1068,9 +1077,13 @@ export default class extends Controller {
       (this.settings.type === 'treasury' && e.target.name === 'treasury')) {
       return
     }
+    ctrl.chartLoaderTarget.classList.add('loading')
     this.settings.type = e.target.name
     if (this.settings.type === 'treasury') {
       this.settings.chart = this.treasuryChart
+      this.settings.tsort = this.treasuryTSort
+    } else if (!this.isDomainType()) {
+      this.settings.tsort = this.proposalTSort
     }
     await this.initData()
     await this.connect()
@@ -1366,8 +1379,10 @@ export default class extends Controller {
   sortByCreateDate () {
     if (this.settings.type === 'treasury' || this.isDomainType()) {
       this.settings.tsort = this.settings.tsort === 'oldest' ? 'newest' : 'oldest'
+      this.treasuryTSort = this.settings.tsort
     } else {
       this.settings.tsort = (this.settings.tsort === 'oldest' || !this.settings.tsort || this.settings.tsort === '') ? 'newest' : 'oldest'
+      this.proposalTSort = this.settings.tsort
     }
     if (this.settings.type === 'treasury' || this.isDomainType()) {
       this.settings.stype = ''

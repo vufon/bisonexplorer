@@ -26,7 +26,7 @@
          </div>
          <div class="mt-2 mb-2 container">
             <div class="d-flex ai-center my-3" data-financereport-target="reportTypeSelector">
-               <label class="me-2">Type:</label>
+               <label class="me-2">Report Type:</label>
                <div class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposal">
@@ -35,6 +35,7 @@
                </div>
             </div>
             <div class="d-flex ai-center my-3 d-none" data-financereport-target="proposalSelectType">
+               <label class="me-2">Proposal Group:</label>
                <div class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposals">
@@ -55,6 +56,7 @@
                   style="position:sticky;left:125px;">Month</span>
             </div>
             <div class="d-flex ai-center my-3 d-none" data-financereport-target="selectTreasuryType">
+               <label class="me-2">Treasury Type:</label>
                <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Combined Treasury" name="combined">
