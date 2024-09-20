@@ -194,12 +194,12 @@ export default class extends Controller {
       'treasuryToggleArea', 'reportDescription', 'reportAllPage',
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
-      'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeLabel', 'typeSelector',
+      'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeSelector',
       'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
       'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'chartData',
-      'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel']
+      'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel', 'reportType']
   }
 
   async connect () {
@@ -804,9 +804,12 @@ export default class extends Controller {
       year: 0, // 0 when display all year
       ttype: 'combined'
     }
-
-    this.isMonthDisplay = false
     this.query.update(this.settings)
+    this.initData()
+  }
+
+  async initData () {
+    this.isMonthDisplay = false
     if (!this.settings.type || this.settings.type === 'proposal') {
       this.defaultSettings.tsort = 'oldest'
     }
@@ -843,8 +846,16 @@ export default class extends Controller {
       this.searchBtnTarget.classList.remove('d-none')
       this.clearSearchBtnTarget.classList.add('d-none')
     }
+    this.reportTypeTargets.forEach((rTypeTarget) => {
+      rTypeTarget.classList.remove('active')
+      if ((!this.settings.type && rTypeTarget.name === 'proposal') ||
+      (rTypeTarget.name === 'proposal' && (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary')) ||
+      (rTypeTarget.name === 'treasury' && this.settings.type === 'treasury')) {
+        rTypeTarget.classList.add('active')
+      }
+    })
 
-    if (this.settings.type !== 'proposal' && this.settings.type !== '') {
+    if (this.settings.type !== 'proposal' && this.settings.type !== '' && this.settings.type !== 'summary') {
       this.intervalTargets.forEach((intervalTarget) => {
         intervalTarget.classList.remove('active')
         if (intervalTarget.name === this.settings.interval) {
@@ -864,11 +875,8 @@ export default class extends Controller {
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       const $scroller = document.getElementById('scroller')
       const $container = document.getElementById('containerBody')
-
       const $wrapper = document.getElementById('wrapperReportTable')
-
       let ignoreScrollEvent = false
-
       let animation = null
       this.proposalTypeTargets.forEach((proposalTypeTarget) => {
         proposalTypeTarget.classList.remove('active')
@@ -1051,6 +1059,16 @@ export default class extends Controller {
     this.calculate(true)
   }
 
+  async reportTypeChange (e) {
+    if (((this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') && e.target.name === 'proposal') ||
+      (this.settings.type === 'treasury' && e.target.name === 'treasury')) {
+      return
+    }
+    this.settings.type = e.target.name
+    await this.initData()
+    await this.connect()
+  }
+
   proposalTypeChange (e) {
     if (e.target.name === this.settings.pgroup) {
       return
@@ -1157,8 +1175,16 @@ export default class extends Controller {
           })
         }
       }
+      this.selectTreasuryTypeTarget.classList.remove('d-none')
+      this.currentBalanceAreaTarget.classList.remove('d-none')
+      this.chartDataTarget.classList.remove('d-none')
+      this.balanceOptionTarget.classList.remove('d-none')
+      this.amountFlowOptionTarget.innerHTML = 'Sent/Received'
     } else {
+      this.outgoingExpTarget.classList.add('d-none')
       this.treasuryToggleAreaTarget.classList.add('d-none')
+      this.currentBalanceAreaTarget.classList.add('d-none')
+      this.selectTreasuryTypeTarget.classList.add('d-none')
       if (!this.isDomainType()) {
         this.treasuryChartTarget.classList.add('d-none')
       }
@@ -1169,14 +1195,9 @@ export default class extends Controller {
       this.treasuryChartTitleTarget.classList.remove('d-none')
       this.treasuryTypeTitleTarget.classList.remove('d-none')
       if (this.settings.type === 'treasury') {
-        this.currentBalanceAreaTarget.classList.remove('d-none')
-        this.selectTreasuryTypeTarget.classList.remove('d-none')
-        this.typeLabelTarget.classList.remove('d-none')
         this.typeSelectorTarget.classList.remove('d-none')
         this.treasuryChartTitleTarget.textContent = 'Treasury IO Chart'
       } else {
-        this.currentBalanceAreaTarget.classList.add('d-none')
-        this.typeLabelTarget.classList.add('d-none')
         this.typeSelectorTarget.classList.add('d-none')
         this.treasuryChartTitleTarget.textContent = 'Domains Chart Data'
         this.treasuryTypeTitleTarget.textContent = 'Domains Spending Data'
@@ -1294,6 +1315,9 @@ export default class extends Controller {
         $('#scroller').addClass('d-none')
       }
     } else {
+      $('#reportTable').css('width', 'auto')
+      $('#scroller').scrollLeft(0)
+      $('#scroller').addClass('d-none')
       $('html').css('overflow-x', '')
     }
   }
@@ -2973,6 +2997,7 @@ export default class extends Controller {
     if (this.settings.type === 'treasury') {
       this.searchBoxTarget.classList.add('d-none')
       this.searchBoxTarget.classList.remove('report-search-box')
+      this.colorNoteRowTarget.classList.add('d-none')
       this.searchInputTarget.value = ''
       this.settings.search = this.defaultSettings.search
     } else {
@@ -2983,6 +3008,7 @@ export default class extends Controller {
         this.settings.flow = this.defaultSettings.flow
       }
       this.searchBoxTarget.classList.remove('d-none')
+      this.searchBoxTarget.classList.add('report-search-box')
       if (((this.settings.pgroup === '' || this.settings.pgroup === 'proposals') && this.settings.type === 'summary') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'list')) {
         this.searchBoxTarget.classList.add('ms-3')
       } else {

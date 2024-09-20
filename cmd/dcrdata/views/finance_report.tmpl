@@ -25,8 +25,16 @@
             <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
          </div>
          <div class="mt-2 mb-2 container">
-            <div class="d-flex ai-center my-3 d-none" data-financereport-target="proposalSelectType">
+            <div class="d-flex ai-center my-3" data-financereport-target="reportTypeSelector">
                <label class="me-2">Type:</label>
+               <div class="btn-group" data-toggle="buttons">
+                  <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
+                     type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposal">
+                  <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
+                     type="button" class="tab-button white me-1 c-txt-main" value="Treasury Spending" name="treasury">
+               </div>
+            </div>
+            <div class="d-flex ai-center my-3 d-none" data-financereport-target="proposalSelectType">
                <div class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposals">
@@ -46,11 +54,7 @@
                <span class="ms-1" data-financereport-target="monthLabel"
                   style="position:sticky;left:125px;">Month</span>
             </div>
-            <div class="mb-2">
-               <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
-            </div>
             <div class="d-flex ai-center my-3 d-none" data-financereport-target="selectTreasuryType">
-               <label class="me-2" data-financereport-target="typeLabel">Type:</label>
                <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Combined Treasury" name="combined">
@@ -60,6 +64,9 @@
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Admin Treasury" name="legacy">
                </div>
+            </div>
+            <div class="mb-2">
+               <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
             </div>
             <div class="pb-2 d-none" data-financereport-target="currentBalanceArea">
                <p class="fs-17" data-financereport-target="specialTreasury">
