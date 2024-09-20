@@ -576,6 +576,9 @@ export default class extends Controller {
 
   changeGraph (e) {
     this.settings.chart = this.chartType
+    if (this.settings.type === 'treasury') {
+      this.treasuryChart = this.settings.chart
+    }
     this.updateQueryString()
     this.drawGraph()
   }
@@ -805,6 +808,7 @@ export default class extends Controller {
       ttype: 'combined'
     }
     this.query.update(this.settings)
+    this.treasuryChart = 'balance'
     this.initData()
   }
 
@@ -1065,6 +1069,9 @@ export default class extends Controller {
       return
     }
     this.settings.type = e.target.name
+    if (this.settings.type === 'treasury') {
+      this.settings.chart = this.treasuryChart
+    }
     await this.initData()
     await this.connect()
   }
@@ -1197,10 +1204,32 @@ export default class extends Controller {
       if (this.settings.type === 'treasury') {
         this.typeSelectorTarget.classList.remove('d-none')
         this.treasuryChartTitleTarget.textContent = 'Treasury IO Chart'
+        this.weekGroupBtnTarget.classList.remove('d-none')
+        this.dayGroupBtnTarget.classList.remove('d-none')
+        this.blockGroupBtnTarget.classList.remove('d-none')
+        // show some option on group and zoom
+        this.weekZoomBtnTarget.classList.remove('d-none')
+        this.dayZoomBtnTarget.classList.remove('d-none')
+        // change domain on radio button label
+        this.sentRadioLabelTarget.textContent = 'Sent'
+        this.receivedRadioLabelTarget.textContent = 'Received'
+        // hide net radio button
+        this.netSelectRadioTarget.classList.remove('d-none')
       } else {
         this.typeSelectorTarget.classList.add('d-none')
         this.treasuryChartTitleTarget.textContent = 'Domains Chart Data'
         this.treasuryTypeTitleTarget.textContent = 'Domains Spending Data'
+        this.weekGroupBtnTarget.classList.add('d-none')
+        this.dayGroupBtnTarget.classList.add('d-none')
+        this.blockGroupBtnTarget.classList.add('d-none')
+        // hide some option on group and zoom
+        this.weekZoomBtnTarget.classList.add('d-none')
+        this.dayZoomBtnTarget.classList.add('d-none')
+        // change domain on radio button label
+        this.sentRadioLabelTarget.textContent = 'Development'
+        this.receivedRadioLabelTarget.textContent = 'Marketing'
+        // hide net radio button
+        this.netSelectRadioTarget.classList.add('d-none')
       }
     } else {
       this.groupByTarget.classList.add('d-none')
@@ -1224,17 +1253,6 @@ export default class extends Controller {
         // hide balance select option
         this.balanceOptionTarget.classList.add('d-none')
         this.chartDataTarget.classList.add('d-none')
-        // change domain on radio button label
-        this.sentRadioLabelTarget.textContent = 'Development'
-        this.receivedRadioLabelTarget.textContent = 'Marketing'
-        // hide net radio button
-        this.netSelectRadioTarget.classList.add('d-none')
-        // hide some option on group and zoom
-        this.weekZoomBtnTarget.classList.add('d-none')
-        this.dayZoomBtnTarget.classList.add('d-none')
-        this.weekGroupBtnTarget.classList.add('d-none')
-        this.dayGroupBtnTarget.classList.add('d-none')
-        this.blockGroupBtnTarget.classList.add('d-none')
         if (ctrl.settings.bin !== 'year') {
           if (ctrl.zoomButtons) {
             ctrl.zoomButtons.forEach((button) => {
