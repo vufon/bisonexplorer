@@ -1902,7 +1902,7 @@ input:checked + .legacy-slider::before {
   position: absolute;
   top: 35px;
   visibility: hidden;
-  z-index: 1;
+  z-index: 11;
   border: 1px solid #dceaf8;
 
   a {

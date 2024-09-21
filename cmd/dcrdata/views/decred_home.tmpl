@@ -115,34 +115,6 @@
             <div class="col-12 col-md-6 mt-2 px-1">
                <div class="explore-card-wrap home-menu-column">
                   <div class="home-menu-card">
-                     <a href="/home-report"
-                        class="home-menu-header-link explore-card__header homepage-menu-card-header bg-for-header">
-                        <div class="explore-card__header__text d-block">
-                           <h6 class="fs-20 fw-600">Financial</h6>
-                        </div>
-                     </a>
-                     <div class="home-menu-content group-menu-content">
-                        <a href="/finance-report?type=treasury"
-                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                           <div class="ta-center">
-                              <p class="fw-600 m-0 home-menu-item-title btn--promo">Treasury Spending</p>
-                              <p class="fs-13 menu-item-description">Treasury fund financial reports</p>
-                           </div>
-                        </a>
-                        <a href="/finance-report"
-                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                           <div class="ta-center">
-                              <p class="fw-600 m-0 home-menu-item-title btn--promo">Proposals</p>
-                              <p class="fs-13 menu-item-description">Proposals estimated report</p>
-                           </div>
-                        </a>
-                     </div>
-                  </div>
-               </div>
-            </div>
-            <div class="col-12 col-md-6 mt-2 px-1">
-               <div class="explore-card-wrap home-menu-column">
-                  <div class="home-menu-card">
                      <div class="explore-card__header homepage-menu-card-header bg-for-header">
                         <div class="explore-card__header__text d-block">
                            <h6 class="fs-20 fw-600"> Tools </h6>
@@ -158,18 +130,18 @@
                         </div>
                         </a>
                         {{end}}
+                        <a href="/finance-report"
+                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                           <div class="ta-center">
+                              <p class="fw-600 m-0 home-menu-item-title btn--promo">Financial Reports</p>
+                              <span class="fs-13 menu-item-description">Treasury/Proposals financial reports</span>
+                           </div>
+                        </a>
                         <a href="/stakingcalc"
                            class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                            <div class="ta-center">
                               <p class="fw-600 m-0 home-menu-item-title btn--promo">Staking Reward Calculator</p>
                               <span class="fs-13 menu-item-description">Estimated staking reward</span>
-                           </div>
-                        </a>
-                        <a href="/attack-cost"
-                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                           <div class="ta-center">
-                              <p class="fw-600 m-0 home-menu-item-title">Attack Cost</p>
-                              <span class="fs-13 menu-item-description">Estimated cost of attack</span>
                            </div>
                         </a>
                         <a href="/supply" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
@@ -184,6 +156,8 @@
                                  <a class="fw-600 home-menu-item-title c-grey-5"><span>More</span><span
                                        class="dcricon-arrow-down ms-2"></span></a>
                                  <ul class="submenu w-100i">
+                                    <li class="w-100i"><a class="dropdown-item c-grey-5 btn--promo" href="/attack-cost">Attack Cost</a>
+                                    </li>
                                     <li class="w-100i"><a class="dropdown-item c-grey-5" href="/parameters">Parameters</a></li>
                                     <li class="w-100i"><a class="dropdown-item c-grey-5" href="/decodetx">Decode
                                           /Broadcast Tx</a></li>
