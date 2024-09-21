@@ -31,11 +31,6 @@ const treasurySummaryData = null
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
 
-const proposalTitle = 'Proposals'
-const domainTitle = 'Domains'
-const treasuryTitle = 'Treasury Spending'
-const authorTitle = 'Authors'
-
 function hasCache (k) {
   if (!responseCache[k]) return false
   const expiration = new Date(responseCache[k].expiration)
@@ -195,7 +190,7 @@ export default class extends Controller {
       'activeProposalSwitchArea', 'options', 'flow', 'zoom', 'cinterval', 'chartbox', 'noconfirms',
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeSelector',
-      'bcname', 'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
+      'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
       'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'chartData',
@@ -1020,7 +1015,6 @@ export default class extends Controller {
     switch (this.settings.type) {
       case '':
       case 'proposal':
-        this.bcnameTarget.textContent = proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals') {
           this.settings.interval = this.defaultSettings.interval
@@ -1041,19 +1035,15 @@ export default class extends Controller {
         }
         break
       case 'summary':
-        this.bcnameTarget.textContent = proposalTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'domain':
-        this.bcnameTarget.textContent = domainTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
         break
       case 'treasury':
-        this.bcnameTarget.textContent = treasuryTitle
         this.reportDescriptionTarget.innerHTML = treasuryNote
         break
       case 'author':
-        this.bcnameTarget.textContent = authorTitle
         this.reportDescriptionTarget.innerHTML = proposalNote
     }
   }
