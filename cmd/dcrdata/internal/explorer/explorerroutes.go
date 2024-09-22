@@ -1154,6 +1154,15 @@ func (exp *ExplorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 	} else {
 		height = bestBlockHeight
 	}
+	vsDisp := false
+	if vsDispStr := r.URL.Query().Get("vsdisp"); vsDispStr != "" {
+		vs, err := strconv.ParseBool(vsDispStr)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+		vsDisp = vs
+	}
 
 	var rows int64
 	if rowsStr := r.URL.Query().Get("rows"); rowsStr != "" {
@@ -1180,16 +1189,15 @@ func (exp *ExplorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 	} else {
 		end = int(height - rows)
 	}
-
-	summaries := exp.dataSource.GetExplorerBlocks(int(height), end)
-	if summaries == nil {
+	blocks := exp.dataSource.GetExplorerFullBlocks(int(height), end)
+	if blocks == nil {
 		log.Errorf("Unable to get blocks: height=%d&rows=%d", height, rows)
 		exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
 			ExpStatusNotFound)
 		return
 	}
 
-	for _, s := range summaries {
+	for _, s := range blocks {
 		blockStatus, err := exp.dataSource.BlockStatus(s.Hash)
 		if exp.timeoutErrorPage(w, err, "BlockStatus") {
 			return
@@ -1200,15 +1208,19 @@ func (exp *ExplorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		}
 		s.Valid = blockStatus.IsValid
 		s.MainChain = blockStatus.IsMainchain
+		s.Tx = types.FilterRegularTx(s.Tx)
 	}
 
 	linkTemplate := "/blocks?height=%d&rows=" + strconv.FormatInt(rows, 10)
+	if vsDisp {
+		linkTemplate = linkTemplate + "&vsdisp=true"
+	}
 
 	oldestHeight := bestBlockHeight % rows
 
 	str, err := exp.templates.exec("blocks", struct {
 		*CommonPageData
-		Data         []*types.BlockBasic
+		Data         []*types.BlockInfo
 		BestBlock    int64
 		OldestHeight int64
 		Rows         int64
@@ -1218,11 +1230,11 @@ func (exp *ExplorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		Pages        pageNumbers
 	}{
 		CommonPageData: exp.commonData(r),
-		Data:           summaries,
+		Data:           blocks,
 		BestBlock:      bestBlockHeight,
 		OldestHeight:   oldestHeight,
 		Rows:           rows,
-		RowsCount:      int64(len(summaries)),
+		RowsCount:      int64(len(blocks)),
 		WindowSize:     exp.ChainParams.StakeDiffWindowSize,
 		TimeGrouping:   "Blocks",
 		Pages:          calcPagesDesc(int(bestBlockHeight), int(rows), int(height), linkTemplate),

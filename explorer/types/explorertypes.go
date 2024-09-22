@@ -465,6 +465,11 @@ type TrimmedBlockInfo struct {
 	Transactions []*TrimmedTxInfo
 }
 
+type MergeBlockData struct {
+	*BlockInfo
+	*TrimmedBlockInfo
+}
+
 // BlockInfo models data for display on the block page
 type BlockInfo struct {
 	*BlockBasic
