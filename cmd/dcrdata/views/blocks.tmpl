@@ -15,6 +15,23 @@
     </div>
     {{template "blocksBanner" .}}
     <div class="container px-0 main" data-controller="time pagenavigation blocklist">
+        <div class="d-flex ai-center mt-2">
+                <span class="me-2" style="position:sticky;left:10px;">Visual Blocks</span>
+                  <label class="switch mt-2" style="position:sticky;left:60px;">
+                    <input type="checkbox" id="vsBlocksToggle" data-action="change->blocklist#showVisualBlocks">
+                    <span class="legacy-slider round"></span>
+                </label>
+        </div>
+        <div class="d-flex ai-center mt-2 d-none" data-blocklist-target="vsDescription">
+            <label class="color-note-label border-radius-8" style="background-color: #2ed6a1"></label>
+            <span class="c-grey-2 ps-2 color-description">Rewards</span>
+            <label class="color-note-label border-radius-8 ms-3" style="background-color: #2971ff"></label>
+            <span class="c-grey-2 ps-2 color-description">Votes</span>
+            <label class="color-note-label border-radius-8 ms-3" style="background-color: #ffc84d"></label>
+            <span class="c-grey-2 ps-2 color-description">Tickets</span>
+            <label class="color-note-label border-radius-8 ms-3" style="background-color: #c4cbd2"></label>
+            <span class="c-grey-2 ps-2 color-description">Transactions</span>
+        </div>
         {{$pendingBlocks := 0}}
         {{if gt (len $.Data) 0}}{{$pendingBlocks = ((index .Data 0).Height)}}{{end}}
 
@@ -41,7 +58,8 @@
                           class="dropdown text-secondary my-2 border-plain border-radius-8 {{if lt $blocksCount 10}}disabled{{end}}"
                           {{if lt $blocksCount 10}}disabled="disabled"{{end}}
                       >
-                        {{if eq $blocksCount 20 30 50 100 .WindowSize}}{{else}}<option selected value="{{$blocksCount}}">{{$blocksCount}} per page</option>{{end}}
+                        {{if eq $blocksCount 10 20 30 50 100 .WindowSize}}{{else}}<option selected value="{{$blocksCount}}">{{$blocksCount}} per page</option>{{end}}
+                        {{if ge $pendingBlocks 10}}<option {{if eq $blocksCount 10}}selected{{end}} value="10">10 per page</option>{{end}}
                         {{if ge $pendingBlocks 20}}<option {{if eq $blocksCount 20}}selected{{end}} value="20">20 per page</option>{{end}}
                         {{if ge $pendingBlocks 30}}<option {{if eq $blocksCount 30}}selected{{end}} value="30">30 per page</option>{{end}}
                         {{if ge $pendingBlocks 50}}<option {{if eq $blocksCount 50}}selected{{end}} value="50">50 per page</option>{{end}}
@@ -94,21 +112,25 @@
                 <thead>
                     <tr class="text-secondary bg-none">
                         <th class="text-start">Height</th>
-                        <th class="text-center d-none d-sm-table-cell">
+                        <th class="text-center d-sm-table-cell d-none-i" data-blocklist-target="txColHeader">
                             <span class="d-none d-md-inline">Transactions</span>
                             <span class="d-md-none position-relative" data-tooltip="regular transactions">R</span>
                         </th>
-                        <th class="text-center d-none d-sm-table-cell">
+                        <th class="text-center d-sm-table-cell d-none-i" data-blocklist-target="voteColHeader">
                             <span class="d-none d-md-inline">Votes</span>
                             <span class="d-md-none position-relative" data-tooltip="votes">V</span>
                         </th>
-                        <th class="text-center d-none d-sm-table-cell">
+                        <th class="text-center d-sm-table-cell d-none-i" data-blocklist-target="ticketColHeader">
                             <span class="d-none d-md-inline">Tickets</span>
                             <span class="d-md-none position-relative" data-tooltip="tickets">T</span>
                         </th>
-                        <th class="text-center d-none d-sm-table-cell">
+                        <th class="text-center d-sm-table-cell d-none-i" data-blocklist-target="revColHeader">
                             <span class="d-none d-md-inline">Revocations</span>
                             <span class="d-md-none position-relative" data-tooltip="revocations">X</span>
+                        </th>
+                        <th class="text-center d-sm-table-cell d-none-i" data-blocklist-target="vsBlocksHeader">
+                            <span class="d-none d-md-inline">Visual simulation</span>
+                            <span class="d-md-none position-relative" data-tooltip="visual simulation">VS</span>
                         </th>
                         <th class="text-center d-table-cell d-sm-none">Txns</th>
                         <th class="text-center">DCR</th>
@@ -125,10 +147,107 @@
                 {{range .Data}}
                     <tr data-height="{{ .Height }}">
                         <td data-type="height" class="text-start"><a href="/block/{{.Height}}" data-keynav-priority>{{if not .Valid}}<span class="attention">&#9888;</span>{{end}}{{ .Height }}</a></td>
-                        <td class="text-center d-none d-sm-table-cell" data-type="tx" {{if not .Valid}}class="grayed" title="Regular transactions invalidated by stakeholders."{{end}}>{{.Transactions}}</td>
-                        <td class="text-center d-none d-sm-table-cell" data-type="votes">{{.Voters}}</td>
-                        <td class="text-center d-none d-sm-table-cell" data-type="tickets">{{.FreshStake}}</td>
-                        <td class="text-center d-none d-sm-table-cell" data-type="revocations">{{.Revocations}}</td>
+                        <td class="text-center d-sm-table-cell d-none-i" data-blocklist-target="txColData" data-type="tx" {{if not .Valid}}class="grayed" title="Regular transactions invalidated by stakeholders."{{end}}>{{.Transactions}}</td>
+                        <td class="text-center d-sm-table-cell d-none-i" data-blocklist-target="voteColData" data-type="votes">{{.Voters}}</td>
+                        <td class="text-center d-sm-table-cell d-none-i" data-blocklist-target="ticketColData" data-type="tickets">{{.FreshStake}}</td>
+                        <td class="text-center d-sm-table-cell d-none-i" data-blocklist-target="revColData" data-type="revocations">{{.Revocations}}</td>
+                        <td class="text-center d-none-i" data-blocklist-target="vsSimulData" data-type="vssimulation">
+                        
+                <div class="block visible" data-blocklist-target="block">
+                    <div class="block-rows">
+                        <div class="block-rewards" style="flex-grow: 1">
+                            <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
+                                title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
+                                data-blocklist-target="tooltip">
+                                <a class="block-element-link" href="#">
+                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                </a>
+                            </span>
+                            <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
+                                title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
+                                data-blocklist-target="tooltip">
+                                <a class="block-element-link" href="#">
+                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                </a>
+                            </span>
+                            <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Developer}}"
+                                title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Developer}}"}'
+                                data-blocklist-target="tooltip">
+                                <a class="block-element-link" href="#">
+                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                </a>
+                            </span>
+                            <span class="fees" style="flex-grow: {{.MiningFee}}"
+                                title='{"object": "Tx Fees", "total": "{{.MiningFee}}"}'
+                                data-blocklist-target="tooltip">
+                                <a class="block-element-link" href="#"></a>
+                            </span>
+                        </div>
+
+                        <div class="block-votes" style="flex-grow: 1">
+                        {{range .Votes}}
+                            <span style="background-color: {{if .VoteValid}}#2971ff{{else}}rgba(253, 113, 74, 0.8){{end}}" data-blocklist-target="tooltip"
+                                title='{"object": "Vote", "voteValid": "{{.VoteValid}}"}'>
+                                <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                            </span>
+                        {{end}}
+                        {{if lt (len .Votes) 5}}
+                        {{$remainingVoteCount := intSubtract 5 (len .Votes)}}
+                        {{range (zeroSlice $remainingVoteCount)}}
+                        <span title="Empty vote slot"></span>
+                        {{end}}
+                        {{end}}
+                        </div>
+
+                        <div class="block-tickets" style="flex-grow: 1">
+                        <!-- show tickets before revs, if tickets are more than 50, truncate at 30 and show more tip -->
+                        {{$tickets := .Tickets}}
+                        {{$ticketsCount := len .Tickets}}
+                        {{if gt $ticketsCount 50}} {{$tickets = clipSlice .Tickets 30}} {{end}}
+                        {{range $tickets}}
+                        <span class="block-ticket" data-blocklist-target="tooltip"
+                            title='{"object": "Ticket", "total": "{{.Total}}", "vout": "{{.VoutCount}}", "vin": "{{.VinCount}}"}'>
+                            <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                        </span>
+                        {{end}}
+                        {{if gt $ticketsCount 50}}
+                        <!-- show total number of tickets -->
+                        <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;" title="Total of {{$ticketsCount}} tickets">
+                            <a class="block-element-link" href="#">+ {{intSubtract $ticketsCount 30}}</a>
+                        </span>
+                        {{end}}
+                        {{range .Revs}}
+                        <span class="block-rev" data-blocklist-target="tooltip"
+                            title='{"object": "Revocation", "total": "{{.Total}}", "vout": "{{.VoutCount}}", "vin": "{{.VinCount}}"}'>
+                            <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                        </span>
+                        {{end}}
+                        {{$ticketsRevsCount := intAdd $ticketsCount (len .Revs)}}
+                        {{range (zeroSlice (intSubtract 20 $ticketsRevsCount))}}
+                        <span title="Empty ticket slot"></span>
+                        {{end}}
+                        </div>
+
+                        <div class="block-transactions" data-blocklist-target="txs" style="flex-grow: 1">
+                        {{$txs := .Tx}}
+                        {{$txCount := len .Tx}}
+                        {{if gt $txCount 50}} {{$txs = clipSlice .Tx 30}} {{end}}
+                        {{range $txs}}
+                        <span class="block-tx" style="flex-grow: {{.Total}}" data-blocklist-target="tooltip"
+                            title='{"object": "Transaction", "total": "{{.Total}}", "vout": "{{.VoutCount}}", "vin": "{{.VinCount}}"}'>
+                            <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                        </span>
+                        {{end}}
+                        {{if gt $txCount 50}}
+                        <!-- show total number of tickets -->
+                        <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;" title="Total of {{$txCount}} transactions">
+                            <a class="block-element-link" href="#">+ {{intSubtract $txCount 30}}</a>
+                        </span>
+                        {{end}}
+                        </div>
+                    </div>
+                </div>
+                        </td>
                         <td class="text-center d-table-cell d-sm-none" data-type="tx_count">{{.TxCount}}</td>
                         <td class="text-center" data-type="value">{{threeSigFigs .Total}}</td>
                         <td class="text-center" data-type="size">{{.FormattedBytes}}</td>
@@ -143,18 +262,18 @@
             {{if len .Pages}}
             <div class="text-end mt-2 pe-3">
               {{if lt $topBlock .BestBlock}}
-                <a href="/blocks?height={{ add $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
+                <a data-blocklist-target="navLink" href="/blocks?height={{ add $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
                 class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fs20"></a>
               {{end}}
               {{range .Pages}}
                 {{if eq .Link ""}}
                   <span>{{.Str}}</span>
                 {{else}}
-                  <a href="{{.Link}}" class="fs18 pager pagination-number {{if .Active}} active{{end}}">{{.Str}}</a>
+                  <a data-blocklist-target="navLink" href="{{.Link}}" class="fs18 pager pagination-number {{if .Active}} active{{end}}">{{.Str}}</a>
                 {{end}}
               {{end}}
               {{if ge $topBlock .Rows}}
-                <a href="/blocks?height={{ subtract $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
+                <a data-blocklist-target="navLink" href="/blocks?height={{ subtract $topBlock (int64 $blocksCount) }}&rows={{.Rows}}"
                 class="d-inline-block pagination-number pagination-narrow dcricon-arrow-right m-1 fs20"></a>
               {{end}}
             </div>
