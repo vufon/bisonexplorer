@@ -803,8 +803,8 @@ export default class extends Controller {
     }
     this.query.update(this.settings)
     this.treasuryChart = 'balance'
-    this.proposalTSort = ''
-    this.treasuryTSort = ''
+    this.proposalTSort = 'oldest'
+    this.treasuryTSort = 'newest'
     this.isMonthDisplay = false
     this.devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
@@ -833,14 +833,13 @@ export default class extends Controller {
     if (this.settings.type && this.settings.type === 'treasury') {
       this.defaultSettings.stype = ''
     }
-    if (!this.settings.tsort || this.settings.tsort === '') {
-      this.settings.tsort = this.defaultSettings.tsort
-      if (this.settings.type === 'treasury') {
-        this.treasuryTSort = this.settings.tsort
-      } else {
-        this.proposalTSort = this.settings.tsort
-      }
+
+    if (this.settings.type === 'treasury' || this.isDomainType()) {
+      this.settings.tsort = this.treasuryTSort
+    } else {
+      this.settings.tsort = this.proposalTSort
     }
+
     if (!this.settings.interval) {
       this.settings.interval = this.defaultSettings.interval
     }
@@ -1070,15 +1069,12 @@ export default class extends Controller {
     if (this.settings.type === 'treasury') {
       this.settings.chart = this.treasuryChart
       this.optionsTarget.value = this.settings.chart
-      this.settings.tsort = this.treasuryTSort
-    } else if (!this.isDomainType()) {
-      this.settings.tsort = this.proposalTSort
     }
     await this.initData()
     await this.connect()
   }
 
-  proposalTypeChange (e) {
+  async proposalTypeChange (e) {
     if (e.target.name === this.settings.pgroup) {
       return
     }
@@ -1098,7 +1094,8 @@ export default class extends Controller {
       this.settings.ptype = 'list'
     }
     this.settings.stype = this.defaultSettings.stype
-    this.calculate(false)
+    await this.initData()
+    await this.connect()
   }
 
   intervalChange (e) {
