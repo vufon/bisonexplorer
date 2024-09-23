@@ -222,14 +222,7 @@ function makeMempoolBlock (block) {
     fees += tx.Fees
   }
 
-  return `<div class="block-info">
-                    <span class="color-code">Visual simulation</span>
-                    <div class="mono amount" style="line-height: 1;">${Math.floor(block.Total)} DCR</div>
-                    <span class="timespan">
-                        <span data-time-target="age" data-age="${block.Time}"></span>
-                    </span>
-                </div>
-                <div class="block-rows">
+  return `<div class="block-rows">
                     ${makeRewardsElement(block.Subsidy, fees, block.Votes.length, '#')}
                     ${makeVoteElements(block.Votes)}
                     ${makeTicketAndRevocationElements(block.Tickets, block.Revocations, '/mempool')}
