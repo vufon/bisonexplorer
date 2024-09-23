@@ -194,7 +194,7 @@ export default class extends Controller {
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
       'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'chartData',
-      'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel', 'reportType']
+      'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel', 'reportType', 'pageLoader']
   }
 
   async connect () {
@@ -489,14 +489,13 @@ export default class extends Controller {
       ctrl.noDataAvailable()
       return
     }
-
     const binSize = Zoom.mapValue(bin) || blockDuration
     if (chart === 'types') {
       ctrl.retrievedData['types-' + bin] = txTypesFunc(data, binSize)
     } else if (chart === 'amountflow' || chart === 'balance') {
       const processed = this.isDomainType() ? domainChartProcessor(data, binSize) : amountFlowProcessor(data, binSize)
       ctrl.retrievedData['amountflow-' + bin] = processed.flow
-      if (ctrl.settings.type !== 'domain') {
+      if (!ctrl.isDomainType()) {
         ctrl.retrievedData['balance-' + bin] = processed.balance
       }
     } else return
@@ -1067,10 +1066,10 @@ export default class extends Controller {
       (this.settings.type === 'treasury' && e.target.name === 'treasury')) {
       return
     }
-    ctrl.chartLoaderTarget.classList.add('loading')
     this.settings.type = e.target.name
     if (this.settings.type === 'treasury') {
       this.settings.chart = this.treasuryChart
+      this.optionsTarget.value = this.settings.chart
       this.settings.tsort = this.treasuryTSort
     } else if (!this.isDomainType()) {
       this.settings.tsort = this.proposalTSort
@@ -1189,7 +1188,6 @@ export default class extends Controller {
       this.currentBalanceAreaTarget.classList.remove('d-none')
       this.chartDataTarget.classList.remove('d-none')
       this.balanceOptionTarget.classList.remove('d-none')
-      this.amountFlowOptionTarget.innerHTML = 'Sent/Received'
     } else {
       this.outgoingExpTarget.classList.add('d-none')
       this.treasuryToggleAreaTarget.classList.add('d-none')
@@ -1249,10 +1247,13 @@ export default class extends Controller {
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       if (this.settings.pgroup === 'domains') {
         this.treasuryChartTarget.classList.remove('d-none')
+        // check chart type. If current is balance, change to amountflow
+        if (this.settings.chart === 'balance' || this.chartType === 'balance') {
+          this.settings.chart = 'amountflow'
+          this.optionsTarget.value = 'amountflow'
+        }
         this.initializeChart()
         this.drawGraph()
-        // Change select option name
-        this.amountFlowOptionTarget.innerHTML = 'Domain'
         // hide balance select option
         this.balanceOptionTarget.classList.add('d-none')
         this.chartDataTarget.classList.add('d-none')
@@ -3016,6 +3017,7 @@ export default class extends Controller {
 
   // Calculate and response
   async calculate (redrawFlg) {
+    this.pageLoaderTarget.classList.add('loading')
     this.setReportTitle()
     if (this.settings.type === 'treasury') {
       this.searchBoxTarget.classList.add('d-none')
@@ -3111,8 +3113,13 @@ export default class extends Controller {
       }
 
       if (haveResponseData) {
+        if (this.isDomainType()) {
+          domainYearData = this.getProposalYearlyData(responseData)
+        }
+        this.handlerDataForDomainChart(responseData)
         this.createReportTable(redrawFlg)
         this.enabledGroupButton()
+        this.pageLoaderTarget.classList.remove('loading')
         return
       }
     }
@@ -3150,6 +3157,7 @@ export default class extends Controller {
     }
     this.createReportTable(redrawFlg)
     this.enabledGroupButton()
+    this.pageLoaderTarget.classList.remove('loading')
   }
 
   isMobile () {
@@ -3300,6 +3308,9 @@ export default class extends Controller {
   }
 
   get chartType () {
+    if (this.isDomainType()) {
+      return 'amountflow'
+    }
     return this.optionsTarget.value
   }
 
