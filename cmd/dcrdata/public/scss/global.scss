@@ -2391,3 +2391,13 @@ body.darkBG {
 .d-none-i {
   display: none !important;
 }
+
+@media (min-width: 1200px) and (max-width: 1439px) {
+  .mempool-data-value {
+    font-size: 17px !important;
+  }
+
+  .mempool-label-value {
+    font-size: 15px !important;
+  }
+}
