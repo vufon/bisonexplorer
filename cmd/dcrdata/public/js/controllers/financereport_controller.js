@@ -805,11 +805,14 @@ export default class extends Controller {
     this.treasuryChart = 'balance'
     this.proposalTSort = ''
     this.treasuryTSort = ''
+    this.isMonthDisplay = false
+    this.devAddress = this.data.get('devAddress')
+    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
     this.initData()
+    this.isMonthDisplay = (this.settings.pgroup === 'proposals' && (this.settings.type === 'proposal' || this.settings.type === '')) || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')
   }
 
   async initData () {
-    this.isMonthDisplay = false
     if (!this.settings.type) {
       this.settings.type = this.defaultSettings.type
     }
@@ -876,8 +879,6 @@ export default class extends Controller {
         }
       })
     }
-    this.devAddress = this.data.get('devAddress')
-    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
 
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       const $scroller = document.getElementById('scroller')
@@ -957,7 +958,6 @@ export default class extends Controller {
       // set overflow class
       $('#scroller').css('width', $('#repotParentContainer').css('width'))
     })
-    this.isMonthDisplay = (this.settings.pgroup === 'proposals' && (this.settings.type === 'proposal' || this.settings.type === '')) || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')
   }
 
   searchInputKeypress (e) {
