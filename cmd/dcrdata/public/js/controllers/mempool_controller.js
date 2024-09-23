@@ -215,12 +215,6 @@ function makeTransactionElements (transactions, blockHref) {
             </div>`
 }
 
-function makeNode (html) {
-  const div = document.createElement('div')
-  div.innerHTML = dompurify.sanitize(html, { FORBID_TAGS: ['svg', 'math'] })
-  return div.firstChild
-}
-
 function makeMempoolBlock (block) {
   let fees = 0
   if (!block.Transactions) return
@@ -228,9 +222,9 @@ function makeMempoolBlock (block) {
     fees += tx.Fees
   }
 
-  return makeNode(`<div class="block-info">
-                    <a class="color-code" href="/mempool">Mempool</a>
-                    <div class="mono" style="line-height: 1;">${Math.floor(block.Total)} DCR</div>
+  return `<div class="block-info">
+                    <span class="color-code">Visual simulation</span>
+                    <div class="mono amount" style="line-height: 1;">${Math.floor(block.Total)} DCR</div>
                     <span class="timespan">
                         <span data-time-target="age" data-age="${block.Time}"></span>
                     </span>
@@ -241,7 +235,6 @@ function makeMempoolBlock (block) {
                     ${makeTicketAndRevocationElements(block.Tickets, block.Revocations, '/mempool')}
                     ${makeTransactionElements(block.Transactions, '/mempool')}
                 </div>`
-  )
 }
 
 export default class extends Controller {
@@ -299,6 +292,7 @@ export default class extends Controller {
       this.labelVotes()
       this.sortVotesTable()
       keyNav(evt, false, true)
+      ws.send('getmempooltrimmed', '')
     })
     ws.registerEvtHandler('mempool', (evt) => {
       const m = JSON.parse(evt)
@@ -306,6 +300,7 @@ export default class extends Controller {
       this.setMempoolFigures()
       this.updateBlock(m)
       ws.send('getmempooltxs', '')
+      ws.send('getmempooltrimmed', '')
     })
     ws.registerEvtHandler('getmempooltxsResp', (evt) => {
       const m = JSON.parse(evt)
@@ -317,7 +312,6 @@ export default class extends Controller {
       keyNav(evt, false, true)
     })
     ws.registerEvtHandler('getmempooltrimmedResp', (event) => {
-      console.log('received mempooltx response', event)
       this.handleMempoolUpdate(event)
     })
     this.setupTooltips()

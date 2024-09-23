@@ -5,15 +5,8 @@ import { keyNav } from '../services/keyboard_navigation_service'
 import globalEventBus from '../services/event_bus_service'
 import Mempool from '../helpers/mempool_helper'
 import TurboQuery from '../helpers/turbolinks_helper'
-import dompurify from 'dompurify'
 
 const conversionRate = 100000000
-
-function makeNode (html) {
-  const div = document.createElement('div')
-  div.innerHTML = dompurify.sanitize(html, { FORBID_TAGS: ['svg', 'math'] })
-  return div.firstChild
-}
 
 function makeMempoolBlock (block) {
   let fees = 0
@@ -22,13 +15,12 @@ function makeMempoolBlock (block) {
     fees += tx.Fees
   }
 
-  return makeNode(`<div class="block-rows">
+  return `<div class="block-rows">
                     ${makeRewardsElement(block.Subsidy, fees, block.Votes.length, '#')}
                     ${makeVoteElements(block.Votes)}
                     ${makeTicketAndRevocationElements(block.Tickets, block.Revocations, '/mempool')}
                     ${makeTransactionElements(block.Transactions, '/mempool')}
                 </div>`
-  )
 }
 
 function makeTransactionElements (transactions, blockHref) {
@@ -192,6 +184,7 @@ export default class extends Controller {
       this.mempool.mergeTxs(txs)
       this.setMempoolFigures()
       keyNav(evt, false, true)
+      ws.send('getmempooltrimmed', '')
     })
     ws.registerEvtHandler('mempool', (evt) => {
       const m = JSON.parse(evt)
@@ -199,6 +192,7 @@ export default class extends Controller {
       this.setMempoolFigures()
       keyNav(evt, false, true)
       ws.send('getmempooltxs', '')
+      ws.send('getmempooltrimmed', '')
     })
     ws.registerEvtHandler('getmempooltxsResp', (evt) => {
       const m = JSON.parse(evt)
@@ -208,7 +202,6 @@ export default class extends Controller {
     })
 
     ws.registerEvtHandler('getmempooltrimmedResp', (event) => {
-      console.log('received mempooltx response', event)
       this.handleMempoolUpdate(event)
     })
 
@@ -265,6 +258,7 @@ export default class extends Controller {
     ws.deregisterEvtHandlers('newtxs')
     ws.deregisterEvtHandlers('mempool')
     ws.deregisterEvtHandlers('getmempooltxsResp')
+    ws.deregisterEvtHandlers('getmempooltrimmedResp')
     globalEventBus.off('BLOCK_RECEIVED', this.processBlock)
   }
 
