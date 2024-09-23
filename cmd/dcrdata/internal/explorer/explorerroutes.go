@@ -232,11 +232,11 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 
 	// Safely retrieve the current inventory pointer.
 	inv := exp.MempoolInventory()
-
+	mempoolInfo := inv.Trim()
 	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
 	inv.RLock()
 	exp.pageData.RLock()
-
+	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
 	//get ticket pool size
 	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
 	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
@@ -302,6 +302,7 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		*CommonPageData
 		Info             *types.HomeInfo
 		Mempool          *types.MempoolInfo
+		TrimmedMempool   *types.TrimmedMempoolInfo
 		BestBlock        *types.BlockBasic
 		BlockTally       []int
 		Consensus        int
@@ -319,6 +320,7 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		CommonPageData:   commonData,
 		Info:             homeInfo,
 		Mempool:          inv,
+		TrimmedMempool:   mempoolInfo,
 		BestBlock:        bestBlock,
 		BlockTally:       tallys,
 		Consensus:        consensus,
