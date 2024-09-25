@@ -617,6 +617,7 @@ export default class extends Controller {
     availableCandlesticks = {}
     availableDepths = []
     this.exchangeOptions = []
+
     for (let i = 0; i < this.exchangesButtons.length; i++) {
       const option = this.exchangesButtons[i]
       this.exchangeOptions.push(option)
