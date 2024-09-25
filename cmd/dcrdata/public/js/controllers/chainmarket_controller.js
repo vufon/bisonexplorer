@@ -1365,6 +1365,9 @@ export default class extends Controller {
     if (settings.chart === 'history' || settings.chart === 'volume') {
       bins = this.getHistoryChartAvailableBins()
     } else {
+      if (settings.xc === 'aggregated' && settings.chart === 'candlestick') {
+        settings.xc = this.exchangesButtons[0].name
+      }
       bins = availableCandlesticks[settings.xc]
     }
     if (bins.indexOf(settings.bin) === -1) {
@@ -1393,15 +1396,26 @@ export default class extends Controller {
 
   setButtons () {
     this.chartSelectTarget.value = settings.chart
+    let lastExchangeBtn = this.exchangesButtons[0]
+    let lastExchangeIndex = 0
+    this.exchangesButtons.forEach(exchangeBtn => {
+      const idx = Number(exchangeBtn.dataset.exchangeindex)
+      if (idx > lastExchangeIndex) {
+        lastExchangeIndex = idx
+        lastExchangeBtn = exchangeBtn
+      }
+    })
     const xsList = settings.chart === 'history' || settings.chart === 'volume' ? settings.xcs.split(',') : settings.xc.split(',')
     this.setActiveExchanges(xsList)
     if (usesOrderbook(settings.chart)) {
       this.binTarget.classList.add('d-hide')
-      this.aggOptionTarget.disabled = false
       this.zoomTarget.classList.remove('d-hide')
+      this.aggOptionTarget.classList.remove('d-hide')
+      lastExchangeBtn.classList.remove('last-toggle-btn')
     } else {
       this.binTarget.classList.remove('d-hide')
-      this.aggOptionTarget.disabled = true
+      this.aggOptionTarget.classList.add('d-hide')
+      lastExchangeBtn.classList.add('last-toggle-btn')
       this.zoomTarget.classList.add('d-hide')
       let bins
       if (settings.chart === 'history' || settings.chart === 'volume') {
@@ -1409,19 +1423,38 @@ export default class extends Controller {
       } else {
         bins = availableCandlesticks[settings.xc]
       }
+      let lastBinIndex = 0
+      let firstBinIndex = binList.length
+      bins.forEach((bin) => {
+        const indexOfBin = binList.indexOf(bin)
+        if (indexOfBin >= 0) {
+          if (indexOfBin > lastBinIndex) {
+            lastBinIndex = indexOfBin
+          }
+          if (indexOfBin < firstBinIndex) {
+            firstBinIndex = indexOfBin
+          }
+        }
+      })
       this.binButtons.forEach(button => {
         if (bins.indexOf(button.name) >= 0) {
           button.classList.remove('d-hide')
+          if (button.name === binList[lastBinIndex]) {
+            button.classList.add('last-toggle-btn')
+          } else {
+            button.classList.remove('last-toggle-btn')
+          }
+          if (button.name === binList[firstBinIndex]) {
+            button.classList.add('first-toggle-btn')
+          } else {
+            button.classList.remove('first-toggle-btn')
+          }
         } else {
           button.classList.add('d-hide')
         }
       })
       this.setBinSelection()
     }
-    const sticksDisabled = !availableCandlesticks[settings.xc]
-    this.sticksOnlyTargets.forEach(option => {
-      option.disabled = sticksDisabled
-    })
     const depthDisabled = !validDepthExchange(settings.xc)
     this.depthOnlyTargets.forEach(option => {
       option.disabled = depthDisabled
@@ -1498,10 +1531,15 @@ export default class extends Controller {
       } else {
         if (xcs.length > 1) {
           xcs.splice(xcs.indexOf(btn.name), 1)
+        } else {
+          return
         }
       }
       settings.xcs = xcs.join(',')
     } else {
+      if (settings.xc === btn.name) {
+        return
+      }
       settings.xc = btn.name
     }
     this.setExchangeName()
