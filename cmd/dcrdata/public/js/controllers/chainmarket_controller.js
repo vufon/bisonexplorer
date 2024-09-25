@@ -603,7 +603,8 @@ export default class extends Controller {
       history: this.processHistory,
       xchistory: this.processXcsHistory,
       depth: this.processDepth.bind(this),
-      volume: this.processVolume
+      volume: this.processVolume,
+      xcvolume: this.processXcsVolume
     }
     commonChartOpts.labelsDiv = this.legendTarget
     this.converted = false
@@ -647,7 +648,7 @@ export default class extends Controller {
     }
 
     // if chart is history, set to xcs
-    if (settings.chart === 'history' && (!settings.xcs || settings.xcs === null)) {
+    if ((settings.chart === 'history' || settings.chart === 'volume') && (!settings.xcs || settings.xcs === null)) {
       settings.xcs = settings.xc
     }
 
@@ -853,7 +854,7 @@ export default class extends Controller {
     const chart = settings.chart
     const oldZoom = this.graph.xAxisRange()
     if (usesCandlesticks(chart)) {
-      if (settings.chart !== 'history') {
+      if (settings.chart !== 'history' && settings.chart !== 'volume') {
         if (!(xc in availableCandlesticks)) {
           console.warn('invalid candlestick exchange:', xc)
           return
@@ -879,7 +880,7 @@ export default class extends Controller {
     this.chartLoaderTarget.classList.add('loading')
     let response
     const xcResponseMap = new Map()
-    if (settings.chart === 'history') {
+    if (settings.chart === 'history' || settings.chart === 'volume') {
       const xcs = settings.xcs && settings.xcs !== null ? settings.xcs : settings.xc
       const xcList = xcs.split(',')
       if (xcList.length > 0) {
@@ -938,6 +939,8 @@ export default class extends Controller {
     this.graph.updateOptions(chartResetOpts, true)
     if (settings.chart === 'history') {
       this.graph.updateOptions(this.processors.xchistory(xcResponseMap))
+    } else if (settings.chart === 'volume') {
+      this.graph.updateOptions(this.processors.xcvolume(xcResponseMap))
     } else {
       this.graph.updateOptions(this.processors[chart](response))
     }
@@ -1155,6 +1158,109 @@ export default class extends Controller {
     }
   }
 
+  processXcsVolume (responseMap) {
+    const labels = ['time']
+    const colors = []
+    const timeArray = []
+    const timeDataMap = new Map()
+    let index = 0
+    for (const [key, value] of responseMap) {
+      labels.push(key.charAt(0).toUpperCase() + key.slice(1))
+      colors.push(xcColors[index])
+      value.sticks.map(stick => {
+        const time = new Date(stick.start)
+        if (key === 'huobi' && settings.bin !== '1h') {
+          time.setTime(time.getTime() + (8 * 60 * 60 * 1000))
+        }
+        if (settings.bin === '1mo') {
+          time.setHours(0, 0, 0, 0)
+          time.setDate(15)
+        } else if (settings.bin === '1d') {
+          time.setHours(0, 0, 0, 0)
+        } else if (settings.bin === '1h') {
+          time.setMinutes(30, 0, 0)
+        }
+        const vol = stick.volume
+        // check time exist
+        if (!timeArray.some(tmpTime => tmpTime === time.getTime())) {
+          timeArray.push(time.getTime())
+        }
+        // check exist on data map
+        const timeInt = time.getTime()
+        let dataArr
+        if (timeDataMap.has(timeInt)) {
+          dataArr = timeDataMap.get(timeInt)
+          dataArr[index] = vol
+        } else {
+          dataArr = []
+          for (let i = 0; i < responseMap.size; i++) {
+            dataArr.push(0)
+          }
+          dataArr[index] = vol
+        }
+        timeDataMap.set(timeInt, dataArr)
+      })
+      index++
+    }
+    timeArray.sort(function (time1, time2) {
+      if (time1 > time2) {
+        return 1
+      } else if (time1 < time2) {
+        return -1
+      }
+      return 0
+    })
+    // remove all has zero value item
+    const resArray = []
+    timeArray.forEach((time) => {
+      if (timeDataMap.has(time)) {
+        const dataArray = timeDataMap.get(time)
+        // check has zero data
+        let hasZero = false
+        dataArray.forEach((val) => {
+          if (!val || val <= 0) {
+            hasZero = true
+          }
+        })
+        if (!hasZero) {
+          resArray.push(time)
+        }
+      }
+    })
+    return {
+      file: resArray.map(time => {
+        if (timeDataMap.has(time)) {
+          const dataArray = timeDataMap.get(time)
+          const res = []
+          res.push(new Date(time))
+          res.push(...dataArray)
+          return res
+        }
+        const res = []
+        res.push(new Date(time))
+        for (let i = 0; i < labels.length - 1; i++) {
+          res.push(0)
+        }
+        return res
+      }),
+      labels: labels,
+      xlabel: 'Time',
+      ylabel: 'Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`,
+      colors: colors,
+      plotter: Dygraph.Plotters.linePlotter,
+      axes: {
+        x: {
+          axisLabelFormatter: Dygraph.dateAxisLabelFormatter
+        },
+        y: {
+          axisLabelFormatter: humanize.threeSigFigs,
+          valueFormatter: humanize.threeSigFigs
+        }
+      },
+      strokeWidth: 2
+    }
+  }
+
   processDepth (response) {
     if (response.tokens) {
       return this.processAggregateDepth(response)
@@ -1256,7 +1362,7 @@ export default class extends Controller {
 
   justifyBins () {
     let bins = []
-    if (settings.chart === 'history') {
+    if (settings.chart === 'history' || settings.chart === 'volume') {
       bins = this.getHistoryChartAvailableBins()
     } else {
       bins = availableCandlesticks[settings.xc]
@@ -1287,7 +1393,7 @@ export default class extends Controller {
 
   setButtons () {
     this.chartSelectTarget.value = settings.chart
-    const xsList = settings.chart === 'history' ? settings.xcs.split(',') : settings.xc.split(',')
+    const xsList = settings.chart === 'history' || settings.chart === 'volume' ? settings.xcs.split(',') : settings.xc.split(',')
     this.setActiveExchanges(xsList)
     if (usesOrderbook(settings.chart)) {
       this.binTarget.classList.add('d-hide')
@@ -1298,7 +1404,7 @@ export default class extends Controller {
       this.aggOptionTarget.disabled = true
       this.zoomTarget.classList.add('d-hide')
       let bins
-      if (settings.chart === 'history') {
+      if (settings.chart === 'history' || settings.chart === 'volume') {
         bins = this.getHistoryChartAvailableBins()
       } else {
         bins = availableCandlesticks[settings.xc]
@@ -1385,8 +1491,7 @@ export default class extends Controller {
   changeExchange (e) {
     const btn = e.target || e.srcElement
     if (btn.nodeName !== 'BUTTON' || !this.graph) return
-    settings.xc = btn.name
-    if (settings.chart === 'history') {
+    if (settings.chart === 'history' || settings.chart === 'volume') {
       const xcs = settings.xcs.split(',')
       if (xcs.indexOf(btn.name) < 0) {
         xcs.push(btn.name)
@@ -1396,6 +1501,8 @@ export default class extends Controller {
         }
       }
       settings.xcs = xcs.join(',')
+    } else {
+      settings.xc = btn.name
     }
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
