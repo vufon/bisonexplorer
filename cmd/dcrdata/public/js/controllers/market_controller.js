@@ -640,7 +640,6 @@ export default class extends Controller {
       settings.stack = parseInt(settings.stack)
       if (settings.stack === 0) aggStacking = false
     }
-    this.setExchangeName()
     if (settings.bin == null) {
       settings.bin = anHour
     }
@@ -650,6 +649,7 @@ export default class extends Controller {
       settings.xcs = settings.xc
     }
     this.setButtons()
+    this.setExchangeName()
     this.resize = this._resize.bind(this)
     window.addEventListener('resize', this.resize)
     this.tabVis = this._tabVis.bind(this)
@@ -1238,6 +1238,9 @@ export default class extends Controller {
   justifyBins () {
     let bins = []
     if (settings.chart === 'history' || settings.chart === 'volume') {
+      if (!settings.xcs || settings.xcs === '') {
+        settings.xcs = settings.xc === 'aggregated' ? this.exchangesButtons[0].name : settings.xc
+      }
       bins = this.getHistoryChartAvailableBins()
     } else {
       if (settings.xc === 'aggregated' && settings.chart === 'candlestick') {
@@ -1272,7 +1275,6 @@ export default class extends Controller {
         lastExchangeBtn = exchangeBtn
       }
     })
-    console.log('check lastExchangeBtn: ' + JSON.stringify(lastExchangeBtn))
     const xsList = settings.chart === 'history' || settings.chart === 'volume' ? settings.xcs.split(',') : settings.xc.split(',')
     this.setActiveExchanges(xsList)
     if (usesOrderbook(settings.chart)) {
@@ -1372,6 +1374,7 @@ export default class extends Controller {
       this.justifyBins()
     }
     this.setButtons()
+    this.setExchangeName()
     this.fetchChart()
   }
 
@@ -1396,17 +1399,16 @@ export default class extends Controller {
       }
       settings.xc = btn.name
     }
-    this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
-      if (!availableCandlesticks[settings.xc]) {
-        // exchange does not have candlestick data
-        // show the depth chart.
-        settings.chart = depth
-      } else {
-        this.justifyBins()
+      if (settings.xc !== 'aggregated') {
+        if (!availableCandlesticks[settings.xc]) {
+          settings.chart = depth
+        }
       }
+      this.justifyBins()
     }
     this.setButtons()
+    this.setExchangeName()
     this.fetchChart()
     this.resetZoom()
   }
@@ -1465,16 +1467,33 @@ export default class extends Controller {
   }
 
   setExchangeName () {
-    this.xcLogoTarget.className = `exchange-logo ${settings.xc}`
-    const prettyName = printName(settings.xc)
-    this.xcNameTarget.textContent = prettyName
-    const href = exchangeLinks[settings.xc]
-    if (href) {
-      this.linkTarget.href = href
-      this.linkTarget.textContent = `Visit ${prettyName}`
-      this.actionsTarget.classList.remove('d-hide')
-    } else {
+    if (settings.chart === 'history' || settings.chart === 'volume') {
+      this.xcLogoTarget.classList.add('d-hide')
       this.actionsTarget.classList.add('d-hide')
+      // exchange name
+      const exchanges = []
+      if (settings.xcs) {
+        const exStrArr = settings.xcs.split(',')
+        exStrArr.forEach((ex) => {
+          exchanges.push(ex.charAt(0).toUpperCase() + ex.slice(1))
+        })
+      }
+      this.xcNameTarget.textContent = exchanges.join(',')
+      this.xcNameTarget.classList.add('fs-17')
+    } else {
+      this.xcNameTarget.classList.remove('fs-17')
+      this.xcLogoTarget.classList.remove('d-hide')
+      this.xcLogoTarget.className = `exchange-logo ${settings.xc}`
+      const prettyName = printName(settings.xc)
+      this.xcNameTarget.textContent = prettyName
+      const href = exchangeLinks[settings.xc]
+      if (href) {
+        this.linkTarget.href = href
+        this.linkTarget.textContent = `Visit ${prettyName}`
+        this.actionsTarget.classList.remove('d-hide')
+      } else {
+        this.actionsTarget.classList.add('d-hide')
+      }
     }
   }
 

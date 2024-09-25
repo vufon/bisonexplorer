@@ -186,11 +186,13 @@ type TokenedExchange struct {
 func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 	xcList := make([]*TokenedExchange, 0, len(state.DcrBtc))
 	for token, state := range state.DcrBtc {
-		state.Sticks = state.StickList()
-		xcList = append(xcList, &TokenedExchange{
-			Token: token,
-			State: state,
-		})
+		if token != "dcrdex" {
+			state.Sticks = state.StickList()
+			xcList = append(xcList, &TokenedExchange{
+				Token: token,
+				State: state,
+			})
+		}
 	}
 	sort.Slice(xcList, func(i, j int) bool {
 		return xcList[i].State.Volume > xcList[j].State.Volume
@@ -803,11 +805,10 @@ func (bot *ExchangeBot) ConvertedState(code string) (*ExchangeBotState, error) {
 		bot.failed = true
 		return nil, fmt.Errorf("Unable to process price for currency %s", code)
 	}
-
 	state := ExchangeBotState{
 		BtcIndex:    code,
 		Volume:      volume * btcPrice,
-		Price:       dcrPrice * btcPrice,
+		Price:       dcrPrice,
 		LTCPrice:    ltcPrice,
 		LTCVolume:   ltcVolumn * ltcPrice,
 		BTCPrice:    btcExchangePrice,
@@ -869,10 +870,9 @@ func (bot *ExchangeBot) ConvertedRates(code string) (*ExchangeRates, error) {
 		bot.failed = true
 		return nil, fmt.Errorf("Unable to process price for currency %s", code)
 	}
-
 	return &ExchangeRates{
 		BtcIndex: code,
-		DcrPrice: dcrPrice * btcPrice,
+		DcrPrice: dcrPrice,
 		BtcPrice: btcPrice,
 	}, nil
 }
@@ -1080,7 +1080,7 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 			bot.failed = true
 		} else {
 			bot.failed = false
-			bot.currentState.Price = dcrPrice * btcPrice
+			bot.currentState.Price = dcrPrice
 			bot.currentState.BtcPrice = btcPrice
 			bot.currentState.Volume = volume
 		}
@@ -1110,7 +1110,7 @@ func (bot *ExchangeBot) updateState() error {
 		bot.failed = true
 	} else {
 		bot.failed = false
-		bot.currentState.Price = dcrPrice * btcPrice
+		bot.currentState.Price = dcrPrice
 		bot.currentState.BtcPrice = btcPrice
 		bot.currentState.Volume = volume
 	}

@@ -99,14 +99,14 @@ var (
 		Price: "https://api.coindesk.com/v2/bpi/currentprice.json",
 	}
 	BinanceURLs = URLs{
-		Price: "%s/api/v3/ticker/24hr?symbol=DCRBTC",
+		Price: "%s/api/v3/ticker/24hr?symbol=DCRUSDT",
 		// Binance returns a maximum of 5000 depth chart points. This seems like it
 		// is the entire order book at least sometimes.
-		Depth: "%s/api/v3/depth?symbol=DCRBTC&limit=5000",
+		Depth: "%s/api/v3/depth?symbol=DCRUSDT&limit=5000",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "%s/api/v3/klines?symbol=DCRBTC&interval=1h",
-			dayKey:   "%s/api/v3/klines?symbol=DCRBTC&interval=1d",
-			monthKey: "%s/api/v3/klines?symbol=DCRBTC&interval=1M",
+			hourKey:  "%s/api/v3/klines?symbol=DCRUSDT&interval=1h",
+			dayKey:   "%s/api/v3/klines?symbol=DCRUSDT&interval=1d",
+			monthKey: "%s/api/v3/klines?symbol=DCRUSDT&interval=1M",
 		},
 	}
 
@@ -145,14 +145,14 @@ var (
 	}
 
 	HuobiURLs = URLs{
-		Price: "https://api.huobi.pro/market/detail/merged?symbol=dcrbtc",
+		Price: "https://api.huobi.pro/market/detail/merged?symbol=dcrusdt",
 		// Huobi's only depth parameter defines bin size, 'step0' seems to mean bin
 		// width of zero.
-		Depth: "https://api.huobi.pro/market/depth?symbol=dcrbtc&type=step0",
+		Depth: "https://api.huobi.pro/market/depth?symbol=dcrusdt&type=step0",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.huobi.pro/market/history/kline?symbol=dcrbtc&period=60min&size=2000",
-			dayKey:   "https://api.huobi.pro/market/history/kline?symbol=dcrbtc&period=1day&size=2000",
-			monthKey: "https://api.huobi.pro/market/history/kline?symbol=dcrbtc&period=1mon&size=2000",
+			hourKey:  "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=60min&size=2000",
+			dayKey:   "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=1day&size=2000",
+			monthKey: "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=1mon&size=2000",
 		},
 	}
 	PoloniexURLs = URLs{
@@ -178,14 +178,14 @@ var (
 	}
 
 	KucoinURLs = URLs{
-		Price: "https://api.kucoin.com/api/v1/market/stats?symbol=DCR-BTC",
+		Price: "https://api.kucoin.com/api/v1/market/stats?symbol=DCR-USDT",
 		// Binance returns a maximum of 5000 depth chart points. This seems like it
 		// is the entire order book at least sometimes.
-		Depth: "https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=DCR-BTC",
+		Depth: "https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=DCR-USDT",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=DCR-BTC",
-			dayKey:   "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=DCR-BTC",
-			monthKey: "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=DCR-BTC",
+			hourKey:  "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=DCR-USDT",
+			dayKey:   "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=DCR-USDT",
+			monthKey: "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=DCR-USDT",
 		},
 	}
 

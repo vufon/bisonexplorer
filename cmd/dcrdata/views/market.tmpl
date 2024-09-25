@@ -106,43 +106,23 @@
     <div class="ms-2 ms-sm-4 row flex-grow-0 m-3 col-24 col-lg mx-0 flex-lg-grow-1 common-card">
         <div class="col ms-4 ms-lg-3 me-2 me-lg-3 mb-4 mt-1 mt-lg-4 flex-grow-1 d-flex flex-column bg-white px-2 px-lg-5 py-2 py-lg-3 position-relative">
         <div class="loader-v2 loading" data-market-target="chartLoader"></div>
-
-
             {{- /* CHART ONTROLS */ -}}
             <div class="d-flex flex-shrink-1 align-items-top justify-content-around common-card justify-content-lg-center flex-wrap mx-1 py-2 mx-lg-4 mb-2">
-
-
                 {{- /* EXCHANGE SELECTION */ -}}
-                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="exchanges"
+                data-action="click->market#changeExchange">
                     <label>Exchange</label>
-                    <select
-                        class="chart-box d-inline-flex"
-                        data-market-target="exchanges"
-                        data-action="change->market#changeExchange"
-                    >
-                        {{range $botState.VolumeOrderedExchanges}}
-                          <option
-                              value="{{.Token}}"
-                              {{if .State.HasCandlesticks}}
-                                  data-sticks="1"
-                                  data-bins="{{.State.StickList}}"
-                              {{end}}
-                              {{if .State.HasDepth}}
-                                  data-depth="1"
-                              {{end}}
-                              >{{xcDisplayName .Token}}
-                          </option>
+                    <div class="btn-group" data-market-target="exchangeBtnArea">
+                        {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
+                        {{if ne $exchange.Token "dcrdex"}}
+                        <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
+                           class="tab-button home-chart-toggle-btn white c-txt-main {{if eq $index 0}}first-toggle-btn{{end}}">{{xcDisplayName $exchange.Token}}</button>
                         {{end}}
-                        <option
-                            data-market-target="aggOption"
-                            value="aggregated"
-                            data-depth="1"
-                            >Aggregated
-                        </option>
-                    </select>
+                        {{end}}
+                        <button name="aggregated" data-market-target="aggOption" data-depth="1"
+                           class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Aggregated</button>
+                     </div>
                 </div>
-
-
                 {{- /* CHART TYPE SELECTION */ -}}
                 <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                     <label>Chart</label>
@@ -159,8 +139,6 @@
 
                     </select>
                 </div>
-
-
                 {{- /* BIN SIZE SELECTIONS */ -}}
                 <div
                     class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
@@ -169,15 +147,13 @@
                 >
                   <label class="text-nowrap">Bin Size</label>
                   <div class="btn-group">
-                    <button name="5m" class="tab-button home-chart-toggle-btn white c-txt-main">5m</button>
-                    <button name="30m" class="tab-button home-chart-toggle-btn white c-txt-main">30m</button>
+                    <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
+                    <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
                     <button name="1h" class="active tab-button home-chart-toggle-btn white first-toggle-btn c-txt-main">Hour</button>
                     <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
                     <button name="1mo" class="tab-button home-chart-toggle-btn white last-toggle-btn c-txt-main">Month</button>
                  </div>
                 </div>
-
-
                 {{- /* DISPLAY CURRENCY */ -}}
                 <div
                     class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
