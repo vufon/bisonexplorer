@@ -37,9 +37,8 @@
                     <tr class="fs14 lh1rem">
                       <td></td>
                       <td class="text-end fw-bold">DCR Vol.</td>
-                      <td class="text-end fw-bold">BTC</td>
+                      <td class="text-end fw-bold">USD</td>
                       <td></td>
-                      <td class="text-end fw-bold">{{$botState.BtcIndex}}</td>
                     </tr>
                     {{range $botState.VolumeOrderedExchanges}}
                         <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
@@ -59,9 +58,6 @@
                                   <span class="dcricon-arrow-down text-danger"></span>
                               {{end}}
                             </td>
-                            <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
-                                {{printf "%.2f" ($botState.BtcToFiat .State.Price)}}
-                            </td>
                         </tr>
                     {{end}}
                     <tr class="fs sum-row hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="aggregated">
@@ -69,13 +65,10 @@
                         <td class="ps-2 fs16 py-2 text-end" data-type="volume">
                             {{threeSigFigs $botState.Volume}}
                         </td>
-                        <td class="ps-3 fs16 py-2 text-end" data-type="price">
-                            {{threeSigFigs ($botState.FiatToBtc $botState.Price)}}
-                        </td>
-                        <td></td> {{- /* no arrow for aggregated data */ -}}
                         <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
                             {{printf "%.2f" $botState.Price}}
                         </td>
+                        <td></td> {{- /* no arrow for aggregated data */ -}}
                     </tr>
                 </tbody>
             </table>

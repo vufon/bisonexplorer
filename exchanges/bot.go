@@ -195,6 +195,9 @@ func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 		}
 	}
 	sort.Slice(xcList, func(i, j int) bool {
+		if xcList[i].Token == "binance" {
+			return true
+		}
 		return xcList[i].State.Volume > xcList[j].State.Volume
 	})
 	return xcList
@@ -211,6 +214,9 @@ func (state *ExchangeBotState) MutilchainVolumeOrderedExchanges(chainType string
 		})
 	}
 	sort.Slice(xcList, func(i, j int) bool {
+		if xcList[i].Token == "binance" {
+			return true
+		}
 		return xcList[i].State.Volume > xcList[j].State.Volume
 	})
 	return xcList
