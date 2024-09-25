@@ -69,10 +69,6 @@ function validDepthExchange (token) {
   return availableDepths.indexOf(token) > -1
 }
 
-function hasBin (xc, bin) {
-  return availableCandlesticks[xc].indexOf(bin) !== -1
-}
-
 function usesOrderbook (chart) {
   return chart === depth || chart === orders
 }
@@ -101,6 +97,7 @@ let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#7774'
+const binList = ['5m', '30m', '1h', '1d', '1mo']
 let settings = {}
 const xcColors = [chartStroke, '#ed6d47', '#41be53', '#3087d8', '#dece12']
 
@@ -848,7 +845,7 @@ export default class extends Controller {
   }
 
   async fetchChart (isRefresh) {
-    let url = null
+    let url
     requestCounter++
     const thisRequest = requestCounter
     const bin = settings.bin
@@ -856,13 +853,15 @@ export default class extends Controller {
     const chart = settings.chart
     const oldZoom = this.graph.xAxisRange()
     if (usesCandlesticks(chart)) {
-      if (!(xc in availableCandlesticks)) {
-        console.warn('invalid candlestick exchange:', xc)
-        return
-      }
-      if (availableCandlesticks[xc].indexOf(bin) === -1) {
-        console.warn('invalid bin:', bin)
-        return
+      if (settings.chart !== 'history') {
+        if (!(xc in availableCandlesticks)) {
+          console.warn('invalid candlestick exchange:', xc)
+          return
+        }
+        if (availableCandlesticks[xc].indexOf(bin) === -1) {
+          console.warn('invalid bin:', bin)
+          return
+        }
       }
       url = `/api/chainchart/${this.chainType}/market/${xc}/candlestick/${bin}`
     } else if (usesOrderbook(chart)) {
@@ -886,6 +885,15 @@ export default class extends Controller {
       if (xcList.length > 0) {
         for (let i = 0; i < xcList.length; i++) {
           if (xcList[i].trim() === '') {
+            continue
+          }
+          const itemXc = xcList[i].trim()
+          if (!(itemXc in availableCandlesticks)) {
+            console.warn('invalid candlestick exchange: ', xc)
+            continue
+          }
+          if (availableCandlesticks[itemXc].indexOf(bin) === -1) {
+            console.warn('invalid bin:', bin)
             continue
           }
           const xcUrl = `/api/chainchart/${this.chainType}/market/${xcList[i]}/candlestick/${bin}`
@@ -999,8 +1007,8 @@ export default class extends Controller {
       colors.push(xcColors[index])
       value.sticks.map(stick => {
         const time = new Date(stick.start)
-        if (key === 'huobi') {
-          time.setTime(time.getTime() + (7 * 60 * 60 * 1000))
+        if (key === 'huobi' && settings.bin !== '1h') {
+          time.setTime(time.getTime() + (8 * 60 * 60 * 1000))
         }
         if (settings.bin === '1mo') {
           time.setHours(0, 0, 0, 0)
@@ -1041,8 +1049,25 @@ export default class extends Controller {
       }
       return 0
     })
+    // remove all has zero value item
+    const resArray = []
+    timeArray.forEach((time) => {
+      if (timeDataMap.has(time)) {
+        const dataArray = timeDataMap.get(time)
+        // check has zero data
+        let hasZero = false
+        dataArray.forEach((val) => {
+          if (!val || val <= 0) {
+            hasZero = true
+          }
+        })
+        if (!hasZero) {
+          resArray.push(time)
+        }
+      }
+    })
     return {
-      file: timeArray.map(time => {
+      file: resArray.map(time => {
         if (timeDataMap.has(time)) {
           const dataArray = timeDataMap.get(time)
           const res = []
@@ -1230,11 +1255,34 @@ export default class extends Controller {
   }
 
   justifyBins () {
-    const bins = availableCandlesticks[settings.xc]
+    let bins = []
+    if (settings.chart === 'history') {
+      bins = this.getHistoryChartAvailableBins()
+    } else {
+      bins = availableCandlesticks[settings.xc]
+    }
     if (bins.indexOf(settings.bin) === -1) {
       settings.bin = bins[0]
       this.setBinSelection()
     }
+  }
+
+  getHistoryChartAvailableBins () {
+    const bins = []
+    let xcs = [settings.xc]
+    if (settings.xcs && settings.xcs !== '') {
+      xcs = settings.xcs.split(',')
+    }
+    bins.push(...binList)
+    xcs.forEach((xc) => {
+      const itemBins = availableCandlesticks[xc]
+      for (let i = bins.length - 1; i >= 0; i--) {
+        if (itemBins.indexOf(bins[i]) < 0) {
+          bins.splice(i, 1)
+        }
+      }
+    })
+    return bins
   }
 
   setButtons () {
@@ -1249,8 +1297,14 @@ export default class extends Controller {
       this.binTarget.classList.remove('d-hide')
       this.aggOptionTarget.disabled = true
       this.zoomTarget.classList.add('d-hide')
+      let bins
+      if (settings.chart === 'history') {
+        bins = this.getHistoryChartAvailableBins()
+      } else {
+        bins = availableCandlesticks[settings.xc]
+      }
       this.binButtons.forEach(button => {
-        if (hasBin(settings.xc, button.name)) {
+        if (bins.indexOf(button.name) >= 0) {
           button.classList.remove('d-hide')
         } else {
           button.classList.add('d-hide')
