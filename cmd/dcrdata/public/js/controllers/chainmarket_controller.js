@@ -102,6 +102,7 @@ let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#7774'
 let settings = {}
+const xcColors = [chartStroke, '#ed6d47', '#41be53', '#3087d8', '#dece12']
 
 let colorNumerator = 0
 let colorDenominator = 1
@@ -575,7 +576,7 @@ export default class extends Controller {
     globalChainType = this.chainType
     this.setExchaneLinks()
     this.query = new TurboQuery()
-    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin'])
+    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs'])
     this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
     const _this = this
     if (!this.isHomepage) {
@@ -587,11 +588,13 @@ export default class extends Controller {
         if (button.name === 'binance') {
           hasBinance = true
           settings.xc = button.name
+          settings.xcs = button.name
           settings.bin = '1mo'
         }
         if (!hasBinance) {
           const defaultOption = _this.exchangesButtons[0]
           settings.xc = defaultOption.name
+          settings.xcs = defaultOption.name
           settings.bin = '1d'
         }
       })
@@ -601,6 +604,7 @@ export default class extends Controller {
       orders: this.processOrders,
       candlestick: this.processCandlesticks,
       history: this.processHistory,
+      xchistory: this.processXcsHistory,
       depth: this.processDepth.bind(this),
       volume: this.processVolume
     }
@@ -643,6 +647,11 @@ export default class extends Controller {
     this.setExchangeName()
     if (settings.bin == null) {
       settings.bin = anHour
+    }
+
+    // if chart is history, set to xcs
+    if (settings.chart === 'history' && (!settings.xcs || settings.xcs === null)) {
+      settings.xcs = settings.xc
     }
 
     this.setButtons()
@@ -869,18 +878,45 @@ export default class extends Controller {
     }
 
     this.chartLoaderTarget.classList.add('loading')
-
     let response
-    if (hasCache(url)) {
-      response = responseCache[url]
+    const xcResponseMap = new Map()
+    if (settings.chart === 'history') {
+      const xcs = settings.xcs && settings.xcs !== null ? settings.xcs : settings.xc
+      const xcList = xcs.split(',')
+      if (xcList.length > 0) {
+        for (let i = 0; i < xcList.length; i++) {
+          if (xcList[i].trim() === '') {
+            continue
+          }
+          const xcUrl = `/api/chainchart/${this.chainType}/market/${xcList[i]}/candlestick/${bin}`
+          let xcResponse
+          if (hasCache(xcUrl)) {
+            xcResponse = responseCache[xcUrl]
+          } else {
+          // response = await axios.get(url)
+            xcResponse = await requestJSON(xcUrl)
+            responseCache[xcUrl] = xcResponse
+          }
+          xcResponseMap.set(xcList[i], xcResponse)
+        }
+        if (thisRequest !== requestCounter) {
+          // new request was issued while waiting.
+          this.chartLoaderTarget.classList.remove('loading')
+          return
+        }
+      }
     } else {
-      // response = await axios.get(url)
-      response = await requestJSON(url)
-      responseCache[url] = response
-      if (thisRequest !== requestCounter) {
-        // new request was issued while waiting.
-        this.chartLoaderTarget.classList.remove('loading')
-        return
+      if (hasCache(url)) {
+        response = responseCache[url]
+      } else {
+        // response = await axios.get(url)
+        response = await requestJSON(url)
+        responseCache[url] = response
+        if (thisRequest !== requestCounter) {
+          // new request was issued while waiting.
+          this.chartLoaderTarget.classList.remove('loading')
+          return
+        }
       }
     }
     // Fiat conversion only available for order books for now.
@@ -892,7 +928,11 @@ export default class extends Controller {
       this.ageTarget.classList.add('d-hide')
     }
     this.graph.updateOptions(chartResetOpts, true)
-    this.graph.updateOptions(this.processors[chart](response))
+    if (settings.chart === 'history') {
+      this.graph.updateOptions(this.processors.xchistory(xcResponseMap))
+    } else {
+      this.graph.updateOptions(this.processors[chart](response))
+    }
     if (!this.isHomepage) {
       this.query.replace(settings)
     }
@@ -945,6 +985,93 @@ export default class extends Controller {
           valueFormatter: humanize.threeSigFigs
         }
       }
+    }
+  }
+
+  processXcsHistory (responseMap) {
+    const labels = ['time']
+    const colors = []
+    const timeArray = []
+    const timeDataMap = new Map()
+    let index = 0
+    for (const [key, value] of responseMap) {
+      labels.push(key.charAt(0).toUpperCase() + key.slice(1))
+      colors.push(xcColors[index])
+      value.sticks.map(stick => {
+        const time = new Date(stick.start)
+        if (key === 'huobi') {
+          time.setTime(time.getTime() + (7 * 60 * 60 * 1000))
+        }
+        if (settings.bin === '1mo') {
+          time.setHours(0, 0, 0, 0)
+          time.setDate(15)
+        } else if (settings.bin === '1d') {
+          time.setHours(0, 0, 0, 0)
+        } else if (settings.bin === '1h') {
+          time.setMinutes(30, 0, 0)
+        }
+        const avg = (stick.open + stick.close + stick.high + stick.low) / 4
+        // check time exist
+        if (!timeArray.some(tmpTime => tmpTime === time.getTime())) {
+          timeArray.push(time.getTime())
+        }
+        // check exist on data map
+        const timeInt = time.getTime()
+        let dataArr
+        if (timeDataMap.has(timeInt)) {
+          dataArr = timeDataMap.get(timeInt)
+          dataArr[index] = avg
+        } else {
+          dataArr = []
+          for (let i = 0; i < responseMap.size; i++) {
+            dataArr.push(0)
+          }
+          dataArr[index] = avg
+        }
+        timeDataMap.set(timeInt, dataArr)
+      })
+      index++
+    }
+
+    timeArray.sort(function (time1, time2) {
+      if (time1 > time2) {
+        return 1
+      } else if (time1 < time2) {
+        return -1
+      }
+      return 0
+    })
+    return {
+      file: timeArray.map(time => {
+        if (timeDataMap.has(time)) {
+          const dataArray = timeDataMap.get(time)
+          const res = []
+          res.push(new Date(time))
+          res.push(...dataArray)
+          return res
+        }
+        const res = []
+        res.push(new Date(time))
+        for (let i = 0; i < labels.length - 1; i++) {
+          res.push(0)
+        }
+        return res
+      }),
+      labels: labels,
+      xlabel: 'Time',
+      ylabel: 'Price (USD)',
+      colors: colors,
+      plotter: Dygraph.Plotters.linePlotter,
+      axes: {
+        x: {
+          axisLabelFormatter: Dygraph.dateAxisLabelFormatter
+        },
+        y: {
+          axisLabelFormatter: humanize.threeSigFigs,
+          valueFormatter: humanize.threeSigFigs
+        }
+      },
+      strokeWidth: 2
     }
   }
 
@@ -1112,7 +1239,8 @@ export default class extends Controller {
 
   setButtons () {
     this.chartSelectTarget.value = settings.chart
-    this.setActiveExchanges(settings.xc.split(','))
+    const xsList = settings.chart === 'history' ? settings.xcs.split(',') : settings.xc.split(',')
+    this.setActiveExchanges(xsList)
     if (usesOrderbook(settings.chart)) {
       this.binTarget.classList.add('d-hide')
       this.aggOptionTarget.disabled = false
@@ -1204,6 +1332,17 @@ export default class extends Controller {
     const btn = e.target || e.srcElement
     if (btn.nodeName !== 'BUTTON' || !this.graph) return
     settings.xc = btn.name
+    if (settings.chart === 'history') {
+      const xcs = settings.xcs.split(',')
+      if (xcs.indexOf(btn.name) < 0) {
+        xcs.push(btn.name)
+      } else {
+        if (xcs.length > 1) {
+          xcs.splice(xcs.indexOf(btn.name), 1)
+        }
+      }
+      settings.xcs = xcs.join(',')
+    }
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
       if (!availableCandlesticks[settings.xc]) {
