@@ -2401,3 +2401,19 @@ body.darkBG {
     font-size: 15px !important;
   }
 }
+
+.left-vs-block-data {
+  border-top-left-radius: 30px;
+  border-bottom-left-radius: 30px;
+}
+
+.right-vs-block-data {
+  border-top-right-radius: 30px;
+  border-bottom-right-radius: 30px;
+}
+
+.note-color {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #c1c1c1;
+}

@@ -23,14 +23,16 @@
                 </label>
         </div>
         <div class="d-flex ai-center mt-2 d-none" data-blocklist-target="vsDescription">
-            <label class="color-note-label border-radius-8" style="background-color: #2ed6a1"></label>
-            <span class="c-grey-2 ps-2 color-description">Rewards</span>
-            <label class="color-note-label border-radius-8 ms-3" style="background-color: #2971ff"></label>
-            <span class="c-grey-2 ps-2 color-description">Votes</span>
-            <label class="color-note-label border-radius-8 ms-3" style="background-color: #ffc84d"></label>
-            <span class="c-grey-2 ps-2 color-description">Tickets</span>
-            <label class="color-note-label border-radius-8 ms-3" style="background-color: #c4cbd2"></label>
-            <span class="c-grey-2 ps-2 color-description">Transactions</span>
+            <label class="note-color border-radius-8" style="background: linear-gradient(90deg, #2ed6a1 0, #57eda4);"></label>
+            <span class="c-grey-2 ps-1 color-description">Rewards</span>
+            <label class="note-color border-radius-8 ms-3" style="background: linear-gradient(to right, #2971ff 0%, #528cff 100%);"></label>
+            <span class="c-grey-2 ps-1 color-description">Votes</span>
+            <label class="note-color border-radius-8 ms-3" style="background: linear-gradient(90deg, #ffc84d 0, #ffe09b);"></label>
+            <span class="c-grey-2 ps-1 color-description">Tickets</span>
+            <label class="note-color border-radius-8 ms-3" style="background: linear-gradient(90deg, #fd714a 0, #fd9b80);"></label>
+            <span class="c-grey-2 ps-1 color-description">Revocations</span>
+            <label class="note-color border-radius-8 ms-3" style="background: linear-gradient(90deg, #b8d1f6 0, #d3e5ff);"></label>
+            <span class="c-grey-2 ps-1 color-description">Transactions</span>
         </div>
         {{$pendingBlocks := 0}}
         {{if gt (len $.Data) 0}}{{$pendingBlocks = ((index .Data 0).Height)}}{{end}}
@@ -155,19 +157,19 @@
                         
                 <div class="block visible" data-blocklist-target="block">
                     <div class="block-rows">
-                        <div class="block-rewards" style="flex-grow: 1">
+                        <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
                             <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
                                 title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
                                 data-blocklist-target="tooltip">
                                 <a class="block-element-link" href="#">
-                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                    <span class="paint left-vs-block-data" style="width: {{intMultiply (len .Votes) 20}}%;"></span>
                                 </a>
                             </span>
                             <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
                                 title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
                                 data-blocklist-target="tooltip">
                                 <a class="block-element-link" href="#">
-                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%;"></span>
                                 </a>
                             </span>
                             <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Developer}}"
@@ -177,18 +179,19 @@
                                     <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
                                 </a>
                             </span>
-                            <span class="fees" style="flex-grow: {{.MiningFee}}"
+                            <span class="fees right-vs-block-data" style="flex-grow: {{.MiningFee}};"
                                 title='{"object": "Tx Fees", "total": "{{.MiningFee}}"}'
                                 data-blocklist-target="tooltip">
                                 <a class="block-element-link" href="#"></a>
                             </span>
                         </div>
 
-                        <div class="block-votes" style="flex-grow: 1">
-                        {{range .Votes}}
-                            <span style="background-color: {{if .VoteValid}}#2971ff{{else}}rgba(253, 113, 74, 0.8){{end}}" data-blocklist-target="tooltip"
-                                title='{"object": "Vote", "voteValid": "{{.VoteValid}}"}'>
-                                <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                        <div class="block-votes px-1 mt-1" style="flex-grow: 1">
+                        {{$VoteLength := subtract (toint64 (len .Votes)) 1}}
+                        {{range $index, $vote := .Votes}}
+                            <span style="background: {{if $vote.VoteValid}}linear-gradient(to right, #2971ff 0%, #528cff 100%){{else}}linear-gradient(to right, #fd714a 0%, #f6896a 100%){{end}};" data-blocklist-target="tooltip"
+                                title='{"object": "Vote", "voteValid": "{{$vote.VoteValid}}"}' class="{{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index $VoteLength}}right-vs-block-data{{end}}">
+                                <a class="block-element-link" href="/tx/{{$vote.TxID}}"></a>
                             </span>
                         {{end}}
                         {{if lt (len .Votes) 5}}
@@ -199,15 +202,16 @@
                         {{end}}
                         </div>
 
-                        <div class="block-tickets" style="flex-grow: 1">
+                        <div class="block-tickets px-1 mt-1" style="flex-grow: 1">
                         <!-- show tickets before revs, if tickets are more than 50, truncate at 30 and show more tip -->
                         {{$tickets := .Tickets}}
                         {{$ticketsCount := len .Tickets}}
+                        {{$revCount := len .Revs}}
                         {{if gt $ticketsCount 50}} {{$tickets = clipSlice .Tickets 30}} {{end}}
-                        {{range $tickets}}
-                        <span class="block-ticket" data-blocklist-target="tooltip"
-                            title='{"object": "Ticket", "total": "{{.Total}}", "vout": "{{.VoutCount}}", "vin": "{{.VinCount}}"}'>
-                            <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                        {{range $index,$ticket := $tickets}}
+                        <span class="block-ticket {{if eq $index 0}}left-vs-block-data{{end}} {{if and (eq $index (subtract (toint64 $ticketsCount) 1)) (eq $revCount 0)}}right-vs-block-data{{end}}" data-blocklist-target="tooltip"
+                            title='{"object": "Ticket", "total": "{{$ticket.Total}}", "vout": "{{$ticket.VoutCount}}", "vin": "{{$ticket.VinCount}}"}'>
+                            <a class="block-element-link" href="/tx/{{$ticket.TxID}}"></a>
                         </span>
                         {{end}}
                         {{if gt $ticketsCount 50}}
@@ -216,10 +220,10 @@
                             <a class="block-element-link" href="#">+ {{intSubtract $ticketsCount 30}}</a>
                         </span>
                         {{end}}
-                        {{range .Revs}}
-                        <span class="block-rev" data-blocklist-target="tooltip"
-                            title='{"object": "Revocation", "total": "{{.Total}}", "vout": "{{.VoutCount}}", "vin": "{{.VinCount}}"}'>
-                            <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                        {{range $index,$rev := .Revs}}
+                        <span class="block-rev {{if and (eq $ticketsCount 0) (eq $index 0)}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $revCount) 1)}}right-vs-block-data{{end}}" data-blocklist-target="tooltip"
+                            title='{"object": "Revocation", "total": "{{$rev.Total}}", "vout": "{{$rev.VoutCount}}", "vin": "{{$rev.VinCount}}"}'>
+                            <a class="block-element-link" href="/tx/{{$rev.TxID}}"></a>
                         </span>
                         {{end}}
                         {{$ticketsRevsCount := intAdd $ticketsCount (len .Revs)}}
@@ -228,14 +232,14 @@
                         {{end}}
                         </div>
 
-                        <div class="block-transactions" data-blocklist-target="txs" style="flex-grow: 1">
+                        <div class="block-transactions px-1 my-1" data-blocklist-target="txs" style="flex-grow: 1">
                         {{$txs := .Tx}}
                         {{$txCount := len .Tx}}
                         {{if gt $txCount 50}} {{$txs = clipSlice .Tx 30}} {{end}}
-                        {{range $txs}}
-                        <span class="block-tx" style="flex-grow: {{.Total}}" data-blocklist-target="tooltip"
-                            title='{"object": "Transaction", "total": "{{.Total}}", "vout": "{{.VoutCount}}", "vin": "{{.VinCount}}"}'>
-                            <a class="block-element-link" href="/tx/{{.TxID}}"></a>
+                        {{range $index,$tx := $txs}}
+                        <span class="block-tx {{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $txCount) 1)}}right-vs-block-data{{end}}" style="flex-grow: {{$tx.Total}}" data-blocklist-target="tooltip"
+                            title='{"object": "Transaction", "total": "{{$tx.Total}}", "vout": "{{$tx.VoutCount}}", "vin": "{{$tx.VinCount}}"}'>
+                            <a class="block-element-link" href="/tx/{{$tx.TxID}}"></a>
                         </span>
                         {{end}}
                         {{if gt $txCount 50}}

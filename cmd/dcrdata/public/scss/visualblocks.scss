@@ -46,8 +46,10 @@
   display: none;
   overflow: hidden;
   transition: 0.2s ease-in-out;
-  border: 1px solid #c4cbd2;
+  border: 1px solid #d0e8ff;
+  border-radius: 15px;
   position: relative;
+  background-color: #e0f8fdad;
 }
 
 .block.visible {
@@ -87,7 +89,7 @@
 .block-rows {
   display: flex;
   flex-direction: column;
-  height: 90px;
+  height: 110px;
   padding: 1px;
 }
 
@@ -140,7 +142,7 @@
   left: 0;
   top: 0;
   height: 100%;
-  background-color: #2ed6a1;
+  background: linear-gradient(to right, #2ed6a1 0%, #57eda4 100%);
 }
 
 .block-rows .block-rewards .pow .paint {
@@ -169,15 +171,15 @@
 }
 
 .block-rows .block-tickets .block-ticket {
-  background-color: #ffc84d;
+  background: linear-gradient(to right, #ffc84d 0%, #ffe09b 100%);
 }
 
 .block-rows .block-tickets .block-rev {
-  background-color: #fd714a;
+  background: linear-gradient(to right, #fd714a 0%, #fd9b80 100%);
 }
 
 .block-rows .block-transactions .block-tx {
-  background-color: #c4cbd2;
+  background: linear-gradient(to right, #B8D1F6 0%, #d3e5ff 100%);
 }
 
 .block-rows .block-element-link,
