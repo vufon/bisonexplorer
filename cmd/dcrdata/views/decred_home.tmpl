@@ -105,7 +105,7 @@
                   </div>
                </div>
             </div>
-            <div class="col-12 col-md-6 mt-2 px-1">
+            <div class="col-24 col-md-12 mt-2 px-1">
                <div class="explore-card-wrap home-menu-column">
                   <div class="home-menu-card">
                      <div class="explore-card__header homepage-menu-card-header bg-for-header">
@@ -113,70 +113,99 @@
                            <h6 class="fs-20 fw-600"> Tools </h6>
                         </div>
                      </div>
-                     <div class="home-menu-content group-menu-content">
-                        {{if eq .NetName "Mainnet"}}
-                        <a href="/chain"
-                        class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                        <div class="ta-center">
-                           <p class="fw-600 m-0 home-menu-item-title btn--promo">Other Blockchains</p>
-                           <span class="fs-13 menu-item-description">All supported blockchains</span>
+                     <div class="row">
+                        <div class="col-12">
+                           <div class="home-menu-content group-menu-content pe-2">
+                              {{if eq .NetName "Mainnet"}}
+                              <a href="/chain"
+                              class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                              <div class="ta-center">
+                                 <p class="fw-600 m-0 home-menu-item-title btn--promo">Other Blockchains</p>
+                                 <span class="fs-13 menu-item-description">All supported blockchains</span>
+                              </div>
+                              </a>
+                              {{end}}
+                              <a href="/finance-report"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title btn--promo">Financial Reports</p>
+                                    <span class="fs-13 menu-item-description">Treasury/Proposals financial reports</span>
+                                 </div>
+                              </a>
+                              <a href="/stakingcalc"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title">Staking Reward Calculator</p>
+                                    <span class="fs-13 menu-item-description">Estimated staking reward</span>
+                                 </div>
+                              </a>
+                              <a href="/supply" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title btn--promo">Supply</p>
+                                    <span class="fs-13 menu-item-description">Distribution information</span>
+                                 </div>
+                              </a>
+                              <a href="/attack-cost" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title">Attack Cost</p>
+                                    <span class="fs-13 menu-item-description">Attack Cost Calculator</span>
+                                 </div>
+                              </a>
+                           </div>
                         </div>
-                        </a>
-                        {{end}}
-                        <a href="/finance-report"
-                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                           <div class="ta-center">
-                              <p class="fw-600 m-0 home-menu-item-title btn--promo">Financial Reports</p>
-                              <span class="fs-13 menu-item-description">Treasury/Proposals financial reports</span>
+                        <div class="col-12">
+                           <div class="home-menu-content group-menu-content ps-2">
+                           <a href="/parameters" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                              <div class="ta-center">
+                                 <p class="fw-600 m-0 home-menu-item-title">Parameters</p>
+                                 <span class="fs-13 menu-item-description">Blockchain Paramerters</span>
+                              </div>
+                           </a>
+                           <a href="/decodetx" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                              <div class="ta-center">
+                                 <p class="fw-600 m-0 home-menu-item-title">Decode/Broadcast Tx</p>
+                                 <span class="fs-13 menu-item-description">Broadcast Transactions</span>
+                              </div>
+                           </a>
+                           <a href="/whatsnew" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                              <div class="ta-center">
+                                 <p class="fw-600 m-0 home-menu-item-title btn--promo">Whats New</p>
+                                 <span class="fs-13 menu-item-description">Changes on Bison Explorer</span>
+                              </div>
+                           </a>
+                           <a href="/verify-message" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                              <div class="ta-center">
+                                 <p class="fw-600 m-0 home-menu-item-title">Verify Message</p>
+                                 <span class="fs-13 menu-item-description">Verify signed address</span>
+                              </div>
+                           </a>
+                           <nav class="dropdownmenu home-menu-item p-0 d-flex ai-center justify-content-center cursor-pointer">
+                              <ul class="w-100i">
+                                 <li class="w-100i">
+                                    <a class="fw-600 home-menu-item-title more-menu-item px-0 c-grey-5"><span>More</span><span
+                                          class="dcricon-arrow-down ms-2"></span></a>
+                                    <ul class="submenu w-100i">
+                                       <li class="w-100i">{{- if eq .NetName "Mainnet"}}
+                                          <a class="dropdown-item c-grey-5" href="{{.Links.Testnet}}">Switch To Testnet</a>
+                                          {{- else}}
+                                          <a class="dropdown-item c-grey-5" href="{{.Links.Mainnet}}">Switch To Mainnet</a>
+                                          {{- end}}
+                                       </li>
+                                       <li class="w-100i"><a class="dropdown-item c-grey-5" rel="noopener noreferrer"
+                                             data-keynav-skip href="{{.Links.APIDocs}}" target="_blank">JSON API Docs</a>
+                                       </li>
+                                       <li class="w-100i"><a class="dropdown-item c-grey-5" data-keynav-skip
+                                             data-turbolinks="false" href="#" id="keynav-toggle">
+                                             <span class="m-0 text c-grey-5">Enable Hot Keys</span>
+                                             <span class="menu-item-description"><br /><span class="keys-hint">(<span
+                                                      class="arrows">
+                                                      &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span></span>
+                                          </a>
+                                       </li>
+                                    </ul>
+                           </nav>
                            </div>
-                        </a>
-                        <a href="/stakingcalc"
-                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                           <div class="ta-center">
-                              <p class="fw-600 m-0 home-menu-item-title">Staking Reward Calculator</p>
-                              <span class="fs-13 menu-item-description">Estimated staking reward</span>
-                           </div>
-                        </a>
-                        <a href="/supply" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                           <div class="ta-center">
-                              <p class="fw-600 m-0 home-menu-item-title btn--promo">Supply</p>
-                              <span class="fs-13 menu-item-description">Distribution information</span>
-                           </div>
-                        </a>
-                        <nav class="dropdownmenu home-menu-item d-flex ai-center justify-content-center cursor-pointer">
-                           <ul class="w-100i">
-                              <li class="w-100i">
-                                 <a class="fw-600 home-menu-item-title c-grey-5"><span>More</span><span
-                                       class="dcricon-arrow-down ms-2"></span></a>
-                                 <ul class="submenu w-100i">
-                                    <li class="w-100i"><a class="dropdown-item c-grey-5 btn--promo" href="/attack-cost">Attack Cost</a>
-                                    </li>
-                                    <li class="w-100i"><a class="dropdown-item c-grey-5" href="/parameters">Parameters</a></li>
-                                    <li class="w-100i"><a class="dropdown-item c-grey-5" href="/decodetx">Decode
-                                          /Broadcast Tx</a></li>
-                                    <li class="w-100i"><a class="dropdown-item c-grey-5" href="/verify-message">Verify Message</a>
-                                    </li>
-                                    <li class="w-100i"><a class="dropdown-item c-grey-5 btn--promo" href="/whatsnew">Whats New</a>
-                                    </li>
-                                    <li class="w-100i">{{- if eq .NetName "Mainnet"}}
-                                       <a class="dropdown-item c-grey-5" href="{{.Links.Testnet}}">Switch To Testnet</a>
-                                       {{- else}}
-                                       <a class="dropdown-item c-grey-5" href="{{.Links.Mainnet}}">Switch To Mainnet</a>
-                                       {{- end}}
-                                    </li>
-                                    <li class="w-100i"><a class="dropdown-item c-grey-5" rel="noopener noreferrer"
-                                          data-keynav-skip href="{{.Links.APIDocs}}" target="_blank">JSON API Docs</a>
-                                    </li>
-                                    <li class="w-100i"><a class="dropdown-item c-grey-5" data-keynav-skip
-                                          data-turbolinks="false" href="#" id="keynav-toggle">
-                                          <span class="m-0 text c-grey-5">Enable Hot Keys</span>
-                                          <span class="menu-item-description"><br /><span class="keys-hint">(<span
-                                                   class="arrows">
-                                                   &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span></span>
-                                       </a>
-                                    </li>
-                                 </ul>
-                        </nav>
+                        </div>
                      </div>
                   </div>
                </div>
