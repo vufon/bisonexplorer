@@ -1,8 +1,6 @@
 import { Controller } from '@hotwired/stimulus'
 import { toggleSun } from '../services/theme_service'
 
-let navTarget
-
 $(document).mouseup(function (e) {
   const selectArea = $('#chainSelectList')
   if (!selectArea.is(e.target) && selectArea.has(e.target).length === 0) {
@@ -41,18 +39,11 @@ export default class extends Controller {
     } else {
       this.currentChain = 'dcr'
     }
-    navTarget = this.navbarTarget
+    const _this = this
     document.addEventListener('scroll', function () {
-      // Get the scroll position
-      const scrollPos = window.pageYOffset
-      if (scrollPos > 20) {
-        navTarget.classList.add('scroll-topbar')
-        $('#menuDivider').addClass('d-none')
-      } else {
-        navTarget.classList.remove('scroll-topbar')
-        $('#menuDivider').removeClass('d-none')
-      }
+      _this.handlerScroll()
     })
+    _this.handlerScroll()
     $('html').css('overflow-x', '')
     // handler for chain selection
     const chainArray = []
@@ -71,7 +62,6 @@ export default class extends Controller {
       $('.chain-selected-btn').html(chainArray[chainIndex])
       $('.chain-selected-btn').attr('value', this.currentChain)
     }
-    const _this = this
     $('#selectUl li').click(function () {
       const value = $(this).find('img').attr('value')
       if (value === _this.currentChain) {
@@ -90,6 +80,18 @@ export default class extends Controller {
       $('.selection-area').toggle()
     })
     $('#menu').css('width', $('#topBarLeft').width())
+  }
+
+  handlerScroll () {
+    // Get the scroll position
+    const scrollPos = window.pageYOffset
+    if (scrollPos > 20) {
+      this.navbarTarget.classList.add('scroll-topbar')
+      $('#menuDivider').addClass('d-none')
+    } else {
+      this.navbarTarget.classList.remove('scroll-topbar')
+      $('#menuDivider').removeClass('d-none')
+    }
   }
 
   changeCoin (e) {
