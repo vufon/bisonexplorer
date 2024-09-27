@@ -105,7 +105,7 @@ export default class extends Controller {
         `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
         `</div><span class="timespan"><span data-time-target="age" data-age="${block.blocktime_unix}"></span>&nbsp;ago</span></div>` +
         '<div class="block-rows chain-block-rows"><div class="block-rewards px-1 mt-1" style="flex-grow: 1">' +
-        `<span class="pow left-vs-block-data" style="flex-grow: ${block.BlockReward / 1e8}" ` +
+        `<span class="pow chain-pow left-vs-block-data" style="flex-grow: ${block.BlockReward / 1e8}" ` +
         `title='{"object": "Block Reward", "total": "${block.BlockReward / 1e8}"}' ` +
         'data-chainvisualBlocks-target="tooltip"><a class="block-element-link" href="#"></a>' +
         `</span><span class="fees right-vs-block-data" style="flex-grow: ${block.FeesSats / 1e8}" ` +

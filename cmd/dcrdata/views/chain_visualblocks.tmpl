@@ -34,7 +34,7 @@
                 </div>
                 <div class="block-rows chain-block-rows">
                     <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
-                        <span id="memBlockReward" class="pow left-vs-block-data"
+                        <span id="memBlockReward" class="pow chain-pow left-vs-block-data"
                             style="flex-grow: {{toFloat64Amount .BlockReward}}"
                             title='{"object": "Block Reward","total": "{{toFloat64Amount .BlockReward}}"}'
                             data-chainvisualBlocks-target="tooltip">
@@ -83,7 +83,7 @@
                 </div>
                 <div class="block-rows chain-block-rows">
                     <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
-                        <span class="pow left-vs-block-data" style="flex-grow: {{toFloat64Amount .BlockReward}}"
+                        <span class="pow chain-pow left-vs-block-data" style="flex-grow: {{toFloat64Amount .BlockReward}}"
                             title='{"object": "Block Reward", "total": "{{toFloat64Amount .BlockReward}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <a class="block-element-link" href="#"></a>
