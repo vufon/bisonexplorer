@@ -51,6 +51,7 @@ type MutilchainChartData struct {
 	updaters            []ChartMutilchainUpdater
 	TimePerBlocks       float64
 	ChainType           string
+	UseSyncDB           bool
 	UseAPI              bool
 }
 
@@ -415,7 +416,7 @@ func (charts *MutilchainChartData) Update() error {
 	return nil
 }
 
-func NewLTCChartData(ctx context.Context, height uint32, chainParams *ltcchaincfg.Params, lastBlockHeight int64) *MutilchainChartData {
+func NewLTCChartData(ctx context.Context, height uint32, chainParams *ltcchaincfg.Params, lastBlockHeight int64, disabledDBSync bool) *MutilchainChartData {
 	genesis := chainParams.GenesisBlock.Header.Timestamp
 	size := int(height * 5 / 4)
 	days := int(time.Since(genesis)/time.Hour/24)*5/4 + 1 // at least one day
@@ -429,10 +430,11 @@ func NewLTCChartData(ctx context.Context, height uint32, chainParams *ltcchaincf
 		TimePerBlocks:   float64(chainParams.TargetTimePerBlock),
 		ChainType:       mutilchain.TYPELTC,
 		LastBlockHeight: lastBlockHeight,
+		UseSyncDB:       !disabledDBSync,
 	}
 }
 
-func NewBTCChartData(ctx context.Context, height uint32, chainParams *btcchaincfg.Params, lastBlockHeight int64) *MutilchainChartData {
+func NewBTCChartData(ctx context.Context, height uint32, chainParams *btcchaincfg.Params, lastBlockHeight int64, disabledDBSync bool) *MutilchainChartData {
 	genesis := chainParams.GenesisBlock.Header.Timestamp
 	size := int(height * 5 / 4)
 	days := int(time.Since(genesis)/time.Hour/24)*5/4 + 1 // at least one day
@@ -446,6 +448,7 @@ func NewBTCChartData(ctx context.Context, height uint32, chainParams *btcchaincf
 		TimePerBlocks:   float64(chainParams.TargetTimePerBlock),
 		ChainType:       mutilchain.TYPEBTC,
 		LastBlockHeight: lastBlockHeight,
+		UseSyncDB:       !disabledDBSync,
 	}
 }
 

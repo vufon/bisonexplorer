@@ -16,7 +16,6 @@ import (
 	"github.com/ltcsuite/ltcd/btcjson"
 	"github.com/ltcsuite/ltcd/chaincfg"
 	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/ltcutil"
 	"github.com/ltcsuite/ltcd/wire"
 )
 
@@ -60,25 +59,19 @@ type NodeClient interface {
 	GetConnectionCount() (int64, error)
 }
 
-type CoreNodeClient interface {
-	GetTxOutSetInfo() (*btcjson.GetTxOutSetInfoResult, error)
-}
-
 // Collector models a structure for the source of the blockdata
 type Collector struct {
-	mtx             sync.Mutex
-	ltcdChainSvr    NodeClient
-	ltcCoreChainSvr CoreNodeClient
-	netParams       *chaincfg.Params
-	stakeDB         *stakedb.StakeDatabase
+	mtx          sync.Mutex
+	ltcdChainSvr NodeClient
+	netParams    *chaincfg.Params
+	stakeDB      *stakedb.StakeDatabase
 }
 
 // NewCollector creates a new Collector.
-func NewCollector(ltcdChainSvr NodeClient, ltcCoreChainSvr CoreNodeClient, params *chaincfg.Params) *Collector {
+func NewCollector(ltcdChainSvr NodeClient, params *chaincfg.Params) *Collector {
 	return &Collector{
-		ltcdChainSvr:    ltcdChainSvr,
-		ltcCoreChainSvr: ltcCoreChainSvr,
-		netParams:       params,
+		ltcdChainSvr: ltcdChainSvr,
+		netParams:    params,
 	}
 }
 
@@ -117,19 +110,8 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 		Time:       apitypes.TimeAPI{S: dbtypes.NewTimeDef(time.Unix(blockHeader.Time, 0))},
 	}
 
-	//Gettxoutsetinfo for get Coin Supply
-	infoRslt, err := t.ltcCoreChainSvr.GetTxOutSetInfo()
-	var coinSupply ltcutil.Amount
-	sizeOnDisk := int64(0)
-	if err == nil {
-		coinSupply = infoRslt.TotalAmount
-		sizeOnDisk = infoRslt.DiskSize
-	}
 	extrainfo := &apitypes.BlockExplorerExtraInfo{
 		TxLen:           txLen,
-		CoinSupply:      int64(coinSupply),
-		CoinValueSupply: coinSupply.ToBTC(),
-		BlockchainSize:  sizeOnDisk,
 		NextBlockReward: mutilchain.GetNextBlockReward(mutilchain.TYPELTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 		BlockReward:     mutilchain.GetCurrentBlockReward(mutilchain.TYPELTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 	}

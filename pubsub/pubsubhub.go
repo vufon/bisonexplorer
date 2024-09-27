@@ -21,11 +21,13 @@ import (
 	"github.com/dustin/go-humanize"
 
 	btcjson "github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
 	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrdata/v8/blockdata"
 	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
 	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
+	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	exptypes "github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
@@ -35,6 +37,7 @@ import (
 	"github.com/decred/dcrdata/v8/txhelpers"
 	ltcjson "github.com/ltcsuite/ltcd/btcjson"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/ltcutil"
 	ltcwire "github.com/ltcsuite/ltcd/wire"
 	"golang.org/x/net/websocket"
 )
@@ -112,6 +115,8 @@ type PubSubHub struct {
 	invsMtx    sync.RWMutex
 	invs       *exptypes.MempoolInfo
 	ver        pstypes.Ver
+	LtcCharts  *cache.MutilchainChartData
+	BtcCharts  *cache.MutilchainChartData
 }
 
 // NewPubSubHub constructs a PubSubHub given a data source. The WebSocketHub is
@@ -849,6 +854,8 @@ func (psh *PubSubHub) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcw
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
 	difficulty := float64(0)
+	coinSupply := int64(0)
+	coinValueSupply := float64(0)
 	var chainErr error
 	var blockchainInfo *mutilchain.BlockchainInfo
 	//Get transactions total count
@@ -857,12 +864,17 @@ func (psh *PubSubHub) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcw
 		difficulty = blockData.Header.Difficulty
 		totalTransactionCount = psh.sourceBase.MutilchainGetTransactionCount(mutilchain.TYPEBTC)
 		chainSize = blockData.ExtraInfo.BlockchainSize
+		coinSupply = blockData.ExtraInfo.CoinSupply
 	} else {
 		totalTransactionCount = blockchainInfo.TotalTransactions
-		chainSize = blockchainInfo.BlockchainSize
+		chainSize = psh.GetMultichainBlockchainSize(mutilchain.TYPEBTC)
 		difficulty = blockchainInfo.Difficulty
+		coinValueSupply = blockchainInfo.CoinSupply
 	}
-
+	coinSupplyAmount, err := btcutil.NewAmount(coinValueSupply)
+	if err == nil {
+		coinSupply = int64(coinSupplyAmount)
+	}
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
 	// Update pageData with block data and chain (home) info.
 	p := psh.State
@@ -876,8 +888,8 @@ func (psh *PubSubHub) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcw
 	p.BTCGeneralInfo.HashRate = hashrate
 	p.BTCGeneralInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
 	p.BTCGeneralInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
-	p.BTCGeneralInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
-	p.BTCGeneralInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
+	p.BTCGeneralInfo.CoinSupply = coinSupply
+	p.BTCGeneralInfo.CoinValueSupply = coinValueSupply
 	p.BTCGeneralInfo.Difficulty = difficulty
 	p.BTCGeneralInfo.TotalTransactions = totalTransactionCount
 	p.BTCGeneralInfo.TotalSize = chainSize
@@ -923,6 +935,8 @@ func (psh *PubSubHub) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcw
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
 	difficulty := float64(0)
+	coinSupply := int64(0)
+	coinValueSupply := float64(0)
 	var chainErr error
 	var blockchainInfo *mutilchain.BlockchainInfo
 	//Get transactions total count
@@ -931,12 +945,17 @@ func (psh *PubSubHub) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcw
 		difficulty = blockData.Header.Difficulty
 		totalTransactionCount = psh.sourceBase.MutilchainGetTransactionCount(mutilchain.TYPELTC)
 		chainSize = blockData.ExtraInfo.BlockchainSize
+		coinSupply = blockData.ExtraInfo.CoinSupply
 	} else {
 		totalTransactionCount = blockchainInfo.TotalTransactions
-		chainSize = blockchainInfo.BlockchainSize
+		chainSize = psh.GetMultichainBlockchainSize(mutilchain.TYPELTC)
 		difficulty = blockchainInfo.Difficulty
+		coinValueSupply = blockchainInfo.CoinSupply
 	}
-
+	coinSupplyAmount, err := ltcutil.NewAmount(coinValueSupply)
+	if err == nil {
+		coinSupply = int64(coinSupplyAmount)
+	}
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
 	// Update pageData with block data and chain (home) info.
 	p := psh.State
@@ -950,8 +969,8 @@ func (psh *PubSubHub) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcw
 	p.LTCGeneralInfo.HashRate = hashrate
 	p.LTCGeneralInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
 	p.LTCGeneralInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
-	p.LTCGeneralInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
-	p.LTCGeneralInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
+	p.LTCGeneralInfo.CoinSupply = coinSupply
+	p.LTCGeneralInfo.CoinValueSupply = coinValueSupply
 	p.LTCGeneralInfo.Difficulty = difficulty
 	p.LTCGeneralInfo.TotalTransactions = totalTransactionCount
 	p.LTCGeneralInfo.TotalSize = chainSize
@@ -973,4 +992,43 @@ func (psh *PubSubHub) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcw
 
 	log.Debugf("Got new LTC block %d for the pubsubhub.", newBlockData.Height)
 	return nil
+}
+
+func (psh *PubSubHub) GetMultichainBlockchainSize(chainType string) int64 {
+	mutilchainChartData := psh.GetMutilchainChartData(chainType)
+	if mutilchainChartData == nil {
+		return 0
+	}
+	chartData, err := mutilchainChartData.Chart("blockchain-size", "day", "time")
+	if err != nil {
+		return 0
+	}
+	var chainSizeData mutilchain.MultichainChainSizeChartData
+	err = json.Unmarshal(chartData, &chainSizeData)
+	if err != nil {
+		return 0
+	}
+	maxTime := int64(0)
+	timeIndex := -1
+	for index, time := range chainSizeData.T {
+		if time > maxTime {
+			maxTime = time
+			timeIndex = index
+		}
+	}
+	if timeIndex > 0 {
+		return chainSizeData.Size[timeIndex]
+	}
+	return 0
+}
+
+func (psh *PubSubHub) GetMutilchainChartData(chainType string) *cache.MutilchainChartData {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return psh.BtcCharts
+	case mutilchain.TYPELTC:
+		return psh.LtcCharts
+	default:
+		return nil
+	}
 }

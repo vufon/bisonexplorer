@@ -7,6 +7,7 @@
 package explorer
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
 	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrd/blockchain/stake/v5"
@@ -30,6 +32,7 @@ import (
 	humanize "github.com/dustin/go-humanize"
 	ltcjson "github.com/ltcsuite/ltcd/btcjson"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/ltcutil"
 	ltcwire "github.com/ltcsuite/ltcd/wire"
 
 	"github.com/decred/dcrdata/exchanges/v3"
@@ -836,6 +839,8 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
 	difficulty := float64(0)
+	coinSupply := int64(0)
+	coinValueSupply := float64(0)
 	var chainErr error
 	var blockchainInfo *mutilchain.BlockchainInfo
 	//Get transactions total count
@@ -844,10 +849,16 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 		difficulty = blockData.Header.Difficulty
 		totalTransactionCount = exp.dataSource.MutilchainGetTransactionCount(mutilchain.TYPEBTC)
 		chainSize = blockData.ExtraInfo.BlockchainSize
+		coinSupply = blockData.ExtraInfo.CoinSupply
 	} else {
 		totalTransactionCount = blockchainInfo.TotalTransactions
-		chainSize = blockchainInfo.BlockchainSize
+		chainSize = exp.GetMultichainBlockchainSize(mutilchain.TYPEBTC)
 		difficulty = blockchainInfo.Difficulty
+		coinValueSupply = blockchainInfo.CoinSupply
+	}
+	coinSupplyAmount, err := btcutil.NewAmount(coinValueSupply)
+	if err == nil {
+		coinSupply = int64(coinSupplyAmount)
 	}
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
 	//TODO: Open later
@@ -866,8 +877,8 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.HashRate = hashrate
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
 	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
-	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
-	p.HomeInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
+	p.HomeInfo.CoinSupply = coinSupply
+	p.HomeInfo.CoinValueSupply = coinValueSupply
 	p.HomeInfo.Difficulty = difficulty
 	p.HomeInfo.TotalTransactions = totalTransactionCount
 	//p.HomeInfo.TotalOutputs = totalVoutsCount
@@ -878,7 +889,7 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.BtcChainParams.SubsidyReductionInterval)
-	err := exp.dataSource.SyncLast20BTCBlocks(blockData.Header.Height)
+	err = exp.dataSource.SyncLast20BTCBlocks(blockData.Header.Height)
 	if err != nil {
 		log.Error(err)
 	} else {
@@ -937,6 +948,8 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
 	difficulty := float64(0)
+	coinSupply := int64(0)
+	coinValueSupply := float64(0)
 	var chainErr error
 	var blockchainInfo *mutilchain.BlockchainInfo
 	//Get transactions total count
@@ -945,12 +958,17 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		difficulty = blockData.Header.Difficulty
 		totalTransactionCount = exp.dataSource.MutilchainGetTransactionCount(mutilchain.TYPELTC)
 		chainSize = blockData.ExtraInfo.BlockchainSize
+		coinSupply = blockData.ExtraInfo.CoinSupply
 	} else {
 		totalTransactionCount = blockchainInfo.TotalTransactions
-		chainSize = blockchainInfo.BlockchainSize
+		chainSize = exp.GetMultichainBlockchainSize(mutilchain.TYPELTC)
 		difficulty = blockchainInfo.Difficulty
+		coinValueSupply = blockchainInfo.CoinSupply
 	}
-
+	coinSupplyAmount, err := ltcutil.NewAmount(coinValueSupply)
+	if err == nil {
+		coinSupply = int64(coinSupplyAmount)
+	}
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
 	//TODO: Open later
 	//totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPELTC)
@@ -968,8 +986,8 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.HashRate = hashrate
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
 	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
-	p.HomeInfo.CoinSupply = blockData.ExtraInfo.CoinSupply
-	p.HomeInfo.CoinValueSupply = blockData.ExtraInfo.CoinValueSupply
+	p.HomeInfo.CoinSupply = coinSupply
+	p.HomeInfo.CoinValueSupply = coinValueSupply
 	p.HomeInfo.Difficulty = difficulty
 	p.HomeInfo.TotalTransactions = totalTransactionCount
 	//p.HomeInfo.TotalOutputs = totalVoutsCount
@@ -980,7 +998,7 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
-	err := exp.dataSource.SyncLast20LTCBlocks(blockData.Header.Height)
+	err = exp.dataSource.SyncLast20LTCBlocks(blockData.Header.Height)
 	if err != nil {
 		log.Error(err)
 	} else {
@@ -1016,6 +1034,45 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		p.Unlock()
 	}(int64(blockData.Header.Height))
 	return nil
+}
+
+func (exp *ExplorerUI) GetMultichainBlockchainSize(chainType string) int64 {
+	mutilchainChartData := exp.GetMutilchainChartData(chainType)
+	if mutilchainChartData == nil {
+		return 0
+	}
+	chartData, err := mutilchainChartData.Chart("blockchain-size", "day", "time")
+	if err != nil {
+		return 0
+	}
+	var chainSizeData mutilchain.MultichainChainSizeChartData
+	err = json.Unmarshal(chartData, &chainSizeData)
+	if err != nil {
+		return 0
+	}
+	maxTime := int64(0)
+	timeIndex := -1
+	for index, time := range chainSizeData.T {
+		if time > maxTime {
+			maxTime = time
+			timeIndex = index
+		}
+	}
+	if timeIndex > 0 {
+		return chainSizeData.Size[timeIndex]
+	}
+	return 0
+}
+
+func (exp *ExplorerUI) GetMutilchainChartData(chainType string) *cache.MutilchainChartData {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return exp.BtcChartSource
+	case mutilchain.TYPELTC:
+		return exp.LtcChartSource
+	default:
+		return nil
+	}
 }
 
 // ChartsUpdated should be called when a chart update completes.

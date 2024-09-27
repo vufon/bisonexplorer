@@ -27,28 +27,22 @@ type NodeClient interface {
 	GetBlockHeaderVerbose(hash *chainhash.Hash) (*btcjson.GetBlockHeaderVerboseResult, error)
 }
 
-type CoreNodeClient interface {
-	GetTxOutSetInfo() (*btcjson.GetTxOutSetInfoResult, error)
-}
-
 // DataCollector is used for retrieving and processing data from a chain
 // server's mempool.
 type DataCollector struct {
 	// Mutex is used to prevent multiple concurrent calls to Collect.
-	mtx             sync.Mutex
-	btcdChainSvr    NodeClient
-	btcCoreChainSvr CoreNodeClient
-	activeChain     *chaincfg.Params
+	mtx          sync.Mutex
+	btcdChainSvr NodeClient
+	activeChain  *chaincfg.Params
 }
 
 // NewDataCollector creates a new DataCollector. Use a rpcutils.AsyncTxClient to
 // create a NodeClient from an rpcclient.Client or implement a wrapper that
 // provides txhelpers.VerboseTransactionPromiseGetter.
-func NewDataCollector(btcdChainSvr NodeClient, btcCoreChainSvr CoreNodeClient, params *chaincfg.Params) *DataCollector {
+func NewDataCollector(btcdChainSvr NodeClient, params *chaincfg.Params) *DataCollector {
 	return &DataCollector{
-		btcdChainSvr:    btcdChainSvr,
-		btcCoreChainSvr: btcCoreChainSvr,
-		activeChain:     params,
+		btcdChainSvr: btcdChainSvr,
+		activeChain:  params,
 	}
 }
 

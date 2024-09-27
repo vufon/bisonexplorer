@@ -3974,7 +3974,7 @@ func appendMutilchainChartBlocks(charts *cache.MutilchainChartData, rows *sql.Ro
 		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
 	}
 	//if lastest db height less than lastblock height, use external api to display chart
-	if height < uint64(charts.LastBlockHeight) {
+	if !charts.UseSyncDB || height < uint64(charts.LastBlockHeight) {
 		charts.UseAPI = true
 		//handler api data for charts
 		apiErr := HandlerMutilchainAPIDataForCharts(charts)
