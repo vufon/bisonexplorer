@@ -816,12 +816,10 @@ export default class extends Controller {
     }
     // Fiat conversion only available for order books for now.
     if (usesOrderbook(chart)) {
-      this.conversionTarget.classList.remove('d-hide')
       this.ageSpanTarget.dataset.age = response.data.time
       this.ageSpanTarget.textContent = humanize.timeSince(response.data.time)
       this.ageTarget.classList.remove('d-hide')
     } else {
-      this.conversionTarget.classList.add('d-hide')
       this.ageTarget.classList.add('d-hide')
     }
     this.graph.updateOptions(chartResetOpts, true)
@@ -860,7 +858,7 @@ export default class extends Controller {
       file: data,
       labels: ['time', 'open', 'close', 'high', 'low'],
       xlabel: 'Time',
-      ylabel: 'Price (BTC)',
+      ylabel: 'Price (USD)',
       plotter: candlestickPlotter,
       axes: {
         x: {
@@ -991,7 +989,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'price'],
       xlabel: 'Time',
-      ylabel: 'Price (BTC)',
+      ylabel: 'Price (USD)',
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1146,7 +1144,7 @@ export default class extends Controller {
       file: data.pts,
       fillGraph: true,
       colors: ['#ed6d47', '#41be53'],
-      xlabel: `Price (${this.converted ? fiatCode : 'BTC'})`,
+      xlabel: 'Price (USD)',
       ylabel: 'Volume (DCR)',
       tokens: null,
       stats: data.stats,
@@ -1186,7 +1184,7 @@ export default class extends Controller {
       labels: keys,
       file: data.pts,
       colors: colors,
-      xlabel: `Price (${this.converted ? fiatCode : 'BTC'})`,
+      xlabel: 'Price (USD)',
       ylabel: 'Volume (DCR)',
       plotter: depthPlotter,
       fillGraph: aggStacking,
@@ -1214,7 +1212,7 @@ export default class extends Controller {
       labels: ['price', 'sell', 'buy'],
       file: data.pts,
       colors: ['#f93f39cc', '#1acc84cc'],
-      xlabel: `Price (${this.converted ? fiatCode : 'BTC'})`,
+      xlabel: 'Price (USD)',
       ylabel: 'Volume (DCR)',
       plotter: orderPlotter,
       axes: {

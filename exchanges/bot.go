@@ -1482,7 +1482,7 @@ func (bot *ExchangeBot) aggOrderbook() *aggregateOrderbook {
 	// counted and sorted alphabetically.
 	tokens := []string{}
 	for token, xcState := range state.DcrBtc {
-		if !xcState.HasDepth() {
+		if !xcState.HasDepth() || token == "dcrdex" {
 			continue
 		}
 		tokens = append(tokens, token)
