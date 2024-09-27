@@ -1504,7 +1504,7 @@ func _main(ctx context.Context) error {
 			ltcHeightFromDB = 0
 		}
 		//start handler ltc chart data
-		ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain, int64(ltcHeight))
+		ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain, int64(ltcHeight), chainDB.ChainDBDisabled)
 		chainDB.RegisterMutilchainCharts(ltcCharts)
 
 		explore.LtcChartSource = ltcCharts
@@ -1656,7 +1656,7 @@ func _main(ctx context.Context) error {
 			btcHeightFromDB = 0
 		}
 		//start handler btc chart data
-		btcCharts := cache.NewBTCChartData(ctx, uint32(btcHeightFromDB), btcActiveChain, int64(btcHeight))
+		btcCharts := cache.NewBTCChartData(ctx, uint32(btcHeightFromDB), btcActiveChain, int64(btcHeight), chainDB.ChainDBDisabled)
 		chainDB.RegisterMutilchainCharts(btcCharts)
 
 		explore.BtcChartSource = btcCharts
