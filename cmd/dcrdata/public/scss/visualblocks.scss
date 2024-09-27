@@ -93,6 +93,10 @@
   padding: 1px;
 }
 
+.chain-block-rows {
+  height: 80px !important;
+}
+
 .block-rows .block-rewards > span {
   position: relative;
   flex-basis: 10px;
@@ -157,8 +161,9 @@
   opacity: 0.8;
 }
 
-.block-rows .block-rewards > .fees {
-  background-color: #2ed6a1;
+.block-rows .block-rewards > .fees,
+.block-rows .block-rewards > .pow {
+  background: linear-gradient(90deg, #2ed6a1 0, #57eda4)
 }
 
 .block-rows .block-element-link {
@@ -180,6 +185,10 @@
 
 .block-rows .block-transactions .block-tx {
   background: linear-gradient(to right, #B8D1F6 0%, #d3e5ff 100%);
+}
+
+.block-rows .block-transactions .chain-block-tx {
+  background: linear-gradient(to right, #ffc84d 0%, #ffe09b 100%);
 }
 
 .block-rows .block-element-link,
