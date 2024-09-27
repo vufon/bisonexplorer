@@ -12,13 +12,33 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
-var okLinkAddressDetailUrl = `https://www.oklink.com/api/v5/explorer/address/address-summary`
-var okLinkAddressTxsUrl = `https://www.oklink.com/api/v5/explorer/address/transaction-list`
+const okAPIURL = "https://www.oklink.com/api/v5/explorer"
+
+var okLinkAddressDetailUrl = `/address/address-summary`
+var okLinkAddressTxsUrl = `/address/transaction-list`
+var blockchainSummaryURL = `/blockchain/summary`
+
+type OkLinkBlockchainSummaryResponseData struct {
+	Code string                        `json:"code"`
+	Msg  string                        `json:"msg"`
+	Data []OkLinkBlockchainSummaryData `json:"data"`
+}
 
 type OkLinkSummaryResponseData struct {
 	Code string              `json:"code"`
 	Msg  string              `json:"msg"`
 	Data []OkLinkSummaryData `json:"data"`
+}
+
+type OkLinkBlockchainSummaryData struct {
+	ChainFullName               string `json:"chainFullName"`
+	ChainShortName              string `json:"chainShortName"`
+	Symbol                      string `json:"symbol"`
+	LastHeight                  string `json:"lastHeight"`
+	LastBlockTime               string `json:"lastBlockTime"`
+	CirculatingSupply           string `json:"circulatingSupply"`
+	CirculatingSupplyProportion string `json:"circulatingSupplyProportion"`
+	Transactions                string `json:"transactions"`
 }
 
 type OkLinkSummaryData struct {
@@ -64,7 +84,7 @@ func GetOkLinkSummaryData(apiKey, chainType, address string) (*OkLinkSummaryResp
 	headerMap["Ok-Access-Key"] = apiKey
 	req := &ReqConfig{
 		Method:  http.MethodGet,
-		HttpUrl: okLinkAddressDetailUrl,
+		HttpUrl: fmt.Sprintf("%s%s", okAPIURL, okLinkAddressDetailUrl),
 		Payload: query,
 		Header:  headerMap,
 	}
@@ -88,7 +108,7 @@ func GetOkLinkAddressTxsData(apiKey, chainType, address string, limit, offset in
 	headerMap["Ok-Access-Key"] = apiKey
 	req := &ReqConfig{
 		Method:  http.MethodGet,
-		HttpUrl: okLinkAddressTxsUrl,
+		HttpUrl: fmt.Sprintf("%s%s", okAPIURL, okLinkAddressTxsUrl),
 		Payload: query,
 		Header:  headerMap,
 	}
@@ -96,6 +116,38 @@ func GetOkLinkAddressTxsData(apiKey, chainType, address string, limit, offset in
 		return nil, err
 	}
 	return &fetchData, nil
+}
+
+func GetOkLinkBlockchainSummaryData(apiKey, chainType string) (float64, int64, error) {
+	var fetchData OkLinkBlockchainSummaryResponseData
+	query := map[string]string{
+		"chainShortName": chainType,
+	}
+	//insert api key
+	headerMap := make(map[string]string)
+	headerMap["Ok-Access-Key"] = apiKey
+	req := &ReqConfig{
+		Method:  http.MethodGet,
+		HttpUrl: fmt.Sprintf("%s%s", okAPIURL, blockchainSummaryURL),
+		Payload: query,
+		Header:  headerMap,
+	}
+	if err := HttpRequest(req, &fetchData); err != nil {
+		return 0, 0, err
+	}
+	if len(fetchData.Data) == 0 {
+		return 0, 0, nil
+	}
+	coinSupply := float64(0)
+	totalTxs := int64(0)
+	for _, data := range fetchData.Data {
+		if strings.ToLower(data.ChainShortName) == chainType {
+			coinSupply, _ = strconv.ParseFloat(data.CirculatingSupply, 64)
+			totalTxs, _ = strconv.ParseInt(data.Transactions, 0, 32)
+			break
+		}
+	}
+	return coinSupply, totalTxs, nil
 }
 
 func GetOkLinkAddressInfoAPI(apiKey, address, chainType string, limit, offset, chainHeight int64, txnType dbtypes.AddrTxnViewType) (*APIAddressInfo, error) {

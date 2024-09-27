@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -60,25 +59,19 @@ type NodeClient interface {
 	GetConnectionCount() (int64, error)
 }
 
-type CoreNodeClient interface {
-	GetTxOutSetInfo() (*btcjson.GetTxOutSetInfoResult, error)
-}
-
 // Collector models a structure for the source of the blockdata
 type Collector struct {
-	mtx             sync.Mutex
-	btcdChainSvr    NodeClient
-	btcCoreChainSvr CoreNodeClient
-	netParams       *chaincfg.Params
-	stakeDB         *stakedb.StakeDatabase
+	mtx          sync.Mutex
+	btcdChainSvr NodeClient
+	netParams    *chaincfg.Params
+	stakeDB      *stakedb.StakeDatabase
 }
 
 // NewCollector creates a new Collector.
-func NewCollector(btcdChainSvr NodeClient, btcCoreChainSvr CoreNodeClient, params *chaincfg.Params) *Collector {
+func NewCollector(btcdChainSvr NodeClient, params *chaincfg.Params) *Collector {
 	return &Collector{
-		btcdChainSvr:    btcdChainSvr,
-		netParams:       params,
-		btcCoreChainSvr: btcCoreChainSvr,
+		btcdChainSvr: btcdChainSvr,
+		netParams:    params,
 	}
 }
 
@@ -116,19 +109,8 @@ func (t *Collector) CollectBlockInfo(hash *chainhash.Hash) (*apitypes.BlockDataB
 		Difficulty: blockHeader.Difficulty,
 		Time:       apitypes.TimeAPI{S: dbtypes.NewTimeDef(time.Unix(blockHeader.Time, 0))},
 	}
-	//Gettxoutsetinfo for get Coin Supply
-	infoRslt, err := t.btcCoreChainSvr.GetTxOutSetInfo()
-	var coinSupply btcutil.Amount
-	sizeOnDisk := int64(0)
-	if err == nil {
-		coinSupply = infoRslt.TotalAmount
-		sizeOnDisk = infoRslt.DiskSize
-	}
 	extrainfo := &apitypes.BlockExplorerExtraInfo{
 		TxLen:           txLen,
-		CoinSupply:      int64(coinSupply),
-		CoinValueSupply: coinSupply.ToBTC(),
-		BlockchainSize:  sizeOnDisk,
 		NextBlockReward: mutilchain.GetNextBlockReward(mutilchain.TYPEBTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 		BlockReward:     mutilchain.GetCurrentBlockReward(mutilchain.TYPEBTC, t.netParams.SubsidyReductionInterval, blockHeader.Height),
 	}

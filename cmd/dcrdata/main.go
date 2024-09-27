@@ -266,9 +266,7 @@ func _main(ctx context.Context) error {
 
 	var barLoad chan *dbtypes.ProgressBarLoad
 	var ltcdClient *ltcClient.Client
-	var ltcCoreClient *ltcClient.Client
 	var btcdClient *btcClient.Client
-	var btcCoreClient *btcClient.Client
 	var ltcNotifier *notify.LTCNotifier
 	var btcNotifier *notify.BTCNotifier
 	var ltcHeight int32
@@ -285,22 +283,17 @@ func _main(ctx context.Context) error {
 		//Start create rpcclient
 		ltcNotifier = notify.NewLtcNotifier()
 		var ltcNodeVer semver.Semver
-		var ltcConnectErr, ltcCoreErr error
+		var ltcConnectErr error
 		ltcdClient, ltcNodeVer, ltcConnectErr = connectLTCNodeRPC(cfg, ltcNotifier.LtcdHandlers())
-		ltcCoreClient, ltcCoreErr = connectLTCCoreRPC(cfg)
 		if ltcConnectErr != nil || ltcdClient == nil {
 			return fmt.Errorf("Connection to ltcd failed: %v", ltcConnectErr)
-		}
-		if ltcCoreErr != nil || ltcCoreClient == nil {
-			return fmt.Errorf("Connection to litecoin core failed: %v", ltcCoreErr)
 		}
 		ltcCurnet, ltcErr := ltcdClient.GetCurrentNet()
 		if ltcErr != nil {
 			return fmt.Errorf("Unable to get current network from ltcd: %v", ltcErr)
 		}
 		chainDB.LtcClient = ltcdClient
-		chainDB.LtcCoreClient = ltcCoreClient
-		log.Infof("Connected to ltcd and litecoin core (JSON-RPC API v%s) on %v", ltcNodeVer.String(), ltcCurnet.String())
+		log.Infof("Connected to ltcd (JSON-RPC API v%s) on %v", ltcNodeVer.String(), ltcCurnet.String())
 
 		if ltcCurnet != ltcActiveNet.Net {
 			log.Criticalf("LTCD: Network of connected node, %s, does not match expected "+
@@ -334,28 +327,22 @@ func _main(ctx context.Context) error {
 		//Start create rpcclient
 		btcNotifier = notify.NewBtcNotifier()
 		var btcNodeVer semver.Semver
-		var btcConnectErr, btcCoreErr error
+		var btcConnectErr error
 		btcdClient, btcNodeVer, btcConnectErr = connectBTCNodeRPC(cfg, btcNotifier.BtcdHandlers())
-		btcCoreClient, btcCoreErr = connectBTCCoreRPC(cfg)
 		if btcConnectErr != nil || btcdClient == nil {
 			return fmt.Errorf("Connection to btcd failed: %v", btcConnectErr)
-		}
-
-		if btcCoreErr != nil || btcCoreClient == nil {
-			return fmt.Errorf("Connection to bitcoin core failed: %v", btcCoreErr)
 		}
 		btcCurnet, btcErr := btcdClient.GetCurrentNet()
 		if btcErr != nil {
 			return fmt.Errorf("Unable to get current network from btcd: %v", btcErr)
 		}
-		log.Infof("Connected to btcd and bitcoin core (JSON-RPC API v%s) on %v", btcNodeVer.String(), btcCurnet.String())
+		log.Infof("Connected to btcd (JSON-RPC API v%s) on %v", btcNodeVer.String(), btcCurnet.String())
 		if btcCurnet != btcActiveNet.Net {
 			log.Criticalf("BTCD: Network of connected node, %s, does not match expected "+
 				"network, %s.", btcActiveNet.Net, btcCurnet)
 			return fmt.Errorf("expected network %s, got %s", btcActiveNet.Net, btcCurnet)
 		}
 		chainDB.BtcClient = btcdClient
-		chainDB.BtcCoreClient = btcCoreClient
 
 		var btcHash *btcchainhash.Hash
 		btcHash, btcHeight, err = btcdClient.GetBestBlock()
@@ -397,19 +384,6 @@ func _main(ctx context.Context) error {
 			btcdClient.Shutdown()
 			btcdClient.WaitForShutdown()
 		}
-
-		if btcCoreClient != nil {
-			log.Infof("Closing connection to Bitcoin core.")
-			btcCoreClient.Shutdown()
-			btcCoreClient.WaitForShutdown()
-		}
-
-		if ltcCoreClient != nil {
-			log.Infof("Closing connection to Litecoin core.")
-			ltcCoreClient.Shutdown()
-			ltcCoreClient.WaitForShutdown()
-		}
-
 		log.Infof("Bye!")
 		time.Sleep(250 * time.Millisecond)
 	}()
@@ -1473,7 +1447,7 @@ func _main(ctx context.Context) error {
 				ltcMempoolSavers := []mempoolltc.MempoolDataSaver{chainDB.LTCMPC}
 				ltcMempoolSavers = append(ltcMempoolSavers, explore)
 				// Create the mempool data collector.
-				ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
+				ltcMpoolCollector := mempoolltc.NewDataCollector(ltcdClient, ltcActiveChain)
 				if ltcMpoolCollector == nil {
 					// Shutdown goroutines.
 					requestShutdown()
@@ -1509,6 +1483,7 @@ func _main(ctx context.Context) error {
 
 		explore.LtcChartSource = ltcCharts
 		app.LtcCharts = ltcCharts
+		psHub.LtcCharts = ltcCharts
 		ltcDumpPath := filepath.Join(cfg.DataDir, cfg.LTCChartsCacheDump)
 		if err = ltcCharts.Load(ltcDumpPath); err != nil {
 			log.Warnf("Failed to load charts data cache: %v", err)
@@ -1545,7 +1520,7 @@ func _main(ctx context.Context) error {
 		}
 
 		//start init collector for ltc
-		ltcCollector = blockdataltc.NewCollector(ltcdClient, ltcCoreClient, ltcActiveChain)
+		ltcCollector = blockdataltc.NewCollector(ltcdClient, ltcActiveChain)
 		if ltcCollector == nil {
 			return fmt.Errorf("Failed to create LTC block data collector")
 		}
@@ -1661,6 +1636,7 @@ func _main(ctx context.Context) error {
 
 		explore.BtcChartSource = btcCharts
 		app.BtcCharts = btcCharts
+		psHub.BtcCharts = btcCharts
 		btcDumpPath := filepath.Join(cfg.DataDir, cfg.BTCChartsCacheDump)
 		if err = btcCharts.Load(btcDumpPath); err != nil {
 			log.Warnf("Failed to load charts data cache: %v", err)
@@ -1697,7 +1673,7 @@ func _main(ctx context.Context) error {
 		}
 
 		//start init collector for btc
-		btcCollector = blockdatabtc.NewCollector(btcdClient, btcCoreClient, btcActiveChain)
+		btcCollector = blockdatabtc.NewCollector(btcdClient, btcActiveChain)
 		if btcCollector == nil {
 			return fmt.Errorf("Failed to create BTC block data collector")
 		}
@@ -1895,37 +1871,6 @@ func connectNodeRPC(cfg *config, ntfnHandlers *rpcclient.NotificationHandlers) (
 func connectLTCNodeRPC(cfg *config, ntfnHandlers *ltcClient.NotificationHandlers) (*ltcClient.Client, semver.Semver, error) {
 	return ltcrpcutils.ConnectNodeRPC(cfg.LtcdServ, cfg.LtcdUser, cfg.LtcdPass,
 		cfg.LtcdCert, cfg.DisableDaemonTLS, true, ntfnHandlers)
-}
-
-func connectLTCCoreRPC(cfg *config) (*ltcClient.Client, error) {
-	host := fmt.Sprintf("%s:%s", cfg.LtcCoreServ, cfg.LtcCorePort)
-	connCfg := &ltcClient.ConnConfig{
-		Host:         host,
-		User:         cfg.LtcCoreUser,
-		Pass:         cfg.LtcCorePass,
-		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
-		DisableTLS:   true, // Bitcoin core does not provide TLS by default
-	}
-	client, err := ltcClient.New(connCfg, nil)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
-}
-
-func connectBTCCoreRPC(cfg *config) (*btcClient.Client, error) {
-	connCfg := &btcClient.ConnConfig{
-		Host:         fmt.Sprintf("%s:%s", cfg.BtcCoreServ, cfg.BtcCorePort),
-		User:         cfg.BtcCoreUser,
-		Pass:         cfg.BtcCorePass,
-		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
-		DisableTLS:   true, // Bitcoin core does not provide TLS by default
-	}
-	client, err := btcClient.New(connCfg, nil)
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
 }
 
 func connectBTCNodeRPC(cfg *config, ntfnHandlers *btcClient.NotificationHandlers) (*btcClient.Client, semver.Semver, error) {

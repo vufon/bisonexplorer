@@ -14,6 +14,7 @@ import (
 type BlockchainInfo struct {
 	TotalTransactions int64
 	BlockchainSize    int64
+	CoinSupply        float64
 	Difficulty        float64
 }
 
@@ -32,4 +33,11 @@ type LtcBlockHeader struct {
 	Hash   ltcchainhash.Hash
 	Height int32
 	Time   time.Time
+}
+
+type MultichainChainSizeChartData struct {
+	Axis string  `json:"axis"`
+	Bin  string  `json:"bin"`
+	Size []int64 `json:"size"`
+	T    []int64 `json:"t"`
 }

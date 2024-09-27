@@ -314,8 +314,6 @@ type ChainDB struct {
 	Client                 *rpcclient.Client
 	LtcClient              *ltcClient.Client
 	BtcClient              *btcClient.Client
-	LtcCoreClient          *ltcClient.Client
-	BtcCoreClient          *btcClient.Client
 	tipMtx                 sync.Mutex
 	tipSummary             *apitypes.BlockDataBasic
 	ChainDBDisabled        bool
@@ -9200,14 +9198,26 @@ func (pgb *ChainDB) MutilchainGetTransactionCount(chainType string) int64 {
 }
 
 func (pgb *ChainDB) MutilchainGetBlockchainInfo(chainType string) (*mutilchain.BlockchainInfo, error) {
+	difficulty := float64(0)
 	switch chainType {
 	case mutilchain.TYPEBTC:
-		return btcrpcutils.GetBlockchainInfo(pgb.BtcCoreClient)
+		difficulty, _ = btcrpcutils.GetBlockchainDifficulty(pgb.BtcClient)
 	case mutilchain.TYPELTC:
-		return ltcrpcutils.GetBlockchainInfo(pgb.LtcCoreClient)
+		difficulty, _ = ltcrpcutils.GetBlockchainDifficulty(pgb.LtcClient)
 	default:
 		return nil, fmt.Errorf("%s", "Get size and tx count error. Invalid chain type")
 	}
+	coinSupply, txCount, err := externalapi.GetOkLinkBlockchainSummaryData(pgb.OkLinkAPIKey, chainType)
+	if err != nil {
+		log.Errorf("MutilchainGetBlockchainInfo get oklink blockchain summary data failed: %v", err)
+	}
+
+	//TODO get blockchaininfo
+	return &mutilchain.BlockchainInfo{
+		TotalTransactions: txCount,
+		CoinSupply:        coinSupply,
+		Difficulty:        difficulty,
+	}, nil
 }
 
 func (pgb *ChainDB) MutilchainGetTotalVoutsCount(chainType string) int64 {
