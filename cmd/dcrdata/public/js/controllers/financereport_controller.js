@@ -793,7 +793,7 @@ export default class extends Controller {
       ptype: 'month',
       search: '',
       usd: false,
-      active: 'true',
+      active: true,
       chart: 'amountflow',
       zoom: '',
       bin: 'month',
@@ -809,7 +809,7 @@ export default class extends Controller {
     this.devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
     this.initData()
-    this.isMonthDisplay = (this.settings.pgroup === 'proposals' && (this.settings.type === 'proposal' || this.settings.type === '')) || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')
+    this.isMonthDisplay = this.isProposalMonthReport() || this.isAuthorMonthGroup()
   }
 
   async initData () {
@@ -821,7 +821,7 @@ export default class extends Controller {
     } else {
       this.defaultSettings.tsort = 'newest'
     }
-    if (!this.settings.active) {
+    if ((typeof this.settings.active) !== 'boolean') {
       this.settings.active = this.defaultSettings.active
     }
     if (!this.settings.ptype) {
@@ -1003,7 +1003,7 @@ export default class extends Controller {
   updateQueryString () {
     const [query, settings, defaults] = [{}, this.settings, this.defaultSettings]
     for (const k in settings) {
-      if (!settings[k] || settings[k].toString() === defaults[k].toString()) continue
+      if ((((typeof settings[k]) !== 'boolean') && !settings[k]) || settings[k].toString() === defaults[k].toString()) continue
       query[k] = settings[k]
     }
     this.query.replace(query)
@@ -1069,6 +1069,8 @@ export default class extends Controller {
     if (this.settings.type === 'treasury') {
       this.settings.chart = this.treasuryChart
       this.optionsTarget.value = this.settings.chart
+    } else if ((this.settings.type === '' || this.settings.type === 'proposal') && !this.isMonthDisplay) {
+      this.settings.type = 'summary'
     }
     await this.initData()
     await this.connect()
@@ -1096,6 +1098,30 @@ export default class extends Controller {
     this.settings.stype = this.defaultSettings.stype
     await this.initData()
     await this.connect()
+  }
+
+  isProposalGroup () {
+    return (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') && (this.settings.pgroup === '' || this.settings.pgroup === 'proposals')
+  }
+
+  isSummaryReport () {
+    return this.settings.type === 'summary' && (this.settings.pgroup === '' || this.settings.pgroup === 'proposals')
+  }
+
+  isProposalMonthReport () {
+    return (this.settings.type === '' || this.settings.type === 'proposal') && (this.settings.pgroup === '' || this.settings.pgroup === 'proposals')
+  }
+
+  isAuthorGroup () {
+    return (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') && this.settings.pgroup === 'authors'
+  }
+
+  isAuthorListGroup () {
+    return this.isAuthorGroup() && this.settings.ptype === 'list'
+  }
+
+  isAuthorMonthGroup () {
+    return this.isAuthorGroup() && this.settings.ptype !== 'list'
   }
 
   intervalChange (e) {
@@ -1153,7 +1179,7 @@ export default class extends Controller {
     }
     // if summary, display toggle for filter Proposals are active
     if (this.settings.type === 'summary') {
-      if (this.settings.active === 'false') {
+      if (!this.settings.active) {
         document.getElementById('activeProposalInput').checked = false
       } else {
         document.getElementById('activeProposalInput').checked = true
@@ -1185,10 +1211,16 @@ export default class extends Controller {
       this.currentBalanceAreaTarget.classList.remove('d-none')
       this.chartDataTarget.classList.remove('d-none')
       this.balanceOptionTarget.classList.remove('d-none')
+      this.activeProposalSwitchAreaTarget.classList.add('d-none')
     } else {
       this.treasuryToggleAreaTarget.classList.add('d-none')
       this.currentBalanceAreaTarget.classList.add('d-none')
       this.selectTreasuryTypeTarget.classList.add('d-none')
+      if (this.isSummaryReport() || this.isAuthorListGroup()) {
+        this.activeProposalSwitchAreaTarget.classList.remove('d-none')
+      } else {
+        this.activeProposalSwitchAreaTarget.classList.add('d-none')
+      }
       if (!this.isDomainType()) {
         this.outgoingExpTarget.classList.add('d-none')
         this.treasuryChartTarget.classList.add('d-none')
@@ -1268,17 +1300,6 @@ export default class extends Controller {
           }
         }
       }
-    }
-
-    if (this.settings.type === 'proposal' || this.settings.type === '') {
-      // add proposal class for proposals
-      if (this.settings.interval !== 'year') {
-        this.reportAllPageTarget.classList.add('proposal-report-page')
-      } else {
-        this.reportAllPageTarget.classList.remove('proposal-report-page')
-      }
-    } else {
-      this.reportAllPageTarget.classList.remove('proposal-report-page')
     }
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals' || this.settings.pgroup === 'authors' || this.settings.pgroup === 'domains') {
@@ -1868,7 +1889,7 @@ export default class extends Controller {
     // create tbody content
     for (let i = 0; i < summaryList.length; i++) {
       const summary = summaryList[i]
-      if (this.settings.active === 'true' && summary.totalRemaining === 0.0) {
+      if (this.settings.active && summary.totalRemaining === 0.0) {
         continue
       }
       let token = ''
@@ -2364,7 +2385,7 @@ export default class extends Controller {
     // create tbody content
     for (let i = 0; i < authorList.length; i++) {
       const author = authorList[i]
-      if (this.settings.active === 'true' && author.totalRemaining === 0.0) {
+      if (this.settings.active && author.totalRemaining === 0.0) {
         continue
       }
       totalBudget += author.budget
@@ -3077,24 +3098,18 @@ export default class extends Controller {
         if (this.settings.type === 'summary') {
           this.colorLabelTarget.classList.remove('proposal-note-color')
           this.colorLabelTarget.classList.add('summary-note-color')
-          this.activeProposalSwitchAreaTarget.classList.remove('d-none')
           this.colorDescriptionTarget.textContent = 'The proposals are still active'
         } else {
           this.colorLabelTarget.classList.remove('summary-note-color')
           this.colorLabelTarget.classList.add('proposal-note-color')
-          this.activeProposalSwitchAreaTarget.classList.add('d-none')
         }
       } else if (this.settings.pgroup === 'domains') {
         this.nameMatrixSwitchTarget.classList.add('d-none')
         this.colorNoteRowTarget.classList.add('d-none')
-        this.activeProposalSwitchAreaTarget.classList.add('d-none')
       } else if (this.settings.pgroup === 'authors') {
         this.colorNoteRowTarget.classList.remove('d-none')
         this.nameMatrixSwitchTarget.classList.remove('d-none')
-        if (this.settings.ptype !== 'list') {
-          this.activeProposalSwitchAreaTarget.classList.add('d-none')
-        } else {
-          this.activeProposalSwitchAreaTarget.classList.remove('d-none')
+        if (this.settings.ptype === 'list') {
           this.colorDescriptionTarget.textContent = 'The authors are still active'
         }
       }
@@ -3290,7 +3305,7 @@ export default class extends Controller {
 
   activeProposalSwitch (e) {
     const switchCheck = document.getElementById('activeProposalInput').checked
-    this.settings.active = switchCheck.toString()
+    this.settings.active = switchCheck
     this.calculate(false)
   }
 

@@ -9,7 +9,7 @@
    <div class="content pb-40" data-controller="financereport" data-financereport-dev-address="{{$.DevAddress}}"
       data-financereport-dcraddress="treasury" data-financereport-txn-count="{{$TxnCount}}"
       data-financereport-balance="{{toFloat64Amount $treasuryBalance.Balance}}">
-      <div class="container fs-16">
+      <div class="finance-report-page fs-16">
          <nav class="breadcrumbs">
             <a href="/" class="breadcrumbs__item no-underline ps-2">
                <span class="homeicon-tags me-1"></span>
@@ -23,7 +23,7 @@
             data-action="click->financereport#exitFullscreen">
             <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
          </div>
-         <div class="mt-2 mb-2 container">
+         <div class="mt-2 mb-2">
             <div class="my-2 d-flex ai-center">
                <div data-financereport-target="reportTypeSelector">
                   <p class="me-2 fw-600">Report Type</p>
@@ -63,7 +63,7 @@
                <p class="me-2 fw-600">View Mode</p>
                <div class="d-flex mt-2">
                   <span class="me-1" data-financereport-target="listLabel" style="position:sticky;left:10px;">List</span>
-                  <label class="switch">
+                  <label class="switch mx-1">
                      <input type="checkbox" data-action="change->financereport#nameMatrixSwitchEvent"
                         id="nameMonthSwitchInput">
                      <span class="legacy-slider round"></span>
@@ -76,7 +76,7 @@
             <p class="me-2 fw-600">Filter</p>
                <div class="d-flex mt-2">
                   <span class="me-1">All</span>
-                  <label class="switch">
+                  <label class="switch mx-1">
                      <input type="checkbox" data-action="change->financereport#activeProposalSwitch"
                         id="activeProposalInput">
                      <span class="legacy-slider round"></span>
@@ -203,7 +203,7 @@
                estimated proposal spends from proposal budgets
             <br/>*Dev Spent (Est): Estimated costs covered for proposals</p>
          </div>
-         <div class="container" id="repotParentContainer">
+         <div id="repotParentContainer">
             <div class="report-table-wrapper" id="wrapperReportTable">
                <div id="containerReportTable">
                <div class="d-flex justify-content-between ai-center">
@@ -232,7 +232,7 @@
                         data-financereport-target="report">
                      </table>
                   </div>
-                  <div id="scroller" class="scroller container d-none">
+                  <div id="scroller" class="scroller finance-report-page d-none">
                      <div id="scrollerLong" class="long">
                      </div>
                   </div>
