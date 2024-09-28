@@ -121,6 +121,10 @@
   .report-year-text {
     padding-right: 10px !important;
   }
+
+  .report-search-input {
+    width: 200px;
+  }
 }
 
 .month-col {
@@ -431,5 +435,9 @@ body.darkBG {
 @media (max-width: 576px) {
   .toggle-search-area {
     display: block;
+  }
+
+  .report-search-input {
+    width: 140px;
   }
 }

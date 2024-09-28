@@ -24,17 +24,18 @@
             <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
          </div>
          <div class="mt-2 mb-2 container">
-            <div class="d-flex ai-center my-3" data-financereport-target="reportTypeSelector">
-               <label class="me-2">Report Type:</label>
-               <div class="btn-group" data-toggle="buttons">
+            <div class="my-2 d-flex ai-center">
+               <div data-financereport-target="reportTypeSelector">
+                  <p class="me-2 fw-600">Report Type</p>
+                  <div class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposal">
                   <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Treasury Spending" name="treasury">
+                  </div>
                </div>
-            </div>
-            <div class="d-flex ai-center my-3 d-none" data-financereport-target="proposalSelectType">
-               <label class="me-2">Proposal Group:</label>
+            <div class="ms-5 d-none" data-financereport-target="proposalSelectType">
+               <p class="me-2 fw-600">Proposal Group</p>
                <div class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposals">
@@ -44,18 +45,8 @@
                      type="button" class="tab-button white me-1 c-txt-main" value="Domains" name="domains">
                </div>
             </div>
-            <div class="d-none" data-financereport-target="nameMatrixSwitch">
-               <span class="me-1" data-financereport-target="listLabel" style="position:sticky;left:10px;">List</span>
-               <label class="switch mt-2" style="position:sticky;left:60px;">
-                  <input type="checkbox" data-action="change->financereport#nameMatrixSwitchEvent"
-                     id="nameMonthSwitchInput">
-                  <span class="legacy-slider round"></span>
-               </label>
-               <span class="ms-1" data-financereport-target="monthLabel"
-                  style="position:sticky;left:125px;">Month</span>
-            </div>
-            <div class="d-flex ai-center my-3 d-none" data-financereport-target="selectTreasuryType">
-               <label class="me-2">Treasury Type:</label>
+            <div class="ms-5 d-none" data-financereport-target="selectTreasuryType">
+               <p class="me-2 fw-600">Treasury Type</p>
                <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
                      type="button" class="tab-button white me-1 c-txt-main" value="Combined Treasury" name="combined">
@@ -66,8 +57,36 @@
                      type="button" class="tab-button white me-1 c-txt-main" value="Admin Treasury" name="legacy">
                </div>
             </div>
-            <div class="mb-2">
-               <span class="report-tool-bar" data-financereport-target="reportDescription"></span>
+            </div>
+            <div class="d-flex">
+            <div class="d-none" data-financereport-target="nameMatrixSwitch">
+               <p class="me-2 fw-600">View Mode</p>
+               <div class="d-flex mt-2">
+                  <span class="me-1" data-financereport-target="listLabel" style="position:sticky;left:10px;">List</span>
+                  <label class="switch">
+                     <input type="checkbox" data-action="change->financereport#nameMatrixSwitchEvent"
+                        id="nameMonthSwitchInput">
+                     <span class="legacy-slider round"></span>
+                  </label>
+                  <span class="ms-1" data-financereport-target="monthLabel"
+                  style="position:sticky;left:125px;">Month</span>
+               </div>
+            </div>
+            <div class="d-none ms-5" data-financereport-target="activeProposalSwitchArea">
+            <p class="me-2 fw-600">Filter</p>
+               <div class="d-flex mt-2">
+                  <span class="me-1">All</span>
+                  <label class="switch">
+                     <input type="checkbox" data-action="change->financereport#activeProposalSwitch"
+                        id="activeProposalInput">
+                     <span class="legacy-slider round"></span>
+                  </label>
+                  <span class="ms-1">Active</span>
+               </div>
+            </div>
+            </div>
+            <div>
+               <span class="report-tool-bar mb-2" data-financereport-target="reportDescription"></span>
             </div>
             <div class="pb-2 d-none" data-financereport-target="currentBalanceArea">
                <p class="fs-17" data-financereport-target="specialTreasury">
@@ -154,16 +173,10 @@
                </div>
             </div>
             <!-- Finish treasury chart -->
-            <div class="mb-2 d-flex d-none" data-financereport-target="colorNoteRow">
-               <label class="color-note-label report-tool-bar border-radius-8"
-                  data-financereport-target="colorLabel"></label>
-               <span class="c-grey-2 ps-2 fw-600 color-description" data-financereport-target="colorDescription">Valid
-                  payment month</span>
-            </div>
             <p class="fs-20 mb-1 mt-1 report-tool-bar d-none" data-financereport-target="treasuryTypeTitle">
                Current Treasury
             </p>
-            <div class="toggle-search-area ai-center mt-2">
+            <div class="toggle-search-area ai-center">
                <div class="d-none d-inline" data-financereport-target="groupBy">
                   <label data-financereport-target="groupByLabel">Group By: </label>
                   <div class="btn-group" data-toggle="buttons">
@@ -171,27 +184,6 @@
                         type="button" class="tab-button white me-1 c-txt-main active" value="Monthly" name="month">
                      <input data-financereport-target="interval" data-action="click->financereport#intervalChange"
                         type="button" class="tab-button white me-1 c-txt-main" value="Yearly" name="year">
-                  </div>
-               </div>
-               <div class="d-none" data-financereport-target="activeProposalSwitchArea">
-                  <span class="me-1">All</span>
-                  <label class="switch mt-1 mt-sm-3">
-                     <input type="checkbox" data-action="change->financereport#activeProposalSwitch"
-                        id="activeProposalInput">
-                     <span class="legacy-slider round"></span>
-                  </label>
-                  <span class="ms-1">Active</span>
-               </div>
-               <div>
-                  <div data-financereport-target="searchBox" class="d-none report-search-box px-1 pt-1 ps-2">
-                     <input tabindex="0" type="text" name="search" class="ms-2 report-search-input mousetrap pb-1"
-                        placeholder="proposals, author, domain" spellcheck="false" autocomplete="off"
-                        data-financereport-target="searchInput"
-                        data-action="keyup->financereport#searchInputKeypress input->financereport#onTypeChange" />
-                     <button class="report-search" data-financereport-target="searchBtn"
-                        data-action="click->financereport#searchProposal"><i class="dcricon-search"></i></button>
-                     <button class="report-search d-none" data-financereport-target="clearSearchBtn"
-                        data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
                   </div>
                </div>
                <div class="d-none ms-3" data-financereport-target="treasuryToggleArea">
@@ -207,17 +199,34 @@
                   <span>USD</span>
                </div>
             </div>
-            <div class="my-2 d-flex d-none" data-financereport-target="domainFutureRow">
-               <label class="color-note-label report-tool-bar border-radius-8 future-color"></label>
-               <span class="c-grey-2 ps-2 fw-600 color-description" data-financereport-target="futureLabel">Months in the future</span>
-            </div>
-            <span class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total
+            <p class="d-none fs-14" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total
                estimated proposal spends from proposal budgets
-            <br/>*Dev Spent (Est): Estimated costs covered for proposals</span>
+            <br/>*Dev Spent (Est): Estimated costs covered for proposals</p>
          </div>
          <div class="container" id="repotParentContainer">
             <div class="report-table-wrapper" id="wrapperReportTable">
                <div id="containerReportTable">
+               <div class="d-flex justify-content-between ai-center">
+               <div class="d-flex ai-center mb-2 d-none" data-financereport-target="colorNoteRow">
+                  <label class="color-note-label report-tool-bar border-radius-8"
+                  data-financereport-target="colorLabel"></label>
+                  <span class="c-grey-2 ps-2 color-description" data-financereport-target="colorDescription">Valid payment month</span>
+               </div>
+               <div class="d-flex ai-center mb-2 d-none" data-financereport-target="domainFutureRow">
+                  <label class="color-note-label report-tool-bar border-radius-8 future-color"></label>
+                  <span class="c-grey-2 ps-2 color-description" data-financereport-target="futureLabel">Months in the future</span>
+               </div>
+                  <div data-financereport-target="searchBox" class="d-none report-search-box px-1 pt-1 ps-2 mb-1">
+                     <input tabindex="0" type="text" name="search" class="ms-2 report-search-input mousetrap pb-1"
+                        placeholder="proposals, author, domain" spellcheck="false" autocomplete="off"
+                        data-financereport-target="searchInput"
+                        data-action="keyup->financereport#searchInputKeypress input->financereport#onTypeChange" />
+                     <button class="report-search" data-financereport-target="searchBtn"
+                        data-action="click->financereport#searchProposal"><i class="dcricon-search"></i></button>
+                     <button class="report-search d-none" data-financereport-target="clearSearchBtn"
+                        data-action="click->financereport#clearSearch"><i class="dcricon-closenb"></i></button>
+                  </div>
+               </div>
                   <div id="containerBody" class="content container-body">
                      <table id="reportTable" class="table report-table report v3 d-table-cell"
                         data-financereport-target="report">

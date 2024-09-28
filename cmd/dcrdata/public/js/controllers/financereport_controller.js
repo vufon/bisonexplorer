@@ -1186,12 +1186,16 @@ export default class extends Controller {
       this.chartDataTarget.classList.remove('d-none')
       this.balanceOptionTarget.classList.remove('d-none')
     } else {
-      this.outgoingExpTarget.classList.add('d-none')
       this.treasuryToggleAreaTarget.classList.add('d-none')
       this.currentBalanceAreaTarget.classList.add('d-none')
       this.selectTreasuryTypeTarget.classList.add('d-none')
       if (!this.isDomainType()) {
+        this.outgoingExpTarget.classList.add('d-none')
         this.treasuryChartTarget.classList.add('d-none')
+      } else {
+        this.outgoingExpTarget.classList.remove('d-none')
+        this.outgoingExpTarget.classList.add('mt-2')
+        this.outgoingExpTarget.innerHTML = '*Unaccounted (Est): Unaccounted expenditure is calculated based on actual Treasury expenditures.'
       }
     }
 
@@ -1295,6 +1299,9 @@ export default class extends Controller {
           let width = parseFloat(widthFinal.replaceAll('px', ''))
           width += 30
           widthFinal = width + 'px'
+          this.searchBoxTarget.classList.add('searchbox-align')
+        } else {
+          this.searchBoxTarget.classList.remove('searchbox-align')
         }
         $('#reportTable').css('width', widthFinal)
         $('html').css('overflow-x', 'hidden')
@@ -2524,6 +2531,8 @@ export default class extends Controller {
     this.treasuryTypeTitleTarget.textContent = this.settings.ttype === 'legacy' ? 'Admin Treasury' : this.settings.ttype === 'combined' ? 'Combined' : 'Decentralized Treasury'
     if (this.settings.ttype !== 'legacy') {
       this.outgoingExpTarget.classList.remove('d-none')
+      this.outgoingExpTarget.classList.remove('mt-2')
+      this.outgoingExpTarget.innerHTML = '*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets.<br/>*Dev Spent (Est): Estimated costs covered for proposals.'
     } else {
       this.outgoingExpTarget.classList.add('d-none')
     }
@@ -3093,6 +3102,7 @@ export default class extends Controller {
       this.nameMatrixSwitchTarget.classList.add('d-none')
       this.proposalSelectTypeTarget.classList.add('d-none')
       this.reportDescriptionTarget.classList.remove('d-none')
+      this.domainFutureRowTarget.classList.add('d-none')
     }
     // disabled group button for loading
     this.disabledGroupButton()
