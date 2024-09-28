@@ -24,7 +24,7 @@
             <div class="secondary-card d-inline-block w-100 h-100 p-4" data-financereport-target="bigchart"></div>
          </div>
          <div class="mt-2 mb-2">
-            <div class="my-2 d-flex ai-center">
+            <div class="my-2 ai-center type-selector-row">
                <div data-financereport-target="reportTypeSelector">
                   <p class="me-2 fw-600">Report Type</p>
                   <div class="btn-group" data-toggle="buttons">
@@ -34,7 +34,7 @@
                      type="button" class="tab-button white me-1 c-txt-main" value="Treasury Spending" name="treasury">
                   </div>
                </div>
-            <div class="ms-5 d-none" data-financereport-target="proposalSelectType">
+            <div class="proposal-selector d-none" data-financereport-target="proposalSelectType">
                <p class="me-2 fw-600">Proposal Group</p>
                <div class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="proposalType" data-action="click->financereport#proposalTypeChange"
@@ -45,7 +45,7 @@
                      type="button" class="tab-button white me-1 c-txt-main" value="Domains" name="domains">
                </div>
             </div>
-            <div class="ms-5 d-none" data-financereport-target="selectTreasuryType">
+            <div class="proposal-selector d-none" data-financereport-target="selectTreasuryType">
                <p class="me-2 fw-600">Treasury Type</p>
                <div data-financereport-target="typeSelector" class="btn-group" data-toggle="buttons">
                   <input data-financereport-target="ttype" data-action="click->financereport#treasuryTypeChange"
@@ -88,7 +88,7 @@
             <div>
                <span class="report-tool-bar mb-2" data-financereport-target="reportDescription"></span>
             </div>
-            <div class="pb-2 d-none" data-financereport-target="currentBalanceArea">
+            <div class="d-none" data-financereport-target="currentBalanceArea">
                <p class="fs-17" data-financereport-target="specialTreasury">
                   Balance: <span data-financereport-target="treasuryBalanceDisplay"></span>
                </p>
@@ -206,7 +206,7 @@
          <div id="repotParentContainer">
             <div class="report-table-wrapper" id="wrapperReportTable">
                <div id="containerReportTable">
-               <div class="d-flex justify-content-between ai-center">
+               <div class="note-search-row justify-content-between ai-center">
                <div class="d-flex ai-center mb-2 d-none" data-financereport-target="colorNoteRow">
                   <label class="color-note-label report-tool-bar border-radius-8"
                   data-financereport-target="colorLabel"></label>
@@ -232,7 +232,7 @@
                         data-financereport-target="report">
                      </table>
                   </div>
-                  <div id="scroller" class="scroller finance-report-page d-none">
+                  <div id="scroller" class="scroller auto-scroller d-none">
                      <div id="scrollerLong" class="long">
                      </div>
                   </div>

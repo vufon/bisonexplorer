@@ -39,6 +39,18 @@ body {
   box-shadow: rgb(136 165 191 / 48%) 6px 2px 16px 0, rgb(255 255 255 / 80%) -6px -2px 16px 0;
 }
 
+.note-search-row {
+  display: flex;
+}
+
+.type-selector-row {
+  display: flex;
+}
+
+.proposal-selector {
+  margin-left: 60px;
+}
+
 .frame-shadow {
   box-shadow: 6px 2px 16px 0 rgb(136 165 191 / 48%), -6px -2px 16px 0 hsl(0deg 0% 100% / 80%);
 }
