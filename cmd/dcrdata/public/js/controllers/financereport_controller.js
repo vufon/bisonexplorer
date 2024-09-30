@@ -2587,10 +2587,10 @@ export default class extends Controller {
     let thead = '<thead><tr class="text-secondary finance-table-header">' +
       `<th class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>` +
       '###' +
-      '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
-      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey" style="min-width: 160px;"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByUnaccounted">Unaccounted (Est)</label>' +
       `<span data-action="click->financereport#sortByUnaccounted" class="${(this.settings.stype === 'unaccounted' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'unaccounted' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
+      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
 
@@ -2605,6 +2605,7 @@ export default class extends Controller {
     const domainDataMap = new Map()
     // sort before display on table
     const domainList = this.sortDomains(handlerData.report)
+    let unaccountedTotal = 0
     // create tbody content
     for (let i = 0; i < domainList.length; i++) {
       const report = domainList[i]
@@ -2614,6 +2615,7 @@ export default class extends Controller {
       const nowDate = new Date()
       const year = nowDate.getUTCFullYear()
       const month = nowDate.getUTCMonth() + 1
+      let rowTotal = 0
       if (this.settings.interval === 'year') {
         isFuture = timeYearMonth[0] > year
       } else {
@@ -2624,14 +2626,17 @@ export default class extends Controller {
       bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
         bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : '-'}</td>`
+        rowTotal += domainData.expense > 0 ? domainData.expense : 0
         if (domainDataMap.has(domainData.domain)) {
           domainDataMap.set(domainData.domain, domainDataMap.get(domainData.domain) + domainData.expense)
         } else {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
-      bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td>` +
-        `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : report.unaccounted === -1 ? '-' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
+      rowTotal += report.unaccounted > 0 ? report.unaccounted : 0
+      unaccountedTotal += report.unaccounted > 0 ? report.unaccounted : 0
+      bodyList += `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : report.unaccounted <= 0 ? '-' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td>` +
+        `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
@@ -2640,8 +2645,9 @@ export default class extends Controller {
       bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">$${humanize.formatToLocalString(domainDataMap.get(domain), 2, 2)}</td>`
       totalAll += domainDataMap.get(domain)
     })
-    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">$${humanize.formatToLocalString(totalAll, 2, 2)}</td>`
-    bodyList += '<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2">-</td>'
+
+    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2">${unaccountedTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedTotal, 2, 2) : '-'}</td>`
+    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">$${humanize.formatToLocalString(totalAll + unaccountedTotal, 2, 2)}</td>`
     bodyList += '</tr>'
 
     tbody = tbody.replace('###', bodyList)
@@ -3107,11 +3113,7 @@ export default class extends Controller {
     }
     // display balance in top
     if (!isCombined) {
-      if (usdDisp) {
-        this.treasuryBalanceDisplayTarget.textContent = '$' + humanize.formatToLocalString(lastBalanceUSD, 2, 2)
-      } else {
-        this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2) + ' DCR'
-      }
+      this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2) + ' DCR (~$' + humanize.formatToLocalString(lastBalanceUSD, 2, 2) + ')'
     }
     const balanceMap = this.settings.interval === 'year' ? combinedYearlyBalanceMap : combineBalanceMap
     if (isCombined && lastMonth !== '' && balanceMap.has(lastMonth)) {
@@ -3128,15 +3130,9 @@ export default class extends Controller {
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
-      if (usdDisp) {
-        this.treasuryLegacyPercentTarget.textContent = `$${humanize.formatToLocalString((lastBalanceUSD), 2, 2)} `
-        this.decentralizedDataTarget.textContent = `$${humanize.formatToLocalString(treasuryUSD, 2, 2)} (${humanize.formatToLocalString(lastTreasuryRate, 2, 2)}%)`
-        this.adminDataTarget.textContent = `$${humanize.formatToLocalString(legacyUSD, 2, 2)} (${humanize.formatToLocalString(lastLegacyRate, 2, 2)} %)`
-      } else {
-        this.treasuryLegacyPercentTarget.textContent = `${humanize.formatToLocalString((lastBalance / 100000000), 2, 2)} DCR`
-        this.decentralizedDataTarget.textContent = `${humanize.formatToLocalString((tresury / 100000000), 2, 2)} DCR (${humanize.formatToLocalString(lastTreasuryRate, 2, 2)}%)`
-        this.adminDataTarget.textContent = `${humanize.formatToLocalString((legacy / 100000000), 2, 2)} DCR (${humanize.formatToLocalString(lastLegacyRate, 2, 2)} %)`
-      }
+      this.treasuryLegacyPercentTarget.textContent = `${humanize.formatToLocalString((lastBalance / 100000000), 2, 2)} DCR (~$${humanize.formatToLocalString((lastBalanceUSD), 2, 2)})`
+      this.decentralizedDataTarget.textContent = `${humanize.formatToLocalString((tresury / 100000000), 2, 2)} DCR (~$${humanize.formatToLocalString(treasuryUSD, 2, 2)} / ${humanize.formatToLocalString(lastTreasuryRate, 2, 2)}%)`
+      this.adminDataTarget.textContent = `${humanize.formatToLocalString((legacy / 100000000), 2, 2)} DCR (~$${humanize.formatToLocalString(legacyUSD, 2, 2)} / ${humanize.formatToLocalString(lastLegacyRate, 2, 2)} %)`
     }
     const treasuryList = this.sortTreasury(summary)
     const _this = this

@@ -88,19 +88,21 @@
             <div>
                <span class="report-tool-bar mb-2" data-financereport-target="reportDescription"></span>
             </div>
-            <div class="d-none" data-financereport-target="currentBalanceArea">
-               <p class="fs-17" data-financereport-target="specialTreasury">
-                  Balance: <span data-financereport-target="treasuryBalanceDisplay"></span>
-               </p>
-               <p class="fs-17 d-none" data-financereport-target="treasuryTypeRate">
-                  Combined Treasury Balance: <span data-financereport-target="treasuryLegacyPercent"></span>
-                  <br />
-                  <span class="fw-600">With</span>
-                  <br />
-                  Decentralized: <span data-financereport-target="decentralizedData"></span>
-                  <br />
-                  Admin: <span data-financereport-target="adminData"></span>
-               </p>
+            <div class="d-none row mt-2 mb-3" data-financereport-target="currentBalanceArea">
+               <div class="col-24 col-md-16 col-lg-12 col-xl-8 px-3 py-2 treasury-balance-card">
+                  <p class="fs-17" data-financereport-target="specialTreasury">
+                     <span class="fw-600">Balance:</span> <span data-financereport-target="treasuryBalanceDisplay"></span>
+                  </p>
+                  <p class="fs-17 d-none" data-financereport-target="treasuryTypeRate">
+                     <span class="fw-600">Combined Treasury Balance:</span> <span data-financereport-target="treasuryLegacyPercent"></span>
+                     <br />
+                     <span>With</span>
+                     <br />
+                     <span class="fw-600">Decentralized:</span> <span data-financereport-target="decentralizedData"></span>
+                     <br />
+                     <span class="fw-600">Admin:</span> <span data-financereport-target="adminData"></span>
+                  </p>
+               </div>
             </div>
             <!-- Start treasury chart -->
             <p class="fs-20 pb-2 report-tool-bar d-none" data-financereport-target="treasuryChartTitle">
