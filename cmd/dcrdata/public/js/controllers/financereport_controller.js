@@ -3067,12 +3067,8 @@ export default class extends Controller {
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Outgoing</label>' +
       `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net</label>' +
-      `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBalance">Balance</label>' +
-      `<span data-action="click->financereport#sortByBalance" class="${(this.settings.stype === 'balance' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'balance' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+      `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
-              '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
-              '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
@@ -3086,9 +3082,14 @@ export default class extends Controller {
       row2 += '<th scope="col" class="va-mid text-center-i ps-0 fs-13i fw-600 treasury-content-cell">DCR</th>' +
               '<th scope="col" class="va-mid text-center-i ps-0 fs-13i fw-600 treasury-content-cell">USD</th>'
     }
-    row2 += '</tr>'
+    row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
+              '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr>'
+
     thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
-          `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th></tr>`
+          `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+          '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBalance">Balance</label>' +
+          `<span data-action="click->financereport#sortByBalance" class="${(this.settings.stype === 'balance' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'balance' ? 'c-grey-4' : ''} col-sort ms-1"></span></th></tr>`
+
     // add row 2
     thead += row2
     thead += '</thead>'
@@ -3168,8 +3169,6 @@ export default class extends Controller {
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' + outcomeUSDDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceDisplay !== '' ? differenceDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' + differenceUSDDisplay : '-'}</td>`
-      bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
-      `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' + balanceUSDDisplay : '-'}</td>`
       if (!isLegacy) {
         // calculate dev spent percent
         let devSentPercent = 0
@@ -3181,8 +3180,9 @@ export default class extends Controller {
         bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>`
       }
       // Display month price of decred
-      bodyList += `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>`
-      bodyList += '</tr>'
+      bodyList += `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
+      `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
+      `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' + balanceUSDDisplay : '-'}</td></tr>`
     })
     const totalIncomDisplay = humanize.formatToLocalString((incomeTotal / 100000000), 2, 2)
     const totalIncomUSDDisplay = humanize.formatToLocalString(incomeUSDTotal, 2, 2)
@@ -3199,14 +3199,14 @@ export default class extends Controller {
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalOutcomeDisplay}</td>` +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${outUSDTotal > 0 ? '$' : ''}${totalOutcomeUSDDisplay}</td>` +
     '<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">-</td><td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>'
-    bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
-    `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td>`
     if (!isLegacy) {
       bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalEstimateOutgoing}</td>`
       bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${estimateOutUSDTotal > 0 ? '$' : ''}${totalEstimateOutUSDgoing}</td>`
       bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>'
     }
-    bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td></tr>'
+    bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
+    `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
+    `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td></tr>`
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
   }
