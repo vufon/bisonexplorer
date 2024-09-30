@@ -787,13 +787,12 @@
                            </a>
                            <div class="explore-card__values-content">
                               <div class="row justify-content-between">
-                                 <div class="col-24">
-                                    <div>
-                                    <p class="fw-600">Visual Simulation</p>
+                                 <div class="col-24 mb-3">
+                                 <div>
                                  {{with .TrimmedMempool -}}    
                                  <!-- add mempool element -->
                                 <div class="block visible px-0" data-homepage-target="memBlock">
-                                    <div class="block-rows">
+                                    <div class="block-rows homepage-blocks-row">
                                         <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
                                             <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
                                                 title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'

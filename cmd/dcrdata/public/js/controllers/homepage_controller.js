@@ -15,7 +15,7 @@ function makeMempoolBlock (block) {
     fees += tx.Fees
   }
 
-  return `<div class="block-rows">
+  return `<div class="block-rows homepage-blocks-row">
                     ${makeRewardsElement(block.Subsidy, fees, block.Votes.length, '#')}
                     ${makeVoteElements(block.Votes)}
                     ${makeTicketAndRevocationElements(block.Tickets, block.Revocations, '/mempool')}
