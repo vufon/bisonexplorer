@@ -2529,7 +2529,7 @@ export default class extends Controller {
       }
       bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       report.domainData.forEach((domainData) => {
-        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : ''}</td>`
+        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : '-'}</td>`
         if (domainDataMap.has(domainData.domain)) {
           domainDataMap.set(domainData.domain, domainDataMap.get(domainData.domain) + domainData.expense)
         } else {
@@ -2537,7 +2537,7 @@ export default class extends Controller {
         }
       })
       bodyList += `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(report.total, 2, 2)}</td>` +
-        `<td class="va-mid text-right fs-13i pe-4">${isFuture ? 'Not due yet' : report.unaccounted === -1 ? 'Not sent' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
+        `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : report.unaccounted === -1 ? '-' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
@@ -2547,7 +2547,7 @@ export default class extends Controller {
       totalAll += domainDataMap.get(domain)
     })
     bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">$${humanize.formatToLocalString(totalAll, 2, 2)}</td>`
-    bodyList += '<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2"></td>'
+    bodyList += '<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2">-</td>'
     bodyList += '</tr>'
 
     tbody = tbody.replace('###', bodyList)
@@ -3056,9 +3056,9 @@ export default class extends Controller {
       estimateOutUSDTotal += item.outEstimateUsd
 
       const netNegative = item.outvalue > item.invalue
-      const incomDisplay = item.invalue <= 0 ? '' : humanize.formatToLocalString((item.invalue / 100000000), 2, 2)
+      const incomDisplay = item.invalue <= 0 ? '-' : humanize.formatToLocalString((item.invalue / 100000000), 2, 2)
       const incomUSDDisplay = item.invalue <= 0 ? '' : humanize.formatToLocalString(item.invalueUSD, 2, 2)
-      const outcomeDisplay = item.outvalue <= 0 ? '' : humanize.formatToLocalString((item.outvalue / 100000000), 2, 2)
+      const outcomeDisplay = item.outvalue <= 0 ? '-' : humanize.formatToLocalString((item.outvalue / 100000000), 2, 2)
       const outcomeUSDDisplay = item.outvalue <= 0 ? '' : humanize.formatToLocalString(item.outvalueUSD, 2, 2)
       const differenceDisplay = item.difference <= 0 ? '' : humanize.formatToLocalString((item.difference / 100000000), 2, 2)
       const differenceUSDDisplay = item.difference <= 0 ? '' : humanize.formatToLocalString(item.differenceUSD, 2, 2)
@@ -3067,28 +3067,28 @@ export default class extends Controller {
       let incomeHref = ''
       let outcomeHref = ''
       if (isLegacy || _this.settings.ttype === 'current') {
-        incomeHref = item.creditLink
-        outcomeHref = item.debitLink
+        incomeHref = item.invalue > 0 ? item.creditLink : ''
+        outcomeHref = item.outvalue > 0 ? item.debitLink : ''
       }
       bodyList += '<tr class="odd-even-row">' +
         `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' : ''}${incomUSDDisplay}</td>` +
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' + incomUSDDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' : ''}${outcomeUSDDisplay}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceDisplay}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' : ''}${differenceUSDDisplay}</td>`
-      bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay}</td>` +
-      `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' : ''}${balanceUSDDisplay}</td>`
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' + outcomeUSDDisplay : '-'}</td>` +
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceDisplay !== '' ? differenceDisplay : '-'}</td>` +
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' + differenceUSDDisplay : '-'}</td>`
+      bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
+      `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' + balanceUSDDisplay : '-'}</td>`
       if (!isLegacy) {
         // calculate dev spent percent
         let devSentPercent = 0
         if (item.outvalue > 0) {
           devSentPercent = 100 * 1e8 * item.outEstimate / item.outvalue
         }
-        bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${item.outEstimate === 0.0 ? 'No meta data' : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${item.outEstimate !== 0.0 ? '$' : ''}${item.outEstimate === 0.0 ? 'No meta data' : humanize.formatToLocalString(item.outEstimateUsd, 2, 2)}</td>`
-        bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? 'No dev expenses' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>`
+        bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${item.outEstimate === 0.0 ? '-' : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>` +
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${item.outEstimate !== 0.0 ? '$' : ''}${item.outEstimate === 0.0 ? '-' : humanize.formatToLocalString(item.outEstimateUsd, 2, 2)}</td>`
+        bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>`
       }
       // Display month price of decred
       bodyList += `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>`
@@ -3108,15 +3108,15 @@ export default class extends Controller {
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${incomeUSDTotal > 0 ? '$' : ''}${totalIncomUSDDisplay}</td>` +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalOutcomeDisplay}</td>` +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${outUSDTotal > 0 ? '$' : ''}${totalOutcomeUSDDisplay}</td>` +
-    '<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell"></td><td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'
+    '<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">-</td><td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>'
     bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td>`
     if (!isLegacy) {
       bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalEstimateOutgoing}</td>`
       bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${estimateOutUSDTotal > 0 ? '$' : ''}${totalEstimateOutUSDgoing}</td>`
-      bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td>'
+      bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>'
     }
-    bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell"></td></tr>'
+    bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td></tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
   }
