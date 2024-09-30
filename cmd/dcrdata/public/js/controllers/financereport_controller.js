@@ -34,6 +34,12 @@ let domainChartBin
 let treasuryChartBin
 let domainChartFlow
 let treasuryChartFlow
+let combinedChartZoom
+let combinedChartBin
+let combinedChartFlow
+let adminChartZoom
+let adminChartBin
+let adminChartFlow
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
@@ -224,9 +230,9 @@ export default class extends Controller {
     ctrl.balance = cdata.get('balance')
 
     if (ctrl.isTreasuryReport()) {
-      ctrl.settings.zoom = treasuryChartZoom || ctrl.settings.zoom
-      ctrl.settings.bin = treasuryChartBin || ctrl.settings.bin
-      ctrl.settings.flow = treasuryChartFlow || ctrl.settings.flow
+      ctrl.settings.zoom = ctrl.getTreasuryZoomStatus()
+      ctrl.settings.bin = ctrl.getTreasuryBinStatus()
+      ctrl.settings.flow = ctrl.getTreasuryFlowStatus()
     } else if (ctrl.isDomainType()) {
       ctrl.settings.zoom = domainChartZoom || ctrl.settings.zoom
       ctrl.settings.bin = domainChartBin || ctrl.settings.bin
@@ -264,6 +270,78 @@ export default class extends Controller {
     this.calculate()
   }
 
+  getTreasuryZoomStatus () {
+    switch (this.settings.ttype) {
+      case 'current':
+        return treasuryChartZoom || this.settings.zoom
+      case 'legacy':
+        return adminChartZoom || this.settings.zoom
+      default:
+        return combinedChartZoom || this.settings.zoom
+    }
+  }
+
+  getTreasuryBinStatus () {
+    switch (this.settings.ttype) {
+      case 'current':
+        return treasuryChartBin || this.settings.bin
+      case 'legacy':
+        return adminChartBin || this.settings.bin
+      default:
+        return combinedChartBin || this.settings.bin
+    }
+  }
+
+  getTreasuryFlowStatus () {
+    switch (this.settings.ttype) {
+      case 'current':
+        return treasuryChartFlow || this.settings.flow
+      case 'legacy':
+        return adminChartFlow || this.settings.flow
+      default:
+        return combinedChartFlow || this.settings.flow
+    }
+  }
+
+  setTreasuryZoomStatus (zoom) {
+    switch (this.settings.ttype) {
+      case 'current':
+        treasuryChartZoom = zoom
+        break
+      case 'legacy':
+        adminChartZoom = zoom
+        break
+      default:
+        combinedChartZoom = zoom
+    }
+  }
+
+  setTreasuryBinStatus (bin) {
+    switch (this.settings.ttype) {
+      case 'current':
+        treasuryChartBin = bin
+        break
+      case 'legacy':
+        adminChartBin = bin
+        break
+      default:
+        combinedChartBin = bin
+    }
+  }
+
+  setTreasuryFlowStatus (flow) {
+    switch (this.settings.ttype) {
+      case 'current':
+        treasuryChartFlow = flow
+        break
+      case 'legacy':
+        adminChartFlow = flow
+        break
+      default:
+        combinedChartFlow = flow
+    }
+  }
+
   _drawCallback (graph, first) {
     if (first) return
     const [start, end] = ctrl.graph.xAxisRange()
@@ -272,7 +350,7 @@ export default class extends Controller {
     this.lastEnd = end
     ctrl.settings.zoom = Zoom.encode(start, end)
     if (ctrl.isTreasuryReport()) {
-      treasuryChartZoom = ctrl.settings.zoom
+      ctrl.setTreasuryZoomStatus(ctrl.settings.zoom)
     } else if (ctrl.isDomainType()) {
       domainChartZoom = ctrl.settings.zoom
     }
@@ -286,7 +364,7 @@ export default class extends Controller {
     })
     ctrl.settings.zoom = Zoom.encode(start, end)
     if (ctrl.isTreasuryReport()) {
-      treasuryChartZoom = ctrl.settings.zoom
+      ctrl.setTreasuryZoomStatus(ctrl.settings.zoom)
     } else if (ctrl.isDomainType()) {
       domainChartZoom = ctrl.settings.zoom
     }
@@ -321,9 +399,9 @@ export default class extends Controller {
     // Set the current view to prevent unnecessary reloads.
     Object.assign(ctrl.state, settings)
     if (ctrl.isTreasuryReport()) {
-      treasuryChartZoom = settings.zoom
-      treasuryChartBin = settings.bin
-      treasuryChartFlow = settings.flow
+      ctrl.setTreasuryZoomStatus(settings.zoom)
+      ctrl.setTreasuryBinStatus(settings.bin)
+      ctrl.setTreasuryFlowStatus(settings.flow)
     } else if (ctrl.isDomainType()) {
       domainChartZoom = settings.zoom
       domainChartBin = settings.bin
@@ -654,7 +732,7 @@ export default class extends Controller {
     const start = duration === 0 ? ctrl.xRange[0] : end - duration
     ctrl.setZoom(start, end)
     if (ctrl.isTreasuryReport()) {
-      treasuryChartZoom = ctrl.settings.zoom
+      ctrl.setTreasuryZoomStatus(ctrl.settings.zoom)
     } else if (ctrl.isDomainType()) {
       domainChartZoom = ctrl.settings.zoom
     }
@@ -855,10 +933,16 @@ export default class extends Controller {
     redrawChart = true
     domainChartZoom = undefined
     treasuryChartZoom = undefined
+    combinedChartZoom = undefined
+    adminChartZoom = undefined
     domainChartBin = undefined
     treasuryChartBin = undefined
+    combinedChartBin = undefined
+    adminChartBin = undefined
     domainChartFlow = undefined
     treasuryChartFlow = undefined
+    combinedChartFlow = undefined
+    adminChartFlow = undefined
     this.initData()
     this.isMonthDisplay = this.isProposalMonthReport() || this.isAuthorMonthGroup()
   }
@@ -1097,7 +1181,7 @@ export default class extends Controller {
     }
   }
 
-  treasuryTypeChange (e) {
+  async treasuryTypeChange (e) {
     if (e.target.name === this.settings.ttype) {
       return
     }
@@ -1109,7 +1193,8 @@ export default class extends Controller {
     this.settings.ttype = e.target.name
     this.changedTType = e.target.name
     redrawChart = true
-    this.calculate()
+    await this.initData()
+    await this.connect()
   }
 
   async reportTypeChange (e) {
@@ -1230,6 +1315,17 @@ export default class extends Controller {
     }
   }
 
+  isNotChartZoom () {
+    switch (this.settings.ttype) {
+      case 'current':
+        return !treasuryChartZoom
+      case 'legacy':
+        return !adminChartZoom
+      default:
+        return !combinedChartZoom
+    }
+  }
+
   createReportTable () {
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       $('#reportTable').css('width', '')
@@ -1248,14 +1344,14 @@ export default class extends Controller {
       this.treasuryToggleAreaTarget.classList.remove('d-none')
       this.createTreasuryTable(responseData)
       this.treasuryChartTarget.classList.remove('d-none')
-      const notChartZoom = !treasuryChartZoom
+      const notChartZoom = this.isNotChartZoom()
       if (redrawChart) {
         this.initializeChart()
         this.drawGraph()
         redrawChart = false
         if (ctrl.zoomButtons && notChartZoom) {
           ctrl.zoomButtons.forEach((button) => {
-            if (button.name === 'year') {
+            if (button.name === 'all') {
               button.click()
             }
           })
