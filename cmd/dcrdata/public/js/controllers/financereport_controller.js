@@ -198,7 +198,7 @@ export default class extends Controller {
       'chart', 'chartLoader', 'expando', 'littlechart', 'bigchart', 'fullscreen', 'treasuryChart', 'treasuryChartTitle',
       'yearSelect', 'ttype', 'yearSelectTitle', 'treasuryTypeTitle', 'groupByLabel', 'typeSelector',
       'amountFlowOption', 'balanceOption', 'chartHeader', 'outgoingExp', 'nameMatrixSwitch',
-      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'blockGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
+      'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
       'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'chartData',
       'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel', 'reportType', 'pageLoader']
@@ -1294,7 +1294,6 @@ export default class extends Controller {
         this.treasuryChartTitleTarget.textContent = 'Treasury IO Chart'
         this.weekGroupBtnTarget.classList.remove('d-none')
         this.dayGroupBtnTarget.classList.remove('d-none')
-        this.blockGroupBtnTarget.classList.remove('d-none')
         // show some option on group and zoom
         this.weekZoomBtnTarget.classList.remove('d-none')
         this.dayZoomBtnTarget.classList.remove('d-none')
@@ -1309,7 +1308,6 @@ export default class extends Controller {
         this.treasuryTypeTitleTarget.textContent = 'Domains Spending Data'
         this.weekGroupBtnTarget.classList.add('d-none')
         this.dayGroupBtnTarget.classList.add('d-none')
-        this.blockGroupBtnTarget.classList.add('d-none')
         // hide some option on group and zoom
         this.weekZoomBtnTarget.classList.add('d-none')
         this.dayZoomBtnTarget.classList.add('d-none')
