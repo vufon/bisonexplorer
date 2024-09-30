@@ -27,6 +27,13 @@ let treasuryYearlyBalanceMap = null
 let adminBalanceMap = null
 let adminYearlyBalanceMap = null
 const treasurySummaryData = null
+let redrawChart = true
+let domainChartZoom
+let treasuryChartZoom
+let domainChartBin
+let treasuryChartBin
+let domainChartFlow
+let treasuryChartFlow
 
 const proposalNote = '*The data is the daily cost estimate based on the total budget divided by the total number of proposals days.'
 let treasuryNote = ''
@@ -216,6 +223,19 @@ export default class extends Controller {
     ctrl.dcrAddress = cdata.get('dcraddress')
     ctrl.balance = cdata.get('balance')
 
+    if (ctrl.isTreasuryReport()) {
+      ctrl.settings.zoom = treasuryChartZoom || ctrl.settings.zoom
+      ctrl.settings.bin = treasuryChartBin || ctrl.settings.bin
+      ctrl.settings.flow = treasuryChartFlow || ctrl.settings.flow
+    } else if (ctrl.isDomainType()) {
+      ctrl.settings.zoom = domainChartZoom || ctrl.settings.zoom
+      ctrl.settings.bin = domainChartBin || ctrl.settings.bin
+      ctrl.settings.flow = domainChartFlow || ctrl.settings.flow
+    } else {
+      ctrl.settings.zoom = ''
+      ctrl.settings.bin = ctrl.defaultSettings.bin
+      ctrl.settings.flow = ctrl.defaultSettings.flow
+    }
     // Get initial view settings from the url
     ctrl.setChartType()
     if (ctrl.settings.flow) {
@@ -241,7 +261,7 @@ export default class extends Controller {
     )
     ctrl.currentTType = ctrl.settings.ttype
     ctrl.changedTType = null
-    this.calculate(true)
+    this.calculate()
   }
 
   _drawCallback (graph, first) {
@@ -251,6 +271,11 @@ export default class extends Controller {
     if (end === this.lastEnd) return // Only handle slide event.
     this.lastEnd = end
     ctrl.settings.zoom = Zoom.encode(start, end)
+    if (ctrl.isTreasuryReport()) {
+      treasuryChartZoom = ctrl.settings.zoom
+    } else if (ctrl.isDomainType()) {
+      domainChartZoom = ctrl.settings.zoom
+    }
     ctrl.updateQueryString()
     ctrl.setSelectedZoom(Zoom.mapKey(ctrl.settings.zoom, ctrl.graph.xAxisExtremes()))
   }
@@ -260,6 +285,11 @@ export default class extends Controller {
       button.classList.remove('btn-selected')
     })
     ctrl.settings.zoom = Zoom.encode(start, end)
+    if (ctrl.isTreasuryReport()) {
+      treasuryChartZoom = ctrl.settings.zoom
+    } else if (ctrl.isDomainType()) {
+      domainChartZoom = ctrl.settings.zoom
+    }
     ctrl.updateQueryString()
     ctrl.setSelectedZoom(Zoom.mapKey(ctrl.settings.zoom, ctrl.graph.xAxisExtremes()))
   }
@@ -290,6 +320,15 @@ export default class extends Controller {
     }
     // Set the current view to prevent unnecessary reloads.
     Object.assign(ctrl.state, settings)
+    if (ctrl.isTreasuryReport()) {
+      treasuryChartZoom = settings.zoom
+      treasuryChartBin = settings.bin
+      treasuryChartFlow = settings.flow
+    } else if (ctrl.isDomainType()) {
+      domainChartZoom = settings.zoom
+      domainChartBin = settings.bin
+      domainChartFlow = settings.flow
+    }
     ctrl.fetchGraphData(settings.chart, settings.bin)
   }
 
@@ -614,6 +653,11 @@ export default class extends Controller {
     const end = ctrl.xRange[1]
     const start = duration === 0 ? ctrl.xRange[0] : end - duration
     ctrl.setZoom(start, end)
+    if (ctrl.isTreasuryReport()) {
+      treasuryChartZoom = ctrl.settings.zoom
+    } else if (ctrl.isDomainType()) {
+      domainChartZoom = ctrl.settings.zoom
+    }
   }
 
   handlerBinSelectorWhenChange () {
@@ -808,6 +852,13 @@ export default class extends Controller {
     this.isMonthDisplay = false
     this.devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
+    redrawChart = true
+    domainChartZoom = undefined
+    treasuryChartZoom = undefined
+    domainChartBin = undefined
+    treasuryChartBin = undefined
+    domainChartFlow = undefined
+    treasuryChartFlow = undefined
     this.initData()
     this.isMonthDisplay = this.isProposalMonthReport() || this.isAuthorMonthGroup()
   }
@@ -981,14 +1032,14 @@ export default class extends Controller {
       if (isSearching) {
         this.settings.search = this.defaultSettings.search
         isSearching = false
-        this.calculate(false)
+        this.calculate()
       }
       return
     }
     this.searchBtnTarget.classList.add('d-none')
     this.clearSearchBtnTarget.classList.remove('d-none')
     this.settings.search = this.searchInputTarget.value
-    this.calculate(false)
+    this.calculate()
   }
 
   clearSearch (e) {
@@ -997,7 +1048,7 @@ export default class extends Controller {
     this.searchBtnTarget.classList.remove('d-none')
     this.clearSearchBtnTarget.classList.add('d-none')
     isSearching = false
-    this.calculate(false)
+    this.calculate()
   }
 
   updateQueryString () {
@@ -1057,7 +1108,8 @@ export default class extends Controller {
     target.classList.add('active')
     this.settings.ttype = e.target.name
     this.changedTType = e.target.name
-    this.calculate(true)
+    redrawChart = true
+    this.calculate()
   }
 
   async reportTypeChange (e) {
@@ -1072,6 +1124,7 @@ export default class extends Controller {
     } else if ((this.settings.type === '' || this.settings.type === 'proposal') && !this.isMonthDisplay) {
       this.settings.type = 'summary'
     }
+    redrawChart = true
     await this.initData()
     await this.connect()
   }
@@ -1124,6 +1177,10 @@ export default class extends Controller {
     return this.isAuthorGroup() && this.settings.ptype !== 'list'
   }
 
+  isTreasuryReport () {
+    return this.settings.type === 'treasury'
+  }
+
   intervalChange (e) {
     if (e.target.name === ctrl.settings.interval) {
       return
@@ -1161,7 +1218,7 @@ export default class extends Controller {
     //     })
     //   }
     // }
-    this.calculate(false)
+    this.calculate()
   }
 
   getApiUrlByType () {
@@ -1173,7 +1230,7 @@ export default class extends Controller {
     }
   }
 
-  createReportTable (redrawFlg) {
+  createReportTable () {
     if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       $('#reportTable').css('width', '')
     }
@@ -1191,10 +1248,12 @@ export default class extends Controller {
       this.treasuryToggleAreaTarget.classList.remove('d-none')
       this.createTreasuryTable(responseData)
       this.treasuryChartTarget.classList.remove('d-none')
-      if (redrawFlg) {
+      const notChartZoom = !treasuryChartZoom
+      if (redrawChart) {
         this.initializeChart()
         this.drawGraph()
-        if (ctrl.zoomButtons) {
+        redrawChart = false
+        if (ctrl.zoomButtons && notChartZoom) {
           ctrl.zoomButtons.forEach((button) => {
             if (button.name === 'year') {
               button.click()
@@ -1280,15 +1339,17 @@ export default class extends Controller {
           this.settings.chart = 'amountflow'
           this.optionsTarget.value = 'amountflow'
         }
-        this.initializeChart()
-        this.drawGraph()
-        // hide balance select option
-        this.balanceOptionTarget.classList.add('d-none')
-        this.chartDataTarget.classList.add('d-none')
-        if (ctrl.settings.bin !== 'year') {
-          if (ctrl.zoomButtons) {
+        const notChartZoom = !domainChartZoom
+        if (redrawChart) {
+          this.initializeChart()
+          this.drawGraph()
+          redrawChart = false
+          // hide balance select option
+          this.balanceOptionTarget.classList.add('d-none')
+          this.chartDataTarget.classList.add('d-none')
+          if (ctrl.zoomButtons && notChartZoom) {
             ctrl.zoomButtons.forEach((button) => {
-              if (button.name === 'year') {
+              if (button.name === 'all') {
                 button.click()
               }
             })
@@ -1931,7 +1992,7 @@ export default class extends Controller {
       return
     }
     this.settings.year = e.target.value
-    this.calculate(false)
+    this.calculate()
   }
 
   getLengthInDay (summary) {
@@ -3057,7 +3118,7 @@ export default class extends Controller {
   }
 
   // Calculate and response
-  async calculate (redrawFlg) {
+  async calculate () {
     this.pageLoaderTarget.classList.add('loading')
     this.setReportTitle()
     if (this.settings.type === 'treasury') {
@@ -3069,9 +3130,6 @@ export default class extends Controller {
     } else {
       if (this.settings.type !== 'domain') {
         this.settings.chart = this.defaultSettings.chart
-        this.settings.zoom = ''
-        this.settings.bin = this.defaultSettings.bin
-        this.settings.flow = this.defaultSettings.flow
       }
       this.searchBoxTarget.classList.remove('d-none')
       this.searchBoxTarget.classList.add('report-search-box')
@@ -3153,7 +3211,7 @@ export default class extends Controller {
           domainYearData = this.getProposalYearlyData(responseData)
         }
         this.handlerDataForDomainChart(responseData)
-        this.createReportTable(redrawFlg)
+        this.createReportTable()
         this.enabledGroupButton()
         this.pageLoaderTarget.classList.remove('loading')
         return
@@ -3191,7 +3249,7 @@ export default class extends Controller {
         proposalResponse = response
       }
     }
-    this.createReportTable(redrawFlg)
+    this.createReportTable()
     this.enabledGroupButton()
     this.pageLoaderTarget.classList.remove('loading')
   }
@@ -3314,7 +3372,7 @@ export default class extends Controller {
   activeProposalSwitch (e) {
     const switchCheck = document.getElementById('activeProposalInput').checked
     this.settings.active = switchCheck
-    this.calculate(false)
+    this.calculate()
   }
 
   nameMatrixSwitchEvent (e) {
@@ -3326,7 +3384,7 @@ export default class extends Controller {
     } else {
       this.settings.ptype = !switchCheck || switchCheck === 'false' ? 'list' : 'month'
     }
-    this.calculate(false)
+    this.calculate()
   }
 
   proposalReportTimeDetail (e) {
