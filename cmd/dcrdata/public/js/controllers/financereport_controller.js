@@ -1870,8 +1870,8 @@ export default class extends Controller {
       bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data va-mid">$${humanize.formatToLocalString(handlerData.summary[index].budget, 2, 2)}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header last-row-header">' +
-      '<td class="text-center fw-600 fs-13i report-first-header va-mid">Total</td>'
+    bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
+      '<td class="text-center fw-600 fs-13i report-first-header report-first-last-footer va-mid">Total</td>'
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
@@ -1886,7 +1886,7 @@ export default class extends Controller {
       }
     }
 
-    bodyList += `<td class="text-right fw-600 fs-13i report-last-header va-mid">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`
+    bodyList += `<td class="text-right fw-600 fs-13i report-last-header report-first-last-footer va-mid">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -1961,8 +1961,8 @@ export default class extends Controller {
       bodyList += `<td class="text-right fs-13i fw-600 border-left-grey report-last-data va-mid">$${humanize.formatToLocalString(budget, 2, 2)}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header last-row-header">' +
-      '<td class="text-center fw-600 fs-13i report-first-header va-mid">Total</td>'
+    bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
+      '<td class="text-center fw-600 fs-13i report-first-header report-first-last-footer va-mid">Total</td>'
     for (let i = 0; i < handlerData.report.length; i++) {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
@@ -1977,7 +1977,7 @@ export default class extends Controller {
       }
     }
 
-    bodyList += `<td class="text-right fw-600 fs-13i report-last-header va-mid">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`
+    bodyList += `<td class="text-right fw-600 fs-13i report-last-header report-first-last-footer va-mid">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -2077,7 +2077,7 @@ export default class extends Controller {
         '</tr>'
     }
 
-    bodyList += '<tr class="finance-table-header last-row-header">' +
+    bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
       '<td class="va-mid text-center fw-600 fs-15i" colspan="5">Total</td>' +
       `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
       '<td></td><td></td>' +
@@ -2560,7 +2560,7 @@ export default class extends Controller {
       bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : ''}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header last-row-header">' +
+    bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
       '<td class="va-mid text-center px-3 fw-600 fs-15i">Total</td>' +
       `<td class="va-mid text-center px-3 fw-600 fs-15i">${totalProposals}</td>` +
       `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
@@ -2675,7 +2675,7 @@ export default class extends Controller {
           `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${totalUsdDisp}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>' +
+    bodyList += '<tr class="finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>' +
     '<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">-</td>'
     let totalAll = 0
     handlerData.domainList.forEach((domain) => {
@@ -2750,7 +2750,7 @@ export default class extends Controller {
     if (this.settings.ttype !== 'legacy') {
       this.outgoingExpTarget.classList.remove('d-none')
       this.outgoingExpTarget.classList.remove('mt-2')
-      this.outgoingExpTarget.innerHTML = '*Outgoing (Est): This is based on total estimated proposal spends from proposal budgets.<br/>*Dev Spent (Est): Estimated costs covered for proposals.'
+      this.outgoingExpTarget.innerHTML = '*Dev Spent (Est): Estimated costs covered for proposals.'
     } else {
       this.outgoingExpTarget.classList.add('d-none')
     }
@@ -3103,9 +3103,11 @@ export default class extends Controller {
       `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     let row2 = '<tr class="text-secondary finance-table-header">'
-    thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Incoming</label>' +
+    thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
+          `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+    '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Received</label>' +
       `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Outgoing</label>' +
+      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Spent</label>' +
       `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net</label>' +
       `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
@@ -3129,9 +3131,7 @@ export default class extends Controller {
     row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr>'
 
-    thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
-          `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-          '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBalance">Balance</label>' +
+    thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBalance">Balance</label>' +
           `<span data-action="click->financereport#sortByBalance" class="${(this.settings.stype === 'balance' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'balance' ? 'c-grey-4' : ''} col-sort ms-1"></span></th></tr>`
 
     // add row 2
@@ -3208,6 +3208,7 @@ export default class extends Controller {
       }
       bodyList += '<tr class="odd-even-row">' +
         `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' + incomUSDDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
@@ -3232,8 +3233,7 @@ export default class extends Controller {
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${unaccountedUSD > 0 ? '$' + humanize.formatToLocalString(unaccountedUSD, 2, 2) : '-'}</td>`
       }
       // Display month price of decred
-      bodyList += `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
-      `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
+      bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
       `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' + balanceUSDDisplay : '-'}</td></tr>`
     })
     const totalIncomDisplay = humanize.formatToLocalString((incomeTotal / 100000000), 2, 2)
@@ -3245,7 +3245,8 @@ export default class extends Controller {
     const lastBalanceDisplay = humanize.formatToLocalString((lastBalance / 100000000), 2, 2)
     const lastBalanceUSDDisplay = humanize.formatToLocalString(lastBalanceUSD, 2, 2)
     const totalBalanceNegative = lastBalance < 0.0
-    bodyList += '<tr class="va-mid finance-table-header last-row-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>' +
+    bodyList += '<tr class="va-mid finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>' +
+    '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalIncomDisplay}</td>` +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${incomeUSDTotal > 0 ? '$' : ''}${totalIncomUSDDisplay}</td>` +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalOutcomeDisplay}</td>` +
@@ -3258,8 +3259,7 @@ export default class extends Controller {
       `<td class="va-mid ps-3 text-right-i fw-600 fs-13i treasury-content-cell">${unaccountedTotal <= 0 ? '-' : humanize.formatToLocalString(unaccountedTotal / 100000000, 2, 2)}</td>` +
       `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${unaccountedUSDTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedUSDTotal, 2, 2) : '-'}</td>`
     }
-    bodyList += '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
-    `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
+    bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
     `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td></tr>`
     tbody = tbody.replace('###', bodyList)
     return thead + tbody

@@ -175,6 +175,10 @@
   }
 }
 
+.finance-table-footer {
+  background-color: #585858 !important;
+}
+
 .proposal-name-col {
   width: 20%;
 }
@@ -215,6 +219,10 @@
   position: sticky;
   right: 0;
   background-color: #5587a4 !important;
+}
+
+.report-first-last-footer {
+  background-color: #585858 !important;
 }
 
 .report-first-data {
@@ -368,6 +376,10 @@ body.darkBG {
     background-color: #494848;
   }
 
+  .finance-table-footer {
+    background-color: #818080 !important;
+  }
+
   .proposal-note-color,
   .summary-note-color,
   .summary-active-row,
@@ -381,6 +393,10 @@ body.darkBG {
   .report-first-header,
   .report-last-header {
     background-color: #494848 !important;
+  }
+
+  .report-first-last-footer {
+    background-color: #818080 !important;
   }
 
   .head-first-cell {
