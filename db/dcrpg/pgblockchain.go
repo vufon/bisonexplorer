@@ -2931,6 +2931,9 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 }
 
 func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, isSync bool) map[string]float64 {
+	if from.After(to) {
+		return make(map[string]float64, 0)
+	}
 	//get start day on month of from
 	startDayOfFromMonth := time.Date(from.Year(), from.Month(), 1, 0, 0, 0, 0, time.Local)
 	endDayOfToMonth := time.Date(to.Year(), to.Month(), 1, 23, 59, 59, 0, time.Local)

@@ -965,6 +965,7 @@ type MonthReportObject struct {
 	AllData    []MonthReportData  `json:"allData"`
 	DomainData []DomainReportData `json:"domainData"`
 	AuthorData []AuthorReportData `json:"authorData"`
+	UsdRate    float64            `json:"usdRate"`
 	Total      float64            `json:"total"`
 }
 

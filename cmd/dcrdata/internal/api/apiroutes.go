@@ -137,6 +137,7 @@ type DataSource interface {
 	GetAllProposalTokens() []string
 	GetProposalByOwner(name string) (proposalMetaList []map[string]string, err error)
 	SendRawTransaction(txhex string) (string, error)
+	GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, isSync bool) map[string]float64
 }
 
 // dcrdata application context used by all route handlers
@@ -918,11 +919,13 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 	}
 
 	monthReportList := make([]apitypes.MonthReportObject, 0)
-
+	//get monthly USD rate by lastest month
+	monthlyPriceMap := c.DataSource.GetCurrencyPriceMapByPeriod(minDate, now, false)
 	var countMonthFromStart = 12*(lastTime.Year()-minDate.Year()) + (int(lastTime.Month()) - int(minDate.Month())) + 1
 	for i := int(countMonthFromStart) - 1; i >= 0; i-- {
 		compareTime := minDate.AddDate(0, i, 0)
 		key := fmt.Sprintf("%d/%s", compareTime.Year(), apitypes.GetFullMonthDisplay(int(compareTime.Month())))
+		monthlyPriceMapKey := strings.ReplaceAll(key, "/", "-")
 		val, ok := report[key]
 		monthAllData := make([]apitypes.MonthReportData, 0)
 		if ok {
@@ -994,12 +997,17 @@ func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthRe
 					monthAllData = append(monthAllData, tempData)
 				}
 			}
+			monthPrice, ok := monthlyPriceMap[monthlyPriceMapKey]
+			if !ok {
+				monthPrice = 0
+			}
 			reportMonthObj := apitypes.MonthReportObject{
 				Month:      key,
 				AllData:    monthAllData,
 				DomainData: domainDataArr,
 				AuthorData: authorDataArr,
 				Total:      math.Ceil(total*100) / 100,
+				UsdRate:    monthPrice,
 			}
 			monthReportList = append(monthReportList, reportMonthObj)
 		}

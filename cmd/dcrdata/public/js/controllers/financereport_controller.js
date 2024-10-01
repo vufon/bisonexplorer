@@ -2583,29 +2583,39 @@ export default class extends Controller {
     }
     this.nodataTarget.classList.add('d-none')
     this.reportTarget.classList.remove('d-none')
-
-    let thead = '<thead><tr class="text-secondary finance-table-header">' +
-      `<th class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>` +
+    let thead = '<col><colgroup span="2"></colgroup><thead><tr class="text-secondary finance-table-header">' +
+      `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>` +
+      '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
+      `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '###' +
-      '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey" style="min-width: 160px;"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByUnaccounted">Unaccounted (Est)</label>' +
+      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByUnaccounted">Unaccounted (Est)</label>' +
       `<span data-action="click->financereport#sortByUnaccounted" class="${(this.settings.stype === 'unaccounted' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'unaccounted' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right fw-600 total-last-col px-3 border-left-grey"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
-      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '</tr></thead>'
+      '<th colspan="2" scope="colgroup" class="va-mid text-center-i total-last-col fs-13i fw-600 border-left-grey"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
+      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-4' : ''} col-sort ms-1"></span></th></tr>####</thead>`
+    let row2 = '<tr class="text-secondary finance-table-header">'
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
     handlerData.domainList.forEach((domain) => {
-      headList += `<th class="va-mid text-right-i domain-content-cell fs-13i px-3 fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a>` +
+      headList += `<th colspan="2" scope="colgroup" class="va-mid text-center-i domain-content-cell fs-13i fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)} (Est)</a>` +
         `<span data-action="click->financereport#sortByDomainItem" data-financereport-domain-param="${domain}" class="${(this.settings.stype === domain && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== domain ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+      row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
+              '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>'
     })
+    row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
+            '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
+            '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
+            '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th></tr>'
+    thead = thead.replace('####', row2)
     thead = thead.replace('###', headList)
-
     let bodyList = ''
     const domainDataMap = new Map()
     // sort before display on table
     const domainList = this.sortDomains(handlerData.report)
     let unaccountedTotal = 0
+    let unaccountedUsdTotal = 0
+    let totalAllUsd = 0
+    const domainUSDTotalMap = new Map()
     // create tbody content
     for (let i = 0; i < domainList.length; i++) {
       const report = domainList[i]
@@ -2623,9 +2633,18 @@ export default class extends Controller {
         const compareNowTime = year * 12 + month
         isFuture = compareDataTime > compareNowTime
       }
-      bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
+      const usdRate = report.usdRate
+      bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>` +
+                  `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${usdRate > 0 ? '$' + humanize.formatToLocalString(usdRate, 2, 2) : '-'}</td>`
       report.domainData.forEach((domainData) => {
-        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : '-'}</td>`
+        const dcrDisp = domainData.expense > 0 && usdRate > 0 ? humanize.formatToLocalString(domainData.expense / usdRate, 2, 2) : '-'
+        if (domainUSDTotalMap.has(domainData.domain)) {
+          domainUSDTotalMap.set(domainData.domain, domainUSDTotalMap.get(domainData.domain) + (domainData.expense > 0 && usdRate > 0 ? domainData.expense / usdRate : 0))
+        } else {
+          domainUSDTotalMap.set(domainData.domain, domainData.expense > 0 && usdRate > 0 ? domainData.expense / usdRate : 0)
+        }
+        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : '-'}</td>` +
+                    `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${dcrDisp}</td>`
         rowTotal += domainData.expense > 0 ? domainData.expense : 0
         if (domainDataMap.has(domainData.domain)) {
           domainDataMap.set(domainData.domain, domainDataMap.get(domainData.domain) + domainData.expense)
@@ -2634,21 +2653,32 @@ export default class extends Controller {
         }
       })
       rowTotal += report.unaccounted > 0 ? report.unaccounted : 0
+      const totalUsdDisp = rowTotal > 0 && usdRate > 0 ? humanize.formatToLocalString(rowTotal / usdRate, 2, 2) : '-'
+      totalAllUsd += rowTotal > 0 && usdRate > 0 ? rowTotal / usdRate : 0
       unaccountedTotal += report.unaccounted > 0 ? report.unaccounted : 0
+      const unaccountedUsdDisp = report.unaccounted > 0 && usdRate > 0 ? humanize.formatToLocalString(report.unaccounted / usdRate, 2, 2) : '-'
+      unaccountedUsdTotal += report.unaccounted > 0 && usdRate > 0 ? report.unaccounted / usdRate : 0
       bodyList += `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : report.unaccounted <= 0 ? '-' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td>` +
-        `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td></tr>`
+          `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : unaccountedUsdDisp}</td>` +
+          `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td>` +
+          `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${totalUsdDisp}</td></tr>`
     }
 
-    bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
+    bodyList += '<tr class="finance-table-header last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>' +
+    '<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">-</td>'
     let totalAll = 0
     handlerData.domainList.forEach((domain) => {
-      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">$${humanize.formatToLocalString(domainDataMap.get(domain), 2, 2)}</td>`
+      const expData = domainDataMap.has(domain) ? domainDataMap.get(domain) : 0
+      const expUsdData = domainUSDTotalMap.has(domain) ? domainUSDTotalMap.get(domain) : 0
+      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">$${humanize.formatToLocalString(expData, 2, 2)}</td>`
+      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">$${humanize.formatToLocalString(expUsdData, 2, 2)}</td>`
       totalAll += domainDataMap.get(domain)
     })
 
-    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2">${unaccountedTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedTotal, 2, 2) : '-'}</td>`
-    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">$${humanize.formatToLocalString(totalAll + unaccountedTotal, 2, 2)}</td>`
-    bodyList += '</tr>'
+    bodyList += `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2">${unaccountedTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedTotal, 2, 2) : '-'}</td>` +
+    `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-2">${unaccountedUsdTotal > 0 ? humanize.formatToLocalString(unaccountedUsdTotal, 2, 2) : '-'}</td>` +
+    `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">$${humanize.formatToLocalString(totalAll + unaccountedTotal, 2, 2)}</td>` +
+    `<td class="va-mid text-right fw-600 fs-13i border-left-grey pe-4">${totalAllUsd > 0 ? humanize.formatToLocalString(totalAllUsd, 2, 2) : '-'}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -3057,7 +3087,7 @@ export default class extends Controller {
     const isLegacy = this.settings.ttype === 'legacy'
     const isCombined = !this.settings.ttype || this.settings.ttype === '' || this.settings.ttype === 'combined'
     // create row 1
-    let thead = '<col><colgroup span="2"></colgroup><colgroup span="2"></colgroup><colgroup span="2"></colgroup><colgroup span="2"></colgroup><colgroup span="2"></colgroup><thead>' +
+    let thead = '<col><colgroup span="2"></colgroup><thead>' +
       '<tr class="text-secondary finance-table-header">' +
       `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
