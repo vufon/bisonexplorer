@@ -210,14 +210,11 @@ export default class extends Controller {
       this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
       // set main report url
       this.toUpReportTarget.href = '/finance-report?pgroup=domains'
-      this.toUpReportTarget.innerHTML = 'Domains'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
       this.toUpReportTarget.href = '/finance-report?pgroup=authors'
-      this.toUpReportTarget.innerHTML = 'Authors'
     } else {
       this.toUpReportTarget.href = '/finance-report'
-      this.toUpReportTarget.innerHTML = 'Proposals'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
       this.prevBtnTarget.classList.add('d-none')
@@ -556,7 +553,6 @@ export default class extends Controller {
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
     this.toUpReportTarget.href = '/finance-report'
-    this.toUpReportTarget.innerHTML = 'Proposals'
     if (this.settings.type === 'year') {
       this.yearBreadcumbTarget.classList.add('d-none')
     } else {
