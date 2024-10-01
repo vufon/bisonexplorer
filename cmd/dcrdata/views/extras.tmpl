@@ -626,15 +626,16 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.12c22677adb7f71b.bundle.js"
+	src="/dist/js/app.049f9a1bed25dab9.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
 {{end}}
 
 {{define "footer"}}
-<footer class="navbar-fixed-bottom">
-	<div class="container d-flex justify-content-between align-items-center">
+<footer>
+	<div data-controller="footer" data-footer-target="footerBar" data-footer-is-homepage="{{.IsHomepage}}" class="navbar-fixed-bottom d-none">
+		<div class="container d-flex justify-content-between align-items-center">
 		<span>
 			<span data-controller="time" data-time-target="blocktime" data-stamp="{{$.Tip.Time}}"></span> <span class="d-none d-sm-inline">since last block</span>
 		</span>
@@ -659,6 +660,7 @@
 			><span class="d-none d-sm-inline" data-connection-target="status">Connecting <span class="d-none d-md-inline-block">to WebSocket...</span></span><div></div>
 		</span>
 	</div>
+</div>
 	{{template "footer_script"}}
 </footer>
 {{end}}
