@@ -1753,6 +1753,8 @@ export default class extends Controller {
           for (let i = 0; i < monthObj.domainData.length; i++) {
             monthObj.domainData[i].expense += report.domainData[i].expense
           }
+          monthObj.count += 1
+          monthObj.usdRate += report.usdRate
         } else {
           monthObj.total = report.total
           monthObj.month = year
@@ -1774,12 +1776,18 @@ export default class extends Controller {
             domainDataItem.expense = item.expense
             monthObj.domainData.push(domainDataItem)
           }
-          dataMap.set(year, monthObj)
+          monthObj.count = 1
+          monthObj.usdRate = report.usdRate
         }
+        dataMap.set(year, monthObj)
       }
     })
     result.report = []
     yearArr.forEach((year) => {
+      const tempResultItem = dataMap.get(year)
+      if (tempResultItem.count > 0) {
+        tempResultItem.usdRate = tempResultItem.usdRate / tempResultItem.count
+      }
       result.report.push(dataMap.get(year))
     })
     return result
@@ -2187,11 +2195,14 @@ export default class extends Controller {
       let aData = null
       let bData = null
       if (_this.settings.stype === 'total') {
-        aData = a.total
-        bData = b.total
+        aData = a.total + (a.unaccounted > 0 ? a.unaccounted : 0)
+        bData = b.total + (b.unaccounted > 0 ? b.unaccounted : 0)
       } else if (_this.settings.stype === 'unaccounted') {
         aData = a.unaccounted
         bData = b.unaccounted
+      } else if (_this.settings.stype === 'rate') {
+        aData = a.usdRate
+        bData = b.usdRate
       } else {
         a.domainData.forEach((aDomainData) => {
           if (_this.settings.stype === aDomainData.domain) {
