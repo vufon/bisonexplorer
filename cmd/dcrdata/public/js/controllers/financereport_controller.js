@@ -2016,27 +2016,18 @@ export default class extends Controller {
 
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      '<th class="va-mid text-center month-col fw-600 proposal-name-col"><label class="cursor-pointer" data-action="click->financereport#sortByPName">Name</label>' +
-      `<span data-action="click->financereport#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByDomain">Domain</label>' +
-      `<span data-action="click->financereport#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
-      `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-center month-col fw-600 proposal-name-col">Name</th>' +
+      '<th class="va-mid text-center px-3 month-col fw-600">Domain</th>' +
+      '<th class="va-mid text-center px-3 month-col fw-600">Author</th>' +
       '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByStartDate">Start Date</label>' +
       `<span data-action="click->financereport#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-4'} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByEndDate">End Date</label>' +
-      `<span data-action="click->financereport#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-center px-3 fw-600">End Date</th>' +
       '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
       `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByDays">Days</label>' +
-      `<span data-action="click->financereport#sortByDays" class="${(this.settings.stype === 'days' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'days' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAvg">Monthly Avg (Est)</label>' +
-      `<span data-action="click->financereport#sortByAvg" class="${(this.settings.stype === 'avg' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'avg' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByTotalSpent">Total Spent (Est)</label>' +
-      `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financereport#sortByRemaining">Total Remaining (Est)</label>' +
-      `<span data-action="click->financereport#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '</tr></thead>'
+      '<th class="va-mid text-center fw-600">Days</th>' +
+      '<th class="va-mid text-center fw-600">Monthly Avg (Est)</th>' +
+      '<th class="va-mid text-right px-3 fw-600">Total Spent (Est)</th>' +
+      '<th class="va-mid text-right px-3 fw-600 pr-10i">Total Remaining (Est)</th></tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     const proposalTokenMap = data.proposalTokenMap
@@ -2073,8 +2064,8 @@ export default class extends Controller {
         `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
         `<td class="va-mid text-right px-3 fs-13i">${lengthInDays}</td>` +
         `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : ''}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : '-'}</p></td>` +
+        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : '-'}</p></td>` +
         '</tr>'
     }
 
@@ -2531,10 +2522,8 @@ export default class extends Controller {
       `<span data-action="click->financereport#sortByPNum" class="${(this.settings.stype === 'pnum' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pnum' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
       `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByTotalSpent">Total Received (Est)</label>' +
-      `<span data-action="click->financereport#sortByTotalSpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financereport#sortByRemaining">Total Remaining (Est)</label>' +
-      `<span data-action="click->financereport#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-right px-3 fw-600">Total Received (Est)</th>' +
+      '<th class="va-mid text-right px-3 fw-600 pr-10i">Total Remaining (Est)</th>' +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
@@ -2556,9 +2545,9 @@ export default class extends Controller {
       totalProposals += author.proposals
       bodyList += `<tr class="${author.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}"><td class="va-mid text-center px-3 fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=owner&name=' + author.name}">${author.name}</a></td>`
       bodyList += `<td class="va-mid text-center px-3 fs-13i">${author.proposals}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.budget > 0 ? '$' + humanize.formatToLocalString(author.budget, 2, 2) : ''}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalReceived > 0 ? '$' + humanize.formatToLocalString(author.totalReceived, 2, 2) : ''}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : ''}</td></tr>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.budget > 0 ? '$' + humanize.formatToLocalString(author.budget, 2, 2) : '-'}</td>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalReceived > 0 ? '$' + humanize.formatToLocalString(author.totalReceived, 2, 2) : '-'}</td>`
+      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : '-'}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
@@ -2596,13 +2585,10 @@ export default class extends Controller {
     this.reportTarget.classList.remove('d-none')
     let thead = '<col><colgroup span="2"></colgroup><col3group span="3"></col3group><thead><tr class="text-secondary finance-table-header">' +
       `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>` +
-      '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
-      `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Rate (USD/DCR)</th>' +
       '###' +
-      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByUnaccounted">Unaccounted (Est)</label>' +
-      `<span data-action="click->financereport#sortByUnaccounted" class="${(this.settings.stype === 'unaccounted' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'unaccounted' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th colspan="3" scope="col3group" class="va-mid text-center-i total-last-col fs-13i fw-600 border-left-grey"><label class="cursor-pointer fs-13i" data-action="click->financereport#sortByDomainTotal">Total (Est)</label>' +
-      `<span data-action="click->financereport#sortByDomainTotal" class="${(this.settings.stype === 'total' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'total' ? 'c-grey-4' : ''} col-sort ms-1"></span></th></tr>####</thead>`
+      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Unaccounted (Est)</th>' +
+      '<th colspan="3" scope="col3group" class="va-mid text-center-i total-last-col fs-13i fw-600 border-left-grey">Total (Est)</th></tr>####</thead>'
     let row2 = '<tr class="text-secondary finance-table-header">'
     let tbody = '<tbody>###</tbody>'
 
@@ -3127,14 +3113,12 @@ export default class extends Controller {
       `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     let row2 = '<tr class="text-secondary finance-table-header">'
-    thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortByRate">Rate (USD/DCR)</label>' +
-          `<span data-action="click->financereport#sortByRate" class="${(this.settings.stype === 'rate' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'rate' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+    thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Rate (USD/DCR)</th>' +
     '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Received</label>' +
       `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Spent</label>' +
       `<span data-action="click->financereport#sortByOutgoing" class="${(this.settings.stype === 'outgoing' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outgoing' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByNet">Net</label>' +
-      `<span data-action="click->financereport#sortByNet" class="${(this.settings.stype === 'net' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'net' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Net</th>'
     row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
@@ -3142,10 +3126,8 @@ export default class extends Controller {
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>'
     if (!isLegacy) {
-      thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoingEst">Dev Spent (Est)</label>' +
-      `<span data-action="click->financereport#sortByOutgoingEst" class="${(this.settings.stype === 'outest' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'outest' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell"><label class="cursor-pointer" data-action="click->financereport#sortSpentPercent"> Dev Spent (%)</label>' +
-      `<span data-action="click->financereport#sortSpentPercent" class="${(this.settings.stype === 'percent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'percent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Dev Spent (Est)</th>' +
+      '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Dev Spent (%)</th>' +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Unaccounted (Est)</th>'
       row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
               '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
