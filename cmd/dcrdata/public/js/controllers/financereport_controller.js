@@ -944,6 +944,22 @@ export default class extends Controller {
     adminChartFlow = undefined
     this.initData()
     this.isMonthDisplay = this.isProposalMonthReport() || this.isAuthorMonthGroup()
+    const tooltipElements = document.getElementsByClassName('cell-tooltip')
+    document.addEventListener('click', function (event) {
+      for (let i = 0; i < tooltipElements.length; i++) {
+        const popEl = tooltipElements[i]
+        const isClickInside = popEl.contains(event.target)
+        // if click outside, add hidden to all tooltiptext element
+        const tooltiptext = popEl.getElementsByClassName('tooltiptext')[0]
+        if (!tooltiptext) {
+          continue
+        }
+        if (!isClickInside) {
+          popEl.classList.remove('active')
+          tooltiptext.style.visibility = 'hidden'
+        }
+      }
+    })
   }
 
   async initData () {
@@ -1755,6 +1771,7 @@ export default class extends Controller {
           monthObj.count += 1
           monthObj.usdRate += report.usdRate
           monthObj.unaccounted += report.unaccounted
+          monthObj.treasurySpent += report.treasurySpent
         } else {
           monthObj.total = report.total
           monthObj.month = year
@@ -1779,6 +1796,7 @@ export default class extends Controller {
           monthObj.count = 1
           monthObj.usdRate = report.usdRate
           monthObj.unaccounted = report.unaccounted
+          monthObj.treasurySpent = report.treasurySpent
         }
         dataMap.set(year, monthObj)
       }
@@ -2654,6 +2672,7 @@ export default class extends Controller {
           domainDataMap.set(domainData.domain, domainData.expense)
         }
       })
+      const devTotal = rowTotal
       rowTotal += report.unaccounted > 0 ? report.unaccounted : 0
       let rateStr = ''
       let unaccountedPercent = 100
@@ -2668,11 +2687,15 @@ export default class extends Controller {
       unaccountedTotal += report.unaccounted > 0 ? report.unaccounted : 0
       const unaccountedUsdDisp = report.unaccounted > 0 && usdRate > 0 ? humanize.formatToLocalString(report.unaccounted / usdRate, 2, 2) : '-'
       unaccountedDcrTotal += report.unaccounted > 0 && usdRate > 0 ? report.unaccounted / usdRate : 0
-      bodyList += `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : report.unaccounted <= 0 ? '-' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}</td>` +
-          `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : unaccountedUsdDisp}</td>` +
-          `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td>` +
-          `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${totalDcrDisp}</td>` +
-          `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${rateStr}</td></tr>`
+      bodyList += `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : report.unaccounted <= 0 ? '-' : '$' + humanize.formatToLocalString(report.unaccounted, 2, 2)}`
+      if (!isFuture && report.unaccounted > 0) {
+        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedUSDTooltip" data-show="${report.treasurySpent + ';' + devTotal}"><span class="tooltiptext cursor-default"><span class="tooltip-text"></span></span></span>`
+      }
+      bodyList += '</td>' +
+      `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : unaccountedUsdDisp}</td>` +
+      `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td>` +
+      `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${totalDcrDisp}</td>` +
+      `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${rateStr}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>' +
@@ -2705,6 +2728,62 @@ export default class extends Controller {
     return thead + tbody
   }
 
+  showUnaccountedUSDTooltip (e) {
+    const target = e.target
+    const data = target.dataset.show
+    if (!data || data === '') {
+      return
+    }
+    const dataArr = data.split(';')
+    if (dataArr.length < 2) {
+      return
+    }
+    const tooltipText = target.getElementsByClassName('tooltiptext')[0]
+    if (!tooltipText) {
+      return
+    }
+    if (target.classList.contains('active')) {
+      target.classList.remove('active')
+      tooltipText.style.visibility = 'hidden'
+    } else {
+      target.classList.add('active')
+      tooltipText.style.visibility = 'visible'
+      const textElement = tooltipText.getElementsByClassName('tooltip-text')[0]
+      if (!textElement) {
+        return
+      }
+      textElement.innerHTML = `<span>=</span> Treasury Spent: <span class="fw-600">$${humanize.formatToLocalString(Number(dataArr[0].trim()), 2, 2)}</span> - Estimate Spend: <span class="fw-600">$${humanize.formatToLocalString(Number(dataArr[1].trim()), 2, 2)}</span>`
+    }
+  }
+
+  showUnaccountedTooltip (e) {
+    const target = e.target
+    const data = target.dataset.show
+    if (!data || data === '') {
+      return
+    }
+    const dataArr = data.split(';')
+    if (dataArr.length < 2) {
+      return
+    }
+    const tooltipText = target.getElementsByClassName('tooltiptext')[0]
+    if (!tooltipText) {
+      return
+    }
+    if (target.classList.contains('active')) {
+      target.classList.remove('active')
+      tooltipText.style.visibility = 'hidden'
+    } else {
+      target.classList.add('active')
+      tooltipText.style.visibility = 'visible'
+      const textElement = tooltipText.getElementsByClassName('tooltip-text')[0]
+      if (!textElement) {
+        return
+      }
+      textElement.innerHTML = `<span>=</span> Treasury Spent: <span class="fw-600">${humanize.formatToLocalString(Number(dataArr[0].trim()), 2, 2)} DCR</span> - Estimate Spend: <span class="fw-600">${humanize.formatToLocalString(Number(dataArr[1].trim()), 2, 2)} DCR</span>`
+    }
+  }
+
   getTreasuryDomainCombined (reportData, treasuryDataMap) {
     const report = reportData.report
     if (!report || report.length === 0) {
@@ -2716,6 +2795,7 @@ export default class extends Controller {
       reportData.report[i].unaccounted = 0
       if (treasuryDataMap.has(monthFormat)) {
         const treasurySpent = treasuryDataMap.get(monthFormat)
+        reportData.report[i].treasurySpent = treasurySpent > 0 ? treasurySpent : 0
         if (treasurySpent > reportItem.total) {
           reportData.report[i].unaccounted = treasurySpent - reportItem.total
         } else if (treasurySpent === 0) {
@@ -3235,8 +3315,11 @@ export default class extends Controller {
         bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${item.outEstimate === 0.0 ? '-' : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${item.outEstimate !== 0.0 ? '$' + humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : '-'}</td>` +
         `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>` +
-        `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${unaccounted <= 0 ? '-' : humanize.formatToLocalString(unaccounted / 100000000, 2, 2)}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${unaccountedUSD > 0 ? '$' + humanize.formatToLocalString(unaccountedUSD, 2, 2) : '-'}</td>`
+        `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${unaccounted <= 0 ? '-' : humanize.formatToLocalString(unaccounted / 100000000, 2, 2)}`
+        if (unaccounted > 0) {
+          bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedTooltip" data-show="${item.outvalue / 100000000 + ';' + item.outEstimate}"><span class="tooltiptext cursor-default"><span class="tooltip-text"></span></span></span>`
+        }
+        bodyList += `</td><td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${unaccountedUSD > 0 ? '$' + humanize.formatToLocalString(unaccountedUSD, 2, 2) : '-'}</td>`
       }
       // Display month price of decred
       bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +

@@ -490,3 +490,19 @@ body.darkBG {
   box-shadow: rgb(0 0 0 / 24%) 0 3px 8px;
   border-radius: 10px;
 }
+
+.cell-tooltip {
+  cursor: pointer;
+}
+
+.cell-tooltip .tooltiptext {
+  visibility: hidden;
+  background-color: #3a7d88;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 8px 10px;
+  position: absolute;
+  z-index: 1;
+  font-family: $font-family-inter-sans-serif;
+}
