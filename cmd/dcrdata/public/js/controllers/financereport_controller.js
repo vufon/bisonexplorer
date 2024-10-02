@@ -26,7 +26,6 @@ let treasuryBalanceMap = null
 let treasuryYearlyBalanceMap = null
 let adminBalanceMap = null
 let adminYearlyBalanceMap = null
-const treasurySummaryData = null
 let redrawChart = true
 let domainChartZoom
 let treasuryChartZoom
@@ -1755,6 +1754,7 @@ export default class extends Controller {
           }
           monthObj.count += 1
           monthObj.usdRate += report.usdRate
+          monthObj.unaccounted += report.unaccounted
         } else {
           monthObj.total = report.total
           monthObj.month = year
@@ -1778,6 +1778,7 @@ export default class extends Controller {
           }
           monthObj.count = 1
           monthObj.usdRate = report.usdRate
+          monthObj.unaccounted = report.unaccounted
         }
         dataMap.set(year, monthObj)
       }
@@ -2576,16 +2577,15 @@ export default class extends Controller {
       return ''
     }
     let handlerData = data
-    let treasuryData = data.treasurySummary
+    // combined data of report and treasury report
+    const treasuryDataMap = this.getTreasuryMonthSpentMap(data.treasurySummary)
+    handlerData = this.getTreasuryDomainCombined(handlerData, treasuryDataMap)
     if (this.settings.interval === 'year') {
       handlerData = domainYearData != null ? domainYearData : this.getProposalYearlyData(data)
-      treasuryData = treasurySummaryData != null ? treasurySummaryData : this.getTreasuryYearlyData(treasuryData)
       this.futureLabelTarget.textContent = 'Years in the future'
     } else {
       this.futureLabelTarget.textContent = 'Months in the future'
     }
-    const treasuryDataMap = this.getTreasuryMonthSpentMap(treasuryData)
-    handlerData = this.getTreasuryDomainCombined(handlerData, treasuryDataMap)
 
     if (handlerData.report.length < 1) {
       this.nodataTarget.classList.remove('d-none')
