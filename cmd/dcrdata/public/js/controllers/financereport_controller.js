@@ -206,7 +206,9 @@ export default class extends Controller {
       'weekZoomBtn', 'dayZoomBtn', 'weekGroupBtn', 'dayGroupBtn', 'sentRadioLabel', 'receivedRadioLabel',
       'netSelectRadio', 'selectTreasuryType', 'proposalSelectType', 'proposalType', 'listLabel', 'monthLabel',
       'currentBalanceArea', 'treasuryBalanceDisplay', 'treasuryLegacyPercent', 'treasuryTypeRate', 'chartData',
-      'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel', 'reportType', 'pageLoader']
+      'specialTreasury', 'decentralizedData', 'adminData', 'domainFutureRow', 'futureLabel', 'reportType', 'pageLoader',
+      'treasuryBalanceRate', 'treasuryLegacyRate', 'decentralizedDataRate', 'adminDataRate', 'decentralizedTitle', 'adminTitle',
+      'treasuryBalanceCard', 'subTreasuryTitle']
   }
 
   async connect () {
@@ -3237,7 +3239,14 @@ export default class extends Controller {
     }
     // display balance in top
     if (!isCombined) {
-      this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2) + ' DCR (~$' + humanize.formatToLocalString(lastBalanceUSD, 2, 2) + ')'
+      this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2) + ' DCR'
+      this.treasuryBalanceRateTarget.textContent = '~$' + humanize.formatToLocalString(lastBalanceUSD, 2, 2)
+      this.treasuryBalanceCardTarget.classList.add('col-sm-12', 'col-lg-8', 'col-xl-6', 'col-xxl-4')
+      this.treasuryBalanceCardTarget.classList.remove('col-md-16', 'col-lg-12', 'col-xl-8', 'col-xxl-7')
+      this.subTreasuryTitleTarget.textContent = (isLegacy ? 'Admin' : 'Decentralized') + ' Balance'
+    } else {
+      this.treasuryBalanceCardTarget.classList.remove('col-sm-12', 'col-lg-8', 'col-xl-6', 'col-xxl-4')
+      this.treasuryBalanceCardTarget.classList.add('col-md-16', 'col-lg-12', 'col-xl-8', 'col-xxl-7')
     }
     const balanceMap = this.settings.interval === 'year' ? combinedYearlyBalanceMap : combineBalanceMap
     if (isCombined && lastMonth !== '' && balanceMap.has(lastMonth)) {
@@ -3254,9 +3263,14 @@ export default class extends Controller {
       }
       const lastLegacyRate = 100 * legacy / combined
       const lastTreasuryRate = 100 * tresury / combined
-      this.treasuryLegacyPercentTarget.textContent = `${humanize.formatToLocalString((lastBalance / 100000000), 2, 2)} DCR (~$${humanize.formatToLocalString((lastBalanceUSD), 2, 2)})`
-      this.decentralizedDataTarget.textContent = `${humanize.formatToLocalString((tresury / 100000000), 2, 2)} DCR (~$${humanize.formatToLocalString(treasuryUSD, 2, 2)} / ${humanize.formatToLocalString(lastTreasuryRate, 2, 2)}%)`
-      this.adminDataTarget.textContent = `${humanize.formatToLocalString((legacy / 100000000), 2, 2)} DCR (~$${humanize.formatToLocalString(legacyUSD, 2, 2)} / ${humanize.formatToLocalString(lastLegacyRate, 2, 2)} %)`
+      this.treasuryLegacyPercentTarget.textContent = `${humanize.formatToLocalString((lastBalance / 100000000), 2, 2)} DCR`
+      this.treasuryLegacyRateTarget.textContent = '~$' + humanize.formatToLocalString((lastBalanceUSD), 2, 2)
+      this.decentralizedDataTarget.textContent = `${humanize.formatToLocalString((tresury / 100000000), 2, 2)} DCR`
+      this.decentralizedDataRateTarget.textContent = '~$' + humanize.formatToLocalString(treasuryUSD, 2, 2)
+      this.decentralizedTitleTarget.textContent = 'Decentralized (' + humanize.formatToLocalString(lastTreasuryRate, 2, 2) + '%)'
+      this.adminDataTarget.textContent = `${humanize.formatToLocalString((legacy / 100000000), 2, 2)} DCR`
+      this.adminDataRateTarget.textContent = '~$' + humanize.formatToLocalString(legacyUSD, 2, 2)
+      this.adminTitleTarget.textContent = 'Admin (' + humanize.formatToLocalString(lastLegacyRate, 2, 2) + '%)'
     }
     const treasuryList = this.sortTreasury(summary)
     const _this = this
