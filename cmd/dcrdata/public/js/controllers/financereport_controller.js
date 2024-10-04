@@ -3325,7 +3325,7 @@ export default class extends Controller {
           `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>` +
           `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${unaccounted <= 0 ? '-' : humanize.formatToLocalString(unaccounted / 100000000, 2, 2)}`
         if (unaccounted > 0) {
-          bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedTooltip" data-show="${item.outvalue / 100000000 + ';' + item.outEstimate}"><span class="tooltiptext cursor-default"><span class="tooltip-text d-flex ai-center"></span></span></span>`
+          bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedTooltip" data-show="${item.outvalue / 100000000 + ';' + item.outEstimate}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
         }
         bodyList += `</td><td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${unaccountedUSD > 0 ? '$' + humanize.formatToLocalString(unaccountedUSD, 2, 2) : '-'}</td>`
       }
