@@ -1014,13 +1014,7 @@ export default class extends Controller {
       }
     })
 
-    if (this.settings.type !== 'proposal' && this.settings.type !== '' && this.settings.type !== 'summary') {
-      this.intervalTargets.forEach((intervalTarget) => {
-        intervalTarget.classList.remove('active')
-        if (intervalTarget.name === this.settings.interval) {
-          intervalTarget.classList.add('active')
-        }
-      })
+    if (this.isTreasuryReport()) {
       this.ttypeTargets.forEach((ttypeTarget) => {
         ttypeTarget.classList.remove('active')
         if ((ttypeTarget.name === this.settings.ttype) || (ttypeTarget.name === 'current' && !this.settings.ttype)) {
@@ -1166,12 +1160,6 @@ export default class extends Controller {
         this.reportDescriptionTarget.innerHTML = proposalNote
         if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals') {
           this.settings.interval = this.defaultSettings.interval
-          this.intervalTargets.forEach((intervalTarget) => {
-            intervalTarget.classList.remove('active')
-            if (intervalTarget.name === this.settings.interval) {
-              intervalTarget.classList.add('active')
-            }
-          })
           this.reportDescriptionTarget.classList.add('d-none')
         } else if (this.settings.pgroup === 'authors') {
           if (this.settings.ptype !== 'list') {
@@ -3364,7 +3352,15 @@ export default class extends Controller {
   async calculate () {
     this.pageLoaderTarget.classList.add('loading')
     this.setReportTitle()
-    if (this.settings.type === 'treasury') {
+    if (this.isTreasuryReport() || this.isDomainType()) {
+      this.intervalTargets.forEach((intervalTarget) => {
+        intervalTarget.classList.remove('active')
+        if (intervalTarget.name === this.settings.interval) {
+          intervalTarget.classList.add('active')
+        }
+      })
+    }
+    if (this.isTreasuryReport()) {
       this.searchBoxTarget.classList.add('d-none')
       this.searchBoxTarget.classList.remove('report-search-box')
       this.colorNoteRowTarget.classList.add('d-none')
@@ -3451,7 +3447,7 @@ export default class extends Controller {
 
       if (haveResponseData) {
         if (this.isDomainType()) {
-          domainYearData = this.getProposalYearlyData(responseData)
+          this.handlerDomainYearlyData(responseData)
         }
         this.handlerDataForDomainChart(responseData)
         this.createReportTable()
@@ -3481,7 +3477,7 @@ export default class extends Controller {
     // create table data
     responseData = response
     if (this.isDomainType()) {
-      domainYearData = this.getProposalYearlyData(responseData)
+      this.handlerDomainYearlyData(responseData)
     }
     // handler for domain chart
     this.handlerDataForDomainChart(response)
@@ -3495,6 +3491,12 @@ export default class extends Controller {
     this.createReportTable()
     this.enabledGroupButton()
     this.pageLoaderTarget.classList.remove('loading')
+  }
+
+  handlerDomainYearlyData (data) {
+    const treasuryDataMap = this.getTreasuryMonthSpentMap(data.treasurySummary)
+    const handlerData = this.getTreasuryDomainCombined(data, treasuryDataMap)
+    domainYearData = this.getProposalYearlyData(handlerData)
   }
 
   isMobile () {
