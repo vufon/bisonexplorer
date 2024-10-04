@@ -1822,7 +1822,7 @@ export default class extends Controller {
       '<th class="text-center ps-0 month-col border-right-grey report-first-header head-first-cell">' +
       '<div class="c1"><span data-action="click->financereport#sortByDate" class="homeicon-swap vertical-sort"></span></div><div class="c2"><span id="sortCreateDate" data-action="click->financereport#sortByCreateDate" class="homeicon-swap horizontal-sort"></span></div></th>' +
       '###' +
-      '<th class="text-right ps-0 fw-600 month-col ta-center border-left-grey report-last-header va-mid">Total</th>' +
+      '<th class="text-right ps-0 fw-600 fs-13i month-col ta-center border-left-grey report-last-header va-mid">Total</th>' +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
 
@@ -2022,18 +2022,18 @@ export default class extends Controller {
 
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      '<th class="va-mid text-center month-col fw-600 proposal-name-col">Name</th>' +
-      '<th class="va-mid text-center px-3 month-col fw-600">Domain</th>' +
-      '<th class="va-mid text-center px-3 month-col fw-600">Author</th>' +
-      '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByStartDate">Start Date</label>' +
+      '<th class="va-mid text-center fs-13i month-col fw-600 proposal-name-col">Name</th>' +
+      '<th class="va-mid text-center fs-13i px-3 month-col fw-600">Domain</th>' +
+      '<th class="va-mid text-center fs-13i px-3 month-col fw-600">Author</th>' +
+      '<th class="va-mid text-center fs-13i px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByStartDate">Start Date</label>' +
       `<span data-action="click->financereport#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-4'} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-3 fw-600">End Date</th>' +
-      '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
+      '<th class="va-mid text-center fs-13i px-3 fw-600">End Date</th>' +
+      '<th class="va-mid text-right fs-13i px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
       `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center fw-600">Days</th>' +
-      '<th class="va-mid text-center fw-600">Monthly Avg (Est)</th>' +
-      '<th class="va-mid text-right px-3 fw-600">Total Spent (Est)</th>' +
-      '<th class="va-mid text-right px-3 fw-600 pr-10i">Total Remaining (Est)</th></tr></thead>'
+      '<th class="va-mid text-center fs-13i fw-600">Days</th>' +
+      '<th class="va-mid text-center fs-13i fw-600">Monthly Avg (Est)</th>' +
+      '<th class="va-mid text-right fs-13i px-3 fw-600">Total Spent (Est)</th>' +
+      '<th class="va-mid text-right fs-13i px-3 fw-600 pr-10i">Total Remaining (Est)</th></tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     const proposalTokenMap = data.proposalTokenMap
@@ -2076,11 +2076,11 @@ export default class extends Controller {
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
-      '<td class="va-mid text-center fw-600 fs-15i" colspan="5">Total</td>' +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
+      '<td class="va-mid text-center fw-600 fs-13i" colspan="5">Total</td>' +
+      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
       '<td></td><td></td>' +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
-      `<td class="va-mid text-right px-2 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget - totalSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget - totalSpent, 2, 2)}</td>` +
       '</tr>'
 
     tbody = tbody.replace('###', bodyList)
@@ -2522,14 +2522,14 @@ export default class extends Controller {
 
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      '<th class="va-mid text-center px-3 month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
+      '<th class="va-mid text-center px-3 fs-13i month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
       `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByPNum">Proposals</label>' +
+      '<th class="va-mid text-center px-3 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByPNum">Proposals</label>' +
       `<span data-action="click->financereport#sortByPNum" class="${(this.settings.stype === 'pnum' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pnum' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
+      '<th class="va-mid text-right px-3 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
       `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fw-600">Total Received (Est)</th>' +
-      '<th class="va-mid text-right px-3 fw-600 pr-10i">Total Remaining (Est)</th>' +
+      '<th class="va-mid text-right px-3 fs-13i fw-600">Total Received (Est)</th>' +
+      '<th class="va-mid text-right px-3 fs-13i fw-600 pr-10i">Total Remaining (Est)</th>' +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
@@ -2557,11 +2557,11 @@ export default class extends Controller {
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
-      '<td class="va-mid text-center px-3 fw-600 fs-15i">Total</td>' +
-      `<td class="va-mid text-center px-3 fw-600 fs-15i">${totalProposals}</td>` +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
+      '<td class="va-mid text-center px-3 fw-600 fs-13i">Total</td>' +
+      `<td class="va-mid text-center px-3 fw-600 fs-13i">${totalProposals}</td>` +
+      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
       '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -3341,7 +3341,7 @@ export default class extends Controller {
     const lastBalanceDisplay = humanize.formatToLocalString((lastBalance / 100000000), 2, 2)
     const lastBalanceUSDDisplay = humanize.formatToLocalString(lastBalanceUSD, 2, 2)
     const totalBalanceNegative = lastBalance < 0.0
-    bodyList += '<tr class="va-mid finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-15i border-right-grey">Total</td>' +
+    bodyList += '<tr class="va-mid finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total</td>' +
       '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
       `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalIncomDisplay}</td>` +
       `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${incomeUSDTotal > 0 ? '$' : ''}${totalIncomUSDDisplay}</td>` +
