@@ -990,7 +990,7 @@ export default class extends Controller {
     reportMaxMonth = maxDateTime.getMonth() + 1
   }
 
-  async initMainFinancialReport () {
+  initMainFinancialReport () {
     this.treasuryChart = 'balance'
     this.proposalTSort = 'oldest'
     this.treasuryTSort = 'newest'
@@ -1011,7 +1011,7 @@ export default class extends Controller {
     combinedChartFlow = undefined
     adminChartFlow = undefined
     this.initData()
-    this.isMonthDisplay = this.isProposalMonthReport() || this.isAuthorMonthGroup()
+    this.isMonthDisplay = this.isTreasuryReport() ? true : this.isProposalMonthReport() || this.isAuthorMonthGroup()
     const tooltipElements = document.getElementsByClassName('cell-tooltip')
     document.addEventListener('click', function (event) {
       for (let i = 0; i < tooltipElements.length; i++) {
@@ -1137,7 +1137,7 @@ export default class extends Controller {
     }
     // init for detail report title
     const timeArr = this.settings.dtime.toString().split('_')
-    this.detailReportTitleTarget.textContent = timeArr[0] + (timeArr.length > 1 && this.settings.dtype === 'month' ? ' ' + this.getMonthDisplay(Number(timeArr[1])) : '')
+    this.detailReportTitleTarget.textContent = (this.isYearDetailReport() ? 'Yearly Report - ' : 'Monthly Report - ') + (timeArr.length > 1 && this.settings.dtype === 'month' ? this.getMonthDisplay(Number(timeArr[1])) + ' ' : '') + timeArr[0]
     // init year month selector
     this.initYearMonthSelector()
     this.updateQueryString()
@@ -1177,7 +1177,7 @@ export default class extends Controller {
     }
   }
 
-  initData () {
+  async initData () {
     this.detailReportAreaTarget.classList.add('d-none')
     this.mainReportTopAreaTarget.classList.remove('d-none')
     this.yearMonthSelectorTarget.classList.add('d-none')
@@ -1459,7 +1459,7 @@ export default class extends Controller {
     if (this.settings.type === 'treasury') {
       this.settings.chart = this.treasuryChart
       this.optionsTarget.value = this.settings.chart
-    } else if ((this.settings.type === '' || this.settings.type === 'proposal') && !this.isMonthDisplay) {
+    } else if ((this.settings.type === '' || this.settings.type === 'proposal') && !this.isMonthDisplay && mainReportInitialized) {
       this.settings.type = 'summary'
     }
     if (this.settings.type === 'bytime') {
