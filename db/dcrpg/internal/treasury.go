@@ -39,6 +39,8 @@ const (
 	SelectSpendRowIndexByYear     = `SELECT MAX(spend_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 	SelectTBaseRowIndexByMonth    = `SELECT tbase_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
 	SelectTBaseRowIndexByYear     = `SELECT MAX(tbase_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	// get timerange of treasury summary
+	SelectTreasuryTimeRange = `SELECT MIN(time), MAX(time) FROM treasury_summary`
 
 	SelectTreasurySummaryDataByMonth = `SELECT time,spent_value,received_value FROM treasury_summary 
 WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`

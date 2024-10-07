@@ -4347,10 +4347,12 @@ func (exp *ExplorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 
 	str, err := exp.templates.execTemplateToString("finance_report", struct {
 		*CommonPageData
+		PoliteiaURL     string
 		TreasuryBalance *dbtypes.TreasuryBalance
 	}{
 		CommonPageData:  exp.commonData(r),
 		TreasuryBalance: treasuryBalance,
+		PoliteiaURL:     exp.politeiaURL,
 	})
 
 	if err != nil {

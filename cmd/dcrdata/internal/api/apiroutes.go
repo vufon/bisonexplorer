@@ -138,6 +138,8 @@ type DataSource interface {
 	GetProposalByOwner(name string) (proposalMetaList []map[string]string, err error)
 	SendRawTransaction(txhex string) (string, error)
 	GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, isSync bool) map[string]float64
+	GetTreasuryTimeRange() (int64, int64, error)
+	GetLegacyTimeRange() (int64, int64, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -728,6 +730,39 @@ func (c *appContext) getTransactionHex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, hex)
 }
 
+func (c *appContext) getProposalTimeMinMax() (int64, int64, error) {
+	//Get All Proposal Metadata for Report
+	proposalMetaList, err := c.DataSource.GetAllProposalMeta("")
+	minTimeUnix := int64(-1)
+	maxTimeUnix := int64(-1)
+	if err != nil {
+		log.Errorf("Get proposals all meta data failed: %v", err)
+		return minTimeUnix, maxTimeUnix, err
+	}
+	for _, proposalMeta := range proposalMetaList {
+		var startDate = proposalMeta["StartDate"]
+		var endDate = proposalMeta["EndDate"]
+		startInt, err := strconv.ParseInt(startDate, 0, 32)
+		endInt, err2 := strconv.ParseInt(endDate, 0, 32)
+		if err != nil || err2 != nil {
+			continue
+		}
+		if startInt > 0 {
+			if minTimeUnix == -1 {
+				minTimeUnix = startInt
+			} else if minTimeUnix > startInt {
+				minTimeUnix = startInt
+			}
+		}
+		if endInt > 0 {
+			if maxTimeUnix < endInt {
+				maxTimeUnix = endInt
+			}
+		}
+	}
+	return minTimeUnix, maxTimeUnix, nil
+}
+
 // updated: 27/01/2024 - Algorithm change. Displays all months containing that proposal, excluding future months
 func (c *appContext) getProposalReportData(searchKey string) ([]apitypes.MonthReportObject, []apitypes.ProposalReportData, []string, []string, map[string]string, float64, float64, []apitypes.AuthorDataObject) {
 	//Get All Proposal Metadata for Report
@@ -1045,6 +1080,52 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		AllBudget:        allBudget,
 		AuthorReport:     authorReport,
 		TreasurySummary:  treasurySummary,
+	}, m.GetIndentCtx(r))
+}
+
+func (c *appContext) getReportTimeRange(w http.ResponseWriter, r *http.Request) {
+	// get proposal time range
+	pMinTimeInt, pMaxTimeInt, pErr := c.getProposalTimeMinMax()
+	// get treasury time range
+	tMinTimeInt, tMaxTimeInt, tErr := c.DataSource.GetTreasuryTimeRange()
+	// get legacy time range
+	lMinTimeInt, lMaxTimeInt, lErr := c.DataSource.GetLegacyTimeRange()
+	if pErr != nil || tErr != nil || lErr != nil {
+		writeJSON(w, nil, m.GetIndentCtx(r))
+		return
+	}
+	minTime := int64(-1)
+	maxTime := int64(-1)
+	if pMinTimeInt > 0 {
+		minTime = pMinTimeInt
+	}
+	if pMaxTimeInt > 0 {
+		maxTime = pMaxTimeInt
+	}
+
+	if tMinTimeInt > 0 && tMinTimeInt < minTime {
+		minTime = tMinTimeInt
+	}
+
+	if lMinTimeInt > 0 && lMinTimeInt < minTime {
+		minTime = lMinTimeInt
+	}
+
+	if tMaxTimeInt > 0 && tMaxTimeInt > maxTime {
+		maxTime = tMaxTimeInt
+	}
+
+	if lMaxTimeInt > 0 && lMaxTimeInt > maxTime {
+		maxTime = lMaxTimeInt
+	}
+
+	//Get coin supply value
+	writeJSON(w, struct {
+		MinTimeInt int64 `json:"minTimeInt"`
+		MaxTimeInt int64 `json:"maxTimeInt"`
+	}{
+		MinTimeInt: minTime,
+		MaxTimeInt: maxTime,
 	}, m.GetIndentCtx(r))
 }
 

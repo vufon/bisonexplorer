@@ -42,6 +42,7 @@ const (
 	SelectDebitRowIndexByYear    = `SELECT MAX(debit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 	SelectCreditRowIndexByMonth  = `SELECT credit_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
 	SelectCreditRowIndexByYear   = `SELECT MAX(credit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectAddressSummaryTimeRange = `SELECT MIN(time), MAX(time) FROM address_summary`
 
 	SelectAddressSummaryDataByMonth = `SELECT time,spent_value,received_value FROM address_summary 
 	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`

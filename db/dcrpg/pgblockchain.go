@@ -2543,6 +2543,24 @@ func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.Tre
 	return &summary, nil
 }
 
+func (pgb *ChainDB) GetTreasuryTimeRange() (int64, int64, error) {
+	var minTime, maxTime dbtypes.TimeDef
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectTreasuryTimeRange).Scan(&minTime, &maxTime)
+	if err != nil {
+		return 0, 0, nil
+	}
+	return minTime.UNIX(), maxTime.UNIX(), nil
+}
+
+func (pgb *ChainDB) GetLegacyTimeRange() (int64, int64, error) {
+	var minTime, maxTime dbtypes.TimeDef
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectAddressSummaryTimeRange).Scan(&minTime, &maxTime)
+	if err != nil {
+		return 0, 0, nil
+	}
+	return minTime.UNIX(), maxTime.UNIX(), nil
+}
+
 // Get treasury summary data
 func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	var rows *sql.Rows
