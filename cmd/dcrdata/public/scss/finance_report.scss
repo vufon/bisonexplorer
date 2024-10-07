@@ -317,15 +317,15 @@
 }
 
 .border-grey-2 {
-  border: 1px solid #dee2e6;
+  border: 1px solid #c6c6c6;
 }
 
 .border-bottom-grey-2 {
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid #c6c6c6;
 }
 
 .border-right-grey-2 {
-  border-right: 1px solid #dee2e6;
+  border-right: 1px solid #c6c6c6;
 }
 
 .report-search-input {
@@ -518,4 +518,20 @@ body.darkBG {
 .move-left-click-popup {
   margin-left: -100px;
   margin-top: 20px;
+}
+
+.bg-blue-5 {
+  background-color: #d7eeff;
+}
+
+.bg-orange-3 {
+  background-color: #fff2db;
+}
+
+.border-bottom-left-radius-10 {
+  border-bottom-left-radius: 10px;
+}
+
+.border-bottom-right-radius-10 {
+  border-bottom-right-radius: 10px;
 }
