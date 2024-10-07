@@ -990,7 +990,7 @@ export default class extends Controller {
     reportMaxMonth = maxDateTime.getMonth() + 1
   }
 
-  initMainFinancialReport () {
+  async initMainFinancialReport () {
     this.treasuryChart = 'balance'
     this.proposalTSort = 'oldest'
     this.treasuryTSort = 'newest'
@@ -1010,7 +1010,7 @@ export default class extends Controller {
     treasuryChartFlow = undefined
     combinedChartFlow = undefined
     adminChartFlow = undefined
-    this.initData()
+    await this.initData()
     this.isMonthDisplay = this.isTreasuryReport() ? true : this.isProposalMonthReport() || this.isAuthorMonthGroup()
     const tooltipElements = document.getElementsByClassName('cell-tooltip')
     document.addEventListener('click', function (event) {
@@ -1439,8 +1439,8 @@ export default class extends Controller {
     this.settings.ttype = e.target.name
     this.changedTType = e.target.name
     redrawChart = true
-    this.initData()
-    this.connect()
+    await this.initData()
+    await this.connect()
   }
 
   async reportTypeChange (e) {
@@ -1470,9 +1470,9 @@ export default class extends Controller {
     if (!mainReportInitialized) {
       this.initMainFinancialReport()
     } else {
-      this.initData()
+      await this.initData()
     }
-    this.connect()
+    await this.connect()
   }
 
   async proposalTypeChange (e) {
@@ -1495,8 +1495,8 @@ export default class extends Controller {
       this.settings.ptype = 'list'
     }
     this.settings.stype = this.defaultSettings.stype
-    this.initData()
-    this.connect()
+    await this.initData()
+    await this.connect()
   }
 
   isProposalGroup () {
@@ -3118,10 +3118,10 @@ export default class extends Controller {
 
   createTreasuryTable (data) {
     this.treasuryTypeTitleTarget.textContent = this.settings.ttype === 'legacy' ? 'Admin Treasury' : this.settings.ttype === 'combined' ? 'Combined' : 'Decentralized Treasury'
-    if (this.settings.ttype !== 'legacy') {
+    if (this.isCombinedReport()) {
       this.outgoingExpTarget.classList.remove('d-none')
       this.outgoingExpTarget.classList.remove('mt-2')
-      this.outgoingExpTarget.innerHTML = '*Dev Spent (Est): Estimated costs covered for proposals.'
+      this.outgoingExpTarget.innerHTML = '*Dev Spent (Est): Estimated costs covered for proposals.<br />*Unaccounted (Est): Estimated based on actual Treasury spent minus estimated expenditure on Proposals.'
     } else {
       this.outgoingExpTarget.classList.add('d-none')
     }
@@ -3175,6 +3175,10 @@ export default class extends Controller {
       this.treasuryTypeRateTarget.classList.add('d-none')
     }
     this.reportTarget.innerHTML = this.createTreasuryLegacyTableContent(treasuryData, data.treasurySummary, data.legacySummary)
+  }
+
+  isCombinedReport () {
+    return this.settings.type === 'treasury' && (this.settings.ttype === 'combined' || this.settings.ttype === '')
   }
 
   initYearSelectOptions (treasuryData) {
@@ -3490,7 +3494,7 @@ export default class extends Controller {
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>'
-    if (!isLegacy) {
+    if (isCombined) {
       thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Dev Spent (Est)</th>' +
         '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Dev Spent (%)</th>' +
         '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Unaccounted (Est)</th>'
@@ -3597,7 +3601,7 @@ export default class extends Controller {
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' + differenceUSDDisplay : '-'}</td>` +
         `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' + balanceUSDDisplay : '-'}</td>`
-      if (!isLegacy) {
+      if (isCombined) {
         // calculate dev spent percent
         let devSentPercent = 0
         if (item.outvalue > 0) {
@@ -3638,7 +3642,7 @@ export default class extends Controller {
       '<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">-</td><td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
       `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
       `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td>`
-    if (!isLegacy) {
+    if (isCombined) {
       bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalEstimateOutgoing}</td>` +
         `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${estimateOutUSDTotal > 0 ? '$' : ''}${totalEstimateOutUSDgoing}</td>` +
         '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
@@ -4028,39 +4032,29 @@ export default class extends Controller {
     }
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      '<th class="va-mid text-center month-col fw-600 proposal-name-col"><label class="cursor-pointer" data-action="click->financedetail#sortByPName">Name</label>' +
-      `<span data-action="click->financedetail#sortByPName" class="${(this.settings.dstype === 'pname' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'pname' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+      '<th class="va-mid text-center month-col fw-600 proposal-name-col">Name</th>'
     if (!hideDomain) {
-      thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
-        `<span data-action="click->financedetail#sortByDomain" class="${(this.settings.dstype === 'domain' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'domain' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+      thead += '<th class="va-mid text-center px-2 fw-600">Domain</th>'
     }
     if (!hideAuthor) {
-      thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAuthor">Author</label>' +
-        `<span data-action="click->financedetail#sortByAuthor" class="${(this.settings.dstype === 'author' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'author' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+      thead += '<th class="va-mid text-center px-2 fw-600">Author</th>'
     }
-    thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByStartDate">Start Date</label>' +
-      `<span data-action="click->financedetail#sortByStartDate" class="${(this.settings.dstype === 'startdt' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.dstype || this.settings.dstype === '' || this.settings.dstype === 'startdt') ? '' : 'c-grey-4'} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByEndDate">End Date</label>' +
-      `<span data-action="click->financedetail#sortByEndDate" class="${(this.settings.dstype === 'enddt' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'enddt' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByBudget">Budget</label>' +
-      `<span data-action="click->financedetail#sortByBudget" class="${(this.settings.dstype === 'budget' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDays">Days</label>' +
-      `<span data-action="click->financedetail#sortByDays" class="${(this.settings.dstype === 'days' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'days' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAvg">Monthly Avg (Est)</label>' +
-      `<span data-action="click->financedetail#sortByAvg" class="${(this.settings.dstype === 'avg' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'avg' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">Total Spent (Est)</label>' +
-      `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.dstype === 'spent' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financedetail#sortByRemaining">Total Remaining (Est)</label>' +
-      `<span data-action="click->financedetail#sortByRemaining" class="${(this.settings.dstype === 'remaining' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'remaining' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '</tr></thead>'
-
+    thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailByStartDate">Start Date</label>' +
+      `<span data-action="click->financereport#sortDetailByStartDate" class="${(this.settings.dstype === 'startdt' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.dstype || this.settings.dstype === '' || this.settings.dstype === 'startdt') ? '' : 'c-grey-4'} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-center px-2 fw-600">End Date</th>' +
+      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailByBudget">Budget</label>' +
+      `<span data-action="click->financereport#sortDetailByBudget" class="${(this.settings.dstype === 'budget' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+      '<th class="va-mid text-right px-2 fw-600">Days</th>' +
+      '<th class="va-mid text-right px-2 fw-600">Monthly Avg (Est)</th>' +
+      '<th class="va-mid text-right px-2 fw-600">Total Spent (Est)</th>' +
+      '<th class="va-mid text-right px-2 fw-600 pr-10i">Total Remaining (Est)</th></tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     let totalBudget = 0
     let totalAllSpent = 0
     let totalRemaining = 0
     // create tbody content
-    const summaryList = this.sortSummary(data)
+    const summaryList = this.sortDetailSummary(data)
     for (let i = 0; i < summaryList.length; i++) {
       const summary = summaryList[i]
       const lengthInDays = this.getLengthInDay(summary)
@@ -4358,19 +4352,17 @@ export default class extends Controller {
     this.proposalAreaTarget.classList.remove('d-none')
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
-    '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByPName">Proposal Name</label>' +
-    `<span data-action="click->financedetail#sortByPName" class="${(this.settings.dstype === 'pname' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'pname' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-center px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
-    `<span data-action="click->financedetail#sortByDomain" class="${(this.settings.dstype === 'domain' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'domain' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-    `<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">This ${this.settings.dtype === 'year' ? 'Year' : 'Month'} (Est)</label>` +
-    `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.dstype === 'spent' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
+    '<th class="va-mid text-center px-3 fw-600">Proposal Name</th>' +
+    '<th class="va-mid text-center px-3 fw-600">Domain</th>' +
+    `<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailBySpent">This ${this.settings.dtype === 'year' ? 'Year' : 'Month'} (Est)</label>` +
+    `<span data-action="click->financereport#sortDetailBySpent" class="${(this.settings.dstype === 'spent' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '</tr></thead>'
 
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     let totalExpense = 0
     // sort by startdt
-    const summaryList = this.sortSummary(data.reportDetail)
+    const summaryList = this.sortDetailSummary(data.reportDetail)
     for (let i = 0; i < summaryList.length; i++) {
       bodyList += '<tr class="odd-even-row">'
       const report = summaryList[i]
