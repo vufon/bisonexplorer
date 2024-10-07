@@ -996,7 +996,7 @@ export default class extends Controller {
     this.treasuryTSort = 'newest'
     this.isMonthDisplay = false
     this.devAddress = this.data.get('devAddress')
-    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury">treasury</a> and <a href="/address/${this.devAddress}">legacy</a> data.`
+    treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury" data-turbolinks="false">treasury</a> and <a href="/address/${this.devAddress}" data-turbolinks="false">legacy</a> data.`
     redrawChart = true
     domainChartZoom = undefined
     treasuryChartZoom = undefined
@@ -2092,12 +2092,12 @@ export default class extends Controller {
       if (this.settings.interval === 'year') {
         headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid" id="${this.settings.interval + ';' + report.month}">`
         headList += '<div class="d-flex justify-content-center">'
-        headList += `<a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
+        headList += `<a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
         headList += '</a></div></th>'
       } else {
         headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid" ' +
           `id="${this.settings.interval + ';' + report.month}" ` +
-          `><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
+          `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
     }
     thead = thead.replace('###', headList)
@@ -2191,7 +2191,7 @@ export default class extends Controller {
       } else {
         headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky va-mid" ' +
           `id="${this.settings.interval + ';' + report.month}" ` +
-          `><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
+          `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
     }
     thead = thead.replace('###', headList)
@@ -2318,9 +2318,9 @@ export default class extends Controller {
       totalBudget += summary.budget
       totalSpent += summary.totalSpent
       bodyList += `<tr class="${summary.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}">` +
-        `<td class="va-mid text-center fs-13i proposal-name-column"><a href="${'/finance-report/detail?type=proposal&token=' + token}" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
-        `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
-        `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" class="link-hover-underline fs-13i">${summary.author}</a></td>` +
+        `<td class="va-mid text-center fs-13i proposal-name-column"><a href="${'/finance-report/detail?type=proposal&token=' + token}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
+        `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
+        `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.author}</a></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.start}</label></td>` +
         `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.end}</label></td>` +
         `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
@@ -2837,7 +2837,7 @@ export default class extends Controller {
       totalSpent += author.totalReceived
       totalRemaining += author.totalRemaining
       totalProposals += author.proposals
-      bodyList += `<tr class="${author.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}"><td class="va-mid text-center px-3 fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=owner&name=' + author.name}">${author.name}</a></td>`
+      bodyList += `<tr class="${author.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}"><td class="va-mid text-center px-3 fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=owner&name=' + author.name}">${author.name}</a></td>`
       bodyList += `<td class="va-mid text-center px-3 fs-13i">${author.proposals}</td>`
       bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.budget > 0 ? '$' + humanize.formatToLocalString(author.budget, 2, 2) : '-'}</td>`
       bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalReceived > 0 ? '$' + humanize.formatToLocalString(author.totalReceived, 2, 2) : '-'}</td>`
@@ -2892,7 +2892,7 @@ export default class extends Controller {
     handlerData.domainList.forEach((domain) => {
       const domainDisp = domain.charAt(0).toUpperCase() + domain.slice(1)
       rateList += domainDisp + ' / '
-      headList += `<th colspan="2" scope="colgroup" class="va-mid text-center-i domain-content-cell fs-13i fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domainDisp} (Est)</a>` +
+      headList += `<th colspan="2" scope="colgroup" class="va-mid text-center-i domain-content-cell fs-13i fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${domainDisp} (Est)</a>` +
         `<span data-action="click->financereport#sortByDomainItem" data-financereport-domain-param="${domain}" class="${(this.settings.stype === domain && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== domain ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
       row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
         '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>'
@@ -2935,7 +2935,7 @@ export default class extends Controller {
         isFuture = compareDataTime > compareNowTime
       }
       const usdRate = report.usdRate
-      bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>` +
+      bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${usdRate > 0 ? '$' + humanize.formatToLocalString(usdRate, 2, 2) : '-'}</td>`
       report.domainData.forEach((domainData) => {
         const dcrDisp = domainData.expense > 0 && usdRate > 0 ? humanize.formatToLocalString(domainData.expense / usdRate, 2, 2) : '-'
@@ -3587,11 +3587,11 @@ export default class extends Controller {
         outcomeHref = item.outvalue > 0 ? item.debitLink : ''
       }
       bodyList += '<tr class="odd-even-row">' +
-        `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
+        `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' + incomUSDDisplay : '-'}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
+        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' + outcomeUSDDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceDisplay !== '' ? differenceDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' + differenceUSDDisplay : '-'}</td>` +
@@ -4074,12 +4074,12 @@ export default class extends Controller {
       totalAllSpent += summary.totalSpent
       totalRemaining += summary.totalRemaining > 0 ? summary.totalRemaining : 0
       bodyList += `<tr class="${summary.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}">` +
-        `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=proposal&token=' + summary.token}" class="link-hover-underline fs-13i">${summary.name}</a></td>`
+        `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=proposal&token=' + summary.token}" class="link-hover-underline fs-13i" data-turbolinks="false">${summary.name}</a></td>`
       if (!hideAuthor) {
-        bodyList += `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" class="link-hover-underline fs-13i">${summary.author}</a></td>`
+        bodyList += `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.author}</a></td>`
       }
       if (!hideDomain) {
-        bodyList += `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>`
+        bodyList += `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>`
       }
       bodyList += `<td class="va-mid text-center fs-13i">${summary.start}</td>` +
         `<td class="va-mid text-center fs-13i">${summary.end}</td>` +
@@ -4175,7 +4175,7 @@ export default class extends Controller {
       }
       allTable += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}">`
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
-      allTable += `<td class="text-left px-3 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
+      allTable += `<td class="text-left px-3 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" data-turbolinks="false" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
       allTable += `<td class="text-right px-3 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : ''}</td>`
       if (this.settings.dtype === 'year') {
         allTable += `<td class="text-right px-3 fs-13i">${dataMonth.actualExpense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.actualExpense, 2, 2) : ''}</td>`
@@ -4257,7 +4257,7 @@ export default class extends Controller {
       const domain = data.domainList[i]
       bodyList += '<tr>'
       // td domain name
-      bodyList += `<td class="text-left fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + domain}" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)}</a></td>`
+      bodyList += `<td class="text-left fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${domain.charAt(0).toUpperCase() + domain.slice(1)}</a></td>`
       bodyList += `<td class="text-right fs-13i">$${humanize.formatToLocalString(domainMap.get(domain), 2, 2)}</td>`
       bodyList += '</tr>'
     }
@@ -4376,8 +4376,8 @@ export default class extends Controller {
       const report = summaryList[i]
       // add proposal name
       bodyList += '<td class="va-mid px-3 text-left fs-13i">' +
-      `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
-      `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
+      `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" data-turbolinks="false" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
+      `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
         '<td class="va-mid text-right px-3 fs-13i">' +
         `${report.totalSpent > 0 ? '$' + humanize.formatToLocalString(report.totalSpent, 2, 2) : ''}</td></tr>`
       totalExpense += report.totalSpent
