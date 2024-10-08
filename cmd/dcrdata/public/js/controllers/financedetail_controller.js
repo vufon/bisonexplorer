@@ -359,29 +359,29 @@ export default class extends Controller {
     }
     let thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      '<th class="va-mid text-center month-col fw-600 proposal-name-col"><label class="cursor-pointer" data-action="click->financedetail#sortByPName">Name</label>' +
+      '<th class="va-mid text-center month-col fs-13i fw-600 proposal-name-col"><label class="cursor-pointer" data-action="click->financedetail#sortByPName">Name</label>' +
       `<span data-action="click->financedetail#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     if (!hideDomain) {
-      thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
+      thead += '<th class="va-mid text-center fs-13i px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
         `<span data-action="click->financedetail#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     }
     if (!hideAuthor) {
-      thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAuthor">Author</label>' +
+      thead += '<th class="va-mid text-center fs-13i px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAuthor">Author</label>' +
         `<span data-action="click->financedetail#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
     }
-    thead += '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByStartDate">Start Date</label>' +
+    thead += '<th class="va-mid text-center fs-13i px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByStartDate">Start Date</label>' +
       `<span data-action="click->financedetail#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-4'} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByEndDate">End Date</label>' +
+      '<th class="va-mid text-center px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByEndDate">End Date</label>' +
       `<span data-action="click->financedetail#sortByEndDate" class="${(this.settings.stype === 'enddt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'enddt' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByBudget">Budget</label>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByBudget">Budget</label>' +
       `<span data-action="click->financedetail#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDays">Days</label>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDays">Days</label>' +
       `<span data-action="click->financedetail#sortByDays" class="${(this.settings.stype === 'days' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'days' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAvg">Monthly Avg (Est)</label>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByAvg">Monthly Avg (Est)</label>' +
       `<span data-action="click->financedetail#sortByAvg" class="${(this.settings.stype === 'avg' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'avg' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">Total Spent (Est)</label>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">Total Spent (Est)</label>' +
       `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-2 fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financedetail#sortByRemaining">Total Remaining (Est)</label>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600 pr-10i"><label class="cursor-pointer" data-action="click->financedetail#sortByRemaining">Total Remaining (Est)</label>' +
       `<span data-action="click->financedetail#sortByRemaining" class="${(this.settings.stype === 'remaining' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'remaining' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '</tr></thead>'
 
@@ -423,11 +423,11 @@ export default class extends Controller {
     }
     const totalColSpan = hideAuthor && hideDomain ? '3' : ((!hideAuthor && hideDomain) || (hideAuthor && !hideDomain) ? '4' : '5')
     bodyList += '<tr class="text-secondary finance-table-header finance-table-footer last-row-header">' +
-    `<td class="va-mid text-center fw-600 fs-15i" colspan="${totalColSpan}">Total</td>` +
-    `<td class="va-mid text-right px-2 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
+    `<td class="va-mid text-center fw-600 fs-13i" colspan="${totalColSpan}">Total</td>` +
+    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
     '<td></td><td></td>' +
-    `<td class="va-mid text-right px-2 fw-600 fs-15i">$${humanize.formatToLocalString(totalAllSpent, 2, 2)}</td>` +
-    `<td class="va-mid text-right px-2 fw-600 fs-15i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
+    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalAllSpent, 2, 2)}</td>` +
+    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
     '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -507,10 +507,10 @@ export default class extends Controller {
       if (count === 0) {
         allTable += `<table class="table monthly v3 border-grey-2 w-auto ${stepNum > 0 ? 'ms-2' : ''}" style="height: 40px;"><thead>` +
         '<tr class="text-secondary finance-table-header">' +
-        `<th class="text-left px-2 fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
-        '<th class="text-right px-2 fw-600">Spent (Est)</th>'
+        `<th class="text-left px-2 fs-13i fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
+        '<th class="text-right px-2 fs-13i fw-600">Spent (Est)</th>'
         if (this.settings.type === 'year') {
-          allTable += '<th class="text-right px-2 fw-600">Actual Spent</th></tr></thead>'
+          allTable += '<th class="text-right px-2 fs-13i fw-600">Actual Spent</th></tr></thead>'
         }
         allTable += '<tbody>'
       }
@@ -651,8 +651,8 @@ export default class extends Controller {
       return
     }
     this.totalSpanRowTarget.classList.remove('d-none')
-    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-2 fw-600">Treasury Type</th>' +
-    '<th class="text-left px-2 fw-600">Value (DCR)</th><th class="text-left px-2 fw-600">Value (USD)</th></tr></thead><tbody>'
+    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-2 fs-13i fw-600">Treasury Type</th>' +
+    '<th class="text-left px-2 fs-13i fw-600">Value (DCR)</th><th class="text-left px-2 fs-13i fw-600">Value (USD)</th></tr></thead><tbody>'
     innerHtml += data.treasurySummary.invalue > 0
       ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Decentralized Income</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>`
@@ -675,8 +675,8 @@ export default class extends Controller {
 
   createDomainsSummaryTable (data) {
     const domainDataMap = this.getDomainsSummaryData(data)
-    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-x fw-600">Domain</th>' +
-    '<th class="text-left px-2 fw-600">Value (Est) (DCR)</th><th class="text-left px-x fw-600">Value (Est) (USD)</th></tr></thead><tbody>'
+    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-x fs-13i fw-600">Domain</th>' +
+    '<th class="text-left px-2 fs-13i fw-600">Value (Est) (DCR)</th><th class="text-left px-x fs-13i fw-600">Value (Est) (USD)</th></tr></thead><tbody>'
     let totalDCR = 0; let totalUSD = 0
     domainDataMap.forEach((val, key) => {
       const valueDCR = val.valueDCR
@@ -688,9 +688,9 @@ export default class extends Controller {
                    `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
     })
     innerHtml += '<tr class="finance-table-header finance-table-footer last-row-header">' +
-      '<td class="va-mid text-center fw-600 fs-15i">Total</td>' +
-      `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalDCR > 0 ? humanize.formatToLocalString(totalDCR, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalUSD > 0 ? '$' + humanize.formatToLocalString(totalUSD, 2, 2) : '-'}</td>` +
+      '<td class="va-mid text-center fw-600 fs-13i">Total</td>' +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalDCR > 0 ? humanize.formatToLocalString(totalDCR, 2, 2) : '-'}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalUSD > 0 ? '$' + humanize.formatToLocalString(totalUSD, 2, 2) : '-'}</td>` +
       '</tr>'
     innerHtml += '</tbody>'
     this.domainSummaryTableTarget.innerHTML = innerHtml
@@ -759,11 +759,11 @@ export default class extends Controller {
     this.proposalAreaTarget.classList.remove('d-none')
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
-    '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByPName">Proposal Name</label>' +
+    '<th class="va-mid text-center px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByPName">Proposal Name</label>' +
     `<span data-action="click->financedetail#sortByPName" class="${(this.settings.stype === 'pname' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pname' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-    '<th class="va-mid text-center px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
+    '<th class="va-mid text-center px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortByDomain">Domain</label>' +
     `<span data-action="click->financedetail#sortByDomain" class="${(this.settings.stype === 'domain' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'domain' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-    `<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">This ${this.settings.type === 'year' ? 'Year' : 'Month'} (Est)</label>` +
+    `<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financedetail#sortBySpent">This ${this.settings.type === 'year' ? 'Year' : 'Month'} (Est)</label>` +
     `<span data-action="click->financedetail#sortBySpent" class="${(this.settings.stype === 'spent' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '</tr></thead>'
 
@@ -785,8 +785,8 @@ export default class extends Controller {
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
-    '<td class="va-mid text-center fw-600 fs-15i" colspan="2">Total</td>' +
-    `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
+    '<td class="va-mid text-center fw-600 fs-13i" colspan="2">Total</td>' +
+    `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
     '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
