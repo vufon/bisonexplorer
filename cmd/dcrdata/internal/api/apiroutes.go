@@ -140,6 +140,7 @@ type DataSource interface {
 	GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, isSync bool) map[string]float64
 	GetTreasuryTimeRange() (int64, int64, error)
 	GetLegacyTimeRange() (int64, int64, error)
+	GetMonthlyPrice(year, month int) (float64, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -1502,6 +1503,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 	var treasurySummary dbtypes.TreasurySummary
 	var legacySummary dbtypes.TreasurySummary
 	monthResultData := make([]apitypes.MonthDataObject, 0)
+	monthPrice := float64(0)
 	if timeType == "month" {
 		timeArr := strings.Split(timeStr, "_")
 		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
@@ -1587,6 +1589,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			total += varMonthData.TotalSpent
 			report = append(report, varMonthData)
 		}
+		monthPrice, _ = c.DataSource.GetMonthlyPrice(int(year), int(month))
 	}
 	var treasuryGroupByMonth []dbtypes.TreasuryMonthDataObject
 	if timeType == "year" {
@@ -1714,6 +1717,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		TreasurySummary   dbtypes.TreasurySummary       `json:"treasurySummary"`
 		LegacySummary     dbtypes.TreasurySummary       `json:"legacySummary"`
 		MonthlyResultData []apitypes.MonthDataObject    `json:"monthlyResultData"`
+		MonthPrice        float64                       `json:"monthPrice"`
 	}{
 		ReportDetail:      report,
 		ProposalList:      proposalList,
@@ -1722,6 +1726,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		TreasurySummary:   treasurySummary,
 		LegacySummary:     legacySummary,
 		MonthlyResultData: monthResultData,
+		MonthPrice:        monthPrice,
 	}, m.GetIndentCtx(r))
 }
 

@@ -26,7 +26,8 @@ export default class extends Controller {
       'proposalSpanRow', 'prevBtn', 'nextBtn',
       'toVote', 'toDiscussion', 'sameOwnerProposalArea', 'otherProposalSummary',
       'expendiduteValue', 'prevNextButtons', 'toUpReport',
-      'currentDetail', 'yearBreadcumb', 'proposalSumCard']
+      'currentDetail', 'yearBreadcumb', 'proposalSumCard', 'proposalTopSummary',
+      'domainSummaryTable']
   }
 
   async initialize () {
@@ -86,6 +87,8 @@ export default class extends Controller {
       this.yearMonthCalculate()
       return
     }
+    this.proposalTopSummaryTarget.classList.add('d-none')
+    this.totalSpanRowTarget.classList.add('d-none')
     this.proposalCalculate()
   }
 
@@ -596,6 +599,13 @@ export default class extends Controller {
     }
     responseData = response
     this.proposalReportTarget.innerHTML = this.createProposalDetailReport(response)
+    if (response.proposalTotal > 0) {
+      this.proposalTopSummaryTarget.classList.remove('d-none')
+      this.expendiduteValueTarget.textContent = humanize.formatToLocalString(response.proposalTotal, 2, 2)
+      this.createDomainsSummaryTable(response)
+    } else {
+      this.proposalTopSummaryTarget.classList.add('d-none')
+    }
     this.createYearMonthTopSummary(response)
     // create month data list if type is year
     if (this.settings.type === 'year') {
@@ -637,12 +647,10 @@ export default class extends Controller {
 
   createYearMonthTopSummary (data) {
     if (data.treasurySummary.invalue <= 0 && data.treasurySummary.outvalue <= 0 && data.legacySummary.invalue <= 0 && data.legacySummary.outvalue <= 0) {
-      this.yearMonthInfoTableTarget.classList.add('d-none')
+      this.totalSpanRowTarget.classList.add('d-none')
       return
     }
-    this.yearMonthInfoTableTarget.classList.remove('d-none')
     this.totalSpanRowTarget.classList.remove('d-none')
-    this.expendiduteValueTarget.textContent = humanize.formatToLocalString((data.proposalTotal), 2, 2)
     let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Treasury Type</th>' +
     '<th class="text-left px-3 fw-600">Value (DCR)</th><th class="text-left px-3 fw-600">Value (USD)</th></tr></thead><tbody>'
     innerHtml += data.treasurySummary.invalue > 0
@@ -663,6 +671,29 @@ export default class extends Controller {
       : ''
     innerHtml += '</tbody>'
     this.yearMonthInfoTableTarget.innerHTML = innerHtml
+  }
+
+  createDomainsSummaryTable (data) {
+    const domainDataMap = this.getDomainsSummaryData(data)
+    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Domain</th>' +
+    '<th class="text-left px-3 fw-600">Value (Est) (DCR)</th><th class="text-left px-3 fw-600">Value (Est) (USD)</th></tr></thead><tbody>'
+    let totalDCR = 0; let totalUSD = 0
+    domainDataMap.forEach((val, key) => {
+      const valueDCR = val.valueDCR
+      totalDCR += val.valueDCR
+      const valueUSD = val.valueUSD
+      totalUSD += val.valueUSD
+      innerHtml += `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</td>` +
+                   `<td class="text-right px-3 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
+                   `<td class="text-right px-3 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
+    })
+    innerHtml += '<tr class="finance-table-header last-row-header">' +
+      '<td class="va-mid text-center fw-600 fs-15i">Total</td>' +
+      `<td class="va-mid text-right px-3 fw-600 fs-15i">${totalDCR > 0 ? humanize.formatToLocalString(totalDCR, 2, 2) : '-'}</td>` +
+      `<td class="va-mid text-right px-3 fw-600 fs-15i">${totalUSD > 0 ? '$' + humanize.formatToLocalString(totalUSD, 2, 2) : '-'}</td>` +
+      '</tr>'
+    innerHtml += '</tbody>'
+    this.domainSummaryTableTarget.innerHTML = innerHtml
   }
 
   sortByPName () {
@@ -759,6 +790,32 @@ export default class extends Controller {
     '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
+  }
+
+  getDomainsSummaryData (data) {
+    const result = new Map()
+    if (!data.reportDetail || data.reportDetail.length === 0) {
+      return result
+    }
+    const usdRate = data.monthPrice
+    // TODO: handler usd rate by month or group by year
+    for (let i = 0; i < data.reportDetail.length; i++) {
+      const report = data.reportDetail[i]
+      const domain = report.domain
+      if (result.has(domain)) {
+        const detailData = {}
+        const existData = result.get(domain)
+        detailData.valueDCR = existData.valueDCR + (usdRate > 0 ? report.totalSpent > 0 ? report.totalSpent / usdRate : 0 : 0)
+        detailData.valueUSD = existData.valueUSD + (report.totalSpent > 0 ? report.totalSpent : 0)
+        result.set(domain, detailData)
+      } else {
+        const detailData = {}
+        detailData.valueDCR = usdRate > 0 ? report.totalSpent > 0 ? report.totalSpent / usdRate : 0 : 0
+        detailData.valueUSD = report.totalSpent > 0 ? report.totalSpent : 0
+        result.set(domain, detailData)
+      }
+    }
+    return result
   }
 
   sortSummary (summary) {
