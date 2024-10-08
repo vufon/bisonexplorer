@@ -4229,6 +4229,8 @@ export default class extends Controller {
       } else {
         this.monthlyAreaTarget.classList.add('d-none')
       }
+    } else {
+      this.monthlyAreaTarget.classList.add('d-none')
     }
     this.pageLoaderTarget.classList.remove('loading')
   }
