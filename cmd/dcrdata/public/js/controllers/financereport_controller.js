@@ -976,18 +976,10 @@ export default class extends Controller {
     if (!timeRangeRes) {
       return
     }
-    const minTimeInt = timeRangeRes.minTimeInt
-    const maxTimeInt = timeRangeRes.maxTimeInt
-    if (!minTimeInt || minTimeInt <= 0 || !maxTimeInt || maxTimeInt <= 0) {
-      return
-    }
-
-    const minDateTime = new Date(minTimeInt * 1000)
-    const maxDateTime = new Date(maxTimeInt * 1000)
-    reportMinYear = minDateTime.getFullYear()
-    reportMinMonth = minDateTime.getMonth() + 1
-    reportMaxYear = maxDateTime.getFullYear()
-    reportMaxMonth = maxDateTime.getMonth() + 1
+    reportMinYear = timeRangeRes.minYear
+    reportMinMonth = timeRangeRes.minMonth
+    reportMaxYear = timeRangeRes.maxYear
+    reportMaxMonth = timeRangeRes.maxMonth
   }
 
   async initMainFinancialReport () {

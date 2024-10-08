@@ -1119,13 +1119,20 @@ func (c *appContext) getReportTimeRange(w http.ResponseWriter, r *http.Request) 
 		maxTime = lMaxTimeInt
 	}
 
+	minDate := time.Unix(minTime, 0)
+	maxDate := time.Unix(maxTime, 0)
+
 	//Get coin supply value
 	writeJSON(w, struct {
-		MinTimeInt int64 `json:"minTimeInt"`
-		MaxTimeInt int64 `json:"maxTimeInt"`
+		MinYear  int `json:"minYear"`
+		MinMonth int `json:"minMonth"`
+		MaxYear  int `json:"maxYear"`
+		MaxMonth int `json:"maxMonth"`
 	}{
-		MinTimeInt: minTime,
-		MaxTimeInt: maxTime,
+		MinYear:  minDate.Year(),
+		MinMonth: int(minDate.Month()),
+		MaxYear:  maxDate.Year(),
+		MaxMonth: int(maxDate.Month()),
 	}, m.GetIndentCtx(r))
 }
 
