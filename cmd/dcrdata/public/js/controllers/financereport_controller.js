@@ -4086,7 +4086,7 @@ export default class extends Controller {
         '</tr>'
     }
     const totalColSpan = hideAuthor && hideDomain ? '3' : ((!hideAuthor && hideDomain) || (hideAuthor && !hideDomain) ? '4' : '5')
-    bodyList += '<tr class="text-secondary finance-table-header last-row-header">' +
+    bodyList += '<tr class="text-secondary finance-table-header finance-table-footer last-row-header">' +
     `<td class="va-mid text-center fw-600 fs-15i" colspan="${totalColSpan}">Total</td>` +
     `<td class="va-mid text-right px-2 fw-600 fs-15i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
     '<td></td><td></td>' +
@@ -4311,7 +4311,7 @@ export default class extends Controller {
                    `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
                    `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
     })
-    innerHtml += '<tr class="finance-table-header last-row-header">' +
+    innerHtml += '<tr class="finance-table-header finance-table-footer last-row-header">' +
       '<td class="va-mid text-center fw-600 fs-15i">Total</td>' +
       `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalDCR > 0 ? humanize.formatToLocalString(totalDCR, 2, 2) : '-'}</td>` +
       `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalUSD > 0 ? '$' + humanize.formatToLocalString(totalUSD, 2, 2) : '-'}</td>` +
@@ -4432,7 +4432,7 @@ export default class extends Controller {
       totalExpense += report.totalSpent
     }
 
-    bodyList += '<tr class="finance-table-header last-row-header">' +
+    bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
     '<td class="va-mid text-center fw-600 fs-15i" colspan="2">Total</td>' +
     `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
     '</tr>'
