@@ -1704,7 +1704,7 @@ export default class extends Controller {
         }
       }
     }
-    if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
+    if (this.settings.type === '' || this.settings.type === 'proposal') {
       if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals' || this.settings.pgroup === 'authors' || this.settings.pgroup === 'domains') {
         const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
         const tableWidth = parseFloat(tableWidthStr.trim())
@@ -2179,7 +2179,7 @@ export default class extends Controller {
         headList += `<a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
         headList += '</a></div></th>'
       } else {
-        headList += '<th class="text-right fw-600 pb-30i fs-13i ps-3 pr-3 table-header-sticky va-mid" ' +
+        headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid" ' +
           `id="${this.settings.interval + ';' + report.month}" ` +
           `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
@@ -2191,7 +2191,7 @@ export default class extends Controller {
       const index = this.settings.psort === 'oldest' ? (handlerData.authorReport.length - i - 1) : i
       const author = handlerData.authorReport[index]
       const budget = author.budget
-      bodyList += `<tr class="odd-even-row"><td class="text-center fs-13i border-right-grey report-first-data"><a data-turbolinks="false" href="/finance-report/detail?type=owner&name=${author.name}" class="link-hover-underline fw-600 fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'proposal-title-col'}">${author.name}</a></td>`
+      bodyList += `<tr class="odd-even-row"><td class="text-center fs-13i border-right-grey report-first-data"><a data-turbolinks="false" href="/finance-report/detail?type=owner&name=${author.name}" class="link-hover-underline fw-600 fs-13i d-block ${this.settings.interval === 'year' ? 'proposal-year-title' : 'author-title-col'}">${author.name}</a></td>`
       for (let j = 0; j < handlerData.report.length; j++) {
         const tindex = this.settings.tsort === 'newest' ? j : (handlerData.report.length - j - 1)
         const report = handlerData.report[tindex]
@@ -2269,17 +2269,17 @@ export default class extends Controller {
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
       '<th class="va-mid text-center fs-13i month-col fw-600 proposal-name-col">Name</th>' +
-      '<th class="va-mid text-center fs-13i px-3 month-col fw-600">Domain</th>' +
-      '<th class="va-mid text-center fs-13i px-3 month-col fw-600">Author</th>' +
-      '<th class="va-mid text-center fs-13i px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByStartDate">Start Date</label>' +
+      '<th class="va-mid text-center fs-13i px-2 fw-600">Domain</th>' +
+      '<th class="va-mid text-center fs-13i px-2 fw-600">Author</th>' +
+      '<th class="va-mid text-center fs-13i px-2 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByStartDate">Start Date</label>' +
       `<span data-action="click->financereport#sortByStartDate" class="${(this.settings.stype === 'startdt' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${(!this.settings.stype || this.settings.stype === '' || this.settings.stype === 'startdt') ? '' : 'c-grey-4'} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center fs-13i px-3 fw-600">End Date</th>' +
-      '<th class="va-mid text-right fs-13i px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
+      '<th class="va-mid text-center fs-13i px-2 fw-600">End Date</th>' +
+      '<th class="va-mid text-right fs-13i px-2 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Budget</label>' +
       `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center fs-13i fw-600">Days</th>' +
-      '<th class="va-mid text-center fs-13i fw-600">Monthly Avg (Est)</th>' +
-      '<th class="va-mid text-right fs-13i px-3 fw-600">Total Spent (Est)</th>' +
-      '<th class="va-mid text-right fs-13i px-3 fw-600 pr-10i">Total Remaining (Est)</th></tr></thead>'
+      '<th class="va-mid text-right fs-13i px-2 fw-600">Days</th>' +
+      '<th class="va-mid text-right fs-13i px-2 fw-600">Monthly Avg (Est)</th>' +
+      '<th class="va-mid text-right fs-13i px-2 fw-600">Total Spent (Est)</th>' +
+      '<th class="va-mid text-right fs-13i px-2 fw-600">Total Remaining (Est)</th></tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     const proposalTokenMap = data.proposalTokenMap
@@ -2309,23 +2309,23 @@ export default class extends Controller {
       totalSpent += summary.totalSpent
       bodyList += `<tr class="${summary.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}">` +
         `<td class="va-mid text-center fs-13i proposal-name-column"><a href="${'/finance-report/detail?type=proposal&token=' + token}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.name}</a></td>` +
-        `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
-        `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.author}</a></td>` +
-        `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.start}</label></td>` +
-        `<td class="va-mid text-center px-3 fs-13i"><label class="date-column">${summary.end}</label></td>` +
-        `<td class="va-mid text-right px-3 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i">${lengthInDays}</td>` +
-        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i"><p class="est-column">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : '-'}</p></td>` +
-        `<td class="va-mid text-right px-3 fs-13i pr-10i"><p class="remaining-est-column">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : '-'}</p></td>` +
+        `<td class="va-mid text-center px-2 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + summary.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.domain.charAt(0).toUpperCase() + summary.domain.slice(1)}</a></td>` +
+        `<td class="va-mid text-center px-2 fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" data-turbolinks="false" class="link-hover-underline fs-13i">${summary.author}</a></td>` +
+        `<td class="va-mid text-center px-2 fs-13i">${summary.start}</td>` +
+        `<td class="va-mid text-center px-2 fs-13i">${summary.end}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(summary.budget, 2, 2)}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">${lengthInDays}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : '-'}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : '-'}</td>` +
         '</tr>'
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
       '<td class="va-mid text-center fw-600 fs-13i" colspan="5">Total</td>' +
-      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
-      '<td></td><td></td>' +
-      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
+      '<td class="va-mid text-right px-2 fw-600 fs-13i">-</td><td class="va-mid text-right px-2 fw-600 fs-13i">-</td>' +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
       `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget - totalSpent, 2, 2)}</td>` +
       '</tr>'
 
@@ -2800,14 +2800,14 @@ export default class extends Controller {
 
     const thead = '<thead>' +
       '<tr class="text-secondary finance-table-header">' +
-      '<th class="va-mid text-center px-3 fs-13i month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
+      '<th class="va-mid text-center px-2 fs-13i month-col fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByAuthor">Author</label>' +
       `<span data-action="click->financereport#sortByAuthor" class="${(this.settings.stype === 'author' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'author' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-center px-3 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByPNum">Proposals</label>' +
+      '<th class="va-mid text-center px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByPNum">Proposals</label>' +
       `<span data-action="click->financereport#sortByPNum" class="${(this.settings.stype === 'pnum' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'pnum' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByBudget">Total Budget</label>' +
       `<span data-action="click->financereport#sortByBudget" class="${(this.settings.stype === 'budget' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'budget' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-      '<th class="va-mid text-right px-3 fs-13i fw-600">Total Received (Est)</th>' +
-      '<th class="va-mid text-right px-3 fs-13i fw-600 pr-10i">Total Remaining (Est)</th>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600">Total Received (Est)</th>' +
+      '<th class="va-mid text-right px-2 fs-13i fw-600">Total Remaining (Est)</th>' +
       '</tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
@@ -2827,19 +2827,19 @@ export default class extends Controller {
       totalSpent += author.totalReceived
       totalRemaining += author.totalRemaining
       totalProposals += author.proposals
-      bodyList += `<tr class="${author.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}"><td class="va-mid text-center px-3 fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=owner&name=' + author.name}">${author.name}</a></td>`
-      bodyList += `<td class="va-mid text-center px-3 fs-13i">${author.proposals}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.budget > 0 ? '$' + humanize.formatToLocalString(author.budget, 2, 2) : '-'}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalReceived > 0 ? '$' + humanize.formatToLocalString(author.totalReceived, 2, 2) : '-'}</td>`
-      bodyList += `<td class="va-mid text-right px-3 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : '-'}</td></tr>`
+      bodyList += `<tr class="${author.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}"><td class="va-mid text-center px-2 fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=owner&name=' + author.name}">${author.name}</a></td>`
+      bodyList += `<td class="va-mid text-center px-2 fs-13i">${author.proposals}</td>`
+      bodyList += `<td class="va-mid text-right px-2 fs-13i">${author.budget > 0 ? '$' + humanize.formatToLocalString(author.budget, 2, 2) : '-'}</td>`
+      bodyList += `<td class="va-mid text-right px-2 fs-13i">${author.totalReceived > 0 ? '$' + humanize.formatToLocalString(author.totalReceived, 2, 2) : '-'}</td>`
+      bodyList += `<td class="va-mid text-right px-2 fs-13i">${author.totalRemaining > 0 ? '$' + humanize.formatToLocalString(author.totalRemaining, 2, 2) : '-'}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
-      '<td class="va-mid text-center px-3 fw-600 fs-13i">Total</td>' +
-      `<td class="va-mid text-center px-3 fw-600 fs-13i">${totalProposals}</td>` +
-      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
-      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
-      `<td class="va-mid text-right px-3 fw-600 fs-13i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
+      '<td class="va-mid text-center px-2 fw-600 fs-13i">Total</td>' +
+      `<td class="va-mid text-center px-2 fw-600 fs-13i">${totalProposals}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
       '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -2870,7 +2870,7 @@ export default class extends Controller {
     let thead = '<col><colgroup span="2"></colgroup><col3group span="3"></col3group><thead><tr class="text-secondary finance-table-header">' +
       `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
     if (this.settings.interval !== 'year') {
-      thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Rate (USD/DCR)</th>'
+      thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i px-2 fw-600 treasury-content-cell">Rate (USD/DCR)</th>'
     }
     thead += '###' +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Actual Spent</th>' +
@@ -2931,13 +2931,13 @@ export default class extends Controller {
       const usdRate = this.settings.interval === 'year' ? 0 : report.usdRate
       bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       if (this.settings.interval !== 'year') {
-        bodyList += `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${usdRate > 0 ? '$' + humanize.formatToLocalString(usdRate, 2, 2) : '-'}</td>`
+        bodyList += `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${usdRate > 0 ? '$' + humanize.formatToLocalString(usdRate, 2, 2) : '-'}</td>`
       }
       report.domainData.forEach((domainData) => {
         const dcrValue = this.settings.interval === 'year' ? domainData.expenseDCR : (usdRate > 0 ? domainData.expense / usdRate : 0)
         const dcrDisp = dcrValue > 0 ? humanize.formatToLocalString(dcrValue, 2, 2) : '-'
-        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : '-'}</td>` +
-          `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${dcrDisp}</td>`
+        bodyList += `<td class="va-mid text-right-i domain-content-cell pe-2 fs-13i">${domainData.expense > 0 ? '$' + humanize.formatToLocalString(domainData.expense, 2, 2) : '-'}</td>` +
+          `<td class="va-mid text-right-i domain-content-cell pe-2 fs-13i">${dcrDisp}</td>`
         rowTotal += domainData.expense > 0 ? domainData.expense : 0
         rowTotalDCR += dcrValue > 0 ? dcrValue : 0
         if (domainDataMap.has(domainData.domain)) {
@@ -2974,29 +2974,29 @@ export default class extends Controller {
       const treasuryDCRDisp = treasuryDCR > 0 ? humanize.formatToLocalString(treasuryDCR, 2, 2) : '-'
       treasurySpentTotal += report.treasurySpent
       treasuryDCRSpentTotal += treasuryDCR
-      bodyList += `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${report.treasurySpent > 0 ? '$' + humanize.formatToLocalString(report.treasurySpent, 2, 2) : '-'}</td>` +
-        `<td class="va-mid text-right-i domain-content-cell pe-4 fs-13i">${treasuryDCRDisp}</td>` +
-        `<td class="va-mid text-right fs-13i pe-4">${isFuture || unaccounted <= 0 ? '-' : '$' + humanize.formatToLocalString(unaccounted, 2, 2)}`
+      bodyList += `<td class="va-mid text-right-i domain-content-cell pe-2 fs-13i">${report.treasurySpent > 0 ? '$' + humanize.formatToLocalString(report.treasurySpent, 2, 2) : '-'}</td>` +
+        `<td class="va-mid text-right-i domain-content-cell pe-2 fs-13i">${treasuryDCRDisp}</td>` +
+        `<td class="va-mid text-right fs-13i pe-2">${isFuture || unaccounted <= 0 ? '-' : '$' + humanize.formatToLocalString(unaccounted, 2, 2)}`
       if (!isFuture && unaccounted > 0) {
         bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedUSDTooltip" data-show="${report.treasurySpent + ';' + devTotal}"><span class="tooltiptext cursor-default"><span class="tooltip-text d-flex ai-center"></span></span></span>`
       }
       bodyList += '</td>' +
-        `<td class="va-mid text-right fs-13i pe-4">${isFuture ? '-' : unaccountedDcrDisp}</td>` +
-        `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td>` +
-        `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${totalDcrDisp}</td>` +
-        `<td class="va-mid text-right fs-13i fw-600 pe-4 border-left-grey">${rateStr}</td></tr>`
+        `<td class="va-mid text-right fs-13i pe-2">${isFuture ? '-' : unaccountedDcrDisp}</td>` +
+        `<td class="va-mid text-right fs-13i fw-600 pe-2 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td>` +
+        `<td class="va-mid text-right fs-13i fw-600 pe-2 border-left-grey">${totalDcrDisp}</td>` +
+        `<td class="va-mid text-right fs-13i fw-600 pe-2 border-left-grey">${rateStr}</td></tr>`
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
     if (this.settings.interval !== 'year') {
-      bodyList += '<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">-</td>'
+      bodyList += '<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">-</td>'
     }
     let rateTotalStr = ''
     handlerData.domainList.forEach((domain) => {
       const expData = domainDataMap.has(domain) ? domainDataMap.get(domain) : 0
       const expDcrData = domainDCRTotalMap.has(domain) ? domainDCRTotalMap.get(domain) : 0
-      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">$${humanize.formatToLocalString(expData, 2, 2)}</td>`
-      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">${humanize.formatToLocalString(expDcrData, 2, 2)}</td>`
+      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">$${humanize.formatToLocalString(expData, 2, 2)}</td>`
+      bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${humanize.formatToLocalString(expDcrData, 2, 2)}</td>`
     })
     let unaccountedTotalPercent = 100
     handlerData.domainList.forEach((domain) => {
@@ -3009,13 +3009,13 @@ export default class extends Controller {
     const treasuryTotalDisp = treasurySpentTotal > 0 ? '$' + humanize.formatToLocalString(treasurySpentTotal, 2, 2) : '-'
     const treasuryDcrTotalDisp = treasuryDCRSpentTotal > 0 ? humanize.formatToLocalString(treasuryDCRSpentTotal, 2, 2) : '-'
 
-    bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">${treasuryTotalDisp}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">${treasuryDcrTotalDisp}</td>` +
-    `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">${unaccountedTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedTotal, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">${unaccountedDcrTotal > 0 ? humanize.formatToLocalString(unaccountedDcrTotal, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">$${humanize.formatToLocalString(totalAllValue, 2, 2)}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">${totalAllDcr > 0 ? humanize.formatToLocalString(totalAllDcr, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-4">${rateTotalStr}</td></tr>`
+    bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${treasuryTotalDisp}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${treasuryDcrTotalDisp}</td>` +
+    `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${unaccountedTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedTotal, 2, 2) : '-'}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${unaccountedDcrTotal > 0 ? humanize.formatToLocalString(unaccountedDcrTotal, 2, 2) : '-'}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">$${humanize.formatToLocalString(totalAllValue, 2, 2)}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${totalAllDcr > 0 ? humanize.formatToLocalString(totalAllDcr, 2, 2) : '-'}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${rateTotalStr}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -3479,7 +3479,7 @@ export default class extends Controller {
       `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'newest' ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
     const usdDisp = this.settings.usd === true || this.settings.usd === 'true'
     let row2 = '<tr class="text-secondary finance-table-header">'
-    thead += '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Rate (USD/DCR)</th>' +
+    thead += '<th rowspan="2" class="va-mid text-right-i fs-13i px-2 fw-600 treasury-content-cell">Rate (USD/DCR)</th>' +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByIncoming">Received</label>' +
       `<span data-action="click->financereport#sortByIncoming" class="${(this.settings.stype === 'incoming' && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== 'incoming' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortByOutgoing">Spent</label>' +
@@ -3497,7 +3497,7 @@ export default class extends Controller {
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>'
     if (isCombined) {
       thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Dev Spent (Est)</th>' +
-        '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i ps-3 pr-3 fw-600 treasury-content-cell">Dev Spent (%)</th>' +
+        '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i px-2 fw-600 treasury-content-cell">Dev Spent (%)</th>' +
         '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Unaccounted (Est)</th>'
       row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
         '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
@@ -3593,15 +3593,15 @@ export default class extends Controller {
       }
       bodyList += '<tr class="odd-even-row">' +
         `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' + incomUSDDisplay : '-'}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' + outcomeUSDDisplay : '-'}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceDisplay !== '' ? differenceDisplay : '-'}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' + differenceUSDDisplay : '-'}</td>` +
-        `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
-        `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' + balanceUSDDisplay : '-'}</td>`
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' + incomUSDDisplay : '-'}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' + outcomeUSDDisplay : '-'}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceDisplay !== '' ? differenceDisplay : '-'}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' + differenceUSDDisplay : '-'}</td>` +
+        `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${balanceDisplay !== '' ? balanceDisplay : '-'}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${balanceUSDDisplay !== '' ? '$' + balanceUSDDisplay : '-'}</td>`
       if (isCombined) {
         // calculate dev spent percent
         let devSentPercent = 0
@@ -3613,14 +3613,14 @@ export default class extends Controller {
         unaccountedTotal += unaccounted
         const unaccountedUSD = unaccounted > 0 ? item.monthPrice * (unaccounted / 100000000) : 0
         unaccountedUSDTotal += unaccountedUSD
-        bodyList += `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${item.outEstimate === 0.0 ? '-' : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>` +
-          `<td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${item.outEstimate !== 0.0 ? '$' + humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : '-'}</td>` +
-          `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>` +
-          `<td class="va-mid ps-3 text-right-i fs-13i treasury-content-cell">${unaccounted <= 0 ? '-' : humanize.formatToLocalString(unaccounted / 100000000, 2, 2)}`
+        bodyList += `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${item.outEstimate === 0.0 ? '-' : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>` +
+          `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${item.outEstimate !== 0.0 ? '$' + humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : '-'}</td>` +
+          `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>` +
+          `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${unaccounted <= 0 ? '-' : humanize.formatToLocalString(unaccounted / 100000000, 2, 2)}`
         if (unaccounted > 0) {
           bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedTooltip" data-show="${item.outvalue / 100000000 + ';' + item.outEstimate}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
         }
-        bodyList += `</td><td class="va-mid text-right-i ps-3 fs-13i treasury-content-cell">${unaccountedUSD > 0 ? '$' + humanize.formatToLocalString(unaccountedUSD, 2, 2) : '-'}</td>`
+        bodyList += `</td><td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${unaccountedUSD > 0 ? '$' + humanize.formatToLocalString(unaccountedUSD, 2, 2) : '-'}</td>`
       }
       // Display month price of decred
       bodyList += '</tr>'
@@ -3635,20 +3635,20 @@ export default class extends Controller {
     const lastBalanceUSDDisplay = humanize.formatToLocalString(lastBalanceUSD, 2, 2)
     const totalBalanceNegative = lastBalance < 0.0
     bodyList += '<tr class="va-mid finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total</td>' +
-      '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
-      `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalIncomDisplay}</td>` +
-      `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${incomeUSDTotal > 0 ? '$' : ''}${totalIncomUSDDisplay}</td>` +
-      `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalOutcomeDisplay}</td>` +
-      `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${outUSDTotal > 0 ? '$' : ''}${totalOutcomeUSDDisplay}</td>` +
-      '<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">-</td><td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
-      `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
-      `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td>`
+      '<td class="va-mid text-right-i fw-600 fs-13i ps-2 treasury-content-cell">-</td>' +
+      `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${totalIncomDisplay}</td>` +
+      `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${incomeUSDTotal > 0 ? '$' : ''}${totalIncomUSDDisplay}</td>` +
+      `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${totalOutcomeDisplay}</td>` +
+      `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${outUSDTotal > 0 ? '$' : ''}${totalOutcomeUSDDisplay}</td>` +
+      '<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">-</td><td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
+      `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
+      `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td>`
     if (isCombined) {
-      bodyList += `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${totalEstimateOutgoing}</td>` +
-        `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${estimateOutUSDTotal > 0 ? '$' : ''}${totalEstimateOutUSDgoing}</td>` +
+      bodyList += `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${totalEstimateOutgoing}</td>` +
+        `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${estimateOutUSDTotal > 0 ? '$' : ''}${totalEstimateOutUSDgoing}</td>` +
         '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
-        `<td class="va-mid ps-3 text-right-i fw-600 fs-13i treasury-content-cell">${unaccountedTotal <= 0 ? '-' : humanize.formatToLocalString(unaccountedTotal / 100000000, 2, 2)}</td>` +
-        `<td class="va-mid text-right-i ps-3 fw-600 fs-13i treasury-content-cell">${unaccountedUSDTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedUSDTotal, 2, 2) : '-'}</td>`
+        `<td class="va-mid ps-2 text-right-i fw-600 fs-13i treasury-content-cell">${unaccountedTotal <= 0 ? '-' : humanize.formatToLocalString(unaccountedTotal / 100000000, 2, 2)}</td>` +
+        `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${unaccountedUSDTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedUSDTotal, 2, 2) : '-'}</td>`
     }
     bodyList += '</tr>'
     tbody = tbody.replace('###', bodyList)
@@ -4048,7 +4048,7 @@ export default class extends Controller {
       '<th class="va-mid text-right px-2 fw-600">Days</th>' +
       '<th class="va-mid text-right px-2 fw-600">Monthly Avg (Est)</th>' +
       '<th class="va-mid text-right px-2 fw-600">Total Spent (Est)</th>' +
-      '<th class="va-mid text-right px-2 fw-600 pr-10i">Total Remaining (Est)</th></tr></thead>'
+      '<th class="va-mid text-right px-2 fw-600">Total Remaining (Est)</th></tr></thead>'
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     let totalBudget = 0
@@ -4082,7 +4082,7 @@ export default class extends Controller {
         `<td class="va-mid text-right fs-13i">${lengthInDays}</td>` +
         `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
         `<td class="va-mid text-right px-2 fs-13i">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : ''}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i pr-10i">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</td>` +
         '</tr>'
     }
     const totalColSpan = hideAuthor && hideDomain ? '3' : ((!hideAuthor && hideDomain) || (hideAuthor && !hideDomain) ? '4' : '5')
@@ -4148,10 +4148,10 @@ export default class extends Controller {
       if (count === 0) {
         allTable += `<table class="table monthly v3 border-grey-2 w-auto ${stepNum > 0 ? 'ms-2' : ''}" style="height: 40px;"><thead>` +
         '<tr class="text-secondary finance-table-header">' +
-        `<th class="text-left px-3 fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
-        '<th class="text-right px-3 fw-600">Spent (Est)</th>'
+        `<th class="text-left px-2 fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
+        '<th class="text-right px-2 fw-600">Spent (Est)</th>'
         if (this.settings.dtype === 'year') {
-          allTable += '<th class="text-right px-3 fw-600">Actual Spent</th></tr></thead>'
+          allTable += '<th class="text-right px-2 fw-600">Actual Spent</th></tr></thead>'
         }
         allTable += '<tbody>'
       }
@@ -4170,10 +4170,10 @@ export default class extends Controller {
       }
       allTable += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}">`
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
-      allTable += `<td class="text-left px-3 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" data-turbolinks="false" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
-      allTable += `<td class="text-right px-3 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : ''}</td>`
+      allTable += `<td class="text-left px-2 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" data-turbolinks="false" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
+      allTable += `<td class="text-right px-2 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : ''}</td>`
       if (this.settings.dtype === 'year') {
-        allTable += `<td class="text-right px-3 fs-13i">${dataMonth.actualExpense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.actualExpense, 2, 2) : ''}</td>`
+        allTable += `<td class="text-right px-2 fs-13i">${dataMonth.actualExpense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.actualExpense, 2, 2) : ''}</td>`
       }
       allTable += '</tr>'
       if (count === breakTable) {
@@ -4275,23 +4275,23 @@ export default class extends Controller {
       return
     }
     this.totalSpanRowTarget.classList.remove('d-none')
-    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Treasury Type</th>' +
-    '<th class="text-left px-3 fw-600">Value (DCR)</th><th class="text-left px-3 fw-600">Value (USD)</th></tr></thead><tbody>'
+    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-2 fw-600">Treasury Type</th>' +
+    '<th class="text-left px-2 fw-600">Value (DCR)</th><th class="text-left px-2 fw-600">Value (USD)</th></tr></thead><tbody>'
     innerHtml += data.treasurySummary.invalue > 0
-      ? `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">Decentralized Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>`
+      ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Decentralized Income</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += data.treasurySummary.outvalue > 0
-      ? `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">Decentralized Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)}</td></tr>`
+      ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Decentralized Outgoing</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += data.legacySummary.invalue > 0
-      ? `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">Admin Income</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)}</td></tr>`
+      ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Admin Income</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += data.legacySummary.outvalue > 0
-      ? `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">Admin Outgoing</td><td class="text-right px-3 fs-13i">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-3 fs-13i">$${humanize.formatToLocalString((data.legacySummary.outvalueUSD), 2, 2)}</td></tr>`
+      ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Admin Outgoing</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
+    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.legacySummary.outvalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += '</tbody>'
     this.yearMonthInfoTableTarget.innerHTML = innerHtml
@@ -4299,22 +4299,22 @@ export default class extends Controller {
 
   createDomainsSummaryTable (data) {
     const domainDataMap = this.getDomainsSummaryData(data)
-    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-3 fw-600">Domain</th>' +
-    '<th class="text-left px-3 fw-600">Value (Est) (DCR)</th><th class="text-left px-3 fw-600">Value (Est) (USD)</th></tr></thead><tbody>'
+    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-2 fw-600">Domain</th>' +
+    '<th class="text-left px-2 fw-600">Value (Est) (DCR)</th><th class="text-left px-2 fw-600">Value (Est) (USD)</th></tr></thead><tbody>'
     let totalDCR = 0; let totalUSD = 0
     domainDataMap.forEach((val, key) => {
       const valueDCR = val.valueDCR
       totalDCR += val.valueDCR
       const valueUSD = val.valueUSD
       totalUSD += val.valueUSD
-      innerHtml += `<tr class="odd-even-row"><td class="text-left px-3 fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</td>` +
-                   `<td class="text-right px-3 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
-                   `<td class="text-right px-3 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
+      innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</td>` +
+                   `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
+                   `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
     })
     innerHtml += '<tr class="finance-table-header last-row-header">' +
       '<td class="va-mid text-center fw-600 fs-15i">Total</td>' +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">${totalDCR > 0 ? humanize.formatToLocalString(totalDCR, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right px-3 fw-600 fs-15i">${totalUSD > 0 ? '$' + humanize.formatToLocalString(totalUSD, 2, 2) : '-'}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalDCR > 0 ? humanize.formatToLocalString(totalDCR, 2, 2) : '-'}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalUSD > 0 ? '$' + humanize.formatToLocalString(totalUSD, 2, 2) : '-'}</td>` +
       '</tr>'
     innerHtml += '</tbody>'
     this.domainSummaryTableTarget.innerHTML = innerHtml
@@ -4409,9 +4409,9 @@ export default class extends Controller {
     this.proposalAreaTarget.classList.remove('d-none')
     const thead = '<thead>' +
     '<tr class="text-secondary finance-table-header">' +
-    '<th class="va-mid text-center px-3 fw-600">Proposal Name</th>' +
-    '<th class="va-mid text-center px-3 fw-600">Domain</th>' +
-    `<th class="va-mid text-right px-3 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailBySpent">This ${this.settings.dtype === 'year' ? 'Year' : 'Month'} (Est)</label>` +
+    '<th class="va-mid text-center px-2 fw-600">Proposal Name</th>' +
+    '<th class="va-mid text-center px-2 fw-600">Domain</th>' +
+    `<th class="va-mid text-right px-2 fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailBySpent">This ${this.settings.dtype === 'year' ? 'Year' : 'Month'} (Est)</label>` +
     `<span data-action="click->financereport#sortDetailBySpent" class="${(this.settings.dstype === 'spent' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
     '</tr></thead>'
 
@@ -4424,17 +4424,17 @@ export default class extends Controller {
       bodyList += '<tr class="odd-even-row">'
       const report = summaryList[i]
       // add proposal name
-      bodyList += '<td class="va-mid px-3 text-left fs-13i">' +
+      bodyList += '<td class="va-mid px-2 text-left fs-13i">' +
       `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" data-turbolinks="false" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
-      `<td class="va-mid text-center px-3 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
-        '<td class="va-mid text-right px-3 fs-13i">' +
+      `<td class="va-mid text-center px-2 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
+        '<td class="va-mid text-right px-2 fs-13i">' +
         `${report.totalSpent > 0 ? '$' + humanize.formatToLocalString(report.totalSpent, 2, 2) : ''}</td></tr>`
       totalExpense += report.totalSpent
     }
 
     bodyList += '<tr class="finance-table-header last-row-header">' +
     '<td class="va-mid text-center fw-600 fs-15i" colspan="2">Total</td>' +
-    `<td class="va-mid text-right px-3 fw-600 fs-15i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
+    `<td class="va-mid text-right px-2 fw-600 fs-15i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
     '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
