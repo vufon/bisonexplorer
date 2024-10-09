@@ -2954,7 +2954,7 @@ export default class extends Controller {
       })
       const devTotal = rowTotal
       const unaccounted = report.treasurySpent > 0 ? report.treasurySpent > devTotal ? report.treasurySpent - devTotal : 0 : 0
-      const unaccountedDcr = this.settings.interval === 'year' ? (report.treasurySpentDCR - rowTotalDCR) : (usdRate > 0 ? unaccounted / usdRate : 0)
+      const unaccountedDcr = report.treasurySpentDCR > 0 && report.treasurySpentDCR > rowTotalDCR ? (this.settings.interval === 'year' ? (report.treasurySpentDCR - rowTotalDCR) : (usdRate > 0 ? unaccounted / usdRate : 0)) : 0
       const unaccountedDcrDisp = unaccountedDcr > 0 ? humanize.formatToLocalString(unaccountedDcr, 2, 2) : '-'
       rowTotal += unaccounted
       rowTotalDCR += unaccountedDcr
