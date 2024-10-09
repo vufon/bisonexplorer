@@ -932,6 +932,7 @@ type ProposalReportData struct {
 	End            string  `json:"end"`
 	Budget         float64 `json:"budget"`
 	TotalSpent     float64 `json:"totalSpent"`
+	SpentEst       float64 `json:"spentEst"`
 	TotalSpentDcr  float64 `json:"totalSpentDcr"`
 	TotalRemaining float64 `json:"totalRemaining"`
 }

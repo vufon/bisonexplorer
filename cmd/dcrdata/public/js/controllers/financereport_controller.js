@@ -230,7 +230,7 @@ export default class extends Controller {
       'proposalSpanRow', 'toVote', 'toDiscussion', 'totalSpanRow', 'expendiduteValue', 'yearMonthInfoTable', 'noReport', 'domainArea',
       'domainReport', 'proposalArea', 'proposalReport', 'monthlyArea', 'monthlyReport', 'yearlyArea', 'yearlyReport', 'sameOwnerProposalArea',
       'otherProposalSummary', 'summaryArea', 'summaryReport', 'reportParentContainer', 'yearMonthSelector', 'topYearSelect', 'topMonthSelect',
-      'detailReportTitle', 'prevBtn', 'nextBtn', 'proposalTopSummary', 'domainSummaryTable']
+      'detailReportTitle', 'prevBtn', 'nextBtn', 'proposalTopSummary', 'domainSummaryTable', 'domainSummaryArea']
   }
 
   async connect () {
@@ -4300,17 +4300,26 @@ export default class extends Controller {
   createDomainsSummaryTable (data) {
     const domainDataMap = this.getDomainsSummaryData(data)
     let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-2 fs-13i fw-600">Domain</th>' +
-    '<th class="text-left px-2 fs-13i fw-600">Value (Est) (DCR)</th><th class="text-left px-2 fs-13i fw-600">Value (Est) (USD)</th></tr></thead><tbody>'
+    '<th class="text-left px-2 fs-13i fw-600">Spent (Est) (DCR)</th><th class="text-left px-2 fs-13i fw-600">Spent (Est) (USD)</th></tr></thead><tbody>'
     let totalDCR = 0; let totalUSD = 0
+    let hasData = false
     domainDataMap.forEach((val, key) => {
-      const valueDCR = val.valueDCR
-      totalDCR += val.valueDCR
-      const valueUSD = val.valueUSD
-      totalUSD += val.valueUSD
-      innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</td>` +
-                   `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
-                   `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
+      if (val.valueDCR !== 0 || val.valueUSD !== 0) {
+        const valueDCR = val.valueDCR
+        totalDCR += val.valueDCR
+        const valueUSD = val.valueUSD
+        totalUSD += val.valueUSD
+        hasData = true
+        innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</td>` +
+                     `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
+                     `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
+      }
     })
+    if (!hasData) {
+      this.domainSummaryAreaTarget.classList.add('d-none')
+      return
+    }
+    this.domainSummaryAreaTarget.classList.remove('d-none')
     innerHtml += '<tr class="finance-table-header finance-table-footer last-row-header">' +
       '<td class="va-mid text-center fw-600 fs-13i">Total</td>' +
       `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalDCR > 0 ? humanize.formatToLocalString(totalDCR, 2, 2) : '-'}</td>` +
@@ -4332,13 +4341,13 @@ export default class extends Controller {
       if (result.has(domain)) {
         const detailData = {}
         const existData = result.get(domain)
-        detailData.valueDCR = existData.valueDCR + report.totalSpentDcr
-        detailData.valueUSD = existData.valueUSD + (report.totalSpent > 0 ? report.totalSpent : 0)
+        detailData.valueDCR = existData.valueDCR + (report.totalSpentDcr > 0 ? report.totalSpentDcr : 0)
+        detailData.valueUSD = existData.valueUSD + (report.spentEst > 0 ? report.spentEst : 0)
         result.set(domain, detailData)
       } else {
         const detailData = {}
-        detailData.valueDCR = report.totalSpentDcr
-        detailData.valueUSD = report.totalSpent > 0 ? report.totalSpent : 0
+        detailData.valueDCR = report.totalSpentDcr > 0 ? report.totalSpentDcr : 0
+        detailData.valueUSD = report.spentEst > 0 ? report.spentEst : 0
         result.set(domain, detailData)
       }
     }

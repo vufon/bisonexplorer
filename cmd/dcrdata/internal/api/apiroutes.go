@@ -1514,6 +1514,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 	var legacySummary dbtypes.TreasurySummary
 	monthResultData := make([]apitypes.MonthDataObject, 0)
 	monthPrice := float64(0)
+	now := time.Now()
 	if timeType == "month" {
 		timeArr := strings.Split(timeStr, "_")
 		year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
@@ -1597,8 +1598,11 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 				}
 				varMonthData.TotalSpent = costOfMonth
 			}
-			if monthPrice > 0 {
-				varMonthData.TotalSpentDcr = varMonthData.TotalSpent / monthPrice
+			if now.Year()*12+int(now.Month()) >= int(year*12+month) {
+				varMonthData.SpentEst = varMonthData.TotalSpent
+				if monthPrice > 0 {
+					varMonthData.TotalSpentDcr = varMonthData.TotalSpent / monthPrice
+				}
 			}
 			total += varMonthData.TotalSpent
 			report = append(report, varMonthData)
@@ -1669,6 +1673,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			varYearData.Budget = amountFloat
 			//if current year
 			costOfYear := float64(0)
+			costSpentOfYear := float64(0)
 			costOfYearDcr := float64(0)
 			//count month from startTime to endTime
 			countMonths := 12*(endTime.Year()-startTime.Year()) + (int(endTime.Month()) - int(startTime.Month())) + 1
@@ -1676,9 +1681,12 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			if startTime.Year() == int(year) && startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
 				key := fmt.Sprintf("%d-%s", startTime.Year(), apitypes.GetFullMonthDisplay(int(startTime.Month())))
 				costOfYear += amountFloat
-				monthPrice, ok := monthlyPriceMap[key]
-				if ok {
-					costOfYearDcr += amountFloat / monthPrice
+				if now.Year()*12+int(now.Month()) >= startTime.Year()*12+int(startTime.Month()) {
+					costSpentOfYear += amountFloat
+					monthPrice, ok := monthlyPriceMap[key]
+					if ok {
+						costOfYearDcr += amountFloat / monthPrice
+					}
 				}
 				if _, ok := monthWeightMap[key]; !ok {
 					monthWeightMap[key] = startTime.Year()*12 + int(startTime.Month())
@@ -1718,9 +1726,12 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 					}
 					costOfMonth = math.Ceil(costOfMonth*100) / 100
 					costOfYear += costOfMonth
-					monthPrice, priceExist := monthlyPriceMap[key]
-					if priceExist {
-						costOfYearDcr += costOfMonth / monthPrice
+					if now.Year()*12+int(now.Month()) >= handlerTime.Year()*12+int(handlerTime.Month()) {
+						costSpentOfYear += costOfMonth
+						monthPrice, priceExist := monthlyPriceMap[key]
+						if priceExist {
+							costOfYearDcr += costOfMonth / monthPrice
+						}
 					}
 					if _, ok := monthWeightMap[key]; !ok {
 						monthWeightMap[key] = handlerTime.Year()*12 + int(handlerTime.Month())
@@ -1739,6 +1750,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			}
 
 			varYearData.TotalSpent = math.Ceil(costOfYear*100) / 100
+			varYearData.SpentEst = math.Ceil(costSpentOfYear*100) / 100
 			varYearData.TotalSpentDcr = math.Ceil(costOfYearDcr*100) / 100
 			total += costOfYear
 			report = append(report, varYearData)
