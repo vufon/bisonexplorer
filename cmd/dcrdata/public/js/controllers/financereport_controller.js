@@ -4325,7 +4325,6 @@ export default class extends Controller {
     if (!data.reportDetail || data.reportDetail.length === 0) {
       return result
     }
-    const usdRate = data.monthPrice
     // TODO: handler usd rate by month or group by year
     for (let i = 0; i < data.reportDetail.length; i++) {
       const report = data.reportDetail[i]
@@ -4333,12 +4332,12 @@ export default class extends Controller {
       if (result.has(domain)) {
         const detailData = {}
         const existData = result.get(domain)
-        detailData.valueDCR = existData.valueDCR + (usdRate > 0 ? report.totalSpent > 0 ? report.totalSpent / usdRate : 0 : 0)
+        detailData.valueDCR = existData.valueDCR + report.totalSpentDcr
         detailData.valueUSD = existData.valueUSD + (report.totalSpent > 0 ? report.totalSpent : 0)
         result.set(domain, detailData)
       } else {
         const detailData = {}
-        detailData.valueDCR = usdRate > 0 ? report.totalSpent > 0 ? report.totalSpent / usdRate : 0 : 0
+        detailData.valueDCR = report.totalSpentDcr
         detailData.valueUSD = report.totalSpent > 0 ? report.totalSpent : 0
         result.set(domain, detailData)
       }

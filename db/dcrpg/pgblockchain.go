@@ -2439,10 +2439,10 @@ func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.Treasury
 }
 
 func (pgb *ChainDB) GetMonthlyPrice(year, month int) (float64, error) {
-	monthTime := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Now().Location())
+	monthTime := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	startOfMonth := monthTime.AddDate(0, 0, -monthTime.Day()+1)
 	endOfMonth := monthTime.AddDate(0, 1, -monthTime.Day())
-	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, false)
 	monthFormat := monthTime.Format("2006-01")
 	monthPrice, ok := monthPriceMap[monthFormat]
 	if !ok {
