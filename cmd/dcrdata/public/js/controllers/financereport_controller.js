@@ -4334,7 +4334,6 @@ export default class extends Controller {
     if (!data.reportDetail || data.reportDetail.length === 0) {
       return result
     }
-    // TODO: handler usd rate by month or group by year
     for (let i = 0; i < data.reportDetail.length; i++) {
       const report = data.reportDetail[i]
       const domain = report.domain
