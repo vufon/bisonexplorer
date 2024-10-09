@@ -318,7 +318,14 @@
                   </div>
                </div>
                <div class="mt-1 d-none" data-financereport-target="proposalTopSummary">
-                  <p class="fw-600 fs-16">Proposals Expenditures (Est): $<span class="fs-18" data-financereport-target="expendiduteValue"></span></p>
+                  <div class="row">
+                  <div class="col-24 col-md-18 col-lg-12 col-xl-9 col-xxl-7 py-2 ps-3 common-card">
+                     <p class="fs-15">Proposals Expenditures (Est): <span class="fw-600" data-financereport-target="expendiduteValue"></span></p>
+                     <p class="fs-15" data-financereport-target="proposalSpentArea">Proposals Spent (Est): <span class="fw-600" data-financereport-target="proposalSpent"></span></p>
+                     <p class="fs-15" data-financereport-target="treasurySpentArea">Treasury Spent: <span class="fw-600" data-financereport-target="treasurySpent"></span></p>
+                     <p class="fs-15" data-financereport-target="unaccountedValueArea">Unaccounted: <span class="fw-600" data-financereport-target="unaccountedValue"></span></p>
+                  </div>
+                  </div>
                   <div class="d-none" data-financereport-target="domainSummaryArea">
                      <p class="fw-600 fs-20 mt-2">Domains Summary</p>
                      <table class="table report report-table v3 border-grey-2 w-auto" data-financereport-target="domainSummaryTable"></table>

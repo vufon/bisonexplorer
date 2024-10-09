@@ -27,7 +27,9 @@ export default class extends Controller {
       'toVote', 'toDiscussion', 'sameOwnerProposalArea', 'otherProposalSummary',
       'expendiduteValue', 'prevNextButtons', 'toUpReport',
       'currentDetail', 'yearBreadcumb', 'proposalSumCard', 'proposalTopSummary',
-      'domainSummaryTable', 'domainSummaryArea']
+      'domainSummaryTable', 'domainSummaryArea', 'proposalSpent',
+      'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea',
+      'unaccountedValueArea']
   }
 
   async initialize () {
@@ -601,7 +603,7 @@ export default class extends Controller {
     this.proposalReportTarget.innerHTML = this.createProposalDetailReport(response)
     if (response.proposalTotal > 0) {
       this.proposalTopSummaryTarget.classList.remove('d-none')
-      this.expendiduteValueTarget.textContent = humanize.formatToLocalString(response.proposalTotal, 2, 2)
+      this.handlerSummaryArea(response)
       this.createDomainsSummaryTable(response)
     } else {
       this.proposalTopSummaryTarget.classList.add('d-none')
@@ -615,6 +617,43 @@ export default class extends Controller {
       } else {
         this.monthlyAreaTarget.classList.add('d-none')
       }
+    }
+  }
+
+  handlerSummaryArea (data) {
+    this.expendiduteValueTarget.textContent = '$' + humanize.formatToLocalString(data.proposalTotal, 2, 2)
+    // display proposal spent value
+    if (!data.reportDetail || data.reportDetail.length === 0) {
+      return
+    }
+    let totalSpent = 0
+    let totalSpentDCR = 0
+    for (let i = 0; i < data.reportDetail.length; i++) {
+      const report = data.reportDetail[i]
+      totalSpent += report.spentEst > 0 ? report.spentEst : 0
+      totalSpentDCR += report.totalSpentDcr > 0 ? report.totalSpentDcr : 0
+    }
+    if (totalSpent > 0) {
+      this.proposalSpentAreaTarget.classList.remove('d-none')
+      this.proposalSpentTarget.textContent = '$' + humanize.formatToLocalString(totalSpent, 2, 2) + ` (${humanize.formatToLocalString(totalSpentDCR, 2, 2)} DCR)`
+    } else {
+      this.proposalSpentAreaTarget.classList.add('d-none')
+    }
+    // display treasury spent value
+    if (totalSpent > 0 && (data.treasurySummary.outvalue > 0 || data.legacySummary.outvalue > 0)) {
+      this.treasurySpentAreaTarget.classList.remove('d-none')
+      const combinedUSD = data.treasurySummary.outvalueUSD + data.legacySummary.outvalueUSD
+      const combinedDCR = data.treasurySummary.outvalue + data.legacySummary.outvalue
+      this.treasurySpentTarget.textContent = '$' + humanize.formatToLocalString(combinedUSD, 2, 2) + ` (${humanize.formatToLocalString(combinedDCR / 100000000, 2, 2)} DCR)`
+      if (combinedUSD > totalSpent) {
+        this.unaccountedValueAreaTarget.classList.remove('d-none')
+        this.unaccountedValueTarget.textContent = '$' + humanize.formatToLocalString(combinedUSD - totalSpent, 2, 2) + ` (${humanize.formatToLocalString(combinedDCR / 100000000 - totalSpentDCR, 2, 2)} DCR)`
+      } else {
+        this.unaccountedValueAreaTarget.classList.add('d-none')
+      }
+    } else {
+      this.treasurySpentAreaTarget.classList.add('d-none')
+      this.unaccountedValueAreaTarget.classList.add('d-none')
     }
   }
 
