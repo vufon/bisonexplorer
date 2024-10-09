@@ -1270,7 +1270,7 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 			}
 		}
 		//remove this owner from proposalMetaList
-		proposalSummaryList, _ = c.GetReportDataFromProposalList(handlerProposals, false, map[string]float64{})
+		proposalSummaryList, _ = c.GetReportDataFromProposalList(handlerProposals, false)
 	}
 
 	writeJSON(w, struct {
@@ -1286,7 +1286,7 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 	}, m.GetIndentCtx(r))
 }
 
-func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string, containAllTime bool, monthPriceMap map[string]float64) ([]apitypes.ProposalReportData, []apitypes.MonthDataObject) {
+func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string, containAllTime bool) ([]apitypes.ProposalReportData, []apitypes.MonthDataObject) {
 	now := time.Now()
 	proposalSummaryList := make([]apitypes.ProposalReportData, 0)
 	monthDatas := make([]apitypes.MonthDataObject, 0)
@@ -1322,7 +1322,6 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 		proposalInfo.End = endTime.Format("2006-01-02")
 		proposalInfo.Domain = domain
 		totalSpent := 0.0
-		totalSpentDcr := 0.0
 		//count month from startTime to endTime
 		difference := endTime.Sub(startTime)
 		var countMonths = 12*(endTime.Year()-startTime.Year()) + (int(endTime.Month()) - int(startTime.Month())) + 1
@@ -1334,10 +1333,6 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 		if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
 			key := fmt.Sprintf("%d-%s", startTime.Year(), apitypes.GetFullMonthDisplay(int(startTime.Month())))
 			totalSpent += amountFloat
-			monthPrice, ok := monthPriceMap[key]
-			if ok {
-				totalSpentDcr += amountFloat / monthPrice
-			}
 			if _, ok := monthWeightMap[key]; !ok {
 				monthWeightMap[key] = startTime.Year()*12 + int(startTime.Month())
 			}
@@ -1383,10 +1378,6 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 				}
 				costOfMonth = math.Ceil(costOfMonth*100) / 100
 				totalSpent += costOfMonth
-				monthPrice, priceExist := monthPriceMap[key]
-				if priceExist {
-					totalSpentDcr += costOfMonth / monthPrice
-				}
 				if _, ok := monthWeightMap[key]; !ok {
 					monthWeightMap[key] = handlerTime.Year()*12 + int(handlerTime.Month())
 				}
@@ -1408,7 +1399,6 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 			totalSpent = amountFloat
 		}
 		proposalInfo.TotalSpent = math.Ceil(totalSpent*100) / 100
-		proposalInfo.TotalSpentDcr = math.Ceil(totalSpent*100) / 100
 		proposalInfo.TotalRemaining = math.Ceil((amountFloat-totalSpent)*100) / 100
 		proposalSummaryList = append(proposalSummaryList, proposalInfo)
 	}
@@ -1457,7 +1447,7 @@ func (c *appContext) MainHandlerForReportByParam(w http.ResponseWriter, r *http.
 		allParamList = c.DataSource.GetAllProposalOwners()
 	}
 
-	proposalSummaryList, monthDatas := c.GetReportDataFromProposalList(proposals, true, map[string]float64{})
+	proposalSummaryList, monthDatas := c.GetReportDataFromProposalList(proposals, true)
 
 	if paramType == "domain" {
 		writeJSON(w, struct {
@@ -1861,7 +1851,7 @@ func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		monthDataMap := make(map[string]float64)
 		totalBudgetMap := make(map[string]float64)
-		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList, true, map[string]float64{})
+		_, monthDatas := c.GetReportDataFromProposalList(proposalMetaList, true)
 		for _, monthData := range monthDatas {
 			monthDataMap[monthData.Month] = monthData.Expense
 			totalBudgetMap[monthData.Month] = monthData.TotalBudget
