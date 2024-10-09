@@ -1631,7 +1631,7 @@ export default class extends Controller {
       } else {
         this.outgoingExpTarget.classList.remove('d-none')
         this.outgoingExpTarget.classList.add('mt-2')
-        this.outgoingExpTarget.innerHTML = '*Unaccounted (Est): Estimated based on actual Treasury spent minus estimated expenditure on Proposals.'
+        this.outgoingExpTarget.innerHTML = '*Delta (Est): Estimated difference between actual spending and estimated spending for Proposals. <br />&nbsp;<span style="font-style: italic;">(Delta > 0: Unaccounted, Delta < 0: Missing)</span>'
       }
     }
 
@@ -2875,7 +2875,7 @@ export default class extends Controller {
     }
     thead += '###' +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Delta (Est)</th>' +
-      '<th colspan="3" scope="col3group" class="va-mid text-center-i total-last-col fs-13i fw-600 border-left-grey">Total (Est)</th></tr>####</thead>'
+      '<th colspan="3" scope="col3group" class="va-mid text-center-i total-last-col fs-13i fw-600 border-left-grey">Total Spent</th></tr>####</thead>'
     let row2 = '<tr class="text-secondary finance-table-header">'
     let tbody = '<tbody>###</tbody>'
 
@@ -2906,6 +2906,7 @@ export default class extends Controller {
     let totalAllDcr = 0
     let totalAllValue = 0
     const domainDCRTotalMap = new Map()
+    const _this = this
     // create tbody content
     for (let i = 0; i < domainList.length; i++) {
       const report = domainList[i]
@@ -2948,33 +2949,32 @@ export default class extends Controller {
         }
       })
       const devTotal = rowTotal
-      const unaccounted = report.treasurySpent > 0 ? report.treasurySpent > devTotal ? report.treasurySpent - devTotal : 0 : 0
-      const unaccountedDcr = report.treasurySpentDCR > 0 && report.treasurySpentDCR > rowTotalDCR ? (this.settings.interval === 'year' ? (report.treasurySpentDCR - rowTotalDCR) : (usdRate > 0 ? unaccounted / usdRate : 0)) : 0
-      const unaccountedDcrDisp = unaccountedDcr > 0 ? humanize.formatToLocalString(unaccountedDcr, 2, 2) : '-'
-      console.log('check unaccounted value : ' + unaccountedDcr)
-      console.log('check unaccounted disp: ' + unaccountedDcrDisp)
+      const unaccounted = report.treasurySpent > 0 ? report.treasurySpent - devTotal : -devTotal
+      const unaccountedDcr = this.settings.interval === 'year' ? (report.treasurySpentDCR > 0 ? report.treasurySpentDCR - rowTotalDCR : -rowTotalDCR) : (usdRate > 0 ? unaccounted / usdRate : 0)
+      const unaccountedDcrDisp = (unaccountedDcr >= 0 ? '' : '-') + humanize.formatToLocalString(Math.abs(unaccountedDcr), 2, 2)
       rowTotal += unaccounted
       rowTotalDCR += unaccountedDcr
       let rateStr = ''
       let unaccountedPercent = 100
       report.domainData.forEach((domainData) => {
-        const rate = domainData.expense > 0 ? 100 * domainData.expense / rowTotal : 0
-        rateStr += humanize.formatToLocalString(rate, 2, 2) + '% / '
-        unaccountedPercent = 100 - rate
+        const rate = _this.isZeroNumber(rowTotal) ? 0 : 100 * domainData.expense / rowTotal
+        rateStr += (rate < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rate), 2, 2) + '% / '
+        unaccountedPercent -= rate
       })
-      rateStr += (unaccounted > 0 ? humanize.formatToLocalString(unaccountedPercent, 2, 2) : '0') + '%'
-      const totalDcrDisp = rowTotalDCR > 0 ? humanize.formatToLocalString(rowTotalDCR, 2, 2) : '-'
+      rateStr += (unaccountedPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedPercent), 2, 2) + '%'
+      rateStr = _this.isZeroNumber(rowTotal) ? '-' : rateStr
+      const totalDcrDisp = this.isZeroNumber(rowTotalDCR) ? '-' : (rowTotalDCR < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rowTotalDCR), 2, 2)
       totalAllDcr += rowTotalDCR > 0 ? rowTotalDCR : 0
       totalAllValue += rowTotal > 0 ? rowTotal : 0
       unaccountedTotal += unaccounted
       unaccountedDcrTotal += unaccountedDcr
-      bodyList += `<td class="va-mid text-right fs-13i pe-2">${isFuture || unaccounted <= 0 ? '-' : '$' + humanize.formatToLocalString(unaccounted, 2, 2)}`
-      if (!isFuture && unaccounted > 0) {
+      bodyList += `<td class="va-mid text-right fs-13i pe-2">${isFuture ? '-' : (unaccounted >= 0 ? '' : '-') + '$' + humanize.formatToLocalString(Math.abs(unaccounted), 2, 2)}`
+      if (!isFuture) {
         bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedUSDTooltip" data-show="${report.treasurySpent + ';' + devTotal}"><span class="tooltiptext cursor-default"><span class="tooltip-text d-flex ai-center"></span></span></span>`
       }
       bodyList += '</td>' +
         `<td class="va-mid text-right fs-13i pe-2">${isFuture ? '-' : unaccountedDcrDisp}</td>` +
-        `<td class="va-mid text-right fs-13i fw-600 pe-2 border-left-grey">$${humanize.formatToLocalString(rowTotal, 2, 2)}</td>` +
+        `<td class="va-mid text-right fs-13i fw-600 pe-2 border-left-grey">${this.isZeroNumber(rowTotal) ? '-' : (rowTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(rowTotal), 2, 2)}</td>` +
         `<td class="va-mid text-right fs-13i fw-600 pe-2 border-left-grey">${totalDcrDisp}</td>` +
         `<td class="va-mid text-right fs-13i fw-600 pe-2 border-left-grey">${rateStr}</td></tr>`
     }
@@ -2993,19 +2993,28 @@ export default class extends Controller {
     let unaccountedTotalPercent = 100
     handlerData.domainList.forEach((domain) => {
       const expData = domainDataMap.has(domain) ? domainDataMap.get(domain) : 0
-      const rateTotal = expData > 0 ? 100 * expData / totalAllValue : 0
-      rateTotalStr += humanize.formatToLocalString(rateTotal, 2, 2) + '% / '
-      unaccountedTotalPercent = 100 - rateTotal
+      const rateTotal = _this.isZeroNumber(totalAllValue) ? 0 : 100 * expData / totalAllValue
+      rateTotalStr += (rateTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rateTotal), 2, 2) + '% / '
+      unaccountedTotalPercent -= rateTotal
     })
-    rateTotalStr += (unaccountedTotal > 0 ? humanize.formatToLocalString(unaccountedTotalPercent, 2, 2) : '0') + '%'
-    bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${unaccountedTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedTotal, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${unaccountedDcrTotal > 0 ? humanize.formatToLocalString(unaccountedDcrTotal, 2, 2) : '-'}</td>` +
+    rateTotalStr += (unaccountedTotalPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedTotalPercent), 2, 2) + '%'
+    rateTotalStr = _this.isZeroNumber(totalAllValue) ? '-' : rateTotalStr
+    bodyList += `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${this.isZeroNumber(unaccountedTotal) ? '-' : (unaccountedTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedTotal), 2, 2)}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${this.isZeroNumber(unaccountedDcrTotal) ? '-' : (unaccountedDcrTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedDcrTotal), 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">$${humanize.formatToLocalString(totalAllValue, 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${totalAllDcr > 0 ? humanize.formatToLocalString(totalAllDcr, 2, 2) : '-'}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i domain-content-cell pe-2">${rateTotalStr}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
+  }
+
+  isZeroNumber (number) {
+    if (number === 0) {
+      return true
+    }
+    const num = Math.abs(number)
+    return num.toFixed(2) === '0.00'
   }
 
   showUnaccountedUSDTooltip (e) {
