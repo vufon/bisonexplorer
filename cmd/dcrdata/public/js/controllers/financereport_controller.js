@@ -4348,7 +4348,7 @@ export default class extends Controller {
         const valueUSD = val.valueUSD
         totalUSD += val.valueUSD
         hasData = true
-        innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</td>` +
+        innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i"><a href="/finance-report/detail?type=domain&name=${key}" class="link-hover-underline fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</a></td>` +
                      `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
                      `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
       }
