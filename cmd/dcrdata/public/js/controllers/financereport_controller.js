@@ -3188,7 +3188,8 @@ export default class extends Controller {
     if (this.isCombinedReport()) {
       this.outgoingExpTarget.classList.remove('d-none')
       this.outgoingExpTarget.classList.remove('mt-2')
-      this.outgoingExpTarget.innerHTML = '*Dev Spent (Est): Estimated costs covered for proposals.<br />*Unaccounted (Est): Estimated based on actual Treasury spent minus estimated expenditure on Proposals.'
+      this.outgoingExpTarget.innerHTML = '*Dev Spent (Est): Estimated costs covered for proposals.<br />' +
+      '*Delta (Est): Estimated difference between actual spending and estimated spending for Proposals. <br />&nbsp;<span style="font-style: italic;">(Delta > 0: Unaccounted, Delta < 0: Missing)</span>'
     } else {
       this.outgoingExpTarget.classList.add('d-none')
     }
@@ -3558,7 +3559,7 @@ export default class extends Controller {
     if (isCombined) {
       thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Dev Spent (Est)</th>' +
         '<th rowspan="2" class="va-mid text-right-i fs-13i px-2 fw-600 treasury-content-cell">Dev Spent (%)</th>' +
-        '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Unaccounted (Est)</th>'
+        '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Delta (Est)</th>'
       row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
         '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
         '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
@@ -3687,19 +3688,18 @@ export default class extends Controller {
         if (item.outvalue > 0) {
           devSentPercent = 100 * 1e8 * item.outEstimate / item.outvalue
         }
-        let unaccounted = item.outvalue - 1e8 * item.outEstimate
-        unaccounted = unaccounted > 0 ? unaccounted : 0
+        const unaccounted = item.outvalue - 1e8 * item.outEstimate
         unaccountedTotal += unaccounted
-        const unaccountedUSD = unaccounted > 0 ? item.monthPrice * (unaccounted / 100000000) : 0
+        const unaccountedUSD = item.outvalueUSD - item.outEstimateUsd
         unaccountedUSDTotal += unaccountedUSD
         bodyList += `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${item.outEstimate === 0.0 ? '-' : humanize.formatToLocalString(item.outEstimate, 2, 2)}</td>` +
           `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${item.outEstimate !== 0.0 ? '$' + humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : '-'}</td>` +
           `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>` +
-          `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${unaccounted <= 0 ? '-' : humanize.formatToLocalString(unaccounted / 100000000, 2, 2)}`
+          `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${unaccounted === 0 ? '-' : (unaccounted < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccounted) / 100000000, 2, 2)}`
         if (unaccounted > 0) {
           bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedTooltip" data-show="${item.outvalue / 100000000 + ';' + item.outEstimate}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
         }
-        bodyList += `</td><td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${unaccountedUSD > 0 ? '$' + humanize.formatToLocalString(unaccountedUSD, 2, 2) : '-'}</td>`
+        bodyList += `</td><td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${unaccountedUSD === 0 ? '-' : (unaccountedUSD < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedUSD), 2, 2)}</td>`
       }
       // Display month price of decred
       bodyList += '</tr>'
@@ -3726,8 +3726,8 @@ export default class extends Controller {
       bodyList += `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${totalEstimateOutgoing}</td>` +
         `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${estimateOutUSDTotal > 0 ? '$' : ''}${totalEstimateOutUSDgoing}</td>` +
         '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
-        `<td class="va-mid ps-2 text-right-i fw-600 fs-13i treasury-content-cell">${unaccountedTotal <= 0 ? '-' : humanize.formatToLocalString(unaccountedTotal / 100000000, 2, 2)}</td>` +
-        `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${unaccountedUSDTotal > 0 ? '$' + humanize.formatToLocalString(unaccountedUSDTotal, 2, 2) : '-'}</td>`
+        `<td class="va-mid ps-2 text-right-i fw-600 fs-13i treasury-content-cell">${unaccountedTotal === 0 ? '-' : (unaccountedTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedTotal / 100000000), 2, 2)}</td>` +
+        `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${unaccountedUSDTotal === 0 ? '-' : (unaccountedUSDTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedUSDTotal), 2, 2)}</td>`
     }
     bodyList += '</tr>'
     tbody = tbody.replace('###', bodyList)
