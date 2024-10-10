@@ -26,6 +26,7 @@ let treasuryBalanceMap = null
 let treasuryYearlyBalanceMap = null
 let adminBalanceMap = null
 let adminYearlyBalanceMap = null
+let treasurySummaryMap = null
 let redrawChart = true
 let domainChartZoom
 let treasuryChartZoom
@@ -3017,6 +3018,62 @@ export default class extends Controller {
     return num.toFixed(2) === '0.00'
   }
 
+  showIngoingTaddTooltip (e) {
+    const target = e.target
+    const data = target.dataset.show
+    if (!data || data === '') {
+      return
+    }
+    const dataArr = data.split(';')
+    if (dataArr.length < 2) {
+      return
+    }
+    const tooltipText = target.getElementsByClassName('tooltiptext')[0]
+    if (!tooltipText) {
+      return
+    }
+    if (target.classList.contains('active')) {
+      target.classList.remove('active')
+      tooltipText.style.visibility = 'hidden'
+    } else {
+      target.classList.add('active')
+      tooltipText.style.visibility = 'visible'
+      const textElement = tooltipText.getElementsByClassName('tooltip-text')[0]
+      if (!textElement) {
+        return
+      }
+      textElement.innerHTML = `<p>Decentralized Treasury received <span class="fw-600">${humanize.formatToLocalString(Number(dataArr[0]), 2, 2)} DCR(~$${humanize.formatToLocalString(Number(dataArr[1]), 2, 2)})</span> from Admin Treasury</p>`
+    }
+  }
+
+  showOutgoingTaddTooltip (e) {
+    const target = e.target
+    const data = target.dataset.show
+    if (!data || data === '') {
+      return
+    }
+    const dataArr = data.split(';')
+    if (dataArr.length < 2) {
+      return
+    }
+    const tooltipText = target.getElementsByClassName('tooltiptext')[0]
+    if (!tooltipText) {
+      return
+    }
+    if (target.classList.contains('active')) {
+      target.classList.remove('active')
+      tooltipText.style.visibility = 'hidden'
+    } else {
+      target.classList.add('active')
+      tooltipText.style.visibility = 'visible'
+      const textElement = tooltipText.getElementsByClassName('tooltip-text')[0]
+      if (!textElement) {
+        return
+      }
+      textElement.innerHTML = `<p>Admin Treasury sent <span class="fw-600">${humanize.formatToLocalString(Number(dataArr[0]), 2, 2)} DCR(~$${humanize.formatToLocalString(Number(dataArr[1]), 2, 2)})</span> to Decentralized Treasury</p>`
+    }
+  }
+
   showUnaccountedUSDTooltip (e) {
     const target = e.target
     const data = target.dataset.show
@@ -3124,6 +3181,13 @@ export default class extends Controller {
     }
     if (!data.treasurySummary && !data.legacySummary) {
       return
+    }
+    // init treasury summary map
+    if (treasurySummaryMap === null) {
+      treasurySummaryMap = new Map()
+      data.treasurySummary.forEach(treasury => {
+        treasurySummaryMap.set(treasury.month, treasury)
+      })
     }
     let treasuryData = this.getTreasuryDataWithType(data)
     // if not init combined, hanlder data
@@ -3280,6 +3344,18 @@ export default class extends Controller {
     const timeArr = []
     // return combined data
     const combinedDataMap = new Map()
+    if (treasurySummaryMap === null) {
+      if (data.treasurySummary) {
+        data.treasurySummary.forEach((treasury) => {
+          timeArr.push(treasury.month)
+          const tmpTreasury = {}
+          Object.assign(tmpTreasury, treasury)
+          combinedDataMap.set(treasury.month, tmpTreasury)
+        })
+      }
+    } else {
+      for (const key in treasurySummaryMap) { combinedDataMap[key] = treasurySummaryMap[key] }
+    }
     if (data.treasurySummary) {
       data.treasurySummary.forEach((treasury) => {
         timeArr.push(treasury.month)
@@ -3453,6 +3529,7 @@ export default class extends Controller {
   createTreasuryLegacyTableContent (summary, treasurySummary, legacySummary) {
     const isLegacy = this.settings.ttype === 'legacy'
     const isCombined = !this.settings.ttype || this.settings.ttype === '' || this.settings.ttype === 'combined'
+    const isDecentralized = this.settings.ttype === 'current'
     // create row 1
     let thead = '<col><colgroup span="2"></colgroup><thead>' +
       '<tr class="text-secondary finance-table-header">' +
@@ -3555,7 +3632,18 @@ export default class extends Controller {
       outUSDTotal += item.outvalueUSD
       estimateOutTotal += item.outEstimate
       estimateOutUSDTotal += item.outEstimateUsd
-
+      let taddValue = 0
+      let taddValueUSD = 0
+      if (isLegacy) {
+        if (treasurySummaryMap.has(item.month)) {
+          const existTreasury = treasurySummaryMap.get(item.month)
+          taddValue = existTreasury.taddValue
+          taddValueUSD = existTreasury.taddValueUSD
+        }
+      } else {
+        taddValue = item.taddValue
+        taddValueUSD = item.taddValueUSD
+      }
       const netNegative = item.outvalue > item.invalue
       const incomDisplay = item.invalue <= 0 ? '-' : humanize.formatToLocalString((item.invalue / 100000000), 2, 2)
       const incomUSDDisplay = item.invalue <= 0 ? '' : humanize.formatToLocalString(item.invalueUSD, 2, 2)
@@ -3567,16 +3655,24 @@ export default class extends Controller {
       const balanceUSDDisplay = item.balance <= 0 ? '' : humanize.formatToLocalString(item.balanceUSD, 2, 2)
       let incomeHref = ''
       let outcomeHref = ''
-      if (isLegacy || _this.settings.ttype === 'current') {
+      if (!isCombined) {
         incomeHref = item.invalue > 0 ? item.creditLink : ''
         outcomeHref = item.outvalue > 0 ? item.debitLink : ''
       }
       bodyList += '<tr class="odd-even-row">' +
         `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
-        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell ${!isLegacy && taddValue > 0 ? 'special-cell' : ''}">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}`
+      if (!isLegacy && taddValue > 0) {
+        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showIngoingTaddTooltip" data-show="${(taddValue / 1e8) + ';' + taddValueUSD}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
+      }
+      bodyList += '</td>' +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' + incomUSDDisplay : '-'}</td>` +
-        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}</td>` +
+        `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell ${!isDecentralized && taddValue > 0 ? 'special-cell' : ''}">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}`
+      if (!isDecentralized && taddValue > 0) {
+        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showOutgoingTaddTooltip" data-show="${(taddValue / 1e8) + ';' + taddValueUSD}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
+      }
+      bodyList += '</td>' +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' + outcomeUSDDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceDisplay !== '' ? differenceDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${netNegative ? '-' : ''}${differenceUSDDisplay !== '' ? '$' + differenceUSDDisplay : '-'}</td>` +
