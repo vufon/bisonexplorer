@@ -3283,23 +3283,37 @@ export default class extends Controller {
     if (data.treasurySummary) {
       data.treasurySummary.forEach((treasury) => {
         timeArr.push(treasury.month)
-        combinedDataMap.set(treasury.month, treasury)
+        const tmpTreasury = {}
+        Object.assign(tmpTreasury, treasury)
+        combinedDataMap.set(treasury.month, tmpTreasury)
       })
     }
     if (data.legacySummary) {
       data.legacySummary.forEach((legacy) => {
         if (!timeArr.includes(legacy.month)) {
           timeArr.push(legacy.month)
-          combinedDataMap.set(legacy.month, legacy)
+          const tmpLegacy = {}
+          Object.assign(tmpLegacy, legacy)
+          combinedDataMap.set(legacy.month, tmpLegacy)
         } else if (combinedDataMap.has(legacy.month)) {
           // if has in array (in map)
           const item = combinedDataMap.get(legacy.month)
-          item.invalue += legacy.invalue
-          item.invalueUSD += legacy.invalueUSD
+          let treasuryInvalue = item.invalue
+          let legacyOutValue = legacy.outvalue
+          let treasuryInvalueUSD = item.invalueUSD
+          let legacyOutValueUSD = legacy.outvalueUSD
+          if (item.taddValue && item.taddValue > 0) {
+            treasuryInvalue = item.invalue - item.taddValue
+            legacyOutValue = legacy.outvalue - item.taddValue
+            treasuryInvalueUSD = item.invalueUSD - item.taddValueUSD
+            legacyOutValueUSD = legacy.outvalueUSD - item.taddValueUSD
+          }
+          item.invalue = treasuryInvalue + legacy.invalue
+          item.invalueUSD = treasuryInvalueUSD + legacy.invalueUSD
+          item.outvalue += legacyOutValue
+          item.outvalueUSD += legacyOutValueUSD
           item.total += legacy.total
           item.totalUSD += legacy.totalUSD
-          item.outvalue += legacy.outvalue
-          item.outvalueUSD += legacy.outvalueUSD
           item.difference = Math.abs(item.invalue - item.outvalue)
           item.differenceUSD = (item.difference / 100000000) * item.monthPrice
           combinedDataMap.set(legacy.month, item)
