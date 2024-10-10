@@ -235,7 +235,7 @@ export default class extends Controller {
       'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea', 'unaccountedValueArea']
   }
 
-  async connect () {
+  async connectData () {
     ctrl = this
     ctrl.retrievedData = {}
     ctrl.ajaxing = false
@@ -270,26 +270,26 @@ export default class extends Controller {
       ctrl.settings.bin = ctrl.defaultSettings.bin
       ctrl.settings.flow = ctrl.defaultSettings.flow
     }
-    if (!ctrl.optionsTarget.value) {
+    if (ctrl.isNullValue(ctrl.optionsTarget.value)) {
       ctrl.optionsTarget.value = 'balance'
     }
     // Get initial view settings from the url
     ctrl.setChartType()
-    if (ctrl.settings.flow) {
+    if (!ctrl.isNullValue(ctrl.settings.flow)) {
       ctrl.setFlowChecks()
     } else {
       ctrl.settings.flow = ctrl.defaultSettings.flow
       ctrl.setFlowChecks()
     }
-    if (ctrl.settings.zoom !== null) {
+    if (!ctrl.isNullValue(ctrl.settings.zoom)) {
       ctrl.zoomButtons.forEach((button) => {
         button.classList.remove('btn-selected')
       })
     }
-    if (ctrl.settings.bin == null) {
+    if (ctrl.isNullValue(ctrl.settings.bin)) {
       ctrl.settings.bin = ctrl.getBin()
     }
-    if (ctrl.settings.chart == null || !ctrl.validChartType(ctrl.settings.chart)) {
+    if (ctrl.isNullValue(ctrl.settings.chart) || !ctrl.validChartType(ctrl.settings.chart)) {
       ctrl.settings.chart = ctrl.chartType
     }
     Dygraph = await getDefault(
@@ -959,16 +959,21 @@ export default class extends Controller {
       dstype: 'pname',
       dorder: 'desc'
     }
+    mainReportInitialized = false
+    detailReportSettingsState = undefined
+    mainReportSettingsState = undefined
     this.query.update(this.settings)
-    if (!this.settings.type) {
+    if (this.isNullValue(this.settings.type)) {
       this.settings.type = this.defaultSettings.type
     }
     await this.initTimeSelect()
     if (this.settings.type === 'bytime') {
       this.initReportDetailData()
+      this.connectData()
       return
     }
-    this.initMainFinancialReport()
+    await this.initMainFinancialReport()
+    await this.connectData()
   }
 
   async initTimeSelect () {
@@ -1004,6 +1009,7 @@ export default class extends Controller {
     treasuryChartFlow = undefined
     combinedChartFlow = undefined
     adminChartFlow = undefined
+    isSearching = false
     await this.initData()
     this.isMonthDisplay = this.isTreasuryReport() ? true : this.isProposalMonthReport() || this.isAuthorMonthGroup()
     const tooltipElements = document.getElementsByClassName('cell-tooltip')
@@ -1106,13 +1112,13 @@ export default class extends Controller {
     this.proposalSelectTypeTarget.classList.add('d-none')
     this.selectTreasuryTypeTarget.classList.add('d-none')
     this.yearMonthSelectorTarget.classList.remove('d-none')
-    if (!this.settings.dorder) {
+    if (this.isNullValue(this.settings.dorder)) {
       this.settings.dorder = this.defaultSettings.dorder
     }
-    if (!this.settings.dtype) {
+    if (this.isNullValue(this.settings.dtype)) {
       this.settings.dtype = this.defaultSettings.dtype
     }
-    if (!this.settings.dtime || this.settings.dtime === '') {
+    if (this.isNullValue(this.settings.dtime)) {
       // init dtime is now
       const now = new Date()
       const year = now.getFullYear()
@@ -1176,7 +1182,7 @@ export default class extends Controller {
     this.mainReportTopAreaTarget.classList.remove('d-none')
     this.yearMonthSelectorTarget.classList.add('d-none')
     this.reportParentContainerTarget.classList.remove('d-none')
-    if ((!this.settings.type || this.settings.type === 'proposal' || this.settings.type === 'summary') && !this.isDomainType()) {
+    if ((this.isNullValue(this.settings.type) || this.settings.type === 'proposal' || this.settings.type === 'summary') && !this.isDomainType()) {
       this.defaultSettings.tsort = 'oldest'
     } else {
       this.defaultSettings.tsort = 'newest'
@@ -1184,13 +1190,13 @@ export default class extends Controller {
     if ((typeof this.settings.active) !== 'boolean') {
       this.settings.active = this.defaultSettings.active
     }
-    if (!this.settings.ptype) {
+    if (this.isNullValue(this.settings.ptype)) {
       this.settings.ptype = this.defaultSettings.ptype
     }
-    if (!this.settings.pgroup) {
+    if (this.isNullValue(this.settings.pgroup)) {
       this.settings.pgroup = this.defaultSettings.pgroup
     }
-    if (this.settings.type && this.settings.type === 'treasury') {
+    if (!this.isNullValue(this.settings.type) && this.settings.type === 'treasury') {
       this.defaultSettings.stype = ''
     }
 
@@ -1207,10 +1213,10 @@ export default class extends Controller {
         rTypeTarget.classList.add('active')
       }
     })
-    if (!this.settings.interval) {
+    if (this.isNullValue(this.settings.interval)) {
       this.settings.interval = this.defaultSettings.interval
     }
-    if (!this.settings.ttype) {
+    if (this.isNullValue(this.settings.ttype)) {
       this.settings.ttype = this.defaultSettings.ttype
     }
     if (this.settings.search) {
@@ -1231,7 +1237,7 @@ export default class extends Controller {
       })
     }
 
-    if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
+    if (this.isNullValue(this.settings.type) || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       const $scroller = document.getElementById('scroller')
       const $container = document.getElementById('containerBody')
       const $wrapper = document.getElementById('wrapperReportTable')
@@ -1434,7 +1440,7 @@ export default class extends Controller {
     this.changedTType = e.target.name
     redrawChart = true
     await this.initData()
-    await this.connect()
+    await this.connectData()
   }
 
   async reportTypeChange (e) {
@@ -1466,7 +1472,7 @@ export default class extends Controller {
     } else {
       await this.initData()
     }
-    await this.connect()
+    await this.connectData()
   }
 
   async proposalTypeChange (e) {
@@ -1490,7 +1496,7 @@ export default class extends Controller {
     }
     this.settings.stype = this.defaultSettings.stype
     await this.initData()
-    await this.connect()
+    await this.connectData()
   }
 
   isProposalGroup () {
@@ -3766,7 +3772,7 @@ export default class extends Controller {
       this.settings.usd = false
     }
 
-    if (this.settings.type === '' || this.settings.type === 'proposal' || this.settings.type === 'summary') {
+    if (this.isNullValue(this.settings.type) || this.settings.type === 'proposal' || this.settings.type === 'summary') {
       this.proposalSelectTypeTarget.classList.remove('d-none')
       document.getElementById('nameMonthSwitchInput').checked = this.isMonthDisplay
       if ((this.settings.pgroup === 'proposals' && this.settings.type === 'summary') || (this.settings.pgroup === 'authors' && this.settings.ptype === 'list')) {
@@ -4684,6 +4690,10 @@ export default class extends Controller {
       res.push(Number(timeArr[1]))
     }
     return res
+  }
+
+  isNullValue (value) {
+    return value === null || value === undefined || (typeof value === 'string' && value === '')
   }
 
   get chartType () {
