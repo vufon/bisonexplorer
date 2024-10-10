@@ -3554,7 +3554,7 @@ export default class extends Controller {
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>'
     if (isCombined) {
       thead += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Dev Spent (Est)</th>' +
-        '<th rowspan="2" class="va-mid text-right-i ps-0 fs-13i px-2 fw-600 treasury-content-cell">Dev Spent (%)</th>' +
+        '<th rowspan="2" class="va-mid text-right-i fs-13i px-2 fw-600 treasury-content-cell">Dev Spent (%)</th>' +
         '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Unaccounted (Est)</th>'
       row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
         '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
