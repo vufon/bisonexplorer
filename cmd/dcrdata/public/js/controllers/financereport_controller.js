@@ -3186,7 +3186,9 @@ export default class extends Controller {
     if (treasurySummaryMap === null) {
       treasurySummaryMap = new Map()
       data.treasurySummary.forEach(treasury => {
-        treasurySummaryMap.set(treasury.month, treasury)
+        const tmpTreasury = {}
+        Object.assign(tmpTreasury, treasury)
+        treasurySummaryMap.set(treasury.month, tmpTreasury)
       })
     }
     let treasuryData = this.getTreasuryDataWithType(data)
@@ -3344,17 +3346,13 @@ export default class extends Controller {
     const timeArr = []
     // return combined data
     const combinedDataMap = new Map()
-    if (treasurySummaryMap === null) {
-      if (data.treasurySummary) {
-        data.treasurySummary.forEach((treasury) => {
-          timeArr.push(treasury.month)
-          const tmpTreasury = {}
-          Object.assign(tmpTreasury, treasury)
-          combinedDataMap.set(treasury.month, tmpTreasury)
-        })
-      }
-    } else {
-      for (const key in treasurySummaryMap) { combinedDataMap[key] = treasurySummaryMap[key] }
+    if (data.treasurySummary) {
+      data.treasurySummary.forEach((treasury) => {
+        timeArr.push(treasury.month)
+        const tmpTreasury = {}
+        Object.assign(tmpTreasury, treasury)
+        combinedDataMap.set(treasury.month, tmpTreasury)
+      })
     }
     if (data.legacySummary) {
       data.legacySummary.forEach((legacy) => {
