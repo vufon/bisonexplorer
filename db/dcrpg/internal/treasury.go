@@ -21,24 +21,29 @@ const (
 			time TIMESTAMPTZ NOT NULL,
 			spent_value BIGINT,
 			received_value BIGINT,
+			tadd_value BIGINT,
 			tbase_revert_index INT8,
 			spend_revert_index INT8,
 			saved BOOLEAN
 		);`
 
 	//insert to legacy  address summary table
-	InsertTreasurySummaryRow = `INSERT INTO treasury_summary (time, spent_value, received_value, saved, tbase_revert_index, spend_revert_index)
-			VALUES ($1, $2, $3, $4, $5, $6)`
+	InsertTreasurySummaryRow = `INSERT INTO treasury_summary (time, spent_value, received_value, tadd_value, saved, tbase_revert_index, spend_revert_index)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	//select first from summary table
 	SelectTreasurySummaryRows = `SELECT * FROM treasury_summary ORDER BY time`
 
 	// select only data from summary table
-	SelectTreasurySummaryDataRows = `SELECT time,spent_value,received_value FROM treasury_summary ORDER BY time DESC`
-	SelectSpendRowIndexByMonth    = `SELECT spend_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
-	SelectSpendRowIndexByYear     = `SELECT MAX(spend_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
-	SelectTBaseRowIndexByMonth    = `SELECT tbase_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
-	SelectTBaseRowIndexByYear     = `SELECT MAX(tbase_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectTreasurySummaryDataRows     = `SELECT time,spent_value,received_value,tadd_value FROM treasury_summary ORDER BY time DESC`
+	SelectTreasurySummaryRowsByYearly = `SELECT time,spent_value FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 ORDER BY time DESC`
+	SelectTreasurySummaryYearlyData   = `SELECT SUM(spent_value),SUM(received_value),SUM(tadd_value) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectTreasurySummaryMonthlyData  = `SELECT time,spent_value,received_value,tadd_value FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+
+	SelectSpendRowIndexByMonth = `SELECT spend_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectSpendRowIndexByYear  = `SELECT MAX(spend_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectTBaseRowIndexByMonth = `SELECT tbase_revert_index FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectTBaseRowIndexByYear  = `SELECT MAX(tbase_revert_index) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 	// get timerange of treasury summary
 	SelectTreasuryTimeRange = `SELECT MIN(time), MAX(time) FROM treasury_summary`
 
@@ -49,7 +54,7 @@ WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM tim
 WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 
 	// update spent and total value
-	UpdateTreasurySummaryByTotalAndSpent = `UPDATE treasury_summary SET spent_value = $1, received_value = $2, saved = $3, spend_revert_index = $4, tbase_revert_index = $5 WHERE id = $6`
+	UpdateTreasurySummaryByTotalAndSpent = `UPDATE treasury_summary SET spent_value = $1, received_value = $2, tadd_value = $3, saved = $4, spend_revert_index = $5, tbase_revert_index = $6 WHERE id = $7`
 
 	IndexTreasuryOnTxHash   = `CREATE UNIQUE INDEX ` + IndexOfTreasuryTableOnTxHash + ` ON treasury(tx_hash, block_hash);`
 	DeindexTreasuryOnTxHash = `DROP INDEX ` + IndexOfTreasuryTableOnTxHash + ` CASCADE;`
@@ -156,8 +161,6 @@ WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 		FROM treasury
 		GROUP BY timestamp
 		ORDER BY timestamp;`
-
-	SelectTreasuryAddSummaryByMonth = `SELECT SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type = 4 GROUP BY month`
 
 	SelectTreasurySummaryByMonth = `SELECT ts1.month, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
 	FROM (SELECT SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM treasury WHERE tx_type IN (4,6) GROUP BY month) ts1

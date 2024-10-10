@@ -208,11 +208,12 @@ func (pgb *ChainDB) SyncTreasurySummary() error {
 	sumRows, _ := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryRows)
 	for sumRows.Next() {
 		var addrSum dbtypes.AddressSummaryRow
-		var rowId, spentValue, receivedValue int64
-		err := sumRows.Scan(&rowId, &addrSum.Time, &spentValue, &receivedValue, &addrSum.MonthCreditRowIndex, &addrSum.MonthDebitRowIndex, &addrSum.Saved)
+		var rowId, spentValue, receivedValue, taddValue int64
+		err := sumRows.Scan(&rowId, &addrSum.Time, &spentValue, &receivedValue, &taddValue, &addrSum.MonthCreditRowIndex, &addrSum.MonthDebitRowIndex, &addrSum.Saved)
 		addrSum.Id = uint64(rowId)
 		addrSum.SpentValue = uint64(spentValue)
 		addrSum.ReceivedValue = uint64(receivedValue)
+		addrSum.TAdd = uint64(taddValue)
 		if err == nil {
 			summaryRows = append(summaryRows, &addrSum)
 		}
@@ -269,13 +270,17 @@ func (pgb *ChainDB) SyncTreasurySummary() error {
 		treasuryRows := pgb.ConvertToTreasuryList(rows)
 		received := uint64(0)
 		spent := uint64(0)
+		tadd := uint64(0)
 		for _, treasuryRow := range treasuryRows {
-			if treasuryRow.Type == int(stake.TxTypeTreasuryBase) || treasuryRow.Type == int(stake.TxTypeTAdd) {
+			if treasuryRow.Type == int(stake.TxTypeTreasuryBase) {
 				received += uint64(treasuryRow.Amount)
+			} else if treasuryRow.Type == int(stake.TxTypeTAdd) {
+				tadd += uint64(treasuryRow.Amount)
 			} else if treasuryRow.Type == int(stake.TxTypeTSpend) {
 				spent += uint64(treasuryRow.Amount)
 			}
 		}
+		received += tadd
 		//next month
 		var nextMonth = startTime.AddDate(0, 1, 0)
 		if spent == 0 && received == 0 {
@@ -298,12 +303,13 @@ func (pgb *ChainDB) SyncTreasurySummary() error {
 				Time:                dbtypes.NewTimeDef(startDay),
 				SpentValue:          spent,
 				ReceivedValue:       received,
+				TAdd:                tadd,
 				Saved:               !thisMonth,
 				MonthCreditRowIndex: creditIndex,
 				MonthDebitRowIndex:  debitIndex,
 			}
 			var id uint64
-			pgb.db.QueryRow(internal.InsertTreasurySummaryRow, newSumRow.Time, int64(newSumRow.SpentValue), int64(newSumRow.ReceivedValue), newSumRow.Saved, newSumRow.MonthCreditRowIndex, newSumRow.MonthDebitRowIndex).Scan(&id)
+			pgb.db.QueryRow(internal.InsertTreasurySummaryRow, newSumRow.Time, int64(newSumRow.SpentValue), int64(newSumRow.ReceivedValue), int64(newSumRow.TAdd), newSumRow.Saved, newSumRow.MonthCreditRowIndex, newSumRow.MonthDebitRowIndex).Scan(&id)
 			startTime = nextMonth
 			continue
 		}
@@ -313,11 +319,12 @@ func (pgb *ChainDB) SyncTreasurySummary() error {
 		}
 		summaryRow.SpentValue = spent
 		summaryRow.ReceivedValue = received
+		summaryRow.TAdd = tadd
 		summaryRow.Saved = !thisMonth
 		summaryRow.MonthCreditRowIndex = creditIndex
 		summaryRow.MonthDebitRowIndex = debitIndex
 		//update row
-		pgb.db.Exec(internal.UpdateTreasurySummaryByTotalAndSpent, int64(spent), int64(received), !thisMonth, debitIndex, creditIndex, int64(summaryRow.Id))
+		pgb.db.Exec(internal.UpdateTreasurySummaryByTotalAndSpent, int64(spent), int64(received), int64(tadd), !thisMonth, debitIndex, creditIndex, int64(summaryRow.Id))
 		startTime = nextMonth
 	}
 	pgb.TreasurySummarySyncing = false

@@ -123,7 +123,6 @@ type DataSource interface {
 	GetProposalByToken(token string) (proposalMeta map[string]string, err error)
 	GetProposalByDomain(domain string) (proposalMetaList []map[string]string, err error)
 	GetTreasurySummary() ([]*dbtypes.TreasurySummary, error)
-	GetTreasuryAddSummary() ([]*dbtypes.TreasuryAddSummary, error)
 	GetLegacySummary() ([]*dbtypes.TreasurySummary, error)
 	GetProposalMetaByMonth(year int, month int) (list []map[string]string, err error)
 	GetProposalMetaByYear(year int) (list []map[string]string, err error)
@@ -1839,9 +1838,8 @@ func (c *appContext) getExpenseFromList(list []apitypes.MonthDataObject, month s
 func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 	treasurySummary, err := c.DataSource.GetTreasurySummary()
 	legacySummary, legacyErr := c.DataSource.GetLegacySummary()
-	treasuryAddSummary, treasuryAddErr := c.DataSource.GetTreasuryAddSummary()
 
-	if err != nil || legacyErr != nil || treasuryAddErr != nil {
+	if err != nil || legacyErr != nil {
 		log.Errorf("Get Treasury/Legacy Summary data failed")
 	}
 
@@ -1879,13 +1877,11 @@ func (c *appContext) getTreasuryReport(w http.ResponseWriter, r *http.Request) {
 
 	//Get coin supply value
 	writeJSON(w, struct {
-		TreasurySummary    []*dbtypes.TreasurySummary    `json:"treasurySummary"`
-		LegacySummary      []*dbtypes.TreasurySummary    `json:"legacySummary"`
-		TreasuryAddSummary []*dbtypes.TreasuryAddSummary `json:"treasuryAddSummary"`
+		TreasurySummary []*dbtypes.TreasurySummary `json:"treasurySummary"`
+		LegacySummary   []*dbtypes.TreasurySummary `json:"legacySummary"`
 	}{
-		TreasurySummary:    treasurySummary,
-		LegacySummary:      legacySummary,
-		TreasuryAddSummary: treasuryAddSummary,
+		TreasurySummary: treasurySummary,
+		LegacySummary:   legacySummary,
 	}, m.GetIndentCtx(r))
 }
 

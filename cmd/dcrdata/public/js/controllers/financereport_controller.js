@@ -3283,44 +3283,14 @@ export default class extends Controller {
     if (data.treasurySummary) {
       data.treasurySummary.forEach((treasury) => {
         timeArr.push(treasury.month)
-        // create object and insert to map
-        const item = {
-          month: treasury.month,
-          invalue: treasury.invalue,
-          invalueUSD: treasury.invalueUSD,
-          outvalue: treasury.outvalue,
-          outvalueUSD: treasury.outvalueUSD,
-          difference: treasury.difference,
-          differenceUSD: treasury.differenceUSD,
-          total: treasury.total,
-          totalUSD: treasury.totalUSD,
-          outEstimate: treasury.outEstimate,
-          outEstimateUsd: treasury.outEstimateUsd,
-          monthPrice: treasury.monthPrice
-        }
-        combinedDataMap.set(treasury.month, item)
+        combinedDataMap.set(treasury.month, treasury)
       })
     }
     if (data.legacySummary) {
       data.legacySummary.forEach((legacy) => {
         if (!timeArr.includes(legacy.month)) {
           timeArr.push(legacy.month)
-          // create object and insert to map
-          const item = {
-            month: legacy.month,
-            invalue: legacy.invalue,
-            invalueUSD: legacy.invalueUSD,
-            outvalue: legacy.outvalue,
-            outvalueUSD: legacy.outvalueUSD,
-            difference: legacy.difference,
-            differenceUSD: legacy.differenceUSD,
-            total: legacy.total,
-            totalUSD: legacy.totalUSD,
-            outEstimate: legacy.outEstimate,
-            outEstimateUsd: legacy.outEstimateUsd,
-            monthPrice: legacy.monthPrice
-          }
-          combinedDataMap.set(legacy.month, item)
+          combinedDataMap.set(legacy.month, legacy)
         } else if (combinedDataMap.has(legacy.month)) {
           // if has in array (in map)
           const item = combinedDataMap.get(legacy.month)

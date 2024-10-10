@@ -2330,8 +2330,7 @@ func (pgb *ChainDB) GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, 
 
 func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary, error) {
 	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByYear, year)
-
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryYearlyData, year)
 	if err != nil {
 		return nil, err
 	}
@@ -2344,8 +2343,7 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 
 	for rows.Next() {
 		hasData = true
-		var yearTime dbtypes.TimeDef
-		err = rows.Scan(&yearTime, &summary.Invalue, &summary.Outvalue)
+		err = rows.Scan(&summary.Invalue, &summary.Outvalue, &summary.TaddValue)
 		if err != nil {
 			return nil, err
 		}
@@ -2395,12 +2393,13 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 	summary.OutvalueUSD = average * float64(summary.Outvalue) / 1e8
 	summary.DifferenceUSD = average * float64(summary.Difference) / 1e8
 	summary.TotalUSD = average * float64(summary.Total) / 1e8
+	summary.TaddValueUSD = average * float64(summary.TaddValue) / 1e8
 	return &summary, nil
 }
 
 func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasuryMonthDataObject, error) {
 	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectYearlyTreasuryGroupByMonth, year)
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryRowsByYearly, year)
 	if err != nil {
 		return nil, err
 	}
@@ -2506,7 +2505,7 @@ func (pgb *ChainDB) GetLegacySummaryByMonth(year int, month int) (*dbtypes.Treas
 
 func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error) {
 	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryByMonth, year, month)
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryMonthlyData, year, month)
 	if err != nil {
 		return nil, err
 	}
@@ -2519,7 +2518,7 @@ func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.Tre
 	for rows.Next() {
 		hasData = true
 		var time dbtypes.TimeDef
-		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue)
+		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue, &summary.TaddValue)
 		if err != nil {
 			return nil, err
 		}
@@ -2553,6 +2552,7 @@ func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.Tre
 	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
 	summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
 	summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
+	summary.TaddValueUSD = monthPrice * float64(summary.TaddValue) / 1e8
 	summary.MonthPrice = monthPrice
 	return &summary, nil
 }
@@ -2596,7 +2596,7 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 	for rows.Next() {
 		var summary = dbtypes.TreasurySummary{}
 		var time dbtypes.TimeDef
-		err := rows.Scan(&time, &summary.Outvalue, &summary.Invalue)
+		err := rows.Scan(&time, &summary.Outvalue, &summary.Invalue, &summary.TaddValue)
 		if err != nil {
 			return nil, err
 		}
@@ -2638,6 +2638,7 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		summary.DifferenceUSD = monthPrice * float64(summary.Difference) / 1e8
 		summary.BalanceUSD = monthPrice * float64(summary.Balance) / 1e8
 		summary.TotalUSD = monthPrice * float64(summary.Total) / 1e8
+		summary.TaddValueUSD = monthPrice * float64(summary.TaddValue) / 1e8
 		summary.MonthPrice = monthPrice
 		//get select index by month
 		//select index by month
@@ -2659,35 +2660,6 @@ func (pgb *ChainDB) GetTreasurySummary() ([]*dbtypes.TreasurySummary, error) {
 		summary.CreditLink = creditLink
 		summary.DebitLink = debitLink
 	}
-	return summaryList, nil
-}
-
-// Get treasury summary data
-func (pgb *ChainDB) GetTreasuryAddSummary() ([]*dbtypes.TreasuryAddSummary, error) {
-	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasuryAddSummaryByMonth)
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var summaryList []*dbtypes.TreasuryAddSummary
-	for rows.Next() {
-		var summary = dbtypes.TreasuryAddSummary{}
-		var time dbtypes.TimeDef
-		err = rows.Scan(&summary.Invalue, &time)
-		if err != nil {
-			return nil, err
-		}
-		summary.Month = time.Format("2006-01")
-		summaryList = append(summaryList, &summary)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-
 	return summaryList, nil
 }
 

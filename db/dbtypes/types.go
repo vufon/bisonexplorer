@@ -1086,6 +1086,7 @@ type AddressSummaryRow struct {
 	Time                TimeDef
 	SpentValue          uint64
 	ReceivedValue       uint64
+	TAdd                uint64
 	Saved               bool
 	MonthCreditRowIndex int64
 	MonthDebitRowIndex  int64
@@ -2158,11 +2159,6 @@ type TreasuryTx struct {
 	Status      string
 }
 
-type TreasuryAddSummary struct {
-	Month   string `json:"month"`
-	Invalue int64  `json:"invalue"`
-}
-
 type TreasurySummary struct {
 	Month           string    `json:"month"`
 	MonthTime       time.Time `json:"monthTime"`
@@ -2170,6 +2166,8 @@ type TreasurySummary struct {
 	InvalueUSD      float64   `json:"invalueUSD"`
 	Outvalue        int64     `json:"outvalue"`
 	OutvalueUSD     float64   `json:"outvalueUSD"`
+	TaddValue       int64     `json:"taddValue"`
+	TaddValueUSD    float64   `json:"taddValueUSD"`
 	Difference      int64     `json:"difference"`
 	DifferenceUSD   float64   `json:"differenceUSD"`
 	Balance         int64     `json:"balance"`
