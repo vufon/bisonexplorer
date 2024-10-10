@@ -129,7 +129,7 @@ type DataSource interface {
 	GetTreasurySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error)
 	GetLegacySummaryByMonth(year int, month int) (*dbtypes.TreasurySummary, error)
 	GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
-	GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasuryMonthDataObject, error)
+	GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasurySummary, error)
 	GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, error)
 	GetAllProposalDomains() []string
 	GetAllProposalOwners() []string
@@ -140,6 +140,7 @@ type DataSource interface {
 	GetTreasuryTimeRange() (int64, int64, error)
 	GetLegacyTimeRange() (int64, int64, error)
 	GetMonthlyPrice(year, month int) (float64, error)
+	GetLegacySummaryGroupByMonth(year int) ([]dbtypes.TreasurySummary, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -1666,7 +1667,6 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			report = append(report, varMonthData)
 		}
 	}
-	var treasuryGroupByMonth []dbtypes.TreasuryMonthDataObject
 	if timeType == "year" {
 		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
 		if yearErr != nil {
@@ -1674,14 +1674,55 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			return
 		}
 		proposalMetaList, proposalErr := c.DataSource.GetProposalMetaByYear(int(year))
-		treasuryData, treasuryErr := c.DataSource.GetTreasurySummaryByYear(int(year))
-		treasuryGroupByMonth, _ = c.DataSource.GetTreasurySummaryGroupByMonth(int(year))
-		legacyData, legacyErr := c.DataSource.GetLegacySummaryByYear(int(year))
-		treasurySummary = *treasuryData
-		legacySummary = *legacyData
-		if proposalErr != nil || treasuryErr != nil || legacyErr != nil {
+		treasuryGroupByMonth, _ := c.DataSource.GetTreasurySummaryGroupByMonth(int(year))
+		legacyGroupByMonth, _ := c.DataSource.GetLegacySummaryGroupByMonth(int(year))
+		if proposalErr != nil {
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
+		}
+		combinedMap := make(map[string]dbtypes.TreasurySummary)
+		treasurySummary = dbtypes.TreasurySummary{}
+		legacySummary = dbtypes.TreasurySummary{}
+		for _, treasuryItem := range treasuryGroupByMonth {
+			treasuryItem.Invalue -= treasuryItem.TaddValue
+			treasuryItem.InvalueUSD -= treasuryItem.TaddValueUSD
+			treasurySummary.Invalue += treasuryItem.Invalue
+			treasurySummary.InvalueUSD += treasuryItem.InvalueUSD
+			treasurySummary.Outvalue += treasuryItem.Outvalue
+			treasurySummary.OutvalueUSD += treasuryItem.OutvalueUSD
+			treasurySummary.Difference += treasuryItem.Difference
+			treasurySummary.DifferenceUSD += treasuryItem.DifferenceUSD
+			treasurySummary.Total += treasuryItem.Total
+			treasurySummary.TotalUSD += treasuryItem.TotalUSD
+			treasurySummary.TaddValue += treasuryItem.TaddValue
+			treasurySummary.TaddValueUSD += treasuryItem.TaddValueUSD
+			combinedMap[treasuryItem.Month] = treasuryItem
+		}
+		for _, legacyItem := range legacyGroupByMonth {
+			tSummary, exist := combinedMap[legacyItem.Month]
+			if exist {
+				legacyItem.Outvalue -= tSummary.TaddValue
+				legacyItem.OutvalueUSD -= tSummary.TaddValueUSD
+				tSummary.Invalue += legacyItem.Invalue
+				tSummary.InvalueUSD += legacyItem.InvalueUSD
+				tSummary.Outvalue += legacyItem.Outvalue
+				tSummary.OutvalueUSD += legacyItem.OutvalueUSD
+				tSummary.Difference = int64(math.Abs(float64(tSummary.Invalue - tSummary.Outvalue)))
+				tSummary.DifferenceUSD = math.Abs(tSummary.InvalueUSD - tSummary.OutvalueUSD)
+				tSummary.Total = int64(math.Abs(float64(tSummary.Invalue + tSummary.Outvalue)))
+				tSummary.TotalUSD = math.Abs(tSummary.InvalueUSD + tSummary.OutvalueUSD)
+				combinedMap[legacyItem.Month] = tSummary
+			} else {
+				combinedMap[legacyItem.Month] = legacyItem
+			}
+			legacySummary.Invalue += legacyItem.Invalue
+			legacySummary.InvalueUSD += legacyItem.InvalueUSD
+			legacySummary.Outvalue += legacyItem.Outvalue
+			legacySummary.OutvalueUSD += legacyItem.OutvalueUSD
+			legacySummary.Difference += legacyItem.Difference
+			legacySummary.DifferenceUSD += legacyItem.DifferenceUSD
+			legacySummary.Total += legacyItem.Total
+			legacySummary.TotalUSD += legacyItem.TotalUSD
 		}
 		//get month rate map of year
 		startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
@@ -1851,7 +1892,11 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		for timeTemp.Year() == int(year) {
 			monthStr := timeTemp.Format("2006-01")
 			expense := c.getExpenseFromList(monthDatas, monthStr)
-			actualExpense := c.getActualExpenseFromList(treasuryGroupByMonth, monthStr)
+			treasuryCombined, exist := combinedMap[monthStr]
+			actualExpense := float64(0)
+			if exist {
+				actualExpense = treasuryCombined.OutvalueUSD
+			}
 			if expense == 0 && actualExpense == 0 {
 				timeTemp = timeTemp.AddDate(0, 1, 0)
 				continue
@@ -1886,10 +1931,10 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 	}, m.GetIndentCtx(r))
 }
 
-func (c *appContext) getActualExpenseFromList(list []dbtypes.TreasuryMonthDataObject, month string) float64 {
+func (c *appContext) getActualExpenseFromList(list []dbtypes.TreasurySummary, month string) float64 {
 	for _, item := range list {
 		if item.Month == month {
-			return item.Expense
+			return item.OutvalueUSD
 		}
 	}
 	return 0

@@ -36,7 +36,7 @@ const (
 
 	// select only data from summary table
 	SelectTreasurySummaryDataRows     = `SELECT time,spent_value,received_value,tadd_value FROM treasury_summary ORDER BY time DESC`
-	SelectTreasurySummaryRowsByYearly = `SELECT time,spent_value FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 ORDER BY time DESC`
+	SelectTreasurySummaryRowsByYearly = `SELECT time,spent_value,received_value,tadd_value FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 ORDER BY time DESC`
 	SelectTreasurySummaryYearlyData   = `SELECT SUM(spent_value),SUM(received_value),SUM(tadd_value) FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 	SelectTreasurySummaryMonthlyData  = `SELECT time,spent_value,received_value,tadd_value FROM treasury_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
 

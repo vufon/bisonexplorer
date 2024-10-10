@@ -2263,6 +2263,45 @@ func (pgb *ChainDB) TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes
 	}, nil
 }
 
+func (pgb *ChainDB) GetLegacySummaryGroupByMonth(year int) ([]dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryYearDataGroupByMonth, year)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var dataObjList = make([]dbtypes.TreasurySummary, 0)
+	startOfYear := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+	var now = time.Now()
+	endOfYear := time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
+	if now.Year() == year {
+		endOfYear = now
+	}
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
+	for rows.Next() {
+		var monthTime dbtypes.TimeDef
+		var monthSummary dbtypes.TreasurySummary
+		err = rows.Scan(&monthTime, &monthSummary.Outvalue, &monthSummary.Invalue)
+		if err != nil {
+			return nil, err
+		}
+		month := monthTime.Format("2006-01")
+		monthPrice := monthPriceMap[month]
+		monthSummary.Month = month
+		difference := math.Abs(float64(monthSummary.Invalue - monthSummary.Outvalue))
+		total := monthSummary.Invalue + monthSummary.Outvalue
+		monthSummary.InvalueUSD = monthPrice * float64(monthSummary.Invalue) / 1e8
+		monthSummary.OutvalueUSD = monthPrice * float64(monthSummary.Outvalue) / 1e8
+		monthSummary.Difference = int64(difference)
+		monthSummary.DifferenceUSD = monthPrice * float64(monthSummary.Difference) / 1e8
+		monthSummary.Total = int64(total)
+		monthSummary.TotalUSD = monthPrice * float64(monthSummary.Total) / 1e8
+		dataObjList = append(dataObjList, monthSummary)
+	}
+
+	return dataObjList, nil
+}
+
 func (pgb *ChainDB) GetLegacySummaryByYear(year int) (*dbtypes.TreasurySummary, error) {
 	var rows *sql.Rows
 	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataByYear, year)
@@ -2397,7 +2436,7 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 	return &summary, nil
 }
 
-func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasuryMonthDataObject, error) {
+func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasurySummary, error) {
 	var rows *sql.Rows
 	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryRowsByYearly, year)
 	if err != nil {
@@ -2405,7 +2444,7 @@ func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.Treasury
 	}
 	defer rows.Close()
 
-	var dataObjList = make([]dbtypes.TreasuryMonthDataObject, 0)
+	var dataObjList = make([]dbtypes.TreasurySummary, 0)
 	startOfYear := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
 	var now = time.Now()
 	endOfYear := time.Date(year+1, 1, 0, 0, 0, 0, 0, time.Local)
@@ -2415,18 +2454,26 @@ func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.Treasury
 	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfYear, endOfYear, true)
 	for rows.Next() {
 		var time dbtypes.TimeDef
-		var outValue int64
-		err = rows.Scan(&time, &outValue)
+		var outValue, inValue, tadd int64
+		err = rows.Scan(&time, &outValue, &inValue, &tadd)
 		if err != nil {
 			return nil, err
 		}
 		month := time.Format("2006-01")
 		monthPrice := monthPriceMap[month]
-		dataObj := dbtypes.TreasuryMonthDataObject{
-			Month:      month,
-			ExpenseDCR: -outValue,
-			Expense:    monthPrice * float64(-outValue) / 1e8,
+		dataObj := dbtypes.TreasurySummary{
+			Month:        month,
+			Outvalue:     -outValue,
+			OutvalueUSD:  monthPrice * float64(-outValue) / 1e8,
+			Invalue:      inValue,
+			InvalueUSD:   monthPrice * float64(inValue) / 1e8,
+			TaddValue:    tadd,
+			TaddValueUSD: monthPrice * float64(tadd) / 1e8,
+			Difference:   int64(math.Abs(float64(inValue + outValue))),
+			Total:        inValue - outValue,
 		}
+		dataObj.DifferenceUSD = monthPrice * float64(dataObj.Difference) / 1e8
+		dataObj.TotalUSD = monthPrice * float64(dataObj.Total) / 1e8
 		dataObjList = append(dataObjList, dataObj)
 	}
 

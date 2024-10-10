@@ -2183,9 +2183,13 @@ type TreasurySummary struct {
 }
 
 type TreasuryMonthDataObject struct {
-	Month      string  `json:"month"`
-	ExpenseDCR int64   `json:"expenseDCR"`
-	Expense    float64 `json:"expense"`
+	Month       string  `json:"month"`
+	ExpenseDCR  int64   `json:"expenseDCR"`
+	Expense     float64 `json:"expense"`
+	ReceivedDCR int64   `json:"receivedDCR"`
+	Received    float64 `json:"received"`
+	TaddDCR     int64   `json:"taddDCR"`
+	Tadd        float64 `json:"tadd"`
 }
 
 type BitDegreeOhlcResponse struct {

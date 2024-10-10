@@ -37,15 +37,18 @@ const (
 	SelectAddressSummaryRows = `SELECT * FROM address_summary ORDER BY time`
 
 	//select only data from summary table
-	SelectAddressSummaryDataRows = `SELECT time,spent_value,received_value FROM address_summary ORDER BY time DESC`
-	SelectDebitRowIndexByMonth   = `SELECT debit_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
-	SelectDebitRowIndexByYear    = `SELECT MAX(debit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
-	SelectCreditRowIndexByMonth  = `SELECT credit_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
-	SelectCreditRowIndexByYear   = `SELECT MAX(credit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectAddressSummaryDataRows  = `SELECT time,spent_value,received_value FROM address_summary ORDER BY time DESC`
+	SelectDebitRowIndexByMonth    = `SELECT debit_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectDebitRowIndexByYear     = `SELECT MAX(debit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
+	SelectCreditRowIndexByMonth   = `SELECT credit_revert_index FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+	SelectCreditRowIndexByYear    = `SELECT MAX(credit_revert_index) FROM address_summary WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 	SelectAddressSummaryTimeRange = `SELECT MIN(time), MAX(time) FROM address_summary`
 
 	SelectAddressSummaryDataByMonth = `SELECT time,spent_value,received_value FROM address_summary 
 	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 AND EXTRACT(MONTH FROM time AT TIME ZONE 'UTC') = $2`
+
+	SelectAddressSummaryYearDataGroupByMonth = `SELECT time,spent_value,received_value FROM address_summary 
+	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1`
 
 	SelectAddressSummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(spent_value) as spent_value,SUM(received_value) as received_value FROM address_summary
 	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
