@@ -12,7 +12,7 @@
          data-financereport-politeia-url="{{.PoliteiaURL}}">
          <div class="finance-report-page fs-16">
             <nav class="breadcrumbs">
-               <a href="/" class="breadcrumbs__item no-underline ps-2">
+               <a href="/" class="breadcrumbs__item no-underline ps-2" data-turbolinks="false">
                <span class="homeicon-tags me-1"></span>
                <span class="link-underline">Homepage</span>
                </a>
@@ -307,11 +307,11 @@
                   <div data-financereport-target="proposalSpanRow">
                   </div>
                   <div class="d-flex">
-                     <a data-financereport-target="toVote" class="d-none d-block" href="#">
+                     <a data-financereport-target="toVote" data-turbolinks="false" class="d-none d-block" href="#">
                      <span class="dcricon-check me-1 py-1"></span>
                      Voting Details
                      </a>
-                     <a data-financereport-target="toDiscussion" class="d-none d-block ms-4" href="#">
+                     <a data-financereport-target="toDiscussion" data-turbolinks="false" class="d-none d-block ms-4" href="#">
                      <span class="dcricon-discussion me-1 py-1"></span>
                      Proposal Details
                      </a>

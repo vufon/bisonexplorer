@@ -1011,7 +1011,8 @@ export default class extends Controller {
     adminChartFlow = undefined
     isSearching = false
     await this.initData()
-    this.isMonthDisplay = this.isTreasuryReport() ? true : this.isProposalMonthReport() || this.isAuthorMonthGroup()
+    this.initScrollerForTable()
+    this.isMonthDisplay = this.isTreasuryReport() || this.isDomainType() ? true : this.isProposalMonthReport() || this.isAuthorMonthGroup()
     const tooltipElements = document.getElementsByClassName('cell-tooltip')
     document.addEventListener('click', function (event) {
       for (let i = 0; i < tooltipElements.length; i++) {
@@ -1236,70 +1237,72 @@ export default class extends Controller {
         }
       })
     }
-
     if (this.isNullValue(this.settings.type) || this.settings.type === 'proposal' || this.settings.type === 'summary') {
-      const $scroller = document.getElementById('scroller')
-      const $container = document.getElementById('containerBody')
-      const $wrapper = document.getElementById('wrapperReportTable')
-      let ignoreScrollEvent = false
-      let animation = null
       this.proposalTypeTargets.forEach((proposalTypeTarget) => {
         proposalTypeTarget.classList.remove('active')
         if ((proposalTypeTarget.name === this.settings.pgroup) || (proposalTypeTarget.name === 'proposals' && !this.settings.pgroup)) {
           proposalTypeTarget.classList.add('active')
         }
       })
-      const scrollbarPositioner = () => {
-        const scrollTop = document.scrollingElement.scrollTop
-        const wrapperTop = $wrapper.offsetTop
-        const wrapperBottom = wrapperTop + $wrapper.offsetHeight
+    }
+  }
 
-        const topMatch = (window.innerHeight + scrollTop) >= wrapperTop
-        const bottomMatch = (scrollTop) <= wrapperBottom
+  async initScrollerForTable () {
+    const $scroller = document.getElementById('scroller')
+    const $container = document.getElementById('containerBody')
+    const $wrapper = document.getElementById('wrapperReportTable')
+    let ignoreScrollEvent = false
+    let animation = null
+    const scrollbarPositioner = () => {
+      const scrollTop = document.scrollingElement.scrollTop
+      const wrapperTop = $wrapper.offsetTop
+      const wrapperBottom = wrapperTop + $wrapper.offsetHeight
 
-        if (topMatch && bottomMatch) {
-          const inside = wrapperBottom >= scrollTop && window.innerHeight + scrollTop <= wrapperBottom
+      const topMatch = (window.innerHeight + scrollTop) >= wrapperTop
+      const bottomMatch = (scrollTop) <= wrapperBottom
 
-          if (inside) {
-            $scroller.style.bottom = '0px'
-          } else {
-            const offset = (scrollTop + window.innerHeight) - wrapperBottom
+      if (topMatch && bottomMatch) {
+        const inside = wrapperBottom >= scrollTop && window.innerHeight + scrollTop <= wrapperBottom
 
-            $scroller.style.bottom = offset + 'px'
-          }
-          $scroller.classList.add('visible')
+        if (inside) {
+          $scroller.style.bottom = '0px'
         } else {
-          $scroller.classList.remove('visible')
-        }
+          const offset = (scrollTop + window.innerHeight) - wrapperBottom
 
-        window.requestAnimationFrame(scrollbarPositioner)
+          $scroller.style.bottom = offset + 'px'
+        }
+        $scroller.classList.add('visible')
+      } else {
+        $scroller.classList.remove('visible')
       }
 
       window.requestAnimationFrame(scrollbarPositioner)
-
-      $scroller.addEventListener('scroll', (e) => {
-        if (ignoreScrollEvent) return false
-
-        if (animation) window.cancelAnimationFrame(animation)
-        animation = window.requestAnimationFrame(() => {
-          ignoreScrollEvent = true
-          $container.scrollLeft = $scroller.scrollLeft
-          ignoreScrollEvent = false
-        })
-      })
-
-      $container.addEventListener('scroll', (e) => {
-        if (ignoreScrollEvent) return false
-
-        if (animation) window.cancelAnimationFrame(animation)
-        animation = window.requestAnimationFrame(() => {
-          ignoreScrollEvent = true
-          $scroller.scrollLeft = $container.scrollLeft
-
-          ignoreScrollEvent = false
-        })
-      })
     }
+
+    window.requestAnimationFrame(scrollbarPositioner)
+
+    $scroller.addEventListener('scroll', (e) => {
+      if (ignoreScrollEvent) return false
+
+      if (animation) window.cancelAnimationFrame(animation)
+      animation = window.requestAnimationFrame(() => {
+        ignoreScrollEvent = true
+        $container.scrollLeft = $scroller.scrollLeft
+        ignoreScrollEvent = false
+      })
+    })
+
+    $container.addEventListener('scroll', (e) => {
+      if (ignoreScrollEvent) return false
+
+      if (animation) window.cancelAnimationFrame(animation)
+      animation = window.requestAnimationFrame(() => {
+        ignoreScrollEvent = true
+        $scroller.scrollLeft = $container.scrollLeft
+
+        ignoreScrollEvent = false
+      })
+    })
 
     $(window).on('resize', function () {
       // get table thead size
@@ -1468,7 +1471,7 @@ export default class extends Controller {
     }
     redrawChart = true
     if (!mainReportInitialized) {
-      this.initMainFinancialReport()
+      await this.initMainFinancialReport()
     } else {
       await this.initData()
     }
@@ -1492,7 +1495,7 @@ export default class extends Controller {
       this.settings.ptype = this.isMonthDisplay ? '' : 'list'
       this.settings.type = this.defaultSettings.type
     } else if (this.settings.pgroup === 'domains') {
-      this.settings.ptype = 'list'
+      this.settings.ptype = this.defaultSettings.ptype
     }
     this.settings.stype = this.defaultSettings.stype
     await this.initData()
@@ -1712,72 +1715,70 @@ export default class extends Controller {
         }
       }
     }
-    if (this.settings.type === '' || this.settings.type === 'proposal') {
-      if (this.settings.pgroup === '' || this.settings.pgroup === 'proposals' || this.settings.pgroup === 'authors' || this.settings.pgroup === 'domains') {
-        const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
-        const tableWidth = parseFloat(tableWidthStr.trim())
-        const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
-        const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
-        let hideScroller = false
-        if (tableWidth < parentContainerWidth + 5) {
-          $('#scroller').addClass('d-none')
-          hideScroller = true
+    const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
+    const tableWidth = parseFloat(tableWidthStr.trim())
+    const parentContainerWidthStr = $('#repotParentContainer').css('width').replace('px', '')
+    const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
+    let hideScroller = false
+    if (tableWidth < parentContainerWidth + 5) {
+      $('#scroller').addClass('d-none')
+      hideScroller = true
+    } else {
+      $('#scroller').removeClass('d-none')
+    }
+    this.reportTarget.classList.add('proposal-table-padding')
+    let widthFinal = $('#reportTable thead').css('width')
+    if (widthFinal !== '' && !this.isProposalMonthReport() && !this.isAuthorMonthGroup()) {
+      let width = parseFloat(widthFinal.replaceAll('px', ''))
+      width += 30
+      widthFinal = width + 'px'
+      this.searchBoxTarget.classList.add('searchbox-align')
+    } else {
+      this.searchBoxTarget.classList.remove('searchbox-align')
+    }
+    $('#reportTable').css('width', widthFinal)
+    $('html').css('overflow-x', 'hidden')
+    // set overflow class
+    $('#containerReportTable').addClass('of-x-hidden')
+    $('#containerBody').addClass('of-x-hidden')
+    $('#scrollerLong').css('width', (tableWidth + 25) + 'px')
+    // set scroller width fit with container width
+    $('#scroller').css('width', $('#repotParentContainer').css('width'))
+    if (this.isMobile()) {
+      $('#containerBody').css('overflow', 'scroll')
+      this.reportTarget.classList.remove('proposal-table-padding')
+      $('#scroller').addClass('d-none')
+    } else {
+      this.reportTarget.classList.add('proposal-table-padding')
+      if (!hideScroller) {
+        $('#scroller').removeClass('d-none')
+      }
+    }
+    if (this.isProposalMonthReport() || this.isAuthorMonthGroup()) {
+      // handler for scroll default
+      if (this.settings.psort === 'oldest') {
+        if (this.settings.tsort === 'newest') {
+          $('#scroller').scrollLeft(tableWidth)
         } else {
-          $('#scroller').removeClass('d-none')
-        }
-        this.reportTarget.classList.add('proposal-table-padding')
-        let widthFinal = $('#reportTable thead').css('width')
-        if (widthFinal !== '' && (this.settings.pgroup === 'authors' || this.settings.pgroup === 'domains') && this.settings.ptype === 'list') {
-          let width = parseFloat(widthFinal.replaceAll('px', ''))
-          width += 30
-          widthFinal = width + 'px'
-          this.searchBoxTarget.classList.add('searchbox-align')
-        } else {
-          this.searchBoxTarget.classList.remove('searchbox-align')
-        }
-        $('#reportTable').css('width', widthFinal)
-        $('html').css('overflow-x', 'hidden')
-        // set overflow class
-        $('#containerReportTable').addClass('of-x-hidden')
-        $('#containerBody').addClass('of-x-hidden')
-        $('#scrollerLong').css('width', (tableWidth + 25) + 'px')
-        // set scroller width fit with container width
-        $('#scroller').css('width', $('#repotParentContainer').css('width'))
-        if (this.isMobile()) {
-          $('#containerBody').css('overflow', 'scroll')
-          this.reportTarget.classList.remove('proposal-table-padding')
-          $('#scroller').addClass('d-none')
-        } else {
-          this.reportTarget.classList.add('proposal-table-padding')
-          if (!hideScroller) {
-            $('#scroller').removeClass('d-none')
-          }
-        }
-        if (((this.settings.type === 'proposal' || this.settings.type === '') && this.settings.pgroup === 'proposals') || (this.settings.pgroup === 'authors' && this.settings.ptype !== 'list')) {
-          // handler for scroll default
-          if (this.settings.psort === 'oldest') {
-            if (this.settings.tsort === 'newest') {
-              $('#scroller').scrollLeft(tableWidth)
-            } else {
-              $('#scroller').scrollLeft(0)
-            }
-          } else {
-            if (this.settings.tsort === 'newest') {
-              $('#scroller').scrollLeft(0)
-            } else {
-              $('#scroller').scrollLeft(tableWidth)
-            }
-          }
+          $('#scroller').scrollLeft(0)
         }
       } else {
-        $('#scroller').addClass('d-none')
+        if (this.settings.tsort === 'newest') {
+          $('#scroller').scrollLeft(0)
+        } else {
+          $('#scroller').scrollLeft(tableWidth)
+        }
       }
-    } else {
-      $('#reportTable').css('width', 'auto')
-      $('#scroller').scrollLeft(0)
-      $('#scroller').addClass('d-none')
-      $('html').css('overflow-x', '')
     }
+    //  else {
+    //   $('#scroller').addClass('d-none')
+    // }
+    // else {
+    //   $('#reportTable').css('width', 'auto')
+    //   $('#scroller').scrollLeft(0)
+    //   $('#scroller').addClass('d-none')
+    //   $('html').css('overflow-x', '')
+    // }
   }
 
   createTableContent () {
@@ -4432,7 +4433,7 @@ export default class extends Controller {
         const valueUSD = val.valueUSD
         totalUSD += val.valueUSD
         hasData = true
-        innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i"><a href="/finance-report/detail?type=domain&name=${key}" class="link-hover-underline fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</a></td>` +
+        innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i"><a href="/finance-report/detail?type=domain&name=${key}" data-turbolinks="false" class="link-hover-underline fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</a></td>` +
                      `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
                      `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
       }
