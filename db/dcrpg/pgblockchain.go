@@ -2343,7 +2343,7 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 
 	for rows.Next() {
 		hasData = true
-		err = rows.Scan(&summary.Invalue, &summary.Outvalue, &summary.TaddValue)
+		err = rows.Scan(&summary.Outvalue, &summary.Invalue, &summary.TaddValue)
 		if err != nil {
 			return nil, err
 		}
@@ -2354,9 +2354,10 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 		if now.Year() == year {
 			endOfYear = now
 		}
+		summary.Outvalue = int64(math.Abs(float64(summary.Outvalue)))
 		summary.Month = strconv.Itoa(year)
-		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
-		total := summary.Invalue - summary.Outvalue
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
 		summary.Difference = int64(difference)
 		summary.Total = int64(total)
 	}
@@ -2388,7 +2389,6 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 	} else {
 		average = total / float64(count)
 	}
-	summary.Outvalue = -summary.Outvalue
 	summary.InvalueUSD = average * float64(summary.Invalue) / 1e8
 	summary.OutvalueUSD = average * float64(summary.Outvalue) / 1e8
 	summary.DifferenceUSD = average * float64(summary.Difference) / 1e8
@@ -2518,15 +2518,16 @@ func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.Tre
 	for rows.Next() {
 		hasData = true
 		var time dbtypes.TimeDef
-		err = rows.Scan(&time, &summary.Invalue, &summary.Outvalue, &summary.TaddValue)
+		err = rows.Scan(&time, &summary.Outvalue, &summary.Invalue, &summary.TaddValue)
 		if err != nil {
 			return nil, err
 		}
+		summary.Outvalue = int64(math.Abs(float64(summary.Outvalue)))
 		startOfMonth = time.T.AddDate(0, 0, -time.T.Day()+1)
 		endOfMonth = time.T.AddDate(0, 1, -time.T.Day())
 		summary.Month = time.Format("2006-01")
-		difference := math.Abs(float64(summary.Invalue + summary.Outvalue))
-		total := summary.Invalue - summary.Outvalue
+		difference := math.Abs(float64(summary.Invalue - summary.Outvalue))
+		total := summary.Invalue + summary.Outvalue
 		summary.Difference = int64(difference)
 		summary.Total = int64(total)
 	}
@@ -2546,7 +2547,6 @@ func (pgb *ChainDB) GetTreasurySummaryByMonth(year int, month int) (*dbtypes.Tre
 	}
 
 	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(startOfMonth, endOfMonth, true)
-	summary.Outvalue = -summary.Outvalue
 	monthPrice := monthPriceMap[summary.Month]
 	summary.InvalueUSD = monthPrice * float64(summary.Invalue) / 1e8
 	summary.OutvalueUSD = monthPrice * float64(summary.Outvalue) / 1e8
