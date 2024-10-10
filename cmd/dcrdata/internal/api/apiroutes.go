@@ -1054,11 +1054,58 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 	searchKey := r.URL.Query().Get("search")
 	report, summary, domainList, proposalList, proposalTokenMap, allSpent, allBudget, authorReport := c.getProposalReportData(searchKey)
 	treasurySummary, err := c.DataSource.GetTreasurySummary()
-	if err != nil {
-		log.Errorf("Get treasury summary data failed: %v", err)
+	legacySummary, legacyErr := c.DataSource.GetLegacySummary()
+	if err != nil || legacyErr != nil {
+		log.Errorf("Get treasury/legacy summary data failed: %v, %v", err, legacyErr)
 		writeJSON(w, nil, m.GetIndentCtx(r))
 		return
 	}
+	timeArr := make([]string, 0)
+	combinedTreasurySummary := make([]*dbtypes.TreasurySummary, 0)
+	combinedDataMap := make(map[string]*dbtypes.TreasurySummary)
+	if treasurySummary != nil {
+		for _, treasury := range treasurySummary {
+			timeArr = append(timeArr, treasury.Month)
+			combinedDataMap[treasury.Month] = treasury
+		}
+	}
+
+	if legacySummary != nil {
+		for _, legacy := range legacySummary {
+			if !slices.Contains(timeArr, legacy.Month) {
+				timeArr = append(timeArr, legacy.Month)
+				combinedDataMap[legacy.Month] = legacy
+			} else {
+				existInMap, exist := combinedDataMap[legacy.Month]
+				if exist {
+					var treasuryInvalue = existInMap.Invalue
+					var legacyOutValue = legacy.Outvalue
+					var treasuryInvalueUSD = existInMap.InvalueUSD
+					var legacyOutValueUSD = legacy.OutvalueUSD
+					if existInMap.TaddValue > 0 {
+						treasuryInvalue = existInMap.Invalue - existInMap.TaddValue
+						legacyOutValue = legacy.Outvalue - existInMap.TaddValue
+						treasuryInvalueUSD = existInMap.InvalueUSD - existInMap.TaddValueUSD
+						legacyOutValueUSD = legacy.OutvalueUSD - existInMap.TaddValueUSD
+					}
+					existInMap.Invalue = treasuryInvalue + legacy.Invalue
+					existInMap.InvalueUSD = treasuryInvalueUSD + legacy.InvalueUSD
+					existInMap.Outvalue += legacyOutValue
+					existInMap.OutvalueUSD += legacyOutValueUSD
+					existInMap.Total += legacy.Total
+					existInMap.TotalUSD += legacy.TotalUSD
+					existInMap.Difference = int64(math.Abs(float64(existInMap.Invalue - existInMap.Outvalue)))
+					existInMap.DifferenceUSD = existInMap.MonthPrice * float64(existInMap.Difference) / 1e8
+					combinedDataMap[legacy.Month] = existInMap
+				}
+			}
+		}
+	}
+
+	for _, value := range combinedDataMap {
+		combinedTreasurySummary = append(combinedTreasurySummary, value)
+	}
+
 	//Get coin supply value
 	writeJSON(w, struct {
 		Report           []apitypes.MonthReportObject  `json:"report"`
@@ -1079,8 +1126,30 @@ func (c *appContext) getProposalReport(w http.ResponseWriter, r *http.Request) {
 		AllSpent:         allSpent,
 		AllBudget:        allBudget,
 		AuthorReport:     authorReport,
-		TreasurySummary:  treasurySummary,
+		TreasurySummary:  combinedTreasurySummary,
 	}, m.GetIndentCtx(r))
+}
+
+func getTimeCompare(timeStr string) int64 {
+	timeArr := strings.Split(timeStr, "-")
+	if len(timeArr) < 2 {
+		return 0
+	}
+	year, yearErr := strconv.ParseInt(timeArr[0], 0, 32)
+	if yearErr != nil {
+		return 0
+	}
+	monthStr := ""
+	if timeArr[1][0] == '0' {
+		monthStr = timeArr[1][1:]
+	} else {
+		monthStr = timeArr[1]
+	}
+	month, monthErr := strconv.ParseInt(monthStr, 0, 32)
+	if monthErr != nil {
+		return 0
+	}
+	return year*12 + month
 }
 
 func (c *appContext) getReportTimeRange(w http.ResponseWriter, r *http.Request) {

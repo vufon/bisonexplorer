@@ -3356,14 +3356,6 @@ export default class extends Controller {
     } else {
       for (const key in treasurySummaryMap) { combinedDataMap[key] = treasurySummaryMap[key] }
     }
-    if (data.treasurySummary) {
-      data.treasurySummary.forEach((treasury) => {
-        timeArr.push(treasury.month)
-        const tmpTreasury = {}
-        Object.assign(tmpTreasury, treasury)
-        combinedDataMap.set(treasury.month, tmpTreasury)
-      })
-    }
     if (data.legacySummary) {
       data.legacySummary.forEach((legacy) => {
         if (!timeArr.includes(legacy.month)) {
