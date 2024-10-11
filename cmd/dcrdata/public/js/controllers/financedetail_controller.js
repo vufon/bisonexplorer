@@ -453,7 +453,7 @@ export default class extends FinanceReportController {
       totalBudget += summary.budget
       totalAllSpent += summary.totalSpent
       totalRemaining += summary.totalRemaining > 0 ? summary.totalRemaining : 0
-      bodyList += `<tr class="${summary.totalRemaining === 0.0 ? 'proposal-summary-row' : 'summary-active-row'}">` +
+      bodyList += `<tr class="${summary.totalRemaining > 0 ? 'summary-active-row' : 'proposal-summary-row'}">` +
         `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=proposal&token=' + summary.token}" class="link-hover-underline fs-13i">${summary.name}</a></td>`
       if (!hideAuthor) {
         bodyList += `<td class="va-mid text-center fs-13i"><a href="${'/finance-report/detail?type=owner&name=' + summary.author}" class="link-hover-underline fs-13i">${summary.author}</a></td>`
@@ -467,16 +467,16 @@ export default class extends FinanceReportController {
         `<td class="va-mid text-right fs-13i">${lengthInDays}</td>` +
         `<td class="va-mid text-right px-2 fs-13i">$${humanize.formatToLocalString(monthlyAverage, 2, 2)}</td>` +
         `<td class="va-mid text-right px-2 fs-13i">${summary.totalSpent > 0 ? '$' + humanize.formatToLocalString(summary.totalSpent, 2, 2) : ''}</td>` +
-        `<td class="va-mid text-right px-2 fs-13i pr-10i">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : ''}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i pr-10i">${summary.totalRemaining > 0 ? '$' + humanize.formatToLocalString(summary.totalRemaining, 2, 2) : '-'}</td>` +
         '</tr>'
     }
     const totalColSpan = hideAuthor && hideDomain ? '3' : ((!hideAuthor && hideDomain) || (hideAuthor && !hideDomain) ? '4' : '5')
     bodyList += '<tr class="text-secondary finance-table-header finance-table-footer last-row-header">' +
     `<td class="va-mid text-center fw-600 fs-13i" colspan="${totalColSpan}">Total</td>` +
     `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
-    '<td></td><td></td>' +
-    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalAllSpent, 2, 2)}</td>` +
-    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
+    '<td>-</td><td>-</td>' +
+    `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalAllSpent > 0 ? '$' + humanize.formatToLocalString(totalAllSpent, 2, 2) : '-'}</td>` +
+    `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalRemaining > 0 ? '$' + humanize.formatToLocalString(totalRemaining, 2, 2) : '-'}</td>` +
     '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody

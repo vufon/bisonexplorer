@@ -1446,7 +1446,10 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 					costOfMonth = float64(countDaysOfMonth) * costPerDay
 				}
 				costOfMonth = math.Ceil(costOfMonth*100) / 100
-				totalSpent += costOfMonth
+				isAfter := handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year())
+				if !isAfter {
+					totalSpent += costOfMonth
+				}
 				if _, ok := monthWeightMap[key]; !ok {
 					monthWeightMap[key] = handlerTime.Year()*12 + int(handlerTime.Month())
 				}
@@ -1464,7 +1467,7 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 				}
 			}
 		}
-		if containAllTime && now.After(endTime) {
+		if now.After(endTime) {
 			totalSpent = amountFloat
 		}
 		proposalInfo.TotalSpent = math.Ceil(totalSpent*100) / 100
