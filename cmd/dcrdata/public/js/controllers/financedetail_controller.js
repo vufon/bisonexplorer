@@ -694,17 +694,15 @@ export default class extends FinanceReportController {
       this.proposalSpentAreaTarget.classList.add('d-none')
     }
     // display treasury spent value
-    if (totalSpent > 0 && (data.treasurySummary.outvalue > 0 || data.legacySummary.outvalue > 0)) {
+    if (totalSpent > 0) {
       this.treasurySpentAreaTarget.classList.remove('d-none')
+      this.unaccountedValueAreaTarget.classList.remove('d-none')
       const combinedUSD = data.treasurySummary.outvalueUSD + data.legacySummary.outvalueUSD
       const combinedDCR = data.treasurySummary.outvalue + data.legacySummary.outvalue
       this.treasurySpentTarget.textContent = '$' + humanize.formatToLocalString(combinedUSD, 2, 2) + ` (${humanize.formatToLocalString(combinedDCR / 100000000, 2, 2)} DCR)`
-      if (combinedUSD > totalSpent) {
-        this.unaccountedValueAreaTarget.classList.remove('d-none')
-        this.unaccountedValueTarget.textContent = '$' + humanize.formatToLocalString(combinedUSD - totalSpent, 2, 2) + ` (${humanize.formatToLocalString(combinedDCR / 100000000 - totalSpentDCR, 2, 2)} DCR)`
-      } else {
-        this.unaccountedValueAreaTarget.classList.add('d-none')
-      }
+      const deltaUSD = combinedUSD - totalSpent
+      const deltaDCR = combinedDCR / 100000000 - totalSpentDCR
+      this.unaccountedValueTarget.textContent = (deltaUSD < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(deltaUSD), 2, 2) + ` (${humanize.formatToLocalString(deltaDCR, 2, 2)} DCR, ${deltaUSD < 0 ? 'Missing' : 'Unaccounted'})`
     } else {
       this.treasurySpentAreaTarget.classList.add('d-none')
       this.unaccountedValueAreaTarget.classList.add('d-none')
