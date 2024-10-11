@@ -1,4 +1,3 @@
-import { Controller } from '@hotwired/stimulus'
 import TurboQuery from '../helpers/turbolinks_helper'
 import { requestJSON } from '../helpers/http'
 import humanize from '../helpers/humanize_helper'
@@ -6,6 +5,7 @@ import { isEmpty } from 'lodash-es'
 import { getDefault } from '../helpers/module_helper'
 import { padPoints, sizedBarPlotter } from '../helpers/chart_helper'
 import Zoom from '../helpers/zoom_helper'
+import FinanceReportController from './financebase_controller.js'
 
 const responseCache = {}
 let requestCounter = 0
@@ -48,10 +48,6 @@ let responseDetailData
 let mainReportSettingsState
 let detailReportSettingsState
 let mainReportInitialized = false
-let reportMinYear
-let reportMaxYear
-let reportMinMonth
-let reportMaxMonth
 
 function hasDetailCache (k) {
   if (!responseDetailCache[k]) return false
@@ -213,7 +209,7 @@ function createOptions () {
 let ctrl = null
 // end function and varibable for chart
 
-export default class extends Controller {
+export default class extends FinanceReportController {
   static get targets () {
     return ['report', 'colorNoteRow', 'colorLabel', 'colorDescription',
       'interval', 'groupBy', 'searchInput', 'searchBtn', 'clearSearchBtn', 'searchBox', 'nodata',
@@ -966,7 +962,7 @@ export default class extends Controller {
     if (this.isNullValue(this.settings.type)) {
       this.settings.type = this.defaultSettings.type
     }
-    await this.initTimeSelect()
+    await this.initReportTimeRange()
     if (this.settings.type === 'bytime') {
       this.initReportDetailData()
       this.connectData()
@@ -974,19 +970,6 @@ export default class extends Controller {
     }
     await this.initMainFinancialReport()
     await this.connectData()
-  }
-
-  async initTimeSelect () {
-    // Get time range of reports
-    const url = '/api/finance-report/time-range'
-    const timeRangeRes = await requestJSON(url)
-    if (!timeRangeRes) {
-      return
-    }
-    reportMinYear = timeRangeRes.minYear
-    reportMinMonth = timeRangeRes.minMonth
-    reportMaxYear = timeRangeRes.maxYear
-    reportMaxMonth = timeRangeRes.maxMonth
   }
 
   async initMainFinancialReport () {
@@ -1043,9 +1026,9 @@ export default class extends Controller {
         selectedMonth = Number(timeArr[1])
       }
     }
-    selectedYear = selectedYear <= 0 ? reportMaxYear : selectedYear
+    selectedYear = selectedYear <= 0 ? this.reportMaxYear : selectedYear
     let yearOptions = ''
-    for (let i = reportMaxYear; i >= reportMinYear; i--) {
+    for (let i = this.reportMaxYear; i >= this.reportMinYear; i--) {
       yearOptions += `<option name="year_${i}" value="${i}" ${selectedYear === i ? 'selected' : ''}>${i}</option>`
     }
     this.topYearSelectTarget.innerHTML = yearOptions
@@ -1053,11 +1036,11 @@ export default class extends Controller {
     // init month selector
     let minMonth = 1
     let maxMonth = 12
-    if (selectedYear === reportMinYear) {
-      minMonth = reportMinMonth
+    if (selectedYear === this.reportMinYear) {
+      minMonth = this.reportMinMonth
     }
-    if (selectedYear === reportMaxYear) {
-      maxMonth = reportMaxMonth
+    if (selectedYear === this.reportMaxYear) {
+      maxMonth = this.reportMaxMonth
     }
     selectedMonth = selectedMonth < 0 ? maxMonth : selectedMonth
     let monthOptions = `<option name="month_all" value="0" ${selectedMonth === 0 ? 'selected' : ''}>All Months</option>`
@@ -1070,17 +1053,17 @@ export default class extends Controller {
     let prevBtnShow = true
     let nextBtnShow = true
     if (this.isYearDetailReport()) {
-      if (timeIntArr[0] === reportMinYear) {
+      if (timeIntArr[0] === this.reportMinYear) {
         prevBtnShow = false
       }
-      if (timeIntArr[0] === reportMaxYear) {
+      if (timeIntArr[0] === this.reportMaxYear) {
         nextBtnShow = false
       }
     } else if (this.isMonthDetailReport()) {
-      if (timeIntArr[0] === reportMinYear && timeIntArr[1] === reportMinMonth) {
+      if (timeIntArr[0] === this.reportMinYear && timeIntArr[1] === this.reportMinMonth) {
         prevBtnShow = false
       }
-      if (timeIntArr[0] === reportMaxYear && timeIntArr[1] === reportMaxMonth) {
+      if (timeIntArr[0] === this.reportMaxYear && timeIntArr[1] === this.reportMaxMonth) {
         nextBtnShow = false
       }
     }
@@ -2360,7 +2343,7 @@ export default class extends Controller {
     if (timeArr.length > 1) {
       currentMonth = Number(timeArr[1])
     }
-    if ((e.target.value === reportMinYear && currentMonth < reportMinMonth) || (e.target.value === reportMaxYear && currentMonth > reportMaxMonth)) {
+    if ((e.target.value === this.reportMinYear && currentMonth < this.reportMinMonth) || (e.target.value === this.reportMaxYear && currentMonth > this.reportMaxMonth)) {
       currentMonth = 0
     }
     this.settings.dtime = e.target.value + (currentMonth > 0 ? '_' + currentMonth : '')
@@ -4041,14 +4024,14 @@ export default class extends Controller {
   prevReport (e) {
     const timeIntArr = this.getDetailYearMonth()
     if (this.isYearDetailReport()) {
-      if (timeIntArr[0] === reportMinYear) {
+      if (timeIntArr[0] === this.reportMinYear) {
         return
       }
       this.settings.dtime = (timeIntArr[0] - 1).toString()
     } else if (this.isMonthDetailReport()) {
       let year = timeIntArr[0]
       let month = timeIntArr[1]
-      if (year === reportMinYear && month === reportMinMonth) {
+      if (year === this.reportMinYear && month === this.reportMinMonth) {
         return
       }
       if (month === 1) {
@@ -4065,14 +4048,14 @@ export default class extends Controller {
   nextReport (e) {
     const timeIntArr = this.getDetailYearMonth()
     if (this.isYearDetailReport()) {
-      if (timeIntArr[0] === reportMaxYear) {
+      if (timeIntArr[0] === this.reportMaxYear) {
         return
       }
       this.settings.dtime = (timeIntArr[0] + 1).toString()
     } else if (this.isMonthDetailReport()) {
       let year = timeIntArr[0]
       let month = timeIntArr[1]
-      if (year === reportMaxYear && month === reportMaxMonth) {
+      if (year === this.reportMaxYear && month === this.reportMaxMonth) {
         return
       }
       if (month === 12) {

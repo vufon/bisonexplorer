@@ -1,4 +1,4 @@
-<template>
+<template></template>
    {{define "finance_detail"}}
    <!DOCTYPE html>
    <html lang="en">
@@ -9,36 +9,55 @@
          data-financedetail-politeia-url="{{.PoliteiaURL}}">
          <nav class="breadcrumbs mt-0">
             <a href="/" class="breadcrumbs__item no-underline ps-2">
-               <span class="homeicon-tags me-1"></span>
-               <span class="link-underline">Homepage</span>
+            <span class="homeicon-tags me-1"></span>
+            <span class="link-underline">Homepage</span>
             </a>
             <a href="/" class="breadcrumbs__item item-link" data-financedetail-target="toUpReport">Financial Reports</a>
             <a href="/" class="breadcrumbs__item item-link d-none" data-financedetail-target="yearBreadcumb"></a>
             <span class="breadcrumbs__item is-active d-flex">
-               <span data-financedetail-target="currentDetail"></span>
-               <span class="ms-3 d-flex mt-0" data-financedetail-target="prevNextButtons">
-                  <a class="fs13 cursor-pointer c-white item-link hover-grey" data-financedetail-target="prevBtn" data-action="click->financedetail#prevReport">previous</a>&nbsp;|
-                  <a class="fs13 cursor-pointer c-white item-link hover-grey" data-financedetail-target="nextBtn" data-action="click->financedetail#nextReport">&nbsp;next </a>
-               </span>
+            <span data-financedetail-target="currentDetail"></span>
             </span>
          </nav>
+         <div class="d-flex ai-center mt-2">
+            <p class="fs-20 report-tool-bar" data-financedetail-target="detailReportTitle"></p>
+            <div class="ms-2 d-flex mt-0" data-financedetail-target="prevNextButtons">
+               <div class="ms-2">
+                  <ul class="pagination mb-0 pagination-sm">
+                     <li class="page-item"
+                        data-financedetail-target="prevBtn">
+                        <a class="page-link"
+                           data-turbolinks="false"
+                           data-action="click->financedetail#prevReport"
+                           >Previous</a>
+                     </li>
+                     <li class="page-item"
+                        data-financedetail-target="nextBtn">
+                        <a class="page-link"
+                           data-turbolinks="false"
+                           data-action="financedetail#nextReport"
+                           >Next</a>
+                     </li>
+                  </ul>
+               </div>
+            </div>
+         </div>
          <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
          <div class="d-none" data-financedetail-target="reportArea">
-            <div class="common-card py-2 ps-3 w-500px mt-3 d-none odd-even-row" data-financedetail-target="proposalSumCard">
-            <div data-financedetail-target="proposalSpanRow">
+            <div class="common-card py-2 ps-3 w-500px mt-1 d-none odd-even-row" data-financedetail-target="proposalSumCard">
+               <div data-financedetail-target="proposalSpanRow">
+               </div>
+               <div class="d-flex">
+                  <a data-financedetail-target="toVote" class="d-none d-block" href="#">
+                  <span class="dcricon-check me-1 py-1"></span>
+                  Voting Details
+                  </a>
+                  <a data-financedetail-target="toDiscussion" class="d-none d-block ms-4" href="#">
+                  <span class="dcricon-discussion me-1 py-1"></span>
+                  Proposal Details
+                  </a>
+               </div>
             </div>
-            <div class="d-flex">
-               <a data-financedetail-target="toVote" class="d-none d-block" href="#">
-               <span class="dcricon-check me-1 py-1"></span>
-               Voting Details
-               </a>
-               <a data-financedetail-target="toDiscussion" class="d-none d-block ms-4" href="#">
-               <span class="dcricon-discussion me-1 py-1"></span>
-               Proposal Details
-               </a>
-            </div>
-            </div>
-            <div class="mt-3 d-none" data-financedetail-target="proposalTopSummary">
+            <div class="mt-2 d-none" data-financedetail-target="proposalTopSummary">
                <div class="row">
                   <div class="col-24 col-md-18 col-lg-12 col-xl-9 col-xxl-7 py-2 ps-3 common-card">
                      <p class="fs-15">Proposals Expenditures (Est): <span class="fw-600" data-financedetail-target="expendiduteValue"></span></p>

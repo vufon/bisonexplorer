@@ -1,7 +1,7 @@
-import { Controller } from '@hotwired/stimulus'
 import TurboQuery from '../helpers/turbolinks_helper'
 import { requestJSON } from '../helpers/http'
 import humanize from '../helpers/humanize_helper'
+import FinanceReportController from './financebase_controller'
 
 const responseCache = {}
 let requestCounter = 0
@@ -16,7 +16,7 @@ function hasCache (k) {
   return expiration > new Date()
 }
 
-export default class extends Controller {
+export default class extends FinanceReportController {
   static get targets () {
     return ['noData', 'reportArea',
       'proposalReport', 'legacyReport', 'yearMonthInfoTable',
@@ -29,7 +29,7 @@ export default class extends Controller {
       'currentDetail', 'yearBreadcumb', 'proposalSumCard', 'proposalTopSummary',
       'domainSummaryTable', 'domainSummaryArea', 'proposalSpent',
       'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea',
-      'unaccountedValueArea']
+      'unaccountedValueArea', 'detailReportTitle']
   }
 
   async initialize () {
@@ -212,18 +212,21 @@ export default class extends Controller {
   async proposalCalculate () {
     this.yearBreadcumbTarget.classList.add('d-none')
     if (this.settings.type === 'domain') {
-      this.currentDetailTarget.textContent = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
+      const domainDisp = this.settings.name.charAt(0).toUpperCase() + this.settings.name.slice(1)
+      this.currentDetailTarget.textContent = domainDisp
+      this.detailReportTitleTarget.textContent = 'Domain Detail Report - ' + domainDisp
       // set main report url
       this.toUpReportTarget.href = '/finance-report?pgroup=domains'
     } else if (this.settings.type === 'owner') {
       this.currentDetailTarget.textContent = this.settings.name
+      this.detailReportTitleTarget.textContent = 'Author Detail Report - ' + this.settings.name
       this.toUpReportTarget.href = '/finance-report?pgroup=authors'
     } else {
       this.toUpReportTarget.href = '/finance-report'
     }
     if (this.settings.type === 'domain' || this.settings.type === 'proposal') {
-      this.prevBtnTarget.classList.add('d-none')
       this.nextBtnTarget.classList.add('d-none')
+      this.prevBtnTarget.classList.add('d-none')
     } else {
       this.prevBtnTarget.classList.remove('d-none')
       this.nextBtnTarget.classList.remove('d-none')
@@ -279,7 +282,9 @@ export default class extends Controller {
       this.toDiscussionTarget.href = `${this.politeiaUrl}/record/${this.settings.token.substring(0, 7)}`
       tokenList = response.tokenList
       this.handlerNextPrevButton('proposal', this.settings.token)
-      this.currentDetailTarget.textContent = response.proposalInfo ? response.proposalInfo.name : ''
+      const proposalName = response.proposalInfo ? response.proposalInfo.name : ''
+      this.currentDetailTarget.textContent = proposalName
+      this.detailReportTitleTarget.textContent = 'Proposal Detail Report - ' + proposalName
       this.proposalSumCardTarget.classList.remove('d-none')
       const remainingStr = response.proposalInfo.totalRemaining === 0.0 ? '<p>Status: <span class="fw-600">Finished</span></p>' : `<p>Total Remaining (Est): <span class="fw-600">$${humanize.formatToLocalString(response.proposalInfo.totalRemaining, 2, 2)}</span></p>`
       this.proposalSpanRowTarget.innerHTML = `<p>Owner: <a href="${'/finance-report/detail?type=owner&name=' + response.proposalInfo.author}" class="fw-600 link-hover-underline">${response.proposalInfo.author}</a></p>` +
@@ -344,14 +349,56 @@ export default class extends Controller {
     }
     if (indexOfNow === 0) {
       // disable left array button
-      this.prevBtnTarget.classList.add('d-none')
+      this.prevBtnTarget.classList.add('disabled')
+      this.prevBtnTarget.classList.remove('cursor-pointer')
     } else {
-      this.prevBtnTarget.classList.remove('d-none')
+      this.prevBtnTarget.classList.remove('disabled')
+      this.prevBtnTarget.classList.add('cursor-pointer')
     }
     if (indexOfNow === handlerList.length - 1) {
-      this.nextBtnTarget.classList.add('d-none')
+      this.nextBtnTarget.classList.add('disabled')
+      this.nextBtnTarget.classList.remove('cursor-pointer')
     } else {
-      this.nextBtnTarget.classList.remove('d-none')
+      this.nextBtnTarget.classList.remove('disabled')
+      this.nextBtnTarget.classList.add('cursor-pointer')
+    }
+  }
+
+  handlerYearMonthNextPrevButton () {
+    const time = this.settings.time
+    let prevBtnShow = true
+    let nextBtnShow = true
+    if (this.settings.type === 'year') {
+      if (time === this.reportMinYear) {
+        prevBtnShow = false
+      }
+      if (time === this.reportMaxYear) {
+        nextBtnShow = false
+      }
+    } else if (this.settings.type === 'month') {
+      const timeArr = this.settings.time.trim().split('_')
+      const year = parseInt(timeArr[0])
+      const month = parseInt(timeArr[1])
+      if (year === this.reportMinYear && month === this.reportMinMonth) {
+        prevBtnShow = false
+      }
+      if (year === this.reportMaxYear && month === this.reportMaxMonth) {
+        nextBtnShow = false
+      }
+    }
+    if (prevBtnShow) {
+      this.prevBtnTarget.classList.remove('disabled')
+      this.prevBtnTarget.classList.add('cursor-pointer')
+    } else {
+      this.prevBtnTarget.classList.add('disabled')
+      this.prevBtnTarget.classList.remove('cursor-pointer')
+    }
+    if (nextBtnShow) {
+      this.nextBtnTarget.classList.remove('disabled')
+      this.nextBtnTarget.classList.add('cursor-pointer')
+    } else {
+      this.nextBtnTarget.classList.add('disabled')
+      this.nextBtnTarget.classList.remove('cursor-pointer')
     }
   }
 
@@ -555,12 +602,18 @@ export default class extends Controller {
 
   // Calculate and response
   async yearMonthCalculate () {
+    // init report time range
+    await this.initReportTimeRange()
+    this.handlerYearMonthNextPrevButton()
     // set up navigative to main report and up level of time
     let monthYearDisplay = this.settings.time.toString().replace('_', '-')
     this.toUpReportTarget.href = '/finance-report'
+    let reportType
     if (this.settings.type === 'year') {
       this.yearBreadcumbTarget.classList.add('d-none')
+      reportType = 'Yearly Summary Report'
     } else {
+      reportType = 'Monthly Summary Report'
       this.yearBreadcumbTarget.classList.remove('d-none')
       if (this.settings.time) {
         const timeArr = this.settings.time.trim().split('_')
@@ -579,6 +632,7 @@ export default class extends Controller {
       }
     }
     this.currentDetailTarget.textContent = monthYearDisplay
+    this.detailReportTitleTarget.textContent = reportType + ' - ' + monthYearDisplay
     const url = `/api/finance-report/detail?type=${this.settings.type}&time=${this.settings.time}`
     let response
     requestCounter++
