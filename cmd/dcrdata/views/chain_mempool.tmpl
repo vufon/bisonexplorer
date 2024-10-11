@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
    {{$ChainType := .ChainType}}
-   {{template "html-head" headData .CommonPageData (printf "%s Mempool" (chainName $ChainType))}}
+   {{template "html-head" headData .CommonPageData (printf "Bison Explorer - %s Mempool" (chainName $ChainType))}}
    {{ template "mutilchain_navbar" . }}
    {{with .Mempool -}}
    <div class="container mt-3"

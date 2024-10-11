@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 {{$ChainType := .ChainType}}
 <html lang="en">
-    {{ template "html-head" headData .CommonPageData (printf "%s Chain Parameters" (chainName $ChainType))}}
+    {{ template "html-head" headData .CommonPageData (printf "Bison Explorer - %s Chain Parameters" (chainName $ChainType))}}
         {{template "mutilchain_navbar" . }}
         <div class="container mt-2 pb-5">
             <nav class="breadcrumbs mt-0">
