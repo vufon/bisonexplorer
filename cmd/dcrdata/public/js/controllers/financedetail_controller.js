@@ -557,9 +557,12 @@ export default class extends FinanceReportController {
         allTable += `<table class="table monthly v3 border-grey-2 w-auto ${stepNum > 0 ? 'ms-2' : ''}" style="height: 40px;"><thead>` +
         '<tr class="text-secondary finance-table-header">' +
         `<th class="text-left px-2 fs-13i fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
-        '<th class="text-right px-2 fs-13i fw-600">Spent (Est)</th>'
+        '<th class="text-right px-2 fs-13i fw-600">Spent (Est)(USD)</th>' +
+        '<th class="text-right px-2 fs-13i fw-600">Spent (Est)(DCR)</th>'
         if (this.settings.type === 'year') {
-          allTable += '<th class="text-right px-2 fs-13i fw-600">Actual Spent</th></tr></thead>'
+          allTable += '<th class="text-right px-2 fs-13i fw-600">Actual Spent (USD)</th>' +
+          '<th class="text-right px-2 fs-13i fw-600">Actual Spent (DCR)</th>' +
+          '</tr></thead>'
         }
         allTable += '<tbody>'
       }
@@ -579,9 +582,11 @@ export default class extends FinanceReportController {
       allTable += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}">`
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
       allTable += `<td class="text-left px-2 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
-      allTable += `<td class="text-right px-2 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : ''}</td>`
+      allTable += `<td class="text-right px-2 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : '-'}</td>` +
+                  `<td class="text-right px-2 fs-13i">${dataMonth.expenseDcr !== 0.0 ? humanize.formatToLocalString(dataMonth.expenseDcr / 1e8, 2, 2) : '-'}</td>`
       if (this.settings.type === 'year') {
-        allTable += `<td class="text-right px-2 fs-13i">${dataMonth.actualExpense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.actualExpense, 2, 2) : ''}</td>`
+        allTable += `<td class="text-right px-2 fs-13i">${dataMonth.actualExpense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.actualExpense, 2, 2) : '-'}</td>` +
+                    `<td class="text-right px-2 fs-13i">${dataMonth.actualExpenseDcr !== 0.0 ? humanize.formatToLocalString(dataMonth.actualExpenseDcr / 1e8, 2, 2) : '-'}</td>`
       }
       allTable += '</tr>'
       if (count === breakTable) {

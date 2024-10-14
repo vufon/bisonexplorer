@@ -1275,12 +1275,19 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 	costPerDay := amountFloat / float64(countDays)
 	monthDatas := make([]apitypes.MonthDataObject, 0)
 	tempTime := time.Unix(startInt, 0)
+	monthlyPriceMap := c.DataSource.GetCurrencyPriceMapByPeriod(startTime, endTime, false)
 	//if start month and end month are the same, month data is proposal data
 	if startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
 		key := fmt.Sprintf("%d-%s", startTime.Year(), apitypes.GetFullMonthDisplay(int(startTime.Month())))
+		usdPrice, exist := monthlyPriceMap[key]
+		expenseDcr := int64(0)
+		if exist {
+			expenseDcr = int64(1e8 * amountFloat / usdPrice)
+		}
 		itemData := apitypes.MonthDataObject{
-			Month:   key,
-			Expense: amountFloat,
+			Month:      key,
+			Expense:    amountFloat,
+			ExpenseDcr: expenseDcr,
 		}
 		totalSpent += amountFloat
 		monthDatas = append(monthDatas, itemData)
@@ -1309,9 +1316,15 @@ func (c *appContext) HandlerDetailReportByProposal(w http.ResponseWriter, r *htt
 				costOfMonth = float64(countDaysOfMonth) * costPerDay
 			}
 			costOfMonth = math.Ceil(costOfMonth*100) / 100
+			usdPrice, exist := monthlyPriceMap[key]
+			expenseDcr := int64(0)
+			if exist {
+				expenseDcr = int64(1e8 * costOfMonth / usdPrice)
+			}
 			itemData := apitypes.MonthDataObject{
-				Month:   key,
-				Expense: costOfMonth,
+				Month:      key,
+				Expense:    costOfMonth,
+				ExpenseDcr: expenseDcr,
 			}
 			isAfter := handlerTime.After(now) || (handlerTime.Month() == now.Month() && handlerTime.Year() == now.Year())
 			if !isAfter {
@@ -1904,10 +1917,19 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 				timeTemp = timeTemp.AddDate(0, 1, 0)
 				continue
 			}
+			monthPrice, existPrice := monthlyPriceMap[monthStr]
+			expenseDcr := int64(0)
+			actualDcr := int64(0)
+			if existPrice {
+				expenseDcr = int64(1e8 * expense / monthPrice)
+				actualDcr = int64(1e8 * actualExpense / monthPrice)
+			}
 			dataObj := apitypes.MonthDataObject{
-				Month:         monthStr,
-				Expense:       expense,
-				ActualExpense: actualExpense,
+				Month:            monthStr,
+				Expense:          expense,
+				ExpenseDcr:       expenseDcr,
+				ActualExpense:    actualExpense,
+				ActualExpenseDcr: actualDcr,
 			}
 			summaryDataObjList = append(summaryDataObjList, dataObj)
 			timeTemp = timeTemp.AddDate(0, 1, 0)

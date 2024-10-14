@@ -956,10 +956,12 @@ type AuthorReportData struct {
 }
 
 type MonthDataObject struct {
-	Month         string  `json:"month"`
-	Expense       float64 `json:"expense"`
-	TotalBudget   float64 `json:"totalBudget"`
-	ActualExpense float64 `json:"actualExpense"`
+	Month            string  `json:"month"`
+	Expense          float64 `json:"expense"`
+	ExpenseDcr       int64   `json:"expenseDcr"`
+	TotalBudget      float64 `json:"totalBudget"`
+	ActualExpense    float64 `json:"actualExpense"`
+	ActualExpenseDcr int64   `json:"actualExpenseDcr"`
 }
 
 type MonthReportObject struct {
