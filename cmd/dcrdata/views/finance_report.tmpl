@@ -32,10 +32,10 @@
                         <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
                            type="button" class="tab-button white me-1 c-txt-main active" value="Proposals" name="proposal">
                         <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
-                           type="button" class="tab-button white me-1 c-txt-main" value="Treasury Spending"
+                           type="button" class="tab-button white me-1 c-txt-main" value="Treasury"
                            name="treasury">
                         <input data-financereport-target="reportType" data-action="click->financereport#reportTypeChange"
-                           type="button" class="tab-button white me-1 c-txt-main" value="Other"
+                           type="button" class="tab-button white me-1 c-txt-main" value="Time"
                            name="bytime">
                      </div>
                   </div>
@@ -69,13 +69,13 @@
                   <div class="proposal-selector d-none" data-financereport-target="yearMonthSelector">
                      <p class="me-2 fw-600">Select Time</p>
                      <div class="d-flex">
-                     <select class="border-grey me-2 border-plain border-radius-8"
+                        <select class="border-grey me-2 border-plain border-radius-8"
                            data-financereport-target="topYearSelect" data-action="change->financereport#changeTopYear">
-                     </select>
-                     <p>-</p>
-                     <select class="border-grey ms-2 border-plain border-radius-8"
+                        </select>
+                        <p>-</p>
+                        <select class="border-grey ms-2 border-plain border-radius-8"
                            data-financereport-target="topMonthSelect" data-action="change->financereport#changeTopMonth">
-                     </select>
+                        </select>
                      </div>
                   </div>
                </div>
@@ -282,24 +282,24 @@
             <div class="d-flex ai-center">
                <p class="fs-20 report-tool-bar" data-financereport-target="detailReportTitle"></p>
                <div class="ms-2">
-               <ul class="pagination mb-0 pagination-sm">
-               <li class="page-item"
-                  data-financereport-target="prevBtn">
-                <a class="page-link"
-                   data-turbolinks="false"
-                   data-action="click->financereport#prevReport"
-                >Previous</a>
-              </li>
-              <li class="page-item"
-                  data-financereport-target="nextBtn">
-                <a class="page-link"
-                   data-turbolinks="false"
-                   data-action="financereport#nextReport"
-                >Next</a>
-              </li>
-               </ul>
+                  <ul class="pagination mb-0 pagination-sm">
+                     <li class="page-item"
+                        data-financereport-target="prevBtn">
+                        <a class="page-link"
+                           data-turbolinks="false"
+                           data-action="click->financereport#prevReport"
+                           >Previous</a>
+                     </li>
+                     <li class="page-item"
+                        data-financereport-target="nextBtn">
+                        <a class="page-link"
+                           data-turbolinks="false"
+                           data-action="financereport#nextReport"
+                           >Next</a>
+                     </li>
+                  </ul>
+               </div>
             </div>
-            </div>         
             <!-- Start of detail report -->
             <p class="d-none" data-financereport-target="noDetailData">Data not available. Please check the URL or reload the page!</p>
             <div class="d-none" data-financereport-target="reportArea">
@@ -319,12 +319,12 @@
                </div>
                <div class="mt-1 d-none" data-financereport-target="proposalTopSummary">
                   <div class="row">
-                  <div class="col-24 col-md-18 col-lg-12 col-xl-9 col-xxl-7 py-2 ps-3 common-card">
-                     <p class="fs-15">Proposals Expenditures (Est): <span class="fw-600" data-financereport-target="expendiduteValue"></span></p>
-                     <p class="fs-15" data-financereport-target="proposalSpentArea">Proposals Spent (Est): <span class="fw-600" data-financereport-target="proposalSpent"></span></p>
-                     <p class="fs-15" data-financereport-target="treasurySpentArea">Treasury Spent: <span class="fw-600" data-financereport-target="treasurySpent"></span></p>
-                     <p class="fs-15" data-financereport-target="unaccountedValueArea">Delta: <span class="fw-600" data-financereport-target="unaccountedValue"></span></p>
-                  </div>
+                     <div class="col-24 col-md-18 col-lg-12 col-xl-9 col-xxl-7 py-2 ps-3 common-card">
+                        <p class="fs-15">Proposals Expenditures (Est): <span class="fw-600" data-financereport-target="expendiduteValue"></span></p>
+                        <p class="fs-15" data-financereport-target="proposalSpentArea">Proposals Spent (Est): <span class="fw-600" data-financereport-target="proposalSpent"></span></p>
+                        <p class="fs-15" data-financereport-target="treasurySpentArea">Treasury Spent: <span class="fw-600" data-financereport-target="treasurySpent"></span></p>
+                        <p class="fs-15" data-financereport-target="unaccountedValueArea">Delta: <span class="fw-600" data-financereport-target="unaccountedValue"></span></p>
+                     </div>
                   </div>
                   <div class="d-none" data-financereport-target="domainSummaryArea">
                      <p class="fw-600 fs-20 mt-2">Domains Summary</p>
