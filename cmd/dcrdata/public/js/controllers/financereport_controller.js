@@ -2859,36 +2859,36 @@ export default class extends FinanceReportController {
     }
     this.nodataTarget.classList.add('d-none')
     this.reportTarget.classList.remove('d-none')
-    let thead = '<col><colgroup span="2"></colgroup><col3group span="3"></col3group><thead><tr class="text-secondary finance-table-header">' +
+    let thead = '<col><colgroup span="2"></colgroup><col5group span="5"></col5group><thead><tr class="text-secondary finance-table-header">' +
       `<th rowspan="2" class="va-mid text-center ps-0 month-col cursor-pointer" data-action="click->financereport#sortByCreateDate"><span class="${this.settings.tsort === 'oldest' ? 'dcricon-arrow-up' : 'dcricon-arrow-down'} ${this.settings.stype && this.settings.stype !== '' ? 'c-grey-4' : ''} col-sort"></span></th>`
     if (this.settings.interval !== 'year') {
       thead += '<th rowspan="2" class="va-mid text-right-i fs-13i px-2 fw-600 treasury-content-cell">Rate (USD/DCR)</th>'
     }
     thead += '###' +
       '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Delta (Est)</th>' +
-      '<th colspan="3" scope="col3group" class="va-mid text-center-i total-last-col fs-13i fw-600 border-left-grey">Total Spent</th></tr>####</thead>'
+      '<th colspan="5" scope="col5group" class="va-mid text-center-i total-last-col fs-13i fw-600 border-left-grey">Total Spent</th></tr>####</thead>'
     let row2 = '<tr class="text-secondary finance-table-header">'
     let tbody = '<tbody>###</tbody>'
 
     let headList = ''
-    let rateList = ''
+    let domainsRateColumn = ''
     handlerData.domainList.forEach((domain) => {
       const domainDisp = domain.charAt(0).toUpperCase() + domain.slice(1)
-      rateList += domainDisp + ' / '
       headList += `<th colspan="2" scope="colgroup" class="va-mid text-center-i domain-content-cell fs-13i fw-600"><a href="${'/finance-report/detail?type=domain&name=' + domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${domainDisp} (Est)</a>` +
         `<span data-action="click->financereport#sortByDomainItem" data-financereport-domain-param="${domain}" class="${(this.settings.stype === domain && this.settings.order === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.stype !== domain ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
       row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
         '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>'
+      domainsRateColumn += `<th scope="col" class="va-mid text-center-i fs-13i fw-600">${domainDisp}</th>`
     })
     headList += '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Dev Spend Total (Est)</th>'
-    rateList += 'Unaccounted'
     row2 += '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
       '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
-      `<th scope="col" class="va-mid text-center-i fs-13i fw-600 px-2">${rateList}</th></tr>`
+      domainsRateColumn +
+      '<th scope="col" class="va-mid text-center-i fs-13i fw-600">Unaccounted</th></tr>'
     thead = thead.replace('####', row2)
     thead = thead.replace('###', headList)
     let bodyList = ''
@@ -2957,11 +2957,10 @@ export default class extends FinanceReportController {
       let unaccountedPercent = 100
       report.domainData.forEach((domainData) => {
         const rate = _this.isZeroNumber(rowTotal) ? 0 : 100 * domainData.expense / rowTotal
-        rateStr += (rate < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rate), 2, 2) + '% / '
+        rateStr += `<td class="va-mid text-right fs-13i px-2 fw-600">${(rate < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rate), 2, 2) + '%'}</td>`
         unaccountedPercent -= rate
       })
-      rateStr += (unaccountedPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedPercent), 2, 2) + '%'
-      rateStr = _this.isZeroNumber(rowTotal) ? '-' : rateStr
+      rateStr += `<td class="va-mid text-right fs-13i px-2 fw-600">${(unaccountedPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedPercent), 2, 2) + '%'}</td>`
       const totalDcrDisp = this.isZeroNumber(rowTotalDCR) ? '-' : (rowTotalDCR < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rowTotalDCR), 2, 2)
       totalAllDcr += rowTotalDCR > 0 ? rowTotalDCR : 0
       totalAllValue += rowTotal > 0 ? rowTotal : 0
@@ -2978,7 +2977,7 @@ export default class extends FinanceReportController {
         `<td class="va-mid text-right fs-13i px-2">${isFuture ? '-' : unaccountedDcrDisp}</td>` +
         `<td class="va-mid text-right fs-13i px-2 fw-600">${this.isZeroNumber(rowTotal) ? '-' : (rowTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(rowTotal), 2, 2)}</td>` +
         `<td class="va-mid text-right fs-13i px-2 fw-600">${totalDcrDisp}</td>` +
-        `<td class="va-mid text-right fs-13i px-2 fw-600">${rateStr}</td></tr>`
+        `${rateStr}</tr>`
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header"><td class="text-center fw-600 fs-13i border-right-grey">Total (Est)</td>'
@@ -2986,28 +2985,24 @@ export default class extends FinanceReportController {
       bodyList += '<td class="va-mid text-right fw-600 fs-13i px-2">-</td>'
     }
     let rateTotalStr = ''
-    handlerData.domainList.forEach((domain) => {
-      const expData = domainDataMap.has(domain) ? domainDataMap.get(domain) : 0
-      const expDcrData = domainDCRTotalMap.has(domain) ? domainDCRTotalMap.get(domain) : 0
-      bodyList += `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(expData, 2, 2)}</td>`
-      bodyList += `<td class="va-mid text-right fw-600 fs-13i px-2">${humanize.formatToLocalString(expDcrData, 2, 2)}</td>`
-    })
     let unaccountedTotalPercent = 100
     handlerData.domainList.forEach((domain) => {
       const expData = domainDataMap.has(domain) ? domainDataMap.get(domain) : 0
+      const expDcrData = domainDCRTotalMap.has(domain) ? domainDCRTotalMap.get(domain) : 0
       const rateTotal = _this.isZeroNumber(totalAllValue) ? 0 : 100 * expData / totalAllValue
-      rateTotalStr += (rateTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rateTotal), 2, 2) + '% / '
+      bodyList += `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(expData, 2, 2)}</td>`
+      bodyList += `<td class="va-mid text-right fw-600 fs-13i px-2">${humanize.formatToLocalString(expDcrData, 2, 2)}</td>`
+      rateTotalStr += `<td class="va-mid text-right fw-600 fs-13i px-2">${(rateTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rateTotal), 2, 2) + '%'}</td>`
       unaccountedTotalPercent -= rateTotal
     })
-    rateTotalStr += (unaccountedTotalPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedTotalPercent), 2, 2) + '%'
-    rateTotalStr = _this.isZeroNumber(totalAllValue) ? '-' : rateTotalStr
+    rateTotalStr += `<td class="va-mid text-right fw-600 fs-13i px-2">${(unaccountedTotalPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedTotalPercent), 2, 2) + '%'}</td>`
     bodyList += `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalDevAll, 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalDevAllDCR, 2, 2)}</td>` +
      `<td class="va-mid text-right fw-600 fs-13i px-2">${this.isZeroNumber(unaccountedTotal) ? '-' : (unaccountedTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedTotal), 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">${this.isZeroNumber(unaccountedDcrTotal) ? '-' : (unaccountedDcrTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedDcrTotal), 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalAllValue, 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">${totalAllDcr > 0 ? humanize.formatToLocalString(totalAllDcr, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i px-2">${rateTotalStr}</td></tr>`
+      `${rateTotalStr}</tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
