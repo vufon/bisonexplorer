@@ -31,61 +31,57 @@
         <span class="breadcrumbs__item is-active">Staking Reward Calculator</span>
      </nav>
      <div class="px-1">
-        <div class="d-flex justify-content-between mt-3 align-items-end">
-          <span class="h2 d-flex p-2">
+        <div class="d-flex justify-content-center mt-2 align-items-end">
+          <span class="h2 p-2">
             Staking Reward Calculator
           </span>
         </div>
         <div class="bg-white p-2 ps-0">
-          <div class="row mx-3">
-            <div class="col-lg-6 col-md-8 col-sm-10 d-flex mt-2">
-              <span class="form-label align-self-center mr-1 text-nowrap">Amount (<span class="text-secondary">DCR</span>)</span>
+          <div class="d-flex justify-content-center">
+            <div class="market-common-card p-3">
+            <div class="d-iflex mt-2">
+              <div class="d-flex ai-center">
+              <span class="align-self-center mr-1 text-nowrap">Amount (<span class="text-secondary">DCR</span>)</span>
               <input data-action="change->stakingreward#amountChanged" 
                 data-action="keyup->stakingreward#amountKeypress"
                 data-stakingreward-target="amount" type="number" 
-                class="form-control amount mr-1 ms-2"
+                class="form-control amount-input amount mr-1 ms-2"
                 placeholder="Enter the amount of DCR to stake">
+              </div>
             </div>
-
-            <div class="col-lg-6 col-md-8 col-sm-10 d-flex mt-2 ms-2">
-              <span class="form-label align-self-center mr-1 text-nowrap">Start</span>
+            <div class="d-iflex mt-2 ms-2">
+              <div class="d-flex ai-center">
+              <span class="align-self-center mr-1 text-nowrap">Start</span>
               <input data-action="change->stakingreward#startDateChanged" 
                 data-action="keyup->staking#startDateKeypress"
                 data-stakingreward-target="startDate" min="2016-01-02" type="date" 
                 class="form-control date mr-1 ms-2"
                 placeholder="Start Date">
+              </div>
             </div>
-
-            <div class="col-lg-6 col-md-8 col-sm-10 d-flex mt-2 ms-2">
-              <span class="form-label align-self-center mr-1 text-nowrap">End</span>
+            <div class="d-iflex ai-center mt-2 ms-2">
+              <span class="align-self-center mr-1 text-nowrap">End</span>
               <input data-action="change->stakingreward#endDateChanged" 
                 data-action="keyup->staking#endDateKeypress"
                 data-stakingreward-target="endDate" min="2016-01-02" type="date" 
                 class="form-control date ms-2"
                 placeholder="End Date">
             </div>
+            <p data-stakingreward-target="amountError" class="fs14 text-center" style="color: #f12222;"></p> 
+            <p data-stakingreward-target="startDateErr" class="fs14 text-center" style="color: #f12222;"></p>
           </div>
-          <div class="row mx-3">
-           <div class="col-lg-6 col-md-8 col-sm-10 d-flex">
-              <span data-stakingreward-target="amountError" class="fs14" style="color: #f12222;"></span>
-            </div>
-            <div class="col-lg-6 col-md-8 col-sm-10 d-flex ms-2">
-              <span data-stakingreward-target="startDateErr" class="fs14" style="color: #f12222;"></span>
-            </div>
           </div>
-          <div class="row mx-3">
-            <p class="m-0 desc mt-2 common-card py-2 ps-3 w-500px" style="line-height: 30px;">
+          <div class="d-flex justify-content-center mx-3">
+            <p class="m-0 desc mt-2 common-card py-2 px-3" style="line-height: 30px;">
               <span>
                 <span class="form-label">Days:</span>
                 <span class="fw-bold" data-stakingreward-target="daysText">0</span>
               </span>
-
               <span class="d-inline ms-3">
                 <span class="form-label">Yield:</span>
                 <span class="fw-bold" data-stakingreward-target="percentageRoi">0</span>
                 <span class="text-secondary">%</span>
               </span>
-
               <span class="d-inline ms-3">
                 <span class="form-label">Reward:</span>
                 <span class="fw-bold" data-stakingreward-target="amountRoi">0</span>

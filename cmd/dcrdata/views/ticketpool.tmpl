@@ -12,31 +12,36 @@
         </a>
         <span class="breadcrumbs__item is-active">Ticket Pool</span>
      </nav>
-      <div>
+      <div class="mt-2">
         <h2 style="text-align: center; margin-top: 0px">Ticket Pool Visualization</h2>
         <p style="text-align: center; margin-bottom: 5px">
           These charts represent the current ticket pool. For historic views go <a href="/charts">here</a>.
         </p>
       </div>
-      <br>
-
-      <div class="position-relative" data-ticketpool-target="wrapper">
+      <div class="position-relative mt-1" data-ticketpool-target="wrapper">
         <div class="modal position-absolute"></div>
-        <label>Zoom :</label>
-        <div class="btn-group" data-toggle="buttons">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main all active" value="All" name="all">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1d" value="Day" name="day">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1wk" value="Week" name="wk">
-          <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1m" value="Month" name="mo">
+        <div class="d-flex justify-content-center ai-center">
+          <div>
+          <div class="d-iflex ai-center me-2 mt-2">
+          <label>Zoom:&nbsp;</label>
+          <div class="btn-group" data-toggle="buttons">
+            <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main all active" value="All" name="all">
+            <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1d" value="Day" name="day">
+            <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1wk" value="Week" name="wk">
+            <input data-ticketpool-target="zoom" data-action="click->ticketpool#onZoom" type="button" class="tab-button white me-1 c-txt-main 1m" value="Month" name="mo">
+          </div>
+          </div>
+          <div class="d-iflex ai-center mt-2">
+          <label>Bars:&nbsp;</label>
+          <div class="btn-group" data-toggle="buttons">
+            <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main all active" value="Blocks" name="all">
+            <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1d" value="Day" name="day">
+            <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1wk" value="Week" name="wk">
+            <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1m" value="Month" name="mo">
+          </div>
         </div>
-        <span class="br-tag-mobile h-10px"><br></span><span class="bars-select-space">&nbsp;&nbsp;</span>Bars :
-        <label></label>
-        <div class="btn-group" data-toggle="buttons">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main all active" value="Blocks" name="all">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1d" value="Day" name="day">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1wk" value="Week" name="wk">
-          <input data-ticketpool-target="bars" data-action="click->ticketpool#onBarsChange" type="button" class="tab-button me-1 white c-txt-main 1m" value="Month" name="mo">
         </div>
+      </div>
         <div class="p-3 common-card mt-3">
         <div id="tickets-by-purchase-date" class="tp-charts"></div>
         </div>

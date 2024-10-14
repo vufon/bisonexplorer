@@ -2255,6 +2255,12 @@ body.darkBG {
   box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
 }
 
+.market-common-card {
+  border: 1px solid #d7d7d7;
+  border-radius: 15px;
+  box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
+}
+
 .transactions-filter-area {
   justify-content: flex-end !important;
 }
@@ -2442,4 +2448,8 @@ body.darkBG {
 
 .searchbox-align {
   margin-right: 30px;
+}
+
+.amount-input {
+  height: 35px;
 }
