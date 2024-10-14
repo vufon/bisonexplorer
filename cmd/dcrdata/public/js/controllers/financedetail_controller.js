@@ -493,6 +493,7 @@ export default class extends FinanceReportController {
   getYearDataFromMonthData (data) {
     const result = []
     const yearDataMap = new Map()
+    const yearDataDcrMap = new Map()
     const yearArr = []
     data.monthData.forEach((item) => {
       const monthArr = item.month.split('-')
@@ -505,15 +506,18 @@ export default class extends FinanceReportController {
       }
       if (yearDataMap.has(year)) {
         yearDataMap.set(year, yearDataMap.get(year) + item.expense)
+        yearDataDcrMap.set(year, yearDataDcrMap.get(year) + item.expenseDcr)
       } else {
         yearDataMap.set(year, item.expense)
+        yearDataDcrMap.set(year, item.expenseDcr)
       }
     })
 
     yearArr.forEach((year) => {
       const object = {
         month: year,
-        expense: yearDataMap.get(year)
+        expense: yearDataMap.get(year),
+        expenseDcr: yearDataDcrMap.get(year)
       }
       result.push(object)
     })

@@ -1375,6 +1375,8 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 	monthExpenseMap := make(map[string]float64)
 	monthTotalBudgetMap := make(map[string]float64)
 	monthWeightMap := make(map[string]int)
+	var minTime, maxTime time.Time
+	var settedMinTime, settedMaxTime bool
 	for _, proposalMeta := range proposals {
 		proposalInfo := apitypes.ProposalReportData{}
 		var amount = proposalMeta["Amount"]
@@ -1393,6 +1395,14 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 		amountFloat = amountFloat / 100
 		startTime := time.Unix(startInt, 0)
 		endTime := time.Unix(endInt, 0)
+		if !settedMinTime || startTime.Before(minTime) {
+			minTime = startTime
+			settedMinTime = true
+		}
+		if !settedMaxTime || endTime.After(maxTime) {
+			maxTime = endTime
+			settedMaxTime = true
+		}
 		if !containAllTime && (startTime.After(now) || (startTime.Month() == now.Month() && startTime.Year() == now.Year())) {
 			continue
 		}
@@ -1508,15 +1518,21 @@ func (c *appContext) GetReportDataFromProposalList(proposals []map[string]string
 			}
 		}
 	}
-
+	monthlyPriceMap := c.DataSource.GetCurrencyPriceMapByPeriod(minTime, maxTime, false)
 	for _, key := range monthStringArr {
 		v, ok := monthExpenseMap[key]
 		if !ok {
 			continue
 		}
+		usdPrice, exist := monthlyPriceMap[key]
+		expenseDcr := int64(0)
+		if exist {
+			expenseDcr = int64(1e8 * v / usdPrice)
+		}
 		itemData := apitypes.MonthDataObject{
 			Month:       key,
 			Expense:     v,
+			ExpenseDcr:  expenseDcr,
 			TotalBudget: monthTotalBudgetMap[key],
 		}
 		monthDatas = append(monthDatas, itemData)
