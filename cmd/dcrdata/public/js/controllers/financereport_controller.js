@@ -4215,17 +4215,16 @@ export default class extends FinanceReportController {
     let stepNum = 0
     for (let i = 0; i < handlerData.length; i++) {
       if (count === 0) {
-        allTable += `<table class="table monthly v3 border-grey-2 w-auto ${stepNum > 0 ? 'ms-2' : ''}" style="height: 40px;"><thead>` +
-        '<tr class="text-secondary finance-table-header">' +
-        `<th class="text-left px-2 fs-13i fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
-        '<th class="text-right px-2 fs-13i fw-600">Spent (Est)(USD)</th>' +
-        '<th class="text-right px-2 fs-13i fw-600">Spent (Est)(DCR)</th>'
-        if (this.settings.dtype === 'year') {
-          allTable += '<th class="text-right px-2 fs-13i fw-600">Actual Spent (USD)</th>' +
-          '<th class="text-right px-2 fs-13i fw-600">Actual Spent (DCR)</th>' +
-          '</tr></thead>'
-        }
-        allTable += '<tbody>'
+        allTable += `<table class="table monthly v3 border-grey-2 w-auto ${stepNum > 0 ? 'ms-2' : ''}" style="height: 40px;">` +
+        '<col><colgroup span="2"></colgroup><thead>' +
+        `<tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
+        '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Spent (Est)</th>'
+        allTable += (this.settings.dtype === 'year' ? '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Actual Spent</th>' : '') + '</tr>'
+        allTable += '<tr class="text-secondary finance-table-header">' +
+        '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
+        '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>'
+        allTable += this.settings.dtype === 'year' ? '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' : ''
+        allTable += '</tr></thead><tbody>'
       }
       const dataMonth = handlerData[i]
       let isFuture = false
@@ -4384,8 +4383,11 @@ export default class extends FinanceReportController {
       return
     }
     this.totalSpanRowTarget.classList.remove('d-none')
-    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-2 fs-13i fw-600">Treasury Type</th>' +
-    '<th class="text-left px-2 fs-13i fw-600">Value (DCR)</th><th class="text-left px-2 fs-13i fw-600">Value (USD)</th></tr></thead><tbody>'
+    let innerHtml = '<col><colgroup span="2"></colgroup>' +
+    '<thead><tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">Treasury Type</th>' +
+    '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Value</th></tr>' +
+    '<tr class="text-secondary finance-table-header"><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
+    '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr></thead><tbody>'
     innerHtml += data.treasurySummary.invalue > 0
       ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Decentralized Income</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
     `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>`
@@ -4408,8 +4410,11 @@ export default class extends FinanceReportController {
 
   createDomainsSummaryTable (data) {
     const domainDataMap = this.getDomainsSummaryData(data)
-    let innerHtml = '<thead><tr class="text-secondary finance-table-header"><th class="text-left px-2 fs-13i fw-600">Domain</th>' +
-    '<th class="text-left px-2 fs-13i fw-600">Spent (Est) (DCR)</th><th class="text-left px-2 fs-13i fw-600">Spent (Est) (USD)</th></tr></thead><tbody>'
+    let innerHtml = '<col><colgroup span="2"></colgroup>' +
+    '<thead><tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">Domain</th>' +
+    '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Spent (Est)</th></tr>' +
+    '<tr class="text-secondary finance-table-header"><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
+    '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr></thead><tbody>'
     let totalDCR = 0; let totalUSD = 0
     let hasData = false
     domainDataMap.forEach((val, key) => {
