@@ -1941,6 +1941,8 @@ export default class extends FinanceReportController {
           monthObj.outEstimate += item.outEstimate
           monthObj.outEstimateUsd += item.outEstimateUsd
           monthObj.monthPrice += item.monthPrice
+          monthObj.taddValue += item.taddValue
+          monthObj.taddValueUSD += item.taddValueUSD
           monthObj.count += 1
           if (monthInt > monthObj.monthInt) {
             monthObj.monthInt = monthInt
@@ -1968,6 +1970,8 @@ export default class extends FinanceReportController {
           monthObj.balanceUSD = item.balanceUSD
           monthObj.debitLink = item.debitLink
           monthObj.creditLink = item.creditLink
+          monthObj.taddValue = item.taddValue
+          monthObj.taddValueUSD = item.taddValueUSD
         }
         dataMap.set(year, monthObj)
       }
@@ -3737,33 +3741,89 @@ export default class extends FinanceReportController {
     return thead + tbody
   }
 
-  getTreasuryResponse (treasuryResponse) {
-    if (!this.settings.tavg) {
-      return treasuryResponse
+  getProposalResponse (pResponse) {
+    if (!this.settings.tavg || !pResponse.treasurySummary || pResponse.treasurySummary.length < 1) {
+      return pResponse
     }
     const res = {}
+    Object.assign(res, pResponse)
     const treasurySum = []
-    const legacySum = []
-    const treasuryYearlyData = this.getTreasuryYearlyData(treasuryResponse.treasurySummary)
-    const legacyYearlyData = this.getTreasuryYearlyData(treasuryResponse.legacySummary)
+    const treasuryYearlyData = this.getTreasuryYearlyData(pResponse.treasurySummary)
     const treasuryMonthAvgMap = new Map()
-    const legacyMonthAvgMap = new Map()
-    const now = new Date()
+    const _this = this
     if (treasuryYearlyData && treasuryYearlyData.length > 0) {
       treasuryYearlyData.forEach((yearData) => {
-        let numOfMonth = 12
-        if (now.getFullYear().toString() === yearData.month) {
-          numOfMonth = now.getMonth() + 1
+        const numOfMonth = _this.countMonthOnYearData(yearData.month, pResponse.treasurySummary)
+        if (numOfMonth > 0) {
+          treasuryMonthAvgMap.set(yearData.month, { invalue: yearData.invalue / numOfMonth, outvalue: yearData.outvalue / numOfMonth })
         }
-        treasuryMonthAvgMap.set(yearData.month, { invalue: yearData.invalue / numOfMonth, outvalue: yearData.outvalue / numOfMonth })
       })
-      treasuryResponse.treasurySummary.forEach((tSummary) => {
+      pResponse.treasurySummary.forEach((tSummary) => {
         const tmpTreasury = {}
         Object.assign(tmpTreasury, tSummary)
         if (tmpTreasury.month) {
           const year = tmpTreasury.month.split('-')[0]
           if (treasuryMonthAvgMap.has(year)) {
             tmpTreasury.invalue = treasuryMonthAvgMap.get(year).invalue
+            tmpTreasury.outvalue = treasuryMonthAvgMap.get(year).outvalue
+            tmpTreasury.invalueUSD = tmpTreasury.monthPrice * (tmpTreasury.invalue / 1e8)
+            tmpTreasury.outvalueUSD = tmpTreasury.monthPrice * (tmpTreasury.outvalue / 1e8)
+            tmpTreasury.difference = Math.abs(tmpTreasury.invalue - tmpTreasury.outvalue)
+            tmpTreasury.differenceUSD = Math.abs(tmpTreasury.invalueUSD - tmpTreasury.outvalueUSD)
+            tmpTreasury.total = tmpTreasury.invalue + tmpTreasury.outvalue
+            tmpTreasury.totalUSD = tmpTreasury.invalueUSD + tmpTreasury.outvalueUSD
+          }
+        }
+        treasurySum.push(tmpTreasury)
+      })
+    }
+    res.treasurySummary = treasurySum
+    return res
+  }
+
+  countMonthOnYearData (yearStr, treasuryData) {
+    let count = 0
+    treasuryData.forEach((tData) => {
+      if (tData.month.startsWith(yearStr)) {
+        count++
+      }
+    })
+    return count
+  }
+
+  getTreasuryResponse (tResponse) {
+    if (!this.settings.tavg) {
+      return tResponse
+    }
+    const res = {}
+    const treasurySum = []
+    const legacySum = []
+    const treasuryYearlyData = this.getTreasuryYearlyData(tResponse.treasurySummary)
+    const legacyYearlyData = this.getTreasuryYearlyData(tResponse.legacySummary)
+    const treasuryMonthAvgMap = new Map()
+    const legacyMonthAvgMap = new Map()
+    const taddMonthValueMap = new Map()
+    const taddYearValueMap = new Map()
+    const _this = this
+    if (treasuryYearlyData && treasuryYearlyData.length > 0) {
+      treasuryYearlyData.forEach((yearData) => {
+        const numOfMonth = _this.countMonthOnYearData(yearData.month, tResponse.treasurySummary)
+        if (numOfMonth > 0) {
+          treasuryMonthAvgMap.set(yearData.month, { invalue: (yearData.invalue - yearData.taddValue) / numOfMonth, outvalue: yearData.outvalue / numOfMonth })
+          taddYearValueMap.set(yearData.month, yearData.taddValue)
+        }
+      })
+      tResponse.treasurySummary.forEach((tSummary) => {
+        const tmpTreasury = {}
+        Object.assign(tmpTreasury, tSummary)
+        if (tmpTreasury.month) {
+          const year = tmpTreasury.month.split('-')[0]
+          if (treasuryMonthAvgMap.has(year)) {
+            taddMonthValueMap.set(tmpTreasury.month, tmpTreasury.taddValue)
+            tmpTreasury.invalue = treasuryMonthAvgMap.get(year).invalue
+            if (tmpTreasury.taddValue > 0) {
+              tmpTreasury.invalue += tmpTreasury.taddValue
+            }
             tmpTreasury.outvalue = treasuryMonthAvgMap.get(year).outvalue
             tmpTreasury.invalueUSD = tmpTreasury.monthPrice * (tmpTreasury.invalue / 1e8)
             tmpTreasury.outvalueUSD = tmpTreasury.monthPrice * (tmpTreasury.outvalue / 1e8)
@@ -3780,20 +3840,27 @@ export default class extends FinanceReportController {
 
     if (legacyYearlyData && legacyYearlyData.length > 0) {
       legacyYearlyData.forEach((yearData) => {
-        let numOfMonth = 12
-        if (now.getFullYear().toString() === yearData.month) {
-          numOfMonth = now.getMonth() + 1
+        const numOfMonth = _this.countMonthOnYearData(yearData.month, tResponse.legacySummary)
+        if (numOfMonth > 0) {
+          let tadd = 0
+          if (taddYearValueMap.has(yearData.month)) {
+            tadd = taddYearValueMap.get(yearData.month) > 0 ? taddYearValueMap.get(yearData.month) : 0
+          }
+          legacyMonthAvgMap.set(yearData.month, { invalue: yearData.invalue / numOfMonth, outvalue: (yearData.outvalue - tadd) / numOfMonth })
         }
-        legacyMonthAvgMap.set(yearData.month, { invalue: yearData.invalue / numOfMonth, outvalue: yearData.outvalue / numOfMonth })
       })
-      treasuryResponse.legacySummary.forEach((lSummary) => {
+      tResponse.legacySummary.forEach((lSummary) => {
         const tmpTreasury = {}
         Object.assign(tmpTreasury, lSummary)
         if (tmpTreasury.month) {
           const year = tmpTreasury.month.split('-')[0]
           if (legacyMonthAvgMap.has(year)) {
+            let tadd = 0
+            if (taddMonthValueMap.has(tmpTreasury.month)) {
+              tadd = taddMonthValueMap.get(tmpTreasury.month) > 0 ? taddMonthValueMap.get(tmpTreasury.month) : 0
+            }
             tmpTreasury.invalue = legacyMonthAvgMap.get(year).invalue
-            tmpTreasury.outvalue = legacyMonthAvgMap.get(year).outvalue
+            tmpTreasury.outvalue = legacyMonthAvgMap.get(year).outvalue + tadd
             tmpTreasury.invalueUSD = tmpTreasury.monthPrice * (tmpTreasury.invalue / 1e8)
             tmpTreasury.outvalueUSD = tmpTreasury.monthPrice * (tmpTreasury.outvalue / 1e8)
             tmpTreasury.difference = Math.abs(tmpTreasury.invalue - tmpTreasury.outvalue)
@@ -3903,7 +3970,7 @@ export default class extends FinanceReportController {
           haveResponseData = true
         }
       } else if (proposalResponse !== null) {
-        responseData = proposalResponse
+        responseData = this.getProposalResponse(proposalResponse)
         haveResponseData = true
       }
 
@@ -3937,7 +4004,7 @@ export default class extends FinanceReportController {
       }
     }
     // create table data
-    responseData = response && this.settings.type === 'treasury' ? this.getTreasuryResponse(response) : response
+    responseData = response && this.settings.type === 'treasury' ? this.getTreasuryResponse(response) : this.getProposalResponse(response)
     if (this.isDomainType()) {
       this.handlerDomainYearlyData(responseData)
     }
