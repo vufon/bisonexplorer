@@ -2959,10 +2959,10 @@ export default class extends FinanceReportController {
       let unaccountedPercent = 100
       report.domainData.forEach((domainData) => {
         const rate = _this.isZeroNumber(rowTotal) ? 0 : 100 * domainData.expense / rowTotal
-        rateStr += `<td class="va-mid text-right fs-13i px-2 fw-600">${(rate < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rate), 2, 2) + '%'}</td>`
+        rateStr += `<td class="va-mid text-right fs-13i px-2 fw-600">${isFuture || rowTotal <= 0 ? '-' : ((rate < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rate), 2, 2) + '%')}</td>`
         unaccountedPercent -= rate
       })
-      rateStr += `<td class="va-mid text-right fs-13i px-2 fw-600">${(unaccountedPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedPercent), 2, 2) + '%'}</td>`
+      rateStr += `<td class="va-mid text-right fs-13i px-2 fw-600">${isFuture || rowTotal <= 0 ? '-' : ((unaccountedPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedPercent), 2, 2) + '%')}</td>`
       const totalDcrDisp = this.isZeroNumber(rowTotalDCR) ? '-' : (rowTotalDCR < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(rowTotalDCR), 2, 2)
       totalAllDcr += rowTotalDCR > 0 ? rowTotalDCR : 0
       totalAllValue += rowTotal > 0 ? rowTotal : 0
