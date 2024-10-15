@@ -2081,7 +2081,7 @@ export default class extends FinanceReportController {
       } else {
         headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid" ' +
           `id="${this.settings.interval + ';' + report.month}" ` +
-          `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
+          `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report?type=bytime&dtype=month&dtime=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
     }
     thead = thead.replace('###', headList)
@@ -2175,7 +2175,7 @@ export default class extends FinanceReportController {
       } else {
         headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid" ' +
           `id="${this.settings.interval + ';' + report.month}" ` +
-          `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
+          `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report?type=bytime&dtype=month&dtime=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
     }
     thead = thead.replace('###', headList)
@@ -2924,7 +2924,7 @@ export default class extends FinanceReportController {
         isFuture = compareDataTime > compareNowTime
       }
       const usdRate = this.settings.interval === 'year' ? 0 : report.usdRate
-      bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
+      bodyList += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}"><td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report?type=bytime&' + (this.settings.interval === 'year' ? '' : 'dtype=month&') + 'dtime=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}</a></td>`
       if (this.settings.interval !== 'year') {
         bodyList += `<td class="va-mid text-right px-2 fs-13i">${usdRate > 0 ? '$' + humanize.formatToLocalString(usdRate, 2, 2) : '-'}</td>`
       }
@@ -3651,7 +3651,7 @@ export default class extends FinanceReportController {
         outcomeHref = item.outvalue > 0 ? item.debitLink : ''
       }
       bodyList += '<tr class="odd-even-row">' +
-        `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report/detail?type=' + _this.settings.interval + '&time=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
+        `<td class="va-mid text-center fs-13i fw-600"><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report?type=bytime&' + (this.settings.interval === 'year' ? '' : 'dtype=month&') + '&dtime=' + (timeParam === '' ? item.month : timeParam)}">${item.month}</a></td>` +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell ${!isLegacy && taddValue > 0 ? 'special-cell' : ''}">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}`
       if (!isLegacy && taddValue > 0) {
