@@ -228,7 +228,7 @@ export default class extends FinanceReportController {
       'domainReport', 'proposalArea', 'proposalReport', 'monthlyArea', 'monthlyReport', 'yearlyArea', 'yearlyReport', 'sameOwnerProposalArea',
       'otherProposalSummary', 'summaryArea', 'summaryReport', 'reportParentContainer', 'yearMonthSelector', 'topYearSelect', 'topMonthSelect',
       'detailReportTitle', 'prevBtn', 'nextBtn', 'proposalTopSummary', 'domainSummaryTable', 'domainSummaryArea', 'proposalSpent',
-      'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea', 'unaccountedValueArea']
+      'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea', 'unaccountedValueArea', 'viewMode']
   }
 
   async connectData () {
@@ -1090,6 +1090,7 @@ export default class extends FinanceReportController {
         rTypeTarget.classList.add('active')
       }
     })
+    this.viewModeTarget.classList.add('d-none')
     this.detailReportAreaTarget.classList.remove('d-none')
     this.mainReportTopAreaTarget.classList.add('d-none')
     this.reportParentContainerTarget.classList.add('d-none')
@@ -1166,6 +1167,7 @@ export default class extends FinanceReportController {
     this.mainReportTopAreaTarget.classList.remove('d-none')
     this.yearMonthSelectorTarget.classList.add('d-none')
     this.reportParentContainerTarget.classList.remove('d-none')
+    this.viewModeTarget.classList.remove('d-none')
     if ((this.isNullValue(this.settings.type) || this.settings.type === 'proposal' || this.settings.type === 'summary') && !this.isDomainType()) {
       this.defaultSettings.tsort = 'oldest'
     } else {
@@ -1623,7 +1625,7 @@ export default class extends FinanceReportController {
         this.treasuryChartTarget.classList.add('d-none')
       } else {
         this.outgoingExpTarget.classList.remove('d-none')
-        this.outgoingExpTarget.classList.add('mt-2')
+        this.outgoingExpTarget.classList.add('mt-1')
         this.outgoingExpTarget.innerHTML = '*Delta (Est): Estimated difference between actual spending and estimated spending for Proposals. <br />&nbsp;<span style="font-style: italic;">(Delta > 0: Unaccounted, Delta < 0: Missing)</span>'
       }
     }
@@ -1719,7 +1721,7 @@ export default class extends FinanceReportController {
     } else {
       this.searchBoxTarget.classList.remove('searchbox-align')
     }
-    $('#reportTable').css('width', widthFinal)
+    $('#reportTable').css('width', this.isTreasuryReport() ? 'auto' : widthFinal)
     $('html').css('overflow-x', 'hidden')
     // set overflow class
     $('#containerReportTable').addClass('of-x-hidden')
@@ -3580,12 +3582,12 @@ export default class extends FinanceReportController {
     if (!isCombined) {
       this.treasuryBalanceDisplayTarget.textContent = humanize.formatToLocalString((lastBalance / 100000000), 2, 2) + ' DCR'
       this.treasuryBalanceRateTarget.textContent = '~$' + humanize.formatToLocalString(lastBalanceUSD, 2, 2)
-      this.treasuryBalanceCardTarget.classList.add('col-sm-12', 'col-lg-8', 'col-xl-6', 'col-xxl-4')
-      this.treasuryBalanceCardTarget.classList.remove('col-md-16', 'col-lg-12', 'col-xl-8', 'col-xxl-7')
+      this.treasuryBalanceCardTarget.classList.remove('col-md-16', 'col-xl-12', 'col-xxl-8')
+      this.treasuryBalanceCardTarget.classList.add('col-sm-12', 'col-lg-8', 'col-xl-6', 'col-xxl-5')
       this.subTreasuryTitleTarget.textContent = (isLegacy ? 'Admin' : 'Decentralized') + ' Balance'
     } else {
-      this.treasuryBalanceCardTarget.classList.remove('col-sm-12', 'col-lg-8', 'col-xl-6', 'col-xxl-4')
-      this.treasuryBalanceCardTarget.classList.add('col-md-16', 'col-lg-12', 'col-xl-8', 'col-xxl-7')
+      this.treasuryBalanceCardTarget.classList.remove('col-sm-12', 'col-lg-8', 'col-xl-6', 'col-xxl-5')
+      this.treasuryBalanceCardTarget.classList.add('col-md-16', 'col-xl-12', 'col-xxl-8')
     }
     const balanceMap = this.settings.interval === 'year' ? combinedYearlyBalanceMap : combineBalanceMap
     if (isCombined && lastMonth !== '' && balanceMap.has(lastMonth)) {

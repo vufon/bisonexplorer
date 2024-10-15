@@ -468,11 +468,9 @@ body.darkBG {
 
 .scroller {
   position: fixed;
-  left: 0;
-  right: 0;
-  margin-bottom: 25px;
   overflow-x: scroll;
   display: none;
+  margin-bottom: 25px;
   -webkit-overflow-scrolling: touch;
 }
 
