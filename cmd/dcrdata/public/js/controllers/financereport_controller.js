@@ -2973,7 +2973,7 @@ export default class extends FinanceReportController {
       `<td class="va-mid text-right fs-13i px-2">${devTotalDCR > 0 ? humanize.formatToLocalString(devTotalDCR, 2, 2) : '-'}</td>` +
       `<td class="va-mid text-right px-2 fs-13i">${isFuture ? '-' : (unaccounted >= 0 ? '' : '-') + '$' + humanize.formatToLocalString(Math.abs(unaccounted), 2, 2)}`
       if (!isFuture) {
-        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedUSDTooltip" data-show="${report.treasurySpent + ';' + devTotal}"><span class="tooltiptext cursor-default"><span class="tooltip-text d-flex ai-center"></span></span></span>`
+        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedUSDTooltip" data-show="${report.treasurySpent + ';' + devTotal}"><span class="tooltiptext cursor-default click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
       }
       bodyList += '</td>' +
         `<td class="va-mid text-right fs-13i px-2">${isFuture ? '-' : unaccountedDcrDisp}</td>` +
@@ -3042,7 +3042,7 @@ export default class extends FinanceReportController {
       if (!textElement) {
         return
       }
-      textElement.innerHTML = `<p>Decentralized Treasury received <span class="fw-600">${humanize.formatToLocalString(Number(dataArr[0]), 2, 2)} DCR(~$${humanize.formatToLocalString(Number(dataArr[1]), 2, 2)})</span> from Admin Treasury</p>`
+      textElement.innerHTML = `<p>Decentralized Treasury received <br /><span class="fw-600">${humanize.formatToLocalString(Number(dataArr[0]), 2, 2)} DCR(~$${humanize.formatToLocalString(Number(dataArr[1]), 2, 2)})</span> <br />from Admin Treasury</p>`
     }
   }
 
@@ -3070,7 +3070,7 @@ export default class extends FinanceReportController {
       if (!textElement) {
         return
       }
-      textElement.innerHTML = `<p>Admin Treasury sent <span class="fw-600">${humanize.formatToLocalString(Number(dataArr[0]), 2, 2)} DCR(~$${humanize.formatToLocalString(Number(dataArr[1]), 2, 2)})</span> to Decentralized Treasury</p>`
+      textElement.innerHTML = `<p>Admin Treasury sent <br /><span class="fw-600">${humanize.formatToLocalString(Number(dataArr[0]), 2, 2)} DCR(~$${humanize.formatToLocalString(Number(dataArr[1]), 2, 2)})</span><br />to Decentralized Treasury</p>`
     }
   }
 
@@ -3655,13 +3655,13 @@ export default class extends FinanceReportController {
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">$${humanize.formatToLocalString(item.monthPrice, 2, 2)}</td>` +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell ${!isLegacy && taddValue > 0 ? 'special-cell' : ''}">${incomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + incomeHref + '">' : ''}${incomDisplay}${incomeHref !== '' ? '</a>' : ''}`
       if (!isLegacy && taddValue > 0) {
-        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showIngoingTaddTooltip" data-show="${(taddValue / 1e8) + ';' + taddValueUSD}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
+        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showIngoingTaddTooltip" data-show="${(taddValue / 1e8) + ';' + taddValueUSD}"><span class="tooltiptext cursor-default click-popup" style="text-align: left; line-height: 1rem;"><span class="tooltip-text d-flex ai-center"></span></span></span>`
       }
       bodyList += '</td>' +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${incomUSDDisplay !== '' ? '$' + incomUSDDisplay : '-'}</td>` +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell ${!isDecentralized && taddValue > 0 ? 'special-cell' : ''}">${outcomeHref !== '' ? '<a class="link-hover-underline fs-13i" data-turbolinks="false" href="' + outcomeHref + '">' : ''}${outcomeDisplay}${outcomeHref !== '' ? '</a>' : ''}`
       if (!isDecentralized && taddValue > 0) {
-        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showOutgoingTaddTooltip" data-show="${(taddValue / 1e8) + ';' + taddValueUSD}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
+        bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showOutgoingTaddTooltip" data-show="${(taddValue / 1e8) + ';' + taddValueUSD}"><span class="tooltiptext cursor-default click-popup" style="text-align: left; line-height: 1rem;"><span class="tooltip-text d-flex ai-center"></span></span></span>`
       }
       bodyList += '</td>' +
         `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${outcomeUSDDisplay !== '' ? '$' + outcomeUSDDisplay : '-'}</td>` +
