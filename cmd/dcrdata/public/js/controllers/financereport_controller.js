@@ -19,6 +19,7 @@ let domainYearData = null
 let combinedChartData = null
 let combinedChartYearData = null
 let combinedData = null
+let combinedAvgData = null
 let combinedYearData = null
 let combineBalanceMap = null
 let combinedYearlyBalanceMap = null
@@ -228,7 +229,7 @@ export default class extends FinanceReportController {
       'domainReport', 'proposalArea', 'proposalReport', 'monthlyArea', 'monthlyReport', 'yearlyArea', 'yearlyReport', 'sameOwnerProposalArea',
       'otherProposalSummary', 'summaryArea', 'summaryReport', 'reportParentContainer', 'yearMonthSelector', 'topYearSelect', 'topMonthSelect',
       'detailReportTitle', 'prevBtn', 'nextBtn', 'proposalTopSummary', 'domainSummaryTable', 'domainSummaryArea', 'proposalSpent',
-      'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea', 'unaccountedValueArea', 'viewMode']
+      'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea', 'unaccountedValueArea', 'viewMode', 'useMonthAvgToggle']
   }
 
   async connectData () {
@@ -928,7 +929,7 @@ export default class extends FinanceReportController {
     this.settings = TurboQuery.nullTemplate([
       'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'psort', 'stype',
       'order', 'interval', 'search', 'usd', 'active', 'year', 'ttype', 'pgroup',
-      'ptype', 'dtype', 'dtime', 'dtoken', 'dname', 'dstype', 'dorder'])
+      'ptype', 'dtype', 'dtime', 'dtoken', 'dname', 'dstype', 'dorder', 'tavg'])
     this.politeiaUrl = this.data.get('politeiaUrl')
     this.defaultSettings = {
       type: 'proposal',
@@ -953,7 +954,8 @@ export default class extends FinanceReportController {
       dtoken: '',
       dname: '',
       dstype: 'pname',
-      dorder: 'desc'
+      dorder: 'desc',
+      tavg: false
     }
     mainReportInitialized = false
     detailReportSettingsState = undefined
@@ -977,6 +979,7 @@ export default class extends FinanceReportController {
     this.proposalTSort = 'oldest'
     this.treasuryTSort = 'newest'
     this.isMonthDisplay = false
+    this.useMonthAvg = false
     this.devAddress = this.data.get('devAddress')
     treasuryNote = `*All numbers are pulled from the blockchain. Includes <a href="/treasury" data-turbolinks="false">treasury</a> and <a href="/address/${this.devAddress}" data-turbolinks="false">legacy</a> data.`
     redrawChart = true
@@ -996,6 +999,8 @@ export default class extends FinanceReportController {
     await this.initData()
     this.initScrollerForTable()
     this.isMonthDisplay = this.isTreasuryReport() || this.isDomainType() ? true : this.isProposalMonthReport() || this.isAuthorMonthGroup()
+    this.useMonthAvg = this.settings.tavg
+    document.getElementById('useMonthAvg').checked = this.useMonthAvg
     const tooltipElements = document.getElementsByClassName('cell-tooltip')
     document.addEventListener('click', function (event) {
       for (let i = 0; i < tooltipElements.length; i++) {
@@ -1175,6 +1180,9 @@ export default class extends FinanceReportController {
     }
     if ((typeof this.settings.active) !== 'boolean') {
       this.settings.active = this.defaultSettings.active
+    }
+    if ((typeof this.settings.tavg) !== 'boolean') {
+      this.settings.tavg = this.useMonthAvg
     }
     if (this.isNullValue(this.settings.ptype)) {
       this.settings.ptype = this.defaultSettings.ptype
@@ -1632,6 +1640,7 @@ export default class extends FinanceReportController {
 
     if (this.isDomainType() || this.settings.type === 'treasury') {
       this.groupByTarget.classList.remove('d-none')
+      this.useMonthAvgToggleTarget.classList.remove('d-none')
       this.treasuryChartTitleTarget.classList.remove('d-none')
       this.treasuryTypeTitleTarget.classList.remove('d-none')
       if (this.settings.type === 'treasury') {
@@ -1664,6 +1673,7 @@ export default class extends FinanceReportController {
       }
     } else {
       this.groupByTarget.classList.add('d-none')
+      this.useMonthAvgToggleTarget.classList.add('d-none')
       this.treasuryChartTitleTarget.classList.add('d-none')
       this.treasuryTypeTitleTarget.classList.add('d-none')
     }
@@ -3229,8 +3239,8 @@ export default class extends FinanceReportController {
     }
 
     if (this.settings.ttype === 'combined') {
-      this.initLegacyBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.legacySummary) : data.legacySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
-      this.initTreasuryBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.treasurySummary) : data.treasurySummary, this.settings.interval === 'year' ? combinedYearData : combinedData)
+      this.initLegacyBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.legacySummary) : data.legacySummary, this.settings.interval === 'year' ? combinedYearData : this.settings.tavg ? combinedAvgData : combinedData)
+      this.initTreasuryBalanceMap(this.settings.interval === 'year' ? this.getTreasuryYearlyData(data.treasurySummary) : data.treasurySummary, this.settings.interval === 'year' ? combinedYearData : this.settings.tavg ? combinedAvgData : combinedData)
       this.initCombinedBalanceMap(treasuryData)
       this.specialTreasuryTarget.classList.add('d-none')
       this.treasuryTypeRateTarget.classList.remove('d-none')
@@ -3339,8 +3349,10 @@ export default class extends FinanceReportController {
     if (this.settings.ttype === 'legacy') {
       return data.legacySummary
     }
-    if (combinedData !== null) {
+    if (!this.settings.tavg && combinedData !== null) {
       return combinedData
+    } else if (this.settings.tavg && combinedAvgData !== null) {
+      return combinedAvgData
     }
     const _this = this
     // create time map
@@ -3415,7 +3427,11 @@ export default class extends FinanceReportController {
     for (let i = result.length - 1; i >= 0; i--) {
       mainResult.push(result[i])
     }
-    combinedData = mainResult
+    if (this.settings.tavg) {
+      combinedAvgData = mainResult
+    } else {
+      combinedData = mainResult
+    }
     return mainResult
   }
 
@@ -3721,6 +3737,79 @@ export default class extends FinanceReportController {
     return thead + tbody
   }
 
+  getTreasuryResponse (treasuryResponse) {
+    if (!this.settings.tavg) {
+      return treasuryResponse
+    }
+    const res = {}
+    const treasurySum = []
+    const legacySum = []
+    const treasuryYearlyData = this.getTreasuryYearlyData(treasuryResponse.treasurySummary)
+    const legacyYearlyData = this.getTreasuryYearlyData(treasuryResponse.legacySummary)
+    const treasuryMonthAvgMap = new Map()
+    const legacyMonthAvgMap = new Map()
+    const now = new Date()
+    if (treasuryYearlyData && treasuryYearlyData.length > 0) {
+      treasuryYearlyData.forEach((yearData) => {
+        let numOfMonth = 12
+        if (now.getFullYear().toString() === yearData.month) {
+          numOfMonth = now.getMonth() + 1
+        }
+        treasuryMonthAvgMap.set(yearData.month, { invalue: yearData.invalue / numOfMonth, outvalue: yearData.outvalue / numOfMonth })
+      })
+      treasuryResponse.treasurySummary.forEach((tSummary) => {
+        const tmpTreasury = {}
+        Object.assign(tmpTreasury, tSummary)
+        if (tmpTreasury.month) {
+          const year = tmpTreasury.month.split('-')[0]
+          if (treasuryMonthAvgMap.has(year)) {
+            tmpTreasury.invalue = treasuryMonthAvgMap.get(year).invalue
+            tmpTreasury.outvalue = treasuryMonthAvgMap.get(year).outvalue
+            tmpTreasury.invalueUSD = tmpTreasury.monthPrice * (tmpTreasury.invalue / 1e8)
+            tmpTreasury.outvalueUSD = tmpTreasury.monthPrice * (tmpTreasury.outvalue / 1e8)
+            tmpTreasury.difference = Math.abs(tmpTreasury.invalue - tmpTreasury.outvalue)
+            tmpTreasury.differenceUSD = Math.abs(tmpTreasury.invalueUSD - tmpTreasury.outvalueUSD)
+            tmpTreasury.total = tmpTreasury.invalue + tmpTreasury.outvalue
+            tmpTreasury.totalUSD = tmpTreasury.invalueUSD + tmpTreasury.outvalueUSD
+            tmpTreasury.devSpentPercent = tmpTreasury.outvalue > 0 ? 100 * (tmpTreasury.outEstimate / tmpTreasury.outvalue) : 0
+          }
+        }
+        treasurySum.push(tmpTreasury)
+      })
+    }
+
+    if (legacyYearlyData && legacyYearlyData.length > 0) {
+      legacyYearlyData.forEach((yearData) => {
+        let numOfMonth = 12
+        if (now.getFullYear().toString() === yearData.month) {
+          numOfMonth = now.getMonth() + 1
+        }
+        legacyMonthAvgMap.set(yearData.month, { invalue: yearData.invalue / numOfMonth, outvalue: yearData.outvalue / numOfMonth })
+      })
+      treasuryResponse.legacySummary.forEach((lSummary) => {
+        const tmpTreasury = {}
+        Object.assign(tmpTreasury, lSummary)
+        if (tmpTreasury.month) {
+          const year = tmpTreasury.month.split('-')[0]
+          if (legacyMonthAvgMap.has(year)) {
+            tmpTreasury.invalue = legacyMonthAvgMap.get(year).invalue
+            tmpTreasury.outvalue = legacyMonthAvgMap.get(year).outvalue
+            tmpTreasury.invalueUSD = tmpTreasury.monthPrice * (tmpTreasury.invalue / 1e8)
+            tmpTreasury.outvalueUSD = tmpTreasury.monthPrice * (tmpTreasury.outvalue / 1e8)
+            tmpTreasury.difference = Math.abs(tmpTreasury.invalue - tmpTreasury.outvalue)
+            tmpTreasury.differenceUSD = Math.abs(tmpTreasury.invalueUSD - tmpTreasury.outvalueUSD)
+            tmpTreasury.total = tmpTreasury.invalue + tmpTreasury.outvalue
+            tmpTreasury.totalUSD = tmpTreasury.invalueUSD + tmpTreasury.outvalueUSD
+          }
+        }
+        legacySum.push(tmpTreasury)
+      })
+    }
+    res.treasurySummary = treasurySum
+    res.legacySummary = legacySum
+    return res
+  }
+
   // Calculate and response
   async calculate () {
     this.pageLoaderTarget.classList.add('loading')
@@ -3810,7 +3899,7 @@ export default class extends FinanceReportController {
       // if got report. ignore get by api
       if (this.settings.type === 'treasury') {
         if (treasuryResponse !== null) {
-          responseData = treasuryResponse
+          responseData = this.getTreasuryResponse(treasuryResponse)
           haveResponseData = true
         }
       } else if (proposalResponse !== null) {
@@ -3848,7 +3937,7 @@ export default class extends FinanceReportController {
       }
     }
     // create table data
-    responseData = response
+    responseData = response && this.settings.type === 'treasury' ? this.getTreasuryResponse(response) : response
     if (this.isDomainType()) {
       this.handlerDomainYearlyData(responseData)
     }
@@ -4002,6 +4091,17 @@ export default class extends FinanceReportController {
     } else {
       this.settings.ptype = !switchCheck || switchCheck === 'false' ? 'list' : 'month'
     }
+    this.calculate()
+  }
+
+  useMonthAvgSwitch (e) {
+    const switchCheck = document.getElementById('useMonthAvg').checked
+    this.useMonthAvg = switchCheck
+    // if is not Treasury or domain type, do not anything
+    if (!this.isTreasuryReport() && !this.isDomainType()) {
+      return
+    }
+    this.settings.tavg = this.useMonthAvg
     this.calculate()
   }
 
