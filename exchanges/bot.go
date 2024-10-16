@@ -969,7 +969,7 @@ func (bot *ExchangeBot) processMutilchainState(states map[string]*ExchangeState,
 		}
 		volume := 1.0
 		if volumeAveraged {
-			volume = state.Volume
+			volume = state.BaseVolume
 		}
 		volSum += volume
 		priceAccumulator += volume * state.Price
@@ -997,7 +997,7 @@ func (bot *ExchangeBot) processState(states map[string]*ExchangeState, volumeAve
 		}
 		volume := 1.0
 		if volumeAveraged {
-			volume = state.Volume
+			volume = state.BaseVolume
 		}
 		volSum += volume
 		priceAccumulator += volume * state.Price

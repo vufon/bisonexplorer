@@ -1635,13 +1635,13 @@ func (binance *BinanceExchange) Refresh() {
 		binance.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceResponse.LastPrice), err)
 		return
 	}
-	baseVolume, err := strconv.ParseFloat(priceResponse.QuoteVolume, 64)
+	quoteVolume, err := strconv.ParseFloat(priceResponse.QuoteVolume, 64)
 	if err != nil {
 		binance.fail(fmt.Sprintf("Failed to parse float from QuoteVolume=%s", priceResponse.QuoteVolume), err)
 		return
 	}
 
-	dcrVolume, err := strconv.ParseFloat(priceResponse.Volume, 64)
+	volume, err := strconv.ParseFloat(priceResponse.Volume, 64)
 	if err != nil {
 		binance.fail(fmt.Sprintf("Failed to parse float from Volume=%s", priceResponse.Volume), err)
 		return
@@ -1685,8 +1685,8 @@ func (binance *BinanceExchange) Refresh() {
 		BaseState: BaseState{
 			Symbol:     binance.Symbol,
 			Price:      price,
-			BaseVolume: baseVolume,
-			Volume:     dcrVolume,
+			BaseVolume: volume,
+			Volume:     quoteVolume,
 			Change:     priceChange,
 			Stamp:      priceResponse.CloseTime / 1000,
 		},
@@ -1709,13 +1709,13 @@ func (kucoin *KucoinExchange) Refresh() {
 		kucoin.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceResponse.Data.Last), err)
 		return
 	}
-	baseVolume, err := strconv.ParseFloat(priceResponse.Data.VolValue, 64)
+	volumeValue, err := strconv.ParseFloat(priceResponse.Data.VolValue, 64)
 	if err != nil {
 		kucoin.fail(fmt.Sprintf("Failed to parse float from BaseVolume=%s", priceResponse.Data.VolValue), err)
 		return
 	}
 
-	dcrVolume, err := strconv.ParseFloat(priceResponse.Data.Vol, 64)
+	volume, err := strconv.ParseFloat(priceResponse.Data.Vol, 64)
 	if err != nil {
 		kucoin.fail(fmt.Sprintf("Failed to parse float from Volume=%s", priceResponse.Data.Vol), err)
 		return
@@ -1759,8 +1759,8 @@ func (kucoin *KucoinExchange) Refresh() {
 		BaseState: BaseState{
 			Symbol:     kucoin.Symbol,
 			Price:      price,
-			BaseVolume: baseVolume,
-			Volume:     dcrVolume,
+			BaseVolume: volume,
+			Volume:     volumeValue,
 			Change:     priceChange,
 			Stamp:      priceResponse.Data.Time,
 		},
@@ -2403,12 +2403,13 @@ func (pts HuobiCandlestickData) translate() Candlesticks {
 	// reverse the order
 	for i := len(pts) - 1; i >= 0; i-- {
 		pt := pts[i]
+		avgPrice := (pt.High + pt.Low + pt.Open + pt.Close) / 4
 		sticks = append(sticks, Candlestick{
 			High:   pt.High,
 			Low:    pt.Low,
 			Open:   pt.Open,
 			Close:  pt.Close,
-			Volume: pt.Vol,
+			Volume: pt.Vol / avgPrice,
 			Start:  time.Unix(pt.ID, 0),
 		})
 	}
@@ -2434,7 +2435,7 @@ func (huobi *HuobiExchange) Refresh() {
 		huobi.fail("Status not ok", fmt.Errorf("Expected status %s. Received %s", huobi.Ok, priceResponse.Status))
 		return
 	}
-	baseVolume := priceResponse.Tick.Vol
+	volume := priceResponse.Tick.Vol
 
 	// Depth data
 	var depth *DepthData
@@ -2481,8 +2482,8 @@ func (huobi *HuobiExchange) Refresh() {
 		BaseState: BaseState{
 			Symbol:     huobi.Symbol,
 			Price:      priceResponse.Tick.Close,
-			BaseVolume: baseVolume,
-			Volume:     baseVolume / priceResponse.Tick.Close,
+			BaseVolume: volume / priceResponse.Tick.Close,
+			Volume:     volume,
 			Change:     priceResponse.Tick.Close - priceResponse.Tick.Open,
 			Stamp:      priceResponse.Ts / 1000,
 		},

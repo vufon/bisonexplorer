@@ -44,7 +44,7 @@
                         <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
                             <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{.Token}} me-2"></div> {{xcDisplayName .Token}}</td>
                             <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                                {{threeSigFigs .State.Volume}}
+                                {{threeSigFigs .State.BaseVolume}}
                             </td>
                             <td class="ps-3 fs16 py-2 text-end" data-type="price">
                                 {{threeSigFigs .State.Price}}

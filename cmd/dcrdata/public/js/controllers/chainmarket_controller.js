@@ -1180,9 +1180,7 @@ export default class extends Controller {
         } else if (settings.bin === '1h') {
           time.setMinutes(30, 0, 0)
         }
-        const volUSD = stick.volume
-        const avg = (stick.open + stick.close + stick.high + stick.low) / 4
-        const vol = volUSD / avg
+        const vol = stick.volume
         // check time exist
         if (!timeArray.some(tmpTime => tmpTime === time.getTime())) {
           timeArray.push(time.getTime())
