@@ -66,7 +66,7 @@
                             {{threeSigFigs $botState.Volume}}
                         </td>
                         <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
-                            {{printf "%.2f" $botState.Price}}
+                            {{threeSigFigs $botState.Price}}
                         </td>
                         <td></td> {{- /* no arrow for aggregated data */ -}}
                     </tr>
@@ -76,7 +76,7 @@
 
 
         {{- /* BITCOIN INDICES */ -}}
-        <div class="ms-2 ms-sm-4 me-2 my-4 py-4 market-common-card bg-white">
+        <div class="ms-2 ms-sm-4 me-2 my-4 py-4 px-2 market-common-card bg-white">
             <div colspan="4" class="fs24 d-flex align-items-center justify-content-center pb-3"><div class="exchange-logo bitcoin me-2"></div> <span>Bitcoin Indices</span></div>
             <div class="row">
               {{range $token, $state := $botState.FiatIndices}}
