@@ -2250,9 +2250,16 @@ body.darkBG {
 
 .common-card {
   border: 1px solid #d7d7d7;
-  background-color: #e7f9ff;
   border-radius: 15px;
   box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%) !important;
+}
+
+.card-blue {
+  background-color: #e7f9ff;
+}
+
+.card-green {
+  background-color: #f0fff0;
 }
 
 .market-common-card {
