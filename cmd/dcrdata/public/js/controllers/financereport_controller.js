@@ -1723,7 +1723,7 @@ export default class extends FinanceReportController {
     }
     this.reportTarget.classList.add('proposal-table-padding')
     let widthFinal = $('#reportTable thead').css('width')
-    if (widthFinal !== '' && !this.isProposalMonthReport() && !this.isAuthorMonthGroup()) {
+    if (widthFinal !== '' && !this.isProposalMonthReport() && !this.isSummaryReport() && !this.isAuthorMonthGroup()) {
       let width = parseFloat(widthFinal.replaceAll('px', ''))
       width += 30
       widthFinal = width + 'px'
