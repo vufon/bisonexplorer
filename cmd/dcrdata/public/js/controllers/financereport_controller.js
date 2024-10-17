@@ -3013,7 +3013,7 @@ export default class extends FinanceReportController {
     })
     rateTotalStr += `<td class="va-mid text-right fw-600 fs-13i px-2">${(unaccountedTotalPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedTotalPercent), 2, 2) + '%'}</td>`
     bodyList += `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalDevAll, 2, 2)}</td>` +
-      `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalDevAllDCR, 2, 2)}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i px-2">${humanize.formatToLocalString(totalDevAllDCR, 2, 2)}</td>` +
      `<td class="va-mid text-right fw-600 fs-13i px-2">${this.isZeroNumber(unaccountedTotal) ? '-' : (unaccountedTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedTotal), 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">${this.isZeroNumber(unaccountedDcrTotal) ? '-' : (unaccountedDcrTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedDcrTotal), 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalAllValue, 2, 2)}</td>` +
@@ -3730,9 +3730,13 @@ export default class extends FinanceReportController {
       `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${totalBalanceNegative ? '-' : ''}${lastBalanceDisplay}</td>` +
       `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${lastBalanceUSD > 0 ? '$' : ''}${totalBalanceNegative ? '-' : ''}${usdDisp ? '$' : ''}${lastBalanceUSDDisplay}</td>`
     if (isCombined) {
+      let totalDevSentPercent = 0
+      if (outTotal > 0) {
+        totalDevSentPercent = 100 * 1e8 * estimateOutTotal / outTotal
+      }
       bodyList += `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${totalEstimateOutgoing}</td>` +
         `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${estimateOutUSDTotal > 0 ? '$' : ''}${totalEstimateOutUSDgoing}</td>` +
-        '<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">-</td>' +
+        `<td class="va-mid text-right-i fw-600 fs-13i treasury-content-cell">${totalDevSentPercent > 0 ? humanize.formatToLocalString(totalDevSentPercent, 2, 2) + '%' : '-'}</td>` +
         `<td class="va-mid ps-2 text-right-i fw-600 fs-13i treasury-content-cell">${unaccountedTotal === 0 ? '-' : (unaccountedTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedTotal / 100000000), 2, 2)}</td>` +
         `<td class="va-mid text-right-i ps-2 fw-600 fs-13i treasury-content-cell">${unaccountedUSDTotal === 0 ? '-' : (unaccountedUSDTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedUSDTotal), 2, 2)}</td>`
     }
