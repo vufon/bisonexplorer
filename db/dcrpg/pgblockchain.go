@@ -2903,7 +2903,7 @@ func (pgb *ChainDB) GetLegacySummary() ([]*dbtypes.TreasurySummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	addrDebitTxnCount, debitErr := pgb.RetrieveCountLegacyCreditAddressRows()
+	addrDebitTxnCount, debitErr := pgb.RetrieveCountLegacyDebitAddressRows()
 	if debitErr != nil {
 		return nil, debitErr
 	}

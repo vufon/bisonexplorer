@@ -2147,7 +2147,7 @@ export default class extends FinanceReportController {
       }
     }
 
-    bodyList += `<td class="text-right fw-600 fs-13i report-last-header report-first-last-footer va-mid">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`
+    bodyList += `<td class="text-right fw-600 fs-13i report-last-header report-first-last-footer va-mid">$${humanize.formatToLocalString(handlerData.allBudget, 2, 2)}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
@@ -2238,7 +2238,7 @@ export default class extends FinanceReportController {
       }
     }
 
-    bodyList += `<td class="text-right fw-600 fs-13i report-last-header report-first-last-footer va-mid">$${humanize.formatToLocalString(handlerData.allSpent, 2, 2)}</td></tr>`
+    bodyList += `<td class="text-right fw-600 fs-13i report-last-header report-first-last-footer va-mid">$${humanize.formatToLocalString(handlerData.allBudget, 2, 2)}</td></tr>`
 
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
