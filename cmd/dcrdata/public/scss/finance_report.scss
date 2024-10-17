@@ -390,6 +390,15 @@
   font-size: 16px;
 }
 
+.treasury-balance-card {
+  box-shadow: 0 3px 5px rgb(169 169 169 / 24%);
+  border-radius: 10px;
+}
+
+.special-cell {
+  background-color: #ffebd7 !important;
+}
+
 body.darkBG {
   .finance-table-header {
     background-color: #494848;
@@ -433,6 +442,12 @@ body.darkBG {
 
   .home-report-card:hover {
     background-color: #696969;
+  }
+
+  .treasury-balance-card,
+  .special-cell,
+  .card-green {
+    color: rgb(42 42 42) !important;
   }
 }
 
@@ -507,11 +522,6 @@ body.darkBG {
   }
 }
 
-.treasury-balance-card {
-  box-shadow: 0 3px 5px rgb(169 169 169 / 24%);
-  border-radius: 10px;
-}
-
 .cell-tooltip {
   cursor: pointer;
 }
@@ -547,8 +557,4 @@ body.darkBG {
 
 .border-bottom-right-radius-10 {
   border-bottom-right-radius: 10px;
-}
-
-.special-cell {
-  background-color: #ffebd7 !important;
 }
