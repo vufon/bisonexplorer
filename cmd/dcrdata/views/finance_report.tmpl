@@ -233,11 +233,11 @@
                         <div class="d-none" id="repotParentContainer" data-financereport-target="reportParentContainer">
                            <div class="report-table-wrapper" id="wrapperReportTable">
                               <div id="containerReportTable">
-                                 <p class="fs-20 mb-1 mt-1 report-tool-bar d-none" data-financereport-target="treasuryTypeTitle">
+                                 <p class="fs-20 mb-0 mt-1 report-tool-bar d-none" data-financereport-target="treasuryTypeTitle">
                                     Current Treasury
                                  </p>
                                  <div class="toggle-search-area ai-center">
-                                    <div class="d-none d-inline mb-2 me-3" data-financereport-target="groupBy">
+                                    <div class="d-none d-inline mb-2 me-3 mt-2" data-financereport-target="groupBy">
                                        <label data-financereport-target="groupByLabel">Group By </label>
                                        <div class="btn-group" data-toggle="buttons">
                                           <input data-financereport-target="interval" data-action="click->financereport#intervalChange"
@@ -246,19 +246,19 @@
                                              type="button" class="tab-button white me-1 c-txt-main" value="Yearly" name="year">
                                        </div>
                                     </div>
-                                    <div class="d-none me-3 mb-2" data-financereport-target="treasuryToggleArea">
+                                    <div class="d-none me-3 mb-2 mt-2" data-financereport-target="treasuryToggleArea">
                                        <label class="d-none" data-financereport-target="yearSelectTitle">Select Year</label>
                                        <select class="border-grey d-none border-plain border-radius-8"
                                           data-financereport-target="yearSelect" data-action="change->financereport#changeYear">
                                        </select>
                                     </div>
-                                    <div class="d-none d-flex" data-financereport-target="useMonthAvgToggle">
+                                    <div class="d-none d-flex mt-2" data-financereport-target="useMonthAvgToggle">
                                        <label class="switch">
                                        <input type="checkbox" data-action="change->financereport#useMonthAvgSwitch"
                                           id="useMonthAvg">
                                        <span class="legacy-slider round"></span>
                                        </label>
-                                       <span class="ms-2" style="position:sticky;left:125px;">Use Monthly Average</span>
+                                       <span class="ms-2">Use Monthly Average</span>
                                     </div>
                                  </div>
                                  <p class="d-none fs-14 mt-0" data-financereport-target="outgoingExp">*Outgoing (Est): This is based on total
