@@ -160,11 +160,11 @@
                            </div>
                         </a>
                         <div class="explore-card__values-content market-chart-content pb-2">
-                           <section class="ms-3">
+                           <section class="d-flex justify-content-center">
                               {{- if $botState -}}
-                              <div class="row border-1-grey chart-wrapper">
+                              <div class="row border-1-grey px-0 chart-wrapper">
                                  <!-- market chart start -->
-                                 <div class="row w-100 align-items-top" data-controller="chainmarket"
+                                 <div class="row w-100 ms-2 ps-0 align-items-top" data-controller="chainmarket"
                                     data-chainmarket-chain-type="{{$ChainType}}">
                                     {{- /* LEFT COLUMN */ -}}
                                     <div class="col-24 col-lg-auto p-0 d-none">
@@ -255,7 +255,7 @@
                                     </div>
                                     {{- /* RIGHT COLUMN */ -}}
                                     <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 p-0">
-                                       <div class="col me-2 flex-grow-1 d-flex flex-column bg-white position-relative">
+                                       <div class="col me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative">
                                           <div class="loader-v2 loading" data-chainmarket-target="chartLoader"></div>
                                           {{- /* CHART ONTROLS */ -}}
                                           <div class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
@@ -902,10 +902,10 @@
                         </div>
                      </a>
                      <div class="explore-card__values-content market-chart-content">
-                        <section>
-                        <div class="row chart-header-row border-1-grey">
-                           <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center border-right-1-grey">
-                              <div class="chart-control-wrapper chart-filter-tools me-4 mb-1 chart-select-option">
+                        <section class="p-2">
+                        <div class="row">
+                           <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center">
+                              <div class="chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
                                  <div class="chart-control-label">CHART</div>
                                  <div class="chart-control">
                                     <select
@@ -935,7 +935,7 @@
                                     </select>
                                  </div>
                               </div>
-                              <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="zoomSelector">
+                              <div class="chart-control-wrapper chart-filter-tools mb-1" data-chaincharts-target="zoomSelector">
                                  <div class="chart-control-label">ZOOM</div>
                                  <div class="chart-control chart-filter-selection ps-2">
                                     <ul class="nav nav-pills">
@@ -972,7 +972,7 @@
                                     </ul>
                                  </div>
                               </div>
-                              <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="binSelector">
+                              <div class="chart-control-wrapper chart-filter-tools mb-1" data-chaincharts-target="binSelector">
                                  <div class="chart-control-label">BIN</div>
                                  <div class="chart-control chart-filter-selection ps-2">
                                     <ul class="nav nav-pills">
@@ -991,7 +991,7 @@
                                     </ul>
                                  </div>
                               </div>
-                              <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="scaleSelector">
+                              <div class="chart-control-wrapper chart-filter-tools mb-1" data-chaincharts-target="scaleSelector">
                                  <div class="chart-control-label">SCALE</div>
                                  <div class="chart-control chart-filter-selection ps-2">
                                     <ul class="nav nav-pills">
@@ -1010,7 +1010,7 @@
                                     </ul>
                                  </div>
                               </div>
-                              <div class="chart-control-wrapper chart-filter-tools me-4 mb-1" data-chaincharts-target="modeSelector">
+                              <div class="chart-control-wrapper chart-filter-tools mb-1" data-chaincharts-target="modeSelector">
                                  <div class="chart-control-label">MODE</div>
                                  <div class="chart-control chart-filter-selection ps-2">
                                     <ul class="nav nav-pills">
