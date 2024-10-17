@@ -32,7 +32,7 @@
                      <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
                         <span class="text-secondary fs13">Total Sent</span>
                         <br>
-                        <span class="h4" data-chainmempool-target="totalSent">{{threeSigFigs .TotalOut}}</span> <span class="text-secondary">{{$ChainType}}</span>
+                        <span class="h4" data-chainmempool-target="totalSent">{{threeSigFigs .TotalOut}}</span> <span class="text-secondary">{{toUpperCase $ChainType}}</span>
                      </div>
                   </div>
                   <div class="col-12 text-center">
@@ -86,7 +86,7 @@
                   </div>
                     <div class="col-12">
                      <div class="text-center fs13">Fee Rate ({{if eq $ChainType "ltc"}}lit{{else}}sat{{end}}/vB)</div>
-                     <div class="text-center h4 mb-0"><div class="network-stats-content d-inline-block">
+                     <div class="text-center h4 mb-0"><div class="network-stats-content d-inline-block" style="color: white !important;">
                         <span data-chainmempool-target="minFeeRate">{{template "decimalParts" (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> - 
                         <span data-chainmempool-target="maxFeeRate">{{template "decimalParts" (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
                      </div></div>

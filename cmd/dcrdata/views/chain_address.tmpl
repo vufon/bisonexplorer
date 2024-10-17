@@ -53,9 +53,9 @@
                   <br>
                   <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
                   {{- if .Balance}}
-                  {{template "decimalParts" (amountAsDecimalParts .Balance.TotalUnspent true)}}<span class="text-secondary fs14">{{$ChainType}}</span>
+                  {{template "decimalParts" (amountAsDecimalParts .Balance.TotalUnspent true)}}<span class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
                   {{- else}}
-                  <span class="fs18">0</span> <span class="text-secondary fs14">{{$ChainType}}</span>
+                  <span class="fs18">0</span><span class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
                   {{- end}}
                   </span>
                </div>
@@ -65,9 +65,9 @@
                   <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
                   {{- if .Balance}}
                   {{- $received := .Balance.TotalReceived}}
-                  {{- template "decimalParts" (amountAsDecimalParts $received true)}} <span class="text-secondary fs14">{{$ChainType}}</span>
+                  {{- template "decimalParts" (amountAsDecimalParts $received true)}} <span class="text-secondary fs14">{{toUpperCase $ChainType}}</span>
                   {{- else}}
-                  <span class="fs18">0</span> <span class="text-secondary fs14">{{$ChainType}}</span>
+                  <span class="fs18">0</span> <span class="text-secondary fs14">{{toUpperCase $ChainType}}</span>
                   {{- end}}
                   </span>
                </div>
@@ -76,9 +76,9 @@
                   <br>
                   <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
                   {{- if .Balance}}
-                  {{- template "decimalParts" (amountAsDecimalParts .Balance.TotalSpent true)}} <span class="text-secondary fs14">{{$ChainType}}</span>
+                  {{- template "decimalParts" (amountAsDecimalParts .Balance.TotalSpent true)}} <span class="text-secondary fs14">{{toUpperCase $ChainType}}</span>
                   {{- else}}
-                  <span class="fs18">0</span> <span class="text-secondary fs14">{{$ChainType}}</span>
+                  <span class="fs18">0</span> <span class="text-secondary fs14">{{toUpperCase $ChainType}}</span>
                   {{- end}}
                   </span>
                </div>
