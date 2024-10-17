@@ -4028,10 +4028,6 @@ export default class extends FinanceReportController {
     domainYearData = this.getProposalYearlyData(handlerData)
   }
 
-  isMobile () {
-    try { document.createEvent('TouchEvent'); return true } catch (e) { return false }
-  }
-
   handlerDataForCombinedChart (data) {
     if (combinedChartData !== null && combinedChartYearData !== null) {
       return

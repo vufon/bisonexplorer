@@ -21,4 +21,8 @@ export default class FinanceReportController extends Controller {
     this.reportMaxYear = timeRangeRes.maxYear
     this.reportMaxMonth = timeRangeRes.maxMonth
   }
+
+  isMobile () {
+    try { document.createEvent('TouchEvent'); return true } catch (e) { return false }
+  }
 }

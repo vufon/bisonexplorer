@@ -24,12 +24,12 @@ export default class extends FinanceReportController {
       'totalSpanRow', 'monthlyArea', 'yearlyArea',
       'monthlyReport', 'yearlyReport', 'summaryArea', 'summaryReport',
       'proposalSpanRow', 'prevBtn', 'nextBtn',
-      'toVote', 'toDiscussion', 'sameOwnerProposalArea', 'otherProposalSummary',
+      'toVote', 'toDiscussion',
       'expendiduteValue', 'prevNextButtons', 'toUpReport',
       'currentDetail', 'yearBreadcumb', 'proposalSumCard', 'proposalTopSummary',
       'domainSummaryTable', 'domainSummaryArea', 'proposalSpent',
       'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea',
-      'unaccountedValueArea', 'detailReportTitle']
+      'unaccountedValueArea', 'detailReportTitle', 'summaryTableTitle']
   }
 
   async initialize () {
@@ -84,14 +84,87 @@ export default class extends FinanceReportController {
     } else {
       this.prevNextButtonsTarget.classList.remove('d-none')
     }
-
     if (this.settings.type === 'month' || this.settings.type === 'year') {
       this.yearMonthCalculate()
       return
     }
+    this.initScrollerForTable()
     this.proposalTopSummaryTarget.classList.add('d-none')
     this.totalSpanRowTarget.classList.add('d-none')
     this.proposalCalculate()
+  }
+
+  async initScrollerForTable () {
+    const $scroller = document.getElementById('scroller')
+    const $container = document.getElementById('containerBody')
+    const $wrapper = document.getElementById('wrapperReportTable')
+    let ignoreScrollEvent = false
+    let animation = null
+    const scrollbarPositioner = () => {
+      const scrollTop = document.scrollingElement.scrollTop
+      const wrapperTop = $wrapper.offsetTop
+      const wrapperBottom = wrapperTop + $wrapper.offsetHeight
+
+      const topMatch = (window.innerHeight + scrollTop) >= wrapperTop
+      const bottomMatch = (scrollTop) <= wrapperBottom
+
+      if (topMatch && bottomMatch) {
+        const inside = wrapperBottom >= scrollTop && window.innerHeight + scrollTop <= wrapperBottom
+
+        if (inside) {
+          $scroller.style.bottom = '0px'
+        } else {
+          const offset = (scrollTop + window.innerHeight) - wrapperBottom
+
+          $scroller.style.bottom = offset + 'px'
+        }
+        $scroller.classList.add('visible')
+      } else {
+        $scroller.classList.remove('visible')
+      }
+
+      window.requestAnimationFrame(scrollbarPositioner)
+    }
+
+    window.requestAnimationFrame(scrollbarPositioner)
+
+    $scroller.addEventListener('scroll', (e) => {
+      if (ignoreScrollEvent) return false
+
+      if (animation) window.cancelAnimationFrame(animation)
+      animation = window.requestAnimationFrame(() => {
+        ignoreScrollEvent = true
+        $container.scrollLeft = $scroller.scrollLeft
+        ignoreScrollEvent = false
+      })
+    })
+
+    $container.addEventListener('scroll', (e) => {
+      if (ignoreScrollEvent) return false
+
+      if (animation) window.cancelAnimationFrame(animation)
+      animation = window.requestAnimationFrame(() => {
+        ignoreScrollEvent = true
+        $scroller.scrollLeft = $container.scrollLeft
+
+        ignoreScrollEvent = false
+      })
+    })
+
+    $(window).on('resize', function () {
+      // get table thead size
+      const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
+      const tableWidth = parseFloat(tableWidthStr.trim())
+      const parentContainerWidthStr = $('#summaryTableArea').css('width').replace('px', '')
+      const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
+      if (tableWidth < parentContainerWidth + 5) {
+        $('#scroller').addClass('d-none')
+      } else {
+        $('#scroller').removeClass('d-none')
+      }
+      // set overflow class
+      $('#scroller').css('width', $('#summaryTableArea').css('width'))
+    })
   }
 
   showNoData () {
@@ -200,8 +273,10 @@ export default class extends FinanceReportController {
   proposalDetailsListUpdate () {
     if (this.settings.type === 'domain' || this.settings.type === 'owner') {
       this.summaryReportTarget.innerHTML = this.createSummaryTable(responseData.proposalInfos, this.settings.type === 'owner', this.settings.type === 'domain')
+      this.handlerScrollerTable()
     } else if (this.settings.type === 'proposal') {
-      this.otherProposalSummaryTarget.innerHTML = this.createSummaryTable(responseData.otherProposalInfos, true, false)
+      this.summaryReportTarget.innerHTML = this.createSummaryTable(responseData.otherProposalInfos, true, false)
+      this.handlerScrollerTable()
     }
   }
 
@@ -259,7 +334,9 @@ export default class extends FinanceReportController {
     this.yearlyAreaTarget.classList.remove('d-none')
     if (this.settings.type === 'domain' || this.settings.type === 'owner') {
       this.summaryAreaTarget.classList.remove('d-none')
+      this.summaryTableTitleTarget.textContent = 'Proposals'
       this.summaryReportTarget.innerHTML = this.createSummaryTable(response.proposalInfos, this.settings.type === 'owner', this.settings.type === 'domain')
+      this.handlerScrollerTable()
       this.setDomainGeneralInfo(response, this.settings.type)
       if (this.settings.type === 'domain') {
         domainList = response.domainList
@@ -271,10 +348,12 @@ export default class extends FinanceReportController {
     if (this.settings.type === 'proposal') {
       // show summary proposal list
       if (!response.otherProposalInfos || response.otherProposalInfos.length === 0) {
-        this.sameOwnerProposalAreaTarget.classList.add('d-none')
+        this.summaryAreaTarget.classList.add('d-none')
       } else {
-        this.sameOwnerProposalAreaTarget.classList.remove('d-none')
-        this.otherProposalSummaryTarget.innerHTML = this.createSummaryTable(response.otherProposalInfos, true, false)
+        this.summaryAreaTarget.classList.remove('d-none')
+        this.summaryTableTitleTarget.textContent = 'Proposals with the same owner'
+        this.summaryReportTarget.innerHTML = this.createSummaryTable(response.otherProposalInfos, true, false)
+        this.handlerScrollerTable()
       }
       this.toVoteTarget.classList.remove('d-none')
       this.toDiscussionTarget.classList.remove('d-none')
@@ -312,6 +391,39 @@ export default class extends FinanceReportController {
       }
       this.monthlyAreaTarget.classList.remove('d-none')
       this.monthlyReportTarget.innerHTML = this.createMonthYearTable(response, 'month')
+    }
+  }
+
+  handlerScrollerTable () {
+    const tableWidthStr = $('#reportTable thead').css('width').replace('px', '')
+    const tableWidth = parseFloat(tableWidthStr.trim())
+    const parentContainerWidthStr = $('#summaryTableArea').css('width').replace('px', '')
+    const parentContainerWidth = parseFloat(parentContainerWidthStr.trim())
+    let hideScroller = false
+    if (tableWidth < parentContainerWidth + 5) {
+      $('#scroller').addClass('d-none')
+      hideScroller = true
+    } else {
+      $('#scroller').removeClass('d-none')
+    }
+    this.summaryReportTarget.classList.add('proposal-table-padding')
+    $('#reportTable').css('width', 'auto')
+    $('html').css('overflow-x', 'hidden')
+    // set overflow class
+    $('#containerReportTable').addClass('of-x-hidden')
+    $('#containerBody').addClass('of-x-hidden')
+    $('#scrollerLong').css('width', (tableWidth + 25) + 'px')
+    // set scroller width fit with container width
+    $('#scroller').css('width', $('#summaryTableArea').css('width'))
+    if (this.isMobile()) {
+      $('#containerBody').css('overflow', 'scroll')
+      this.summaryReportTarget.classList.remove('proposal-table-padding')
+      $('#scroller').addClass('d-none')
+    } else {
+      this.summaryReportTarget.classList.add('proposal-table-padding')
+      if (!hideScroller) {
+        $('#scroller').removeClass('d-none')
+      }
     }
   }
 
@@ -403,6 +515,7 @@ export default class extends FinanceReportController {
   }
 
   createSummaryTable (data, hideAuthor, hideDomain) {
+    $('#reportTable').css('width', '')
     if (!data) {
       return ''
     }

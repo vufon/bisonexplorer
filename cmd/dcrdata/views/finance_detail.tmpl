@@ -44,7 +44,7 @@
       </div>
       <p class="d-none" data-financedetail-target="noData">Data not available. Please check the URL or reload the page!</p>
       <div class="d-none" data-financedetail-target="reportArea">
-         <div class="common-card card-green py-2 ps-3 w-500px mt-1 d-none odd-even-row" data-financedetail-target="proposalSumCard">
+         <div class="common-card card-green py-2 ps-3 w-500px mt-1 d-none odd-even-row proposal-sum-card" data-financedetail-target="proposalSumCard">
             <div data-financedetail-target="proposalSpanRow">
             </div>
             <div class="d-flex">
@@ -104,23 +104,24 @@
             <div class="d-flex" data-financedetail-target="yearlyReport">
             </div>
          </div>
-         <div data-financedetail-target="sameOwnerProposalArea" class="d-none">
-            <p class="fw-600 fs-20 mt-3">Proposals with the same owner</p>
+         <div id="summaryTableArea" data-financedetail-target="summaryArea" class="d-none">
+            <div class="report-table-wrapper" id="wrapperReportTable">
+            <div id="containerReportTable">
+            <p class="fw-600 fs-20 mt-3" data-financedetail-target="summaryTableTitle"></p>
             <div class="mt-2">
                <label class="color-note-label summary-note-color border-radius-8"></label>
                <span class="description-text c-grey-2 fw-600">The proposals are still active</span>
             </div>
-            <table class="table report report-table v3 border-grey-2 w-auto mt-3" data-financedetail-target="otherProposalSummary">
-            </table>
+            <div id="containerBody" class="content container-body">
+               <table id="reportTable" class="table report report-table v3 border-grey-2 w-auto my-3" data-financedetail-target="summaryReport">
+               </table>
+            </div>
+            <div id="scroller" class="scroller mb-0 d-none">
+               <div id="scrollerLong" class="long">
+               </div>
+            </div>
          </div>
-         <div data-financedetail-target="summaryArea" class="d-none">
-            <p class="fw-600 fs-20 mt-3">Proposals</p>
-            <div class="mt-2">
-               <label class="color-note-label summary-note-color border-radius-8"></label>
-               <span class="description-text c-grey-2 fw-600">The proposals are still active</span>
-            </div>
-            <table class="table report report-table v3 border-grey-2 w-auto mt-3" data-financedetail-target="summaryReport">
-            </table>
+         </div>
          </div>
       </div>
    </div>
