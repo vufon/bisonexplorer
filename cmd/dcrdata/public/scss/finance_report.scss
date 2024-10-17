@@ -35,6 +35,32 @@
   align-items: center;
 }
 
+.report-first-header {
+  position: sticky;
+  left: 0;
+  z-index: 900;
+  background-color: #5587a4 !important;
+}
+
+.report-last-header {
+  position: sticky;
+  right: 0;
+  background-color: #5587a4 !important;
+}
+
+.report-first-data {
+  position: sticky;
+  left: 0;
+  background-color: #e3e3e3 !important;
+  padding: 10px 0.5em !important;
+}
+
+.report-last-data {
+  position: sticky;
+  right: 0;
+  background-color: #e3e3e3 !important;
+}
+
 @media (max-width: 1780px) {
   .report-year-text {
     padding-right: 40px !important;
@@ -161,6 +187,13 @@
     margin-left: 0;
     margin-top: 10px;
   }
+
+  .report-first-header,
+  .report-last-header,
+  .report-first-data,
+  .report-last-data {
+    position: relative;
+  }
 }
 
 .month-col {
@@ -216,34 +249,8 @@
   content: "Row ";
 }
 
-.report-first-header {
-  position: sticky;
-  left: 0;
-  z-index: 900;
-  background-color: #5587a4 !important;
-}
-
-.report-last-header {
-  position: sticky;
-  right: 0;
-  background-color: #5587a4 !important;
-}
-
 .report-first-last-footer {
   background-color: #585858 !important;
-}
-
-.report-first-data {
-  position: sticky;
-  left: 0;
-  background-color: #e3e3e3 !important;
-  padding: 10px 0.5em !important;
-}
-
-.report-last-data {
-  position: sticky;
-  right: 0;
-  background-color: #e3e3e3 !important;
 }
 
 .table-header-sticky {
