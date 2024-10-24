@@ -4,22 +4,22 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	{{/* The above meta tags *must* come first in the head */ -}}
 	{{- if .Data.Host -}}
-	<meta name="description" content="dcrdata, an original Decred block explorer powered by Go">
+	<meta name="description" content="Bison Explorer, an original Multi-chain explorer powered by Go">
 	<meta name="author" content="The mutilple blockchains developers">
-	<meta name="application-name"           content="dcrdata - The Decred Block Explorer">
-	<meta name="apple-mobile-web-app-title" content="dcrdata - The Decred Block Explorer">
+	<meta name="application-name"           content="Bison Explorer - The Mutilple Blockchain Explorer">
+	<meta name="apple-mobile-web-app-title" content="Bison Explorer - The Mutilple Blockchain Explorer">
 
 	<meta name="twitter:card" content="summary"/>
-	<meta name="twitter:title" content="dcrdata - The Mutilple Blockchain Explorer"/>
+	<meta name="twitter:title" content="Bison Explorer - The Mutilple Blockchain Explorer"/>
 	<meta name="twitter:description" content="{{ .Title }}"/>
-	<meta name="twitter:image" content="{{ .Data.BaseURL }}/images/dcrdata400x348.png"/>
+	<meta name="twitter:image" content="/images/bisonog.PNG"/>
 
-	<meta property="og:site_name"   content="dcrdata" />
-	<meta property="og:title"       content="dcrdata - The Mutilple Blockchains Block Explorer" />
+	<meta property="og:site_name"   content="bisonexplorer" />
+	<meta property="og:title"       content="Bison Explorer - The Mutilple Blockchains Block Explorer" />
 	<meta property="og:description" content="{{ .Title }}" />
 	<meta property="og:type"        content="website" />
 	<meta property="og:url"         content="{{ .Data.CanonicalURL }}" />
-	<meta property="og:image"       content="{{ .Data.BaseURL }}/images/dcrdata400x348.png" />
+	<meta property="og:image"       content="/images/bisonog.PNG" />
 	{{- end}}
 	{{- if ne .Data.Links.OnionURL "" }}
 	<meta http-equiv="onion-location" content="http://{{.Data.Links.OnionURL}}" />
@@ -628,7 +628,7 @@
 
 {{define "footer_script"}}
 <script
-	src="/dist/js/4.804060adccfad872.bundle.js"
+	src="/dist/js/4.87a3c544517d1674.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
