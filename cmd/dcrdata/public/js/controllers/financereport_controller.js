@@ -2088,12 +2088,12 @@ export default class extends FinanceReportController {
       const timeParam = this.getFullTimeParam(report.month, '/')
 
       if (this.settings.interval === 'year') {
-        headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid" id="${this.settings.interval + ';' + report.month}">`
+        headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid mw-75px" id="${this.settings.interval + ';' + report.month}">`
         headList += '<div class="d-flex justify-content-center">'
         headList += `<a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
         headList += '</a></div></th>'
       } else {
-        headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid" ' +
+        headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid mw-75px" ' +
           `id="${this.settings.interval + ';' + report.month}" ` +
           `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report?type=bytime&dtype=month&dtime=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
@@ -2182,12 +2182,12 @@ export default class extends FinanceReportController {
       const timeParam = this.getFullTimeParam(report.month, '/')
 
       if (this.settings.interval === 'year') {
-        headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid" id="${this.settings.interval + ';' + report.month}">`
+        headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid mw-75px" id="${this.settings.interval + ';' + report.month}">`
         headList += '<div class="d-flex justify-content-center">'
         headList += `<a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
         headList += '</a></div></th>'
       } else {
-        headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid" ' +
+        headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid mw-75px" ' +
           `id="${this.settings.interval + ';' + report.month}" ` +
           `><a class="link-hover-underline fs-13i" data-turbolinks="false" href="${'/finance-report?type=bytime&dtype=month&dtime=' + (timeParam === '' ? report.month : timeParam)}"><span class="d-block pr-5">${report.month.replace('/', '-')}</span></a></th>`
       }
