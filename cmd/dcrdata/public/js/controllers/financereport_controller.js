@@ -3703,7 +3703,7 @@ export default class extends FinanceReportController {
           `<td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${item.outEstimate !== 0.0 ? '$' + humanize.formatToLocalString(item.outEstimateUsd, 2, 2) : '-'}</td>` +
           `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${devSentPercent === 0.0 ? '-' : humanize.formatToLocalString(devSentPercent, 2, 2) + '%'}</td>` +
           `<td class="va-mid ps-2 text-right-i fs-13i treasury-content-cell">${unaccounted === 0 ? '-' : (unaccounted < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccounted) / 100000000, 2, 2)}`
-        if (unaccounted > 0) {
+        if (unaccounted !== 0) {
           bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedTooltip" data-show="${item.outvalue / 100000000 + ';' + item.outEstimate}"><span class="tooltiptext cursor-default move-left-click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
         }
         bodyList += `</td><td class="va-mid text-right-i ps-2 fs-13i treasury-content-cell">${unaccountedUSD === 0 ? '-' : (unaccountedUSD < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedUSD), 2, 2)}</td>`
