@@ -13,9 +13,10 @@ import (
 	"time"
 
 	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
-	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 )
 
 type ChartMutilchainUpdater struct {
@@ -53,6 +54,7 @@ type MutilchainChartData struct {
 	ChainType           string
 	UseSyncDB           bool
 	UseAPI              bool
+	LastUpdatedTime     time.Time
 }
 
 // Lengthen performs data validation and populates the Days zoomSet. If there is
@@ -278,6 +280,13 @@ func (charts *MutilchainChartData) Dump(dumpPath string) {
 
 // TriggerUpdate triggers (*ChartData).Update.
 func (charts *MutilchainChartData) TriggerUpdate(_ string, _ uint32) error {
+	// Check the sync interval between 2 times. If less than 1 day, ignore
+	now := time.Now()
+	// Get 1 day before
+	oneDayBefore := now.AddDate(0, 0, -1)
+	if charts.LastUpdatedTime.After(oneDayBefore) {
+		return nil
+	}
 	if err := charts.Update(); err != nil {
 		// Only log errors from ChartsData.Update. TODO: make this more severe.
 		log.Errorf("(*ChartData).Update failed: %v", err)
@@ -408,7 +417,7 @@ func (charts *MutilchainChartData) Update() error {
 	}
 	log.Debugf("Charts updaters complete at height %d in %f seconds.",
 		charts.Height(), time.Since(t).Seconds())
-
+	charts.LastUpdatedTime = time.Now()
 	// Since the charts db data query is complete. Update chart.Days derived dataset.
 	if err := charts.Lengthen(); err != nil {
 		return fmt.Errorf("(*ChartData).Lengthen failed: %v", err)

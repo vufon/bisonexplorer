@@ -28,14 +28,10 @@ import (
 	btcClient "github.com/btcsuite/btcd/rpcclient"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/rpcclient/v8"
-	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
-
 	"github.com/decred/dcrdata/db/dcrpg/v8"
 	"github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/gov/v6/agendas"
 	politeia "github.com/decred/dcrdata/gov/v6/politeia"
-
 	"github.com/decred/dcrdata/v8/blockdata"
 	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
 	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
@@ -52,6 +48,11 @@ import (
 	"github.com/decred/dcrdata/v8/rpcutils"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/stakedb"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/gops/agent"
+	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api/insight"
@@ -59,9 +60,6 @@ import (
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/explorer"
 	mw "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 	notify "github.com/decred/dcrdata/cmd/dcrdata/internal/notification"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/google/gops/agent"
 )
 
 func main() {
@@ -1580,6 +1578,14 @@ func _main(ctx context.Context) error {
 		ltcBlockDataSavers = append(ltcBlockDataSavers, chainDB)
 		ltcBlockDataSavers = append(ltcBlockDataSavers, psHub)
 		ltcBlockDataSavers = append(ltcBlockDataSavers, explore)
+		// Add charts saver method after explorer and database stores. This may run
+		// asynchronously.
+		ltcBlockDataSavers = append(ltcBlockDataSavers, blockdataltc.BlockTrigger{
+			Async: true,
+			Saver: func(hash string, height uint32) error {
+				return ltcCharts.TriggerUpdate(hash, height)
+			},
+		})
 		ltcBdChainMonitor := blockdataltc.NewChainMonitor(ctx, ltcCollector, ltcBlockDataSavers,
 			ltcReorgBlockDataSavers)
 
@@ -1733,6 +1739,14 @@ func _main(ctx context.Context) error {
 		btcBlockDataSavers = append(btcBlockDataSavers, chainDB)
 		btcBlockDataSavers = append(btcBlockDataSavers, psHub)
 		btcBlockDataSavers = append(btcBlockDataSavers, explore)
+		// Add charts saver method after explorer and database stores. This may run
+		// asynchronously.
+		btcBlockDataSavers = append(btcBlockDataSavers, blockdatabtc.BlockTrigger{
+			Async: true,
+			Saver: func(hash string, height uint32) error {
+				return btcCharts.TriggerUpdate(hash, height)
+			},
+		})
 		btcReorgBlockDataSavers := []blockdatabtc.BlockDataSaver{explore}
 		btcBdChainMonitor := blockdatabtc.NewChainMonitor(ctx, btcCollector, btcBlockDataSavers,
 			btcReorgBlockDataSavers)
