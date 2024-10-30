@@ -29,7 +29,7 @@
                         {{range .HomeInfoList}}
                         <tr>
                            <td class="text-start">
-                              <a href="{{if eq .Chain "dcr"}}/{{else}}/{{.Chain}}{{end}}">
+                              <a href="{{if eq .Chain "dcr"}}/decred{{else}}/{{.Chain}}{{end}}">
                                  <img src="/images/{{.Chain}}-icon.png" width="25" height="25" />
                                  <span class="ms-2 fs-17">{{chainName .Chain}}</span>
                                  <span class="fs-17">({{toUpperCase .Chain}})</span>
@@ -37,7 +37,7 @@
                            </td>
                            <td class="text-end pe-2 pe-lg-5">
                               <a class="fs-16" id="{{.Chain}}_blockHeight" data-top-target="blockHeight" {{if eq
-                                 .Chain "dcr" }}href="/block/{{.BestBlock.Height}}"
+                                 .Chain "dcr" }}href="/decred/block/{{.BestBlock.Height}}"
                                  {{else}}href="/{{.Chain}}/block/{{.BestBlock.Height}}"
                                  {{end}}>{{.BestBlock.Height}}</a>
                            </td>
