@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 {{$ChainType := .ChainType}}
-{{ template "html-head" headData .CommonPageData (printf "Bison Explorer - %s Visual Blocks" (chainName $ChainType))}}
+{{ template "html-head" headData .CommonPageData (printf "%s Visual Blocks" (chainName $ChainType))}}
 {{template "mutilchain_navbar" . }}
 <div id="mainContainer" class="container" data-controller="time">
     <div class="blocks-section" data-controller="chainvisualBlocks" data-chainvisualBlocks-target="root"

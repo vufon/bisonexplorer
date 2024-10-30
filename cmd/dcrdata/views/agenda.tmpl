@@ -1,7 +1,7 @@
 {{define "agenda"}}
 <!DOCTYPE html>
 <html lang="en">
-    {{template "html-head" headData .CommonPageData "Bison Explorer - Decred Agenda Charts"}}
+    {{template "html-head" headData .CommonPageData (printf "Decred Agenda - %s" .Ai.ID)}}
         {{template "navbar" .}}
         {{with .Ai}}
         <div class="container mt-2">
@@ -10,7 +10,7 @@
                    <span class="homeicon-tags me-1"></span>
                    <span class="link-underline">Homepage</span>
                 </a>
-                <a href="/agendas" class="breadcrumbs__item item-link">All Agendas</a>
+                <a href="/agendas" class="breadcrumbs__item item-link">Agendas</a>
                 <span class="breadcrumbs__item is-active">Agenda</span>
              </nav>
             <div class="row mt-2 justify-content-between">

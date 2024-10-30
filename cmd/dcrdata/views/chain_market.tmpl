@@ -3,7 +3,7 @@
 {{- $ChainType := .ChainType}}
 <!DOCTYPE html>
 <html lang="en">
-{{template "html-head" headData .CommonPageData (printf "Bison Explorer - %s Market Data" (chainName $ChainType))}}
+{{template "html-head" headData .CommonPageData (printf "%s Market Charts" (chainName $ChainType))}}
 <body class="{{ theme }} mutilchain-sub-page">
 
 {{- template "mutilchain_navbar" . -}}

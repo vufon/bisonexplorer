@@ -8,7 +8,7 @@
 {{$Pages := .Pages}}
 {{$LastStart := .LastStart}}
 <html lang="en">
-{{template "html-head" headData .CommonPageData (printf "Bison Explorer - %s Block %d" (chainName $ChainType) .Data.Height)}}
+{{template "html-head" headData .CommonPageData (printf "%s Block - %d" (chainName $ChainType) .Data.Height)}}
 {{ template "mutilchain_navbar" . }}
 <div class="container mt-3" data-controller="time pagenavigation">
 			<nav class="breadcrumbs mt-0">
@@ -18,7 +18,7 @@
 				 </a>
 				 <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
 				<a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
-				<a href="/{{$ChainType}}/blocks" class="breadcrumbs__item item-link">All Blocks</a>
+				<a href="/{{$ChainType}}/blocks" class="breadcrumbs__item item-link">Blocks</a>
 				<span class="breadcrumbs__item is-active">Block</span>
 			 </nav>
 	{{- with .Data -}}

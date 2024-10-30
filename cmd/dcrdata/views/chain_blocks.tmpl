@@ -3,7 +3,7 @@
 <html lang="en">
 {{$topBlock := 0}}
 {{$ChainType := .ChainType}}
-{{template "html-head" headData .CommonPageData (printf "Bison Explorer - %s Blocks List" (chainName $ChainType))}}
+{{template "html-head" headData .CommonPageData (printf "%s Blocks" (chainName $ChainType))}}
     {{template "mutilchain_navbar" . }}
     <div class="container px-0" data-controller="time pagenavigation blocklist">
         <nav class="breadcrumbs mt-0">
