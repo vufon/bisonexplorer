@@ -99,7 +99,7 @@ export default class extends Controller {
       if (block.height > firstBlockHeight) {
       // Create best block target
         const bestBlockTarget = '<div class="block-info">' +
-        `<a class="color-code" href="/chain/${_this.chainType}/block/${block.height}">${block.height}</a>` +
+        `<a class="color-code" href="/${_this.chainType}/block/${block.height}">${block.height}</a>` +
         '<div class="mono amount" style="line-height: 1;">' +
         `<span>${humanize.threeSigFigs(block.TotalSentSats / 1e8)}</span>` +
         `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
@@ -207,7 +207,7 @@ export default class extends Controller {
         }
         // Create best block target
         const mempoolInnerTarget = '<div class="block-info">' +
-        `<a class="color-code" href="/chain/${_this.chainType}/mempool">Mempool</a>` +
+        `<a class="color-code" href="/${_this.chainType}/mempool">Mempool</a>` +
         '<div class="mono amount" style="line-height: 1;">' +
         `<span>${humanize.threeSigFigs(_this.totalSent)}</span>` +
         `<span class="unit">${_this.chainType.toUpperCase()}</span>` +

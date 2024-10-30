@@ -19,19 +19,31 @@ $(window).on('resize', function (event) {
   $('#menu').css('width', 'auto')
 })
 
+const multichainList = ['btc', 'ltc']
+
+function isMutilchainUrl (url) {
+  let isMultichain = false
+  multichainList.forEach((chain) => {
+    if (url.includes('/' + chain)) {
+      isMultichain = true
+    }
+  })
+  return isMultichain
+}
+
 export default class extends Controller {
   static get targets () {
     return ['navbar', 'coinSelect']
   }
 
   connect () {
-    this.isMutilchain = window.location.href.includes('/chain/')
+    this.isMutilchain = isMutilchainUrl(window.location.href)
     if (this.isMutilchain) {
       const urlArr = window.location.href.split('/')
       let chain
-      urlArr.forEach((element, index) => {
-        if (element === 'chain') {
-          chain = urlArr[index + 1]
+      urlArr.forEach((element) => {
+        if (multichainList.includes(element)) {
+          chain = element
         }
       })
       this.coinSelectTarget.value = chain
@@ -136,22 +148,22 @@ export default class extends Controller {
     const oldChain = this.currentChain
     this.currentChain = coin
     //  if is chainhome
-    if (window.location.pathname === '/' || originUrl.endsWith('/chain/' + oldChain)) {
+    if (window.location.pathname === '/' || originUrl.endsWith('/decred') || originUrl.endsWith('/' + oldChain)) {
       //  if current is decred home, coin difference with dcr
-      if (window.location.pathname === '/') {
+      if (window.location.pathname === '/' || originUrl.endsWith('/decred')) {
         if (coin === 'dcr') {
           return
         }
-        window.location.href = originUrl + 'chain/' + coin
+        window.location.href = originUrl + coin
         return
       }
       if (oldChain === coin) {
         return
       }
       if (coin === 'dcr') {
-        window.location.href = originUrl.replaceAll('/chain/' + oldChain, '/')
+        window.location.href = originUrl.replaceAll('/' + oldChain, '/decred')
       } else {
-        window.location.href = originUrl.replaceAll('/chain/' + oldChain, '/chain/' + coin)
+        window.location.href = originUrl.replaceAll('/' + oldChain, '/' + coin)
       }
     }
     //  if is market page
@@ -216,10 +228,10 @@ export default class extends Controller {
     //  else
     switch (coin) {
       case 'dcr':
-        window.location.href = '/'
+        window.location.href = '/decred'
         break
       default:
-        window.location.href = '/chain/' + coin
+        window.location.href = '/' + coin
         break
     }
   }
@@ -235,10 +247,14 @@ export default class extends Controller {
   replaceChainFromURL (href, endsWith, oldCoin, newCoin) {
     //  if oldCoin is decred
     if (oldCoin === 'dcr') {
-      return href.replaceAll('/' + endsWith, '/chain/' + newCoin + '/' + endsWith)
+      let replaceStr = '/' + endsWith
+      if (href.includes('/decred')) {
+        replaceStr = '/decred' + replaceStr
+      }
+      return href.replaceAll(replaceStr, '/' + newCoin + '/' + endsWith)
     }
     if (newCoin === 'dcr') {
-      return href.replaceAll('/chain/' + oldCoin + '/' + endsWith, '/' + endsWith)
+      return href.replaceAll('/' + oldCoin + '/' + endsWith, '/decred/' + endsWith)
     }
     return href.replaceAll('/' + oldCoin + '/' + endsWith, '/' + newCoin + '/' + endsWith)
   }

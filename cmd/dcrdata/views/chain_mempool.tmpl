@@ -14,7 +14,7 @@
             <span class="link-underline">Homepage</span>
          </a>
          <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
-         <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+         <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
          <span class="breadcrumbs__item is-active">Mempool</span>
       </nav>
       <div class="pt-2 h4">Mempool</div>
@@ -115,7 +115,7 @@
                            {{- range .Transactions -}}
                            <tr>
                               <td class="break-word clipboard">
-                                 <a class="hash lh1rem" href="/chain/{{$ChainType}}/tx/{{.Hash}}">{{.Hash}}</a>
+                                 <a class="hash lh1rem" href="/{{$ChainType}}/tx/{{.Hash}}">{{.Hash}}</a>
                                  {{template "copyTextIcon"}}
                               </td>
                               <td class="mono fs15 text-end">

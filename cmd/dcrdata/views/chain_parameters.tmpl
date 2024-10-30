@@ -11,7 +11,7 @@
                     <span class="link-underline">Homepage</span>
                  </a>
                  <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
-                <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+                <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
                 <span class="breadcrumbs__item is-active">Paramenters</span>
              </nav>
             <div class="row mt-2 justify-content-between">
@@ -39,12 +39,12 @@
                         </thead>
                         <tbody class="bgc-white">
                             <tr>
-                                <td class="mono text-start pe-2 nowrap p03rem0"><a href="/chain/{{$ChainType}}/block/{{.MutilchainParams.GenesisHash}}">GenesisBlock</a></td>
+                                <td class="mono text-start pe-2 nowrap p03rem0"><a href="/{{$ChainType}}/block/{{.MutilchainParams.GenesisHash}}">GenesisBlock</a></td>
                                 <td class="mono">{{.MutilchainParams.GenesisHash}}</td>
                                 <td>First block of the chain</td>
                             </tr>
                             <tr>
-                                <td class="mono text-start pe-2 nowrap p03rem0"><a href="/chain/{{$ChainType}}/block/1">PremineBlock</a></td>
+                                <td class="mono text-start pe-2 nowrap p03rem0"><a href="/{{$ChainType}}/block/1">PremineBlock</a></td>
                                 <td class="mono">1</td>
                                 <td>Premine Block of the chain</td>
                             </tr>

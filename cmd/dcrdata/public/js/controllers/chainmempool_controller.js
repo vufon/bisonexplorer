@@ -90,7 +90,7 @@ export default class extends Controller {
           const totalOut = tx.value
           const fees = tx.fee
           const rate = tx.rate
-          inner += `<tr><td class="break-word clipboard"><a class="hash lh1rem" href="/chain/${_this.chainType}/tx/${txHash}">${txHash}</a><span class="dcricon-copy clickable" data-controller="clipboard"` +
+          inner += `<tr><td class="break-word clipboard"><a class="hash lh1rem" href="/${_this.chainType}/tx/${txHash}">${txHash}</a><span class="dcricon-copy clickable" data-controller="clipboard"` +
                   'data-action="click->clipboard#copyTextToClipboard"></span><span class="alert alert-secondary alert-copy"></span></td>'
           inner += `<td class="mono fs15 text-end">${humanize.decimalParts(totalOut / 1e8, false, 8, 2)}</td>`
           inner += `<td class="mono fs15 text-end">${humanize.decimalParts(fees / 1e8, false, 8, 2)}</td>`

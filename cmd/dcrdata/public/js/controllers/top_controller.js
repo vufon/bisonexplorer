@@ -71,7 +71,7 @@ export default class extends Controller {
     const coinSupplyObj = document.getElementById(chainType + '_coinSupply')
     const block = blockData.block
     blockHeightObj.textContent = block.height
-    blockHeightObj.href = (chainType === 'dcr' ? '' : '/chain/' + chainType) + `/block/${block.hash}`
+    blockHeightObj.href = (chainType === 'dcr' ? '' : '/' + chainType) + `/block/${block.hash}`
 
     // handler extra data
     const extra = blockData.extra

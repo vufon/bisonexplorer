@@ -12,7 +12,7 @@
             <span class="link-underline">Homepage</span>
          </a>
          <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
-         <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+         <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
          <span class="breadcrumbs__item is-active">Transaction Detail</span>
       </nav>
      <div class="row px-1 my-2">
@@ -88,12 +88,12 @@
                         <tr>
                         <td class="shrink-to-fit">{{.Index}}</td>
                         <td class="position-relative clipboard">
-                           {{template "hashElide" (hashlink .Txid (print "/chain/" $ChainType "/tx/" .Txid))}}
+                           {{template "hashElide" (hashlink .Txid (print "/" $ChainType "/tx/" .Txid))}}
                         </td>
                         <td class="position-relative clipboard">
                            {{if gt (len .Addresses) 0}}
                            {{range .Addresses}}
-                           {{template "hashElide" (hashlink . (print "/chain/" $ChainType "/address/" .))}}
+                           {{template "hashElide" (hashlink . (print "/" $ChainType "/address/" .))}}
                            {{end}}
                            {{else}}
                            N/A
@@ -128,7 +128,7 @@
                         <td class="shrink-to-fit">{{.Index}}</td>
                         <td class="position-relative clipboard">
                            {{range .Addresses}}
-                           {{template "hashElide" (hashlink . (print "/chain/" $ChainType "/address/" .))}}
+                           {{template "hashElide" (hashlink . (print "/" $ChainType "/address/" .))}}
                            {{end}}
                         </td>
                         <td class="fs13 break-word shrink-to-fit">
@@ -136,7 +136,7 @@
                         </td>
                         <td class="text-start fs13 shrink-to-fit">{{with $spending := (index $.Data.SpendingTxns $i) }}
                            {{if $spending.Hash}}
-                           <a href="/chain/{{$ChainType}}/tx/{{$spending.Hash}}/in/{{$spending.Index}}">{{$v.Spent}}</a>
+                           <a href="/{{$ChainType}}/tx/{{$spending.Hash}}/in/{{$spending.Index}}">{{$v.Spent}}</a>
                            {{else}}
                            {{if gt $v.Amount 0.0}}
                            {{$v.Spent}}

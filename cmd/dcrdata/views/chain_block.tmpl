@@ -17,8 +17,8 @@
 					<span class="link-underline">Homepage</span>
 				 </a>
 				 <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
-				<a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
-				<a href="/chain/{{$ChainType}}/blocks" class="breadcrumbs__item item-link">All Blocks</a>
+				<a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+				<a href="/{{$ChainType}}/blocks" class="breadcrumbs__item item-link">All Blocks</a>
 				<span class="breadcrumbs__item is-active">Block</span>
 			 </nav>
 	{{- with .Data -}}
@@ -50,9 +50,9 @@
 						{{- end}}
 					</div>
 					<div class="d-inline-block text-nowrap">
-						<a class="fs13" href="/chain/{{$ChainType}}/block/{{.PreviousHash}}">previous </a>|
+						<a class="fs13" href="/{{$ChainType}}/block/{{.PreviousHash}}">previous </a>|
 						{{if ne .NextHash "" -}}
-						<a class="fs13" href="/chain/{{$ChainType}}/block/{{.NextHash}}">next </a>|
+						<a class="fs13" href="/{{$ChainType}}/block/{{.NextHash}}">next </a>|
 						{{- end}}
 					</div>
 				</div>
@@ -166,7 +166,7 @@
 						{{- if eq .Coinbase false}}
 						<tr>
 							<td class="break-word">
-								<span><a class="hash" href="/chain/{{$ChainType}}/tx/{{.TxID}}">{{.TxID}}</a></span>
+								<span><a class="hash" href="/{{$ChainType}}/tx/{{.TxID}}">{{.TxID}}</a></span>
 							</td>
 							<td class="mono fs15 text-end">
 								{{- template "decimalParts" (float64AsDecimalParts .Total 8 false) -}}
@@ -181,7 +181,7 @@
 			{{if len $Pages}}
 			<div class="text-end mt-2 pe-3">
 				{{if ge $Offset $Rows}}
-				<a href="/chain/{{$ChainType}}/block/{{$Hash}}?rows={{$Rows}}"
+				<a href="/{{$ChainType}}/block/{{$Hash}}?rows={{$Rows}}"
 					class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fs20"></a>
 				{{end}}
 				{{range $index, $page := $Pages}}
@@ -192,7 +192,7 @@
 				{{end}}
 				{{end}}
 				{{if lt (add $Offset (int64 $Rows)) $TotalRows}}
-				<a href="/chain/{{$ChainType}}/block/{{$Hash}}?start={{$LastStart}}&rows={{$Rows}}"
+				<a href="/{{$ChainType}}/block/{{$Hash}}?start={{$LastStart}}&rows={{$Rows}}"
 					class="d-inline-block pagination-number pagination-narrow dcricon-arrow-right m-1 fs20"></a>
 				{{end}}
 			</div>

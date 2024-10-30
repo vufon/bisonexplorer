@@ -31,12 +31,6 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
-	"github.com/go-chi/chi/v5"
-	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
-	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/ltcutil"
-	ltctxscript "github.com/ltcsuite/ltcd/txscript"
-
 	"github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/gov/v6/agendas"
 	pitypes "github.com/decred/dcrdata/gov/v6/politeia/types"
@@ -46,8 +40,12 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	ticketvotev1 "github.com/decred/politeia/politeiawww/api/ticketvote/v1"
-
 	humanize "github.com/dustin/go-humanize"
+	"github.com/go-chi/chi/v5"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	"github.com/ltcsuite/ltcd/ltcutil"
+	ltctxscript "github.com/ltcsuite/ltcd/txscript"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -1099,7 +1097,7 @@ func (exp *ExplorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) 
 	}
 
 	linkTemplate := "/blocks?height=%d&rows=" + strconv.FormatInt(rows, 10)
-	linkTemplate = fmt.Sprintf("/chain/%s%s", chainType, linkTemplate)
+	linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
 	oldestHeight := bestBlockHeight % rows
 
 	str, err := exp.templates.exec("chain_blocks", struct {
@@ -1532,7 +1530,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 		}
 	}
 	linkTemplate := fmt.Sprintf("/block/%s?rows=%d&start=%%d", hash, limitN)
-	linkTemplate = fmt.Sprintf("/chain/%s%s", chainType, linkTemplate)
+	linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
 
 	// Check if there are any regular non-coinbase transactions in the block.
 	data.TxAvailable = len(data.Tx) > 1
@@ -2628,7 +2626,7 @@ func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 	}
 
 	linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
-	linkTemplate = fmt.Sprintf("/chain/%s%s", chainType, linkTemplate)
+	linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
 	if time != "" {
 		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
 	}
@@ -2682,7 +2680,7 @@ func (exp *ExplorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	linkTemplate := "/chain/" + chainType + "/address/" + addrData.Address + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + fmt.Sprintf("%v", txnType)
+	linkTemplate := "/" + chainType + "/address/" + addrData.Address + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + fmt.Sprintf("%v", txnType)
 	if time != "" {
 		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
 	}
@@ -3245,7 +3243,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			for chain := range blockHashMap {
-				http.Redirect(w, r, "/chain/"+chain+"/block/"+searchStr, http.StatusPermanentRedirect)
+				http.Redirect(w, r, "/"+chain+"/block/"+searchStr, http.StatusPermanentRedirect)
 				return
 			}
 		}
@@ -3257,7 +3255,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 				if chain == mutilchain.TYPEDCR {
 					redirectURL = "/block/" + searchStr
 				} else {
-					redirectURL = "/chain/" + chain + "/block/" + searchStr
+					redirectURL = "/" + chain + "/block/" + searchStr
 				}
 				resultDisp += "<p class=\"mt-3\"><img src=\"/images/" + chain + "-icon.png\" width=\"25\" height=\"25\" /><span class=\"ms-2 fw-600\">" + strings.ToUpper(chain) + ":</span> <a href=\"" + redirectURL + "\">" + hash + "</a> </p>"
 			}
@@ -3281,7 +3279,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 		//hanlder for ltc address search
 		_, err = ltcutil.DecodeAddress(searchStr, exp.LtcChainParams)
 		if err == nil {
-			http.Redirect(w, r, "/chain/"+mutilchain.TYPELTC+"/address/"+searchStr, http.StatusPermanentRedirect)
+			http.Redirect(w, r, "/"+mutilchain.TYPELTC+"/address/"+searchStr, http.StatusPermanentRedirect)
 			return
 		}
 	}
@@ -3289,7 +3287,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 		//hanlder for btc address search
 		_, err = btcutil.DecodeAddress(searchStr, exp.BtcChainParams)
 		if err == nil {
-			http.Redirect(w, r, "/chain/"+mutilchain.TYPEBTC+"/address/"+searchStr, http.StatusPermanentRedirect)
+			http.Redirect(w, r, "/"+mutilchain.TYPEBTC+"/address/"+searchStr, http.StatusPermanentRedirect)
 			return
 		}
 	}
@@ -3301,7 +3299,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 		}
 		hashValid := exp.dataSource.MutilchainValidBlockhash(searchStr, mutilchain)
 		if hashValid {
-			http.Redirect(w, r, "/chain/"+mutilchain+"/block/"+searchStr, http.StatusPermanentRedirect)
+			http.Redirect(w, r, "/"+mutilchain+"/block/"+searchStr, http.StatusPermanentRedirect)
 			return
 		}
 	}
@@ -3312,7 +3310,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 		}
 		txHashValid := exp.dataSource.MutilchainValidTxhash(searchStr, mutilchain)
 		if txHashValid {
-			http.Redirect(w, r, "/chain/"+mutilchain+"/tx/"+searchStr, http.StatusPermanentRedirect)
+			http.Redirect(w, r, "/"+mutilchain+"/tx/"+searchStr, http.StatusPermanentRedirect)
 			return
 		}
 	}

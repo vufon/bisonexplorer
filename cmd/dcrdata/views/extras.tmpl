@@ -593,22 +593,22 @@
   <ul>
 	 <li><a class="menu-item-title">Information</a>
       <ul class="submenu info-menu-column">
-        <li><a data-keynav-skip href="/chain/{{.ChainType}}/blocks" title="Decred blocks">Blocks</a></li>
-        <li><a data-keynav-skip href="/chain/{{.ChainType}}/mempool" title="Decred mempool">Mempool</a></li>
+        <li><a data-keynav-skip href="/{{.ChainType}}/blocks" title="Decred blocks">Blocks</a></li>
+        <li><a data-keynav-skip href="/{{.ChainType}}/mempool" title="Decred mempool">Mempool</a></li>
       </ul>
     </li>
 	 <li><a class="menu-item-title">Graphics</a>
       <ul class="submenu charts-menu-column">
-        <li><a data-keynav-skip href="/chain/{{.ChainType}}/charts" title="Decred charts">Chain Charts</a></li>
-        <li><a data-keynav-skip href="/chain/{{.ChainType}}/market" title="Market">Market</a></li>
-		<li><a data-keynav-skip href="/chain/{{.ChainType}}/visualblocks" title="Decred visual lastest blocks">Visual Blocks</a></li>
+        <li><a data-keynav-skip href="/{{.ChainType}}/charts" title="Decred charts">Chain Charts</a></li>
+        <li><a data-keynav-skip href="/{{.ChainType}}/market" title="Market">Market</a></li>
+		<li><a data-keynav-skip href="/{{.ChainType}}/visualblocks" title="Decred visual lastest blocks">Visual Blocks</a></li>
       </ul>
     </li>
 	 <li><a class="menu-item-title">Tools</a>
       <ul class="submenu tools-menu-column last-submenu-item">
 		<li><a data-keynav-skip href="/chain" title="Other blockchains">Other Blockchains</a></li>
-		<li><a data-keynav-skip href="/chain/{{.ChainType}}/supply" title="Next Block Reward Reduction">Supply</a></li>
-        <li><a data-keynav-skip href="/chain/{{.ChainType}}/parameters" title="Chain Parameters">Parameters</a></li>
+		<li><a data-keynav-skip href="/{{.ChainType}}/supply" title="Next Block Reward Reduction">Supply</a></li>
+        <li><a data-keynav-skip href="/{{.ChainType}}/parameters" title="Chain Parameters">Parameters</a></li>
 		<li><a data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a></li>
 		<li>
 			<a class="menu-item jsonly col-24 cursor-pointer" data-keynav-skip data-turbolinks="false" id="keynav-toggle">
@@ -633,7 +633,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.9e54e758bc6dcf60.bundle.js"
+	src="/dist/js/app.c20660d23869fb6e.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -853,7 +853,7 @@
 	<tbody class="bgc-white">
 	{{- range .Transactions}}
 		<tr{{if eq .Confirmations 0}} data-address-target="pending" data-txid="{{.TxID}}"{{end}}>
-			<td class="clipboard">{{template "hashElide" (hashlink .TxID (print "/chain/" $ChainType "/tx/" .TxID))}}</td>
+			<td class="clipboard">{{template "hashElide" (hashlink .TxID (print "/" $ChainType "/tx/" .TxID))}}</td>
 			{{- if ne .ReceivedTotal 0.0}}
 			<td class="text-end">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
 			{{- else}}

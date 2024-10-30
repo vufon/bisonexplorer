@@ -25,7 +25,7 @@
            <span class="link-underline">Homepage</span>
         </a>
         {{if ne $ChainType "dcr"}}
-        <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+        <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
         {{end}}
         <span class="breadcrumbs__item is-active">Supply</span>
      </nav>
@@ -432,7 +432,7 @@
                     data-chaincharts-supply-page="true"
                     >
                        <div class="explore-card-content">
-                          <a href="/chain/{{$ChainType}}/charts" class="link-to-subpage">
+                          <a href="/{{$ChainType}}/charts" class="link-to-subpage">
                              <div class="row">
                                 <div class="col-md-8 col-lg-7 col-xl-5">
                                    <div class="row">

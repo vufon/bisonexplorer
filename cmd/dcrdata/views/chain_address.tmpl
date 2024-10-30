@@ -21,7 +21,7 @@
             <span class="link-underline">Homepage</span>
          </a>
          <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
-         <a href="/chain/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+         <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
          <span class="breadcrumbs__item is-active">Address</span>
       </nav>
    <div class="row pb-4 px-1">
@@ -161,7 +161,7 @@
                   {{if ne .Offset 0}}
                   <a  class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
                      data-action="click->chainaddress#pageNumberLink"
-                     href="/chain/{{$ChainType}}/address/{{.Address}}?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
+                     href="/{{$ChainType}}/address/{{.Address}}?start={{subtract .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
                   {{end}}
                   {{range $.Pages}}
                   {{if eq .Link ""}}
@@ -175,7 +175,7 @@
                   {{if gt (subtract $TxnCount .Offset) .Limit}}
                   <a  class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
                      data-action="click->chainaddress#pageNumberLink"
-                     href="/chain/{{$ChainType}}/address/{{.Address}}?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
+                     href="/{{$ChainType}}/address/{{.Address}}?start={{add .Offset .Limit}}&n={{.Limit}}&txntype={{$txType}}"></a>
                   {{end}}
                </div>
             </div>

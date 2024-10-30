@@ -938,69 +938,154 @@ func _main(ctx context.Context) error {
 
 	webMux.With(explore.SyncStatusPageIntercept).Group(func(r chi.Router) {
 		r.NotFound(explore.NotFound)
-
 		r.Mount("/explorer", explore.Mux) // legacy
-		r.Get("/days", explore.DayBlocksListing)
-		r.Get("/weeks", explore.WeekBlocksListing)
-		r.Get("/months", explore.MonthBlocksListing)
-		r.Get("/years", explore.YearBlocksListing)
-		r.Get("/blocks", explore.Blocks)
-		r.Get("/ticketpricewindows", explore.StakeDiffWindows)
-		r.Get("/side", explore.SideChains)
-		r.Get("/rejects", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/disapproved", http.StatusPermanentRedirect)
+		r.Route("/decred", func(rd chi.Router) {
+			rd.Get("/", explore.DecredHome)
+			rd.Get("/days", explore.DayBlocksListing)
+			rd.Get("/weeks", explore.WeekBlocksListing)
+			rd.Get("/months", explore.MonthBlocksListing)
+			rd.Get("/years", explore.YearBlocksListing)
+			rd.Get("/blocks", explore.Blocks)
+			rd.Get("/ticketpricewindows", explore.StakeDiffWindows)
+			rd.Get("/side", explore.SideChains)
+			rd.Get("/rejects", func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/decred/disapproved", http.StatusPermanentRedirect)
+			})
+			rd.Get("/disapproved", explore.DisapprovedBlocks)
+			rd.Get("/mempool", explore.Mempool)
+			rd.Get("/parameters", explore.ParametersPage)
+			rd.With(explore.BlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.Block)
+			rd.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.TxPage)
+			rd.With(explorer.TransactionHashCtx, explorer.TransactionIoIndexCtx).Get("/tx/{txid}/{inout}/{inoutid}", explore.TxPage)
+			rd.With(explorer.AddressPathCtx).Get("/address/{address}", explore.AddressPage)
+			rd.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.AddressTable)
+			rd.Get("/treasury", explore.TreasuryPage)
+			rd.Get("/treasurytable", explore.TreasuryTable)
+			rd.Get("/agendas", explore.AgendasPage)
+			rd.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)
+			rd.Get("/proposals", explore.ProposalsPage)
+			rd.Get("/whatsnew", explore.WhatsNewPage)
+			rd.With(explorer.ProposalPathCtx).Get("/proposal/{proposaltoken}", explore.ProposalPage)
+			rd.Get("/decodetx", explore.DecodeTxPage)
+			rd.Get("/search", explore.Search)
+			rd.Get("/charts", explore.Charts)
+			rd.Get("/ticketpool", explore.Ticketpool)
+			rd.Get("/stats", explore.StatsPage)
+			rd.Get("/market", explore.MarketPage)
+			rd.Get("/marketlist", explore.CoinCapPage)
+			rd.Get("/statistics", func(w http.ResponseWriter, r *http.Request) {
+				http.Redirect(w, r, "/decred/stats", http.StatusPermanentRedirect)
+			})
+			rd.Get("/attack-cost", explore.AttackCost)
+			rd.Get("/verify-message", explore.VerifyMessagePage)
+			rd.Get("/stakingcalc", explore.StakeRewardCalcPage)
+			rd.Get("/home-report", explore.HomeReportPage)
+			rd.Get("/finance-report", explore.FinanceReportPage)
+			rd.Get("/finance-report/detail", explore.FinanceDetailPage)
+			rd.Get("/supply", explore.SupplyPage)
 		})
-		r.Get("/disapproved", explore.DisapprovedBlocks)
-		r.Get("/mempool", explore.Mempool)
-		r.Get("/parameters", explore.ParametersPage)
-		r.With(explore.BlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.Block)
-		r.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.TxPage)
-		r.With(explorer.TransactionHashCtx, explorer.TransactionIoIndexCtx).Get("/tx/{txid}/{inout}/{inoutid}", explore.TxPage)
-		r.With(explorer.AddressPathCtx).Get("/address/{address}", explore.AddressPage)
-		r.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.AddressTable)
-		r.Get("/treasury", explore.TreasuryPage)
-		r.Get("/treasurytable", explore.TreasuryTable)
-		r.Get("/agendas", explore.AgendasPage)
-		r.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)
-		r.Get("/proposals", explore.ProposalsPage)
-		r.Get("/whatsnew", explore.WhatsNewPage)
-		r.With(explorer.ProposalPathCtx).Get("/proposal/{proposaltoken}", explore.ProposalPage)
-		r.Get("/decodetx", explore.DecodeTxPage)
-		r.Get("/search", explore.Search)
-		r.Get("/charts", explore.Charts)
-		r.Get("/ticketpool", explore.Ticketpool)
-		r.Get("/stats", explore.StatsPage)
-		r.Get("/market", explore.MarketPage)
-		r.Get("/marketlist", explore.CoinCapPage)
-		r.Get("/statistics", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "/stats", http.StatusPermanentRedirect)
-		})
+		mainRedirect := func(url string) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				query := r.URL.Query().Encode()
+				if query != "" {
+					query = "?" + query
+				}
+				http.Redirect(w, r, url+query, http.StatusPermanentRedirect)
+			}
+		}
+		redirectOneParam := func(url string) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				x := chi.URLParam(r, "x")
+				if x != "" {
+					x = "/" + x
+				}
+				query := r.URL.Query().Encode()
+				if query != "" {
+					query = "?" + query
+				}
+				http.Redirect(w, r, url+x+query, http.StatusPermanentRedirect)
+			}
+		}
+		redirectThreeParam := func(url string) http.HandlerFunc {
+			return func(w http.ResponseWriter, r *http.Request) {
+				x := chi.URLParam(r, "x")
+				if x != "" {
+					x = "/" + x
+				}
+				y := chi.URLParam(r, "y")
+				if y != "" {
+					y = "/" + y
+				}
+				z := chi.URLParam(r, "z")
+				if z != "" {
+					z = "/" + z
+				}
+				query := r.URL.Query().Encode()
+				if query != "" {
+					query = "?" + query
+				}
+				http.Redirect(w, r, url+x+y+z+query, http.StatusPermanentRedirect)
+			}
+		}
+		r.Get("/days", mainRedirect("/decred/days"))
+		r.Get("/weeks", mainRedirect("/decred/weeks"))
+		r.Get("/months", mainRedirect("/decred/months"))
+		r.Get("/years", mainRedirect("/decred/years"))
+		r.Get("/blocks", mainRedirect("/decred/blocks"))
+		r.Get("/ticketpricewindows", mainRedirect("/decred/ticketpricewindows"))
+		r.Get("/side", mainRedirect("/decred/side"))
+		r.Get("/rejects", mainRedirect("/decred/rejects"))
+		r.Get("/disapproved", mainRedirect("/decred/disapproved"))
+		r.Get("/mempool", mainRedirect("/decred/mempool"))
+		r.Get("/parameters", mainRedirect("/decred/parameters"))
+		r.Get("/block/{x}", redirectOneParam("/decred/block"))
+		r.Get("/tx/{x}", redirectOneParam("/decred/tx"))
+		r.Get("/tx/{x}/{y}/{z}", redirectThreeParam("/decred/tx"))
+		r.Get("/address/{x}", redirectOneParam("/decred/address"))
+		r.Get("/addresstable/{x}", redirectOneParam("/decred/addresstable"))
+		r.Get("/treasury", mainRedirect("/decred/treasury"))
+		r.Get("/treasurytable", mainRedirect("/decred/treasurytable"))
+		r.Get("/agendas", mainRedirect("/decred/agendas"))
+		r.Get("/agenda/{x}", redirectOneParam("/decred/agenda"))
+		r.Get("/proposals", mainRedirect("/decred/proposals"))
+		r.Get("/whatsnew", mainRedirect("/decred/whatsnew"))
+		r.Get("/proposal/{x}", redirectOneParam("/decred/proposal"))
+		r.Get("/decodetx", mainRedirect("/decred/decodetx"))
+		r.Get("/search", mainRedirect("/decred/search"))
+		r.Get("/charts", mainRedirect("/decred/charts"))
+		r.Get("/ticketpool", mainRedirect("/decred/ticketpool"))
+		r.Get("/stats", mainRedirect("/decred/stats"))
+		r.Get("/market", mainRedirect("/decred/market"))
+		r.Get("/marketlist", mainRedirect("/decred/marketlist"))
+		r.Get("/statistics", mainRedirect("/decred/statistics"))
+		r.Get("/attack-cost", mainRedirect("/decred/attack-cost"))
+		r.Get("/verify-message", mainRedirect("/decred/verify-message"))
+		r.Get("/stakingcalc", mainRedirect("/decred/stakingcalc"))
+		r.Get("/home-report", mainRedirect("/decred/home-report"))
+		r.Get("/finance-report", mainRedirect("/decred/finance-report"))
+		r.Get("/finance-report/detail", mainRedirect("/decred/finance-report/detail"))
+		r.Get("/supply", mainRedirect("/decred/supply"))
+
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.
 		r.With(explorer.MenuFormParser).Post("/set", explore.DecredHome)
-		r.Get("/attack-cost", explore.AttackCost)
-		r.Get("/verify-message", explore.VerifyMessagePage)
-		r.Get("/stakingcalc", explore.StakeRewardCalcPage)
-		r.Get("/home-report", explore.HomeReportPage)
-		r.Get("/finance-report", explore.FinanceReportPage)
-		r.Get("/finance-report/detail", explore.FinanceDetailPage)
-		r.Get("/supply", explore.SupplyPage)
-
 		//mutilchain support
 		r.Route("/chain", func(rd chi.Router) {
 			rd.Get("/", explore.Home)
-			rd.Get("/{chaintype}", explore.MutilchainHome)
-			rd.Get("/{chaintype}/blocks", explore.MutilchainBlocks)
-			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/{chaintype}/block/{blockhash}", explore.MutilchainBlockDetail)
-			rd.With(explorer.TransactionHashCtx).Get("/{chaintype}/tx/{txid}", explore.MutilchainTxPage)
-			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/address/{address}", explore.MutilchainAddressPage)
-			rd.With(explorer.AddressPathCtx).Get("/{chaintype}/addresstable/{address}", explore.MutilchainAddressTable)
-			rd.Get("/{chaintype}/mempool", explore.MutilchainMempool)
-			rd.Get("/{chaintype}/charts", explore.MutilchainCharts)
-			rd.Get("/{chaintype}/market", explore.MutilchainMarketPage)
-			rd.Get("/{chaintype}/supply", explore.SupplyPage)
-			rd.Get("/{chaintype}/visualblocks", explore.MultichainVisualBlocks)
-			rd.Get("/{chaintype}/parameters", explore.MutilchainParametersPage)
+		})
+		r.Route("/{chaintype}", func(rd chi.Router) {
+			rd.Get("/", explore.MutilchainHome)
+			rd.Get("/blocks", explore.MutilchainBlocks)
+			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.MutilchainBlockDetail)
+			rd.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.MutilchainTxPage)
+			rd.With(explorer.AddressPathCtx).Get("/address/{address}", explore.MutilchainAddressPage)
+			rd.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.MutilchainAddressTable)
+			rd.Get("/mempool", explore.MutilchainMempool)
+			rd.Get("/charts", explore.MutilchainCharts)
+			rd.Get("/market", explore.MutilchainMarketPage)
+			rd.Get("/supply", explore.SupplyPage)
+			rd.Get("/visualblocks", explore.MultichainVisualBlocks)
+			rd.Get("/parameters", explore.MutilchainParametersPage)
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
