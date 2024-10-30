@@ -88,6 +88,7 @@
                             <ul class="pagination mb-0 pagination-sm">
                                 <li class="page-item {{if eq .Offset 0}}disabled{{end}}">
                                     <a
+                                        data-turbolinks="false"
                                         class="page-link"
                                         href="?offset=0&rows={{.Limit}}&byvotestatus={{$.VStatusFilter}}"
                                         id="next"
@@ -95,6 +96,7 @@
                                 </li>
                                 <li class="page-item {{if eq .Offset 0}}disabled{{end}}">
                                     <a
+                                        data-turbolinks="false"
                                         class="page-link"
                                         href="?offset={{subtract .Offset .Limit}}&rows={{.Limit}}&byvotestatus={{$.VStatusFilter}}"
                                         id="next"
@@ -102,6 +104,7 @@
                                 </li>
                                 <li class="page-item {{if ge $oldest $.TotalCount}}disabled{{end}}">
                                     <a
+                                        data-turbolinks="false"
                                         class="page-link"
                                         href="?offset={{add .Offset .Limit}}&rows={{.Limit}}&byvotestatus={{$.VStatusFilter}}"
                                         id="prev"
@@ -109,6 +112,7 @@
                                 </li>
                                 <li class="page-item {{if ge $oldest $.TotalCount}}disabled{{end}}">
                                     <a
+                                        data-turbolinks="false"
                                         class="page-link"
                                         href="?offset={{.LastOffset}}&rows={{.Limit}}&byvotestatus={{$.VStatusFilter}}"
                                         id="prev"
@@ -149,7 +153,7 @@
                     <tr>
                         {{$votesTotalPercent :=  percentage (int64 $v.TotalVotes) (int64 $v.EligibleTickets)}}
                         <td class="text-start">
-                            <a href="/proposal/{{.Token}}">{{.Name}}</a>
+                            <a href="/proposal/{{.Token}}" data-turbolinks="false">{{.Name}}</a>
                             <span class="d-none d-sm-inline">&nbsp;({{.Username}})</span>
                         </td>
                         <td class="text-start">

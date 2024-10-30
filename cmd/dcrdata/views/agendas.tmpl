@@ -255,7 +255,7 @@
                 {{- range $i, $v := .Agendas}}
                 {{- with $v}}
                   <tr>
-                    <td><a href="/agenda/{{.ID}}">{{.ID}}</a></td>
+                    <td><a href="/agenda/{{.ID}}" data-turbolinks="false">{{.ID}}</a></td>
                     <td class="d-none d-md-table-cell truncate">{{.Description}}</td>
                     <td class="text-end">{{.Status}}</td>
                     <td class="text-end">{{.VoteVersion}}</td>
