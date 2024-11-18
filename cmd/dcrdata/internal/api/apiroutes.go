@@ -1701,6 +1701,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			report = append(report, varMonthData)
 		}
 	}
+	yearList := make([]int, 0)
 	if timeType == "year" {
 		year, yearErr := strconv.ParseInt(timeStr, 0, 32)
 		if yearErr != nil {
@@ -1950,6 +1951,11 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			monthStringArr = append(monthStringArr, key)
 			monthValueArr = append(monthValueArr, value)
 		}
+		if year == 0 {
+			for tempYear := proposalMinTime.Year(); tempYear <= proposalMaxTime.Year(); tempYear++ {
+				yearList = append(yearList, tempYear)
+			}
+		}
 
 		//sort by month value
 		for i := 0; i < len(monthValueArr); i++ {
@@ -2034,6 +2040,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		TreasurySummary   dbtypes.TreasurySummary       `json:"treasurySummary"`
 		LegacySummary     dbtypes.TreasurySummary       `json:"legacySummary"`
 		MonthlyResultData []apitypes.MonthDataObject    `json:"monthlyResultData"`
+		YearList []int `json:"yearList"`
 	}{
 		ReportDetail:      report,
 		ProposalList:      proposalList,
@@ -2042,6 +2049,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		TreasurySummary:   treasurySummary,
 		LegacySummary:     legacySummary,
 		MonthlyResultData: monthResultData,
+		YearList: yearList,
 	}, m.GetIndentCtx(r))
 }
 

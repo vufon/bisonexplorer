@@ -41,6 +41,8 @@ let combinedChartFlow
 let adminChartZoom
 let adminChartBin
 let adminChartFlow
+let detailMonthlySummary
+let yearList
 
 // report detail variable
 const responseDetailCache = {}
@@ -229,7 +231,8 @@ export default class extends FinanceReportController {
       'domainReport', 'proposalArea', 'proposalReport', 'monthlyArea', 'monthlyReport', 'yearlyArea', 'yearlyReport', 'sameOwnerProposalArea',
       'otherProposalSummary', 'summaryArea', 'summaryReport', 'reportParentContainer', 'yearMonthSelector', 'topYearSelect', 'topMonthSelect',
       'detailReportTitle', 'prevBtn', 'nextBtn', 'proposalTopSummary', 'domainSummaryTable', 'domainSummaryArea', 'proposalSpent',
-      'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea', 'unaccountedValueArea', 'viewMode', 'useMonthAvgToggle']
+      'treasurySpent', 'unaccountedValue', 'proposalSpentArea', 'treasurySpentArea', 'unaccountedValueArea', 'viewMode', 'useMonthAvgToggle',
+      'detailGroupBy', 'dinterval', 'detailMonthlyDesc']
   }
 
   async connectData () {
@@ -929,7 +932,7 @@ export default class extends FinanceReportController {
     this.settings = TurboQuery.nullTemplate([
       'chart', 'zoom', 'bin', 'flow', 'type', 'tsort', 'psort', 'stype',
       'order', 'interval', 'search', 'usd', 'active', 'year', 'ttype', 'pgroup',
-      'ptype', 'dtype', 'dtime', 'dtoken', 'dname', 'dstype', 'dorder', 'tavg'])
+      'ptype', 'dtype', 'dtime', 'dtoken', 'dname', 'dstype', 'dorder', 'tavg', 'dinterval'])
     this.politeiaUrl = this.data.get('politeiaUrl')
     this.defaultSettings = {
       type: 'proposal',
@@ -955,7 +958,8 @@ export default class extends FinanceReportController {
       dname: '',
       dstype: 'pname',
       dorder: 'desc',
-      tavg: false
+      tavg: false,
+      dinterval: 'month'
     }
     mainReportInitialized = false
     detailReportSettingsState = undefined
@@ -1547,6 +1551,19 @@ export default class extends FinanceReportController {
     return this.settings.type === 'treasury'
   }
 
+  dintervalChange (e) {
+    if (e.target.name === ctrl.settings.dinterval) {
+      return
+    }
+    const target = e.srcElement || e.target
+    this.dintervalTargets.forEach((dintervalTarget) => {
+      dintervalTarget.classList.remove('active')
+    })
+    target.classList.add('active')
+    ctrl.settings.dinterval = e.target.name
+    this.monthlyReportTarget.innerHTML = this.createTableDetailForMonthYear(detailMonthlySummary, 12, 'month')
+  }
+
   intervalChange (e) {
     if (e.target.name === ctrl.settings.interval) {
       return
@@ -2114,7 +2131,7 @@ export default class extends FinanceReportController {
       if (this.settings.interval === 'year') {
         headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid mw-75px" id="${this.settings.interval + ';' + report.month}">`
         headList += '<div class="d-flex justify-content-center">'
-        headList += `<a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report/detail?type=' + this.settings.interval + '&time=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
+        headList += `<a class="link-hover-underline fs-13i" data-turbolinks="false" style="text-align: right; width: 80px;" href="${'/finance-report?type=bytime&dtype=' + this.settings.interval + '&dtime=' + (timeParam === '' ? report.month : timeParam)}">${report.month.replace('/', '-')}`
         headList += '</a></div></th>'
       } else {
         headList += '<th class="text-right fw-600 pb-30i fs-13i ps-2 pe-2 table-header-sticky va-mid mw-75px" ' +
@@ -2204,7 +2221,6 @@ export default class extends FinanceReportController {
       const index = this.settings.tsort === 'newest' ? i : (handlerData.report.length - i - 1)
       const report = handlerData.report[index]
       const timeParam = this.getFullTimeParam(report.month, '/')
-
       if (this.settings.interval === 'year') {
         headList += `<th class="text-center fw-600 pb-30i fs-13i table-header-sticky va-mid mw-75px" id="${this.settings.interval + ';' + report.month}">`
         headList += '<div class="d-flex justify-content-center">'
@@ -2398,7 +2414,7 @@ export default class extends FinanceReportController {
   }
 
   isAllYearTimeReport (yearOption) {
-    return (this.settings.dtype === '' || this.settings.dtype === 'year') && (yearOption === 0 || yearOption === '0')
+    return yearOption === '' || yearOption === 0 || yearOption === '0'
   }
 
   changeTopMonth (e) {
@@ -4408,10 +4424,42 @@ export default class extends FinanceReportController {
     return this.createTableDetailForMonthYear(handlerData, breakTable, type)
   }
 
-  createTableDetailForMonthYear (handlerData, breakTable, type) {
+  createTableDetailForMonthYear (handlerDataInput, breakTable, type) {
+    detailMonthlySummary = handlerDataInput
     let allTable = ''
     let count = 0
     let stepNum = 0
+    let handlerData = []
+    handlerData.push(...handlerDataInput)
+    const yearData = []
+    if (this.isAllYearTimeReport(this.settings.dtime)) {
+      this.detailGroupByTarget.classList.remove('d-none')
+      this.detailMonthlyDescTarget.textContent = this.settings.dinterval === 'year' ? 'Years in the future' : 'Months in the future'
+      if (this.settings.dinterval === 'year' && yearList.length > 0) {
+        yearList.forEach((year) => {
+          let spentUSD = 0; let spentDCR = 0; let actualSpentUSD = 0; let actualSpentDCR = 0
+          detailMonthlySummary.forEach((detailMonthly) => {
+            if (detailMonthly.month.startsWith(year + '')) {
+              spentUSD += detailMonthly.expense
+              spentDCR += detailMonthly.expenseDcr
+              actualSpentUSD += detailMonthly.actualExpense
+              actualSpentDCR += detailMonthly.actualExpenseDcr
+            }
+          })
+          yearData.push({
+            month: year + '',
+            expense: spentUSD,
+            expenseDcr: spentDCR,
+            actualExpense: actualSpentUSD,
+            actualExpenseDcr: actualSpentDCR
+          })
+        })
+        handlerData = yearData
+      }
+    } else {
+      this.detailMonthlyDescTarget.textContent = 'Months in the future'
+      this.detailGroupByTarget.classList.add('d-none')
+    }
     for (let i = 0; i < handlerData.length; i++) {
       if (count === 0) {
         allTable += `<table class="table monthly v3 border-grey-2 w-auto ${stepNum > 0 ? 'ms-2' : ''}" style="height: 40px;">` +
@@ -4434,13 +4482,17 @@ export default class extends FinanceReportController {
       if (type === 'year') {
         isFuture = timeYearMonth[0] > year
       } else if (type === 'month') {
-        const compareDataTime = timeYearMonth[0] * 12 + timeYearMonth[1]
-        const compareNowTime = year * 12 + month
-        isFuture = compareDataTime > compareNowTime
+        if (this.isAllYearTimeReport(this.settings.dtime) && this.settings.dinterval === 'year') {
+          isFuture = timeYearMonth[0] > year
+        } else {
+          const compareDataTime = timeYearMonth[0] * 12 + timeYearMonth[1]
+          const compareNowTime = year * 12 + month
+          isFuture = compareDataTime > compareNowTime
+        }
       }
       allTable += `<tr class="odd-even-row ${isFuture ? 'future-row-data' : ''}">`
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
-      allTable += `<td class="text-left px-2 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" data-turbolinks="false" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
+      allTable += `<td class="text-left px-2 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" data-turbolinks="false" href="${'/finance-report?type=bytime&dtype=' + (this.isAllYearTimeReport(this.settings.dtime) && this.settings.dinterval === 'year' ? 'year' : type) + '&dtime=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
       allTable += `<td class="text-right px-2 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : '-'}</td>` +
         `<td class="text-right px-2 fs-13i">${dataMonth.expenseDcr !== 0.0 ? humanize.formatToLocalString(dataMonth.expenseDcr / 1e8, 2, 2) : '-'}</td>`
       if (this.settings.dtype === 'year') {
@@ -4499,6 +4551,7 @@ export default class extends FinanceReportController {
     } else {
       this.proposalTopSummaryTarget.classList.add('d-none')
     }
+    yearList = response.yearList
     this.createYearMonthTopSummary(response)
     // create month data list if type is year
     if (this.settings.dtype === 'year') {
