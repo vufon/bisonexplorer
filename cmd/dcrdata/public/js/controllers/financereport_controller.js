@@ -1058,7 +1058,7 @@ export default class extends FinanceReportController {
     }
     selectedMonth = selectedMonth < 0 ? maxMonth : selectedMonth
     let monthOptions = `<option name="month_all" value="0" ${selectedYear === 0 || selectedMonth === 0 ? 'selected' : ''}>All Months</option>`
-    for (let i = maxMonth; i >= minMonth; i--) {
+    for (let i = minMonth; i <= maxMonth; i++) {
       monthOptions += `<option name="month_${i}" value="${i}" ${selectedMonth === i ? 'selected' : ''}>${this.getMonthDisplay(i)}</option>`
     }
     this.topMonthSelectTarget.innerHTML = monthOptions
