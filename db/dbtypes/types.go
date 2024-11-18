@@ -2160,26 +2160,30 @@ type TreasuryTx struct {
 }
 
 type TreasurySummary struct {
-	Month           string    `json:"month"`
-	MonthTime       time.Time `json:"monthTime"`
-	Invalue         int64     `json:"invalue"`
-	InvalueUSD      float64   `json:"invalueUSD"`
-	Outvalue        int64     `json:"outvalue"`
-	OutvalueUSD     float64   `json:"outvalueUSD"`
-	TaddValue       int64     `json:"taddValue"`
-	TaddValueUSD    float64   `json:"taddValueUSD"`
-	Difference      int64     `json:"difference"`
-	DifferenceUSD   float64   `json:"differenceUSD"`
-	Balance         int64     `json:"balance"`
-	BalanceUSD      float64   `json:"balanceUSD"`
-	Total           int64     `json:"total"`
-	TotalUSD        float64   `json:"totalUSD"`
-	OutEstimate     float64   `json:"outEstimate"`
-	OutEstimateUsd  float64   `json:"outEstimateUsd"`
-	DevSpentPercent float64   `json:"devSpentPercent"`
-	MonthPrice      float64   `json:"monthPrice"`
-	CreditLink      string    `json:"creditLink"`
-	DebitLink       string    `json:"debitLink"`
+	Month               string    `json:"month"`
+	MonthTime           time.Time `json:"monthTime"`
+	Invalue             int64     `json:"invalue"`
+	OriginalInvalue     int64     `json:"originalInvalue"`
+	InvalueUSD          float64   `json:"invalueUSD"`
+	OriginalInvalueUSD  float64   `json:"originalInvalueUSD"`
+	Outvalue            int64     `json:"outvalue"`
+	OriginalOutvalue    int64     `json:"originalOutvalue"`
+	OutvalueUSD         float64   `json:"outvalueUSD"`
+	OriginalOutvalueUSD float64   `json:"originalOutvalueUSD"`
+	TaddValue           int64     `json:"taddValue"`
+	TaddValueUSD        float64   `json:"taddValueUSD"`
+	Difference          int64     `json:"difference"`
+	DifferenceUSD       float64   `json:"differenceUSD"`
+	Balance             int64     `json:"balance"`
+	BalanceUSD          float64   `json:"balanceUSD"`
+	Total               int64     `json:"total"`
+	TotalUSD            float64   `json:"totalUSD"`
+	OutEstimate         float64   `json:"outEstimate"`
+	OutEstimateUsd      float64   `json:"outEstimateUsd"`
+	DevSpentPercent     float64   `json:"devSpentPercent"`
+	MonthPrice          float64   `json:"monthPrice"`
+	CreditLink          string    `json:"creditLink"`
+	DebitLink           string    `json:"debitLink"`
 }
 
 type TreasuryMonthDataObject struct {

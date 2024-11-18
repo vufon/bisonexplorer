@@ -369,7 +369,16 @@
                               <p class="fw-600 fs-20 mt-3">Monthly Summary</p>
                               <div class="my-2 d-flex">
                                  <label class="color-note-label report-tool-bar border-radius-8 future-color"></label>
-                                 <span class="c-grey-2 ps-2 fw-600 color-description">Months in the future</span>
+                                 <span data-financereport-target="detailMonthlyDesc" class="c-grey-2 ps-2 fw-600 color-description">Months in the future</span>
+                              </div>
+                              <div class="d-inline d-none mb-2 me-3 mt-2" data-financereport-target="detailGroupBy">
+                                 <label>Group By </label>
+                                 <div class="btn-group mb-2" data-toggle="buttons">
+                                    <input data-financereport-target="dinterval" data-action="click->financereport#dintervalChange"
+                                       type="button" class="tab-button white me-1 c-txt-main active" value="Monthly" name="month">
+                                    <input data-financereport-target="dinterval" data-action="click->financereport#dintervalChange"
+                                       type="button" class="tab-button white me-1 c-txt-main" value="Yearly" name="year">
+                                 </div>
                               </div>
                               <div class="d-flex" data-financereport-target="monthlyReport">
                               </div>
