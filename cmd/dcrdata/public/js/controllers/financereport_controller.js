@@ -1031,8 +1031,8 @@ export default class extends FinanceReportController {
         selectedMonth = Number(timeArr[1])
       }
     }
-    selectedYear = selectedYear <= 0 ? this.reportMaxYear : selectedYear
-    let yearOptions = ''
+    selectedYear = selectedYear < 0 ? this.reportMaxYear : selectedYear
+    let yearOptions = `<option name="all" value="0" ${selectedYear === 0 ? 'selected' : ''}>All</option>`
     for (let i = this.reportMaxYear; i >= this.reportMinYear; i--) {
       yearOptions += `<option name="year_${i}" value="${i}" ${selectedYear === i ? 'selected' : ''}>${i}</option>`
     }
@@ -1047,8 +1047,13 @@ export default class extends FinanceReportController {
     if (selectedYear === this.reportMaxYear) {
       maxMonth = this.reportMaxMonth
     }
+    if (selectedYear === 0) {
+      this.topMonthSelectTarget.disabled = true
+    } else {
+      this.topMonthSelectTarget.disabled = false
+    }
     selectedMonth = selectedMonth < 0 ? maxMonth : selectedMonth
-    let monthOptions = `<option name="month_all" value="0" ${selectedMonth === 0 ? 'selected' : ''}>All Months</option>`
+    let monthOptions = `<option name="month_all" value="0" ${selectedYear === 0 || selectedMonth === 0 ? 'selected' : ''}>All Months</option>`
     for (let i = maxMonth; i >= minMonth; i--) {
       monthOptions += `<option name="month_${i}" value="${i}" ${selectedMonth === i ? 'selected' : ''}>${this.getMonthDisplay(i)}</option>`
     }
@@ -1057,11 +1062,17 @@ export default class extends FinanceReportController {
     // init for prev, next buttons
     let prevBtnShow = true
     let nextBtnShow = true
+    let hidePrevBtn = false
+    let hideNextBtn = false
     if (this.isYearDetailReport()) {
-      if (timeIntArr[0] === this.reportMinYear) {
+      if (this.isAllYearTimeReport(this.settings.dtime)) {
         prevBtnShow = false
-      }
-      if (timeIntArr[0] === this.reportMaxYear) {
+        nextBtnShow = false
+        hidePrevBtn = true
+        hideNextBtn = true
+      } else if (timeIntArr[0] === this.reportMinYear) {
+        prevBtnShow = false
+      } else if (timeIntArr[0] === this.reportMaxYear) {
         nextBtnShow = false
       }
     } else if (this.isMonthDetailReport()) {
@@ -1071,6 +1082,16 @@ export default class extends FinanceReportController {
       if (timeIntArr[0] === this.reportMaxYear && timeIntArr[1] === this.reportMaxMonth) {
         nextBtnShow = false
       }
+    }
+    if (hidePrevBtn) {
+      this.prevBtnTarget.classList.add('d-none')
+    } else {
+      this.prevBtnTarget.classList.remove('d-none')
+    }
+    if (hideNextBtn) {
+      this.nextBtnTarget.classList.add('d-none')
+    } else {
+      this.nextBtnTarget.classList.remove('d-none')
     }
     if (prevBtnShow) {
       this.prevBtnTarget.classList.remove('disabled')
@@ -1116,6 +1137,8 @@ export default class extends FinanceReportController {
       let time = year
       if (this.settings.dtype === 'month') {
         time = time + '_' + month
+      } else {
+        time = '0'
       }
       this.settings.dtime = time
     } else {
@@ -1127,7 +1150,8 @@ export default class extends FinanceReportController {
     }
     // init for detail report title
     const timeArr = this.settings.dtime.toString().split('_')
-    this.detailReportTitleTarget.textContent = (this.isYearDetailReport() ? 'Yearly Report - ' : 'Monthly Report - ') + (timeArr.length > 1 && this.settings.dtype === 'month' ? this.getMonthDisplay(Number(timeArr[1])) + ' ' : '') + timeArr[0]
+    this.detailReportTitleTarget.textContent = (this.isYearDetailReport() ? (this.isAllYearTimeReport(this.settings.dtime) ? 'All Time Report' : 'Yearly Report - ') : 'Monthly Report - ') +
+      (this.isAllYearTimeReport(this.settings.dtime) ? '' : ((timeArr.length > 1 && this.settings.dtype === 'month' ? this.getMonthDisplay(Number(timeArr[1])) + ' ' : '') + timeArr[0]))
     // init year month selector
     this.initYearMonthSelector()
     this.updateQueryString()
@@ -2359,11 +2383,22 @@ export default class extends FinanceReportController {
     if (timeArr.length > 1) {
       currentMonth = Number(timeArr[1])
     }
-    if ((e.target.value === this.reportMinYear && currentMonth < this.reportMinMonth) || (e.target.value === this.reportMaxYear && currentMonth > this.reportMaxMonth)) {
+    if (this.isAllYearTimeReport(e.target.value) || (e.target.value === this.reportMinYear && currentMonth < this.reportMinMonth) || (e.target.value === this.reportMaxYear && currentMonth > this.reportMaxMonth)) {
       currentMonth = 0
     }
-    this.settings.dtime = e.target.value + (currentMonth > 0 ? '_' + currentMonth : '')
+    if (this.isAllYearTimeReport(e.target.value)) {
+      this.topMonthSelectTarget.disabled = true
+      this.settings.dtype = 'year'
+      this.settings.dtime = '0'
+    } else {
+      this.topMonthSelectTarget.disabled = false
+      this.settings.dtime = e.target.value + (currentMonth > 0 ? '_' + currentMonth : '')
+    }
     this.initReportDetailData()
+  }
+
+  isAllYearTimeReport (yearOption) {
+    return (this.settings.dtype === '' || this.settings.dtype === 'year') && (yearOption === 0 || yearOption === '0')
   }
 
   changeTopMonth (e) {
@@ -2984,8 +3019,8 @@ export default class extends FinanceReportController {
       unaccountedDcrTotal += unaccountedDcr
       // display dev spent total
       bodyList += `<td class="va-mid text-right fs-13i px-2">${devTotal > 0 ? '$' + humanize.formatToLocalString(devTotal, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right fs-13i px-2">${devTotalDCR > 0 ? humanize.formatToLocalString(devTotalDCR, 2, 2) : '-'}</td>` +
-      `<td class="va-mid text-right px-2 fs-13i">${isFuture ? '-' : (unaccounted >= 0 ? '' : '-') + '$' + humanize.formatToLocalString(Math.abs(unaccounted), 2, 2)}`
+        `<td class="va-mid text-right fs-13i px-2">${devTotalDCR > 0 ? humanize.formatToLocalString(devTotalDCR, 2, 2) : '-'}</td>` +
+        `<td class="va-mid text-right px-2 fs-13i">${isFuture ? '-' : (unaccounted >= 0 ? '' : '-') + '$' + humanize.formatToLocalString(Math.abs(unaccounted), 2, 2)}`
       if (!isFuture) {
         bodyList += `<span class="dcricon-info cursor-pointer cell-tooltip ms-1" data-action="click->financereport#showUnaccountedUSDTooltip" data-show="${report.treasurySpent + ';' + devTotal}"><span class="tooltiptext cursor-default click-popup"><span class="tooltip-text d-flex ai-center"></span></span></span>`
       }
@@ -3014,7 +3049,7 @@ export default class extends FinanceReportController {
     rateTotalStr += `<td class="va-mid text-right fw-600 fs-13i px-2">${(unaccountedTotalPercent < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedTotalPercent), 2, 2) + '%'}</td>`
     bodyList += `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalDevAll, 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">${humanize.formatToLocalString(totalDevAllDCR, 2, 2)}</td>` +
-     `<td class="va-mid text-right fw-600 fs-13i px-2">${this.isZeroNumber(unaccountedTotal) ? '-' : (unaccountedTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedTotal), 2, 2)}</td>` +
+      `<td class="va-mid text-right fw-600 fs-13i px-2">${this.isZeroNumber(unaccountedTotal) ? '-' : (unaccountedTotal < 0 ? '-' : '') + '$' + humanize.formatToLocalString(Math.abs(unaccountedTotal), 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">${this.isZeroNumber(unaccountedDcrTotal) ? '-' : (unaccountedDcrTotal < 0 ? '-' : '') + humanize.formatToLocalString(Math.abs(unaccountedDcrTotal), 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">$${humanize.formatToLocalString(totalAllValue, 2, 2)}</td>` +
       `<td class="va-mid text-right fw-600 fs-13i px-2">${totalAllDcr > 0 ? humanize.formatToLocalString(totalAllDcr, 2, 2) : '-'}</td>` +
@@ -3190,7 +3225,7 @@ export default class extends FinanceReportController {
       this.outgoingExpTarget.classList.remove('d-none')
       this.outgoingExpTarget.classList.remove('mt-2')
       this.outgoingExpTarget.innerHTML = '*Dev Spent (Est): Estimated costs covered for proposals.<br />' +
-      '*Delta (Est): Estimated difference between actual spending and estimated spending for Proposals. <br />&nbsp;<span style="font-style: italic;">(Delta > 0: Unaccounted, Delta < 0: Missing)</span>'
+        '*Delta (Est): Estimated difference between actual spending and estimated spending for Proposals. <br />&nbsp;<span style="font-style: italic;">(Delta > 0: Unaccounted, Delta < 0: Missing)</span>'
     } else {
       this.outgoingExpTarget.classList.add('d-none')
     }
@@ -4256,8 +4291,8 @@ export default class extends FinanceReportController {
       })
     }
     this.proposalSpanRowTarget.innerHTML = `<p>Total Budget: <span class="fw-600">$${humanize.formatToLocalString(totalBudget, 2, 2)}</span></p>` +
-    `<p>Total ${type === 'owner' ? 'Received' : 'Spent'} (Estimate):<span class="fw-600">$${humanize.formatToLocalString(totalSpent, 2, 2)}</span></p>` +
-    `<p>Total Remaining (Estimate): <span class="fw-600">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</span></p>`
+      `<p>Total ${type === 'owner' ? 'Received' : 'Spent'} (Estimate):<span class="fw-600">$${humanize.formatToLocalString(totalSpent, 2, 2)}</span></p>` +
+      `<p>Total Remaining (Estimate): <span class="fw-600">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</span></p>`
   }
 
   createDetailSummaryTable (data, hideAuthor, hideDomain) {
@@ -4320,12 +4355,12 @@ export default class extends FinanceReportController {
     }
     const totalColSpan = hideAuthor && hideDomain ? '3' : ((!hideAuthor && hideDomain) || (hideAuthor && !hideDomain) ? '4' : '5')
     bodyList += '<tr class="text-secondary finance-table-header finance-table-footer last-row-header">' +
-    `<td class="va-mid text-center fw-600 fs-13i" colspan="${totalColSpan}">Total</td>` +
-    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
-    '<td></td><td></td>' +
-    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalAllSpent, 2, 2)}</td>` +
-    `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
-    '</tr>'
+      `<td class="va-mid text-center fw-600 fs-13i" colspan="${totalColSpan}">Total</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalBudget, 2, 2)}</td>` +
+      '<td></td><td></td>' +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalAllSpent, 2, 2)}</td>` +
+      `<td class="va-mid text-right px-2 fw-600 fs-13i">$${humanize.formatToLocalString(totalRemaining, 2, 2)}</td>` +
+      '</tr>'
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
   }
@@ -4380,13 +4415,13 @@ export default class extends FinanceReportController {
     for (let i = 0; i < handlerData.length; i++) {
       if (count === 0) {
         allTable += `<table class="table monthly v3 border-grey-2 w-auto ${stepNum > 0 ? 'ms-2' : ''}" style="height: 40px;">` +
-        '<col><colgroup span="2"></colgroup><thead>' +
-        `<tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
-        '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Spent (Est)</th>'
+          '<col><colgroup span="2"></colgroup><thead>' +
+          `<tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">${type === 'year' ? 'Year' : 'Month'}</th>` +
+          '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Spent (Est)</th>'
         allTable += (this.settings.dtype === 'year' ? '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Actual Spent</th>' : '') + '</tr>'
         allTable += '<tr class="text-secondary finance-table-header">' +
-        '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
-        '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>'
+          '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th>' +
+          '<th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>'
         allTable += this.settings.dtype === 'year' ? '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' : ''
         allTable += '</tr></thead><tbody>'
       }
@@ -4407,10 +4442,10 @@ export default class extends FinanceReportController {
       const timeParam = this.getFullTimeParam(dataMonth.month, '-')
       allTable += `<td class="text-left px-2 fs-13i"><a class="link-hover-underline fs-13i fw-600" style="text-align: right; width: 80px;" data-turbolinks="false" href="${'/finance-report/detail?type=' + type + '&time=' + (timeParam === '' ? dataMonth.month : timeParam)}">${dataMonth.month}</a></td>`
       allTable += `<td class="text-right px-2 fs-13i">${dataMonth.expense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.expense, 2, 2) : '-'}</td>` +
-                  `<td class="text-right px-2 fs-13i">${dataMonth.expenseDcr !== 0.0 ? humanize.formatToLocalString(dataMonth.expenseDcr / 1e8, 2, 2) : '-'}</td>`
+        `<td class="text-right px-2 fs-13i">${dataMonth.expenseDcr !== 0.0 ? humanize.formatToLocalString(dataMonth.expenseDcr / 1e8, 2, 2) : '-'}</td>`
       if (this.settings.dtype === 'year') {
         allTable += `<td class="text-right px-2 fs-13i">${dataMonth.actualExpense !== 0.0 ? '$' + humanize.formatToLocalString(dataMonth.actualExpense, 2, 2) : '-'}</td>` +
-                    `<td class="text-right px-2 fs-13i">${dataMonth.actualExpenseDcr !== 0.0 ? humanize.formatToLocalString(dataMonth.actualExpenseDcr / 1e8, 2, 2) : '-'}</td>`
+          `<td class="text-right px-2 fs-13i">${dataMonth.actualExpenseDcr !== 0.0 ? humanize.formatToLocalString(dataMonth.actualExpenseDcr / 1e8, 2, 2) : '-'}</td>`
       }
       allTable += '</tr>'
       if (count === breakTable) {
@@ -4548,25 +4583,25 @@ export default class extends FinanceReportController {
     }
     this.totalSpanRowTarget.classList.remove('d-none')
     let innerHtml = '<col><colgroup span="2"></colgroup>' +
-    '<thead><tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">Treasury Type</th>' +
-    '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Value</th></tr>' +
-    '<tr class="text-secondary finance-table-header"><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
-    '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr></thead><tbody>'
+      '<thead><tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">Treasury Type</th>' +
+      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Value</th></tr>' +
+      '<tr class="text-secondary finance-table-header"><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
+      '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr></thead><tbody>'
     innerHtml += data.treasurySummary.invalue > 0
       ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Decentralized Income</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.treasurySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>`
+      `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.invalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += data.treasurySummary.outvalue > 0
       ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Decentralized Outgoing</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.treasurySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)}</td></tr>`
+      `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.treasurySummary.outvalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += data.legacySummary.invalue > 0
       ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Admin Income</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.legacySummary.invalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)}</td></tr>`
+      `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.legacySummary.invalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += data.legacySummary.outvalue > 0
       ? `<tr class="odd-even-row"><td class="text-left px-2 fs-13i">Admin Outgoing</td><td class="text-right px-2 fs-13i">${humanize.formatToLocalString((data.legacySummary.outvalue / 100000000), 3, 3) + ' DCR'}</td>` +
-    `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.legacySummary.outvalueUSD), 2, 2)}</td></tr>`
+      `<td class="text-right px-2 fs-13i">$${humanize.formatToLocalString((data.legacySummary.outvalueUSD), 2, 2)}</td></tr>`
       : ''
     innerHtml += '</tbody>'
     this.yearMonthInfoTableTarget.innerHTML = innerHtml
@@ -4575,10 +4610,10 @@ export default class extends FinanceReportController {
   createDomainsSummaryTable (data) {
     const domainDataMap = this.getDomainsSummaryData(data)
     let innerHtml = '<col><colgroup span="2"></colgroup>' +
-    '<thead><tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">Domain</th>' +
-    '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Spent (Est)</th></tr>' +
-    '<tr class="text-secondary finance-table-header"><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
-    '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr></thead><tbody>'
+      '<thead><tr class="text-secondary finance-table-header"><th rowspan="2" class="va-mid text-center px-2 fs-13i fw-600">Domain</th>' +
+      '<th colspan="2" scope="colgroup" class="va-mid text-center-i fs-13i fw-600">Spent (Est)</th></tr>' +
+      '<tr class="text-secondary finance-table-header"><th scope="col" class="va-mid text-center-i fs-13i fw-600">DCR</th>' +
+      '<th scope="col" class="va-mid text-center-i fs-13i fw-600">USD</th></tr></thead><tbody>'
     let totalDCR = 0; let totalUSD = 0
     let hasData = false
     domainDataMap.forEach((val, key) => {
@@ -4589,8 +4624,8 @@ export default class extends FinanceReportController {
         totalUSD += val.valueUSD
         hasData = true
         innerHtml += `<tr class="odd-even-row"><td class="text-left px-2 fs-13i"><a href="/finance-report/detail?type=domain&name=${key}" data-turbolinks="false" class="link-hover-underline fs-13i">${key.charAt(0).toUpperCase() + key.slice(1)}</a></td>` +
-                     `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
-                     `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
+          `<td class="text-right px-2 fs-13i">${valueDCR > 0 ? humanize.formatToLocalString(valueDCR, 2, 2) : '-'}</td>` +
+          `<td class="text-right px-2 fs-13i">$${valueUSD > 0 ? humanize.formatToLocalString(valueUSD, 2, 2) : '-'}</td></tr>`
       }
     })
     if (!hasData) {
@@ -4692,35 +4727,73 @@ export default class extends FinanceReportController {
     }
 
     this.proposalAreaTarget.classList.remove('d-none')
-    const thead = '<thead>' +
-    '<tr class="text-secondary finance-table-header">' +
-    '<th class="va-mid text-center px-2 fs-13i fw-600">Proposal Name</th>' +
-    '<th class="va-mid text-center px-2 fs-13i fw-600">Domain</th>' +
-    `<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailBySpent">This ${this.settings.dtype === 'year' ? 'Year' : 'Month'} (Est)</label>` +
-    `<span data-action="click->financereport#sortDetailBySpent" class="${(this.settings.dstype === 'spent' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>` +
-    '</tr></thead>'
+    const yearTotalData = []
+    let thead = '<thead>' +
+      '<tr class="text-secondary finance-table-header">' +
+      '<th class="va-mid text-center px-2 fs-13i fw-600">Proposal Name</th>' +
+      '<th class="va-mid text-center px-2 fs-13i fw-600">Domain</th>'
+    if (this.isAllYearTimeReport(this.settings.dtime)) {
+      if (data.reportDetail[0].spentYears.length > 0) {
+        for (let i = 0; i < data.reportDetail[0].spentYears.length; i++) {
+          const spentYear = data.reportDetail[0].spentYears[i]
+          thead += `<th class="va-mid text-center px-2 fs-13i fw-600">${spentYear.year}</th>`
+          yearTotalData.push(0)
+        }
+      }
+      thead += '<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailBySpent">Total (Est)</label>' +
+        `<span data-action="click->financereport#sortDetailBySpent" class="${(this.settings.dstype === 'spent' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+    } else {
+      thead += `<th class="va-mid text-right px-2 fs-13i fw-600"><label class="cursor-pointer" data-action="click->financereport#sortDetailBySpent">This ${this.settings.dtype === 'year' ? 'Year' : 'Month'} (Est)</label>` +
+        `<span data-action="click->financereport#sortDetailBySpent" class="${(this.settings.dstype === 'spent' && this.settings.dorder === 'desc') ? 'dcricon-arrow-down' : 'dcricon-arrow-up'} ${this.settings.dstype !== 'spent' ? 'c-grey-4' : ''} col-sort ms-1"></span></th>`
+    }
+    thead += '</tr></thead>'
 
     let tbody = '<tbody>###</tbody>'
     let bodyList = ''
     let totalExpense = 0
     // sort by startdt
     const summaryList = this.sortDetailSummary(data.reportDetail)
+    const _this = this
     for (let i = 0; i < summaryList.length; i++) {
       bodyList += '<tr class="odd-even-row">'
       const report = summaryList[i]
       // add proposal name
       bodyList += '<td class="va-mid px-2 text-left fs-13i">' +
-      `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" data-turbolinks="false" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
-      `<td class="va-mid text-center px-2 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>` +
-        '<td class="va-mid text-right px-2 fs-13i">' +
-        `${report.totalSpent > 0 ? '$' + humanize.formatToLocalString(report.totalSpent, 2, 2) : ''}</td></tr>`
+        `<a href="${'/finance-report/detail?type=proposal&token=' + report.token}" data-turbolinks="false" class="link-hover-underline fs-13i d-block">${report.name}</a></td>` +
+        `<td class="va-mid text-center px-2 fs-13i"><a href="${'/finance-report/detail?type=domain&name=' + report.domain}" data-turbolinks="false" class="link-hover-underline fs-13i">${report.domain.charAt(0).toUpperCase() + report.domain.slice(1)}</a></td>`
+      if (_this.isAllYearTimeReport(_this.settings.dtime)) {
+        if (report.spentYears.length > 0) {
+          let countHasData = 0
+          report.spentYears.forEach((yData) => {
+            if (yData.spend > 0) {
+              countHasData++
+            }
+          })
+          for (let i = 0; i < report.spentYears.length; i++) {
+            const yearData = report.spentYears[i]
+            let spend = yearData.spend
+            if (countHasData === 1 && spend > 0) {
+              spend = report.totalSpent
+            }
+            bodyList += '<td class="va-mid text-right px-2 fs-13i">' +
+              `${spend > 0 ? '$' + humanize.formatToLocalString(spend, 2, 2) : ''}</td>`
+            yearTotalData[i] += spend
+          }
+        }
+      }
+      bodyList += '<td class="va-mid text-right px-2 fs-13i fw-600">' +
+          `${report.totalSpent > 0 ? '$' + humanize.formatToLocalString(report.totalSpent, 2, 2) : ''}</td>`
       totalExpense += report.totalSpent
     }
 
     bodyList += '<tr class="finance-table-header finance-table-footer last-row-header">' +
-    '<td class="va-mid text-center fw-600 fs-13i" colspan="2">Total</td>' +
-    `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td>` +
-    '</tr>'
+      '<td class="va-mid text-center fw-600 fs-13i" colspan="2">Total</td>'
+    if (_this.isAllYearTimeReport(_this.settings.dtime)) {
+      for (let i = 0; i < data.reportDetail[0].spentYears.length; i++) {
+        bodyList += `<td class="va-mid text-right px-2 fw-600 fs-13i">${yearTotalData[i] > 0 ? '$' + humanize.formatToLocalString(yearTotalData[i], 2, 2) : ''}</td>`
+      }
+    }
+    bodyList += `<td class="va-mid text-right px-2 fw-600 fs-13i">${totalExpense > 0 ? '$' + humanize.formatToLocalString(totalExpense, 2, 2) : ''}</td></tr>`
     tbody = tbody.replace('###', bodyList)
     return thead + tbody
   }

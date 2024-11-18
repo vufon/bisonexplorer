@@ -37,16 +37,6 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
-	humanize "github.com/dustin/go-humanize"
-	"github.com/lib/pq"
-	ltcjson "github.com/ltcsuite/ltcd/btcjson"
-	ltc_chaincfg "github.com/ltcsuite/ltcd/chaincfg"
-	ltc_chainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
-	"github.com/ltcsuite/ltcd/ltcutil"
-	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
-	ltcwire "github.com/ltcsuite/ltcd/wire"
-
-	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/blockdata"
 	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
@@ -65,6 +55,16 @@ import (
 	"github.com/decred/dcrdata/v8/stakedb"
 	"github.com/decred/dcrdata/v8/trylock"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	humanize "github.com/dustin/go-humanize"
+	"github.com/lib/pq"
+	ltcjson "github.com/ltcsuite/ltcd/btcjson"
+	ltc_chaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	ltc_chainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	"github.com/ltcsuite/ltcd/ltcutil"
+	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
+
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 )
 
 var (
@@ -2434,6 +2434,99 @@ func (pgb *ChainDB) GetTreasurySummaryByYear(year int) (*dbtypes.TreasurySummary
 	summary.TotalUSD = average * float64(summary.Total) / 1e8
 	summary.TaddValueUSD = average * float64(summary.TaddValue) / 1e8
 	return &summary, nil
+}
+
+func (pgb *ChainDB) GetLegacySummaryAllYear() ([]dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectAddressSummaryDataRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dataObjList = make([]dbtypes.TreasurySummary, 0)
+	//get min date
+	projectFundAddress, addErr := dbtypes.DevSubsidyAddress(pgb.chainParams)
+	if addErr != nil {
+		log.Warnf("ChainDB.Get Legacy address failed: %v", addErr)
+		return nil, addErr
+	}
+	//get min date
+	var oldestTime dbtypes.TimeDef
+	err = pgb.db.QueryRow(internal.SelectOldestAddressCreditTime, projectFundAddress).Scan(&oldestTime)
+	if err != nil {
+		return nil, err
+	}
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now(), false)
+	for rows.Next() {
+		var monthTime dbtypes.TimeDef
+		var monthSummary dbtypes.TreasurySummary
+		err = rows.Scan(&monthTime, &monthSummary.Outvalue, &monthSummary.Invalue)
+		if err != nil {
+			return nil, err
+		}
+		month := monthTime.Format("2006-01")
+		monthPrice := monthPriceMap[month]
+		monthSummary.Month = month
+		difference := math.Abs(float64(monthSummary.Invalue - monthSummary.Outvalue))
+		total := monthSummary.Invalue + monthSummary.Outvalue
+		monthSummary.InvalueUSD = monthPrice * float64(monthSummary.Invalue) / 1e8
+		monthSummary.OutvalueUSD = monthPrice * float64(monthSummary.Outvalue) / 1e8
+		monthSummary.Difference = int64(difference)
+		monthSummary.DifferenceUSD = monthPrice * float64(monthSummary.Difference) / 1e8
+		monthSummary.Total = int64(total)
+		monthSummary.TotalUSD = monthPrice * float64(monthSummary.Total) / 1e8
+		dataObjList = append(dataObjList, monthSummary)
+	}
+
+	return dataObjList, nil
+}
+
+func (pgb *ChainDB) GetTreasurySummaryAllYear() ([]dbtypes.TreasurySummary, error) {
+	var rows *sql.Rows
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTreasurySummaryDataRows)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var dataObjList = make([]dbtypes.TreasurySummary, 0)
+	//get min date
+	var oldestTime dbtypes.TimeDef
+	err = pgb.db.QueryRow(internal.SelectTreasuryOldestTime).Scan(&oldestTime)
+	if err != nil {
+		return nil, err
+	}
+	monthPriceMap := pgb.GetCurrencyPriceMapByPeriod(oldestTime.T, time.Now(), true)
+	for rows.Next() {
+		var time dbtypes.TimeDef
+		var outValue, inValue, tadd int64
+		err = rows.Scan(&time, &outValue, &inValue, &tadd)
+		if err != nil {
+			return nil, err
+		}
+		month := time.Format("2006-01")
+		monthPrice := monthPriceMap[month]
+		dataObj := dbtypes.TreasurySummary{
+			Month:        month,
+			Outvalue:     -outValue,
+			OutvalueUSD:  monthPrice * float64(-outValue) / 1e8,
+			Invalue:      inValue,
+			InvalueUSD:   monthPrice * float64(inValue) / 1e8,
+			TaddValue:    tadd,
+			TaddValueUSD: monthPrice * float64(tadd) / 1e8,
+			Difference:   int64(math.Abs(float64(inValue + outValue))),
+			Total:        inValue - outValue,
+		}
+		dataObj.DifferenceUSD = monthPrice * float64(dataObj.Difference) / 1e8
+		dataObj.TotalUSD = monthPrice * float64(dataObj.Total) / 1e8
+		dataObjList = append(dataObjList, dataObj)
+	}
+
+	if rows.Err() != nil {
+		return dataObjList, nil
+	}
+	return dataObjList, nil
 }
 
 func (pgb *ChainDB) GetTreasurySummaryGroupByMonth(year int) ([]dbtypes.TreasurySummary, error) {

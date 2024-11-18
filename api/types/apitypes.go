@@ -14,6 +14,7 @@ import (
 
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
+
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
@@ -923,18 +924,24 @@ type MonthReportData struct {
 	Domain  string  `json:"domain"`
 }
 
+type YearSpend struct {
+	Year  string  `json:"year"`
+	Spend float64 `json:"spend"`
+}
+
 type ProposalReportData struct {
-	Name           string  `json:"name"`
-	Token          string  `json:"token"`
-	Author         string  `json:"author"`
-	Domain         string  `json:"domain"`
-	Start          string  `json:"start"`
-	End            string  `json:"end"`
-	Budget         float64 `json:"budget"`
-	TotalSpent     float64 `json:"totalSpent"`
-	SpentEst       float64 `json:"spentEst"`
-	TotalSpentDcr  float64 `json:"totalSpentDcr"`
-	TotalRemaining float64 `json:"totalRemaining"`
+	Name           string      `json:"name"`
+	Token          string      `json:"token"`
+	Author         string      `json:"author"`
+	Domain         string      `json:"domain"`
+	Start          string      `json:"start"`
+	End            string      `json:"end"`
+	Budget         float64     `json:"budget"`
+	TotalSpent     float64     `json:"totalSpent"`
+	SpentEst       float64     `json:"spentEst"`
+	SpentYears     []YearSpend `json:"spentYears"`
+	TotalSpentDcr  float64     `json:"totalSpentDcr"`
+	TotalRemaining float64     `json:"totalRemaining"`
 }
 
 type AuthorDataObject struct {

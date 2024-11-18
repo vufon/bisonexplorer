@@ -33,9 +33,6 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
-	"github.com/go-chi/chi/v5"
-
-	m "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 	"github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/gov/v6/agendas"
 	"github.com/decred/dcrdata/gov/v6/politeia"
@@ -45,6 +42,9 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/go-chi/chi/v5"
+
+	m "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 )
 
 // maxBlockRangeCount is the maximum number of blocks that can be requested at
@@ -141,6 +141,8 @@ type DataSource interface {
 	GetLegacyTimeRange() (int64, int64, error)
 	GetMonthlyPrice(year, month int) (float64, error)
 	GetLegacySummaryGroupByMonth(year int) ([]dbtypes.TreasurySummary, error)
+	GetTreasurySummaryAllYear() ([]dbtypes.TreasurySummary, error)
+	GetLegacySummaryAllYear() ([]dbtypes.TreasurySummary, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -1705,9 +1707,20 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
 		}
-		proposalMetaList, proposalErr := c.DataSource.GetProposalMetaByYear(int(year))
-		treasuryGroupByMonth, _ := c.DataSource.GetTreasurySummaryGroupByMonth(int(year))
-		legacyGroupByMonth, _ := c.DataSource.GetLegacySummaryGroupByMonth(int(year))
+		var proposalMetaList []map[string]string
+		var treasuryGroupByMonth []dbtypes.TreasurySummary
+		var legacyGroupByMonth []dbtypes.TreasurySummary
+		var proposalErr error
+		// if year = 0, get summary all data
+		if year == 0 {
+			proposalMetaList, proposalErr = c.DataSource.GetAllProposalMeta("")
+			treasuryGroupByMonth, _ = c.DataSource.GetTreasurySummaryAllYear()
+			legacyGroupByMonth, _ = c.DataSource.GetLegacySummaryAllYear()
+		} else {
+			proposalMetaList, proposalErr = c.DataSource.GetProposalMetaByYear(int(year))
+			treasuryGroupByMonth, _ = c.DataSource.GetTreasurySummaryGroupByMonth(int(year))
+			legacyGroupByMonth, _ = c.DataSource.GetLegacySummaryGroupByMonth(int(year))
+		}
 		if proposalErr != nil {
 			writeJSON(w, nil, m.GetIndentCtx(r))
 			return
@@ -1716,10 +1729,12 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		treasurySummary = dbtypes.TreasurySummary{}
 		legacySummary = dbtypes.TreasurySummary{}
 		for _, treasuryItem := range treasuryGroupByMonth {
+			treasuryItem.OriginalInvalue = treasuryItem.Invalue
+			treasuryItem.OriginalInvalueUSD = treasuryItem.InvalueUSD
 			treasuryItem.Invalue -= treasuryItem.TaddValue
 			treasuryItem.InvalueUSD -= treasuryItem.TaddValueUSD
-			treasurySummary.Invalue += treasuryItem.Invalue
-			treasurySummary.InvalueUSD += treasuryItem.InvalueUSD
+			treasurySummary.Invalue += treasuryItem.OriginalInvalue
+			treasurySummary.InvalueUSD += treasuryItem.OriginalInvalueUSD
 			treasurySummary.Outvalue += treasuryItem.Outvalue
 			treasurySummary.OutvalueUSD += treasuryItem.OutvalueUSD
 			treasurySummary.Difference += treasuryItem.Difference
@@ -1732,6 +1747,8 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		}
 		for _, legacyItem := range legacyGroupByMonth {
 			tSummary, exist := combinedMap[legacyItem.Month]
+			legacyItem.OriginalOutvalue = legacyItem.Outvalue
+			legacyItem.OriginalOutvalueUSD = legacyItem.OutvalueUSD
 			if exist {
 				legacyItem.Outvalue -= tSummary.TaddValue
 				legacyItem.OutvalueUSD -= tSummary.TaddValueUSD
@@ -1749,17 +1766,25 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			}
 			legacySummary.Invalue += legacyItem.Invalue
 			legacySummary.InvalueUSD += legacyItem.InvalueUSD
-			legacySummary.Outvalue += legacyItem.Outvalue
-			legacySummary.OutvalueUSD += legacyItem.OutvalueUSD
+			legacySummary.Outvalue += legacyItem.OriginalOutvalue
+			legacySummary.OutvalueUSD += legacyItem.OriginalOutvalueUSD
 			legacySummary.Difference += legacyItem.Difference
 			legacySummary.DifferenceUSD += legacyItem.DifferenceUSD
 			legacySummary.Total += legacyItem.Total
 			legacySummary.TotalUSD += legacyItem.TotalUSD
 		}
 		//get month rate map of year
-		startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
-		lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
-		monthlyPriceMap := c.DataSource.GetCurrencyPriceMapByPeriod(startDayOfYear, lastDateOfYear, false)
+		var monthlyPriceMap map[string]float64
+		var proposalMinTime time.Time
+		var proposalMaxTime time.Time
+		if year == 0 {
+			proposalMinTime, proposalMaxTime, _ = c.GetTimeRangeFromProposalMetaList(proposalMetaList)
+			monthlyPriceMap = c.DataSource.GetCurrencyPriceMapByPeriod(proposalMinTime, proposalMaxTime, false)
+		} else {
+			startDayOfYear := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
+			lastDateOfYear := time.Date(int(year)+1, 1, 0, 0, 0, 0, 0, time.Local)
+			monthlyPriceMap = c.DataSource.GetCurrencyPriceMapByPeriod(startDayOfYear, lastDateOfYear, false)
+		}
 		monthWeightMap := make(map[string]int)
 		monthExpenseMap := make(map[string]float64)
 		for _, proposalMeta := range proposalMetaList {
@@ -1809,7 +1834,9 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			//count month from startTime to endTime
 			countMonths := 12*(endTime.Year()-startTime.Year()) + (int(endTime.Month()) - int(startTime.Month())) + 1
 			tempTime := time.Unix(startInt, 0)
-			if startTime.Year() == int(year) && startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
+			yearGroupMap := make(map[string]float64)
+			yearGroupData := make([]apitypes.YearSpend, 0)
+			if ((year != 0 && startTime.Year() == int(year)) || year == 0) && startTime.Month() == endTime.Month() && startTime.Year() == endTime.Year() {
 				key := fmt.Sprintf("%d-%s", startTime.Year(), apitypes.GetFullMonthDisplay(int(startTime.Month())))
 				costOfYear += amountFloat
 				if now.Year()*12+int(now.Month()) >= startTime.Year()*12+int(startTime.Month()) {
@@ -1828,11 +1855,20 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 				} else {
 					monthExpenseMap[key] = amountFloat
 				}
+				if year == 0 {
+					yearStr := fmt.Sprintf("%d", startTime.Year())
+					yearData, exist := yearGroupMap[yearStr]
+					if exist {
+						yearGroupMap[yearStr] = yearData + amountFloat
+					} else {
+						yearGroupMap[yearStr] = amountFloat
+					}
+				}
 			} else {
 				//calculate cost every month
 				for i := 0; i < int(countMonths); i++ {
 					handlerTime := tempTime.AddDate(0, i, 0)
-					if handlerTime.Year() != int(year) {
+					if year > 0 && handlerTime.Year() != int(year) {
 						continue
 					}
 					key := fmt.Sprintf("%d-%s", handlerTime.Year(), apitypes.GetFullMonthDisplay(int(handlerTime.Month())))
@@ -1873,16 +1909,38 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 					} else {
 						monthExpenseMap[key] = costOfMonth
 					}
+					if year == 0 {
+						yearStr := fmt.Sprintf("%d", handlerTime.Year())
+						yearData, exist := yearGroupMap[yearStr]
+						if exist {
+							yearGroupMap[yearStr] = yearData + costOfMonth
+						} else {
+							yearGroupMap[yearStr] = costOfMonth
+						}
+					}
 				}
 			}
 
-			if startTime.Year() == int(year) && endTime.Year() == int(year) {
+			if year == 0 || (startTime.Year() == int(year) && endTime.Year() == int(year)) {
 				costOfYear = amountFloat
 			}
 
 			varYearData.TotalSpent = math.Ceil(costOfYear*100) / 100
 			varYearData.SpentEst = math.Ceil(costSpentOfYear*100) / 100
 			varYearData.TotalSpentDcr = math.Ceil(costOfYearDcr*100) / 100
+			if year == 0 {
+				for tempYear := proposalMinTime.Year(); tempYear <= proposalMaxTime.Year(); tempYear++ {
+					yearSpend, exist := yearGroupMap[fmt.Sprintf("%d", tempYear)]
+					if !exist {
+						yearSpend = 0
+					}
+					yearGroupData = append(yearGroupData, apitypes.YearSpend{
+						Year:  fmt.Sprintf("%d", tempYear),
+						Spend: yearSpend,
+					})
+				}
+				varYearData.SpentYears = yearGroupData
+			}
 			total += costOfYear
 			report = append(report, varYearData)
 		}
@@ -1920,8 +1978,17 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		}
 
 		summaryDataObjList := make([]apitypes.MonthDataObject, 0)
-		timeTemp := time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
-		for timeTemp.Year() == int(year) {
+		var timeTemp time.Time
+		var maxTimeCompare int64
+		var timeCompare int64
+		if year == 0 {
+			timeTemp = proposalMinTime
+			maxTimeCompare = int64(proposalMaxTime.Year())*12 + int64(proposalMaxTime.Month())
+			timeCompare = int64(timeTemp.Year())*12 + int64(timeTemp.Month())
+		} else {
+			timeTemp = time.Date(int(year), time.January, 1, 0, 0, 0, 0, time.Local)
+		}
+		for (year == 0 && timeCompare <= maxTimeCompare) || (year != 0 && timeTemp.Year() == int(year)) {
 			monthStr := timeTemp.Format("2006-01")
 			expense := c.getExpenseFromList(monthDatas, monthStr)
 			treasuryCombined, exist := combinedMap[monthStr]
@@ -1931,6 +1998,9 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			}
 			if expense == 0 && actualExpense == 0 {
 				timeTemp = timeTemp.AddDate(0, 1, 0)
+				if year == 0 {
+					timeCompare = int64(timeTemp.Year())*12 + int64(timeTemp.Month())
+				}
 				continue
 			}
 			monthPrice, existPrice := monthlyPriceMap[monthStr]
@@ -1949,6 +2019,9 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 			}
 			summaryDataObjList = append(summaryDataObjList, dataObj)
 			timeTemp = timeTemp.AddDate(0, 1, 0)
+			if year == 0 {
+				timeCompare = int64(timeTemp.Year())*12 + int64(timeTemp.Month())
+			}
 		}
 		monthResultData = summaryDataObjList
 	}
@@ -1970,6 +2043,34 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		LegacySummary:     legacySummary,
 		MonthlyResultData: monthResultData,
 	}, m.GetIndentCtx(r))
+}
+
+func (c *appContext) GetTimeRangeFromProposalMetaList(proposalMetaList []map[string]string) (time.Time, time.Time, error) {
+	var minTime time.Time
+	var maxTime time.Time
+	for _, proposalMeta := range proposalMetaList {
+		var amount = proposalMeta["Amount"]
+		amountFloat, err3 := strconv.ParseFloat(amount, 64)
+		if err3 != nil || amountFloat == 0.0 {
+			continue
+		}
+		var startDate = proposalMeta["StartDate"]
+		var endDate = proposalMeta["EndDate"]
+		startInt, err := strconv.ParseInt(startDate, 0, 32)
+		endInt, err2 := strconv.ParseInt(endDate, 0, 32)
+		if err != nil || err2 != nil {
+			continue
+		}
+		startTime := time.Unix(startInt, 0)
+		endTime := time.Unix(endInt, 0)
+		if minTime.IsZero() || startTime.Before(minTime) {
+			minTime = startTime
+		}
+		if maxTime.IsZero() || endTime.After(maxTime) {
+			maxTime = endTime
+		}
+	}
+	return minTime, maxTime, nil
 }
 
 func (c *appContext) getActualExpenseFromList(list []dbtypes.TreasurySummary, month string) float64 {
