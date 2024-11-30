@@ -172,28 +172,28 @@
                                     <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
                                        title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
                                        data-blocklist-target="tooltip">
-                                    <a class="block-element-link" href="#">
+                                    <span class="block-element-link">
                                     <span class="paint left-vs-block-data" style="width: {{intMultiply (len .Votes) 20}}%;"></span>
-                                    </a>
+                                    </span>
                                     </span>
                                     <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
                                        title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
                                        data-blocklist-target="tooltip">
-                                    <a class="block-element-link" href="#">
+                                    <span class="block-element-link">
                                     <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%;"></span>
-                                    </a>
+                                    </span>
                                     </span>
                                     <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Developer}}"
                                        title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Developer}}"}'
                                        data-blocklist-target="tooltip">
-                                    <a class="block-element-link" href="#">
+                                    <span class="block-element-link">
                                     <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
-                                    </a>
+                                    </span>
                                     </span>
                                     <span class="fees right-vs-block-data" style="flex-grow: {{.MiningFee}};"
                                        title='{"object": "Tx Fees", "total": "{{.MiningFee}}"}'
                                        data-blocklist-target="tooltip">
-                                    <a class="block-element-link" href="#"></a>
+                                    <span class="block-element-link"></span>
                                     </span>
                                  </div>
                                  <div class="block-votes px-1 mt-1" style="flex-grow: 1">

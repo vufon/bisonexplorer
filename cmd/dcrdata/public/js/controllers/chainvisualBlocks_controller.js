@@ -107,16 +107,16 @@ export default class extends Controller {
         '<div class="block-rows chain-block-rows"><div class="block-rewards px-1 mt-1" style="flex-grow: 1">' +
         `<span class="pow chain-pow left-vs-block-data" style="flex-grow: ${block.BlockReward / 1e8}" ` +
         `title='{"object": "Block Reward", "total": "${block.BlockReward / 1e8}"}' ` +
-        'data-chainvisualBlocks-target="tooltip"><a class="block-element-link" href="#"></a>' +
+        'data-chainvisualBlocks-target="tooltip"><span class="block-element-link"></span>' +
         `</span><span class="fees right-vs-block-data" style="flex-grow: ${block.FeesSats / 1e8}" ` +
         `title='{"object": "Tx Fees", "total": "${block.FeesSats / 1e8}"}' data-chainvisualBlocks-target="tooltip">` +
-        '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions px-1 my-1" style="flex-grow: 1">' +
+        '<span class="block-element-link"></span></span></div><div class="block-transactions px-1 my-1" style="flex-grow: 1">' +
         `<span class="chain-block-tx left-vs-block-data" style="flex-grow: ${block.tx_count}" data-chainvisualBlocks-target="tooltip" title='{"object": "Tx Count", "count": "${block.tx_count}"}'>` +
-        '<a class="block-element-link" href="#"></a></span>' +
+        '<span class="block-element-link"></span></span>' +
         `<span class="chain-block-tx" style="flex-grow: ${block.TotalInputs}" data-chainvisualBlocks-target="tooltip" title='{"object": "Inputs Count", "count": "${block.TotalInputs}"}'>` +
-        '<a class="block-element-link" href="#"></a></span>' +
+        '<span class="block-element-link"></span></span>' +
         `<span class="chain-block-tx right-vs-block-data" style="flex-grow: ${block.TotalOutputs}" data-chainvisualBlocks-target="tooltip" title='{"object": "Outputs Count", "count": "${block.TotalOutputs}"}'>` +
-        '<a class="block-element-link" href="#"></a></span></div></div>'
+        '<span class="block-element-link"></span></span></div></div>'
         // create first block
         const theFirst = document.createElement('div')
         theFirst.setAttribute('data-chainvisualBlocks-target', 'block')
@@ -216,13 +216,13 @@ export default class extends Controller {
         _this.memRewardBlockOuter +
         `<span class="fees right-vs-block-data" style="flex-grow: ${_this.fees / 1e8}" ` +
         `title='{"object": "Tx Fees", "total": "${_this.fees}"}' data-chainvisualBlocks-target="tooltip">` +
-        '<a class="block-element-link" href="#"></a></span></div><div class="block-transactions px-1 my-1" style="flex-grow: 1">' +
+        '<span class="block-element-link"></span></span></div><div class="block-transactions px-1 my-1" style="flex-grow: 1">' +
         `<span class="chain-block-tx left-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.txCount}" title='{"object": "Tx Count", "count": "${_this.txCount}"}'>` +
-        '<a class="block-element-link" href="#"></a></span>' +
+        '<span class="block-element-link"></span></span>' +
         `<span class="chain-block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.inputsCount}" title='{"object": "Inputs Count", "count": "${_this.inputsCount}"}'>` +
-        '<a class="block-element-link" href="#"></a></span>' +
+        '<span class="block-element-link"></span></span>' +
         `<span class="chain-block-tx right-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.outputsCount}" title='{"object": "Outputs Count", "count": "${_this.outputsCount}"}'>` +
-        '<a class="block-element-link" href="#"></a></span></div></div>'
+        '<span class="block-element-link"></span></span></div></div>'
         // remove old mempool box
         const theKid = document.createElement('div')
         theKid.setAttribute('data-chainvisualBlocks-target', 'block')

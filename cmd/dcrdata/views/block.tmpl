@@ -127,25 +127,25 @@
 							<div class="block-rewards px-1 mt-1" style="flex-grow: 1">
 								<span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}" data-blockdetail-target="tooltip"
 									title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'>
-									<a class="block-element-link" href="#">
+									<span class="block-element-link">
 										<span class="paint left-vs-block-data" style="width: {{intMultiply (len .Votes) 20}}%"></span>
-									</a>
+									</span>
 								</span>
 								<span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}" data-blockdetail-target="tooltip"
 									title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'>
-									<a class="block-element-link" href="#">
+									<span class="block-element-link">
 										<span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
-									</a>
+									</span>
 								</span>
 								<span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Developer}}" data-blockdetail-target="tooltip"
 									title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Developer}}"}'>
-									<a class="block-element-link" href="#">
+									<span class="block-element-link">
 										<span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
-									</a>
+									</span>
 								</span>
 								<span class="fees right-vs-block-data" style="flex-grow: {{.Fees}}" data-blockdetail-target="tooltip"
 									title='{"object": "Tx Fees", "total": "{{.Fees}}"}'>
-									<a class="block-element-link" href="#"></a>
+									<span class="block-element-link"></span>
 								</span>
 							</div>
 		
