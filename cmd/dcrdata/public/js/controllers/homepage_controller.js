@@ -151,25 +151,25 @@ function makeRewardsElement (subsidy, fee, voteCount, rewardTxId) {
   return `<div class="block-rewards px-1 mt-1" style="flex-grow: ${totalDCR}">
                 <span class="pow" style="flex-grow: ${pow}" data-homepage-target="tooltip"
                     title='{"object": "PoW Reward", "total": "${pow}"}'>
-                    <a class="block-element-link" href="/tx/${rewardTxId}">
+                    <span class="block-element-link">
                         <span class="paint left-vs-block-data" ${backgroundColorRelativeToVotes}></span>
-                    </a>
+                    </span>
                 </span>
                 <span class="pos" style="flex-grow: ${pos}" data-homepage-target="tooltip"
                     title='{"object": "PoS Reward", "total": "${pos}"}'>
-                    <a class="block-element-link" href="/tx/${rewardTxId}">
+                    <span class="block-element-link">
                         <span class="paint" ${backgroundColorRelativeToVotes}></span>
-                    </a>
+                    </span>
                 </span>
                 <span class="fund" style="flex-grow: ${fund}" data-homepage-target="tooltip"
                     title='{"object": "Project Fund", "total": "${fund}"}'>
-                    <a class="block-element-link" href="/tx/${rewardTxId}">
+                    <span class="block-element-link">
                         <span class="paint" ${backgroundColorRelativeToVotes}></span>
-                    </a>
+                    </span>
                 </span>
                 <span class="fees right-vs-block-data" style="flex-grow: ${fee}" data-homepage-target="tooltip"
                     title='{"object": "Tx Fees", "total": "${fee}"}'>
-                    <a class="block-element-link" href="/tx/${rewardTxId}"></a>
+                    <span class="block-element-link"></span>
                 </span>
             </div>`
 }
@@ -243,7 +243,7 @@ export default class extends Controller {
         if (data.object === 'Vote') {
           newContent = `<b>${data.object} (${data.voteValid ? 'Yes' : 'No'})</b>`
         } else {
-          newContent = `<b>${data.object}</b><br>${data.total} DCR`
+          newContent = `<b>${data.object}</b><br>${humanize.decimalParts(data.total, false, 8, 2)} DCR`
         }
 
         if (data.vin && data.vout) {

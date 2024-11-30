@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
+import humanize from '../helpers/humanize_helper'
 
 export default class extends Controller {
   static get targets () {
@@ -18,7 +19,7 @@ export default class extends Controller {
         if (data.object === 'Vote') {
           newContent = `<b>${data.object} (${data.voteValid ? 'Yes' : 'No'})</b>`
         } else {
-          newContent = `<b>${data.object}</b><br>${data.total} DCR`
+          newContent = `<b>${data.object}</b><br>${humanize.decimalParts(data.total, false, 8, 2)} DCR`
         }
 
         if (data.vin && data.vout) {
