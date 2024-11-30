@@ -797,28 +797,28 @@
                                             <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
                                                 title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
                                                 data-homepage-target="tooltip">
-                                                <a class="block-element-link" href="#">
+                                                <span class="block-element-link">
                                                     <span class="paint left-vs-block-data" style="width: {{intMultiply (len .Votes) 20}}%"></span>
-                                                </a>
+                                                </span>
                                             </span>
                                             <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
                                                 title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
                                                 data-homepage-target="tooltip">
-                                                <a class="block-element-link" href="#">
+                                                <span class="block-element-link">
                                                     <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
-                                                </a>
+                                                </span>
                                             </span>
                                             <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Dev}}"
                                                 title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Dev}}"}'
                                                 data-homepage-target="tooltip">
-                                                <a class="block-element-link" href="#">
+                                                <span class="block-element-link">
                                                     <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
-                                                </a>
+                                                </span>
                                             </span>
                                             <span class="fees right-vs-block-data" style="flex-grow: {{.Fees}}"
                                                 title='{"object": "Tx Fees", "total": "{{.Fees}}"}'
                                                 data-homepage-target="tooltip">
-                                                <a class="block-element-link" href="#"></a>
+                                                <span class="block-element-link"></span>
                                             </span>
                                         </div>
                                         <div class="block-votes px-1 mt-1" style="flex-grow: 1">
@@ -1201,7 +1201,7 @@
                               {{if .MarketCap}}
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
                                  <p class="network-stats-block">
-                                    <span class="network-stats-title">Market Volumn</span>
+                                    <span class="network-stats-title">Market Volume</span>
                                     <span class="network-stats-content d-inline-block mt-4">
                                        ${{difficultyDisp .MarketCap.Volumn}}
                                     </span>

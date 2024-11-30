@@ -22,6 +22,7 @@ import (
 	"decred.org/dcrdex/dex"
 	dexcandles "decred.org/dcrdex/dex/candles"
 	"decred.org/dcrdex/dex/msgjson"
+
 	dcrrates "github.com/decred/dcrdata/exchanges/v3/ratesproto"
 )
 
@@ -1359,7 +1360,7 @@ func (r GeminiCandlestickResponse) translate() Candlesticks {
 		}
 		volume, ok := rawStick[5].(float64)
 		if !ok {
-			return badGeminiStickElement("Volumn", rawStick[5])
+			return badGeminiStickElement("Volume", rawStick[5])
 		}
 
 		sticks = append(sticks, Candlestick{
@@ -1426,7 +1427,7 @@ func (r KucoinCandlestickResponse) translate() Candlesticks {
 		//parse Transaction volumn
 		volume, err := strconv.ParseFloat(rawStick[5], 64)
 		if err != nil {
-			log.Error("Unable to parse Kucoin Volumn: %v", err)
+			log.Error("Unable to parse Kucoin Volume: %v", err)
 			return Candlesticks{}
 		}
 
@@ -1808,7 +1809,7 @@ func (gemini *GeminiExchange) Refresh() {
 				baseVolStr := subPriceResponse.Volume[key].(string)
 				baseVolume, err = strconv.ParseFloat(baseVolStr, 64)
 				if err != nil {
-					gemini.fail(fmt.Sprintf("Failed to parse float from Base Volumn=%s", baseVolStr), err)
+					gemini.fail(fmt.Sprintf("Failed to parse float from Base Volume=%s", baseVolStr), err)
 					return
 				}
 				//else, is volumn
@@ -1816,7 +1817,7 @@ func (gemini *GeminiExchange) Refresh() {
 				volStr := subPriceResponse.Volume[key].(string)
 				volumne, err = strconv.ParseFloat(volStr, 64)
 				if err != nil {
-					gemini.fail(fmt.Sprintf("Failed to parse float from Volumn=%s", volStr), err)
+					gemini.fail(fmt.Sprintf("Failed to parse float from Volume=%s", volStr), err)
 					return
 				}
 			}
