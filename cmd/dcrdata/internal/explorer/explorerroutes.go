@@ -1068,7 +1068,7 @@ func (exp *ExplorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) 
 		height = bestBlockHeight
 	}
 	if rows == 0 {
-		rows = minExplorerRows
+		rows = 20
 	} else if rows > maxExplorerRows {
 		rows = maxExplorerRows
 	}
@@ -1178,7 +1178,7 @@ func (exp *ExplorerUI) Blocks(w http.ResponseWriter, r *http.Request) {
 		height = bestBlockHeight
 	}
 	if rows == 0 {
-		rows = minExplorerRows
+		rows = 20
 	} else if rows > maxExplorerRows {
 		rows = maxExplorerRows
 	}
