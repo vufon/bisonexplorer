@@ -118,10 +118,10 @@ export default class extends Controller {
       last6MonthsSum += Number(itemData[itemData.length - 1])
     }
     this.last6MonthsDataTarget.innerHTML = '$' + humanize.decimalParts(last6MonthsSum, true, 0, 0)
-    // last year data (364 days)
+    // last year data (52 weeks)
     let lastYearSum = 0
-    for (let i = this.dailyData.length - 1; i >= this.dailyData.length - 364; i--) {
-      const itemData = this.dailyData[i]
+    for (let i = weeklyData.length - 1; i >= weeklyData.length - 51; i--) {
+      const itemData = weeklyData[i]
       lastYearSum += Number(itemData[itemData.length - 1])
     }
     this.lastYearDataTarget.innerHTML = '$' + humanize.decimalParts(lastYearSum, true, 0, 0)
@@ -178,23 +178,23 @@ export default class extends Controller {
           },
           type: 'bar'
         })
-                // init for daily vol bar chart
-                const xDailyLabel = []
-                const yDailyLabel = []
-                _this.dailyData.forEach((item) => {
-                  xDailyLabel.push(item[0])
-                  yDailyLabel.push(Number(item[index + 1]))
-                })
-                _this.dailyChartData.push({
-                  x: xDailyLabel,
-                  y: yDailyLabel,
-                  name: pair,
-                  marker: {
-                    color: pairColor[index],
-                    width: 1
-                  },
-                  type: 'bar'
-                })
+        // init for daily vol bar chart
+        const xDailyLabel = []
+        const yDailyLabel = []
+        _this.dailyData.forEach((item) => {
+          xDailyLabel.push(item[0])
+          yDailyLabel.push(Number(item[index + 1]))
+        })
+        _this.dailyChartData.push({
+          x: xDailyLabel,
+          y: yDailyLabel,
+          name: pair,
+          marker: {
+            color: pairColor[index],
+            width: 1
+          },
+          type: 'bar'
+        })
         // init for current month breakdown
         const curValueFloat = Number(lastMonthData[index + 1])
         if (curValueFloat > 0) {

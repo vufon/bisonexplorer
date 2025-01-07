@@ -65,6 +65,7 @@ func GroupByWeeklyData(records [][]string) [][]string {
 	res := make([][]string, 0)
 	curWeekData := make([]string, 0)
 	curWeekDataNum := make([]float64, 0)
+	var lastTime time.Time
 	for _, record := range records {
 		dateRec, err := time.Parse("2006-01-02", record[0])
 		if err != nil {
@@ -94,6 +95,24 @@ func GroupByWeeklyData(records [][]string) [][]string {
 			res = append(res, curWeekData)
 			curWeekData = make([]string, 0)
 			curWeekDataNum = make([]float64, 0)
+		}
+		lastTime = dateRec
+	}
+	if len(curWeekDataNum) > 0 {
+		// check nearest week
+		for i := int(1); i < 7; i++ {
+			nextDay := lastTime.AddDate(0, 0, i)
+			if int(nextDay.Weekday()) == 1 {
+				curWeekData = append(curWeekData, nextDay.Format("2006-01-02"))
+				sum := float64(0)
+				for _, dataNum := range curWeekDataNum {
+					curWeekData = append(curWeekData, fmt.Sprintf("%f", dataNum))
+					sum += dataNum
+				}
+				curWeekData = append(curWeekData, fmt.Sprintf("%f", sum))
+				res = append(res, curWeekData)
+				break
+			}
 		}
 	}
 	return res
