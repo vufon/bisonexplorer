@@ -14,13 +14,15 @@ const pairColor = ['#690e20', '#71114b', '#582369', '#402369', '#2c2086', '#434c
 export default class extends Controller {
   static get targets () {
     return ['todayStr', 'todayData', 'monthlyStr', 'currentMonthData', 'prevMonthStr', 'prevMonthData',
-      'last90DaysData', 'last6MonthsData', 'lastYearData']
+      'last90DaysData', 'last6MonthsData', 'lastYearData', 'prevMonthBreakdown', 'curMonthBreakdown']
   }
 
   async connect () {
     const _this = this
     this.hasData = []
     this.chartData = []
+    this.weekChartData = []
+    this.dailyChartData = []
     const selectorOptions = {
       buttons: [{
         step: 'month',
@@ -42,11 +44,41 @@ export default class extends Controller {
         label: 'all'
       }]
     }
+    const dailySelectorOptions = {
+      buttons: [{
+        step: 'day',
+        stepmode: 'backward',
+        count: 7,
+        label: '7d'
+      }, {
+        step: 'day',
+        stepmode: 'backward',
+        count: 30,
+        label: '30d'
+      }, {
+        step: 'day',
+        stepmode: 'backward',
+        count: 90,
+        label: '90d'
+      }, {
+        step: 'all',
+        label: 'all'
+      }]
+    }
     this.layout = {
       barmode: 'stack',
       showlegend: true,
       xaxis: {
         rangeselector: selectorOptions,
+        rangeslider: { visible: false }
+      },
+      legend: { orientation: 'h', xanchor: 'center', x: 0.5, y: 1 }
+    }
+    this.dailyLayout = {
+      barmode: 'stack',
+      showlegend: true,
+      xaxis: {
+        rangeselector: dailySelectorOptions,
         rangeslider: { visible: false }
       },
       legend: { orientation: 'h', xanchor: 'center', x: 0.5, y: 1 }
@@ -57,7 +89,7 @@ export default class extends Controller {
     // init data for summary
     this.dailyData = bwDashDataRes.dailyData
     // weekly data
-    // const weeklyData = bwDashDataRes.weeklyData
+    const weeklyData = bwDashDataRes.weeklyData
     // today data
     const lastDayData = this.dailyData[this.dailyData.length - 1]
     this.todayStrTarget.textContent = lastDayData[0].replaceAll('-', '/')
@@ -66,9 +98,11 @@ export default class extends Controller {
     const prevMonthData = monthlyData[monthlyData.length - 2]
     // current month data
     this.monthlyStrTarget.textContent = lastMonthData[0].replaceAll('-', '/')
+    this.curMonthBreakdownTarget.textContent = lastMonthData[0].replaceAll('-', '/')
     this.currentMonthDataTarget.innerHTML = '$' + humanize.decimalParts(lastMonthData[lastMonthData.length - 1], true, 0, 0)
     // prev month data
     this.prevMonthStrTarget.textContent = prevMonthData[0].replaceAll('-', '/')
+    this.prevMonthBreakdownTarget.textContent = prevMonthData[0].replaceAll('-', '/')
     this.prevMonthDataTarget.innerHTML = '$' + humanize.decimalParts(prevMonthData[prevMonthData.length - 1], true, 0, 0)
     // last 90 days data
     let last90daysSum = 0
@@ -101,10 +135,16 @@ export default class extends Controller {
       })
       _this.hasData.push(hasDataBool)
     })
-
+    const curPercentArr = []
+    const curLabels = []
+    const curColors = []
+    const prevPercentArr = []
+    const prevLabels = []
+    const prevColors = []
     // init chart data
     pairList.forEach((pair, index) => {
       if (this.hasData[index]) {
+        // init for monthly vol bar chart
         const xLabel = []
         const yLabel = []
         monthlyData.forEach((item) => {
@@ -121,9 +161,77 @@ export default class extends Controller {
           },
           type: 'bar'
         })
+        // init for weekly vol bar chart
+        const xWeekLabel = []
+        const yWeekLabel = []
+        weeklyData.forEach((item) => {
+          xWeekLabel.push(item[0])
+          yWeekLabel.push(Number(item[index + 1]))
+        })
+        _this.weekChartData.push({
+          x: xWeekLabel,
+          y: yWeekLabel,
+          name: pair,
+          marker: {
+            color: pairColor[index],
+            width: 1
+          },
+          type: 'bar'
+        })
+                // init for daily vol bar chart
+                const xDailyLabel = []
+                const yDailyLabel = []
+                _this.dailyData.forEach((item) => {
+                  xDailyLabel.push(item[0])
+                  yDailyLabel.push(Number(item[index + 1]))
+                })
+                _this.dailyChartData.push({
+                  x: xDailyLabel,
+                  y: yDailyLabel,
+                  name: pair,
+                  marker: {
+                    color: pairColor[index],
+                    width: 1
+                  },
+                  type: 'bar'
+                })
+        // init for current month breakdown
+        const curValueFloat = Number(lastMonthData[index + 1])
+        if (curValueFloat > 0) {
+          curLabels.push(pair)
+          curPercentArr.push(curValueFloat)
+          curColors.push(pairColor[index])
+        }
+        // init for current month breakdown
+        const prevValueFloat = Number(prevMonthData[index + 1])
+        if (prevValueFloat > 0) {
+          prevLabels.push(pair)
+          prevPercentArr.push(prevValueFloat)
+          prevColors.push(pairColor[index])
+        }
       }
     })
-    Plotly.newPlot('myDiv', this.chartData, this.layout)
+    const curBreakdownChartData = [{
+      values: curPercentArr,
+      labels: curLabels,
+      marker: {
+        colors: curColors
+      },
+      type: 'pie'
+    }]
+    const prevBreakdownChartData = [{
+      values: prevPercentArr,
+      labels: prevLabels,
+      marker: {
+        colors: prevColors
+      },
+      type: 'pie'
+    }]
+    Plotly.newPlot('monthlyTradingVolume', this.chartData, this.layout)
+    Plotly.newPlot('weeklyTradingVolume', this.weekChartData, this.layout)
+    Plotly.newPlot('dailyTradingVolume', this.dailyChartData, this.dailyLayout)
+    Plotly.newPlot('curMonthBreakdownChart', curBreakdownChartData, { height: 400, width: 500 })
+    Plotly.newPlot('prevMonthBreakdownChart', prevBreakdownChartData, { height: 400, width: 500 })
   }
 
   async calculate () {
