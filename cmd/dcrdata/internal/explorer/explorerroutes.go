@@ -367,6 +367,25 @@ func (exp *ExplorerUI) CoinCapPage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+// Bison Wallet Dashboard
+func (exp *ExplorerUI) BisonWalletDashboardPage(w http.ResponseWriter, r *http.Request) {
+	var commonData = exp.commonData(r)
+	str, err := exp.templates.exec("bwdash", struct {
+		*CommonPageData
+	}{
+		CommonPageData: commonData,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // Home is the page handler for the "/" path.
 func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	//Get mutilchainList

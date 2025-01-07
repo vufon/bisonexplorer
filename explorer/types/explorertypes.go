@@ -19,10 +19,11 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/dcrdata/v8/db/dbtypes"
-	"github.com/decred/dcrdata/v8/txhelpers"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	ltcwire "github.com/ltcsuite/ltcd/wire"
+
+	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
 // Types of votes
@@ -1176,6 +1177,18 @@ type ChainParamData struct {
 	NextBlockReward          int64
 	RemainingBlocks          int64
 	NextTime                 uint64
+}
+
+type BWDashSummary struct {
+	Vol24h           float64
+	VolCurrentMonth  float64
+	VolPrevMonth     float64
+	Cumulative90DVol float64
+	Cumulative6MVol  float64
+	Cumulative1YVol  float64
+	TodayStr         string
+	CurrentMonthStr  string
+	PrevMonthStr     string
 }
 
 // AddressPrefixes generates an array AddrPrefix by using chaincfg.Params
