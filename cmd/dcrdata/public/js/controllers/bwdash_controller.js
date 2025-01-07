@@ -92,17 +92,21 @@ export default class extends Controller {
     const weeklyData = bwDashDataRes.weeklyData
     // today data
     const lastDayData = this.dailyData[this.dailyData.length - 1]
-    this.todayStrTarget.textContent = lastDayData[0].replaceAll('-', '/')
+    const lastDayArr = lastDayData[0].split('-')
+    const lastMonthName = this.getMonthName(lastDayArr[1])
+    this.todayStrTarget.textContent = lastMonthName + ' ' + lastDayArr[2] + ', ' + lastDayArr[0]
     this.todayDataTarget.innerHTML = '$' + humanize.decimalParts(lastDayData[lastDayData.length - 1], true, 0, 0)
     const lastMonthData = monthlyData[monthlyData.length - 1]
     const prevMonthData = monthlyData[monthlyData.length - 2]
     // current month data
-    this.monthlyStrTarget.textContent = lastMonthData[0].replaceAll('-', '/')
-    this.curMonthBreakdownTarget.textContent = lastMonthData[0].replaceAll('-', '/')
+    this.monthlyStrTarget.textContent = lastMonthName + ' ' + lastDayArr[0]
+    this.curMonthBreakdownTarget.textContent = lastMonthName + ' ' + lastDayArr[0]
     this.currentMonthDataTarget.innerHTML = '$' + humanize.decimalParts(lastMonthData[lastMonthData.length - 1], true, 0, 0)
     // prev month data
-    this.prevMonthStrTarget.textContent = prevMonthData[0].replaceAll('-', '/')
-    this.prevMonthBreakdownTarget.textContent = prevMonthData[0].replaceAll('-', '/')
+    const prevMonthArr = prevMonthData[0].split('-')
+    const prevMonthName = this.getMonthName(prevMonthArr[1])
+    this.prevMonthStrTarget.textContent = prevMonthName + ' ' + prevMonthArr[0]
+    this.prevMonthBreakdownTarget.textContent = prevMonthName + ' ' + prevMonthArr[0]
     this.prevMonthDataTarget.innerHTML = '$' + humanize.decimalParts(prevMonthData[prevMonthData.length - 1], true, 0, 0)
     // last 90 days data
     let last90daysSum = 0
@@ -238,5 +242,18 @@ export default class extends Controller {
     const bwDashUrl = '/api/bwdash/getdata'
     const bwDashRes = await requestJSON(bwDashUrl)
     return bwDashRes
+  }
+
+  getMonthName (monthNumStr) {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+    const monthNum = this.getMonthNumber(monthNumStr)
+    return monthNames[monthNum - 1]
+  }
+
+  getMonthNumber (monthStr) {
+    if (monthStr.startsWith('0')) {
+      return Number(monthStr.replaceAll('0', ''))
+    }
+    return Number(monthStr)
   }
 }
