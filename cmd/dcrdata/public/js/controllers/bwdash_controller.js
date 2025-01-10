@@ -1,5 +1,4 @@
 import { Controller } from '@hotwired/stimulus'
-import { requestJSON } from '../helpers/http'
 import * as Plotly from 'plotly.js-dist-min'
 import humanize from '../helpers/humanize_helper'
 
@@ -14,10 +13,12 @@ const pairColor = ['#690e20', '#38b6ba', '#0f103f', '#2fc399', '#289f87', '#434c
 export default class extends Controller {
   static get targets () {
     return ['todayStr', 'todayData', 'monthlyStr', 'currentMonthData', 'prevMonthStr', 'prevMonthData',
-      'last90DaysData', 'last6MonthsData', 'lastYearData', 'prevMonthBreakdown', 'curMonthBreakdown']
+      'last90DaysData', 'last6MonthsData', 'lastYearData', 'prevMonthBreakdown', 'curMonthBreakdown',
+      'pageLoader']
   }
 
   async connect () {
+    this.pageLoaderTarget.classList.add('loading')
     const _this = this
     this.hasData = []
     this.chartData = []
@@ -84,12 +85,15 @@ export default class extends Controller {
       legend: { orientation: 'h', xanchor: 'center', x: 0.5, traceorder: 'normal' }
     }
     // check currency pair with data
-    const bwDashDataRes = await this.calculate()
-    const monthlyData = bwDashDataRes.monthlyData
-    // init data for summary
-    this.dailyData = bwDashDataRes.dailyData
+    this.dailyData = await this.fetchCsvDataFromUrl()
+    const monthlyData = this.groupMonthlyData(this.dailyData)
     // weekly data
-    const weeklyData = bwDashDataRes.weeklyData
+    const weeklyData = this.groupWeeklyData(this.dailyData)
+    // calculate sum for all row of daily data
+    for (let i = 0; i < this.dailyData.length; i++) {
+      const sumOfRow = this.sumVolOfBwRow(this.dailyData[i])
+      this.dailyData[i].push(sumOfRow)
+    }
     // today data
     const lastDayData = this.dailyData[this.dailyData.length - 1]
     const lastDayArr = lastDayData[0].split('-')
@@ -263,12 +267,7 @@ export default class extends Controller {
     Plotly.newPlot('dailyTradingVolume', this.dailyChartData, this.dailyLayout)
     Plotly.newPlot('curMonthBreakdownChart', curBreakdownChartData, pieLayout)
     Plotly.newPlot('prevMonthBreakdownChart', prevBreakdownChartData, pieLayout)
-  }
-
-  async calculate () {
-    const bwDashUrl = '/api/bwdash/getdata'
-    const bwDashRes = await requestJSON(bwDashUrl)
-    return bwDashRes
+    this.pageLoaderTarget.classList.remove('loading')
   }
 
   getMonthName (monthNumStr) {
@@ -282,5 +281,148 @@ export default class extends Controller {
       return Number(monthStr.replaceAll('0', ''))
     }
     return Number(monthStr)
+  }
+
+  async fetchCsvDataFromUrl () {
+    const data = await this.getCsvContent()
+    const csvData = []
+    const jsonObject = data.split(/\r?\n|\r/)
+    if (jsonObject.length < 2) {
+      return csvData
+    }
+    // Skip first header line
+    for (let i = 1; i < jsonObject.length; i++) {
+      if (jsonObject[i] === '' || jsonObject[i].trim() === '') {
+        continue
+      }
+      csvData.push(jsonObject[i].split(','))
+    }
+    return csvData
+  }
+
+  async getCsvContent () {
+    return $.ajax({
+      url: 'https://raw.githubusercontent.com/bochinchero/dcrsnapcsv/main/data/stream/dex_decred_org_VolUSD.csv',
+      type: 'get',
+      dataType: 'text'
+    })
+      .then(function (res) {
+        return res
+      })
+  }
+
+  groupWeeklyData (records) {
+    const res = []
+    let curWeekData = []
+    let curWeekDataNum = []
+    let lastTime
+    records.forEach((record) => {
+      if (record.length < 1 || record[0].trim() === '') {
+        return
+      }
+      const dateRec = new Date(record[0])
+      if (dateRec.getTime() <= 0) {
+        return
+      }
+      const weekDayNum = dateRec.getDay()
+      if (curWeekDataNum.length === 0) {
+        for (let i = 1; i < record.length; i++) {
+          const recordFloat = Number(record[i])
+          curWeekDataNum.push(recordFloat)
+        }
+      } else {
+        for (let i = 1; i < record.length; i++) {
+          const recordFloat = Number(record[i])
+          curWeekDataNum[i - 1] += recordFloat
+        }
+      }
+      // if weekday is Monday
+      if (weekDayNum === 1) {
+        curWeekData.push(record[0])
+        let sum = 0
+        curWeekDataNum.forEach((dataNum) => {
+          curWeekData.push(dataNum + '')
+          sum += dataNum
+        })
+        curWeekData.push(sum + '')
+        res.push(curWeekData)
+        curWeekData = []
+        curWeekDataNum = []
+      }
+      lastTime = dateRec
+    })
+    if (curWeekDataNum.length > 0) {
+      // check nearest week
+      for (let i = 0; i < 7; i++) {
+        const nextDayInt = lastTime.setDate(lastTime.getDate() + i)
+        const nextDay = new Date(nextDayInt)
+        if (nextDay.getDay() === 1) {
+          curWeekData.push(humanize.date(nextDay, false, true))
+          let sum = 0
+          curWeekDataNum.forEach((dataNum) => {
+            curWeekData.push(dataNum + '')
+            sum += dataNum
+          })
+          curWeekData.push(sum + '')
+          res.push(curWeekData)
+          break
+        }
+      }
+    }
+    return res
+  }
+
+  groupMonthlyData (records) {
+    let currentMonth = ''
+    let currentYear = ''
+    const res = []
+    let curMonthData = []
+    records.forEach((record, index) => {
+      const dateArray = record[0].split('-')
+      if (currentMonth === '') {
+        currentYear = dateArray[0]
+        currentMonth = dateArray[1]
+        curMonthData.push(dateArray[0] + '-' + dateArray[1])
+        for (let i = 1; i < record.length; i++) {
+          curMonthData.push(record[i])
+        }
+      } else if (dateArray[0] !== currentYear || dateArray[1] !== currentMonth) {
+        currentYear = dateArray[0]
+        currentMonth = dateArray[1]
+        res.push(curMonthData)
+        curMonthData = []
+        curMonthData.push(dateArray[0] + '-' + dateArray[1])
+        for (let i = 1; i < record.length; i++) {
+          curMonthData.push(record[i])
+        }
+      } else {
+        for (let i = 1; i < record.length; i++) {
+          const curFloat = Number(curMonthData[i])
+          const recordFloat = Number(record[i])
+          curMonthData[i] = (curFloat + recordFloat) + ''
+        }
+      }
+      if (index === records.length - 1) {
+        res.push(curMonthData)
+      }
+    })
+    const _this = this
+    res.forEach((resItem, index) => {
+      const sum = _this.sumVolOfBwRow(resItem)
+      resItem.push(sum + '')
+      res[index] = resItem
+    })
+    return res
+  }
+
+  sumVolOfBwRow (row) {
+    let sum = 0
+    row.forEach((value, index) => {
+      if (index > 0) {
+        const floatValue = Number(value)
+        sum += floatValue
+      }
+    })
+    return sum
   }
 }
