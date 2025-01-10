@@ -9,7 +9,7 @@ const pairList = ['btc_usdc.eth', 'btc_usdt.polygon', 'dcr_btc', 'dcr_ltc', 'dcr
 ]
 
 const pairColor = ['#690e20', '#38b6ba', '#0f103f', '#2fc399', '#289f87', '#434c9a', '#1c5863', '#153451',
-  '#3169e1', '#82ae14', '#92780b', '#92510b', '#3ca2ca', '#408ddb', '#227b75', '#408ddb', '#75cda1', '#cd759e'
+  '#3169e1', '#82ae14', '#92780b', '#92510b', '#3ca2ca', '#34cbaa', '#227b75', '#408ddb', '#75cda1', '#cd759e'
 ]
 export default class extends Controller {
   static get targets () {
@@ -72,7 +72,7 @@ export default class extends Controller {
         rangeselector: selectorOptions,
         rangeslider: { visible: false }
       },
-      legend: { orientation: 'h', xanchor: 'center', x: 0.5, y: 1 }
+      legend: { orientation: 'h', xanchor: 'center', x: 0.5, traceorder: 'normal' }
     }
     this.dailyLayout = {
       barmode: 'stack',
@@ -81,7 +81,7 @@ export default class extends Controller {
         rangeselector: dailySelectorOptions,
         rangeslider: { visible: false }
       },
-      legend: { orientation: 'h', xanchor: 'center', x: 0.5, y: 1 }
+      legend: { orientation: 'h', xanchor: 'center', x: 0.5, traceorder: 'normal' }
     }
     // check currency pair with data
     const bwDashDataRes = await this.calculate()
@@ -151,9 +151,12 @@ export default class extends Controller {
         // init for monthly vol bar chart
         const xLabel = []
         const yLabel = []
+        let sum = 0
         monthlyData.forEach((item) => {
           xLabel.push(item[0])
-          yLabel.push(Number(item[index + 1]))
+          const itemValue = Number(item[index + 1])
+          yLabel.push(itemValue)
+          sum += itemValue
         })
         _this.chartData.push({
           x: xLabel,
@@ -163,14 +166,18 @@ export default class extends Controller {
             color: pairColor[index],
             width: 1
           },
-          type: 'bar'
+          type: 'bar',
+          total: sum
         })
         // init for weekly vol bar chart
         const xWeekLabel = []
         const yWeekLabel = []
+        let weeklySum = 0
         weeklyData.forEach((item) => {
           xWeekLabel.push(item[0])
-          yWeekLabel.push(Number(item[index + 1]))
+          const itemValue = Number(item[index + 1])
+          yWeekLabel.push(itemValue)
+          weeklySum += itemValue
         })
         _this.weekChartData.push({
           x: xWeekLabel,
@@ -180,14 +187,18 @@ export default class extends Controller {
             color: pairColor[index],
             width: 1
           },
-          type: 'bar'
+          type: 'bar',
+          total: weeklySum
         })
         // init for daily vol bar chart
         const xDailyLabel = []
         const yDailyLabel = []
+        let dailySum = 0
         _this.dailyData.forEach((item) => {
           xDailyLabel.push(item[0])
-          yDailyLabel.push(Number(item[index + 1]))
+          const itemValue = Number(item[index + 1])
+          yDailyLabel.push(itemValue)
+          dailySum += itemValue
         })
         _this.dailyChartData.push({
           x: xDailyLabel,
@@ -197,7 +208,8 @@ export default class extends Controller {
             color: pairColor[index],
             width: 1
           },
-          type: 'bar'
+          type: 'bar',
+          total: dailySum
         })
         // init for current month breakdown
         const curValueFloat = Number(lastMonthData[index + 1])
@@ -231,11 +243,26 @@ export default class extends Controller {
       },
       type: 'pie'
     }]
+    // sort monthly trading volume chart data
+    this.chartData.sort(function (a, b) {
+      return a.total === b.total ? 0 : (a.total > b.total ? -1 : 1)
+    })
+    // sort weekly trading volume chart data
+    this.weekChartData.sort(function (a, b) {
+      return a.total === b.total ? 0 : (a.total > b.total ? -1 : 1)
+    })
+    // sort daily trading volume chart data
+    this.dailyChartData.sort(function (a, b) {
+      return a.total === b.total ? 0 : (a.total > b.total ? -1 : 1)
+    })
+    const pieLayout = {
+      legend: { orientation: 'h', xanchor: 'center', x: 0.5 }
+    }
     Plotly.newPlot('monthlyTradingVolume', this.chartData, this.layout)
     Plotly.newPlot('weeklyTradingVolume', this.weekChartData, this.layout)
     Plotly.newPlot('dailyTradingVolume', this.dailyChartData, this.dailyLayout)
-    Plotly.newPlot('curMonthBreakdownChart', curBreakdownChartData, { height: 400, width: 500 })
-    Plotly.newPlot('prevMonthBreakdownChart', prevBreakdownChartData, { height: 400, width: 500 })
+    Plotly.newPlot('curMonthBreakdownChart', curBreakdownChartData, pieLayout)
+    Plotly.newPlot('prevMonthBreakdownChart', prevBreakdownChartData, pieLayout)
   }
 
   async calculate () {
