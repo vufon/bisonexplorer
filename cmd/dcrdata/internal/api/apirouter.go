@@ -281,6 +281,10 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		r.Get("/", app.getExchangeRates)
 	})
 
+	mux.Route("/bwdash", func(r chi.Router) {
+		r.Get("/getdata", app.getBwDashData)
+	})
+
 	mux.Route("/exchanges", func(r chi.Router) {
 		r.Get("/", app.getExchanges)
 		r.Get("/codes", app.getCurrencyCodes)

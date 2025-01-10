@@ -973,6 +973,7 @@ func _main(ctx context.Context) error {
 			rd.Get("/stats", explore.StatsPage)
 			rd.Get("/market", explore.MarketPage)
 			rd.Get("/marketlist", explore.CoinCapPage)
+			rd.Get("/bwdash", explore.BisonWalletDashboardPage)
 			rd.Get("/statistics", func(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, "/decred/stats", http.StatusPermanentRedirect)
 			})
@@ -1057,6 +1058,7 @@ func _main(ctx context.Context) error {
 		r.Get("/stats", mainRedirect("/decred/stats"))
 		r.Get("/market", mainRedirect("/decred/market"))
 		r.Get("/marketlist", mainRedirect("/decred/marketlist"))
+		r.Get("/bwdash", mainRedirect("/decred/bwdash"))
 		r.Get("/statistics", mainRedirect("/decred/statistics"))
 		r.Get("/attack-cost", mainRedirect("/decred/attack-cost"))
 		r.Get("/verify-message", mainRedirect("/decred/verify-message"))

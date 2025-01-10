@@ -1941,3 +1941,7 @@ label[for=c_more], label[for=c_more--scroll]) {
 .navbar-portfolio__dropdown {
   font-family: "Inter", sans-serif;
 }
+
+.js-plotly-plot .plotly {
+  width: auto !important;
+}

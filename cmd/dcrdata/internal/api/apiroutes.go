@@ -42,6 +42,7 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/utils"
 	"github.com/go-chi/chi/v5"
 
 	m "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
@@ -2040,7 +2041,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		TreasurySummary   dbtypes.TreasurySummary       `json:"treasurySummary"`
 		LegacySummary     dbtypes.TreasurySummary       `json:"legacySummary"`
 		MonthlyResultData []apitypes.MonthDataObject    `json:"monthlyResultData"`
-		YearList []int `json:"yearList"`
+		YearList          []int                         `json:"yearList"`
 	}{
 		ReportDetail:      report,
 		ProposalList:      proposalList,
@@ -2049,7 +2050,7 @@ func (c *appContext) HandlerDetailReportByMonthYear(w http.ResponseWriter, r *ht
 		TreasurySummary:   treasurySummary,
 		LegacySummary:     legacySummary,
 		MonthlyResultData: monthResultData,
-		YearList: yearList,
+		YearList:          yearList,
 	}, m.GetIndentCtx(r))
 }
 
@@ -3850,4 +3851,26 @@ func (c *appContext) getBlockHashCtx(r *http.Request) (string, error) {
 		}
 	}
 	return hash, nil
+}
+
+func (c *appContext) getBwDashData(w http.ResponseWriter, r *http.Request) {
+	dailyData := utils.ReadCsvFileFromUrl("https://raw.githubusercontent.com/bochinchero/dcrsnapcsv/main/data/stream/dex_decred_org_VolUSD.csv")
+	dailyData = dailyData[1:]
+	weeklyData := utils.GroupByWeeklyData(dailyData)
+	monthlyData := utils.GroupByMonthlyData(dailyData)
+	for index, dailyItem := range dailyData {
+		dailySum := utils.SumVolOfBwRow(dailyItem)
+		dailyItem = append(dailyItem, fmt.Sprintf("%f", dailySum))
+		dailyData[index] = dailyItem
+	}
+	//Get coin supply value
+	writeJSON(w, struct {
+		DailyData   [][]string `json:"dailyData"`
+		MonthlyData [][]string `json:"monthlyData"`
+		WeeklyData  [][]string `json:"weeklyData"`
+	}{
+		DailyData:   dailyData,
+		MonthlyData: monthlyData,
+		WeeklyData:  weeklyData,
+	}, m.GetIndentCtx(r))
 }

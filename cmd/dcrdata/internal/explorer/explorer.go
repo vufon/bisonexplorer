@@ -29,12 +29,6 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
-	humanize "github.com/dustin/go-humanize"
-	ltcjson "github.com/ltcsuite/ltcd/btcjson"
-	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
-	"github.com/ltcsuite/ltcd/ltcutil"
-	ltcwire "github.com/ltcsuite/ltcd/wire"
-
 	"github.com/decred/dcrdata/exchanges/v3"
 	"github.com/decred/dcrdata/gov/v6/agendas"
 	pitypes "github.com/decred/dcrdata/gov/v6/politeia/types"
@@ -48,9 +42,13 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
-
+	humanize "github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	ltcjson "github.com/ltcsuite/ltcd/btcjson"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/ltcutil"
+	ltcwire "github.com/ltcsuite/ltcd/wire"
 	"github.com/rs/cors"
 )
 
@@ -493,7 +491,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
 		"chain_addresstable", "supply", "marketlist", "chain_parameters",
-		"whatsnew", "chain_visualblocks"}
+		"whatsnew", "chain_visualblocks", "bwdash"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

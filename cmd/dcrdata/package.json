@@ -30,6 +30,7 @@
     "@babel/preset-env": "^7.20.2",
     "@hotwired/stimulus": "^3.2.1",
     "@hotwired/stimulus-webpack-helpers": "^1.0.1",
+    "@types/plotly.js-dist-min": "^2.3.4",
     "babel-loader": "^9.1.2",
     "clean-webpack-plugin": "^4.0.0",
     "css-loader": "^6.7.3",
@@ -60,6 +61,8 @@
     "dompurify": "^2.4.5",
     "lodash-es": "^4.17.21",
     "moment": "^2.30.1",
+    "plotly.js-dist": "^2.35.3",
+    "plotly.js-dist-min": "^2.35.3",
     "qrcode": "^1.5.1",
     "url-parse": "^1.5.10"
   }
