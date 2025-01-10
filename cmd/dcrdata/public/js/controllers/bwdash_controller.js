@@ -8,8 +8,8 @@ const pairList = ['btc_usdc.eth', 'btc_usdt.polygon', 'dcr_btc', 'dcr_ltc', 'dcr
   'ltc_usdt.polygon', 'usdc.polygon_usdt.polygon', 'zec_btc', 'zec_usdc.eth', 'zec_usdt.polygon'
 ]
 
-const pairColor = ['#690e20', '#71114b', '#582369', '#402369', '#2c2086', '#434c9a', '#117a7d', '#199b72',
-  '#177026', '#82ae14', '#92780b', '#92510b', '#92340b', '#762216', '#3f5561', '#598ca1', '#75cda1', '#cd759e'
+const pairColor = ['#690e20', '#38b6ba', '#0f103f', '#2fc399', '#289f87', '#434c9a', '#1c5863', '#153451',
+  '#3169e1', '#82ae14', '#92780b', '#92510b', '#3ca2ca', '#408ddb', '#227b75', '#408ddb', '#75cda1', '#cd759e'
 ]
 export default class extends Controller {
   static get targets () {
