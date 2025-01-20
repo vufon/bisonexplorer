@@ -1313,7 +1313,48 @@ func durationBTWChart(charts *ChartData, bin binLevel, axis axisType, _ string) 
 // is HashrateAvgLength shorter than the provided chainwork. A time slice is
 // required as well, and a truncated time slice with the same length as the
 // hashrate slice is returned.
-func hashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
+func hashrate(blockTime, chainwork ChartUints, difficults ChartFloats, rangeOpt string) (ChartUints, ChartUints) {
+	hrLen := len(difficults) - HashrateAvgLength
+	if hrLen <= 0 {
+		return newChartUints(0), newChartUints(0)
+	}
+	isAll := rangeOpt == "all" || rangeOpt == ""
+	isBefore := rangeOpt == "before"
+	var blake3Time time.Time
+	if isAll {
+		blake3Time = time.Date(2023, time.Month(8), 28, 0, 0, 0, 0, time.Now().Location())
+	} else if isBefore {
+		blake3Time = time.Date(2023, time.Month(8), 30, 0, 0, 0, 0, time.Now().Location())
+	} else {
+		blake3Time = time.Date(2023, time.Month(9), 4, 0, 0, 0, 0, time.Now().Location())
+	}
+	indexSplitBlockTime := 0
+	for i, blockTimeInt := range blockTime {
+		if blockTimeInt > uint64(blake3Time.Unix()) {
+			indexSplitBlockTime = i
+			break
+		}
+	}
+	var firstTimeRes ChartUints
+	var afterTimeRes ChartUints
+	var firstRateRes ChartUints
+	var afterRateRes ChartUints
+	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "before" {
+		firstChainworkArray := chainwork[0:indexSplitBlockTime]
+		firstBlockTimeArray := blockTime[0:indexSplitBlockTime]
+		firstTimeRes, firstRateRes = beforeBlake3BlocksHashrateHandler(firstBlockTimeArray, firstChainworkArray)
+	}
+	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "after" {
+		afterDifficultyArray := difficults[indexSplitBlockTime:]
+		afterBlockTimeArray := blockTime[indexSplitBlockTime:]
+		afterTimeRes, afterRateRes = afterBlake3BlocksHashrateHandler(afterBlockTimeArray, afterDifficultyArray)
+	}
+	times := append(firstTimeRes, afterTimeRes...)
+	rates := append(firstRateRes, afterRateRes...)
+	return times, rates
+}
+
+func beforeBlake3BlocksHashrateHandler(blockTime, chainwork ChartUints) (ChartUints, ChartUints) {
 	hrLen := len(chainwork) - HashrateAvgLength
 	if hrLen <= 0 {
 		return newChartUints(0), newChartUints(0)
@@ -1326,14 +1367,37 @@ func hashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
 		rotator[idx] = work
 		if i >= HashrateAvgLength {
 			lastWork := rotator[(idx+1)%HashrateAvgLength]
-			lastTime := time[i-HashrateAvgLength]
-			thisTime := time[i]
+			lastTime := blockTime[i-HashrateAvgLength]
+			thisTime := blockTime[i]
 			t = append(t, thisTime)
 			// 1e6: exahash -> terahash/s
 			y = append(y, (work-lastWork)*1e6/(thisTime-lastTime))
 		}
 	}
 	return t, y
+}
+
+func afterBlake3BlocksHashrateHandler(blockTime ChartUints, difficults ChartFloats) (ChartUints, ChartUints) {
+	hrLen := len(difficults) - HashrateAvgLength
+	if hrLen <= 0 {
+		return newChartUints(0), newChartUints(0)
+	}
+	times := make([]uint64, 0)
+	rates := make([]uint64, 0)
+	for i, t := range blockTime {
+		if i < HashrateAvgLength {
+			continue
+		}
+		// time average of Hashrate Avg Blocks length
+		_, pts := blockTimes(blockTime[i-HashrateAvgLength : i])
+		timeAvg := pts.Avg(0, len(pts))
+		rate := uint64(0)
+		diff := difficults[i]
+		rate = uint64((diff * math.Pow(2, 32) / float64(timeAvg)) / 1e12)
+		times = append(times, t)
+		rates = append(rates, rate)
+	}
+	return times, rates
 }
 
 // Calculate hashrate chart data before blake3 algorithm is applied
@@ -1419,12 +1483,13 @@ func afterBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime Ch
 }
 
 // Calculated data for daily hashrate chart. Calculated before and after applying blake3 algorithm
-func dailyHashrate(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints, rangeOpt string) (ChartUints, ChartUints) {
+func dailyHashrate(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints, rangeOpt string) (uint64, ChartUints, ChartUints) {
 	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
-		return ChartUints{}, ChartUints{}
+		return 1, ChartUints{}, ChartUints{}
 	}
 	isAll := rangeOpt == "all" || rangeOpt == ""
 	isBefore := rangeOpt == "before"
+	offset := uint64(1)
 	var blake3Time time.Time
 	if isAll {
 		blake3Time = time.Date(2023, time.Month(8), 28, 0, 0, 0, 0, time.Now().Location())
@@ -1465,9 +1530,13 @@ func dailyHashrate(dayTime ChartUints, difficults ChartFloats, blockTime ChartUi
 		afterTimeRes, afterRateRes = afterBlake3Handler(afterArray, afterDifficultyArray, afterBlockTimeArray)
 	}
 
+	if rangeOpt == "after" {
+		offset += uint64(indexSplitBlockTime)
+	}
+
 	times := append(firstTimeRes, afterTimeRes...)
 	rates := append(firstRateRes, afterRateRes...)
-	return times, rates
+	return offset, times, rates
 }
 
 // Calculate data for hashrate chart
@@ -1479,11 +1548,20 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType, rangeOpt stri
 			return nil, fmt.Errorf("Not enough blocks to calculate hashrate")
 		}
 		seed[offsetKey] = HashrateAvgLength
-		times, rates := hashrate(charts.Blocks.Time, charts.Blocks.Chainwork)
+		times, rates := hashrate(charts.Blocks.Time, charts.Blocks.Chainwork, charts.Blocks.Difficulty, rangeOpt)
 		switch axis {
 		case HeightAxis:
+			hArr := make(ChartUints, 0)
+			startHeight := 0
+			if rangeOpt == "after" {
+				startHeight = len(charts.Blocks.Time) - len(times)
+			}
+			for i := range times {
+				hArr = append(hArr, uint64(startHeight+i))
+			}
 			return encode(lengtherMap{
-				rateKey: rates,
+				heightKey: hArr,
+				rateKey:   rates,
 			}, seed)
 		default:
 			return encode(lengtherMap{
@@ -1495,8 +1573,8 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType, rangeOpt stri
 		if len(charts.Days.Time) < 2 {
 			return nil, fmt.Errorf("Not enough days to calculate hashrate")
 		}
-		seed[offsetKey] = 1
-		times, rates := dailyHashrate(charts.Days.Time, charts.Blocks.Difficulty, charts.Blocks.Time, rangeOpt)
+		offset, times, rates := dailyHashrate(charts.Days.Time, charts.Blocks.Difficulty, charts.Blocks.Time, rangeOpt)
+		seed[offsetKey] = offset
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
