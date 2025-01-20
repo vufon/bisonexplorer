@@ -18,6 +18,7 @@ const aDay = 86400 * 1000 // in milliseconds
 const aMonth = 30 // in days
 const atomsToDCR = 1e-8
 const windowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
+const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
@@ -49,6 +50,10 @@ function isModeEnabled (chart) {
 
 function hasMultipleVisibility (chart) {
   return multiYAxisChart.indexOf(chart) > -1
+}
+
+function useRange (chart) {
+  return rangeUse.indexOf(chart) > -1
 }
 
 function intComma (amount) {
@@ -683,6 +688,13 @@ export default class extends Controller {
     } else {
       this.vSelectorTarget.classList.add('d-hide')
     }
+    if (useRange(selection)) {
+      this.settings.range = this.selectedRange()
+      this.rangeSelectorTarget.classList.remove('d-hide')
+    } else {
+      this.settings.range = ''
+      this.rangeSelectorTarget.classList.add('d-hide')
+    }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
       this.settings.axis !== this.selectedAxis() || this.settings.range !== this.selectedRange()) {
       let url = '/api/chart/' + selection
@@ -705,9 +717,8 @@ export default class extends Controller {
           }
         })
       }
-      this.settings.range = this.selectedRange()
       url += `?bin=${this.settings.bin}`
-      if (this.settings.range && this.settings.range !== '') {
+      if (this.settings.range !== '') {
         url += `&range=${this.settings.range}`
       }
       this.settings.axis = this.selectedAxis()
