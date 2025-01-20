@@ -266,7 +266,7 @@ function percentStakedFunc (data) {
 
 function powDiffFunc (data) {
   if (data.t) return zipWindowTvY(data.t, data.diff)
-  return zipWindowHvY(data.diff, data.window)
+  return zipWindowHvY(data.diff, data.window, 1, data.offset)
 }
 
 function circulationFunc (chartData) {
@@ -692,7 +692,6 @@ export default class extends Controller {
       } else {
         this.binSelectorTarget.classList.remove('d-hide')
         this.settings.bin = this.selectedBin()
-        this.settings.range = this.selectedRange()
         this.binSizeTargets.forEach(el => {
           if (el.dataset.option !== 'window') return
           if (usesHybridUnits(selection)) {
@@ -706,6 +705,7 @@ export default class extends Controller {
           }
         })
       }
+      this.settings.range = this.selectedRange()
       url += `?bin=${this.settings.bin}`
       if (this.settings.range && this.settings.range !== '') {
         url += `&range=${this.settings.range}`

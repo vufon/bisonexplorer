@@ -1591,18 +1591,48 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType, rangeOpt stri
 	return nil, InvalidBinErr
 }
 
-func powDifficultyChart(charts *ChartData, _ binLevel, axis axisType, _ string) ([]byte, error) {
+func powDifficultyChart(charts *ChartData, _ binLevel, axis axisType, rangeOpt string) ([]byte, error) {
 	// Pow Difficulty only has window level bin, so all others are ignored.
 	seed := chartResponse{windowKey: charts.DiffInterval}
+	isAll := rangeOpt == "all" || rangeOpt == ""
+	isBefore := rangeOpt == "before"
+	isAfter := rangeOpt == "after"
+	blake3Time := time.Date(2023, time.Month(9), 2, 0, 0, 0, 0, time.Now().Location())
+	indexSplitBlockTime := 0
+	for i, blockTimeInt := range charts.Windows.Time {
+		if blockTimeInt > uint64(blake3Time.Unix()) {
+			indexSplitBlockTime = i
+			break
+		}
+	}
+	var firstPowDiffArr ChartFloats
+	var firstTimeArr ChartUints
+	var afterPowDiffArr ChartFloats
+	var afterTimeArr ChartUints
+	if isAll || isBefore {
+		firstTimeArr = charts.Windows.Time[0:indexSplitBlockTime]
+		firstPowDiffArr = charts.Windows.PowDiff[0:indexSplitBlockTime]
+	}
+	if isAll || isAfter {
+		afterTimeArr = charts.Windows.Time[indexSplitBlockTime:]
+		afterPowDiffArr = charts.Windows.PowDiff[indexSplitBlockTime:]
+	}
+	powDiff := append(firstPowDiffArr, afterPowDiffArr...)
+	offset := uint64(1)
+	if isAfter {
+		offset = uint64(indexSplitBlockTime) * uint64(charts.DiffInterval)
+	}
 	switch axis {
 	case HeightAxis:
+		seed[offsetKey] = offset
 		return encode(lengtherMap{
-			diffKey: charts.Windows.PowDiff,
+			diffKey: powDiff,
 		}, seed)
 	default:
+		timeArr := append(firstTimeArr, afterTimeArr...)
 		return encode(lengtherMap{
-			diffKey: charts.Windows.PowDiff,
-			timeKey: charts.Windows.Time,
+			diffKey: powDiff,
+			timeKey: timeArr,
 		}, seed)
 	}
 }
