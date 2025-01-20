@@ -632,14 +632,14 @@ export default class extends Controller {
 
       case 'chainwork': // Total chainwork over time
         d = zip2D(data, data.work)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Cumulative Chainwork'],
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Cumulative Chainwork (exahash)'],
           false, 'Cumulative Chainwork', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y, chainworkUnits))
         break
 
       case 'hashrate': // Total chainwork over time
         d = zip2D(data, data.rate, 1e-3, data.offset)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrat (petahash/s)'],
           false, 'Network Hashrate', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
         break
