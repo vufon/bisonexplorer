@@ -9,11 +9,13 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v3"
+
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
@@ -300,6 +302,7 @@ func (set *ZoomSet) Snip(length int) {
 	set.TxCount = set.TxCount.snip(length)
 	set.NewAtoms = set.NewAtoms.snip(length)
 	set.Chainwork = set.Chainwork.snip(length)
+	set.Difficulty = set.Difficulty.snip(length)
 	set.Fees = set.Fees.snip(length)
 	set.TotalMixed = set.TotalMixed.snip(length)
 	set.AnonymitySet = set.AnonymitySet.snip(length)
@@ -317,6 +320,7 @@ func newBlockSet(size int) *ZoomSet {
 		TxCount:      newChartUints(size),
 		NewAtoms:     newChartUints(size),
 		Chainwork:    newChartUints(size),
+		Difficulty:   newChartFloats(size),
 		Fees:         newChartUints(size),
 		TotalMixed:   newChartUints(size),
 		AnonymitySet: newChartUints(size),
@@ -378,6 +382,7 @@ type ChartGobject struct {
 	TxCount      ChartUints
 	NewAtoms     ChartUints
 	Chainwork    ChartUints
+	Difficulty   ChartFloats
 	Fees         ChartUints
 	WindowTime   ChartUints
 	PowDiff      ChartFloats
@@ -484,7 +489,7 @@ func (charts *ChartData) Lengthen() error {
 	blocks := charts.Blocks
 	shortest, err := ValidateLengths(blocks.Height, blocks.Time,
 		blocks.PoolSize, blocks.PoolValue, blocks.BlockSize, blocks.TxCount,
-		blocks.NewAtoms, blocks.Chainwork, blocks.Fees, blocks.TotalMixed,
+		blocks.NewAtoms, blocks.Chainwork, blocks.Difficulty, blocks.Fees, blocks.TotalMixed,
 		blocks.AnonymitySet)
 	if err != nil {
 		log.Warnf("ChartData.Lengthen: block data length mismatch detected. "+
@@ -564,6 +569,7 @@ func (charts *ChartData) Lengthen() error {
 			days.TxCount = append(days.TxCount, blocks.TxCount.Sum(interval[0], interval[1]))
 			days.NewAtoms = append(days.NewAtoms, blocks.NewAtoms.Sum(interval[0], interval[1]))
 			days.Chainwork = append(days.Chainwork, blocks.Chainwork[interval[1]])
+			days.Difficulty = append(days.Difficulty, blocks.Difficulty[interval[1]])
 			days.Fees = append(days.Fees, blocks.Fees.Sum(interval[0], interval[1]))
 			days.TotalMixed = append(days.TotalMixed, blocks.TotalMixed.Sum(interval[0], interval[1]))
 			days.AnonymitySet = append(days.AnonymitySet, blocks.AnonymitySet.Avg(interval[0], interval[1]))
@@ -573,7 +579,7 @@ func (charts *ChartData) Lengthen() error {
 	// Check that all relevant datasets have been updated to the same length.
 	daysLen, err := ValidateLengths(days.Height, days.Time, days.PoolSize,
 		days.PoolValue, days.BlockSize, days.TxCount, days.NewAtoms,
-		days.Chainwork, days.Fees, days.TotalMixed, days.AnonymitySet)
+		days.Chainwork, days.Difficulty, days.Fees, days.TotalMixed, days.AnonymitySet)
 	if err != nil {
 		return fmt.Errorf("day bin: %v", err)
 	} else if daysLen == 0 {
@@ -682,6 +688,7 @@ func (charts *ChartData) readCacheFile(filePath string) error {
 	charts.Blocks.TxCount = gobject.TxCount
 	charts.Blocks.NewAtoms = gobject.NewAtoms
 	charts.Blocks.Chainwork = gobject.Chainwork
+	charts.Blocks.Difficulty = gobject.Difficulty
 	charts.Blocks.Fees = gobject.Fees
 	charts.Blocks.TotalMixed = gobject.TotalMixed
 	charts.Blocks.AnonymitySet = gobject.AnonymitySet
@@ -753,6 +760,7 @@ func (charts *ChartData) gobject() *ChartGobject {
 		TxCount:      charts.Blocks.TxCount,
 		NewAtoms:     charts.Blocks.NewAtoms,
 		Chainwork:    charts.Blocks.Chainwork,
+		Difficulty:   charts.Blocks.Difficulty,
 		Fees:         charts.Blocks.Fees,
 		TotalMixed:   charts.Blocks.TotalMixed,
 		AnonymitySet: charts.Blocks.AnonymitySet,
@@ -1324,33 +1332,123 @@ func hashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
 	return t, y
 }
 
-// dailyHashrate converts the provided daily chainwork data to hashrate data.
-// Since hashrates are based on a difference, the returned arrays will be 1
-// element fewer than the number of days. A truncated time slice with the same
-// length as the hashrate slice is returned.
-func dailyHashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
-	if len(time) == 0 || len(chainwork) == 0 {
+// Calculate hashrate chart data before blake3 algorithm is applied
+func beforeBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
+	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
 		return ChartUints{}, ChartUints{}
 	}
-	times := make([]uint64, 0, len(time)-1)
-	rates := make([]uint64, 0, len(time)-1)
-	var dupes int
-	for i, t := range time[1:] {
-		tDiff := int64(t - time[i])
-		if tDiff <= 0 {
-			tDiff = aDay
-			dupes++
+	times := make([]uint64, 0, len(dayTime))
+	rates := make([]uint64, 0, len(dayTime))
+	nextIdx := 1
+	workingOn := dayTime[0]
+	next := dayTime[nextIdx]
+	lastIdx := 0
+
+	for i, t := range blockTime {
+		if t > next {
+			_, pts := blockTimes(blockTime[lastIdx:i])
+			avgTimeDiff := pts.Avg(0, len(pts))
+			diffArray := difficults[lastIdx:i]
+			avgDifficulty := diffArray.Avg(0, len(diffArray))
+			times = append(times, workingOn)
+			rates = append(rates, uint64((avgDifficulty*math.Pow(2, 32)/float64(avgTimeDiff))/1e12))
+			nextIdx++
+			if nextIdx > len(dayTime)-1 {
+				break
+			}
+			lastIdx = i
+			next = dayTime[nextIdx]
+			workingOn = next
 		}
-		workDiff := chainwork[i+1] - chainwork[i]
-		rates = append(rates, (workDiff)*1e6/uint64(tDiff))
-		times = append(times, t)
-	}
-	if dupes > 0 {
-		log.Warnf("charts: dailyHashrate: %d duplicate timestamp(s) found")
 	}
 	return times, rates
 }
 
+// Calculate hashrate chart data after blake3 algorithm is applied
+func afterBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
+	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
+		return ChartUints{}, ChartUints{}
+	}
+	times := make([]uint64, 0, len(dayTime))
+	rates := make([]uint64, 0, len(dayTime))
+	curDay := dayTime[0]
+	curDayIndex := 0
+	startBlockTimeIndex := 0
+	curDayTime := time.Unix(int64(curDay), 0)
+	startOfDay := time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 0, 0, 0, 0, curDayTime.Location())
+	endOfDay := time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 23, 59, 59, 0, curDayTime.Location())
+	startOfDayInt := startOfDay.Unix()
+	endOfDayInt := endOfDay.Unix()
+	curHandlerIndex := 0
+	for i, t := range blockTime {
+		if t < uint64(startOfDayInt) {
+			continue
+		}
+		if uint64(startOfDayInt) <= t && uint64(endOfDayInt) >= t {
+			curHandlerIndex = i
+			continue
+		}
+		curDayIndex++
+		times = append(times, curDay)
+		if curHandlerIndex >= startBlockTimeIndex {
+			_, pts := blockTimes(blockTime[startBlockTimeIndex:curHandlerIndex])
+			avgTimeDiff := pts.Avg(0, len(pts))
+			diffArray := difficults[startBlockTimeIndex:curHandlerIndex]
+			avgDifficulty := diffArray.Avg(0, len(diffArray))
+			rates = append(rates, uint64((avgDifficulty*math.Pow(2, 32)/float64(avgTimeDiff))/1e12))
+		} else {
+			rates = append(rates, uint64(0))
+		}
+
+		startBlockTimeIndex = i
+		if curDayIndex == len(dayTime) {
+			break
+		}
+		curDay = dayTime[curDayIndex]
+		curDayTime = time.Unix(int64(curDay), 0)
+		startOfDay = time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 0, 0, 0, 0, curDayTime.Location())
+		endOfDay = time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 23, 59, 59, 0, curDayTime.Location())
+		startOfDayInt = startOfDay.Unix()
+		endOfDayInt = endOfDay.Unix()
+	}
+	return times, rates
+}
+
+// Calculated data for daily hashrate chart. Calculated before and after applying blake3 algorithm
+func dailyHashrate(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
+	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
+		return ChartUints{}, ChartUints{}
+	}
+	blake3Time := time.Date(2023, time.Month(8), 24, 0, 0, 0, 0, time.Now().Location())
+	daySplitIndex := int(0)
+	for i, dayInt := range dayTime {
+		if dayInt > uint64(blake3Time.Unix()) {
+			daySplitIndex = i
+			break
+		}
+	}
+	firstArray := dayTime[0:daySplitIndex]
+	afterArray := dayTime[daySplitIndex:]
+	indexSplitBlockTime := 0
+	for i, blockTimeInt := range blockTime {
+		if blockTimeInt > dayTime[daySplitIndex] {
+			indexSplitBlockTime = i
+			break
+		}
+	}
+	firstDifficultyArray := difficults[0:indexSplitBlockTime]
+	afterDifficultyArray := difficults[indexSplitBlockTime:]
+	firstBlockTimeArray := blockTime[0:indexSplitBlockTime]
+	afterBlockTimeArray := blockTime[indexSplitBlockTime:]
+
+	firstTimeRes, firstRateRes := beforeBlake3Handler(firstArray, firstDifficultyArray, firstBlockTimeArray)
+	afterTimeRes, afterRateRes := afterBlake3Handler(afterArray, afterDifficultyArray, afterBlockTimeArray)
+	times := append(firstTimeRes, afterTimeRes...)
+	rates := append(firstRateRes, afterRateRes...)
+	return times, rates
+}
+
+// Calculate data for hashrate chart
 func hashRateChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
@@ -1376,7 +1474,7 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, erro
 			return nil, fmt.Errorf("Not enough days to calculate hashrate")
 		}
 		seed[offsetKey] = 1
-		times, rates := dailyHashrate(charts.Days.Time, charts.Days.Chainwork)
+		times, rates := dailyHashrate(charts.Days.Time, charts.Blocks.Difficulty, charts.Blocks.Time)
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{

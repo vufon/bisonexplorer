@@ -22,9 +22,6 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
-
-	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
-	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
@@ -32,6 +29,9 @@ import (
 	"github.com/decred/dcrdata/v8/txhelpers"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lib/pq"
+
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 )
 
 // DBBestBlock retrieves the best block hash and height from the meta table. The
@@ -3901,12 +3901,13 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 	var timeDef dbtypes.TimeDef
 	var workhex string
 	var count, size, height uint64
+	var difficult float64
 	var rowCount int32
 	blocks := charts.Blocks
 	for rows.Next() {
 		rowCount++
 		// Get the chainwork.
-		err := rows.Scan(&height, &size, &timeDef, &workhex, &count)
+		err := rows.Scan(&height, &size, &timeDef, &workhex, &count, &difficult)
 		if err != nil {
 			return err
 		}
@@ -3928,6 +3929,7 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 		blocks.TxCount = append(blocks.TxCount, count)
 		blocks.Time = append(blocks.Time, uint64(timeDef.T.Unix()))
 		blocks.BlockSize = append(blocks.BlockSize, size)
+		blocks.Difficulty = append(blocks.Difficulty, difficult)
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
@@ -3943,7 +3945,9 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 		return fmt.Errorf("appendChartBlocks: data length misalignment. len(chainwork) = %d, len(stamps) = %d, len(counts) = %d",
 			chainLen, len(blocks.Time), len(blocks.TxCount))
 	}
-
+	if len(blocks.Difficulty) != chainLen {
+		return fmt.Errorf("appendChartBlocks: data length misalignment. len(chainwork) = %d, len(difficulty) = %d", chainLen, len(blocks.Difficulty))
+	}
 	return nil
 }
 
