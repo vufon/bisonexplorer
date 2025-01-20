@@ -359,7 +359,9 @@ export default class extends Controller {
       'modeOption',
       'rawDataURL',
       'chartName',
-      'chartTitleName'
+      'chartTitleName',
+      'rangeSelector',
+      'rangeOption'
     ]
   }
 
@@ -396,7 +398,7 @@ export default class extends Controller {
       return node
     }
 
-    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'axis', 'visibility', 'home'])
+    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'range', 'axis', 'visibility', 'home'])
     if (!this.isHomepage) {
       this.query.update(this.settings)
     }
@@ -462,11 +464,11 @@ export default class extends Controller {
       options
     )
     this.chartSelectTarget.value = this.settings.chart
-
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
     if (this.settings.zoom) this.setZoom(this.settings.zoom)
     this.setBin(this.settings.bin ? this.settings.bin : 'day')
+    this.setRange(this.settings.range ? this.settings.range : 'after')
     this.setMode(this.settings.mode ? this.settings.mode : 'smooth')
 
     const ogLegendGenerator = Dygraph.Plugins.Legend.generateLegendHTML
@@ -682,7 +684,7 @@ export default class extends Controller {
       this.vSelectorTarget.classList.add('d-hide')
     }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
-      this.settings.axis !== this.selectedAxis()) {
+      this.settings.axis !== this.selectedAxis() || this.settings.range !== this.selectedRange()) {
       let url = '/api/chart/' + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.binSelectorTarget.classList.add('d-hide')
@@ -690,6 +692,7 @@ export default class extends Controller {
       } else {
         this.binSelectorTarget.classList.remove('d-hide')
         this.settings.bin = this.selectedBin()
+        this.settings.range = this.selectedRange()
         this.binSizeTargets.forEach(el => {
           if (el.dataset.option !== 'window') return
           if (usesHybridUnits(selection)) {
@@ -704,7 +707,9 @@ export default class extends Controller {
         })
       }
       url += `?bin=${this.settings.bin}`
-
+      if (this.settings.range && this.settings.range !== '') {
+        url += `&range=${this.settings.range}`
+      }
       this.settings.axis = this.selectedAxis()
       if (!this.settings.axis) this.settings.axis = 'time' // Set the default.
       url += `&axis=${this.settings.axis}`
@@ -826,6 +831,16 @@ export default class extends Controller {
     this.setActiveOptionBtn(option, this.zoomOptionTargets)
     if (!target) return // Exit if running for the first time
     this.validateZoom()
+  }
+
+  setRange (e) {
+    const target = e.srcElement || e.target
+    const option = target ? target.dataset.option : e
+    if (!option) return
+    this.setActiveOptionBtn(option, this.rangeOptionTargets)
+    if (!target) return // Exit if running for the first time.
+    selectedChart = null // Force fetch
+    this.selectChart()
   }
 
   setBin (e) {
@@ -975,6 +990,7 @@ export default class extends Controller {
   selectedBin () { return this.selectedOption(this.binSizeTargets) }
   selectedScale () { return this.selectedOption(this.scaleTypeTargets) }
   selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
+  selectedRange () { return this.selectedOption(this.rangeOptionTargets) }
 
   selectedOption (optTargets) {
     let key = false
