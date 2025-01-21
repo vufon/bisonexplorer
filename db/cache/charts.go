@@ -9,11 +9,13 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v3"
+
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
@@ -300,6 +302,7 @@ func (set *ZoomSet) Snip(length int) {
 	set.TxCount = set.TxCount.snip(length)
 	set.NewAtoms = set.NewAtoms.snip(length)
 	set.Chainwork = set.Chainwork.snip(length)
+	set.Difficulty = set.Difficulty.snip(length)
 	set.Fees = set.Fees.snip(length)
 	set.TotalMixed = set.TotalMixed.snip(length)
 	set.AnonymitySet = set.AnonymitySet.snip(length)
@@ -317,6 +320,7 @@ func newBlockSet(size int) *ZoomSet {
 		TxCount:      newChartUints(size),
 		NewAtoms:     newChartUints(size),
 		Chainwork:    newChartUints(size),
+		Difficulty:   newChartFloats(size),
 		Fees:         newChartUints(size),
 		TotalMixed:   newChartUints(size),
 		AnonymitySet: newChartUints(size),
@@ -378,6 +382,7 @@ type ChartGobject struct {
 	TxCount      ChartUints
 	NewAtoms     ChartUints
 	Chainwork    ChartUints
+	Difficulty   ChartFloats
 	Fees         ChartUints
 	WindowTime   ChartUints
 	PowDiff      ChartFloats
@@ -484,7 +489,7 @@ func (charts *ChartData) Lengthen() error {
 	blocks := charts.Blocks
 	shortest, err := ValidateLengths(blocks.Height, blocks.Time,
 		blocks.PoolSize, blocks.PoolValue, blocks.BlockSize, blocks.TxCount,
-		blocks.NewAtoms, blocks.Chainwork, blocks.Fees, blocks.TotalMixed,
+		blocks.NewAtoms, blocks.Chainwork, blocks.Difficulty, blocks.Fees, blocks.TotalMixed,
 		blocks.AnonymitySet)
 	if err != nil {
 		log.Warnf("ChartData.Lengthen: block data length mismatch detected. "+
@@ -564,6 +569,7 @@ func (charts *ChartData) Lengthen() error {
 			days.TxCount = append(days.TxCount, blocks.TxCount.Sum(interval[0], interval[1]))
 			days.NewAtoms = append(days.NewAtoms, blocks.NewAtoms.Sum(interval[0], interval[1]))
 			days.Chainwork = append(days.Chainwork, blocks.Chainwork[interval[1]])
+			days.Difficulty = append(days.Difficulty, blocks.Difficulty[interval[1]])
 			days.Fees = append(days.Fees, blocks.Fees.Sum(interval[0], interval[1]))
 			days.TotalMixed = append(days.TotalMixed, blocks.TotalMixed.Sum(interval[0], interval[1]))
 			days.AnonymitySet = append(days.AnonymitySet, blocks.AnonymitySet.Avg(interval[0], interval[1]))
@@ -573,7 +579,7 @@ func (charts *ChartData) Lengthen() error {
 	// Check that all relevant datasets have been updated to the same length.
 	daysLen, err := ValidateLengths(days.Height, days.Time, days.PoolSize,
 		days.PoolValue, days.BlockSize, days.TxCount, days.NewAtoms,
-		days.Chainwork, days.Fees, days.TotalMixed, days.AnonymitySet)
+		days.Chainwork, days.Difficulty, days.Fees, days.TotalMixed, days.AnonymitySet)
 	if err != nil {
 		return fmt.Errorf("day bin: %v", err)
 	} else if daysLen == 0 {
@@ -682,6 +688,7 @@ func (charts *ChartData) readCacheFile(filePath string) error {
 	charts.Blocks.TxCount = gobject.TxCount
 	charts.Blocks.NewAtoms = gobject.NewAtoms
 	charts.Blocks.Chainwork = gobject.Chainwork
+	charts.Blocks.Difficulty = gobject.Difficulty
 	charts.Blocks.Fees = gobject.Fees
 	charts.Blocks.TotalMixed = gobject.TotalMixed
 	charts.Blocks.AnonymitySet = gobject.AnonymitySet
@@ -753,6 +760,7 @@ func (charts *ChartData) gobject() *ChartGobject {
 		TxCount:      charts.Blocks.TxCount,
 		NewAtoms:     charts.Blocks.NewAtoms,
 		Chainwork:    charts.Blocks.Chainwork,
+		Difficulty:   charts.Blocks.Difficulty,
 		Fees:         charts.Blocks.Fees,
 		TotalMixed:   charts.Blocks.TotalMixed,
 		AnonymitySet: charts.Blocks.AnonymitySet,
@@ -943,9 +951,13 @@ func NewChartData(ctx context.Context, height uint32, chainParams *chaincfg.Para
 }
 
 // A cacheKey is used to specify cached data of a given type and BinLevel.
-func cacheKey(chartID string, bin binLevel, axis axisType) string {
+func cacheKey(chartID string, bin binLevel, axis axisType, rangeOpt string) string {
 	// The axis type is only required when bin level is set to DayBin.
-	return chartID + "-" + string(bin) + "-" + string(axis)
+	key := chartID + "-" + string(bin) + "-" + string(axis)
+	if rangeOpt != "" {
+		return key + "-" + rangeOpt
+	}
+	return key
 }
 
 // Grabs the cacheID associated with the provided BinLevel. Should
@@ -963,9 +975,9 @@ func (charts *ChartData) cacheID(bin binLevel) uint64 {
 }
 
 // Grab the cached data, if it exists. The cacheID is returned as a convenience.
-func (charts *ChartData) getCache(chartID string, bin binLevel, axis axisType) (data *cachedChart, found bool, cacheID uint64) {
+func (charts *ChartData) getCache(chartID string, bin binLevel, axis axisType, rangeOpt string) (data *cachedChart, found bool, cacheID uint64) {
 	// Ignore zero length since bestHeight would just be set to zero anyway.
-	ck := cacheKey(chartID, bin, axis)
+	ck := cacheKey(chartID, bin, axis, rangeOpt)
 	charts.cacheMtx.RLock()
 	defer charts.cacheMtx.RUnlock()
 	cacheID = charts.cacheID(bin)
@@ -974,8 +986,8 @@ func (charts *ChartData) getCache(chartID string, bin binLevel, axis axisType) (
 }
 
 // Store the chart associated with the provided type and BinLevel.
-func (charts *ChartData) cacheChart(chartID string, bin binLevel, axis axisType, data []byte) {
-	ck := cacheKey(chartID, bin, axis)
+func (charts *ChartData) cacheChart(chartID string, bin binLevel, axis axisType, rangeOpt string, data []byte) {
+	ck := cacheKey(chartID, bin, axis, rangeOpt)
 	charts.cacheMtx.Lock()
 	defer charts.cacheMtx.Unlock()
 	// Using the current best cacheID. This leaves open the small possibility that
@@ -989,7 +1001,7 @@ func (charts *ChartData) cacheChart(chartID string, bin binLevel, axis axisType,
 
 // ChartMaker is a function that accepts a chart type and BinLevel, and returns
 // a JSON-encoded chartResponse.
-type ChartMaker func(charts *ChartData, bin binLevel, axis axisType) ([]byte, error)
+type ChartMaker func(charts *ChartData, bin binLevel, axis axisType, rangeOpt string) ([]byte, error)
 
 var chartMakers = map[string]ChartMaker{
 	BlockSize:       blockSizeChart,
@@ -1012,13 +1024,13 @@ var chartMakers = map[string]ChartMaker{
 // Chart will return a JSON-encoded chartResponse of the provided chart,
 // binLevel, and axis (TimeAxis, HeightAxis). binString is ignored for
 // window-binned charts.
-func (charts *ChartData) Chart(chartID, binString, axisString string) ([]byte, error) {
+func (charts *ChartData) Chart(chartID, binString, axisString, rangeString string) ([]byte, error) {
 	if isWindowBin(chartID) {
 		binString = string(WindowBin)
 	}
 	bin := ParseBin(binString)
 	axis := ParseAxis(axisString)
-	cache, found, cacheID := charts.getCache(chartID, bin, axis)
+	cache, found, cacheID := charts.getCache(chartID, bin, axis, rangeString)
 	if found && cache.cacheID == cacheID {
 		return cache.data, nil
 	}
@@ -1029,12 +1041,12 @@ func (charts *ChartData) Chart(chartID, binString, axisString string) ([]byte, e
 	// Do the locking here, rather than in encode, so that the helper functions
 	// (accumulate, btw) are run under lock.
 	charts.mtx.RLock()
-	data, err := maker(charts, bin, axis)
+	data, err := maker(charts, bin, axis, rangeString)
 	charts.mtx.RUnlock()
 	if err != nil {
 		return nil, err
 	}
-	charts.cacheChart(chartID, bin, axis, data)
+	charts.cacheChart(chartID, bin, axis, rangeString, data)
 	return data, nil
 }
 
@@ -1124,7 +1136,7 @@ func avgBlockTimes(ticks, blocks ChartUints) (ChartUints, ChartUints) {
 	return times, avgDiffs
 }
 
-func blockSizeChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func blockSizeChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1156,7 +1168,7 @@ func blockSizeChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, err
 	return nil, InvalidBinErr
 }
 
-func blockchainSizeChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func blockchainSizeChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1188,7 +1200,7 @@ func blockchainSizeChart(charts *ChartData, bin binLevel, axis axisType) ([]byte
 	return nil, InvalidBinErr
 }
 
-func chainWorkChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func chainWorkChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1220,7 +1232,7 @@ func chainWorkChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, err
 	return nil, InvalidBinErr
 }
 
-func coinSupplyChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func coinSupplyChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1257,7 +1269,7 @@ func coinSupplyChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, er
 	return nil, InvalidBinErr
 }
 
-func durationBTWChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func durationBTWChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1301,7 +1313,48 @@ func durationBTWChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, e
 // is HashrateAvgLength shorter than the provided chainwork. A time slice is
 // required as well, and a truncated time slice with the same length as the
 // hashrate slice is returned.
-func hashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
+func hashrate(blockTime, chainwork ChartUints, difficults ChartFloats, rangeOpt string) (ChartUints, ChartUints) {
+	hrLen := len(difficults) - HashrateAvgLength
+	if hrLen <= 0 {
+		return newChartUints(0), newChartUints(0)
+	}
+	isAll := rangeOpt == "all" || rangeOpt == ""
+	isBefore := rangeOpt == "before"
+	var blake3Time time.Time
+	if isAll {
+		blake3Time = time.Date(2023, time.Month(8), 28, 0, 0, 0, 0, time.Now().Location())
+	} else if isBefore {
+		blake3Time = time.Date(2023, time.Month(8), 30, 0, 0, 0, 0, time.Now().Location())
+	} else {
+		blake3Time = time.Date(2023, time.Month(9), 4, 0, 0, 0, 0, time.Now().Location())
+	}
+	indexSplitBlockTime := 0
+	for i, blockTimeInt := range blockTime {
+		if blockTimeInt > uint64(blake3Time.Unix()) {
+			indexSplitBlockTime = i
+			break
+		}
+	}
+	var firstTimeRes ChartUints
+	var afterTimeRes ChartUints
+	var firstRateRes ChartUints
+	var afterRateRes ChartUints
+	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "before" {
+		firstChainworkArray := chainwork[0:indexSplitBlockTime]
+		firstBlockTimeArray := blockTime[0:indexSplitBlockTime]
+		firstTimeRes, firstRateRes = beforeBlake3BlocksHashrateHandler(firstBlockTimeArray, firstChainworkArray)
+	}
+	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "after" {
+		afterDifficultyArray := difficults[indexSplitBlockTime:]
+		afterBlockTimeArray := blockTime[indexSplitBlockTime:]
+		afterTimeRes, afterRateRes = afterBlake3BlocksHashrateHandler(afterBlockTimeArray, afterDifficultyArray)
+	}
+	times := append(firstTimeRes, afterTimeRes...)
+	rates := append(firstRateRes, afterRateRes...)
+	return times, rates
+}
+
+func beforeBlake3BlocksHashrateHandler(blockTime, chainwork ChartUints) (ChartUints, ChartUints) {
 	hrLen := len(chainwork) - HashrateAvgLength
 	if hrLen <= 0 {
 		return newChartUints(0), newChartUints(0)
@@ -1314,8 +1367,8 @@ func hashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
 		rotator[idx] = work
 		if i >= HashrateAvgLength {
 			lastWork := rotator[(idx+1)%HashrateAvgLength]
-			lastTime := time[i-HashrateAvgLength]
-			thisTime := time[i]
+			lastTime := blockTime[i-HashrateAvgLength]
+			thisTime := blockTime[i]
 			t = append(t, thisTime)
 			// 1e6: exahash -> terahash/s
 			y = append(y, (work-lastWork)*1e6/(thisTime-lastTime))
@@ -1324,34 +1377,170 @@ func hashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
 	return t, y
 }
 
-// dailyHashrate converts the provided daily chainwork data to hashrate data.
-// Since hashrates are based on a difference, the returned arrays will be 1
-// element fewer than the number of days. A truncated time slice with the same
-// length as the hashrate slice is returned.
-func dailyHashrate(time, chainwork ChartUints) (ChartUints, ChartUints) {
-	if len(time) == 0 || len(chainwork) == 0 {
-		return ChartUints{}, ChartUints{}
+func afterBlake3BlocksHashrateHandler(blockTime ChartUints, difficults ChartFloats) (ChartUints, ChartUints) {
+	hrLen := len(difficults) - HashrateAvgLength
+	if hrLen <= 0 {
+		return newChartUints(0), newChartUints(0)
 	}
-	times := make([]uint64, 0, len(time)-1)
-	rates := make([]uint64, 0, len(time)-1)
-	var dupes int
-	for i, t := range time[1:] {
-		tDiff := int64(t - time[i])
-		if tDiff <= 0 {
-			tDiff = aDay
-			dupes++
+	times := make([]uint64, 0)
+	rates := make([]uint64, 0)
+	for i, t := range blockTime {
+		if i < HashrateAvgLength {
+			continue
 		}
-		workDiff := chainwork[i+1] - chainwork[i]
-		rates = append(rates, (workDiff)*1e6/uint64(tDiff))
+		// time average of Hashrate Avg Blocks length
+		_, pts := blockTimes(blockTime[i-HashrateAvgLength : i])
+		timeAvg := pts.Avg(0, len(pts))
+		rate := uint64(0)
+		diff := difficults[i]
+		rate = uint64((diff * math.Pow(2, 32) / float64(timeAvg)) / 1e12)
 		times = append(times, t)
-	}
-	if dupes > 0 {
-		log.Warnf("charts: dailyHashrate: %d duplicate timestamp(s) found")
+		rates = append(rates, rate)
 	}
 	return times, rates
 }
 
-func hashRateChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+// Calculate hashrate chart data before blake3 algorithm is applied
+func beforeBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
+	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
+		return ChartUints{}, ChartUints{}
+	}
+	times := make([]uint64, 0, len(dayTime))
+	rates := make([]uint64, 0, len(dayTime))
+	nextIdx := 1
+	workingOn := dayTime[0]
+	next := dayTime[nextIdx]
+	lastIdx := 0
+
+	for i, t := range blockTime {
+		if t > next {
+			_, pts := blockTimes(blockTime[lastIdx:i])
+			avgTimeDiff := pts.Avg(0, len(pts))
+			diffArray := difficults[lastIdx:i]
+			avgDifficulty := diffArray.Avg(0, len(diffArray))
+			times = append(times, workingOn)
+			rates = append(rates, uint64((avgDifficulty*math.Pow(2, 32)/float64(avgTimeDiff))/1e12))
+			nextIdx++
+			if nextIdx > len(dayTime)-1 {
+				break
+			}
+			lastIdx = i
+			next = dayTime[nextIdx]
+			workingOn = next
+		}
+	}
+	return times, rates
+}
+
+// Calculate hashrate chart data after blake3 algorithm is applied
+func afterBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
+	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
+		return ChartUints{}, ChartUints{}
+	}
+	times := make([]uint64, 0, len(dayTime))
+	rates := make([]uint64, 0, len(dayTime))
+	curDay := dayTime[0]
+	curDayIndex := 0
+	startBlockTimeIndex := 0
+	curDayTime := time.Unix(int64(curDay), 0)
+	startOfDay := time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 0, 0, 0, 0, curDayTime.Location())
+	endOfDay := time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 23, 59, 59, 0, curDayTime.Location())
+	startOfDayInt := startOfDay.Unix()
+	endOfDayInt := endOfDay.Unix()
+	curHandlerIndex := 0
+	for i, t := range blockTime {
+		if t < uint64(startOfDayInt) {
+			continue
+		}
+		if uint64(startOfDayInt) <= t && uint64(endOfDayInt) >= t {
+			curHandlerIndex = i
+			continue
+		}
+		curDayIndex++
+		times = append(times, curDay)
+		if curHandlerIndex >= startBlockTimeIndex {
+			_, pts := blockTimes(blockTime[startBlockTimeIndex:curHandlerIndex])
+			avgTimeDiff := pts.Avg(0, len(pts))
+			diffArray := difficults[startBlockTimeIndex:curHandlerIndex]
+			avgDifficulty := diffArray.Avg(0, len(diffArray))
+			rates = append(rates, uint64((avgDifficulty*math.Pow(2, 32)/float64(avgTimeDiff))/1e12))
+		} else {
+			rates = append(rates, uint64(0))
+		}
+
+		startBlockTimeIndex = i
+		if curDayIndex == len(dayTime) {
+			break
+		}
+		curDay = dayTime[curDayIndex]
+		curDayTime = time.Unix(int64(curDay), 0)
+		startOfDay = time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 0, 0, 0, 0, curDayTime.Location())
+		endOfDay = time.Date(curDayTime.Year(), curDayTime.Month(), curDayTime.Day(), 23, 59, 59, 0, curDayTime.Location())
+		startOfDayInt = startOfDay.Unix()
+		endOfDayInt = endOfDay.Unix()
+	}
+	return times, rates
+}
+
+// Calculated data for daily hashrate chart. Calculated before and after applying blake3 algorithm
+func dailyHashrate(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints, rangeOpt string) (uint64, ChartUints, ChartUints) {
+	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
+		return 1, ChartUints{}, ChartUints{}
+	}
+	isAll := rangeOpt == "all" || rangeOpt == ""
+	isBefore := rangeOpt == "before"
+	offset := uint64(1)
+	var blake3Time time.Time
+	if isAll {
+		blake3Time = time.Date(2023, time.Month(8), 28, 0, 0, 0, 0, time.Now().Location())
+	} else if isBefore {
+		blake3Time = time.Date(2023, time.Month(8), 30, 0, 0, 0, 0, time.Now().Location())
+	} else {
+		blake3Time = time.Date(2023, time.Month(9), 4, 0, 0, 0, 0, time.Now().Location())
+	}
+
+	daySplitIndex := int(0)
+	for i, dayInt := range dayTime {
+		if dayInt > uint64(blake3Time.Unix()) {
+			daySplitIndex = i
+			break
+		}
+	}
+	indexSplitBlockTime := 0
+	for i, blockTimeInt := range blockTime {
+		if blockTimeInt > dayTime[daySplitIndex] {
+			indexSplitBlockTime = i
+			break
+		}
+	}
+	var firstTimeRes ChartUints
+	var afterTimeRes ChartUints
+	var firstRateRes ChartUints
+	var afterRateRes ChartUints
+	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "before" {
+		firstArray := dayTime[0:daySplitIndex]
+		firstDifficultyArray := difficults[0:indexSplitBlockTime]
+		firstBlockTimeArray := blockTime[0:indexSplitBlockTime]
+		firstTimeRes, firstRateRes = beforeBlake3Handler(firstArray, firstDifficultyArray, firstBlockTimeArray)
+	}
+	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "after" {
+		afterArray := dayTime[daySplitIndex:]
+		afterDifficultyArray := difficults[indexSplitBlockTime:]
+		afterBlockTimeArray := blockTime[indexSplitBlockTime:]
+		afterTimeRes, afterRateRes = afterBlake3Handler(afterArray, afterDifficultyArray, afterBlockTimeArray)
+	}
+
+	if rangeOpt == "after" {
+		offset += uint64(indexSplitBlockTime)
+	}
+
+	times := append(firstTimeRes, afterTimeRes...)
+	rates := append(firstRateRes, afterRateRes...)
+	return offset, times, rates
+}
+
+// Calculate data for hashrate chart
+func hashRateChart(charts *ChartData, bin binLevel, axis axisType, rangeOpt string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1359,11 +1548,20 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, erro
 			return nil, fmt.Errorf("Not enough blocks to calculate hashrate")
 		}
 		seed[offsetKey] = HashrateAvgLength
-		times, rates := hashrate(charts.Blocks.Time, charts.Blocks.Chainwork)
+		times, rates := hashrate(charts.Blocks.Time, charts.Blocks.Chainwork, charts.Blocks.Difficulty, rangeOpt)
 		switch axis {
 		case HeightAxis:
+			hArr := make(ChartUints, 0)
+			startHeight := 0
+			if rangeOpt == "after" {
+				startHeight = len(charts.Blocks.Time) - len(times)
+			}
+			for i := range times {
+				hArr = append(hArr, uint64(startHeight+i))
+			}
 			return encode(lengtherMap{
-				rateKey: rates,
+				heightKey: hArr,
+				rateKey:   rates,
 			}, seed)
 		default:
 			return encode(lengtherMap{
@@ -1375,8 +1573,8 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, erro
 		if len(charts.Days.Time) < 2 {
 			return nil, fmt.Errorf("Not enough days to calculate hashrate")
 		}
-		seed[offsetKey] = 1
-		times, rates := dailyHashrate(charts.Days.Time, charts.Days.Chainwork)
+		offset, times, rates := dailyHashrate(charts.Days.Time, charts.Blocks.Difficulty, charts.Blocks.Time, rangeOpt)
+		seed[offsetKey] = offset
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
@@ -1393,23 +1591,53 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, erro
 	return nil, InvalidBinErr
 }
 
-func powDifficultyChart(charts *ChartData, _ binLevel, axis axisType) ([]byte, error) {
+func powDifficultyChart(charts *ChartData, _ binLevel, axis axisType, rangeOpt string) ([]byte, error) {
 	// Pow Difficulty only has window level bin, so all others are ignored.
 	seed := chartResponse{windowKey: charts.DiffInterval}
+	isAll := rangeOpt == "all" || rangeOpt == ""
+	isBefore := rangeOpt == "before"
+	isAfter := rangeOpt == "after"
+	blake3Time := time.Date(2023, time.Month(9), 2, 0, 0, 0, 0, time.Now().Location())
+	indexSplitBlockTime := 0
+	for i, blockTimeInt := range charts.Windows.Time {
+		if blockTimeInt > uint64(blake3Time.Unix()) {
+			indexSplitBlockTime = i
+			break
+		}
+	}
+	var firstPowDiffArr ChartFloats
+	var firstTimeArr ChartUints
+	var afterPowDiffArr ChartFloats
+	var afterTimeArr ChartUints
+	if isAll || isBefore {
+		firstTimeArr = charts.Windows.Time[0:indexSplitBlockTime]
+		firstPowDiffArr = charts.Windows.PowDiff[0:indexSplitBlockTime]
+	}
+	if isAll || isAfter {
+		afterTimeArr = charts.Windows.Time[indexSplitBlockTime:]
+		afterPowDiffArr = charts.Windows.PowDiff[indexSplitBlockTime:]
+	}
+	powDiff := append(firstPowDiffArr, afterPowDiffArr...)
+	offset := uint64(1)
+	if isAfter {
+		offset = uint64(indexSplitBlockTime) * uint64(charts.DiffInterval)
+	}
 	switch axis {
 	case HeightAxis:
+		seed[offsetKey] = offset
 		return encode(lengtherMap{
-			diffKey: charts.Windows.PowDiff,
+			diffKey: powDiff,
 		}, seed)
 	default:
+		timeArr := append(firstTimeArr, afterTimeArr...)
 		return encode(lengtherMap{
-			diffKey: charts.Windows.PowDiff,
-			timeKey: charts.Windows.Time,
+			diffKey: powDiff,
+			timeKey: timeArr,
 		}, seed)
 	}
 }
 
-func ticketPriceChart(charts *ChartData, _ binLevel, axis axisType) ([]byte, error) {
+func ticketPriceChart(charts *ChartData, _ binLevel, axis axisType, _ string) ([]byte, error) {
 	// Ticket price only has window level bin, so all others are ignored.
 	seed := chartResponse{windowKey: charts.DiffInterval}
 	switch axis {
@@ -1427,7 +1655,7 @@ func ticketPriceChart(charts *ChartData, _ binLevel, axis axisType) ([]byte, err
 	}
 }
 
-func txCountChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func txCountChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1459,7 +1687,7 @@ func txCountChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error
 	return nil, InvalidBinErr
 }
 
-func feesChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func feesChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1491,7 +1719,7 @@ func feesChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
 	return nil, InvalidBinErr
 }
 
-func anonymitySetChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func anonymitySetChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1524,7 +1752,7 @@ func anonymitySetChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, 
 	return nil, InvalidBinErr
 }
 
-func ticketPoolSizeChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func ticketPoolSizeChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1556,7 +1784,7 @@ func ticketPoolSizeChart(charts *ChartData, bin binLevel, axis axisType) ([]byte
 	return nil, InvalidBinErr
 }
 
-func poolValueChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func poolValueChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:
@@ -1588,7 +1816,7 @@ func poolValueChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, err
 	return nil, InvalidBinErr
 }
 
-func missedVotesChart(charts *ChartData, _ binLevel, axis axisType) ([]byte, error) {
+func missedVotesChart(charts *ChartData, _ binLevel, axis axisType, _ string) ([]byte, error) {
 	prestakeWindows := int(charts.StartPOS / charts.DiffInterval)
 	if prestakeWindows >= len(charts.Windows.MissedVotes) ||
 		prestakeWindows >= len(charts.Windows.Time) {
@@ -1611,7 +1839,7 @@ func missedVotesChart(charts *ChartData, _ binLevel, axis axisType) ([]byte, err
 	}
 }
 
-func stakedCoinsChart(charts *ChartData, bin binLevel, axis axisType) ([]byte, error) {
+func stakedCoinsChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
 	case BlockBin:

@@ -3339,12 +3339,13 @@ func (c *appContext) getTreasuryIO(w http.ResponseWriter, r *http.Request) {
 func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
 	chartType := m.GetChartTypeCtx(r)
 	bin := r.URL.Query().Get("bin")
+	rangeOption := r.URL.Query().Get("range")
 	// Support the deprecated URL parameter "zoom".
 	if bin == "" {
 		bin = r.URL.Query().Get("zoom")
 	}
 	axis := r.URL.Query().Get("axis")
-	chartData, err := c.charts.Chart(chartType, bin, axis)
+	chartData, err := c.charts.Chart(chartType, bin, axis, rangeOption)
 	if err != nil {
 		http.NotFound(w, r)
 		log.Warnf(`Error fetching chart %q at bin level '%s': %v`, chartType, bin, err)

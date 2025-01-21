@@ -476,7 +476,7 @@ func (charts *MutilchainChartData) cacheID(bin binLevel) uint64 {
 // Grab the cached data, if it exists. The cacheID is returned as a convenience.
 func (charts *MutilchainChartData) getCache(chartID string, bin binLevel, axis axisType) (data *cachedChart, found bool, cacheID uint64) {
 	// Ignore zero length since bestHeight would just be set to zero anyway.
-	ck := cacheKey(chartID, bin, axis)
+	ck := cacheKey(chartID, bin, axis, "")
 	charts.cacheMtx.RLock()
 	defer charts.cacheMtx.RUnlock()
 	cacheID = charts.cacheID(bin)
@@ -486,7 +486,7 @@ func (charts *MutilchainChartData) getCache(chartID string, bin binLevel, axis a
 
 // Store the chart associated with the provided type and BinLevel.
 func (charts *MutilchainChartData) cacheChart(chartID string, bin binLevel, axis axisType, data []byte) {
-	ck := cacheKey(chartID, bin, axis)
+	ck := cacheKey(chartID, bin, axis, "")
 	charts.cacheMtx.Lock()
 	defer charts.cacheMtx.Unlock()
 	// Using the current best cacheID. This leaves open the small possibility that

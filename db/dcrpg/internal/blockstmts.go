@@ -223,7 +223,7 @@ const (
 	UpdateBlockNextByHash     = `UPDATE block_chain SET next_hash = $2 WHERE this_hash = $1;`
 	UpdateBlockNextByNextHash = `UPDATE block_chain SET next_hash = $2 WHERE next_hash = $1;`
 
-	SelectBlockStats = `SELECT height, size, time, chainwork, numtx
+	SelectBlockStats = `SELECT height, size, time, chainwork, numtx, difficulty
 		FROM blocks
 		WHERE is_mainchain
 		AND height > $1

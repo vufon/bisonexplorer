@@ -54,7 +54,7 @@ func TestPgCharts(t *testing.T) {
 	validate := func(tag string) {
 		_, err := cache.ValidateLengths(blocks.Time, blocks.PoolSize,
 			blocks.PoolValue, blocks.BlockSize, blocks.TxCount, blocks.NewAtoms,
-			blocks.Chainwork, blocks.Fees)
+			blocks.Chainwork, blocks.Difficulty, blocks.Fees)
 		if err != nil {
 			t.Fatalf("%s blocks length validation error: %v", tag, err)
 		}

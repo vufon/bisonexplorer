@@ -18,6 +18,7 @@ const aDay = 86400 * 1000 // in milliseconds
 const aMonth = 30 // in days
 const atomsToDCR = 1e-8
 const windowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
+const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
@@ -49,6 +50,10 @@ function isModeEnabled (chart) {
 
 function hasMultipleVisibility (chart) {
   return multiYAxisChart.indexOf(chart) > -1
+}
+
+function useRange (chart) {
+  return rangeUse.indexOf(chart) > -1
 }
 
 function intComma (amount) {
@@ -266,7 +271,7 @@ function percentStakedFunc (data) {
 
 function powDiffFunc (data) {
   if (data.t) return zipWindowTvY(data.t, data.diff)
-  return zipWindowHvY(data.diff, data.window)
+  return zipWindowHvY(data.diff, data.window, 1, data.offset)
 }
 
 function circulationFunc (chartData) {
@@ -359,7 +364,9 @@ export default class extends Controller {
       'modeOption',
       'rawDataURL',
       'chartName',
-      'chartTitleName'
+      'chartTitleName',
+      'rangeSelector',
+      'rangeOption'
     ]
   }
 
@@ -396,7 +403,7 @@ export default class extends Controller {
       return node
     }
 
-    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'axis', 'visibility', 'home'])
+    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'range', 'axis', 'visibility', 'home'])
     if (!this.isHomepage) {
       this.query.update(this.settings)
     }
@@ -462,11 +469,11 @@ export default class extends Controller {
       options
     )
     this.chartSelectTarget.value = this.settings.chart
-
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
     if (this.settings.zoom) this.setZoom(this.settings.zoom)
     this.setBin(this.settings.bin ? this.settings.bin : 'day')
+    this.setRange(this.settings.range ? this.settings.range : 'after')
     this.setMode(this.settings.mode ? this.settings.mode : 'smooth')
 
     const ogLegendGenerator = Dygraph.Plugins.Legend.generateLegendHTML
@@ -608,6 +615,7 @@ export default class extends Controller {
       case 'fees': // block fee graph
         d = zip2D(data, data.fees, atomsToDCR)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (DCR)', true, false))
+        yFormatter = customYFormatter(y => y.toFixed(8) + ' DCR')
         break
 
       case 'privacy-participation': { // anonymity set graph
@@ -617,7 +625,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d.data, [xlabel, label], false, `${label} (DCR)`, true, false))
 
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => y > 0 ? intComma(y) : '0' + ' DCR')
+          addLegendEntryFmt(div, data.series[0], y => (y > 0 ? intComma(y) : '0') + ' DCR')
         }
         break
       }
@@ -629,14 +637,14 @@ export default class extends Controller {
 
       case 'chainwork': // Total chainwork over time
         d = zip2D(data, data.work)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Cumulative Chainwork (exahash)'],
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Cumulative Chainwork'],
           false, 'Cumulative Chainwork (exahash)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y, chainworkUnits))
         break
 
       case 'hashrate': // Total chainwork over time
-        d = zip2D(data, data.rate, 1e-3, data.offset)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate (petahash/s)'],
+        d = data.axis === 'height' && data.bin === 'block' ? zipHvY(data.h, data.rate, 1e-3, data.offset) : zip2D(data, data.rate, 1e-3, data.offset)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
         break
@@ -680,8 +688,15 @@ export default class extends Controller {
     } else {
       this.vSelectorTarget.classList.add('d-hide')
     }
+    if (useRange(selection)) {
+      this.settings.range = this.selectedRange()
+      this.rangeSelectorTarget.classList.remove('d-hide')
+    } else {
+      this.settings.range = ''
+      this.rangeSelectorTarget.classList.add('d-hide')
+    }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
-      this.settings.axis !== this.selectedAxis()) {
+      this.settings.axis !== this.selectedAxis() || this.settings.range !== this.selectedRange()) {
       let url = '/api/chart/' + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.binSelectorTarget.classList.add('d-hide')
@@ -703,7 +718,9 @@ export default class extends Controller {
         })
       }
       url += `?bin=${this.settings.bin}`
-
+      if (this.settings.range !== '') {
+        url += `&range=${this.settings.range}`
+      }
       this.settings.axis = this.selectedAxis()
       if (!this.settings.axis) this.settings.axis = 'time' // Set the default.
       url += `&axis=${this.settings.axis}`
@@ -825,6 +842,16 @@ export default class extends Controller {
     this.setActiveOptionBtn(option, this.zoomOptionTargets)
     if (!target) return // Exit if running for the first time
     this.validateZoom()
+  }
+
+  setRange (e) {
+    const target = e.srcElement || e.target
+    const option = target ? target.dataset.option : e
+    if (!option) return
+    this.setActiveOptionBtn(option, this.rangeOptionTargets)
+    if (!target) return // Exit if running for the first time.
+    selectedChart = null // Force fetch
+    this.selectChart()
   }
 
   setBin (e) {
@@ -974,6 +1001,7 @@ export default class extends Controller {
   selectedBin () { return this.selectedOption(this.binSizeTargets) }
   selectedScale () { return this.selectedOption(this.scaleTypeTargets) }
   selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
+  selectedRange () { return this.selectedOption(this.rangeOptionTargets) }
 
   selectedOption (optTargets) {
     let key = false
