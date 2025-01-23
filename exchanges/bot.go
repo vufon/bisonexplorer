@@ -14,9 +14,10 @@ import (
 	"sync"
 	"time"
 
-	dcrrates "github.com/decred/dcrdata/exchanges/v3/ratesproto"
 	"google.golang.org/grpc"
 	credentials "google.golang.org/grpc/credentials"
+
+	dcrrates "github.com/decred/dcrdata/exchanges/v3/ratesproto"
 )
 
 const (
@@ -38,7 +39,8 @@ const (
 	TYPEBTC                = "btc"
 	LTCSYMBOL              = "LTCUSDT"
 	BTCSYMBOL              = "BTCUSDT"
-	DCRSYMBOL              = "DCRBTC"
+	DCRBTCSYMBOL           = "DCRBTC"
+	DCRUSDSYMBOL           = "DCRUSD"
 )
 
 // ExchangeBotConfig is the configuration options for ExchangeBot.
@@ -186,13 +188,11 @@ type TokenedExchange struct {
 func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 	xcList := make([]*TokenedExchange, 0, len(state.DcrBtc))
 	for token, state := range state.DcrBtc {
-		if token != "dcrdex" {
-			state.Sticks = state.StickList()
-			xcList = append(xcList, &TokenedExchange{
-				Token: token,
-				State: state,
-			})
-		}
+		state.Sticks = state.StickList()
+		xcList = append(xcList, &TokenedExchange{
+			Token: token,
+			State: state,
+		})
 	}
 	sort.Slice(xcList, func(i, j int) bool {
 		if xcList[i].Token == "binance" {
@@ -700,8 +700,8 @@ func (bot *ExchangeBot) connectMasterBot(ctx context.Context, delay time.Duratio
 	stream, err := grpcClient.SubscribeExchanges(ctx, &dcrrates.ExchangeSubscription{
 		BtcIndex:     bot.BtcIndex,
 		Exchanges:    bot.subscribedExchanges(),
-		LTCExchanges: bot.subscribedMutilchainExchanges(TYPELTC),
-		BTCExchanges: bot.subscribedMutilchainExchanges(TYPEBTC),
+		LtcExchanges: bot.subscribedMutilchainExchanges(TYPELTC),
+		BtcExchanges: bot.subscribedMutilchainExchanges(TYPEBTC),
 	})
 	if err != nil {
 		return nil, err
