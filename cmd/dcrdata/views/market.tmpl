@@ -9,7 +9,12 @@
 
 {{- if $botState -}}
 
-<div class="row w-100 align-items-top mb-4" data-controller="market">
+<div class="row w-100 align-items-top mb-4" data-controller="market" 
+    data-market-dcrbtcprice="{{$botState.DCRBTCPrice}}" 
+    data-market-dcrbtcvolume="{{$botState.DCRBTCVolume}}"
+    data-market-price="{{$botState.Price}}"
+    data-market-volume="{{$botState.Volume}}"
+    >
 <div class="col-24 ps-4">
     <nav class="breadcrumbs mt-0">
         <a href="/" class="breadcrumbs__item no-underline ps-2">
@@ -42,7 +47,7 @@
                     </tr>
                     {{range $botState.VolumeOrderedExchanges}}
                         <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
-                            <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{.Token}} me-2"></div> {{xcDisplayName .Token}}</td>
+                            <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}</td>
                             <td class="ps-2 fs16 py-2 text-end" data-type="volume">
                                 {{threeSigFigs .State.BaseVolume}}
                             </td>
@@ -65,7 +70,7 @@
                         <td class="ps-2 fs16 py-2 text-end" data-type="volume">
                             {{threeSigFigs $botState.Volume}}
                         </td>
-                        <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
+                        <td class="ps-1 fs16 py-2 text-end" data-type="price">
                             {{threeSigFigs $botState.Price}}
                         </td>
                         <td></td> {{- /* no arrow for aggregated data */ -}}

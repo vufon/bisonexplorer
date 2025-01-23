@@ -386,20 +386,24 @@ const exchangeUpdateID = "exchange"
 // WebsocketMiniExchange is minimal info regarding the exchange that triggered
 // an update.
 type WebsocketMiniExchange struct {
-	ChainType string  `json:"chain_type"`
-	Token     string  `json:"token"`
-	Price     float64 `json:"price"`
-	Volume    float64 `json:"volume"`
-	Change    float64 `json:"change"`
+	ChainType    string  `json:"chain_type"`
+	Token        string  `json:"token"`
+	Price        float64 `json:"price"`
+	DCRBTCPrice  float64 `json:"dcr_btc_price"`
+	Volume       float64 `json:"volume"`
+	DCRBTCVolume float64 `json:"dcr_btc_volume"`
+	Change       float64 `json:"change"`
 }
 
 // WebsocketExchangeUpdate is an update to the exchange state to send over the
 // websocket.
 type WebsocketExchangeUpdate struct {
-	Updater     WebsocketMiniExchange `json:"updater"`
-	IsFiatIndex bool                  `json:"fiat"`
-	BtcIndex    string                `json:"index"`
-	Price       float64               `json:"price"`
-	BtcPrice    float64               `json:"btc_price"`
-	Volume      float64               `json:"volume"`
+	Updater      WebsocketMiniExchange `json:"updater"`
+	IsFiatIndex  bool                  `json:"fiat"`
+	BtcIndex     string                `json:"index"`
+	Price        float64               `json:"price"`
+	BtcPrice     float64               `json:"btc_price"`
+	Volume       float64               `json:"volume"`
+	DCRBTCPrice  float64               `json:"dcr_btc_price"`
+	DCRBTCVolume float64               `json:"dcr_btc_volume"`
 }

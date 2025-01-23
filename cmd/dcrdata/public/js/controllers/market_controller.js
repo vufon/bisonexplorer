@@ -54,7 +54,8 @@ function useUSDPair (exchange) {
 }
 
 const printNames = {
-  dcrdex: 'dex.decred.org'
+  dcrdex: 'dex.decred.org',
+  btc_coinex: 'Coinex'
   // default is capitalize
 }
 
@@ -587,6 +588,10 @@ export default class extends Controller {
     this.query = new TurboQuery()
     settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs', 'pair'])
     this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
+    this.dcrBtcPrice = this.data.get('dcrbtcprice')
+    this.dcrBtcVolume = this.data.get('dcrbtcvolume')
+    this.dcrUsdtPrice = this.data.get('price')
+    this.dcrUsdtVolume = this.data.get('volume')
     const _this = this
     if (!this.isHomepage) {
       this.query.update(settings)
@@ -661,7 +666,9 @@ export default class extends Controller {
     if (settings.bin == null) {
       settings.bin = anHour
     }
-
+    if (settings.pair === 'btc') {
+      this.setAggRowData(true)
+    }
     // if chart is history, set to xcs
     if ((settings.chart === 'history' || settings.chart === 'volume') && (!settings.xcs || settings.xcs === null)) {
       settings.xcs = settings.xc
@@ -680,6 +687,12 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+  }
+
+  setAggRowData (isBtcPair) {
+    const aggRow = this.getExchangeRow(aggregatedKey)
+    aggRow.price.textContent = humanize.threeSigFigs(isBtcPair ? this.dcrBtcPrice : this.dcrUsdtPrice)
+    aggRow.volume.textContent = humanize.threeSigFigs(isBtcPair ? this.dcrBtcVolume : this.dcrUsdtVolume)
   }
 
   disconnect () {
@@ -1401,6 +1414,7 @@ export default class extends Controller {
   async changePair (e) {
     const target = e.target || e.srcElement
     settings.pair = target.value
+    this.setAggRowData(settings.pair === 'btc')
     this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
@@ -1598,7 +1612,7 @@ export default class extends Controller {
     } else {
       this.xcNameTarget.classList.remove('fs-17')
       this.xcLogoTarget.classList.remove('d-hide')
-      this.xcLogoTarget.className = `exchange-logo ${settings.xc}`
+      this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
       const prettyName = printName(settings.xc)
       this.xcNameTarget.textContent = prettyName
       const href = exchangeLinks[settings.xc]
@@ -1610,6 +1624,13 @@ export default class extends Controller {
         this.actionsTarget.classList.add('d-hide')
       }
     }
+  }
+
+  getXcLogo (xc) {
+    if (xc.startsWith('btc_')) {
+      return xc.replaceAll('btc_', '')
+    }
+    return xc
   }
 
   _processNightMode (data) {
@@ -1716,7 +1737,7 @@ export default class extends Controller {
       const row = this.getExchangeRow(xc.token)
       row.volume.textContent = humanize.threeSigFigs(xc.volume)
       row.price.textContent = humanize.threeSigFigs(xc.price)
-      row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
+      // row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
       if (xc.change === 0) {
         row.arrow.className = ''
       } else if (xc.change > 0) {
@@ -1726,13 +1747,16 @@ export default class extends Controller {
       }
     }
     // Update the big displayed value and the aggregated row
-    const fmtPrice = update.price.toFixed(2)
-    this.priceTarget.textContent = fmtPrice
+    // const fmtPrice = settings.pair === 'btc' ? update.dcr_btc_price.toFixed(6) : update.price.toFixed(2)
+    this.priceTarget.textContent = update.price.toFixed(2)
     const aggRow = this.getExchangeRow(aggregatedKey)
     btcPrice = update.btc_price
-    aggRow.price.textContent = humanize.threeSigFigs(update.price / btcPrice)
-    aggRow.volume.textContent = humanize.threeSigFigs(update.volume)
-    aggRow.fiat.textContent = fmtPrice
+    this.dcrBtcPrice = update.dcr_btc_price
+    this.dcrUsdtPrice = update.price
+    this.dcrUsdtVolume = update.volume
+    this.dcrBtcVolum = update.dcr_btc_volume
+    aggRow.price.textContent = humanize.threeSigFigs(settings.pair === 'btc' ? update.dcr_btc_price : update.price)
+    aggRow.volume.textContent = humanize.threeSigFigs(settings.pair === 'btc' ? update.dcr_btc_volume : update.volume)
     // Auto-update the chart if it makes sense.
     if (settings.xc !== aggregatedKey && settings.xc !== xc.token) return
     if (settings.xc === aggregatedKey &&

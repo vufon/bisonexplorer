@@ -1057,6 +1057,7 @@ func (bot *ExchangeBot) updateExchange(update *ExchangeUpdate) error {
 	if update.State.Depth != nil {
 		bot.incrementChart(genCacheID(update.Token, orderbookKey))
 		bot.incrementChart(genCacheID(aggregatedOrderbookKey, orderbookKey))
+		bot.incrementChart(genCacheID(aggregatedBTCOrderbookKey, orderbookKey))
 	}
 	var chainType string
 	switch update.State.Symbol {

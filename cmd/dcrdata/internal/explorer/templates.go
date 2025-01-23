@@ -583,6 +583,12 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			}
 			return titler.String(token)
 		},
+		"xcLogoName": func(token string) string {
+			if strings.HasPrefix(token, "btc_") {
+				return strings.ReplaceAll(token, "btc_", "")
+			}
+			return token
+		},
 		"prefixPath": func(prefix, path string) string {
 			if path == "" {
 				if strings.HasSuffix(prefix, "/") {
