@@ -38,13 +38,19 @@ const exchangeLinks = {
   poloniex: 'https://poloniex.com/exchange#btc_dcr',
   dragonex: 'https://dragonex.io/en-us/trade/index/dcr_btc',
   huobi: 'https://www.hbg.com/en-us/exchange/?s=dcr_btc',
-  dcrdex: 'https://dex.decred.org'
+  dcrdex: 'https://dex.decred.org',
+  coinex: 'https://www.coinex.com/en/exchange/DCR-USDT',
+  btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc'
 }
 
-const btcPairUses = ['btc_binance', 'dcrdex', 'aggregated']
+const btcPairUses = ['btc_binance', 'btc_coinex', 'dcrdex', 'aggregated']
 
 function useBTCPair (exchange) {
   return btcPairUses.indexOf(exchange) > -1
+}
+
+function useUSDPair (exchange) {
+  return btcPairUses.indexOf(exchange) < 0 || exchange === 'aggregated'
 }
 
 const printNames = {
@@ -631,6 +637,7 @@ export default class extends Controller {
       }
       if (option.dataset.depth) availableDepths.push(option.name)
     }
+    availableDepths.push('btc_aggregated')
     this.chartOptions = []
     const opts = this.chartSelectTarget.options
     for (let i = 0; i < opts.length; i++) {
@@ -640,6 +647,10 @@ export default class extends Controller {
     if (settings.chart == null) {
       settings.chart = depth
     }
+    if (settings.pair == null) {
+      settings.pair = 'usdt'
+    }
+    this.pairSelectTarget.value = settings.pair
     if (settings.xc == null) {
       settings.xc = usesOrderbook(settings.chart) ? aggregatedKey : 'binance'
     }
@@ -655,6 +666,7 @@ export default class extends Controller {
     if ((settings.chart === 'history' || settings.chart === 'volume') && (!settings.xcs || settings.xcs === null)) {
       settings.xcs = settings.xc
     }
+    this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
     this.resize = this._resize.bind(this)
@@ -743,7 +755,10 @@ export default class extends Controller {
     requestCounter++
     const thisRequest = requestCounter
     const bin = settings.bin
-    const xc = settings.xc
+    let xc = settings.xc
+    if (xc === 'aggregated' && settings.pair === 'btc') {
+      xc = 'btc_' + xc
+    }
     const chart = settings.chart
     const oldZoom = this.graph.xAxisRange()
     if (usesCandlesticks(chart)) {
@@ -1383,39 +1398,99 @@ export default class extends Controller {
     this.fetchChart()
   }
 
-  changePair (e) {
+  async changePair (e) {
     const target = e.target || e.srcElement
     settings.pair = target.value
-    const isBtcPair = settings.pair === 'btc'
+    this.handlerExchangesDisplay()
+    this.setButtons()
+    this.setExchangeName()
+    await this.fetchChart()
+    this.setZoomPct(defaultZoomPct)
+    const stats = this.graph.getOption('stats')
+    const spread = stats.midGap * defaultZoomPct / 100
+    this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
+  }
+
+  handlerExchangesDisplay () {
+    const isBTCPair = settings.pair === 'btc'
     this.exchangesButtons.forEach(button => {
-      if (!isBtcPair || useBTCPair(button.name)) {
-        button.classList.remove('d-hide')
+      if (isBTCPair) {
+        if (useBTCPair(button.name)) {
+          button.classList.remove('d-hide')
+        } else if (useUSDPair(button.name)) {
+          button.classList.add('d-hide')
+        }
       } else {
-        button.classList.add('d-hide')
+        if (useBTCPair(button.name)) {
+          button.classList.add('d-hide')
+        } else if (useUSDPair(button.name)) {
+          button.classList.remove('d-hide')
+        }
       }
     })
-    const isBTCPair = settings.pair === 'btc'
     const activeExchange = this.getSelectedExchanges()
     const afterActiveExchange = []
     const _this = this
     if (settings.chart === 'history' || settings.chart === 'volume') {
-      activeExchange.forEach((activeEx) => {
-        if (!isBTCPair || useBTCPair(activeEx)) {
-          afterActiveExchange.push(activeEx)
-        }
-      })
+      if (activeExchange.length > 0) {
+        activeExchange.forEach((activeEx) => {
+          if (!isBTCPair || useBTCPair(activeEx)) {
+            afterActiveExchange.push(activeEx)
+          }
+        })
+      }
       if (afterActiveExchange.length > 0) {
         settings.xcs = afterActiveExchange.join(',')
+      } else {
+        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
       }
     } else {
-      afterActiveExchange.push(!isBTCPair || useBTCPair(activeExchange[0]) ? activeExchange[0] : _this.exchangesButtons[0].name)
+      if (activeExchange.length <= 0) {
+        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+      } else {
+        const exc = activeExchange[0]
+        if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
+          afterActiveExchange.push(exc)
+        } else {
+          afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+        }
+      }
       if (afterActiveExchange.length > 0) {
         settings.xc = afterActiveExchange.join(',')
       }
     }
-    this.setButtons()
-    this.setExchangeName()
-    this.fetchChart()
+    for (let i = 0; i < this.xcRowTargets.length; i++) {
+      const xcRow = this.xcRowTargets[i]
+      const token = xcRow.dataset.token
+      if (token === 'aggregated') {
+        continue
+      }
+      if (isBTCPair) {
+        if (useBTCPair(token)) {
+          xcRow.classList.remove('d-hide')
+        } else if (useUSDPair(token)) {
+          xcRow.classList.add('d-hide')
+        }
+      } else {
+        if (useBTCPair(token)) {
+          xcRow.classList.add('d-hide')
+        } else if (useUSDPair(token)) {
+          xcRow.classList.remove('d-hide')
+        }
+      }
+    }
+  }
+
+  getFirstExchangeButton (isBTCPair) {
+    let firstBtn = this.exchangesButtons[0].name
+    for (let i = 0; i < this.exchangesButtons.length; i++) {
+      const exBtn = this.exchangesButtons[i]
+      if ((isBTCPair && useBTCPair(exBtn.name)) || (!isBTCPair && useUSDPair(exBtn.name))) {
+        firstBtn = exBtn.name
+        break
+      }
+    }
+    return firstBtn
   }
 
   changeExchange (e) {
