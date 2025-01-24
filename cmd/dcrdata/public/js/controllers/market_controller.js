@@ -1460,7 +1460,7 @@ export default class extends Controller {
       }
     } else {
       if (activeExchange.length <= 0) {
-        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+        afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair))
       } else {
         const exc = activeExchange[0]
         if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
