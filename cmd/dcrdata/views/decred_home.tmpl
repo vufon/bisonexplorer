@@ -1295,6 +1295,26 @@
                                        </div>
                                     </div>
                                     <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                       data-charts-target="rangeSelector">
+                                       <div class="chart-control-label">Blake3 Milestone</div>
+                                       <div class="chart-control chart-filter-selection ps-2">
+                                          <ul class="nav nav-pills">
+                                             <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                                data-action="click->charts#setRange" data-option="all">
+                                                All
+                                             </li>
+                                             <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                                data-action="click->charts#setRange" data-option="before">
+                                                Before
+                                             </li>
+                                             <li class="nav-item nav-link" data-charts-target="rangeOption"
+                                                data-action="click->charts#setRange" data-option="after">
+                                                After
+                                             </li>
+                                          </ul>
+                                       </div>
+                                    </div>
+                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
                                        data-charts-target="zoomSelector">
                                        <div class="chart-control-label">ZOOM</div>
                                        <div class="chart-control chart-filter-selection ps-2">
