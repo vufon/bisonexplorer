@@ -254,7 +254,11 @@
                               {{- if $botState -}}
                               <div class="row border-1-grey px-0 chart-wrapper">
                                  <!-- market chart start -->
-                                 <div class="row w-100 ms-2 ps-0 align-items-top" data-controller="market">
+                                 <div class="row w-100 ms-2 ps-0 align-items-top" data-controller="market"
+                                    data-market-dcrbtcprice="{{$botState.DCRBTCPrice}}" 
+                                    data-market-dcrbtcvolume="{{$botState.DCRBTCVolume}}"
+                                    data-market-price="{{$botState.Price}}"
+                                    data-market-volume="{{$botState.Volume}}">
                                     {{- /* LEFT COLUMN */ -}}
                                     <div class="col-24 col-lg-auto p-0 d-none">
                                        {{- /* PRICE */ -}}
@@ -302,9 +306,6 @@
                                                       <span class="dcricon-arrow-down text-danger"></span>
                                                       {{end}}
                                                    </td>
-                                                   <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
-                                                      {{printf "%.2f" ($botState.BtcToFiat .State.Price)}}
-                                                   </td>
                                                 </tr>
                                                 {{end}}
                                                 <tr class="fs sum-row hover-row" data-market-target="xcRow"
@@ -320,10 +321,6 @@
                                                       {{threeSigFigs ($botState.FiatToBtc $botState.Price)}}
                                                    </td>
                                                    <td></td>
-                                                   {{- /* no arrow for aggregated data */ -}}
-                                                   <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
-                                                      {{printf "%.2f" $botState.Price}}
-                                                   </td>
                                                 </tr>
                                              </tbody>
                                           </table>
@@ -366,6 +363,18 @@
                                           {{- /* CHART ONTROLS */ -}}
                                           <div
                                              class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
+                                             {{- /* PAIR SELECTION */ -}}
+                                             <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                                                 <label>Pair</label>
+                                                 <select
+                                                     class="chart-box d-inline-flex"
+                                                     data-market-target="pairSelect"
+                                                     data-action="change->market#changePair"
+                                                 >
+                                                     <option value="usdt" selected>DCR/USDT</option>
+                                                     <option value="btc">DCR/BTC</option>
+                                                 </select>
+                                             </div>
                                              {{- /* EXCHANGE SELECTION */ -}}
                                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="exchanges"
                                              data-action="click->market#changeExchange">
