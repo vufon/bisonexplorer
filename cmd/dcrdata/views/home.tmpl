@@ -434,6 +434,19 @@
                                                 </optgroup>
                                              </select>
                                           </div>
+                                          {{- /* RANGE SELECTIONS */ -}}
+                                          <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                             data-homecharts-target="rangeSelector">
+                                             <label class="text-nowrap">Blake3 Milestone</label>
+                                             <div class="btn-group">
+                                                <button data-option="all" data-action="click->homecharts#setRange" data-homecharts-target="rangeOption"
+                                                   class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">All</button>
+                                                <button data-option="before" data-action="click->homecharts#setRange" data-homecharts-target="rangeOption"
+                                                   class="tab-button home-chart-toggle-btn white c-txt-main">Before</button>
+                                                <button data-option="after" data-action="click->homecharts#setRange" data-homecharts-target="rangeOption"
+                                                   class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">After</button>
+                                             </div>
+                                          </div>
                                           {{- /* ZOOM SELECTIONS */ -}}
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
                                              data-homecharts-target="zoomSelector"

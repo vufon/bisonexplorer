@@ -19,6 +19,7 @@ const aDay = 86400 * 1000 // in milliseconds
 const aMonth = 30 // in days
 const atomsToDCR = 1e-8
 const windowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
+const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
@@ -36,6 +37,10 @@ let ticketPoolSizeTarget, premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
 let yFormatter, legendEntry, legendMarker, legendElement
+
+function useRange (chart) {
+  return rangeUse.indexOf(chart) > -1
+}
 
 function usesWindowUnits (chart) {
   return windowScales.indexOf(chart) > -1
@@ -272,7 +277,7 @@ function zip2D (data, ys, yMult, offset) {
 
 function powDiffFunc (data) {
   if (data.t) return zipWindowTvY(data.t, data.diff)
-  return zipWindowHvY(data.diff, data.window)
+  return zipWindowHvY(data.diff, data.window, 1, data.offset)
 }
 
 function circulationFunc (chartData) {
@@ -360,7 +365,9 @@ export default class extends Controller {
       'vSelector',
       'ticketsPurchase',
       'anonymitySet',
-      'ticketsPrice'
+      'ticketsPrice',
+      'rangeSelector',
+      'rangeOption'
     ]
   }
 
@@ -396,7 +403,7 @@ export default class extends Controller {
       return node
     }
 
-    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'axis', 'visibility', 'home'])
+    this.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'scale', 'bin', 'axis', 'visibility', 'home', 'range'])
     if (!this.isHomepage) {
       this.query.update(this.settings)
     }
@@ -410,6 +417,7 @@ export default class extends Controller {
     this.limits = null
     this.lastZoom = null
     this.visibility = []
+    this.setRange(this.settings.range ? this.settings.range : 'after')
     if (this.settings.visibility) {
       this.settings.visibility.split('-', -1).forEach(s => {
         this.visibility.push(s === 'true')
@@ -425,6 +433,16 @@ export default class extends Controller {
       )
     }
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
+  }
+
+  setRange (e) {
+    const target = e.srcElement || e.target
+    const option = target ? target.dataset.option : e
+    if (!option) return
+    this.setActiveOptionBtn(option, this.rangeOptionTargets)
+    if (!target) return // Exit if running for the first time.
+    selectedChart = null // Force fetch
+    this.selectChart()
   }
 
   setVisibility (e) {
@@ -569,7 +587,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d.data, [xlabel, label], false, `${label} (DCR)`, true, false))
 
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => y > 0 ? intComma(y) : '0' + ' DCR')
+          addLegendEntryFmt(div, data.series[0], y => (y > 0 ? intComma(y) : '0') + ' DCR')
         }
         break
       }
@@ -671,6 +689,7 @@ export default class extends Controller {
       case 'fees': // block fee graph
         d = zip2D(data, data.fees, atomsToDCR)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (' + globalChainType.toUpperCase() + ')', true, false))
+        yFormatter = customYFormatter(y => y.toFixed(8) + ' ' + globalChainType.toUpperCase())
         break
 
       case 'duration-btw-blocks': // Duration between blocks graph
@@ -680,8 +699,8 @@ export default class extends Controller {
         break
 
       case 'hashrate': // Total chainwork over time
-        d = zip2D(data, data.rate, 1e-3, data.offset)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate (petahash/s)'],
+        d = this.chainType === 'dcr' ? (data.axis === 'height' && data.bin === 'block' ? zipHvY(data.h, data.rate, 1e-3, data.offset) : zip2D(data, data.rate, 1e-3, data.offset)) : zip2D(data, data.rate, 1e-3, data.offset)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
         break
@@ -762,6 +781,13 @@ export default class extends Controller {
     } else {
       this.vSelectorTarget.classList.add('d-hide')
     }
+    if (useRange(this.settings.chart) && this.chainType === 'dcr') {
+      this.settings.range = this.selectedRange()
+      this.rangeSelectorTarget.classList.remove('d-hide')
+    } else {
+      this.settings.range = ''
+      this.rangeSelectorTarget.classList.add('d-hide')
+    }
     if (selectedType !== this.chainType || (selectedType === this.chainType && selectedChart !== this.settings.chart) ||
     this.settings.bin !== this.selectedBin() || this.settings.axis !== this.selectedAxis()) {
       let url = this.chainType === 'dcr' ? '/api/chart/' + this.settings.chart : `/api/chainchart/${this.chainType}/` + this.settings.chart
@@ -789,6 +815,9 @@ export default class extends Controller {
         }
       }
       url += `?bin=${this.settings.bin}`
+      if (this.settings.range !== '') {
+        url += `&range=${this.settings.range}`
+      }
       this.settings.axis = this.selectedAxis()
       if (!this.settings.axis) this.settings.axis = 'time' // Set the default.
       url += `&axis=${this.settings.axis}`
@@ -887,8 +916,15 @@ export default class extends Controller {
     } else {
       this.vSelectorTarget.classList.add('d-hide')
     }
+    if (useRange(selection) && this.chainType === 'dcr') {
+      this.settings.range = this.selectedRange()
+      this.rangeSelectorTarget.classList.remove('d-hide')
+    } else {
+      this.settings.range = ''
+      this.rangeSelectorTarget.classList.add('d-hide')
+    }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
-      this.settings.axis !== this.selectedAxis()) {
+      this.settings.axis !== this.selectedAxis() || (this.chainType === 'dcr' && this.settings.range !== this.selectedRange())) {
       let url = this.chainType === 'dcr' ? '/api/chart/' + selection : `/api/chainchart/${this.chainType}/` + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.binSelectorTarget.classList.add('d-hide')
@@ -914,6 +950,9 @@ export default class extends Controller {
         }
       }
       url += `?bin=${this.settings.bin}`
+      if (this.chainType === 'dcr' && this.settings.range !== '') {
+        url += `&range=${this.settings.range}`
+      }
       this.settings.axis = this.selectedAxis()
       if (!this.settings.axis) this.settings.axis = 'time' // Set the default.
       url += `&axis=${this.settings.axis}`
@@ -1160,6 +1199,7 @@ export default class extends Controller {
   selectedBin () { return this.selectedButtons(this.binButtons) }
   selectedScale () { return this.selectedButtons(this.scaleButtons) }
   selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
+  selectedRange () { return this.selectedOption(this.rangeOptionTargets) }
 
   selectedOption (optTargets) {
     let key = false
