@@ -726,16 +726,17 @@ export default class extends Controller {
         const exchange = volumnedExchanges[i]
         if (exchange.State) {
           selectOptions += `<button name="${exchange.Token}" ${exchange.State.candlesticks ? `data-sticks="1" data-bins="${exchange.State.sticks}"` : ''} ${exchange.State.depth ? 'data-depth="1"' : ''} ` +
-            `class="tab-button home-chart-toggle-btn white c-txt-main ${i === 0 ? 'first-toggle-btn' : ''}">${_this.getExchangeDispName(exchange.Token)}</button>`
+            `class="tab-button home-chart-toggle-btn white c-txt-main">${_this.getExchangeDispName(exchange.Token)}</button>`
           if (exchangeBefore.includes(exchange.Token)) {
             selectedExchange.push(exchange.Token)
           }
         }
       }
       selectOptions += '<button name="aggregated" data-chainmarket-target="aggOption" data-depth="1" ' +
-        'class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Aggregated</button>'
+        'class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>'
       this.exchangeBtnAreaTarget.innerHTML = selectOptions
       this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
+      this.handlerRadiusForBtnGroup(this.exchangesButtons)
       availableCandlesticks = {}
       availableDepths = []
       this.exchangeOptions = []
@@ -753,6 +754,26 @@ export default class extends Controller {
       } else {
         this.setActiveExchanges([volumnedExchanges[0].Token])
         this.changeExchangeSetting()
+      }
+    }
+  }
+
+  handlerRadiusForBtnGroup (btnGroup) {
+    let firstSetted = false; let lastSetted = false
+    for (let i = 0; i < btnGroup.length; i++) {
+      const btn = btnGroup[i]
+      if (!firstSetted && !btn.classList.contains('d-hide') && !btn.classList.contains('d-none')) {
+        btn.classList.add('first-toggle-btn')
+        firstSetted = true
+      } else {
+        btn.classList.remove('first-toggle-btn')
+      }
+      const lastBtn = btnGroup[btnGroup.length - i - 1]
+      if (!lastSetted && !lastBtn.classList.contains('d-hide') && !lastBtn.classList.contains('d-none')) {
+        lastBtn.classList.add('last-toggle-btn')
+        lastSetted = true
+      } else {
+        lastBtn.classList.remove('last-toggle-btn')
       }
     }
   }
@@ -1469,6 +1490,8 @@ export default class extends Controller {
       this.aggStackTarget.classList.add('d-hide')
       settings.stack = null
     }
+    this.handlerRadiusForBtnGroup(this.exchangesButtons)
+    this.handlerRadiusForBtnGroup(this.binButtons)
   }
 
   setBinSelection () {

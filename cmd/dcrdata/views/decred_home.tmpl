@@ -383,11 +383,11 @@
                                                    {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
                                                    {{if ne $exchange.Token "dcrdex"}}
                                                    <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
-                                                   class="tab-button home-chart-toggle-btn white c-txt-main {{if eq $index 0}}first-toggle-btn{{end}}">{{xcDisplayName $exchange.Token}}</button>
+                                                   class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
                                                    {{end}}
                                                    {{end}}
                                                    <button name="aggregated" data-market-target="aggOption" data-depth="1"
-                                                      class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Aggregated</button>
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
                                                 </div>
                                              </div>
                                              {{- /* CHART TYPE SELECTION */ -}}
@@ -414,9 +414,9 @@
                                                 <div class="btn-group">
                                                    <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
                                                    <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
-                                                   <button name="1h" class="active tab-button home-chart-toggle-btn white first-toggle-btn c-txt-main">Hour</button>
+                                                   <button name="1h" class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
                                                    <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
-                                                   <button name="1mo" class="tab-button home-chart-toggle-btn white last-toggle-btn c-txt-main">Month</button>
+                                                   <button name="1mo" class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
                                                 </div>
                                              </div>
                                              {{- /* DISPLAY CURRENCY */ -}}

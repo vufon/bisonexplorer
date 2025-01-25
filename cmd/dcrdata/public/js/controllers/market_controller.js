@@ -689,6 +689,26 @@ export default class extends Controller {
     this.fetchInitialData()
   }
 
+  handlerRadiusForBtnGroup (btnGroup) {
+    let firstSetted = false; let lastSetted = false
+    for (let i = 0; i < btnGroup.length; i++) {
+      const btn = btnGroup[i]
+      if (!firstSetted && !btn.classList.contains('d-hide') && !btn.classList.contains('d-none')) {
+        btn.classList.add('first-toggle-btn')
+        firstSetted = true
+      } else {
+        btn.classList.remove('first-toggle-btn')
+      }
+      const lastBtn = btnGroup[btnGroup.length - i - 1]
+      if (!lastSetted && !lastBtn.classList.contains('d-hide') && !lastBtn.classList.contains('d-none')) {
+        lastBtn.classList.add('last-toggle-btn')
+        lastSetted = true
+      } else {
+        lastBtn.classList.remove('last-toggle-btn')
+      }
+    }
+  }
+
   setAggRowData (isBtcPair) {
     const aggRow = this.getExchangeRow(aggregatedKey)
     aggRow.price.textContent = humanize.threeSigFigs(isBtcPair ? this.dcrBtcPrice : this.dcrUsdtPrice)
@@ -1326,32 +1346,9 @@ export default class extends Controller {
       } else {
         bins = availableCandlesticks[settings.xc]
       }
-      let lastBinIndex = 0
-      let firstBinIndex = binList.length
-      bins.forEach((bin) => {
-        const indexOfBin = binList.indexOf(bin)
-        if (indexOfBin >= 0) {
-          if (indexOfBin > lastBinIndex) {
-            lastBinIndex = indexOfBin
-          }
-          if (indexOfBin < firstBinIndex) {
-            firstBinIndex = indexOfBin
-          }
-        }
-      })
       this.binButtons.forEach(button => {
         if (bins.indexOf(button.name) >= 0) {
           button.classList.remove('d-hide')
-          if (button.name === binList[lastBinIndex]) {
-            button.classList.add('last-toggle-btn')
-          } else {
-            button.classList.remove('last-toggle-btn')
-          }
-          if (button.name === binList[firstBinIndex]) {
-            button.classList.add('first-toggle-btn')
-          } else {
-            button.classList.remove('first-toggle-btn')
-          }
         } else {
           button.classList.add('d-hide')
         }
@@ -1369,6 +1366,8 @@ export default class extends Controller {
       this.aggStackTarget.classList.add('d-hide')
       settings.stack = null
     }
+    this.handlerRadiusForBtnGroup(this.exchangesButtons)
+    this.handlerRadiusForBtnGroup(this.binButtons)
   }
 
   getHistoryChartAvailableBins () {
