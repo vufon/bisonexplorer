@@ -54,7 +54,7 @@ function useUSDPair (exchange) {
 }
 
 const printNames = {
-  dcrdex: 'dex.decred.org',
+  dcrdex: 'Dcrdex',
   btc_coinex: 'Coinex'
   // default is capitalize
 }

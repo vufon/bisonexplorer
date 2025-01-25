@@ -576,7 +576,7 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"xcDisplayName": func(token string) string {
 			switch token {
 			case "dcrdex":
-				return "dex.decred.org"
+				return "Dcrdex"
 			}
 			if exchanges.IsDCRBTCExchange(token) {
 				return titler.String(exchanges.GetDCRBTCExchangeName(token))

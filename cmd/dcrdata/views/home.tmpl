@@ -222,6 +222,18 @@
                                                    </div>
                                                 </div>
                                              </div>
+                                             {{- /* PAIR SELECTION */ -}}
+                                             <div class="d-hide btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-chainmarket-target="pairSelectorArea">
+                                                 <label>Pair</label>
+                                                 <select
+                                                     class="chart-box d-inline-flex"
+                                                     data-chainmarket-target="pairSelect"
+                                                     data-action="change->chainmarket#changePair"
+                                                 >
+                                                     <option value="usdt" selected>DCR/USDT</option>
+                                                     <option value="btc">DCR/BTC</option>
+                                                 </select>
+                                             </div>
                                              {{- /* EXCHANGE SELECTION */ -}}
                                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-chainmarket-target="exchanges"
                                              data-action="click->chainmarket#changeExchange">
