@@ -890,10 +890,12 @@ export default class extends Controller {
     this.setButtons()
     this.setExchangeName()
     await this.fetchChart()
-    this.setZoomPct(defaultZoomPct)
-    const stats = this.graph.getOption('stats')
-    const spread = stats.midGap * defaultZoomPct / 100
-    this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
+    if (usesOrderbook(settings.chart)) {
+      this.setZoomPct(defaultZoomPct)
+      const stats = this.graph.getOption('stats')
+      const spread = stats.midGap * defaultZoomPct / 100
+      this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
+    }
   }
 
   handlerExchangesDisplay () {
@@ -919,16 +921,15 @@ export default class extends Controller {
     if (settings.chart === 'history' || settings.chart === 'volume') {
       if (activeExchange.length > 0) {
         activeExchange.forEach((activeEx) => {
-          if (!isBTCPair || useBTCPair(activeEx)) {
+          if ((isBTCPair && useBTCPair(activeEx)) || (!isBTCPair && useUSDPair(activeEx))) {
             afterActiveExchange.push(activeEx)
           }
         })
       }
-      if (afterActiveExchange.length > 0) {
-        settings.xcs = afterActiveExchange.join(',')
-      } else {
+      if (afterActiveExchange.length <= 0) {
         afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
       }
+      settings.xcs = afterActiveExchange.join(',')
     } else {
       if (activeExchange.length <= 0) {
         afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair))
@@ -989,13 +990,14 @@ export default class extends Controller {
     let url
     requestCounter++
     const thisRequest = requestCounter
-    const bin = settings.bin
+    let bin = settings.bin
     let xc = settings.xc
     if (this.chainType === 'dcr' && xc === 'aggregated' && settings.pair === 'btc') {
       xc = 'btc_' + xc
     }
     const chart = settings.chart
     const oldZoom = this.graph.xAxisRange()
+    const _this = this
     if (usesCandlesticks(chart)) {
       if (settings.chart !== 'history' && settings.chart !== 'volume') {
         if (!(xc in availableCandlesticks)) {
@@ -1004,7 +1006,7 @@ export default class extends Controller {
         }
         if (availableCandlesticks[xc].indexOf(bin) === -1) {
           console.warn('invalid bin:', bin)
-          return
+          bin = _this.setLastBin(xc)
         }
       }
       url = `/api/chainchart/${this.chainType}/market/${xc}/candlestick/${bin}`
@@ -1038,7 +1040,7 @@ export default class extends Controller {
           }
           if (availableCandlesticks[itemXc].indexOf(bin) === -1) {
             console.warn('invalid bin:', bin)
-            continue
+            bin = _this.setLastBin(itemXc)
           }
           const xcUrl = `/api/chainchart/${this.chainType}/market/${xcList[i]}/candlestick/${bin}`
           let xcResponse
@@ -1095,6 +1097,19 @@ export default class extends Controller {
     this.chartLoaderTarget.classList.remove('loading')
     this.lastUrl = url
     refreshAvailable = false
+  }
+
+  setLastBin (xc) {
+    const availBins = usesOrderbook(settings.chart) ? availableDepths[xc] : availableCandlesticks[xc]
+    for (let i = this.binButtons.length - 1; i >= 0; i--) {
+      const button = this.binButtons[i]
+      if (!button.classList.contains('d-hide') && !button.classList.contains('d-none') && availBins.indexOf(button.name)) {
+        settings.bin = button.name
+        this.setBinSelection()
+        return button.name
+      }
+    }
+    return ''
   }
 
   getExchangeDispName (token) {
