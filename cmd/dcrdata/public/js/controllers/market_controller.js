@@ -118,7 +118,7 @@ let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#7774'
-const binList = ['5m', '30m', '1h', '1d', '1mo']
+const binList = ['5m', '30m', '1h', '4h', '1d', 'week', '1mo']
 let settings = {}
 const xcColors = [chartStroke, '#ed6d47', '#41be53', '#3087d8', '#dece12']
 
@@ -1419,9 +1419,44 @@ export default class extends Controller {
     if (usesCandlesticks(settings.chart)) {
       this.justifyBins()
     }
+    this.reorderExchanges()
     this.setButtons()
     this.setExchangeName()
     this.fetchChart()
+  }
+
+  reorderExchanges () {
+    const isBTCPair = settings.pair === 'btc'
+    const activeExchange = this.getSelectedExchanges()
+    const afterActiveExchange = []
+    const _this = this
+    if (settings.chart === 'history' || settings.chart === 'volume') {
+      if (activeExchange.length > 0) {
+        activeExchange.forEach((activeEx) => {
+          if (activeEx !== aggregatedKey && ((isBTCPair && useBTCPair(activeEx)) || (!isBTCPair && useUSDPair(activeEx)))) {
+            afterActiveExchange.push(activeEx)
+          }
+        })
+      }
+      if (afterActiveExchange.length <= 0) {
+        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+      }
+      settings.xcs = afterActiveExchange.join(',')
+    } else {
+      if (activeExchange.length <= 0) {
+        afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair))
+      } else {
+        const exc = activeExchange[0]
+        if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
+          afterActiveExchange.push(exc)
+        } else {
+          afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+        }
+      }
+      if (afterActiveExchange.length > 0) {
+        settings.xc = afterActiveExchange.join(',')
+      }
+    }
   }
 
   async changePair (e) {
@@ -1457,36 +1492,7 @@ export default class extends Controller {
         }
       }
     })
-    const activeExchange = this.getSelectedExchanges()
-    const afterActiveExchange = []
-    const _this = this
-    if (settings.chart === 'history' || settings.chart === 'volume') {
-      if (activeExchange.length > 0) {
-        activeExchange.forEach((activeEx) => {
-          if ((isBTCPair && useBTCPair(activeEx)) || (!isBTCPair && useUSDPair(activeEx))) {
-            afterActiveExchange.push(activeEx)
-          }
-        })
-      }
-      if (afterActiveExchange.length <= 0) {
-        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
-      }
-      settings.xcs = afterActiveExchange.join(',')
-    } else {
-      if (activeExchange.length <= 0) {
-        afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair))
-      } else {
-        const exc = activeExchange[0]
-        if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
-          afterActiveExchange.push(exc)
-        } else {
-          afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
-        }
-      }
-      if (afterActiveExchange.length > 0) {
-        settings.xc = afterActiveExchange.join(',')
-      }
-    }
+    this.reorderExchanges()
     for (let i = 0; i < this.xcRowTargets.length; i++) {
       const xcRow = this.xcRowTargets[i]
       const token = xcRow.dataset.token
@@ -1513,7 +1519,7 @@ export default class extends Controller {
     let firstBtn = this.exchangesButtons[0].name
     for (let i = 0; i < this.exchangesButtons.length; i++) {
       const exBtn = this.exchangesButtons[i]
-      if ((isBTCPair && useBTCPair(exBtn.name)) || (!isBTCPair && useUSDPair(exBtn.name))) {
+      if (!exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none') && ((isBTCPair && useBTCPair(exBtn.name)) || (!isBTCPair && useUSDPair(exBtn.name)))) {
         firstBtn = exBtn.name
         break
       }
