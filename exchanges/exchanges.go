@@ -1909,17 +1909,13 @@ func (coinex *CoinexExchange) Refresh() {
 		coinex.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceRes.Last), err)
 		return
 	}
-	quoteVolume, err := strconv.ParseFloat(priceRes.VolumeBuy, 64)
+	quoteVolume, err := strconv.ParseFloat(priceRes.Volume, 64)
 	if err != nil {
-		coinex.fail(fmt.Sprintf("Failed to parse float from QuoteVolume=%s", priceRes.VolumeBuy), err)
+		coinex.fail(fmt.Sprintf("Failed to parse float from QuoteVolume=%s", priceRes.Volume), err)
 		return
 	}
 
-	volume, err := strconv.ParseFloat(priceRes.Volume, 64)
-	if err != nil {
-		coinex.fail(fmt.Sprintf("Failed to parse float from Volume=%s", priceRes.Volume), err)
-		return
-	}
+	volume := quoteVolume
 	openPrice, err := strconv.ParseFloat(priceRes.Open, 64)
 	if err != nil {
 		coinex.fail(fmt.Sprintf("Failed to parse float from Open Price=%s", priceRes.Open), err)
@@ -3584,13 +3580,14 @@ func (dcr *DecredDEX) Refresh() {
 			change, volume, _, _ = cache.Delta(time.Now().Add(-time.Hour * 24))
 		}
 	}
-
+	vol := float64(volume) / 1e8
 	dcr.Update(&ExchangeState{
 		BaseState: BaseState{
-			Price:  depth.MidGap(),
-			Change: change,
-			Volume: float64(volume) / 1e8,
-			Stamp:  dcr.lastStamp(),
+			Price:      depth.MidGap(),
+			Change:     change,
+			Volume:     vol,
+			BaseVolume: vol,
+			Stamp:      dcr.lastStamp(),
 		},
 		Candlesticks: candlesticks,
 		Depth:        depth,

@@ -1259,7 +1259,7 @@ func (exp *ExplorerUI) watchExchanges() {
 				Token:     token,
 				ChainType: chainType,
 				Price:     updater.Price,
-				Volume:    updater.Volume,
+				Volume:    updater.BaseVolume,
 				Change:    updater.Change,
 			},
 			IsFiatIndex:  isFiat,
