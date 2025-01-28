@@ -580,7 +580,7 @@ export default class extends Controller {
     return ['chartSelect', 'exchanges', 'bin', 'chart', 'legend', 'conversion',
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
-      'aggStack', 'zoom', 'pairSelect', 'exchangeBtnArea']
+      'aggStack', 'zoom', 'pairSelect', 'exchangeBtnArea', 'fiatLabel']
   }
 
   async connect () {
@@ -1479,12 +1479,14 @@ export default class extends Controller {
     const isBTCPair = settings.pair === 'btc'
     this.exchangesButtons.forEach(button => {
       if (isBTCPair) {
+        this.fiatLabelTarget.textContent = 'DCR/BTC'
         if (useBTCPair(button.name)) {
           button.classList.remove('d-hide')
         } else if (useUSDPair(button.name)) {
           button.classList.add('d-hide')
         }
       } else {
+        this.fiatLabelTarget.textContent = 'DCR/USDT'
         if (useBTCPair(button.name)) {
           button.classList.add('d-hide')
         } else if (useUSDPair(button.name)) {
@@ -1530,23 +1532,37 @@ export default class extends Controller {
   changeExchange (e) {
     const btn = e.target || e.srcElement
     if (btn.nodeName !== 'BUTTON' || !this.graph) return
+    this.handlerExchange(btn.name)
+  }
+
+  setExchange (e) {
+    let node = e.target || e.srcElement
+    while (node && node.nodeName !== 'TR') node = node.parentNode
+    if (!node || !node.dataset || !node.dataset.token) return
+    if (usesCandlesticks(settings.chart) && node.dataset.token === aggregatedKey) {
+      return
+    }
+    this.handlerExchange(node.dataset.token)
+  }
+
+  handlerExchange (token) {
     if (settings.chart === 'history' || settings.chart === 'volume') {
       const xcs = settings.xcs.split(',')
-      if (xcs.indexOf(btn.name) < 0) {
-        xcs.push(btn.name)
+      if (xcs.indexOf(token) < 0) {
+        xcs.push(token)
       } else {
         if (xcs.length > 1) {
-          xcs.splice(xcs.indexOf(btn.name), 1)
+          xcs.splice(xcs.indexOf(token), 1)
         } else {
           return
         }
       }
       settings.xcs = xcs.join(',')
     } else {
-      if (settings.xc === btn.name) {
+      if (settings.xc === token) {
         return
       }
-      settings.xc = btn.name
+      settings.xc = token
     }
     if (usesCandlesticks(settings.chart)) {
       if (settings.xc !== 'aggregated') {
@@ -1560,14 +1576,6 @@ export default class extends Controller {
     this.setExchangeName()
     this.fetchChart()
     this.resetZoom()
-  }
-
-  setExchange (e) {
-    let node = e.target || e.srcElement
-    while (node && node.nodeName !== 'TR') node = node.parentNode
-    if (!node || !node.dataset || !node.dataset.token) return
-    this.setActiveExchanges([node.dataset.token])
-    this.changeExchange()
   }
 
   changeBin (e) {

@@ -47,7 +47,7 @@ data-chainmarket-chain-type="{{$ChainType}}">
                     <tr class="fs14 lh1rem">
                       <td></td>
                       <td class="text-end fw-bold">{{toUpperCase $ChainType}} Vol.</td>
-                      <td class="text-end fw-bold">USD</td>
+                      <td class="text-end fw-bold ps-3" data-chainmarket-target="fiatLabel"></td>
                       <td></td>
                     </tr>
                     {{range $botState.VolumnOrdered}}
