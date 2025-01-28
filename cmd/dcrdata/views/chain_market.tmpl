@@ -41,13 +41,13 @@ data-chainmarket-chain-type="{{$ChainType}}">
         {{- /* DCR/BTC MARKETS */ -}}
         <div class="ms-2 ms-sm-4 me-2 my-4 p-2 p-lg-4 market-common-card bg-white">
             <div colspan="4" class="fs24 text-center border-bottom-grey mb-3 pb-2">
-            <span class="dcricon-coin-negative fs24 me-2"></span> {{chainName $ChainType}} Markets</div>
+            <img src="/images/{{$ChainType}}-icon.png" width="25" height="25"> {{chainName $ChainType}} Markets</div>
             <table class="mx-auto mx-lg-3">
                 <tbody>
                     <tr class="fs14 lh1rem">
                       <td></td>
                       <td class="text-end fw-bold">{{toUpperCase $ChainType}} Vol.</td>
-                      <td class="text-end fw-bold">USD</td>
+                      <td class="text-end fw-bold ps-3" data-chainmarket-target="fiatLabel"></td>
                       <td></td>
                     </tr>
                     {{range $botState.VolumnOrdered}}
