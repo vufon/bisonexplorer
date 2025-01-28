@@ -31,12 +31,17 @@ const (
 	Coinbase     = "coinbase"
 	Coindesk     = "coindesk"
 	Binance      = "binance"
+	Coinex       = "coinex"
+	BTCCoinex    = "btc_coinex"
+	BTCBinance   = "btc_binance"
 	DragonEx     = "dragonex"
 	Huobi        = "huobi"
 	Poloniex     = "poloniex"
 	DexDotDecred = "dcrdex"
 	KuCoin       = "kucoin"
 	Gemini       = "gemini"
+	USDTPair     = "usdt"
+	BTCPair      = "btc"
 )
 
 // A few candlestick bin sizes.
@@ -46,7 +51,9 @@ const (
 	fiveMinKey  candlestickKey = "5m"
 	halfHourKey candlestickKey = "30m"
 	hourKey     candlestickKey = "1h"
+	fourHourKey candlestickKey = "4h"
 	dayKey      candlestickKey = "1d"
+	weekKey     candlestickKey = "1w"
 	monthKey    candlestickKey = "1mo"
 )
 
@@ -54,7 +61,9 @@ var candlestickDurations = map[candlestickKey]time.Duration{
 	fiveMinKey:  time.Minute * 5,
 	halfHourKey: time.Minute * 30,
 	hourKey:     time.Hour,
+	fourHourKey: time.Hour * 4,
 	dayKey:      time.Hour * 24,
+	weekKey:     time.Hour * 24 * 7,
 	monthKey:    time.Hour * 24 * 30,
 }
 
@@ -100,14 +109,14 @@ var (
 		Price: "https://api.coindesk.com/v2/bpi/currentprice.json",
 	}
 	BinanceURLs = URLs{
-		Price: "%s/api/v3/ticker/24hr?symbol=DCRUSDT",
+		Price: "%s/api/v3/ticker/24hr?symbol=DCR%s",
 		// Binance returns a maximum of 5000 depth chart points. This seems like it
 		// is the entire order book at least sometimes.
-		Depth: "%s/api/v3/depth?symbol=DCRUSDT&limit=5000",
+		Depth: "%s/api/v3/depth?symbol=DCR%s&limit=5000",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "%s/api/v3/klines?symbol=DCRUSDT&interval=1h",
-			dayKey:   "%s/api/v3/klines?symbol=DCRUSDT&interval=1d",
-			monthKey: "%s/api/v3/klines?symbol=DCRUSDT&interval=1M",
+			hourKey:  "%s/api/v3/klines?symbol=DCR%s&interval=1h",
+			dayKey:   "%s/api/v3/klines?symbol=DCR%s&interval=1d",
+			monthKey: "%s/api/v3/klines?symbol=DCR%s&interval=1M",
 		},
 	}
 
@@ -202,6 +211,21 @@ var (
 		},
 	}
 
+	CoinexURLs = URLs{
+		Price: "https://api.coinex.com/v2/spot/ticker?market=%s%s",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.coinex.com/v2/spot/depth?market=%s%s&limit=50&interval=0",
+		Candlesticks: map[candlestickKey]string{
+			fiveMinKey:  "https://api.coinex.com/v2/spot/kline?market=%s%s&limit=1000&period=5min",
+			halfHourKey: "https://api.coinex.com/v2/spot/kline?market=%s%s&limit=1000&period=30min",
+			hourKey:     "https://api.coinex.com/v2/spot/kline?market=%s%s&limit=1000&period=1hour",
+			fourHourKey: "https://api.coinex.com/v2/spot/kline?market=%s%s&limit=1000&period=4hour",
+			dayKey:      "https://api.coinex.com/v2/spot/kline?market=%s%s&limit=1000&period=1day",
+			weekKey:     "https://api.coinex.com/v2/spot/kline?market=%s%s&limit=1000&period=1week",
+		},
+	}
+
 	GeminiMutilchainURLs = URLs{
 		Price:    "https://api.gemini.com/v2/ticker/%susd",
 		SubPrice: "https://api.gemini.com/v1/pubticker/%susd",
@@ -223,11 +247,13 @@ var BtcIndices = map[string]func(*http.Client, *BotChannels, string) (Exchange, 
 
 // DcrExchanges maps tokens to constructors for DCR-BTC exchanges.
 var DcrExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
-	Binance:  NewBinance,
-	DragonEx: NewDragonEx,
-	Huobi:    NewHuobi,
-	Poloniex: NewPoloniex,
-	KuCoin:   NewKucoin,
+	Binance:   NewBinance,
+	Coinex:    NewCoinex,
+	BTCCoinex: NewBTCCoinex,
+	DragonEx:  NewDragonEx,
+	Huobi:     NewHuobi,
+	Poloniex:  NewPoloniex,
+	KuCoin:    NewKucoin,
 	DexDotDecred: NewDecredDEXConstructor(&DEXConfig{
 		Token:    DexDotDecred,
 		Host:     "dex.decred.org:7232",
@@ -243,6 +269,7 @@ var LTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (
 	Poloniex:     MutilchainNewPoloniex,
 	KuCoin:       MutilchainNewKucoin,
 	Gemini:       MutilchainNewGemini,
+	Coinex:       MutilchainNewCoinex,
 	DexDotDecred: nil,
 }
 
@@ -253,6 +280,7 @@ var BTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (
 	Poloniex:     MutilchainNewPoloniex,
 	KuCoin:       MutilchainNewKucoin,
 	Gemini:       MutilchainNewGemini,
+	Coinex:       MutilchainNewCoinex,
 	DexDotDecred: nil,
 }
 
@@ -265,7 +293,7 @@ func IsBtcIndex(token string) bool {
 
 // IsDcrExchange checks whether the given token is a known Decred-BTC exchange.
 func IsDcrExchange(token string, symbol string) bool {
-	if symbol != DCRSYMBOL {
+	if symbol != DCRUSDSYMBOL && symbol != DCRBTCSYMBOL {
 		return false
 	}
 	_, ok := DcrExchanges[token]
@@ -1068,6 +1096,11 @@ type BinanceExchange struct {
 	*CommonExchange
 }
 
+// CoinexExchange is a high-volume and well-respected crypto exchange.
+type CoinexExchange struct {
+	*CommonExchange
+}
+
 type KucoinExchange struct {
 	*CommonExchange
 }
@@ -1104,27 +1137,138 @@ func MutilchainNewBinance(client *http.Client, channels *BotChannels, chainType 
 }
 
 // NewBinance constructs a BinanceExchange.
-func NewBinance(client *http.Client, channels *BotChannels, binanceApiUrl string) (binance Exchange, err error) {
+func NewCoinex(client *http.Client, channels *BotChannels, _ string) (coinex Exchange, err error) {
 	reqs := newRequests()
-	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Price, binanceApiUrl), nil)
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(CoinexURLs.Price, "DCR", "USDT"), nil)
 	if err != nil {
 		return
 	}
 
-	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Depth, binanceApiUrl), nil)
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(CoinexURLs.Depth, "DCR", "USDT"), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range CoinexURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, "DCR", "USDT"), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(Coinex, client, reqs, channels)
+	commonExchange.Symbol = DCRUSDSYMBOL
+	coinex = &CoinexExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+func MutilchainNewCoinex(client *http.Client, channels *BotChannels, chainType string, _ string) (coinex Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(CoinexURLs.Price, strings.ToUpper(chainType), "USDT"), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(CoinexURLs.Depth, strings.ToUpper(chainType), "USDT"), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range CoinexURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, strings.ToUpper(chainType), "USDT"), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(Coinex, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
+	coinex = &CoinexExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+// NewBinance constructs a BinanceExchange.
+func NewBTCCoinex(client *http.Client, channels *BotChannels, _ string) (coinex Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(CoinexURLs.Price, "DCR", "BTC"), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(CoinexURLs.Depth, "DCR", "BTC"), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range CoinexURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, "DCR", "BTC"), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(BTCCoinex, client, reqs, channels)
+	commonExchange.Symbol = DCRBTCSYMBOL
+	coinex = &CoinexExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+// NewBinance constructs a BinanceExchange.
+func NewBinance(client *http.Client, channels *BotChannels, binanceApiUrl string) (binance Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Price, binanceApiUrl, "USDT"), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Depth, binanceApiUrl, "USDT"), nil)
 	if err != nil {
 		return
 	}
 
 	for dur, url := range BinanceURLs.Candlesticks {
-		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, binanceApiUrl), nil)
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, binanceApiUrl, "USDT"), nil)
 		if err != nil {
 			return
 		}
 	}
 
 	commonExchange := newCommonExchange(Binance, client, reqs, channels)
-	commonExchange.Symbol = DCRSYMBOL
+	commonExchange.Symbol = DCRUSDSYMBOL
+	binance = &BinanceExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+// NewBTCBinance constructs a BinanceExchange for dcr/btc pair.
+func NewBTCBinance(client *http.Client, channels *BotChannels, binanceApiUrl string) (binance Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Price, binanceApiUrl, "BTC"), nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(BinanceURLs.Depth, binanceApiUrl, "BTC"), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range BinanceURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, binanceApiUrl, "BTC"), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(BTCBinance, client, reqs, channels)
+	commonExchange.Symbol = DCRBTCSYMBOL
 	binance = &BinanceExchange{
 		CommonExchange: commonExchange,
 	}
@@ -1184,7 +1328,7 @@ func NewKucoin(client *http.Client, channels *BotChannels, _ string) (kucoin Exc
 	}
 
 	commonExchange := newCommonExchange(KuCoin, client, reqs, channels)
-	commonExchange.Symbol = DCRSYMBOL
+	commonExchange.Symbol = DCRUSDSYMBOL
 	kucoin = &KucoinExchange{
 		CommonExchange: commonExchange,
 	}
@@ -1216,6 +1360,63 @@ func MutilchainNewKucoin(client *http.Client, channels *BotChannels, chainType s
 		CommonExchange: commonExchange,
 	}
 	return
+}
+
+type CoinexResponseData struct {
+	Market     string `json:"market"`
+	Close      string `json:"close"`
+	High       string `json:"high"`
+	Last       string `json:"last"`
+	Low        string `json:"low"`
+	Open       string `json:"open"`
+	Period     int64  `json:"period"`
+	Value      string `json:"value"`
+	Volume     string `json:"volume"`
+	VolumeBuy  string `json:"volume_buy"`
+	VolumeSell string `json:"volume_sell"`
+}
+
+type CoinexPriceResponse struct {
+	Code    int64                `json:"code"`
+	Data    []CoinexResponseData `json:"data"`
+	Message string               `json:"message"`
+}
+
+type CoinexDepthResponseData struct {
+	Depth  CoinexDepthDetailData `json:"depth"`
+	IsFull bool                  `json:"is_full"`
+	Market string                `json:"market"`
+}
+
+type CoinexDepthDetailData struct {
+	Asks      [][2]string `json:"asks"`
+	Bids      [][2]string `json:"bids"`
+	CheckSum  int64       `json:"checksum"`
+	Last      string      `json:"last"`
+	UpdatedAt int64       `json:"updated_at"`
+}
+
+type CoinexDepthResponse struct {
+	Code    int64                   `json:"code"`
+	Data    CoinexDepthResponseData `json:"data"`
+	Message string                  `json:"message"`
+}
+
+type CoinexCandlestickResponse struct {
+	Code    int64                         `json:"code"`
+	Data    []CoinexCandlestickDetailData `json:"data"`
+	Message string                        `json:"message"`
+}
+
+type CoinexCandlestickDetailData struct {
+	Close     string `json:"close"`
+	CreatedAt int64  `json:"created_at"`
+	High      string `json:"high"`
+	Low       string `json:"low"`
+	Market    string `json:"market"`
+	Open      string `json:"open"`
+	Value     string `json:"value"`
+	Volume    string `json:"volume"`
 }
 
 // BinancePriceResponse models the JSON price data returned from the Binance API.
@@ -1620,6 +1821,152 @@ func (r *KucoinDepthResponse) translate() *DepthData {
 		return nil
 	}
 	return depth
+}
+
+func (r *CoinexDepthResponse) translate() *DepthData {
+	if r == nil {
+		return nil
+	}
+	depth := new(DepthData)
+	depth.Time = time.Now().Unix()
+	var err error
+	depth.Asks, err = parseBinanceDepthPoints(r.Data.Depth.Asks)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	depth.Bids, err = parseBinanceDepthPoints(r.Data.Depth.Bids)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	return depth
+}
+
+func (r CoinexCandlestickResponse) translate() Candlesticks {
+	sticks := make(Candlesticks, 0, len(r.Data))
+	for _, rawStick := range r.Data {
+		//parse Start time
+		startTime := time.Unix(rawStick.CreatedAt/1000, 0)
+
+		//parse open price
+		openPrice, err := strconv.ParseFloat(rawStick.Open, 64)
+		if err != nil {
+			log.Error("Unable to parse Coinex Open Price: %v", err)
+			return Candlesticks{}
+		}
+		//parse close price
+		closePrice, err := strconv.ParseFloat(rawStick.Close, 64)
+		if err != nil {
+			log.Error("Unable to parse Coinex Close Price: %v", err)
+			return Candlesticks{}
+		}
+		//parse highest price
+		highestPrice, err := strconv.ParseFloat(rawStick.High, 64)
+		if err != nil {
+			log.Error("Unable to parse Coinex Highest Price: %v", err)
+			return Candlesticks{}
+		}
+
+		//parse lowest price
+		lowestPrice, err := strconv.ParseFloat(rawStick.Low, 64)
+		if err != nil {
+			log.Error("Unable to parse Coinex Lowest Price: %v", err)
+			return Candlesticks{}
+		}
+
+		//parse Transaction volumn
+		volume, err := strconv.ParseFloat(rawStick.Volume, 64)
+		if err != nil {
+			log.Error("Unable to parse Coinex Volume: %v", err)
+			return Candlesticks{}
+		}
+
+		sticks = append(sticks, Candlestick{
+			High:   highestPrice,
+			Low:    lowestPrice,
+			Open:   openPrice,
+			Close:  closePrice,
+			Volume: volume,
+			Start:  startTime,
+		})
+	}
+	return sticks
+}
+
+// Refresh retrieves and parses API data from Coinex.
+func (coinex *CoinexExchange) Refresh() {
+	coinex.LogRequest()
+	priceResponse := new(CoinexPriceResponse)
+	err := coinex.fetch(coinex.requests.price, priceResponse)
+	if err != nil || len(priceResponse.Data) == 0 {
+		coinex.fail("Fetch price", err)
+		return
+	}
+	priceRes := priceResponse.Data[0]
+	price, err := strconv.ParseFloat(priceRes.Last, 64)
+	if err != nil {
+		coinex.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceRes.Last), err)
+		return
+	}
+	quoteVolume, err := strconv.ParseFloat(priceRes.VolumeBuy, 64)
+	if err != nil {
+		coinex.fail(fmt.Sprintf("Failed to parse float from QuoteVolume=%s", priceRes.VolumeBuy), err)
+		return
+	}
+
+	volume, err := strconv.ParseFloat(priceRes.Volume, 64)
+	if err != nil {
+		coinex.fail(fmt.Sprintf("Failed to parse float from Volume=%s", priceRes.Volume), err)
+		return
+	}
+	openPrice, err := strconv.ParseFloat(priceRes.Open, 64)
+	if err != nil {
+		coinex.fail(fmt.Sprintf("Failed to parse float from Open Price=%s", priceRes.Open), err)
+		return
+	}
+	priceChange := price - openPrice
+	// Get the depth chart
+	depthResponse := new(CoinexDepthResponse)
+	err = coinex.fetch(coinex.requests.depth, depthResponse)
+	if err != nil {
+		log.Errorf("Error retrieving depth chart data from Coinex: %v", err)
+	}
+	depth := depthResponse.translate()
+
+	// Grab the current state to check if candlesticks need updating
+	state := coinex.state()
+
+	candlesticks := map[candlestickKey]Candlesticks{}
+	for bin, req := range coinex.requests.candlesticks {
+		oldSticks, found := state.Candlesticks[bin]
+		if !found || oldSticks.needsUpdate(bin) {
+			log.Tracef("Signalling candlestick update for %s, bin size %s", coinex.token, bin)
+			response := new(CoinexCandlestickResponse)
+			err := coinex.fetch(req, response)
+			if err != nil {
+				log.Errorf("Error retrieving candlestick data from coinex for bin size %s: %v", string(bin), err)
+				continue
+			}
+			sticks := response.translate()
+
+			if !found || sticks.time().After(oldSticks.time()) {
+				candlesticks[bin] = sticks
+			}
+		}
+	}
+	coinex.Update(&ExchangeState{
+		BaseState: BaseState{
+			Symbol:     coinex.Symbol,
+			Price:      price,
+			BaseVolume: volume,
+			Volume:     quoteVolume,
+			Change:     priceChange,
+			Stamp:      time.Now().Unix(),
+		},
+		Candlesticks: candlesticks,
+		Depth:        depth,
+	})
 }
 
 // Refresh retrieves and parses API data from Binance.
@@ -2278,7 +2625,7 @@ func NewHuobi(client *http.Client, channels *BotChannels, _ string) (huobi Excha
 		reqs.candlesticks[dur].Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	}
 	commonExchange := newCommonExchange(Huobi, client, reqs, channels)
-	commonExchange.Symbol = DCRSYMBOL
+	commonExchange.Symbol = DCRUSDSYMBOL
 	return &HuobiExchange{
 		CommonExchange: commonExchange,
 		Ok:             "ok",
@@ -2323,7 +2670,7 @@ func GetSymbolFromChainType(chainType string) string {
 	case TYPELTC:
 		return LTCSYMBOL
 	default:
-		return DCRSYMBOL
+		return DCRUSDSYMBOL
 	}
 }
 

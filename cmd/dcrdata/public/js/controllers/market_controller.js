@@ -32,16 +32,30 @@ const prettyDurations = {
   '1mo': 'month'
 }
 const exchangeLinks = {
-  binance: 'https://www.binance.com/en/trade/DCR_BTC',
+  binance: 'https://www.binance.com/en/trade/DCR_USDT',
+  btc_binance: 'https://www.binance.com/en/trade/DCR_BTC',
   bittrex: 'https://bittrex.com/Market/Index?MarketName=BTC-DCR',
   poloniex: 'https://poloniex.com/exchange#btc_dcr',
   dragonex: 'https://dragonex.io/en-us/trade/index/dcr_btc',
   huobi: 'https://www.hbg.com/en-us/exchange/?s=dcr_btc',
-  dcrdex: 'https://dex.decred.org'
+  dcrdex: 'https://dex.decred.org',
+  coinex: 'https://www.coinex.com/en/exchange/DCR-USDT',
+  btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc'
+}
+
+const btcPairUses = ['btc_binance', 'btc_coinex', 'dcrdex', 'aggregated']
+
+function useBTCPair (exchange) {
+  return btcPairUses.indexOf(exchange) > -1
+}
+
+function useUSDPair (exchange) {
+  return btcPairUses.indexOf(exchange) < 0 || exchange === 'aggregated'
 }
 
 const printNames = {
-  dcrdex: 'dex.decred.org'
+  dcrdex: 'Dcrdex',
+  btc_coinex: 'Coinex'
   // default is capitalize
 }
 
@@ -104,7 +118,7 @@ let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#7774'
-const binList = ['5m', '30m', '1h', '1d', '1mo']
+const binList = ['5m', '30m', '1h', '4h', '1d', 'week', '1mo']
 let settings = {}
 const xcColors = [chartStroke, '#ed6d47', '#41be53', '#3087d8', '#dece12']
 
@@ -566,14 +580,18 @@ export default class extends Controller {
     return ['chartSelect', 'exchanges', 'bin', 'chart', 'legend', 'conversion',
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
-      'aggStack', 'zoom']
+      'aggStack', 'zoom', 'pairSelect', 'exchangeBtnArea']
   }
 
   async connect () {
     this.isHomepage = !window.location.href.includes('/market')
     this.query = new TurboQuery()
-    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs'])
+    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs', 'pair'])
     this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
+    this.dcrBtcPrice = this.data.get('dcrbtcprice')
+    this.dcrBtcVolume = this.data.get('dcrbtcvolume')
+    this.dcrUsdtPrice = this.data.get('price')
+    this.dcrUsdtVolume = this.data.get('volume')
     const _this = this
     if (!this.isHomepage) {
       this.query.update(settings)
@@ -624,6 +642,7 @@ export default class extends Controller {
       }
       if (option.dataset.depth) availableDepths.push(option.name)
     }
+    availableDepths.push('btc_aggregated')
     this.chartOptions = []
     const opts = this.chartSelectTarget.options
     for (let i = 0; i < opts.length; i++) {
@@ -633,6 +652,10 @@ export default class extends Controller {
     if (settings.chart == null) {
       settings.chart = depth
     }
+    if (settings.pair == null) {
+      settings.pair = 'usdt'
+    }
+    this.pairSelectTarget.value = settings.pair
     if (settings.xc == null) {
       settings.xc = usesOrderbook(settings.chart) ? aggregatedKey : 'binance'
     }
@@ -643,11 +666,14 @@ export default class extends Controller {
     if (settings.bin == null) {
       settings.bin = anHour
     }
-
+    if (settings.pair === 'btc') {
+      this.setAggRowData(true)
+    }
     // if chart is history, set to xcs
     if ((settings.chart === 'history' || settings.chart === 'volume') && (!settings.xcs || settings.xcs === null)) {
       settings.xcs = settings.xc
     }
+    this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
     this.resize = this._resize.bind(this)
@@ -661,6 +687,32 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+  }
+
+  handlerRadiusForBtnGroup (btnGroup) {
+    let firstSetted = false; let lastSetted = false
+    for (let i = 0; i < btnGroup.length; i++) {
+      const btn = btnGroup[i]
+      if (!firstSetted && !btn.classList.contains('d-hide') && !btn.classList.contains('d-none')) {
+        btn.classList.add('first-toggle-btn')
+        firstSetted = true
+      } else {
+        btn.classList.remove('first-toggle-btn')
+      }
+      const lastBtn = btnGroup[btnGroup.length - i - 1]
+      if (!lastSetted && !lastBtn.classList.contains('d-hide') && !lastBtn.classList.contains('d-none')) {
+        lastBtn.classList.add('last-toggle-btn')
+        lastSetted = true
+      } else {
+        lastBtn.classList.remove('last-toggle-btn')
+      }
+    }
+  }
+
+  setAggRowData (isBtcPair) {
+    const aggRow = this.getExchangeRow(aggregatedKey)
+    aggRow.price.textContent = humanize.threeSigFigs(isBtcPair ? this.dcrBtcPrice : this.dcrUsdtPrice)
+    aggRow.volume.textContent = humanize.threeSigFigs(isBtcPair ? this.dcrBtcVolume : this.dcrUsdtVolume)
   }
 
   disconnect () {
@@ -735,8 +787,12 @@ export default class extends Controller {
     let url = null
     requestCounter++
     const thisRequest = requestCounter
-    const bin = settings.bin
-    const xc = settings.xc
+    let bin = settings.bin
+    let xc = settings.xc
+    const _this = this
+    if (xc === 'aggregated' && settings.pair === 'btc') {
+      xc = 'btc_' + xc
+    }
     const chart = settings.chart
     const oldZoom = this.graph.xAxisRange()
     if (usesCandlesticks(chart)) {
@@ -747,7 +803,7 @@ export default class extends Controller {
         }
         if (availableCandlesticks[xc].indexOf(bin) === -1) {
           console.warn('invalid bin:', bin)
-          return
+          bin = _this.setLastBin(xc)
         }
       }
       url = `/api/chart/market/${xc}/candlestick/${bin}`
@@ -781,7 +837,7 @@ export default class extends Controller {
           }
           if (availableCandlesticks[itemXc].indexOf(bin) === -1) {
             console.warn('invalid bin:', bin)
-            continue
+            bin = _this.setLastBin(itemXc)
           }
           const xcUrl = `/api/chart/market/${xcList[i]}/candlestick/${bin}`
           let xcResponse
@@ -838,6 +894,19 @@ export default class extends Controller {
     this.chartLoaderTarget.classList.remove('loading')
     this.lastUrl = url
     refreshAvailable = false
+  }
+
+  setLastBin (xc) {
+    const availBins = usesOrderbook(settings.chart) ? availableDepths[xc] : availableCandlesticks[xc]
+    for (let i = this.binButtons.length - 1; i >= 0; i--) {
+      const button = this.binButtons[i]
+      if (!button.classList.contains('d-hide') && !button.classList.contains('d-none') && availBins.indexOf(button.name)) {
+        settings.bin = button.name
+        this.setBinSelection()
+        return button.name
+      }
+    }
+    return ''
   }
 
   processCandlesticks (response) {
@@ -1291,32 +1360,9 @@ export default class extends Controller {
       } else {
         bins = availableCandlesticks[settings.xc]
       }
-      let lastBinIndex = 0
-      let firstBinIndex = binList.length
-      bins.forEach((bin) => {
-        const indexOfBin = binList.indexOf(bin)
-        if (indexOfBin >= 0) {
-          if (indexOfBin > lastBinIndex) {
-            lastBinIndex = indexOfBin
-          }
-          if (indexOfBin < firstBinIndex) {
-            firstBinIndex = indexOfBin
-          }
-        }
-      })
       this.binButtons.forEach(button => {
         if (bins.indexOf(button.name) >= 0) {
           button.classList.remove('d-hide')
-          if (button.name === binList[lastBinIndex]) {
-            button.classList.add('last-toggle-btn')
-          } else {
-            button.classList.remove('last-toggle-btn')
-          }
-          if (button.name === binList[firstBinIndex]) {
-            button.classList.add('first-toggle-btn')
-          } else {
-            button.classList.remove('first-toggle-btn')
-          }
         } else {
           button.classList.add('d-hide')
         }
@@ -1334,6 +1380,8 @@ export default class extends Controller {
       this.aggStackTarget.classList.add('d-hide')
       settings.stack = null
     }
+    this.handlerRadiusForBtnGroup(this.exchangesButtons)
+    this.handlerRadiusForBtnGroup(this.binButtons)
   }
 
   getHistoryChartAvailableBins () {
@@ -1371,9 +1419,112 @@ export default class extends Controller {
     if (usesCandlesticks(settings.chart)) {
       this.justifyBins()
     }
+    this.reorderExchanges()
     this.setButtons()
     this.setExchangeName()
     this.fetchChart()
+  }
+
+  reorderExchanges () {
+    const isBTCPair = settings.pair === 'btc'
+    const activeExchange = this.getSelectedExchanges()
+    const afterActiveExchange = []
+    const _this = this
+    if (settings.chart === 'history' || settings.chart === 'volume') {
+      if (activeExchange.length > 0) {
+        activeExchange.forEach((activeEx) => {
+          if (activeEx !== aggregatedKey && ((isBTCPair && useBTCPair(activeEx)) || (!isBTCPair && useUSDPair(activeEx)))) {
+            afterActiveExchange.push(activeEx)
+          }
+        })
+      }
+      if (afterActiveExchange.length <= 0) {
+        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+      }
+      settings.xcs = afterActiveExchange.join(',')
+    } else {
+      if (activeExchange.length <= 0) {
+        afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair))
+      } else {
+        const exc = activeExchange[0]
+        if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
+          afterActiveExchange.push(exc)
+        } else {
+          afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+        }
+      }
+      if (afterActiveExchange.length > 0) {
+        settings.xc = afterActiveExchange.join(',')
+      }
+    }
+  }
+
+  async changePair (e) {
+    const target = e.target || e.srcElement
+    settings.pair = target.value
+    this.setAggRowData(settings.pair === 'btc')
+    this.handlerExchangesDisplay()
+    this.setButtons()
+    this.setExchangeName()
+    await this.fetchChart()
+    if (usesOrderbook(settings.chart)) {
+      this.setZoomPct(defaultZoomPct)
+      const stats = this.graph.getOption('stats')
+      const spread = stats.midGap * defaultZoomPct / 100
+      this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
+    }
+  }
+
+  handlerExchangesDisplay () {
+    const isBTCPair = settings.pair === 'btc'
+    this.exchangesButtons.forEach(button => {
+      if (isBTCPair) {
+        if (useBTCPair(button.name)) {
+          button.classList.remove('d-hide')
+        } else if (useUSDPair(button.name)) {
+          button.classList.add('d-hide')
+        }
+      } else {
+        if (useBTCPair(button.name)) {
+          button.classList.add('d-hide')
+        } else if (useUSDPair(button.name)) {
+          button.classList.remove('d-hide')
+        }
+      }
+    })
+    this.reorderExchanges()
+    for (let i = 0; i < this.xcRowTargets.length; i++) {
+      const xcRow = this.xcRowTargets[i]
+      const token = xcRow.dataset.token
+      if (token === 'aggregated') {
+        continue
+      }
+      if (isBTCPair) {
+        if (useBTCPair(token)) {
+          xcRow.classList.remove('d-hide')
+        } else if (useUSDPair(token)) {
+          xcRow.classList.add('d-hide')
+        }
+      } else {
+        if (useBTCPair(token)) {
+          xcRow.classList.add('d-hide')
+        } else if (useUSDPair(token)) {
+          xcRow.classList.remove('d-hide')
+        }
+      }
+    }
+  }
+
+  getFirstExchangeButton (isBTCPair) {
+    let firstBtn = this.exchangesButtons[0].name
+    for (let i = 0; i < this.exchangesButtons.length; i++) {
+      const exBtn = this.exchangesButtons[i]
+      if (!exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none') && ((isBTCPair && useBTCPair(exBtn.name)) || (!isBTCPair && useUSDPair(exBtn.name)))) {
+        firstBtn = exBtn.name
+        break
+      }
+    }
+    return firstBtn
   }
 
   changeExchange (e) {
@@ -1481,7 +1632,7 @@ export default class extends Controller {
     } else {
       this.xcNameTarget.classList.remove('fs-17')
       this.xcLogoTarget.classList.remove('d-hide')
-      this.xcLogoTarget.className = `exchange-logo ${settings.xc}`
+      this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
       const prettyName = printName(settings.xc)
       this.xcNameTarget.textContent = prettyName
       const href = exchangeLinks[settings.xc]
@@ -1493,6 +1644,13 @@ export default class extends Controller {
         this.actionsTarget.classList.add('d-hide')
       }
     }
+  }
+
+  getXcLogo (xc) {
+    if (xc.startsWith('btc_')) {
+      return xc.replaceAll('btc_', '')
+    }
+    return xc
   }
 
   _processNightMode (data) {
@@ -1532,6 +1690,16 @@ export default class extends Controller {
       }
     }
     return null
+  }
+
+  getSelectedExchanges () {
+    const activeExchanges = []
+    this.exchangesButtons.forEach(button => {
+      if (button.classList.contains('active')) {
+        activeExchanges.push(button.name)
+      }
+    })
+    return activeExchanges
   }
 
   setStacking (e) {
@@ -1589,7 +1757,7 @@ export default class extends Controller {
       const row = this.getExchangeRow(xc.token)
       row.volume.textContent = humanize.threeSigFigs(xc.volume)
       row.price.textContent = humanize.threeSigFigs(xc.price)
-      row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
+      // row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
       if (xc.change === 0) {
         row.arrow.className = ''
       } else if (xc.change > 0) {
@@ -1599,13 +1767,16 @@ export default class extends Controller {
       }
     }
     // Update the big displayed value and the aggregated row
-    const fmtPrice = update.price.toFixed(2)
-    this.priceTarget.textContent = fmtPrice
+    // const fmtPrice = settings.pair === 'btc' ? update.dcr_btc_price.toFixed(6) : update.price.toFixed(2)
+    this.priceTarget.textContent = update.price.toFixed(2)
     const aggRow = this.getExchangeRow(aggregatedKey)
     btcPrice = update.btc_price
-    aggRow.price.textContent = humanize.threeSigFigs(update.price / btcPrice)
-    aggRow.volume.textContent = humanize.threeSigFigs(update.volume)
-    aggRow.fiat.textContent = fmtPrice
+    this.dcrBtcPrice = update.dcr_btc_price
+    this.dcrUsdtPrice = update.price
+    this.dcrUsdtVolume = update.volume
+    this.dcrBtcVolum = update.dcr_btc_volume
+    aggRow.price.textContent = humanize.threeSigFigs(settings.pair === 'btc' ? update.dcr_btc_price : update.price)
+    aggRow.volume.textContent = humanize.threeSigFigs(settings.pair === 'btc' ? update.dcr_btc_volume : update.volume)
     // Auto-update the chart if it makes sense.
     if (settings.xc !== aggregatedKey && settings.xc !== xc.token) return
     if (settings.xc === aggregatedKey &&

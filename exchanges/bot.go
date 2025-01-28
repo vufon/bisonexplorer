@@ -14,9 +14,10 @@ import (
 	"sync"
 	"time"
 
-	dcrrates "github.com/decred/dcrdata/exchanges/v3/ratesproto"
 	"google.golang.org/grpc"
 	credentials "google.golang.org/grpc/credentials"
+
+	dcrrates "github.com/decred/dcrdata/exchanges/v3/ratesproto"
 )
 
 const (
@@ -31,14 +32,16 @@ const (
 
 	defaultDCRRatesPort = "7778"
 
-	aggregatedOrderbookKey = "aggregated"
-	orderbookKey           = "depth"
-	TYPEDCR                = "dcr"
-	TYPELTC                = "ltc"
-	TYPEBTC                = "btc"
-	LTCSYMBOL              = "LTCUSDT"
-	BTCSYMBOL              = "BTCUSDT"
-	DCRSYMBOL              = "DCRBTC"
+	aggregatedOrderbookKey    = "aggregated"
+	aggregatedBTCOrderbookKey = "btc_aggregated"
+	orderbookKey              = "depth"
+	TYPEDCR                   = "dcr"
+	TYPELTC                   = "ltc"
+	TYPEBTC                   = "btc"
+	LTCSYMBOL                 = "LTCUSDT"
+	BTCSYMBOL                 = "BTCUSDT"
+	DCRBTCSYMBOL              = "DCRBTC"
+	DCRUSDSYMBOL              = "DCRUSD"
 )
 
 // ExchangeBotConfig is the configuration options for ExchangeBot.
@@ -110,17 +113,19 @@ type ExchangeBot struct {
 // ExchangeBotState is the current known state of all exchanges, in a certain
 // base currency, and a volume-averaged price and total volume in DCR.
 type ExchangeBotState struct {
-	BtcIndex  string                    `json:"btc_index"`
-	BtcPrice  float64                   `json:"btc_fiat_price"`
-	Price     float64                   `json:"price"`
-	Volume    float64                   `json:"volume"`
-	LTCPrice  float64                   `json:"ltc_price"`
-	LTCVolume float64                   `json:"ltc_volume"`
-	BTCPrice  float64                   `json:"btc_price"`
-	BTCVolume float64                   `json:"btc_volume"`
-	DcrBtc    map[string]*ExchangeState `json:"dcr_btc_exchanges"`
-	LtcUsd    map[string]*ExchangeState `json:"ltc_usd_exchanges"`
-	BtcUsd    map[string]*ExchangeState `json:"btc_usd_exchanges"`
+	BtcIndex     string                    `json:"btc_index"`
+	BtcPrice     float64                   `json:"btc_fiat_price"`
+	Price        float64                   `json:"price"`
+	DCRBTCPrice  float64                   `json:"dcr_btc_price"`
+	Volume       float64                   `json:"volume"`
+	DCRBTCVolume float64                   `json:"dcr_btc_volume"`
+	LTCPrice     float64                   `json:"ltc_price"`
+	LTCVolume    float64                   `json:"ltc_volume"`
+	BTCPrice     float64                   `json:"btc_price"`
+	BTCVolume    float64                   `json:"btc_volume"`
+	DcrBtc       map[string]*ExchangeState `json:"dcr_btc_exchanges"`
+	LtcUsd       map[string]*ExchangeState `json:"ltc_usd_exchanges"`
+	BtcUsd       map[string]*ExchangeState `json:"btc_usd_exchanges"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
 	FiatIndices map[string]*ExchangeState `json:"btc_indices"`
@@ -186,13 +191,11 @@ type TokenedExchange struct {
 func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 	xcList := make([]*TokenedExchange, 0, len(state.DcrBtc))
 	for token, state := range state.DcrBtc {
-		if token != "dcrdex" {
-			state.Sticks = state.StickList()
-			xcList = append(xcList, &TokenedExchange{
-				Token: token,
-				State: state,
-			})
-		}
+		state.Sticks = state.StickList()
+		xcList = append(xcList, &TokenedExchange{
+			Token: token,
+			State: state,
+		})
 	}
 	sort.Slice(xcList, func(i, j int) bool {
 		if xcList[i].Token == "binance" {
@@ -700,8 +703,8 @@ func (bot *ExchangeBot) connectMasterBot(ctx context.Context, delay time.Duratio
 	stream, err := grpcClient.SubscribeExchanges(ctx, &dcrrates.ExchangeSubscription{
 		BtcIndex:     bot.BtcIndex,
 		Exchanges:    bot.subscribedExchanges(),
-		LTCExchanges: bot.subscribedMutilchainExchanges(TYPELTC),
-		BTCExchanges: bot.subscribedMutilchainExchanges(TYPEBTC),
+		LtcExchanges: bot.subscribedMutilchainExchanges(TYPELTC),
+		BtcExchanges: bot.subscribedMutilchainExchanges(TYPEBTC),
 	})
 	if err != nil {
 		return nil, err
@@ -991,6 +994,37 @@ func (bot *ExchangeBot) processState(states map[string]*ExchangeState, volumeAve
 	var deletions []string
 	oldestValid := time.Now().Add(-bot.RequestExpiry)
 	for token, state := range states {
+		if IsDCRBTCExchange(token) {
+			continue
+		}
+		if bot.Exchanges[token].LastUpdate().Before(oldestValid) {
+			deletions = append(deletions, token)
+			continue
+		}
+		volume := 1.0
+		if volumeAveraged {
+			volume = state.BaseVolume
+		}
+		volSum += volume
+		priceAccumulator += volume * state.Price
+	}
+	for _, token := range deletions {
+		delete(states, token)
+	}
+	if volSum == 0 {
+		return 0, 0
+	}
+	return priceAccumulator / volSum, volSum
+}
+
+func (bot *ExchangeBot) processDCRBTCState(states map[string]*ExchangeState, volumeAveraged bool) (float64, float64) {
+	var priceAccumulator, volSum float64
+	var deletions []string
+	oldestValid := time.Now().Add(-bot.RequestExpiry)
+	for token, state := range states {
+		if !IsDCRBTCExchange(token) {
+			continue
+		}
 		if bot.Exchanges[token].LastUpdate().Before(oldestValid) {
 			deletions = append(deletions, token)
 			continue
@@ -1023,6 +1057,7 @@ func (bot *ExchangeBot) updateExchange(update *ExchangeUpdate) error {
 	if update.State.Depth != nil {
 		bot.incrementChart(genCacheID(update.Token, orderbookKey))
 		bot.incrementChart(genCacheID(aggregatedOrderbookKey, orderbookKey))
+		bot.incrementChart(genCacheID(aggregatedBTCOrderbookKey, orderbookKey))
 	}
 	var chainType string
 	switch update.State.Symbol {
@@ -1081,6 +1116,7 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 		}
 	default:
 		dcrPrice, volume := bot.processState(bot.currentState.DcrBtc, true)
+		dcrBtcPrice, dcrBtcVolume := bot.processDCRBTCState(bot.currentState.DcrBtc, true)
 		btcPrice, _ := bot.processState(bot.currentState.FiatIndices, false)
 		if dcrPrice == 0 || btcPrice == 0 {
 			bot.failed = true
@@ -1089,6 +1125,8 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 			bot.currentState.Price = dcrPrice
 			bot.currentState.BtcPrice = btcPrice
 			bot.currentState.Volume = volume
+			bot.currentState.DCRBTCPrice = dcrBtcPrice
+			bot.currentState.DCRBTCVolume = dcrBtcVolume
 		}
 	}
 
@@ -1467,8 +1505,12 @@ func (bot *ExchangeBot) aggMutilchainOrderbook(chainType string) *aggregateOrder
 	}
 }
 
-// Make an aggregate orderbook from all depth data.
 func (bot *ExchangeBot) aggOrderbook() *aggregateOrderbook {
+	return bot.aggOrderbookHandler(true)
+}
+
+// Make an aggregate orderbook from all depth data.
+func (bot *ExchangeBot) aggOrderbookHandler(isDcrUsdtPair bool) *aggregateOrderbook {
 	state := bot.State()
 	if state == nil {
 		return nil
@@ -1482,7 +1524,7 @@ func (bot *ExchangeBot) aggOrderbook() *aggregateOrderbook {
 	// counted and sorted alphabetically.
 	tokens := []string{}
 	for token, xcState := range state.DcrBtc {
-		if !xcState.HasDepth() || token == "dcrdex" {
+		if !xcState.HasDepth() || (isDcrUsdtPair && IsDCRBTCExchange(token)) || (!isDcrUsdtPair && !IsDCRBTCExchange(token)) {
 			continue
 		}
 		tokens = append(tokens, token)
@@ -1527,7 +1569,13 @@ func (bot *ExchangeBot) QuickDepth(token string) (chart []byte, err error) {
 	}
 
 	if token == aggregatedOrderbookKey {
-		agDepth := bot.aggOrderbook()
+		agDepth := bot.aggOrderbookHandler(true)
+		if agDepth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", token)
+		}
+		chart, err = bot.encodeJSON(agDepth)
+	} else if token == aggregatedBTCOrderbookKey {
+		agDepth := bot.aggOrderbookHandler(false)
 		if agDepth == nil {
 			return nil, fmt.Errorf("Failed to find depth for %s", token)
 		}

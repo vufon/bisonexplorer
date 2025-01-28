@@ -254,7 +254,11 @@
                               {{- if $botState -}}
                               <div class="row border-1-grey px-0 chart-wrapper">
                                  <!-- market chart start -->
-                                 <div class="row w-100 ms-2 ps-0 align-items-top" data-controller="market">
+                                 <div class="row w-100 ms-2 ps-0 align-items-top" data-controller="market"
+                                    data-market-dcrbtcprice="{{$botState.DCRBTCPrice}}" 
+                                    data-market-dcrbtcvolume="{{$botState.DCRBTCVolume}}"
+                                    data-market-price="{{$botState.Price}}"
+                                    data-market-volume="{{$botState.Volume}}">
                                     {{- /* LEFT COLUMN */ -}}
                                     <div class="col-24 col-lg-auto p-0 d-none">
                                        {{- /* PRICE */ -}}
@@ -302,9 +306,6 @@
                                                       <span class="dcricon-arrow-down text-danger"></span>
                                                       {{end}}
                                                    </td>
-                                                   <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
-                                                      {{printf "%.2f" ($botState.BtcToFiat .State.Price)}}
-                                                   </td>
                                                 </tr>
                                                 {{end}}
                                                 <tr class="fs sum-row hover-row" data-market-target="xcRow"
@@ -320,10 +321,6 @@
                                                       {{threeSigFigs ($botState.FiatToBtc $botState.Price)}}
                                                    </td>
                                                    <td></td>
-                                                   {{- /* no arrow for aggregated data */ -}}
-                                                   <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
-                                                      {{printf "%.2f" $botState.Price}}
-                                                   </td>
                                                 </tr>
                                              </tbody>
                                           </table>
@@ -366,6 +363,18 @@
                                           {{- /* CHART ONTROLS */ -}}
                                           <div
                                              class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
+                                             {{- /* PAIR SELECTION */ -}}
+                                             <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                                                 <label>Pair</label>
+                                                 <select
+                                                     class="chart-box d-inline-flex"
+                                                     data-market-target="pairSelect"
+                                                     data-action="change->market#changePair"
+                                                 >
+                                                     <option value="usdt" selected>DCR/USDT</option>
+                                                     <option value="btc">DCR/BTC</option>
+                                                 </select>
+                                             </div>
                                              {{- /* EXCHANGE SELECTION */ -}}
                                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="exchanges"
                                              data-action="click->market#changeExchange">
@@ -374,11 +383,11 @@
                                                    {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
                                                    {{if ne $exchange.Token "dcrdex"}}
                                                    <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
-                                                   class="tab-button home-chart-toggle-btn white c-txt-main {{if eq $index 0}}first-toggle-btn{{end}}">{{xcDisplayName $exchange.Token}}</button>
+                                                   class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
                                                    {{end}}
                                                    {{end}}
                                                    <button name="aggregated" data-market-target="aggOption" data-depth="1"
-                                                      class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Aggregated</button>
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
                                                 </div>
                                              </div>
                                              {{- /* CHART TYPE SELECTION */ -}}
@@ -405,9 +414,11 @@
                                                 <div class="btn-group">
                                                    <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
                                                    <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
-                                                   <button name="1h" class="active tab-button home-chart-toggle-btn white first-toggle-btn c-txt-main">Hour</button>
+                                                   <button name="1h" class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
+                                                   <button name="4h" class="active tab-button home-chart-toggle-btn white c-txt-main">4 Hours</button>
                                                    <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
-                                                   <button name="1mo" class="tab-button home-chart-toggle-btn white last-toggle-btn c-txt-main">Month</button>
+                                                   <button name="1w" class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
+                                                   <button name="1mo" class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
                                                 </div>
                                              </div>
                                              {{- /* DISPLAY CURRENCY */ -}}
@@ -1283,6 +1294,26 @@
                                                 <option value="fees">Fees</option>
                                              </optgroup>
                                           </select>
+                                       </div>
+                                    </div>
+                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                       data-charts-target="rangeSelector">
+                                       <div class="chart-control-label">Blake3 Milestone</div>
+                                       <div class="chart-control chart-filter-selection ps-2">
+                                          <ul class="nav nav-pills">
+                                             <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                                data-action="click->charts#setRange" data-option="all">
+                                                All
+                                             </li>
+                                             <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                                data-action="click->charts#setRange" data-option="before">
+                                                Before
+                                             </li>
+                                             <li class="nav-item nav-link" data-charts-target="rangeOption"
+                                                data-action="click->charts#setRange" data-option="after">
+                                                After
+                                             </li>
+                                          </ul>
                                        </div>
                                     </div>
                                     <div class="chart-control-wrapper chart-filter-tools mb-1"

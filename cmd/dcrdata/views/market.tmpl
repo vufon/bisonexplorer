@@ -9,7 +9,12 @@
 
 {{- if $botState -}}
 
-<div class="row w-100 align-items-top mb-4" data-controller="market">
+<div class="row w-100 align-items-top mb-4" data-controller="market" 
+    data-market-dcrbtcprice="{{$botState.DCRBTCPrice}}" 
+    data-market-dcrbtcvolume="{{$botState.DCRBTCVolume}}"
+    data-market-price="{{$botState.Price}}"
+    data-market-volume="{{$botState.Volume}}"
+    >
 <div class="col-24 ps-4">
     <nav class="breadcrumbs mt-0">
         <a href="/" class="breadcrumbs__item no-underline ps-2">
@@ -42,7 +47,7 @@
                     </tr>
                     {{range $botState.VolumeOrderedExchanges}}
                         <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
-                            <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{.Token}} me-2"></div> {{xcDisplayName .Token}}</td>
+                            <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}</td>
                             <td class="ps-2 fs16 py-2 text-end" data-type="volume">
                                 {{threeSigFigs .State.BaseVolume}}
                             </td>
@@ -65,7 +70,7 @@
                         <td class="ps-2 fs16 py-2 text-end" data-type="volume">
                             {{threeSigFigs $botState.Volume}}
                         </td>
-                        <td class="ps-1 fs16 py-2 text-end" data-type="fiat">
+                        <td class="ps-1 fs16 py-2 text-end" data-type="price">
                             {{threeSigFigs $botState.Price}}
                         </td>
                         <td></td> {{- /* no arrow for aggregated data */ -}}
@@ -101,19 +106,29 @@
         <div class="loader-v2 loading" data-market-target="chartLoader"></div>
             {{- /* CHART ONTROLS */ -}}
             <div class="d-flex flex-shrink-1 align-items-top justify-content-around market-common-card justify-content-lg-center flex-wrap mx-1 py-2 mx-lg-4 mb-2">
+                {{- /* PAIR SELECTION */ -}}
+                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                    <label>Pair</label>
+                    <select
+                        class="chart-box d-inline-flex"
+                        data-market-target="pairSelect"
+                        data-action="change->market#changePair"
+                    >
+                        <option value="usdt" selected>DCR/USDT</option>
+                        <option value="btc">DCR/BTC</option>
+                    </select>
+                </div>
                 {{- /* EXCHANGE SELECTION */ -}}
                 <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="exchanges"
                 data-action="click->market#changeExchange">
                     <label>Exchange</label>
                     <div class="btn-group" data-market-target="exchangeBtnArea">
                         {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
-                        {{if ne $exchange.Token "dcrdex"}}
                         <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
-                           class="tab-button home-chart-toggle-btn white c-txt-main {{if eq $index 0}}first-toggle-btn{{end}}">{{xcDisplayName $exchange.Token}}</button>
-                        {{end}}
+                           class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
                         {{end}}
                         <button name="aggregated" data-market-target="aggOption" data-depth="1"
-                           class="tab-button home-chart-toggle-btn white c-txt-main last-toggle-btn">Aggregated</button>
+                           class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
                      </div>
                 </div>
                 {{- /* CHART TYPE SELECTION */ -}}
@@ -142,9 +157,11 @@
                   <div class="btn-group">
                     <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
                     <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
-                    <button name="1h" class="active tab-button home-chart-toggle-btn white first-toggle-btn c-txt-main">Hour</button>
+                    <button name="1h" class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
+                    <button name="4h" class="active tab-button home-chart-toggle-btn white c-txt-main">4 Hours</button>
                     <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
-                    <button name="1mo" class="tab-button home-chart-toggle-btn white last-toggle-btn c-txt-main">Month</button>
+                    <button name="1w" class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
+                    <button name="1mo" class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
                  </div>
                 </div>
                 {{- /* DISPLAY CURRENCY */ -}}
