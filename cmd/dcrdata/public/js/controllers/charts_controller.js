@@ -124,20 +124,23 @@ function legendFormatter (data) {
   return div.innerHTML
 }
 
-function hashratePlotter (e) {
-  Dygraph.Plotters.fillPlotter(e)
-  Dygraph.Plotters.linePlotter(e)
-  hashrateLegendPlotter(e)
+function hashrateTimePlotter (e) {
+  hashrateLegendPlotter(e, 1693612800000)
+}
+
+function hashrateBlockPlotter (e) {
+  hashrateLegendPlotter(e, 794429)
 }
 
 function makePt (x, y) { return { x, y } }
 
 // Legend plotter processing for hashrate chart for blake3 algorithm transition
-function hashrateLegendPlotter (e) {
-  const midGapTime = 1693612800000
+function hashrateLegendPlotter (e, midGapValue) {
+  Dygraph.Plotters.fillPlotter(e)
+  Dygraph.Plotters.linePlotter(e)
   const area = e.plotArea
   const ctx = e.drawingContext
-  const mg = e.dygraph.toDomCoords(midGapTime, 0)
+  const mg = e.dygraph.toDomCoords(midGapValue, 0)
   const midGap = makePt(mg[0], mg[1])
   const fontSize = 13
   const dark = darkEnabled()
@@ -569,13 +572,15 @@ export default class extends Controller {
       stepPlot: this.settings.mode === 'stepped',
       axes: {},
       series: null,
-      inflation: null
+      inflation: null,
+      plotter: null
     }
     rawPoolValue = []
     rawCoinSupply = []
     yFormatter = defaultYFormatter
     const xlabel = data.t ? 'Date' : 'Block Height'
     const _this = this
+    const isHeightBlock = data.axis === 'height' && data.bin === 'block'
     switch (chartName) {
       case 'ticket-price': // price graph
         d = ticketPriceFunc(data)
@@ -715,12 +720,12 @@ export default class extends Controller {
         break
 
       case 'hashrate': // Total chainwork over time
-        d = data.axis === 'height' && data.bin === 'block' ? zipHvY(data.h, data.rate, 1e-3, data.offset) : zip2D(data, data.rate, 1e-3, data.offset)
+        d = isHeightBlock ? zipHvY(data.h, data.rate, 1e-3, data.offset) : zip2D(data, data.rate, 1e-3, data.offset)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
         if (_this.settings.range !== 'before' && _this.settings.range !== 'after') {
-          gOptions.plotter = hashratePlotter
+          gOptions.plotter = data.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
         break
 
