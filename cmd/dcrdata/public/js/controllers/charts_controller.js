@@ -124,6 +124,81 @@ function legendFormatter (data) {
   return div.innerHTML
 }
 
+function hashrateTimePlotter (e) {
+  hashrateLegendPlotter(e, 1693612800000)
+}
+
+function hashrateBlockPlotter (e) {
+  hashrateLegendPlotter(e, 794429)
+}
+
+function makePt (x, y) { return { x, y } }
+
+// Legend plotter processing for hashrate chart for blake3 algorithm transition
+function hashrateLegendPlotter (e, midGapValue) {
+  Dygraph.Plotters.fillPlotter(e)
+  Dygraph.Plotters.linePlotter(e)
+  const area = e.plotArea
+  const ctx = e.drawingContext
+  const mg = e.dygraph.toDomCoords(midGapValue, 0)
+  const midGap = makePt(mg[0], mg[1])
+  const fontSize = 13
+  const dark = darkEnabled()
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.font = `${fontSize}px arial`
+  ctx.lineWidth = 1
+  ctx.strokeStyle = dark ? '#ffffff' : '#23562f'
+  const boxColor = dark ? '#1e2b39' : '#ffffff'
+
+  const line1 = 'Milestone in the'
+  const line2 = 'transition of the'
+  const line3 = 'algorithm to BLAKE3'
+  let boxW = 0
+  const txts = [line1, line2, line3]
+  txts.forEach(txt => {
+    const w = ctx.measureText(txt).width
+    if (w > boxW) boxW = w
+  })
+  let rowHeight = fontSize * 1.5
+  const rowPad = (rowHeight - fontSize) / 3
+  const boxPad = rowHeight / 5
+  let y = fontSize
+  y += area.h / 4
+  // Label the gap size.
+  rowHeight -= 2 // just looks better
+  ctx.fillStyle = boxColor
+  const rect = makePt(midGap.x + boxPad, y - boxPad)
+  const dims = makePt(boxW + boxPad * 3, rowHeight * 4 + boxPad * 2)
+  ctx.fillRect(rect.x, rect.y, dims.x, dims.y)
+  ctx.strokeRect(rect.x, rect.y, dims.x, dims.y)
+  ctx.fillStyle = dark ? '#ffffff' : '#23562f'
+  const centerX = midGap.x + boxW / 2 + 8
+  const write = s => {
+    const cornerX = centerX - (ctx.measureText(s).width / 2)
+    ctx.fillText(s, cornerX + rowPad, y + rowPad)
+    y += rowHeight
+  }
+
+  ctx.save()
+  ctx.font = `regular ${fontSize}px arial`
+  write(line1)
+  ctx.restore()
+  write(line2)
+  write(line3)
+  // Draw a line from the box to the gap
+  drawLine(ctx,
+    makePt(midGap.x + boxW / 2, y),
+    makePt(midGap.x, midGap.y - boxPad))
+}
+
+function drawLine (ctx, start, end) {
+  ctx.beginPath()
+  ctx.moveTo(start.x, start.y)
+  ctx.lineTo(end.x, end.y)
+  ctx.stroke()
+}
+
 function nightModeOptions (nightModeOn) {
   if (nightModeOn) {
     return {
@@ -497,13 +572,15 @@ export default class extends Controller {
       stepPlot: this.settings.mode === 'stepped',
       axes: {},
       series: null,
-      inflation: null
+      inflation: null,
+      plotter: null
     }
     rawPoolValue = []
     rawCoinSupply = []
     yFormatter = defaultYFormatter
     const xlabel = data.t ? 'Date' : 'Block Height'
-
+    const _this = this
+    const isHeightBlock = data.axis === 'height' && data.bin === 'block'
     switch (chartName) {
       case 'ticket-price': // price graph
         d = ticketPriceFunc(data)
@@ -572,6 +649,9 @@ export default class extends Controller {
       case 'pow-difficulty': // difficulty graph
         d = powDiffFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
+        if (_this.settings.range !== 'before' && _this.settings.range !== 'after') {
+          gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
+        }
         break
 
       case 'coin-supply': // supply graph
@@ -643,10 +723,13 @@ export default class extends Controller {
         break
 
       case 'hashrate': // Total chainwork over time
-        d = data.axis === 'height' && data.bin === 'block' ? zipHvY(data.h, data.rate, 1e-3, data.offset) : zip2D(data, data.rate, 1e-3, data.offset)
+        d = isHeightBlock ? zipHvY(data.h, data.rate, 1e-3, data.offset) : zip2D(data, data.rate, 1e-3, data.offset)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
+        if (_this.settings.range !== 'before' && _this.settings.range !== 'after') {
+          gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
+        }
         break
 
       case 'missed-votes':
