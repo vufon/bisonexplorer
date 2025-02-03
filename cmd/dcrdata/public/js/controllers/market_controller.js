@@ -565,6 +565,7 @@ function depthPlotter (e) {
 }
 
 let stickZoom, orderZoom
+let samePair
 function calcStickWindow (start, end, bin) {
   const halfBin = minuteMap[bin] / 2
   start = new Date(start.getTime())
@@ -1467,7 +1468,9 @@ export default class extends Controller {
     this.setButtons()
     this.setExchangeName()
     await this.fetchChart()
+    samePair = false
     if (usesOrderbook(settings.chart)) {
+      samePair = true
       this.setZoomPct(defaultZoomPct)
       const stats = this.graph.getOption('stats')
       const spread = stats.midGap * defaultZoomPct / 100
@@ -1583,8 +1586,11 @@ export default class extends Controller {
     if (settings.chart === candlestick) {
       this.graph.updateOptions({ dateWindow: stickZoom })
     } else if (usesOrderbook(settings.chart)) {
-      if (orderZoom) this.graph.updateOptions({ dateWindow: orderZoom })
-      else this.setZoomPct(defaultZoomPct)
+      if (orderZoom && samePair) this.graph.updateOptions({ dateWindow: orderZoom })
+      else {
+        this.setZoomPct(defaultZoomPct)
+        samePair = true
+      }
     } else {
       this.graph.resetZoom()
     }
