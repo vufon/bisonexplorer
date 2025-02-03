@@ -457,12 +457,12 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			BestBlock:    bestBlock,
 			HomeInfo:     homeInfo,
 		}
+		chainHomeInfo.Price = chainHomeInfo.ExchangeRate.Value
+		chainHomeInfo.MarketCap = chainHomeInfo.Price * chainHomeInfo.HomeInfo.CoinValueSupply
 		if len(exp.CoinCapDataList) > 0 {
 			for _, capData := range exp.CoinCapDataList {
 				if capData.Symbol == dbtypes.ChainSymbolMap[chainType] {
-					chainHomeInfo.MarketCap = capData.MarketCap
-					chainHomeInfo.Volumn = capData.Volumn
-					chainHomeInfo.Price = capData.Price
+					chainHomeInfo.Volumn = capData.Volumn * chainHomeInfo.Price
 					break
 				}
 			}

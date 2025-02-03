@@ -809,7 +809,7 @@ func _main(ctx context.Context) error {
 
 	getMarketCapData := func() {
 		//get coin cap data from extenal api
-		coinCapData := externalapi.GetMarketCapData(coinCaps)
+		coinCapData := externalapi.GetCoinigyCapData(coinCaps)
 		explore.CoinCapDataList = coinCapData
 		app.CoinCapDataList = coinCapData
 		log.Infof("Get Coincap data successfully. Blockchain list: %s", cfg.CoincapActive)

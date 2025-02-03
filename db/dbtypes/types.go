@@ -28,9 +28,9 @@ import (
 var scriptClassNames map[string]ScriptClass
 var MutilchainList = []string{"btc", "ltc"}
 var ChainSymbolMap = map[string]string{
-	mutilchain.TYPEBTC: "bitcoin",
-	mutilchain.TYPELTC: "litecoin",
-	mutilchain.TYPEDCR: "decred",
+	mutilchain.TYPEBTC: "btc",
+	mutilchain.TYPELTC: "ltc",
+	mutilchain.TYPEDCR: "dcr",
 }
 
 func init() {
