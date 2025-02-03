@@ -8,6 +8,7 @@ import (
 )
 
 var coinigyMarketURL = `https://api.coinigy.com/api/v2/public/markets/market-summaries`
+var capInfoURL = `https://api.coinigy.com/api/v2/public/currencies/`
 
 type CoinigyMarketResponse struct {
 	Success      bool            `json:"success"`
@@ -32,6 +33,23 @@ type CoinigyResult struct {
 	MiniChartData     any     `json:"miniChartData"`
 	PercentChange     float64 `json:"percentChange"`
 	Volume            float64 `json:"volume"`
+	QuoteCurrencyCode string  `json:"quoteCurrencyCode"`
+}
+
+type CoinigyCapInfoResponse struct {
+	Success bool             `json:"success"`
+	Error   any              `json:"error"`
+	Result  CoinigyCapResult `json:"result"`
+}
+
+type CoinigyCapResult struct {
+	Data CoinigyCapData `json:"data"`
+}
+
+type CoinigyCapData struct {
+	CurrCode     string  `json:"currCode"`
+	CurrName     string  `json:"currName"`
+	MarketCapUsd float64 `json:"marketCapUsd"`
 }
 
 func GetCoinigyCapData(blockchainList []string) []*dbtypes.MarketCapData {
@@ -44,7 +62,9 @@ func GetCoinigyCapData(blockchainList []string) []*dbtypes.MarketCapData {
 		}
 		pageNum := 1
 		volSum := float64(0)
+		volPriceSum := float64(0)
 		strongSum := float64(0)
+		priceStrongSum := float64(0)
 		for {
 			query["PageNumber"] = fmt.Sprintf("%d", pageNum)
 			req := &ReqConfig{
@@ -62,20 +82,42 @@ func GetCoinigyCapData(blockchainList []string) []*dbtypes.MarketCapData {
 			for _, res := range responseData.Result {
 				volSum += res.Volume
 				strongSum += res.Volume * res.PercentChange
+				if res.QuoteCurrencyCode == "USDT" || res.QuoteCurrencyCode == "usdt" ||
+					res.QuoteCurrencyCode == "USD" || res.QuoteCurrencyCode == "usd" {
+					priceStrongSum += res.LastTradePrice * res.Volume
+					volPriceSum += res.Volume
+				}
 			}
 			pageNum++
 		}
 		perChange := float64(0)
+		usdPrice := float64(0)
 		if volSum > 0 {
 			perChange = strongSum / volSum
 		}
-		result = append(result, &dbtypes.MarketCapData{
-			Symbol:        chain,
-			SymbolDisplay: chain,
-			Percentage1D:  perChange,
-			Volumn:        volSum,
-			Name:          chain,
-		})
+		if volPriceSum > 0 {
+			usdPrice = priceStrongSum / volPriceSum
+		}
+		appendRes := &dbtypes.MarketCapData{
+			Symbol:       chain,
+			Percentage1D: perChange,
+			Volumn:       volSum,
+			Name:         chain,
+			Price:        usdPrice,
+		}
+		// handle market cap info
+		capReq := &ReqConfig{
+			Method:  http.MethodGet,
+			HttpUrl: fmt.Sprintf("%s%s", capInfoURL, chain),
+		}
+		var capResData CoinigyCapInfoResponse
+		err := HttpRequest(capReq, &capResData)
+		if err == nil || capResData.Success {
+			appendRes.MarketCap = capResData.Result.Data.MarketCapUsd
+			appendRes.SymbolDisplay = capResData.Result.Data.CurrName
+		}
+		result = append(result, appendRes)
+
 	}
 	return result
 }

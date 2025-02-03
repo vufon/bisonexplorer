@@ -18,7 +18,6 @@
                            <th class="text-start">Name</th>
                            <th class="text-start">Price</th>
                            <th class="text-start">24h Change</th>
-                           <th class="text-start">7D Change</th>
                            <th class="text-start">Market Cap</th>
                            <th class="text-start">24h Volume</th>
                         </tr>
@@ -27,13 +26,12 @@
                         {{range .MarketCapList}}
                         <tr>
                 <td class="text-start">
-                  <img src="{{if eq .Symbol "litecoin"}}/images/ltc-icon.png{{else}}{{.IconUrl}}{{end}}" width="25" height="25" />
-                  <span class="ms-2 fs-17">{{.Name}}</span>
-                  <span class="fs-17">({{toUpperCase .SymbolDisplay}})</span>
+                  <img src="/images/{{.Symbol}}-icon.png" width="25" height="25" />
+                  <span class="ms-2 fs-17">({{.SymbolDisplay}})</span>
+                  <span class="fs-17">{{toUpperCase .Symbol}}</span>
                 </td>
                 <td class="text-start">${{commaWithDecimal .Price 2}}</td>
                 <td class="text-start {{if gt .Percentage1D 0.0}}c-green-2{{else}}c-red{{end}}">{{commaWithDecimal .Percentage1D 4}}%</td>
-                <td class="text-start {{if gt .Percentage7D 0.0}}c-green-2{{else}}c-red{{end}}">{{commaWithDecimal .Percentage7D 4}}%</td>
                 <td class="text-start">${{difficultyDisp .MarketCap}}</td>
                 <td class="text-start">${{difficultyDisp .Volumn}}</td>
             </tr>
