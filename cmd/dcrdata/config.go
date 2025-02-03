@@ -23,15 +23,14 @@ import (
 	"github.com/caarlos0/env/v6"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
-	"github.com/decred/slog"
-	flags "github.com/jessevdk/go-flags"
-	ltccfg "github.com/ltcsuite/ltcd/chaincfg"
-	"github.com/ltcsuite/ltcd/ltcutil"
-
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/netparams"
 	"github.com/decred/dcrdata/v8/netparams/btcnetparams"
 	"github.com/decred/dcrdata/v8/netparams/ltcnetparams"
+	"github.com/decred/slog"
+	flags "github.com/jessevdk/go-flags"
+	ltccfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/ltcutil"
 )
 
 const (
@@ -115,7 +114,7 @@ var (
 	defaultTestnetLink  = "https://testnet.bisonexplorer.com/"
 	defaultBinanceAPI   = "https://api.binance.com"
 	defaultOnionAddress = ""
-	defaultCoinCaps     = "bitcoin,litecoin,decred,ethereum,monero"
+	defaultCoinCaps     = "btc,ltc,dcr,eth,xmr"
 
 	maxSyncStatusLimit = 5000
 )
