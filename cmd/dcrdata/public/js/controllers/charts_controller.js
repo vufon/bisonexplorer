@@ -151,11 +151,14 @@ function hashrateLegendPlotter (e, midGapValue) {
   ctx.strokeStyle = dark ? '#ffffff' : '#23562f'
   const boxColor = dark ? '#1e2b39' : '#ffffff'
 
-  const line1 = 'Milestone in the'
-  const line2 = 'transition of the'
+  const line1 = 'Milestone'
+  const line2 = '- Transition of the'
   const line3 = 'algorithm to BLAKE3'
+  const line4 = '- Change block reward'
+  const line5 = 'subsidy split to 1/89/10'
+
   let boxW = 0
-  const txts = [line1, line2, line3]
+  const txts = [line1, line2, line3, line4, line5]
   txts.forEach(txt => {
     const w = ctx.measureText(txt).width
     if (w > boxW) boxW = w
@@ -169,7 +172,7 @@ function hashrateLegendPlotter (e, midGapValue) {
   rowHeight -= 2 // just looks better
   ctx.fillStyle = boxColor
   const rect = makePt(midGap.x + boxPad, y - boxPad)
-  const dims = makePt(boxW + boxPad * 3, rowHeight * 4 + boxPad * 2)
+  const dims = makePt(boxW + boxPad * 3, rowHeight * 5 + boxPad * 2)
   ctx.fillRect(rect.x, rect.y, dims.x, dims.y)
   ctx.strokeRect(rect.x, rect.y, dims.x, dims.y)
   ctx.fillStyle = dark ? '#ffffff' : '#23562f'
@@ -181,11 +184,13 @@ function hashrateLegendPlotter (e, midGapValue) {
   }
 
   ctx.save()
-  ctx.font = `regular ${fontSize}px arial`
+  ctx.font = `bold ${fontSize + 2}px arial`
   write(line1)
   ctx.restore()
   write(line2)
   write(line3)
+  write(line4)
+  write(line5)
   // Draw a line from the box to the gap
   drawLine(ctx,
     makePt(midGap.x + boxW / 2, y),
