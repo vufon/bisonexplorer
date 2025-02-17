@@ -1313,21 +1313,15 @@ func durationBTWChart(charts *ChartData, bin binLevel, axis axisType, _ string) 
 // is HashrateAvgLength shorter than the provided chainwork. A time slice is
 // required as well, and a truncated time slice with the same length as the
 // hashrate slice is returned.
-func hashrate(blockTime, chainwork ChartUints, difficults ChartFloats, rangeOpt string) (ChartUints, ChartUints) {
+func hashrate(blockTime ChartUints, difficults ChartFloats, rangeOpt string) (ChartUints, ChartUints) {
 	hrLen := len(difficults) - HashrateAvgLength
 	if hrLen <= 0 {
 		return newChartUints(0), newChartUints(0)
 	}
 	isAll := rangeOpt == "all" || rangeOpt == ""
 	isBefore := rangeOpt == "before"
-	var blake3Time time.Time
-	if isAll {
-		blake3Time = time.Date(2023, time.Month(8), 28, 0, 0, 0, 0, time.Now().Location())
-	} else if isBefore {
-		blake3Time = time.Date(2023, time.Month(8), 30, 0, 0, 0, 0, time.Now().Location())
-	} else {
-		blake3Time = time.Date(2023, time.Month(9), 4, 0, 0, 0, 0, time.Now().Location())
-	}
+	isAfter := rangeOpt == "after"
+	blake3Time := time.Date(2023, time.Month(9), 1, 0, 0, 0, 0, time.Now().Location())
 	indexSplitBlockTime := 0
 	for i, blockTimeInt := range blockTime {
 		if blockTimeInt > uint64(blake3Time.Unix()) {
@@ -1339,45 +1333,25 @@ func hashrate(blockTime, chainwork ChartUints, difficults ChartFloats, rangeOpt 
 	var afterTimeRes ChartUints
 	var firstRateRes ChartUints
 	var afterRateRes ChartUints
-	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "before" {
-		firstChainworkArray := chainwork[0:indexSplitBlockTime]
-		firstBlockTimeArray := blockTime[0:indexSplitBlockTime]
-		firstTimeRes, firstRateRes = beforeBlake3BlocksHashrateHandler(firstBlockTimeArray, firstChainworkArray)
+	if isAll {
+		firstTimeRes, firstRateRes = blake3BlocksHashrateHandler(blockTime, difficults)
 	}
-	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "after" {
+	if isBefore {
+		beforeDifficultyArray := difficults[0:indexSplitBlockTime]
+		firstBlockTimeArray := blockTime[0:indexSplitBlockTime]
+		firstTimeRes, firstRateRes = blake3BlocksHashrateHandler(firstBlockTimeArray, beforeDifficultyArray)
+	}
+	if isAfter {
 		afterDifficultyArray := difficults[indexSplitBlockTime:]
 		afterBlockTimeArray := blockTime[indexSplitBlockTime:]
-		afterTimeRes, afterRateRes = afterBlake3BlocksHashrateHandler(afterBlockTimeArray, afterDifficultyArray)
+		afterTimeRes, afterRateRes = blake3BlocksHashrateHandler(afterBlockTimeArray, afterDifficultyArray)
 	}
 	times := append(firstTimeRes, afterTimeRes...)
 	rates := append(firstRateRes, afterRateRes...)
 	return times, rates
 }
 
-func beforeBlake3BlocksHashrateHandler(blockTime, chainwork ChartUints) (ChartUints, ChartUints) {
-	hrLen := len(chainwork) - HashrateAvgLength
-	if hrLen <= 0 {
-		return newChartUints(0), newChartUints(0)
-	}
-	t := make(ChartUints, 0, hrLen)
-	y := make(ChartUints, 0, hrLen)
-	var rotator [HashrateAvgLength]uint64
-	for i, work := range chainwork {
-		idx := i % HashrateAvgLength
-		rotator[idx] = work
-		if i >= HashrateAvgLength {
-			lastWork := rotator[(idx+1)%HashrateAvgLength]
-			lastTime := blockTime[i-HashrateAvgLength]
-			thisTime := blockTime[i]
-			t = append(t, thisTime)
-			// 1e6: exahash -> terahash/s
-			y = append(y, (work-lastWork)*1e6/(thisTime-lastTime))
-		}
-	}
-	return t, y
-}
-
-func afterBlake3BlocksHashrateHandler(blockTime ChartUints, difficults ChartFloats) (ChartUints, ChartUints) {
+func blake3BlocksHashrateHandler(blockTime ChartUints, difficults ChartFloats) (ChartUints, ChartUints) {
 	hrLen := len(difficults) - HashrateAvgLength
 	if hrLen <= 0 {
 		return newChartUints(0), newChartUints(0)
@@ -1400,40 +1374,8 @@ func afterBlake3BlocksHashrateHandler(blockTime ChartUints, difficults ChartFloa
 	return times, rates
 }
 
-// Calculate hashrate chart data before blake3 algorithm is applied
-func beforeBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
-	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
-		return ChartUints{}, ChartUints{}
-	}
-	times := make([]uint64, 0, len(dayTime))
-	rates := make([]uint64, 0, len(dayTime))
-	nextIdx := 1
-	workingOn := dayTime[0]
-	next := dayTime[nextIdx]
-	lastIdx := 0
-
-	for i, t := range blockTime {
-		if t > next {
-			_, pts := blockTimes(blockTime[lastIdx:i])
-			avgTimeDiff := pts.Avg(0, len(pts))
-			diffArray := difficults[lastIdx:i]
-			avgDifficulty := diffArray.Avg(0, len(diffArray))
-			times = append(times, workingOn)
-			rates = append(rates, uint64((avgDifficulty*math.Pow(2, 32)/float64(avgTimeDiff))/1e12))
-			nextIdx++
-			if nextIdx > len(dayTime)-1 {
-				break
-			}
-			lastIdx = i
-			next = dayTime[nextIdx]
-			workingOn = next
-		}
-	}
-	return times, rates
-}
-
 // Calculate hashrate chart data after blake3 algorithm is applied
-func afterBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
+func dayilyHashrateBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime ChartUints) (ChartUints, ChartUints) {
 	if len(dayTime) == 0 || len(difficults) == 0 || len(blockTime) == 0 {
 		return ChartUints{}, ChartUints{}
 	}
@@ -1458,16 +1400,21 @@ func afterBlake3Handler(dayTime ChartUints, difficults ChartFloats, blockTime Ch
 		}
 		curDayIndex++
 		times = append(times, curDay)
+		var rate uint64
 		if curHandlerIndex >= startBlockTimeIndex {
 			_, pts := blockTimes(blockTime[startBlockTimeIndex:curHandlerIndex])
 			avgTimeDiff := pts.Avg(0, len(pts))
 			diffArray := difficults[startBlockTimeIndex:curHandlerIndex]
 			avgDifficulty := diffArray.Avg(0, len(diffArray))
-			rates = append(rates, uint64((avgDifficulty*math.Pow(2, 32)/float64(avgTimeDiff))/1e12))
+			if avgDifficulty == 0 || avgTimeDiff == 0 {
+				rate = uint64(0)
+			} else {
+				rate = uint64((avgDifficulty * math.Pow(2, 32) / float64(avgTimeDiff)) / 1e12)
+			}
 		} else {
-			rates = append(rates, uint64(0))
+			rate = uint64(0)
 		}
-
+		rates = append(rates, rate)
 		startBlockTimeIndex = i
 		if curDayIndex == len(dayTime) {
 			break
@@ -1489,15 +1436,9 @@ func dailyHashrate(dayTime ChartUints, difficults ChartFloats, blockTime ChartUi
 	}
 	isAll := rangeOpt == "all" || rangeOpt == ""
 	isBefore := rangeOpt == "before"
+	isAfter := rangeOpt == "after"
 	offset := uint64(1)
-	var blake3Time time.Time
-	if isAll {
-		blake3Time = time.Date(2023, time.Month(8), 28, 0, 0, 0, 0, time.Now().Location())
-	} else if isBefore {
-		blake3Time = time.Date(2023, time.Month(8), 30, 0, 0, 0, 0, time.Now().Location())
-	} else {
-		blake3Time = time.Date(2023, time.Month(9), 4, 0, 0, 0, 0, time.Now().Location())
-	}
+	var blake3Time = time.Date(2023, time.Month(9), 1, 0, 0, 0, 0, time.Now().Location())
 
 	daySplitIndex := int(0)
 	for i, dayInt := range dayTime {
@@ -1517,20 +1458,20 @@ func dailyHashrate(dayTime ChartUints, difficults ChartFloats, blockTime ChartUi
 	var afterTimeRes ChartUints
 	var firstRateRes ChartUints
 	var afterRateRes ChartUints
-	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "before" {
+	if isAll {
+		firstTimeRes, firstRateRes = dayilyHashrateBlake3Handler(dayTime, difficults, blockTime)
+	}
+	if isBefore {
 		firstArray := dayTime[0:daySplitIndex]
 		firstDifficultyArray := difficults[0:indexSplitBlockTime]
 		firstBlockTimeArray := blockTime[0:indexSplitBlockTime]
-		firstTimeRes, firstRateRes = beforeBlake3Handler(firstArray, firstDifficultyArray, firstBlockTimeArray)
+		firstTimeRes, firstRateRes = dayilyHashrateBlake3Handler(firstArray, firstDifficultyArray, firstBlockTimeArray)
 	}
-	if rangeOpt == "all" || rangeOpt == "" || rangeOpt == "after" {
+	if isAfter {
 		afterArray := dayTime[daySplitIndex:]
 		afterDifficultyArray := difficults[indexSplitBlockTime:]
 		afterBlockTimeArray := blockTime[indexSplitBlockTime:]
-		afterTimeRes, afterRateRes = afterBlake3Handler(afterArray, afterDifficultyArray, afterBlockTimeArray)
-	}
-
-	if rangeOpt == "after" {
+		afterTimeRes, afterRateRes = dayilyHashrateBlake3Handler(afterArray, afterDifficultyArray, afterBlockTimeArray)
 		offset += uint64(indexSplitBlockTime)
 	}
 
@@ -1548,7 +1489,7 @@ func hashRateChart(charts *ChartData, bin binLevel, axis axisType, rangeOpt stri
 			return nil, fmt.Errorf("Not enough blocks to calculate hashrate")
 		}
 		seed[offsetKey] = HashrateAvgLength
-		times, rates := hashrate(charts.Blocks.Time, charts.Blocks.Chainwork, charts.Blocks.Difficulty, rangeOpt)
+		times, rates := hashrate(charts.Blocks.Time, charts.Blocks.Difficulty, rangeOpt)
 		switch axis {
 		case HeightAxis:
 			hArr := make(ChartUints, 0)
