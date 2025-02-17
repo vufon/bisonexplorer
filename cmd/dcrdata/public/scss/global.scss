@@ -2469,3 +2469,53 @@ body.darkBG {
 .amount-input {
   height: 35px;
 }
+
+.tag-label {
+  background-color: #d8eeef;
+}
+
+.common-label {
+  padding: 4px;
+}
+
+.finished-label {
+  background-color: #c4e7be;
+}
+
+.failed-label {
+  background-color: #f5a5a5;
+}
+
+.locked-in-label {
+  background-color: #ffcaff;
+}
+
+.in-progress-label {
+  background-color: #b7b5f1;
+}
+
+.upcoming-label {
+  background-color: #cee3e3;
+}
+
+.unknown-label {
+  background-color: #ddd;
+}
+
+.dot-label {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+
+.abstain-color {
+  background-color: #e6c23f;
+}
+
+.no-color {
+  background-color: #fd714b;
+}
+
+.yes-color {
+  background-color: #2ed6a1;
+}

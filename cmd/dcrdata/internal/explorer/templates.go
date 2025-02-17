@@ -589,6 +589,9 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			}
 			return token
 		},
+		"toDashWords": func(input string) string {
+			return strings.ReplaceAll(input, " ", "-")
+		},
 		"prefixPath": func(prefix, path string) string {
 			if path == "" {
 				if strings.HasSuffix(prefix, "/") {
