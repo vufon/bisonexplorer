@@ -247,7 +247,10 @@
                     <th class="d-none d-md-table-cell">Description</th>
                     <th class="text-start">Status</th>
                     <th>Agenda ID</th>
-                    <th class="text-end">Vote Version</th>
+                    <th class="text-center">Vote Version</th>
+                    <th class="text-end">Yes</th>
+                    <th class="text-end">No</th>
+                    <th class="text-end">Approval Rate</th>
                     <th class="text-end d-none d-sm-table-cell">Expire Time (UTC)</th>
                   </tr>
                 </thead>
@@ -257,9 +260,23 @@
                   <tr>
                     <td class="text-start d-none d-sm-table-cell">{{dateTimeWithoutTimeZone .StartTime}}</td>
                     <td class="d-none d-md-table-cell truncate">{{.Description}}</td>
-                    <td class="text-start">{{.Status}}</td>
+                    <td class="text-start"><span class="common-label {{toDashWords .Status.String}}-label">{{toTitleCase .Status.String}}</span></td>
                     <td><a href="/agenda/{{.ID}}" data-turbolinks="false">{{.ID}}</a></td>
-                    <td class="text-end">{{.VoteVersion}}</td>
+                    <td class="text-center">{{.VoteVersion}}</td>
+                    <td class="text-end">
+                      {{range $choice := .Choices}}
+                        {{if eq $choice.ID "yes"}}
+                          {{$choice.Count}}
+                        {{end}}
+                      {{end}}</td>
+                    <td class="text-end">
+                      {{range $choice := .Choices}}
+                      {{if eq $choice.ID "no"}}
+                        {{$choice.Count}}
+                      {{end}}
+                      {{end}}
+                    </td>
+                    <td class="text-end">{{printf "%.2f" (x100 .ApprovalRate)}}%</td>
                     <td class="text-end d-none d-sm-table-cell">{{dateTimeWithoutTimeZone .ExpireTime}}</td>
                   </tr>
                 {{- end -}}

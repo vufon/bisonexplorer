@@ -3623,24 +3623,18 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 	// matching data displayed on "Cumulative Vote Choices" and "Vote Choices By
 	// Block" charts.
 	totalVotes := summary.Abstain + summary.Yes + summary.No
-	var approvalRate float64
 	for index := range agendaInfo.Choices {
-		isApproval := false
 		switch strings.ToLower(agendaInfo.Choices[index].ID) {
 		case "abstain":
 			agendaInfo.Choices[index].Count = summary.Abstain
-			isApproval = true
 		case "yes":
 			agendaInfo.Choices[index].Count = summary.Yes
-			isApproval = true
 		case "no":
 			agendaInfo.Choices[index].Count = summary.No
 		}
 		agendaInfo.Choices[index].Progress = float64(agendaInfo.Choices[index].Count) / float64(totalVotes)
-		if isApproval {
-			approvalRate += agendaInfo.Choices[index].Progress
-		}
 	}
+	approvalRate := float64(summary.Yes+summary.Abstain) / float64(totalVotes)
 	totalRealVote := summary.Yes + summary.No
 	ruleChangeQ := exp.ChainParams.RuleChangeActivationQuorum
 	qVotes := uint32(float64(ruleChangeQ) * agendaInfo.QuorumProgress)
@@ -3717,14 +3711,36 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
 		return
 	}
+	agendaInfos := make([]*AgendaDetail, 0)
+	for _, agendaItem := range agenda {
+		summary, err := exp.dataSource.AgendasVotesSummary(agendaItem.ID)
+		agendaInfo := &AgendaDetail{
+			AgendaTagged: agendaItem,
+		}
+		if err == nil {
+			totalVotes := summary.Abstain + summary.Yes + summary.No
+			for index, choice := range agendaItem.Choices {
+				switch strings.ToLower(choice.ID) {
+				case "abstain":
+					agendaInfo.Choices[index].Count = summary.Abstain
+				case "yes":
+					agendaInfo.Choices[index].Count = summary.Yes
+				case "no":
+					agendaInfo.Choices[index].Count = summary.No
+				}
+			}
+			agendaInfo.ApprovalRate = float64(summary.Yes+summary.Abstain) / float64(totalVotes)
+			agendaInfos = append(agendaInfos, agendaInfo)
+		}
+	}
 
 	str, err := exp.templates.exec("agendas", struct {
 		*CommonPageData
-		Agendas       []*agendas.AgendaTagged
+		Agendas       []*AgendaDetail
 		VotingSummary *agendas.VoteSummary
 	}{
 		CommonPageData: exp.commonData(r),
-		Agendas:        agenda,
+		Agendas:        agendaInfos,
 		VotingSummary:  exp.voteTracker.Summary(),
 	})
 
