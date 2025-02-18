@@ -3715,6 +3715,9 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	agendaInfos := make([]*AgendaDetail, 0)
+	voteSummary := exp.voteTracker.Summary()
+	sortedVoteSummaryAgendas := make([]agendas.AgendaSummary, 0)
+	sortedCount := 0
 	for _, agendaItem := range agenda {
 		summary, err := exp.dataSource.AgendasVotesSummary(agendaItem.ID)
 		agendaInfo := &AgendaDetail{
@@ -3735,8 +3738,17 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 			agendaInfo.ApprovalRate = float64(summary.Yes+summary.Abstain) / float64(totalVotes)
 			agendaInfos = append(agendaInfos, agendaInfo)
 		}
+		if sortedCount < len(voteSummary.Agendas) {
+			for _, summaryAgenda := range voteSummary.Agendas {
+				if summaryAgenda.ID == agendaItem.ID {
+					sortedVoteSummaryAgendas = append(sortedVoteSummaryAgendas, summaryAgenda)
+					sortedCount++
+					break
+				}
+			}
+		}
 	}
-
+	voteSummary.Agendas = sortedVoteSummaryAgendas
 	str, err := exp.templates.exec("agendas", struct {
 		*CommonPageData
 		Agendas       []*AgendaDetail
@@ -3744,7 +3756,7 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 	}{
 		CommonPageData: exp.commonData(r),
 		Agendas:        agendaInfos,
-		VotingSummary:  exp.voteTracker.Summary(),
+		VotingSummary:  voteSummary,
 	})
 
 	if err != nil {
