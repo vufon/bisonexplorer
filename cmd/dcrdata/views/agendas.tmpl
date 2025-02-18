@@ -43,7 +43,7 @@
   </nav>
   {{- /* PRIMARY INFO CARD. LISTS AGENDAS AND SHOWS RCI/SVI PROGRESS BARS */}}
   {{with .VotingSummary}}
-  <div class="row mt-2">
+  <div class="row mt-2 ai-center">
     <div class="px-1 text-start col-24 col-lg-12 my-2">
       <h4 class="mb-2">Active Agendas</h4>
       {{range .Agendas}}
@@ -151,48 +151,82 @@
       {{end}}{{/* END AGENDA ITERATION, START RCI/SVI PROGRESS BARS */}}
     </div>{{/* END OF PRIMARY INFO CARD */ -}}
     <div class="col-24 col-lg-12 pt-2 px-2">
-      <h4 class="mb-2">Voting Summary</h4>
-      <div class="row mx-0 justify-content-between common-card">
-        <div class="col-24 d-flex justify-content-around align-items-center">
-          <div class="d-inline-block text-center p-2">
-            <span class="fs16 fw-bold">v{{.Version}} Miners</span><br>
+      <div class="mx-0 common-card">
+        <div class="row py-2 px-4 ai-center">
+          <div class="col-24 col-md-10">
+            <p class="fs18 fw-bold mb-0">Miner Upgrade</p>
+            <p class="fs13 mt-0">Proof-of-Work</p>
+            <p class="mt-3 d-flex justify-content-between ai-center">
+              <span>Current Version: </span>
+              <span class="fw-bold common-label tag-label">v{{.Version}}</span>
+            </p>
+            <p class="d-flex justify-content-between">
+              <span>Rolling Window: </span>
+              <span class="fw-bold">{{.NewMiners}} Blocks</span>
+            </p>
+          </div>
+          <div class="col-24 col-md-14 text-center">
             <div class="meter text-center js-only large-gap" data-agendas-target="minerMeter"
               data-progress="{{.MinerProgress}}" data-threshold="{{.MinerThreshold}}">
               {{printf "%.1f" (f32x100 .MinerProgress)}}%
-            </div><br>
-            <span class="text-secondary fs14 lh1rem">threshold <span class="fw-bold">{{printf "%.0f" (f32x100
-                .MinerThreshold)}} %</span></span>
+            </div>
+            <p class="text-secondary fs14 lh1rem">Upgrade Threshold: <span class="fw-bold">{{printf "%.0f" (f32x100
+                .MinerThreshold)}} %</span></p>
           </div>
-          <div class="d-inline-block text-center p-4">
-            <span class="fs16 fw-bold">v{{.Version}} Voters</span><br>
+        </div>
+        <div class="px-4">
+          <div class="border-2-bottom-grey"></div>
+        </div>
+        <div class="row py-2 px-4 ai-center">
+          <div class="col-24 col-md-10">
+            <p class="fs16 fw-bold mb-0">Voter Upgrade</p>
+            <p class="fs13 mt-0">Proof-of-Stake</p>
+            <p class="mt-3 d-flex justify-content-between ai-center">
+              <span>Current Version:&nbsp;</span>
+              <span class="fw-bold common-label tag-label">v{{.Version}}</span>
+            </p>
+            <p class="d-flex justify-content-between">
+              <span>Upgrade Interval: </span>
+              <span class="fw-bold"><a href="/decred/block/{{$.VoterUpgradeIntervalStart}}">{{intComma
+                  $.VoterUpgradeIntervalStart}}</a>&nbsp;-
+                &nbsp;{{intComma
+                  $.VoterUpgradeIntervalEnd}}</span>
+            </p>
+          </div>
+          <div class="col-24 col-md-14 text-center">
             <div class="meter text-center js-only large-gap" data-agendas-target="voterMeter"
               data-progress="{{.VoterProgress}}" data-threshold="{{.VoterThreshold}}">
               {{printf "%.1f" (f32x100 .VoterProgress)}}%
-            </div><br>
-            <span class="text-secondary fs14">threshold <span class="fw-bold">{{printf "%.0f" (f32x100
+            </div>
+            <p class="text-secondary fs14">Upgrade Threshold: <span class="fw-bold">{{printf "%.0f" (f32x100
                 .VoterThreshold)}}
-                %</span></span>
+                %</span></p>
           </div>
         </div>
-        <div class="col-24 col-sm-12 p-3 ps-3 ps-sm-5 text-start">
-          <span class="text-secondary fs14">Rule Change Interval</span>
-          <div class="progress v2-progress col-24 col-sm-18 px-0">
-            <div class="progress-bar rounded text-start" role="progressbar" style="width: {{f32x100 .RCIProgress}}%;"
-              aria-valuenow="{{.RCIMined}}" aria-valuemin="0" aria-valuemax="{{.RCIBlocks}}"><span
-                class="fw-bold ms-2">{{printf "%.0f" (f32x100 .RCIProgress)}} %</span>
-            </div>
-          </div>
-          <span class="fs14">{{.RCIMined}} of {{.RCIBlocks}} blocks</span>
+        <div class="px-4">
+          <div class="border-2-bottom-grey"></div>
         </div>
-        <div class="col-24 col-sm-12 text-start ps-3 ps-sm-5 p-3">
-          <span class="text-secondary fs14">Stake Version Interval</span>
-          <div class="progress v2-progress col-24 col-sm-18 px-0">
-            <div class="progress-bar rounded text-start" role="progressbar" style="width: {{f32x100 .SVIProgress}}%;"
-              aria-valuenow="{{.SVIMined}}" aria-valuemin="0" aria-valuemax="{{.SVIBlocks}}"><span
-                class="fw-bold ms-2">{{printf "%.0f" (f32x100 .SVIProgress)}} %</span>
+        <div class="row">
+          <div class="col-24 col-sm-12 p-3 ps-3 ps-sm-5 text-start">
+            <span class="text-secondary fs14">Rule Change Interval</span>
+            <div class="progress v2-progress col-24 col-sm-18 px-0">
+              <div class="progress-bar rounded text-start" role="progressbar" style="width: {{f32x100 .RCIProgress}}%;"
+                aria-valuenow="{{.RCIMined}}" aria-valuemin="0" aria-valuemax="{{.RCIBlocks}}"><span
+                  class="fw-bold ms-2">{{printf "%.0f" (f32x100 .RCIProgress)}} %</span>
+              </div>
             </div>
+            <span class="fs14">{{.RCIMined}} of {{.RCIBlocks}} blocks</span>
           </div>
-          <span class="fs14">{{.SVIMined}} of {{.SVIBlocks}} blocks</span>
+          <div class="col-24 col-sm-12 text-start ps-3 ps-sm-5 p-3">
+            <span class="text-secondary fs14">Stake Version Interval</span>
+            <div class="progress v2-progress col-24 col-sm-18 px-0">
+              <div class="progress-bar rounded text-start" role="progressbar" style="width: {{f32x100 .SVIProgress}}%;"
+                aria-valuenow="{{.SVIMined}}" aria-valuemin="0" aria-valuemax="{{.SVIBlocks}}"><span
+                  class="fw-bold ms-2">{{printf "%.0f" (f32x100 .SVIProgress)}} %</span>
+              </div>
+            </div>
+            <span class="fs14">{{.SVIMined}} of {{.SVIBlocks}} blocks</span>
+          </div>
         </div>
       </div>{{/* END OF SVI/RCI INTERVAL PROGRESS BARS */}}
     </div>

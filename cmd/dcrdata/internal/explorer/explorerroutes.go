@@ -3749,14 +3749,22 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	voteSummary.Agendas = sortedVoteSummaryAgendas
+	sviMined := voteSummary.SVIMined
+	sviBlocks := voteSummary.SVIBlocks
+	vIntervalStart := exp.dataSource.Height() - int64(sviMined) + 1
+	vIntervalEnd := vIntervalStart + int64(sviBlocks) - 1
 	str, err := exp.templates.exec("agendas", struct {
 		*CommonPageData
-		Agendas       []*AgendaDetail
-		VotingSummary *agendas.VoteSummary
+		Agendas                   []*AgendaDetail
+		VotingSummary             *agendas.VoteSummary
+		VoterUpgradeIntervalStart int64
+		VoterUpgradeIntervalEnd   int64
 	}{
-		CommonPageData: exp.commonData(r),
-		Agendas:        agendaInfos,
-		VotingSummary:  voteSummary,
+		CommonPageData:            exp.commonData(r),
+		Agendas:                   agendaInfos,
+		VotingSummary:             voteSummary,
+		VoterUpgradeIntervalStart: vIntervalStart,
+		VoterUpgradeIntervalEnd:   vIntervalEnd,
 	})
 
 	if err != nil {
