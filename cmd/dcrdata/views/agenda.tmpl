@@ -146,13 +146,28 @@
                     </tr>
                     {{end}}
                     {{end}}
-                    <tr class="info-table-last-summary-row">
-                        <td class="text-start">Approval Rating: <span class="fw-600">{{printf "%.2f" (x100 $.ApprovalRate)}}%</span></td>
-                        <td class="text-start">Quorum: <span class="{{if $.QuorumYes}}finished{{else}}failed{{end}}-label common-label fw-600">
-                            {{if $.QuorumYes}}Yes{{else}}No{{end}}</span> ({{int64Comma (int64 $.TotalRealVote)}} votes of {{int64Comma (int64 $.RuleChangeQ)}} required)</td>
-                        <td></td>
-                        <td></td>
-                        {{if $showProgress}}<td></td>{{end}}
+                    <tr>
+                        <td class="text-start" colspan="{{if $showProgress}}5{{else}}4{{end}}">
+                            <div class="d-flex justify-content-center">
+                                <div class="text-center">
+                                    <div class="meter text-center js-only lil arch" data-agenda-target="approvalMeter"
+                                        data-value="{{$.ApprovalRate}}"
+                                        data-threshold="{{$.PassRate}}">
+                                        {{printf "%.1f" (x100 $.ApprovalRate)}}%
+                                    </div>
+                                    <div class="mt-2">
+                                        Approval Rating: <span class="fw-600">{{printf "%.2f" (x100
+                                            $.ApprovalRate)}}%</span>
+                                    </div>
+                                    <div class="mt-3">
+                                        Quorum: <span
+                                            class="{{if $.QuorumYes}}finished{{else}}failed{{end}}-label common-label fw-600">
+                                            {{if $.QuorumYes}}Yes{{else}}No{{end}}</span> ({{int64Comma (int64
+                                        $.TotalRealVote)}} votes of {{int64Comma (int64 $.RuleChangeQ)}} required)
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
                     </tr>
                 </tbody>
             </table>

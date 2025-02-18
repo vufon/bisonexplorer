@@ -3638,6 +3638,7 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 	totalRealVote := summary.Yes + summary.No
 	ruleChangeQ := exp.ChainParams.RuleChangeActivationQuorum
 	qVotes := uint32(float64(ruleChangeQ) * agendaInfo.QuorumProgress)
+	passRate := (float64(0.75) * float64(summary.Yes+summary.No)) / float64(totalVotes)
 	var timeLeft string
 	blocksLeft := summary.LockedIn - exp.Height()
 
@@ -3670,6 +3671,7 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		TimeRemaining string
 		TotalVotes    uint32
 		ApprovalRate  float64
+		PassRate      float64
 		TotalRealVote uint32
 		QuorumYes     bool
 	}{
@@ -3685,6 +3687,7 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		ApprovalRate:   approvalRate,
 		TotalRealVote:  totalRealVote,
 		QuorumYes:      totalRealVote >= ruleChangeQ,
+		PassRate:       passRate,
 	})
 
 	if err != nil {
