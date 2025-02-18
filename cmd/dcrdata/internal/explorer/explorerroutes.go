@@ -3622,7 +3622,8 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 	// Overrides the default count value with the actual vote choices count
 	// matching data displayed on "Cumulative Vote Choices" and "Vote Choices By
 	// Block" charts.
-	totalVotes := summary.Abstain + summary.Yes + summary.No
+	yesNoVotes := summary.Yes + summary.No
+	totalVotes := summary.Yes + summary.No + summary.Abstain
 	for index := range agendaInfo.Choices {
 		switch strings.ToLower(agendaInfo.Choices[index].ID) {
 		case "abstain":
@@ -3634,14 +3635,12 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		}
 		agendaInfo.Choices[index].Progress = float64(agendaInfo.Choices[index].Count) / float64(totalVotes)
 	}
-	approvalRate := float64(summary.Yes+summary.Abstain) / float64(totalVotes)
+	approvalRate := float64(summary.Yes) / float64(yesNoVotes)
 	totalRealVote := summary.Yes + summary.No
 	ruleChangeQ := exp.ChainParams.RuleChangeActivationQuorum
 	qVotes := uint32(float64(ruleChangeQ) * agendaInfo.QuorumProgress)
-	passRate := (float64(0.75) * float64(summary.Yes+summary.No)) / float64(totalVotes)
 	var timeLeft string
 	blocksLeft := summary.LockedIn - exp.Height()
-
 	if blocksLeft > 0 {
 		// Approximately 1 block per 5 minutes.
 		var minPerblock = 5 * time.Minute
@@ -3687,7 +3686,7 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		ApprovalRate:   approvalRate,
 		TotalRealVote:  totalRealVote,
 		QuorumYes:      totalRealVote >= ruleChangeQ,
-		PassRate:       passRate,
+		PassRate:       float64(0.75),
 	})
 
 	if err != nil {
@@ -3724,7 +3723,7 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 			AgendaTagged: agendaItem,
 		}
 		if err == nil {
-			totalVotes := summary.Abstain + summary.Yes + summary.No
+			yesNoVotes := summary.Yes + summary.No
 			for index, choice := range agendaItem.Choices {
 				switch strings.ToLower(choice.ID) {
 				case "abstain":
@@ -3735,7 +3734,7 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 					agendaInfo.Choices[index].Count = summary.No
 				}
 			}
-			agendaInfo.ApprovalRate = float64(summary.Yes+summary.Abstain) / float64(totalVotes)
+			agendaInfo.ApprovalRate = float64(summary.Yes) / float64(yesNoVotes)
 			agendaInfos = append(agendaInfos, agendaInfo)
 		}
 		if sortedCount < len(voteSummary.Agendas) {
