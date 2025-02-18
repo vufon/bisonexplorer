@@ -3,7 +3,7 @@ import { barChartPlotter } from '../helpers/chart_helper'
 import { getDefault } from '../helpers/module_helper'
 import humanize from '../helpers/humanize_helper'
 import { requestJSON } from '../helpers/http'
-import { MiniMeter } from '../helpers/meters.js'
+import { VoteMeter } from '../helpers/meters.js'
 import globalEventBus from '../services/event_bus_service'
 import { darkEnabled } from '../services/theme_service'
 
@@ -86,15 +86,10 @@ export default class extends Controller {
     this.description = this.data.get('description')
     this.agendaNameTarget.innerHTML = this.changeToHTMLTag(this.agendaName)
     this.extendDescriptionTarget.innerHTML = this.changeToHTMLTag(this.description)
-    const d = this.approvalMeterTarget.dataset
     const opts = {
-      darkMode: darkEnabled(),
-      segments: [
-        { end: d.threshold, color: '#ed6d47' },
-        { end: 1, color: '#2dd8a3' }
-      ]
+      darkMode: darkEnabled()
     }
-    this.meter = new MiniMeter(this.approvalMeterTarget, opts)
+    this.meter = new VoteMeter(this.approvalMeterTarget, opts)
     this.setNightMode = this._setNightMode.bind(this)
     globalEventBus.on('NIGHT_MODE', this.setNightMode)
     this.Dygraph = await getDefault(
