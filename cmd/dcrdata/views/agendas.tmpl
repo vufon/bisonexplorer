@@ -2,12 +2,11 @@
 <div class="row">
   <div class="col-24 col-md-12">
     <div class="d-flex ai-center mt-2 ms-3"><span class="dot-label yes-color medium-dot me-2"></span><span
-        class="fw-600 me-2">Ayes:</span>{{.Aye}}</div>
+        class="fw-600 me-2">Ayes:</span>{{.Aye}} votes ({{printf "%.2f" (x100 (rateCalculate .Aye .Nay .Abstain))}}%)</div>
     <div class="d-flex ai-center mt-2 ms-3"><span class="dot-label no-color medium-dot me-2"></span><span
-        class="fw-600 me-2">Nays:</span>{{.Nay}}</div>
+        class="fw-600 me-2">Nays:</span>{{.Nay}} votes ({{printf "%.2f" (x100 (rateCalculate .Nay .Aye .Abstain))}}%)</div>
     <div class="d-flex ai-center mt-2 ms-3"><span class="dot-label abstain-color medium-dot me-2"></span><span
-        class="fw-600 me-2">Abstain:</span>{{.Abstain}} ({{printf
-      "%.1f" (f32x100 .AbstainRate)}}%)</div>
+        class="fw-600 me-2">Abstain:</span>{{.Abstain}} votes ({{printf "%.2f" (x100 (rateCalculate .Abstain .Nay .Aye))}}%)</div>
   </div>
   <div class="col-24 col-md-12 text-center">
     {{if .IsVoting}}
@@ -154,8 +153,13 @@
       <div class="mx-0 common-card">
         <div class="row py-2 px-4 ai-center">
           <div class="col-24 col-md-10">
-            <p class="fs18 fw-bold mb-0">Miner Upgrade</p>
-            <p class="fs13 mt-0">Proof-of-Work</p>
+            <div class="d-flex ai-center">
+              <span class="dcricon-pickaxe explore-card__header__logo me-2"></span>
+              <div>
+                <p class="fs18 fw-bold mb-0">Miner Upgrade</p>
+                <p class="fs13 mt-0">Proof-of-Work</p>
+              </div>
+            </div>
             <p class="mt-3 d-flex justify-content-between ai-center">
               <span>Current Version: </span>
               <span class="fw-bold common-label tag-label">v{{.Version}}</span>
@@ -179,8 +183,13 @@
         </div>
         <div class="row py-2 px-4 ai-center">
           <div class="col-24 col-md-10">
-            <p class="fs16 fw-bold mb-0">Voter Upgrade</p>
-            <p class="fs13 mt-0">Proof-of-Stake</p>
+            <div class="d-flex ai-center">
+              <span class="dcricon-ticket explore-card__header__logo me-2"></span>
+              <div>
+                <p class="fs18 fw-bold mb-0">Voter Upgrade</p>
+                <p class="fs13 mt-0">Proof-of-Stake</p>
+              </div>
+            </div>
             <p class="mt-3 d-flex justify-content-between ai-center">
               <span>Current Version:&nbsp;</span>
               <span class="fw-bold common-label tag-label">v{{.Version}}</span>
