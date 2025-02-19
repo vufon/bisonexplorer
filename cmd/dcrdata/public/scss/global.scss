@@ -2483,6 +2483,14 @@ body.darkBG {
   border-radius: 7px;
 }
 
+.true-label {
+  background-color: #bcefb2;
+}
+
+.false-label {
+  background-color: #f39b9b;
+}
+
 .finished-label {
   background-color: #c4e7be;
 }
@@ -2524,13 +2532,13 @@ body.darkBG {
 }
 
 .abstain-color {
-  background-color: #e6c23f;
+  background-color: #af3abc;
 }
 
 .no-color {
-  background-color: #fd714b;
+  background-color: #bc5945;
 }
 
 .yes-color {
-  background-color: #2ed6a1;
+  background-color: #1f8633;
 }
