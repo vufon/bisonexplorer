@@ -436,6 +436,13 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"intComma": func(v interface{}) string {
 			return humanize.Comma(toInt64(v))
 		},
+		"rateCalculate": func(mainNum uint32, others ...uint32) float64 {
+			total := mainNum
+			for _, other := range others {
+				total += other
+			}
+			return float64(mainNum) / float64(total)
+		},
 		"int64Comma":       humanize.Comma,
 		"commaWithDecimal": humanize.CommafWithDigits,
 		"ticketWindowProgress": func(i int) float64 {
@@ -560,6 +567,20 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			dateTime := time.Unix(int64(a), 0).UTC()
 			return dateTime.Format("2006-01-02 15:04:05")
 		},
+		"dateFromInt": func(a uint64) string {
+			if a == 0 {
+				return "N/A"
+			}
+			dateTime := time.Unix(int64(a), 0).UTC()
+			return dateTime.Format("2006-01-02")
+		},
+		"dateWithSlash": func(a uint64) string {
+			if a == 0 {
+				return "N/A"
+			}
+			dateTime := time.Unix(int64(a), 0).UTC()
+			return dateTime.Format("2006/01/02")
+		},
 		"toLowerCase": strings.ToLower,
 		"toUpperCase": strings.ToUpper,
 		"chainName": func(chainType string) string {
@@ -588,6 +609,9 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 				return strings.ReplaceAll(token, "btc_", "")
 			}
 			return token
+		},
+		"toDashWords": func(input string) string {
+			return strings.ReplaceAll(input, " ", "-")
 		},
 		"prefixPath": func(prefix, path string) string {
 			if path == "" {

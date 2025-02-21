@@ -160,3 +160,20 @@ func GroupByMonthlyData(records [][]string) [][]string {
 	}
 	return res
 }
+
+func GetAgendaExtendInfo(agendaId string) []string {
+	aDetail, exist := AgendasDetail[agendaId]
+	if !exist {
+		return []string{agendaId, ""}
+	}
+	return aDetail
+}
+
+func ReplaceDCP(input string) string {
+	for dcp, link := range DCPLink {
+		if strings.Contains(input, dcp) {
+			input = strings.ReplaceAll(input, dcp, fmt.Sprintf("[[%s((%s))]]", dcp, link))
+		}
+	}
+	return input
+}

@@ -1406,6 +1406,10 @@ textarea::placeholder {
   border-bottom: 1px solid #d9d3d3 !important;
 }
 
+.border-2-bottom-grey {
+  border-bottom: 2px solid #d9d3d3 !important;
+}
+
 .border--cyan-d3 {
   border-color: var(--c-cyan-d3);
   border-style: solid;
@@ -1669,6 +1673,18 @@ hr {
 
 .mw-75px {
   min-width: 75px;
+}
+
+.mv-100px {
+  min-width: 100px;
+}
+
+.mv-120px {
+  min-width: 120px;
+}
+
+.mv-140px {
+  min-width: 140px;
 }
 
 .w-max {
@@ -2468,4 +2484,73 @@ body.darkBG {
 
 .amount-input {
   height: 35px;
+}
+
+.tag-label {
+  background-color: #d8eeef;
+}
+
+.common-label {
+  padding: 3px 5px;
+  border-radius: 7px;
+}
+
+.true-label {
+  background-color: #bcefb2;
+}
+
+.false-label {
+  background-color: #f39b9b;
+}
+
+.finished-label {
+  background-color: #c4e7be;
+}
+
+.failed-label {
+  background-color: #f5a5a5;
+}
+
+.locked-in-label {
+  background-color: #ffcaff;
+}
+
+.in-progress-label {
+  background-color: #b7b5f1;
+}
+
+.upcoming-label {
+  background-color: #cee3e3;
+}
+
+.unknown-label {
+  background-color: #ddd;
+}
+
+.dot-label {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+}
+
+.medium-dot {
+  width: 13px;
+  height: 13px;
+}
+
+.small-dot {
+  width: 10px;
+  height: 10px;
+}
+
+.abstain-color {
+  background-color: #e2b027;
+}
+
+.no-color {
+  background-color: #f36e6e;
+}
+
+.yes-color {
+  background-color: #0c644e;
 }

@@ -39,6 +39,7 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/utils"
 	ticketvotev1 "github.com/decred/politeia/politeiawww/api/ticketvote/v1"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
@@ -3621,7 +3622,8 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 	// Overrides the default count value with the actual vote choices count
 	// matching data displayed on "Cumulative Vote Choices" and "Vote Choices By
 	// Block" charts.
-	var totalVotes uint32
+	yesNoVotes := summary.Yes + summary.No
+	totalVotes := summary.Yes + summary.No + summary.Abstain
 	for index := range agendaInfo.Choices {
 		switch strings.ToLower(agendaInfo.Choices[index].ID) {
 		case "abstain":
@@ -3631,15 +3633,14 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		case "no":
 			agendaInfo.Choices[index].Count = summary.No
 		}
-		totalVotes += agendaInfo.Choices[index].Count
+		agendaInfo.Choices[index].Progress = float64(agendaInfo.Choices[index].Count) / float64(totalVotes)
 	}
-
+	approvalRate := float64(summary.Yes) / float64(yesNoVotes)
+	totalRealVote := summary.Yes + summary.No
 	ruleChangeQ := exp.ChainParams.RuleChangeActivationQuorum
 	qVotes := uint32(float64(ruleChangeQ) * agendaInfo.QuorumProgress)
-
 	var timeLeft string
 	blocksLeft := summary.LockedIn - exp.Height()
-
 	if blocksLeft > 0 {
 		// Approximately 1 block per 5 minutes.
 		var minPerblock = 5 * time.Minute
@@ -3651,10 +3652,17 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 	} else {
 		blocksLeft = 0
 	}
-
+	agendaInfo.Description = utils.ReplaceDCP(agendaInfo.Description)
+	extendInfo := utils.GetAgendaExtendInfo(agendaInfo.ID)
+	agendaDetail := AgendaDetail{
+		AgendaTagged:      agendaInfo,
+		Title:             extendInfo[0],
+		DescriptionDetail: extendInfo[1],
+	}
+	voteSummary := exp.voteTracker.Summary()
 	str, err := exp.templates.exec("agenda", struct {
 		*CommonPageData
-		Ai            *agendas.AgendaTagged
+		Ai            *AgendaDetail
 		QuorumVotes   uint32
 		RuleChangeQ   uint32
 		VotingStarted int64
@@ -3662,9 +3670,14 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		BlocksLeft    int64
 		TimeRemaining string
 		TotalVotes    uint32
+		ApprovalRate  float64
+		PassRate      float64
+		TotalRealVote uint32
+		QuorumYes     bool
+		RCIBlocks     int64
 	}{
 		CommonPageData: exp.commonData(r),
-		Ai:             agendaInfo,
+		Ai:             &agendaDetail,
 		QuorumVotes:    qVotes,
 		RuleChangeQ:    ruleChangeQ,
 		VotingStarted:  summary.VotingStarted,
@@ -3672,6 +3685,11 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		BlocksLeft:     blocksLeft,
 		TimeRemaining:  timeLeft,
 		TotalVotes:     totalVotes,
+		ApprovalRate:   approvalRate,
+		TotalRealVote:  totalRealVote,
+		QuorumYes:      totalRealVote >= ruleChangeQ,
+		PassRate:       float64(0.75),
+		RCIBlocks:      int64(voteSummary.RCIBlocks),
 	})
 
 	if err != nil {
@@ -3698,15 +3716,57 @@ func (exp *ExplorerUI) AgendasPage(w http.ResponseWriter, r *http.Request) {
 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
 		return
 	}
-
+	agendaInfos := make([]*AgendaDetail, 0)
+	voteSummary := exp.voteTracker.Summary()
+	sortedVoteSummaryAgendas := make([]agendas.AgendaSummary, 0)
+	sortedCount := 0
+	for _, agendaItem := range agenda {
+		summary, err := exp.dataSource.AgendasVotesSummary(agendaItem.ID)
+		agendaInfo := &AgendaDetail{
+			AgendaTagged: agendaItem,
+		}
+		if err == nil {
+			yesNoVotes := summary.Yes + summary.No
+			for index, choice := range agendaItem.Choices {
+				switch strings.ToLower(choice.ID) {
+				case "abstain":
+					agendaInfo.Choices[index].Count = summary.Abstain
+				case "yes":
+					agendaInfo.Choices[index].Count = summary.Yes
+				case "no":
+					agendaInfo.Choices[index].Count = summary.No
+				}
+			}
+			agendaInfo.ApprovalRate = float64(summary.Yes) / float64(yesNoVotes)
+			agendaInfos = append(agendaInfos, agendaInfo)
+		}
+		if sortedCount < len(voteSummary.Agendas) {
+			for _, summaryAgenda := range voteSummary.Agendas {
+				if summaryAgenda.ID == agendaItem.ID {
+					sortedVoteSummaryAgendas = append(sortedVoteSummaryAgendas, summaryAgenda)
+					sortedCount++
+					break
+				}
+			}
+		}
+	}
+	voteSummary.Agendas = sortedVoteSummaryAgendas
+	sviMined := voteSummary.SVIMined
+	sviBlocks := voteSummary.SVIBlocks
+	vIntervalStart := exp.dataSource.Height() - int64(sviMined) + 1
+	vIntervalEnd := vIntervalStart + int64(sviBlocks) - 1
 	str, err := exp.templates.exec("agendas", struct {
 		*CommonPageData
-		Agendas       []*agendas.AgendaTagged
-		VotingSummary *agendas.VoteSummary
+		Agendas                   []*AgendaDetail
+		VotingSummary             *agendas.VoteSummary
+		VoterUpgradeIntervalStart int64
+		VoterUpgradeIntervalEnd   int64
 	}{
-		CommonPageData: exp.commonData(r),
-		Agendas:        agenda,
-		VotingSummary:  exp.voteTracker.Summary(),
+		CommonPageData:            exp.commonData(r),
+		Agendas:                   agendaInfos,
+		VotingSummary:             voteSummary,
+		VoterUpgradeIntervalStart: vIntervalStart,
+		VoterUpgradeIntervalEnd:   vIntervalEnd,
 	})
 
 	if err != nil {

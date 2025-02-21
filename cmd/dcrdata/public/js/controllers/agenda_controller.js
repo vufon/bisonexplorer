@@ -8,7 +8,7 @@ const chartLayout = {
   showRangeSelector: true,
   legend: 'follow',
   fillGraph: true,
-  colors: ['rgb(0,153,0)', 'orange', 'red'],
+  colors: ['#0c644e', '#e2b027', '#f36e6e'],
   stackedGraph: true,
   legendFormatter: agendasLegendFormatter,
   labelsSeparateLines: true,
@@ -63,7 +63,9 @@ export default class extends Controller {
   static get targets () {
     return [
       'cumulativeVoteChoices',
-      'voteChoicesByBlock'
+      'voteChoicesByBlock',
+      'agendaName',
+      'extendDescription'
     ]
   }
 
@@ -76,6 +78,10 @@ export default class extends Controller {
   async connect () {
     this.agendaId = this.data.get('id')
     this.element.classList.add('loading')
+    this.agendaName = this.data.get('name')
+    this.description = this.data.get('description')
+    this.agendaNameTarget.innerHTML = this.changeToHTMLTag(this.agendaName)
+    this.extendDescriptionTarget.innerHTML = this.changeToHTMLTag(this.description)
     this.Dygraph = await getDefault(
       import(/* webpackChunkName: "dygraphs" */ '../vendor/dygraphs.min.js')
     )
@@ -89,6 +95,23 @@ export default class extends Controller {
     })
 
     this.element.classList.remove('loading')
+  }
+
+  changeToHTMLTag (input) {
+    while (input.indexOf('[[') >= 0 && input.indexOf(']]') >= 0) {
+      const start = input.indexOf('[[') + 2
+      const end = input.indexOf(']]')
+      const inText = input.substring(start, end)
+      if (inText.indexOf('((') >= 0 && inText.indexOf('))') >= 0) {
+        const linkStart = inText.indexOf('((') + 2
+        const linkEnd = inText.indexOf('))')
+        const link = inText.substring(linkStart, linkEnd)
+        const mainText = inText.replace('((' + link + '))', '')
+        const htmlLink = '<a href="' + link + '" target="_blank">' + mainText + '</a>'
+        input = input.replace('[[' + inText + ']]', htmlLink)
+      } else break
+    }
+    return input
   }
 
   disconnect () {

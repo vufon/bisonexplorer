@@ -25,6 +25,12 @@ table {
   }
 }
 
+.info-table {
+  td {
+    font-size: 15px;
+  }
+}
+
 tr.hover-row {
   cursor: pointer;
 }
@@ -187,4 +193,8 @@ body.darkBG {
   .future-color {
     background-color: #1a4e6f !important;
   }
+}
+
+.info-table-last-summary-row {
+  background-color: #eaf0f5 !important;
 }

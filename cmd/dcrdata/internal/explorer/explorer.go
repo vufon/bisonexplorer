@@ -194,6 +194,13 @@ type ChartDataSource interface {
 	AnonymitySet() uint64
 }
 
+type AgendaDetail struct {
+	*agendas.AgendaTagged
+	Title             string
+	DescriptionDetail string
+	ApprovalRate      float64
+}
+
 // links to be passed with common page data.
 type links struct {
 	CoinbaseComment string
