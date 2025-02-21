@@ -8,7 +8,7 @@ const chartLayout = {
   showRangeSelector: true,
   legend: 'follow',
   fillGraph: true,
-  colors: ['rgb(0,153,0)', 'orange', 'red'],
+  colors: ['#0c644e', '#e2b027', '#f36e6e'],
   stackedGraph: true,
   legendFormatter: agendasLegendFormatter,
   labelsSeparateLines: true,
