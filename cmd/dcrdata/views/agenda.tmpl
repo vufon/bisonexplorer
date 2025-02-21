@@ -12,174 +12,92 @@
             <span class="link-underline">Homepage</span>
         </a>
         <a href="/agendas" class="breadcrumbs__item item-link">Upgrade Agendas</a>
-        <span class="breadcrumbs__item is-active">Agenda</span>
+        <span class="breadcrumbs__item is-active">{{.Title}}</span>
     </nav>
-    <div class="row justify-content-between common-card p-3 mt-2">
-        <div class="col-lg-24">
-            <h4>{{.Title}}</h4>
-        </div>
-        <div class="col-lg-12 col-sm-12 d-flex">
-            <table>
-                <tr>
-                    <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Agenda ID</td>
-                    <td class="pt-2">
-                        <span class="lh1rem common-label tag-label">#{{.ID}}</span>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Description</td>
-                    <td class="pt-2">
-                        <p class="mt-0"><span data-agenda-target="agendaName" class="fw-600"></span></p>
-                        <p class="mt-2"><span data-agenda-target="extendDescription" class="lh1_2rem"></span></p>
-                    </td>
-                </tr>
-                <tr>
-                    <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Vote Interval</td>
-                    <td class="lh1rem pt-2">
-                        <span class="break-word">{{if eq $.VotingStarted 0}}N/A{{else}}<a
-                                href="/block/{{$.VotingStarted}}">{{$.VotingStarted}}</a>{{end}}</span> -
-                        <span class="break-word">{{if eq $.LockedIn 0}}N/A{{else}}<a
-                                href="/block/{{$.LockedIn}}">{{$.LockedIn}}</a>{{end}}</span>
-                    </td>
-                </tr>
-            </table>
-        </div>
-        <div class="col-lg-7 col-sm-12 d-flex">
-            <div>
-                <table>
-                    <tr>
-                        {{if gt $.BlocksLeft 0}}
-                        <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Blocks Left</td>
-                        <td class="lh1rem pt-2 vat">
-                            <span class="break-word">{{intComma $.BlocksLeft}}</span>
-                        </td>
-                        {{end}}
-                    </tr>
-                    <tr>
-                        {{if ne $.TimeRemaining ""}}
-                        <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Remaining</td>
-                        <td class="lh1rem pt-2 vat">
-                            <span class="break-word">{{$.TimeRemaining}}</span>
-                        </td>
-                        {{end}}
-                    </tr>
-                    <tr>
-                        <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Vote Version</td>
-                        <td class="lh1rem pt-2 vat">
-                            <span class="break-word">v{{.VoteVersion}}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Agenda Valid</td>
-                        <td class="pt-2 vat">
-                            <span class="break-word">{{TimeConversion .StartTime}}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Agenda Expire</td>
-                        <td class="pt-2 vat">
-                            <span class="break-word">{{TimeConversion .ExpireTime}}</span>
-                        </td>
-                    </tr>
-                </table>
+    <div class="common-card mt-3">
+        <div class="row justify-content-between p-3">
+            <div class="col-24">
+                <h4 class="d-inline-block d-md-flex ai-center">{{.Title}}<span
+                        class="ms-3 break-word common-label fs15 {{toDashWords .Status.String}}-label">{{toTitleCase
+                        .Status.String}}</span></h4>
             </div>
-        </div>
-        <div class="col-lg-5 col-sm-12 d-flex">
-            <div>
-                <table>
-                    <tr>
-                        <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Status</td>
-                        <td class="lh1rem pt-2 vat">
-                            <span class="break-word common-label {{toDashWords .Status.String}}-label">{{toTitleCase
-                                .Status.String}}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-start pt-2 pe-2 lh1rem vat nowrap xs-w117 fw-600">Total Votes</td>
-                        <td class="pt-2 vat">
-                            <span class="break-word">{{$.TotalVotes}}</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        {{if gt .QuorumProgress 0.0}}
-                        <td class="text-start pt-2 pe-2 fw-600 lh1rem vat nowrap xs-w117">Quorum</td>
-                        <td class="lh1rem pt-2 vat">
-                            <span class="break-word">{{$.QuorumVotes}}/{{$.RuleChangeQ}} ({{printf "%.2f" (x100
-                                .QuorumProgress)}}%)</span>
-                        </td>
-                        {{end}}
-                    </tr>
-                </table>
+            <div class="col-24 col-md-12">
+                <p><span class="fs14">Agenda ID: </span><span class="fs14 common-label tag-label">#{{.ID}}</span>
+                    <span class="fs14 ms-3">Voting Interval: </span><span>
+                        <span>{{if eq $.VotingStarted 0}}N/A{{else}}<a class="fs14 link-underline"
+                                href="/block/{{$.VotingStarted}}">{{intComma $.VotingStarted}}</a>{{end}}</span> -
+                        <span>{{if eq $.LockedIn 0}}N/A{{else}}<a class="fs14 link-underline"
+                                href="/block/{{$.LockedIn}}">{{intComma $.LockedIn}}</a>{{end}}</span>
+                    </span>
+                </p>
+                <p class="mt-3"><span data-agenda-target="agendaName" class="fw-600 fs16"></span></p>
+                <p class="mt-2"><span data-agenda-target="extendDescription" class="fs16"></span></p>
             </div>
-        </div>
-    </div>
-    {{if .Choices}}
-    {{$isProgress := (ne (index .Choices 0).Progress 0.0)}}
-    {{$isNotDone := (or (eq .Status.String "started") (eq .Status.String "defined"))}}
-    {{$showProgress := or $isProgress $isNotDone}}
-    <div class="br-8 b--def bgc-plain-bright pb-10 my-3">
-        <div class="btable-table-wrap maxh-none">
-            <table class="btable-table w-100">
-                <thead>
-                    <tr class="bg-none">
-                        <th>ID</th>
-                        <th>Description</th>
-                        <th class="text-end">Bits</th>
-                        <th class="text-end">Count</th>
-                        {{if $showProgress}}
-                        <th class="text-end">Rate</th>
-                        {{end}}
-                    </tr>
-                </thead>
-                <tbody class="bgc-white">
-                    {{range $i, $v := .Choices}}
-                    {{with $v}}
-                    <tr>
-                        <td class="text-start d-flex"><span class="dot-label {{.ID}}-color me-2"></span>{{toTitleCase
-                            .ID}}</td>
-                        <td class="text-start">{{.Description}}</td>
-                        <td class="text-end">{{.Bits}}</td>
-                        <td class="text-end">{{.Count}}</td>
-                        {{if $showProgress}}
-                        <td class="text-end">{{printf "%.2f" (x100 .Progress)}}%</td>
-                        {{end}}
-                    </tr>
-                    {{end}}
-                    {{end}}
-                    <tr>
-                        <td class="text-start py-3" colspan="{{if $showProgress}}5{{else}}4{{end}}">
-                            <div class="d-flex justify-content-center">
-                                <div class="text-center">
-                                    <div class="approval meter text-center js-only large-gap" data-agenda-target="approvalMeter"
-                                        data-approval="{{$.ApprovalRate}}"
-                                        data-threshold="{{$.PassRate}}">
-                                        {{printf "%.1f" (x100 $.ApprovalRate)}}%
-                                    </div>
-                                    <div class="mt-2">
-                                        Approval Rating
-                                    </div>
-                                    <div class="mt-3">
-                                        Quorum: <span
-                                            class="{{if $.QuorumYes}}finished{{else}}failed{{end}}-label common-label fw-600">
-                                            {{if $.QuorumYes}}Yes{{else}}No{{end}}</span> ({{int64Comma (int64
-                                        $.TotalRealVote)}} votes of {{int64Comma (int64 $.RuleChangeQ)}} required)
-                                    </div>
+            <div class="col-24 col-md-12">
+                <div>
+                    <div class="fw-bold d-flex ai-center"><p class="mv-120px">Active Time:</p> <span class="fw-400">{{dateWithSlash .StartTime}} -
+                            {{dateWithSlash
+                            .ExpireTime}}</span></div>
+                    <div class="fw-bold d-flex ai-center"><p class="mv-120px mt-0">Vote Version:</p> <span class="fw-400 mb-1">v{{.VoteVersion}}</span></div>
+                    {{if gt $.BlocksLeft 0}}<div class="fw-bold d-flex ai-center"><p class="mv-120px">Blocks Left:</p> <span class="fw-400">{{intComma
+                            $.BlocksLeft}}</span></div>{{end}}
+                    {{if ne $.TimeRemaining ""}}<div class="fw-bold d-flex ai-center"><p class="mv-120px">Remaining:</p> <span
+                            class="fw-400">{{$.TimeRemaining}}</span>
+                    </div>{{end}}
+                    <div class="row ai-center">
+                        <div class="col-12">
+                            <p class="fw-bold my-0">Voting Result:</p>
+                        </div>
+                        <div class="col-12">
+                            <span class="fw-bold">Quorum:</span> <span
+                                class="position-relative {{if $.QuorumYes}}finished{{else}}failed{{end}}-label common-label"
+                                data-tooltip="{{int64Comma (int64
+                        $.TotalRealVote)}} votes of {{int64Comma (int64 $.RuleChangeQ)}} required">
+                                {{if $.QuorumYes}}Yes{{else}}No{{end}}</span>
+                        </div>
+                    </div>
+
+                    <div class="row ai-center">
+                        <div class="col-24 col-md-12">
+                            {{if .Choices}}
+                            {{$isProgress := (ne (index .Choices 0).Progress 0.0)}}
+                            {{$isNotDone := (or (eq .Status.String "started") (eq .Status.String "defined"))}}
+                            {{$showProgress := or $isProgress $isNotDone}}
+                            <div>
+                                {{range $i, $v := .Choices}}
+                                {{with $v}}
+                                <div class="d-flex ai-center mt-2 ms-3"><span
+                                        class="dot-label {{.ID}}-color medium-dot me-2"></span><span
+                                        class="fw-600 me-2 position-relative"
+                                        data-tooltip="{{.Description}}">{{toTitleCase
+                                        .ID}}:</span>{{intComma .Count}} votes
+                                    {{if $showProgress}} ({{printf "%.2f" (x100 .Progress)}}%) {{end}}
                                 </div>
+                                {{end}}
+                                {{end}}
                             </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                            {{end}}
+                        </div>
+                        <div class="col-24 col-md-12">
+                            <p class="mt-2"><span class="fw-bold">Approval Rating:</span> <span>{{printf "%.1f" (x100
+                                    $.ApprovalRate)}}%</span></p>
+                            <p class="mt-2"><span class="fw-bold">Locked In:</span> <span>{{intComma (add $.LockedIn (int64
+                                    1))}}</span>
+                            </p>
+                            <p class="mt-2"><span class="fw-bold">Activated:</span> <span>{{intComma (add $.LockedIn (add
+                                    ($.RCIBlocks) 1))}}</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    {{end}}
-    <div class="position-relative">
+    <div class="position-relative mt-3">
         <div class="modal position-absolute"></div>
         <div class="common-card p-2">
             <div data-agenda-target="cumulativeVoteChoices" style="width:100%; height:300px; margin:0 auto;"></div>
         </div>
-        <br>
-        <div class="common-card p-2">
+        <div class="common-card p-2 mt-3">
             <div data-agenda-target="voteChoicesByBlock" style="width:100%; height:250px; margin:0 auto;"></div>
         </div>
     </div>

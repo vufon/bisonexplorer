@@ -1675,6 +1675,10 @@ hr {
   min-width: 75px;
 }
 
+.mv-120px {
+  min-width: 120px;
+}
+
 .w-max {
   width: -moz-max-content;
   width: max-content;
@@ -2479,7 +2483,7 @@ body.darkBG {
 }
 
 .common-label {
-  padding: 5px;
+  padding: 3px 5px;
   border-radius: 7px;
 }
 

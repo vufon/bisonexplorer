@@ -3659,6 +3659,7 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		Title:             extendInfo[0],
 		DescriptionDetail: extendInfo[1],
 	}
+	voteSummary := exp.voteTracker.Summary()
 	str, err := exp.templates.exec("agenda", struct {
 		*CommonPageData
 		Ai            *AgendaDetail
@@ -3673,6 +3674,7 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		PassRate      float64
 		TotalRealVote uint32
 		QuorumYes     bool
+		RCIBlocks     int64
 	}{
 		CommonPageData: exp.commonData(r),
 		Ai:             &agendaDetail,
@@ -3687,6 +3689,7 @@ func (exp *ExplorerUI) AgendaPage(w http.ResponseWriter, r *http.Request) {
 		TotalRealVote:  totalRealVote,
 		QuorumYes:      totalRealVote >= ruleChangeQ,
 		PassRate:       float64(0.75),
+		RCIBlocks:      int64(voteSummary.RCIBlocks),
 	})
 
 	if err != nil {

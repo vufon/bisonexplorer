@@ -3,9 +3,6 @@ import { barChartPlotter } from '../helpers/chart_helper'
 import { getDefault } from '../helpers/module_helper'
 import humanize from '../helpers/humanize_helper'
 import { requestJSON } from '../helpers/http'
-import { VoteMeter } from '../helpers/meters.js'
-import globalEventBus from '../services/event_bus_service'
-import { darkEnabled } from '../services/theme_service'
 
 const chartLayout = {
   showRangeSelector: true,
@@ -68,8 +65,7 @@ export default class extends Controller {
       'cumulativeVoteChoices',
       'voteChoicesByBlock',
       'agendaName',
-      'extendDescription',
-      'approvalMeter'
+      'extendDescription'
     ]
   }
 
@@ -86,12 +82,6 @@ export default class extends Controller {
     this.description = this.data.get('description')
     this.agendaNameTarget.innerHTML = this.changeToHTMLTag(this.agendaName)
     this.extendDescriptionTarget.innerHTML = this.changeToHTMLTag(this.description)
-    const opts = {
-      darkMode: darkEnabled()
-    }
-    this.meter = new VoteMeter(this.approvalMeterTarget, opts)
-    this.setNightMode = this._setNightMode.bind(this)
-    globalEventBus.on('NIGHT_MODE', this.setNightMode)
     this.Dygraph = await getDefault(
       import(/* webpackChunkName: "dygraphs" */ '../vendor/dygraphs.min.js')
     )
@@ -105,10 +95,6 @@ export default class extends Controller {
     })
 
     this.element.classList.remove('loading')
-  }
-
-  _setNightMode (state) {
-    this.meter.setDarkMode(state.nightMode)
   }
 
   changeToHTMLTag (input) {
