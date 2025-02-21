@@ -18,74 +18,104 @@
         <div class="row justify-content-between p-3">
             <div class="col-24">
                 <h4 class="d-inline-block d-md-flex ai-center">{{.Title}}<span
-                        class="ms-3 break-word common-label fs15 {{toDashWords .Status.String}}-label">{{toTitleCase
+                        class="ms-3 common-label fs15 {{toDashWords .Status.String}}-label">{{toTitleCase
                         .Status.String}}</span></h4>
             </div>
             <div class="col-24 col-md-12">
-                <p><span class="fs14">Agenda ID: </span><span class="fs14 common-label tag-label">#{{.ID}}</span>
-                    <span class="fs14 ms-3">Voting Interval: </span><span>
-                        <span>{{if eq $.VotingStarted 0}}N/A{{else}}<a class="fs14 link-underline"
-                                href="/block/{{$.VotingStarted}}">{{intComma $.VotingStarted}}</a>{{end}}</span> -
-                        <span>{{if eq $.LockedIn 0}}N/A{{else}}<a class="fs14 link-underline"
-                                href="/block/{{$.LockedIn}}">{{intComma $.LockedIn}}</a>{{end}}</span>
-                    </span>
-                </p>
+                <div>
+                    <p class="d-inline-block me-3"><span class="fs14">Agenda ID: </span><span
+                            class="fs14 common-label tag-label">#{{.ID}}</span>
+                    </p>
+                    <p class="d-inline-block me-3">
+                        <span class="fs14">Vote Version: </span><span
+                            class="fs14 common-label tag-label">v{{.VoteVersion}}</span>
+                    </p>
+                    <p class="d-inline-block">
+                        <span class="fs14">Voting Interval: </span><span>
+                            <span>{{if eq $.VotingStarted 0}}N/A{{else}}<a class="fs14"
+                                    href="/block/{{$.VotingStarted}}">{{$.VotingStarted}}</a>{{end}}</span> -
+                            <span>{{if eq $.LockedIn 0}}N/A{{else}}<a class="fs14"
+                                    href="/block/{{$.LockedIn}}">{{$.LockedIn}}</a>{{end}}</span>
+                        </span>
+                    </p>
+                </div>
                 <p class="mt-3"><span data-agenda-target="agendaName" class="fw-600 fs16"></span></p>
                 <p class="mt-2"><span data-agenda-target="extendDescription" class="fs16"></span></p>
             </div>
             <div class="col-24 col-md-12">
-                <div>
-                    <div class="fw-bold d-flex ai-center"><p class="mv-120px">Active Time:</p> <span class="fw-400">{{dateWithSlash .StartTime}} -
-                            {{dateWithSlash
-                            .ExpireTime}}</span></div>
-                    <div class="fw-bold d-flex ai-center"><p class="mv-120px mt-0">Vote Version:</p> <span class="fw-400 mb-1">v{{.VoteVersion}}</span></div>
-                    {{if gt $.BlocksLeft 0}}<div class="fw-bold d-flex ai-center"><p class="mv-120px">Blocks Left:</p> <span class="fw-400">{{intComma
-                            $.BlocksLeft}}</span></div>{{end}}
-                    {{if ne $.TimeRemaining ""}}<div class="fw-bold d-flex ai-center"><p class="mv-120px">Remaining:</p> <span
-                            class="fw-400">{{$.TimeRemaining}}</span>
-                    </div>{{end}}
-                    <div class="row ai-center">
-                        <div class="col-12">
-                            <p class="fw-bold my-0">Voting Result:</p>
-                        </div>
-                        <div class="col-12">
-                            <span class="fw-bold">Quorum:</span> <span
-                                class="position-relative {{if $.QuorumYes}}finished{{else}}failed{{end}}-label common-label"
-                                data-tooltip="{{int64Comma (int64
-                        $.TotalRealVote)}} votes of {{int64Comma (int64 $.RuleChangeQ)}} required">
-                                {{if $.QuorumYes}}Yes{{else}}No{{end}}</span>
-                        </div>
+                <div class="row">
+                    <div class="col-24 col-lg-12 fw-bold d-flex ai-center">
+                        <p class="mv-100px">Active Time:</p>
+                        <p><span class="fw-400">{{dateFromInt
+                                .StartTime}}&nbsp;–</span>&nbsp;<span class="fw-400">{{dateFromInt .ExpireTime}}</span>
+                        </p>
                     </div>
+                    <div class="col-24 col-lg-12 d-flex ai-center">
+                        <p class="fw-bold mv-100px">Quorum Reached:</p> <span
+                            class="position-relative {{if $.QuorumYes}}finished{{else}}failed{{end}}-label common-label ms-2"
+                            data-tooltip="{{int64Comma (int64
+                        $.TotalRealVote)}} votes of {{int64Comma (int64 $.RuleChangeQ)}} required">
+                            {{if $.QuorumYes}}Yes{{else}}No{{end}}</span>
+                    </div>
+                    <div class="col-24 col-lg-12 d-flex ai-center">
+                        <p class="fw-bold mv-100px">Locked In:</p> <a class="fs14"
+                            href="/block/{{add $.LockedIn (int64 1)}}">{{add $.LockedIn (int64 1)}}</a>
 
-                    <div class="row ai-center">
-                        <div class="col-24 col-md-12">
-                            {{if .Choices}}
-                            {{$isProgress := (ne (index .Choices 0).Progress 0.0)}}
-                            {{$isNotDone := (or (eq .Status.String "started") (eq .Status.String "defined"))}}
-                            {{$showProgress := or $isProgress $isNotDone}}
-                            <div>
-                                {{range $i, $v := .Choices}}
-                                {{with $v}}
-                                <div class="d-flex ai-center mt-2 ms-3"><span
-                                        class="dot-label {{.ID}}-color medium-dot me-2"></span><span
-                                        class="fw-600 me-2 position-relative"
-                                        data-tooltip="{{.Description}}">{{toTitleCase
-                                        .ID}}:</span>{{intComma .Count}} votes
-                                    {{if $showProgress}} ({{printf "%.2f" (x100 .Progress)}}%) {{end}}
-                                </div>
-                                {{end}}
-                                {{end}}
-                            </div>
-                            {{end}}
+                    </div>
+                    <div class="col-24 col-lg-12 d-flex ai-center">
+                        <p class="fw-bold mv-100px">Activated:</p> <a class="fs14"
+                            href="/block/{{add $.LockedIn (add ($.RCIBlocks) 1)}}">{{add $.LockedIn (add
+                            ($.RCIBlocks) 1)}}</a>
+                    </div>
+                    {{if gt $.BlocksLeft 0}}
+                    <div class="col-24 col-lg-12 d-flex ai-center">
+                        <p class="fw-bold mv-100px">Blocks Left:</p>
+                        <span class="fw-400">{{intComma
+                            $.BlocksLeft}}</span>
+                    </div>
+                    {{end}}
+                    {{if ne $.TimeRemaining ""}}
+                    <div class="col-24 col-lg-12 d-flex ai-center">
+                        <p class="fw-bold mv-100px">Remaining:</p>
+                        <span class="fw-400">{{$.TimeRemaining}}</span>
+                    </div>
+                    {{end}}
+                </div>
+                <div class="mt-1">
+                    <p class="fw-bold my-0">Voting Result:</p>
+                    <div class="row mt-1">
+                        {{$yesVotes := 0}}
+                        {{$actualVotes := 0}}
+                        {{if .Choices}}
+                        {{$isProgress := (ne (index .Choices 0).Progress 0.0)}}
+                        {{$isNotDone := (or (eq .Status.String "started") (eq .Status.String "defined"))}}
+                        {{$showProgress := or $isProgress $isNotDone}}
+                        {{range $i, $v := .Choices}}
+                        {{with $v}}
+                        {{if eq .ID "yes"}}
+                        {{$yesVotes = .Count}}
+                        {{$actualVotes = (add (int64 $actualVotes) (int64 .Count))}}
+                        {{end}}
+                        {{if eq .ID "no"}}
+                        {{$actualVotes = (add (int64 $actualVotes) (int64 .Count))}}
+                        {{end}}
+                        <div class="col-24 col-lg-12 d-flex ai-center ps-3">
+                            <p class="mv-100px d-flex ai-center"><span class="dot-label {{.ID}}-color medium-dot me-2"></span><span
+                                    class="fw-600 me-2 position-relative" data-tooltip="{{.Description}}">{{toTitleCase
+                                    .ID}}:</span></p>{{intComma .Count}} votes
+                            {{if $showProgress}} ({{printf "%.2f" (x100 .Progress)}}%) {{end}}
                         </div>
-                        <div class="col-24 col-md-12">
-                            <p class="mt-2"><span class="fw-bold">Approval Rating:</span> <span>{{printf "%.1f" (x100
-                                    $.ApprovalRate)}}%</span></p>
-                            <p class="mt-2"><span class="fw-bold">Locked In:</span> <span>{{intComma (add $.LockedIn (int64
-                                    1))}}</span>
-                            </p>
-                            <p class="mt-2"><span class="fw-bold">Activated:</span> <span>{{intComma (add $.LockedIn (add
-                                    ($.RCIBlocks) 1))}}</span></p>
+                        {{end}}
+                        {{end}}
+                        {{end}}
+                        <div class="col-24 col-lg-12 d-flex ai-center ps-3">
+                            <p class="mv-100px d-flex ai-center"><span class="text-green homeicon-candle fs15 me-2"></span><span
+                                    class="fw-600 me-2">Approval
+                                    Rating: </span></p>{{printf
+                            "%.1f" (x100
+                            $.ApprovalRate)}}% <span class="position-relative ms-1"
+                                data-tooltip="{{intComma $yesVotes}} votes yes out of {{intComma $actualVotes}} actual votes"><span
+                                    class="dcricon-info fs13 cursor-pointer"></span></span>
                         </div>
                     </div>
                 </div>
