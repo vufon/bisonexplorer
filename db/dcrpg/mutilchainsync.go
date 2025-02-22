@@ -266,7 +266,6 @@ func (pgb *ChainDB) SyncLast20BTCBlocks(nodeHeight int32) error {
 		//check exist on DB
 		exist, err := CheckBlockExistOnDB(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(ib))
 		if err != nil || exist {
-			log.Infof("BTC: Block data exist on DB at height %d. Continue", ib)
 			continue
 		}
 		select {
@@ -366,7 +365,6 @@ func (pgb *ChainDB) SyncLast20LTCBlocks(nodeHeight int32) error {
 		//check exist on DB
 		exist, err := CheckBlockExistOnDB(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(ib))
 		if err != nil || exist {
-			log.Infof("LTC: Block data exist on DB at height %d. Continue", ib)
 			continue
 		}
 		select {
@@ -645,7 +643,6 @@ func (pgb *ChainDB) StoreBTCBlockInfo(client *btcClient.Client, msgBlock *btcwir
 		log.Error("BTC: InsertBlock:", err)
 		return
 	}
-	log.Infof("BTC: Finish sync block info. Height: %d", height)
 	return
 }
 
@@ -674,7 +671,6 @@ func (pgb *ChainDB) StoreLTCBlockInfo(client *ltcClient.Client, msgBlock *wire.M
 		log.Error("LTC: InsertBlock:", err)
 		return
 	}
-	log.Infof("LTC: Finish sync block info. Height: %d", height)
 	return
 }
 
@@ -1004,7 +1000,6 @@ func (pgb *ChainDB) SyncDecred24hBlocks() {
 		pgb.db.QueryRowContext(pgb.ctx, internal.Select24hBlockSummary, block.BlockHeight).Scan(&txnum, &spent, &sent, &numvin, &numvout)
 		//handler for fees
 		block.Fees, _ = pgb.GetDecredBlockFees(block.BlockHash)
-		log.Infof("%s: Insert to 24h blocks metric: Height: %d, TxNum: %d", mutilchain.TYPEDCR, block.BlockHeight, txnum)
 		//insert to db
 		var id uint64
 		err = stmt.QueryRow(mutilchain.TYPEDCR, block.BlockHash, block.BlockHeight, block.BlockTime,
@@ -1126,7 +1121,6 @@ func (pgb *ChainDB) GetLTCBlockData(hash string, height int64) (*apitypes.Block2
 	//Get block verbose
 	blockData := pgb.GetLTCBlockVerboseTxByHash(hash)
 	if blockData.Time < yeserDayTimeInt {
-		log.Infof("LTC: Synchronization of 24h blocks successfully. Stop at height: %d", height)
 		return nil, true
 	}
 
@@ -1182,7 +1176,6 @@ func (pgb *ChainDB) GetBTCBlockData(hash string, height int64) (*apitypes.Block2
 	//Get block verbose
 	blockData := pgb.GetBTCBlockVerboseTxByHash(hash)
 	if blockData.Time < yeserDayTimeInt {
-		log.Infof("BTC: Synchronization of 24h blocks successfully. Stop at height: %d", height)
 		return nil, true
 	}
 

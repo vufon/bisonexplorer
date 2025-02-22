@@ -316,7 +316,6 @@ func (sk *MutilchainInfoSocket) HandlerDiffifultyAdjustmentData(raw []byte) {
 }
 
 func (sk *MutilchainInfoSocket) HandlerSimpleBlockData(raw []byte) {
-	log.Printf("Start handler simple Block Data for %s", sk.ChainType)
 	var blockData MempoolSimpleBlocksData
 	parseErr := json.Unmarshal(raw, &blockData)
 	if parseErr != nil {
