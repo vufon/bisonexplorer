@@ -61,6 +61,7 @@ const (
 	ctxStickWidth
 	ctxIndent
 	ctxChainType
+	ctxTSpendHash
 )
 
 type DataSource interface {
@@ -944,6 +945,14 @@ func AgendaIdCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		agendaId := chi.URLParam(r, "agendaId")
 		ctx := context.WithValue(r.Context(), ctxAgendaId, agendaId)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func TSpendVotesIdCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tspendHash := chi.URLParam(r, "tspendHash")
+		ctx := context.WithValue(r.Context(), ctxTSpendHash, tspendHash)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

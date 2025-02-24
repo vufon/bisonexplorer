@@ -77,6 +77,7 @@ type DataSource interface {
 	TicketPoolVisualization(interval dbtypes.TimeBasedGrouping) (
 		*dbtypes.PoolTicketsData, *dbtypes.PoolTicketsData, *dbtypes.PoolTicketsData, int64, error)
 	AgendaVotes(agendaID string, chartType int) (*dbtypes.AgendaVoteChoices, error)
+	TSpendTransactionVotes(tspendHash string, chartType int) (*dbtypes.AgendaVoteChoices, error)
 	AddressRowsCompact(address string) ([]*dbtypes.AddressRowCompact, error)
 	Height() int64
 	IsDCP0010Active(height int64) bool
@@ -3698,6 +3699,42 @@ func (c *appContext) getAgendaData(w http.ResponseWriter, r *http.Request) {
 	chartDataByHeight, err := c.DataSource.AgendaVotes(agendaID, 1)
 	if dbtypes.IsTimeoutErr(err) {
 		apiLog.Errorf("AgendaVotes timeout error: %v", err)
+		http.Error(w, "Database timeout.", http.StatusServiceUnavailable)
+		return
+	}
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	data := &apitypes.AgendaAPIResponse{
+		ByHeight: chartDataByHeight,
+		ByTime:   chartDataByTime,
+	}
+
+	writeJSON(w, data, "")
+}
+
+func (c *appContext) getTSpendVoteChartData(w http.ResponseWriter, r *http.Request) {
+	txHash := m.GetAgendaIdCtx(r)
+	if txHash == "" {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	chartDataByTime, err := c.DataSource.TSpendTransactionVotes(txHash, 0)
+	if dbtypes.IsTimeoutErr(err) {
+		apiLog.Errorf("TSpendTransactionVotes timeout error %v", err)
+		http.Error(w, "Database timeout.", http.StatusServiceUnavailable)
+		return
+	}
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	chartDataByHeight, err := c.DataSource.TSpendTransactionVotes(txHash, 1)
+	if dbtypes.IsTimeoutErr(err) {
+		apiLog.Errorf("TSpendTransactionVotes timeout error: %v", err)
 		http.Error(w, "Database timeout.", http.StatusServiceUnavailable)
 		return
 	}

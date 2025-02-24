@@ -32,6 +32,7 @@ import (
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
+	exptypes "github.com/decred/dcrdata/v8/explorer/types"
 )
 
 // DBBestBlock retrieves the best block hash and height from the meta table. The
@@ -488,6 +489,18 @@ func InsertVotes(db *sql.DB, dbTxns []*dbtypes.Tx, _ /*txDbIDs*/ []uint64, fTx *
 		return nil, nil, nil, nil, nil, err
 	}
 
+	// Prepare tspend votes insert statement.
+	tspendVotesInsert := internal.MakeTSpendVotesInsertStatement(checked)
+	tspendVotesStmt, err := dbtx.Prepare(tspendVotesInsert)
+	if err != nil {
+		log.Errorf("TSpend Votes INSERT prepare: %v", err)
+		_ = voteStmt.Close()
+		_ = agendaStmt.Close()
+		_ = agendaVotesStmt.Close()
+		_ = dbtx.Rollback() // try, but we want the Prepare error back
+		return nil, nil, nil, nil, nil, err
+	}
+
 	bail := func() {
 		// Already up a creek. Just log any Rollback error.
 		_ = voteStmt.Close()
@@ -601,7 +614,7 @@ func InsertVotes(db *sql.DB, dbTxns []*dbtypes.Tx, _ /*txDbIDs*/ []uint64, fTx *
 			continue // rest of loop deals with agendas table
 		}
 
-		_, _, _, choices, _ /* tspendChoices */, err := txhelpers.SSGenVoteChoices(msgTx, params)
+		_, _, _, choices, tspendVotes, err := txhelpers.SSGenVoteChoices(msgTx, params)
 		if err != nil {
 			bail()
 			return nil, nil, nil, nil, nil, err
@@ -648,12 +661,22 @@ func InsertVotes(db *sql.DB, dbTxns []*dbtypes.Tx, _ /*txDbIDs*/ []uint64, fTx *
 				return nil, nil, nil, nil, nil, fmt.Errorf("agenda_votes INSERT failed: %w", err)
 			}
 		}
+
+		// handle for tspend votes
+		for _, tspendChoices := range tspendVotes {
+			err = tspendVotesStmt.QueryRow(votesRowID, tspendChoices.TSpend.String(), tspendChoices.Choice).Scan(&rowID)
+			if err != nil {
+				bail()
+				return nil, nil, nil, nil, nil, fmt.Errorf("tspend_votes INSERT failed: %w", err)
+			}
+		}
 	}
 
 	// Close prepared statements. Ignore errors as we'll Commit regardless.
 	_ = voteStmt.Close()
 	_ = agendaStmt.Close()
 	_ = agendaVotesStmt.Close()
+	_ = tspendVotesStmt.Close()
 
 	// If the validators are available, miss accounting should be accurate.
 	if len(msgBlock.Validators) > 0 && len(ids)+len(misses) != 5 {
@@ -721,6 +744,27 @@ func RetrieveMissedVotesInBlock(ctx context.Context, db *sql.DB, blockHash strin
 	}
 	err = rows.Err()
 
+	return
+}
+
+// Get all vote hash with block height range
+func RetrieveVotesHashWithHeightRange(ctx context.Context, db *sql.DB, startBlock, endBlock int64) (voteHashes []exptypes.VoteHash, err error) {
+	var rows *sql.Rows
+	rows, err = db.QueryContext(ctx, internal.SelectVoteHashByHeightRange, startBlock, endBlock)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var voteHash exptypes.VoteHash
+		err = rows.Scan(&voteHash.Id, &voteHash.TxHash)
+		if err != nil {
+			return
+		}
+
+		voteHashes = append(voteHashes, voteHash)
+	}
+	err = rows.Err()
 	return
 }
 
@@ -792,6 +836,12 @@ func checkExistAndCreateTreasurySummaryTable(db *sql.DB) error {
 // Check exist and create proposal_meta table
 func checkExistAndCreate24BlocksTable(db *sql.DB) error {
 	err := createTable(db, "blocks24h", internal.Create24hBlocksTable)
+	return err
+}
+
+// Check exist and create proposal_meta table
+func checkExistAndCreateTSpendVotesTable(db *sql.DB) error {
+	err := createTable(db, "tspend_votes", internal.CreateTSpendVotesTable)
 	return err
 }
 
@@ -3389,6 +3439,61 @@ func retrieveAgendaVoteChoices(ctx context.Context, db *sql.DB, agendaID string,
 
 	rows, err := db.QueryContext(ctx, query, dbtypes.Yes, dbtypes.Abstain, dbtypes.No,
 		agendaID, votingStartHeight, votingDoneHeight)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	// Sum abstain, yes, no, and total votes
+	var a, y, n, t uint64
+	totalVotes := new(dbtypes.AgendaVoteChoices)
+	for rows.Next() {
+		var blockTime time.Time
+		var abstain, yes, no, total, height uint64
+		if byType == 0 {
+			err = rows.Scan(&blockTime, &yes, &abstain, &no, &total)
+		} else {
+			err = rows.Scan(&height, &yes, &abstain, &no, &total)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		// For day intervals, counts are cumulative
+		if byType == 0 {
+			a += abstain
+			y += yes
+			n += no
+			t += total
+			totalVotes.Time = append(totalVotes.Time, dbtypes.NewTimeDef(blockTime))
+		} else {
+			a = abstain
+			y = yes
+			n = no
+			t = total
+			totalVotes.Height = append(totalVotes.Height, height)
+		}
+
+		totalVotes.Abstain = append(totalVotes.Abstain, a)
+		totalVotes.Yes = append(totalVotes.Yes, y)
+		totalVotes.No = append(totalVotes.No, n)
+		totalVotes.Total = append(totalVotes.Total, t)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return totalVotes, nil
+}
+
+func retrieveTSpendTxVoteChoices(ctx context.Context, db *sql.DB, tspendHash string, byType int) (*dbtypes.AgendaVoteChoices, error) {
+	// Query with block or day interval size
+	var query = internal.SelectTSpendVotesByTime
+	if byType == 1 {
+		query = internal.SelectTSpendVotesByHeight
+	}
+
+	rows, err := db.QueryContext(ctx, query, dbtypes.Yes, dbtypes.Abstain, dbtypes.No, tspendHash)
 	if err != nil {
 		return nil, err
 	}

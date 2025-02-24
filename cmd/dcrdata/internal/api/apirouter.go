@@ -211,6 +211,9 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 	mux.Route("/treasury", func(r chi.Router) {
 		r.Get("/balance", app.getTreasuryBalance)
 		r.With(m.ChartGroupingCtx).Get("/io/{chartgrouping}", app.getTreasuryIO)
+		r.Route("/votechart", func(rd chi.Router) {
+			r.With(m.TSpendVotesIdCtx).Get("/{txhash}", app.getTSpendVoteChartData)
+		})
 	})
 
 	// Returns agenda data like; description, name, lockedin activated and other
