@@ -951,7 +951,7 @@ func AgendaIdCtx(next http.Handler) http.Handler {
 
 func TSpendVotesIdCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tspendHash := chi.URLParam(r, "tspendHash")
+		tspendHash := chi.URLParam(r, "txhash")
 		ctx := context.WithValue(r.Context(), ctxTSpendHash, tspendHash)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -972,6 +972,15 @@ func GetAgendaIdCtx(r *http.Request) string {
 		return ""
 	}
 	return agendaId
+}
+
+func GetTspendTxIdCtx(r *http.Request) string {
+	tspendId, ok := r.Context().Value(ctxTSpendHash).(string)
+	if !ok {
+		apiLog.Error("tspendId not parsed")
+		return ""
+	}
+	return tspendId
 }
 
 // BlockHashPathAndIndexCtx embeds the value at the url part {blockhash}, and

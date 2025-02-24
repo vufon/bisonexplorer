@@ -3493,22 +3493,22 @@ func retrieveTSpendTxVoteChoices(ctx context.Context, db *sql.DB, tspendHash str
 		query = internal.SelectTSpendVotesByHeight
 	}
 
-	rows, err := db.QueryContext(ctx, query, dbtypes.Yes, dbtypes.Abstain, dbtypes.No, tspendHash)
+	rows, err := db.QueryContext(ctx, query, dbtypes.TSpendYes, dbtypes.TSpendNo, tspendHash)
 	if err != nil {
 		return nil, err
 	}
 	defer closeRows(rows)
 
 	// Sum abstain, yes, no, and total votes
-	var a, y, n, t uint64
+	var y, n, t uint64
 	totalVotes := new(dbtypes.AgendaVoteChoices)
 	for rows.Next() {
 		var blockTime time.Time
-		var abstain, yes, no, total, height uint64
+		var yes, no, total, height uint64
 		if byType == 0 {
-			err = rows.Scan(&blockTime, &yes, &abstain, &no, &total)
+			err = rows.Scan(&blockTime, &yes, &no, &total)
 		} else {
-			err = rows.Scan(&height, &yes, &abstain, &no, &total)
+			err = rows.Scan(&height, &yes, &no, &total)
 		}
 		if err != nil {
 			return nil, err
@@ -3516,20 +3516,17 @@ func retrieveTSpendTxVoteChoices(ctx context.Context, db *sql.DB, tspendHash str
 
 		// For day intervals, counts are cumulative
 		if byType == 0 {
-			a += abstain
 			y += yes
 			n += no
 			t += total
 			totalVotes.Time = append(totalVotes.Time, dbtypes.NewTimeDef(blockTime))
 		} else {
-			a = abstain
 			y = yes
 			n = no
 			t = total
 			totalVotes.Height = append(totalVotes.Height, height)
 		}
 
-		totalVotes.Abstain = append(totalVotes.Abstain, a)
 		totalVotes.Yes = append(totalVotes.Yes, y)
 		totalVotes.No = append(totalVotes.No, n)
 		totalVotes.Total = append(totalVotes.Total, t)
@@ -3537,7 +3534,6 @@ func retrieveTSpendTxVoteChoices(ctx context.Context, db *sql.DB, tspendHash str
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-
 	return totalVotes, nil
 }
 

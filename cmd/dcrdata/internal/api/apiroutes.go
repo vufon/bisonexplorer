@@ -3716,7 +3716,7 @@ func (c *appContext) getAgendaData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) getTSpendVoteChartData(w http.ResponseWriter, r *http.Request) {
-	txHash := m.GetAgendaIdCtx(r)
+	txHash := m.GetTspendTxIdCtx(r)
 	if txHash == "" {
 		http.Error(w, http.StatusText(422), 422)
 		return

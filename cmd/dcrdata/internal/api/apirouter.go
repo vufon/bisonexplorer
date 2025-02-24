@@ -212,7 +212,7 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		r.Get("/balance", app.getTreasuryBalance)
 		r.With(m.ChartGroupingCtx).Get("/io/{chartgrouping}", app.getTreasuryIO)
 		r.Route("/votechart", func(rd chi.Router) {
-			r.With(m.TSpendVotesIdCtx).Get("/{txhash}", app.getTSpendVoteChartData)
+			rd.With(m.TSpendVotesIdCtx).Get("/{txhash}", app.getTSpendVoteChartData)
 		})
 	})
 

@@ -74,6 +74,12 @@ func (pgb *ChainDB) SyncTSpendVotesData() error {
 		_ = dbtx.Rollback() // try, but we want the Prepare error back
 		return err
 	}
+	tip, err := pgb.GetTip()
+	tipHeight := int64(tip.Height)
+	if err != nil {
+		log.Errorf("Failed to get the chain tip from the database.: %v", err)
+		return nil
+	}
 	for _, tspendTx := range tspendTxns {
 		log.Infof("Begin syncing for tx: %s", tspendTx.TxID)
 		// get Treasury Spend Votes
@@ -85,10 +91,31 @@ func (pgb *ChainDB) SyncTSpendVotesData() error {
 		if err != nil {
 			return err
 		}
+		maxVotes := int64(uint64(pgb.chainParams.TicketsPerBlock) * pgb.chainParams.TreasuryVoteInterval * pgb.chainParams.TreasuryVoteIntervalMultiplier)
+		quorumCount := maxVotes * int64(pgb.chainParams.TreasuryVoteQuorumMultiplier) / int64(pgb.chainParams.TreasuryVoteQuorumDivisor)
 		var rowID uint64
 		// get votes tx list from start height and end height
 		for _, vote := range tspendVoteResult.Votes {
-			voteHashs, _ := RetrieveVotesHashWithHeightRange(pgb.ctx, pgb.db, vote.VoteStart, vote.VoteEnd)
+			var maxRemainingBlocks int64
+			voteStarted := tipHeight >= vote.VoteStart
+			if !voteStarted {
+				maxRemainingBlocks = vote.VoteEnd - vote.VoteStart
+			} else if tspendTx.BlockHeight != 0 && vote.VoteEnd > tspendTx.BlockHeight {
+				maxRemainingBlocks = vote.VoteEnd - tspendTx.BlockHeight
+			} else if vote.VoteEnd > tipHeight {
+				maxRemainingBlocks = vote.VoteEnd - tipHeight
+			}
+			maxRemainingVotes := maxRemainingBlocks * int64(pgb.chainParams.TicketsPerBlock)
+			totalVotes := vote.YesVotes + vote.NoVotes
+			requiredYesVotes := (totalVotes + maxRemainingVotes) * int64(pgb.chainParams.TreasuryVoteRequiredMultiplier) / int64(pgb.chainParams.TreasuryVoteRequiredDivisor)
+			approved := vote.YesVotes >= requiredYesVotes && totalVotes >= quorumCount
+			var voteEnd = vote.VoteEnd
+			if approved {
+				if voteEnd > tspendTx.BlockHeight {
+					voteEnd = tspendTx.BlockHeight
+				}
+			}
+			voteHashs, _ := RetrieveVotesHashWithHeightRange(pgb.ctx, pgb.db, vote.VoteStart, voteEnd)
 			if err != nil && err != sql.ErrNoRows {
 				return err
 			}

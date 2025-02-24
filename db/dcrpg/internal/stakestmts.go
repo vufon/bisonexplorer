@@ -516,12 +516,11 @@ const (
 
 	selectTSpendVotesQuery = `
 		count(CASE WHEN tspend_votes.tspend_vote_choice = $1 THEN 1 ELSE NULL END) AS yes,
-		count(CASE WHEN tspend_votes.tspend_vote_choice = $2 THEN 1 ELSE NULL END) AS abstain,
-		count(CASE WHEN tspend_votes.tspend_vote_choice = $3 THEN 1 ELSE NULL END) AS no,
+		count(CASE WHEN tspend_votes.tspend_vote_choice = $2 THEN 1 ELSE NULL END) AS no,
 		count(*) AS total
 	FROM tspend_votes
 	INNER JOIN votes ON tspend_votes.votes_row_id = votes.id
-	WHERE tspend_votes.tspend_hash = $4
+	WHERE tspend_votes.tspend_hash = $3
 		AND votes.is_mainchain = TRUE `
 	CountTSpendVotesRows = `SELECT COUNT(*) FROM tspend_votes`
 )

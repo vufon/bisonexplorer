@@ -1,22 +1,100 @@
 import txInBlock from '../helpers/block_helper'
 import globalEventBus from '../services/event_bus_service'
+import { barChartPlotter } from '../helpers/chart_helper'
 import { Controller } from '@hotwired/stimulus'
 import humanize from '../helpers/humanize_helper'
 import { MiniMeter } from '../helpers/meters.js'
 import { darkEnabled } from '../services/theme_service'
+import { getDefault } from '../helpers/module_helper'
+import { requestJSON } from '../helpers/http'
+
+const chartLayout = {
+  showRangeSelector: true,
+  legend: 'follow',
+  fillGraph: true,
+  colors: ['#0c644e', '#f36e6e'],
+  stackedGraph: true,
+  legendFormatter: agendasLegendFormatter,
+  labelsSeparateLines: true,
+  labelsKMB: true,
+  labelsUTC: true
+}
+
+function agendasLegendFormatter (data) {
+  if (data.x == null) return ''
+  let html
+  if (this.getLabels()[0] === 'Date') {
+    html = this.getLabels()[0] + ': ' + humanize.date(data.x)
+  } else {
+    html = this.getLabels()[0] + ': ' + data.xHTML
+  }
+  const total = data.series.reduce((total, n) => {
+    return total + n.y
+  }, 0)
+  data.series.forEach((series) => {
+    const percentage = total !== 0 ? ((series.y * 100) / total).toFixed(2) : 0
+    html = '<span style="color:#2d2d2d;">' + html + '</span>'
+    html += `<br>${series.dashHTML}<span style="color: ${series.color};">${series.labelHTML}: ${series.yHTML} (${percentage}%)</span>`
+  })
+  return html
+}
+
+function cumulativeVoteChoicesData (d) {
+  if (d == null || !(d.yes instanceof Array)) return [[0, 0, 0]]
+  return d.yes.map((n, i) => {
+    return [
+      new Date(d.time[i]),
+      n,
+      d.no[i]
+    ]
+  })
+}
+
+function voteChoicesByBlockData (d) {
+  if (d == null || !(d.yes instanceof Array)) return [[0, 0, 0]]
+  return d.yes.map((n, i) => {
+    return [
+      d.height[i],
+      n,
+      d.no[i]
+    ]
+  })
+}
 
 export default class extends Controller {
   static get targets () {
     return ['unconfirmed', 'confirmations', 'formattedAge', 'age', 'progressBar',
       'ticketStage', 'expiryChance', 'mempoolTd', 'ticketMsg',
-      'expiryMsg', 'statusMsg', 'spendingTx', 'approvalMeter']
+      'expiryMsg', 'statusMsg', 'spendingTx', 'approvalMeter', 'cumulativeVoteChoices', 'voteChoicesByBlock']
   }
 
-  connect () {
+  initialize () {
+    this.emptydata = [[0, 0, 0]]
+    this.cumulativeVoteChoicesChart = false
+    this.voteChoicesByBlockChart = false
+  }
+
+  async connect () {
     this.txid = this.data.get('txid')
+    this.type = this.data.get('type')
+    this.isTSpend = this.type === 'Treasury Spend'
     this.processBlock = this._processBlock.bind(this)
     this.targetBlockTime = parseInt(document.getElementById('navBar').dataset.blocktime)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
+
+    if (this.isTSpend) {
+      this.Dygraph = await getDefault(
+        import(/* webpackChunkName: "dygraphs" */ '../vendor/dygraphs.min.js')
+      )
+      this.drawCharts()
+      const agendaResponse = await requestJSON('/api/treasury/votechart/' + this.txid)
+      this.cumulativeVoteChoicesChart.updateOptions({
+        file: cumulativeVoteChoicesData(agendaResponse.by_time)
+      })
+      this.voteChoicesByBlockChart.updateOptions({
+        file: voteChoicesByBlockData(agendaResponse.by_height)
+      })
+    }
 
     // Approval meter for tspend votes.
     if (!this.hasApprovalMeterTarget) return // there will be no meter.
@@ -32,8 +110,40 @@ export default class extends Controller {
     this.approvalMeter = new MiniMeter(this.approvalMeterTarget, opts)
   }
 
+  drawCharts () {
+    this.cumulativeVoteChoicesChart = this.drawChart(
+      this.cumulativeVoteChoicesTarget,
+      {
+        labels: ['Date', 'Yes', 'No'],
+        ylabel: 'Cumulative Vote Choices Cast',
+        title: 'Cumulative Vote Choices',
+        labelsKMB: true
+      }
+    )
+    this.voteChoicesByBlockChart = this.drawChart(
+      this.voteChoicesByBlockTarget,
+      {
+        labels: ['Block Height', 'Yes', 'No'],
+        ylabel: 'Vote Choices Cast',
+        title: 'Vote Choices By Block',
+        plotter: barChartPlotter
+      }
+    )
+  }
+
   disconnect () {
     globalEventBus.off('BLOCK_RECEIVED', this.processBlock)
+  }
+
+  drawChart (el, options, Dygraph) {
+    return new this.Dygraph(
+      el,
+      this.emptydata,
+      {
+        ...chartLayout,
+        ...options
+      }
+    )
   }
 
   _processBlock (blockData) {
