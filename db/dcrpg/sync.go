@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/rpcutils"
+	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
 const (
@@ -52,6 +53,98 @@ func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
 
 	pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
 	return nil
+}
+
+func (pgb *ChainDB) SyncTSpendVotesData() error {
+	// Get all tspend transactions
+	tspendTxns, err := pgb.GetAllTSpendTxns()
+	if err != nil {
+		log.Errorf("Get all tspend transactions failed: %v", err)
+		return err
+	}
+	dbtx, err := pgb.db.Begin()
+	if err != nil {
+		return fmt.Errorf("unable to begin database transaction: %w", err)
+	}
+	// Prepare tspend votes insert statement.
+	tspendVotesInsert := internal.MakeTSpendVotesInsertStatement(false)
+	tspendVotesStmt, err := dbtx.Prepare(tspendVotesInsert)
+	if err != nil {
+		log.Errorf("TSpend Votes INSERT prepare: %v", err)
+		_ = dbtx.Rollback() // try, but we want the Prepare error back
+		return err
+	}
+	tip, err := pgb.GetTip()
+	tipHeight := int64(tip.Height)
+	if err != nil {
+		log.Errorf("Failed to get the chain tip from the database.: %v", err)
+		return nil
+	}
+	for _, tspendTx := range tspendTxns {
+		log.Infof("Begin syncing for tx: %s", tspendTx.TxID)
+		// get Treasury Spend Votes
+		hash, err := chainhash.NewHashFromStr(tspendTx.TxID)
+		if err != nil {
+			return err
+		}
+		tspendVoteResult, err := pgb.Client.GetTreasurySpendVotes(pgb.ctx, nil, []*chainhash.Hash{hash})
+		if err != nil {
+			return err
+		}
+		maxVotes := int64(uint64(pgb.chainParams.TicketsPerBlock) * pgb.chainParams.TreasuryVoteInterval * pgb.chainParams.TreasuryVoteIntervalMultiplier)
+		quorumCount := maxVotes * int64(pgb.chainParams.TreasuryVoteQuorumMultiplier) / int64(pgb.chainParams.TreasuryVoteQuorumDivisor)
+		var rowID uint64
+		// get votes tx list from start height and end height
+		for _, vote := range tspendVoteResult.Votes {
+			var maxRemainingBlocks int64
+			voteStarted := tipHeight >= vote.VoteStart
+			if !voteStarted {
+				maxRemainingBlocks = vote.VoteEnd - vote.VoteStart
+			} else if tspendTx.BlockHeight != 0 && vote.VoteEnd > tspendTx.BlockHeight {
+				maxRemainingBlocks = vote.VoteEnd - tspendTx.BlockHeight
+			} else if vote.VoteEnd > tipHeight {
+				maxRemainingBlocks = vote.VoteEnd - tipHeight
+			}
+			maxRemainingVotes := maxRemainingBlocks * int64(pgb.chainParams.TicketsPerBlock)
+			totalVotes := vote.YesVotes + vote.NoVotes
+			requiredYesVotes := (totalVotes + maxRemainingVotes) * int64(pgb.chainParams.TreasuryVoteRequiredMultiplier) / int64(pgb.chainParams.TreasuryVoteRequiredDivisor)
+			approved := vote.YesVotes >= requiredYesVotes && totalVotes >= quorumCount
+			var voteEnd = vote.VoteEnd
+			if approved {
+				if voteEnd > tspendTx.BlockHeight {
+					voteEnd = tspendTx.BlockHeight
+				}
+			}
+			voteHashs, _ := RetrieveVotesHashWithHeightRange(pgb.ctx, pgb.db, vote.VoteStart, voteEnd)
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+			if err == sql.ErrNoRows {
+				continue
+			}
+			for _, voteHash := range voteHashs {
+				// get msgTx from hash
+				voteTx, err := pgb.GetTransactionByHash(voteHash.TxHash)
+				if err != nil {
+					continue
+				}
+				_, _, _, _, tspendVotes, err := txhelpers.SSGenVoteChoices(voteTx, pgb.chainParams)
+				if err != nil {
+					return err
+				}
+				// handle for tspend votes
+				for _, tspendChoices := range tspendVotes {
+					err = tspendVotesStmt.QueryRow(voteHash.Id, tspendChoices.TSpend.String(), tspendChoices.Choice).Scan(&rowID)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+		log.Infof("Finish syncing for tx: %s", tspendTx.TxID)
+	}
+	_ = tspendVotesStmt.Close()
+	return dbtx.Commit()
 }
 
 func (pgb *ChainDB) SyncAddressSummary() error {

@@ -13,6 +13,8 @@ import (
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 )
 
+const TSpentVotesTable = "tspend_votes"
+
 var createTableStatements = [][2]string{
 	{"meta", internal.CreateMetaTable},
 	{"blocks", internal.CreateBlockTable},
@@ -35,6 +37,7 @@ var createTableStatements = [][2]string{
 	{"swaps", internal.CreateAtomicSwapTable},
 	{"monthly_price", internal.CreateMonthlyPriceTable},
 	{"blocks24h", internal.Create24hBlocksTable},
+	{"tspend_votes", internal.CreateTSpendVotesTable},
 }
 
 func GetCreateDBTables() [][2]string {

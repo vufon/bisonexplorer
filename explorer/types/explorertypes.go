@@ -466,6 +466,12 @@ type TrimmedBlockInfo struct {
 	Transactions []*TrimmedTxInfo
 }
 
+// Vout models basic data about a tx output for display
+type VoteHash struct {
+	Id     uint32
+	TxHash string
+}
+
 type MergeBlockData struct {
 	*BlockInfo
 	*TrimmedBlockInfo

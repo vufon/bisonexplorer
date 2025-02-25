@@ -669,6 +669,15 @@ const (
 	VoteChoiceUnknown
 )
 
+type TSpendVoteChoice uint8
+
+// These are the recognized VoteChoice values.
+const (
+	TSpendAbstain TSpendVoteChoice = iota
+	TSpendYes
+	TSpendNo
+)
+
 // String implements the Stringer interface for TicketPoolStatus.
 func (p TicketPoolStatus) String() string {
 	switch p {

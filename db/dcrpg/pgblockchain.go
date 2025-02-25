@@ -953,6 +953,14 @@ func versionCheck(db *sql.DB) (*DatabaseVersion, CompatAction, error) {
 	return &dbVer, dbVer.NeededToReach(targetDatabaseVersion), nil
 }
 
+func (pgb *ChainDB) CheckTableExist(table string) (bool, error) {
+	exists, err := TableExists(pgb.db, table)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
+}
+
 func (pgb *ChainDB) MutilchainCheckAndCreateTable(chainType string) error {
 	exists, err := TableExists(pgb.db, fmt.Sprintf("%sblocks", chainType))
 	if err != nil {
@@ -1687,6 +1695,23 @@ func (pgb *ChainDB) AgendaVotes(agendaID string, chartType int) (*dbtypes.Agenda
 	return avc, pgb.replaceCancelError(err)
 }
 
+func (pgb *ChainDB) TSpendTransactionVotes(tspendHash string, chartType int) (*dbtypes.AgendaVoteChoices, error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+
+	tvc, err := retrieveTSpendTxVoteChoices(ctx, pgb.db, tspendHash, chartType)
+	return tvc, pgb.replaceCancelError(err)
+}
+
+func (pgb *ChainDB) CountTSpendVotesRows() (uint64, error) {
+	var rowCount uint64
+	err := pgb.db.QueryRow(internal.CountTSpendVotesRows).Scan(&rowCount)
+	if err != nil {
+		return 0, err
+	}
+	return rowCount, nil
+}
+
 // AgendasVotesSummary fetches the total vote choices count for the provided
 // agenda.
 func (pgb *ChainDB) AgendasVotesSummary(agendaID string) (summary *dbtypes.AgendaSummary, err error) {
@@ -1741,6 +1766,11 @@ func (pgb *ChainDB) CheckCreateProposalMetaTable() (err error) {
 // Check exist or create a new proposal_meta table
 func (pgb *ChainDB) CheckCreate24hBlocksTable() (err error) {
 	return checkExistAndCreate24BlocksTable(pgb.db)
+}
+
+// Check exist or create a new proposal_meta table
+func (pgb *ChainDB) CheckCreateTSpendVotesTable() (err error) {
+	return checkExistAndCreateTSpendVotesTable(pgb.db)
 }
 
 // Check exist or create a new address_summary table
@@ -3150,6 +3180,30 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 
 func (pgb *ChainDB) TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error) {
 	return pgb.TreasuryTxnsWithPeriod(n, offset, txType, 0, 0)
+}
+
+// Get all Tspend
+func (pgb *ChainDB) GetAllTSpendTxns() ([]*dbtypes.TreasuryTx, error) {
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectTypedTreasuryTxnsAll, stake.TxTypeTSpend)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var txns []*dbtypes.TreasuryTx
+	for rows.Next() {
+		var tx dbtypes.TreasuryTx
+		var mainchain bool
+		err = rows.Scan(&tx.TxID, &tx.Type, &tx.Amount, &tx.BlockHash, &tx.BlockHeight, &tx.BlockTime, &mainchain)
+		if err != nil {
+			return nil, err
+		}
+		txns = append(txns, &tx)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return txns, nil
 }
 
 // TreasuryTxns fetches filtered treasury transactions.

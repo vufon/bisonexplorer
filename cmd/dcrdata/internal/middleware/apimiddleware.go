@@ -61,6 +61,7 @@ const (
 	ctxStickWidth
 	ctxIndent
 	ctxChainType
+	ctxTSpendHash
 )
 
 type DataSource interface {
@@ -948,6 +949,14 @@ func AgendaIdCtx(next http.Handler) http.Handler {
 	})
 }
 
+func TSpendVotesIdCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tspendHash := chi.URLParam(r, "txhash")
+		ctx := context.WithValue(r.Context(), ctxTSpendHash, tspendHash)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // AgendIdCtx returns a http.HandlerFunc that embeds the value at the url part
 // {agendaId} into the request context. This is here for backward compatibility.
 func AgendIdCtx(next http.Handler) http.Handler {
@@ -963,6 +972,15 @@ func GetAgendaIdCtx(r *http.Request) string {
 		return ""
 	}
 	return agendaId
+}
+
+func GetTspendTxIdCtx(r *http.Request) string {
+	tspendId, ok := r.Context().Value(ctxTSpendHash).(string)
+	if !ok {
+		apiLog.Error("tspendId not parsed")
+		return ""
+	}
+	return tspendId
 }
 
 // BlockHashPathAndIndexCtx embeds the value at the url part {blockhash}, and

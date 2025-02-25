@@ -235,6 +235,17 @@ func _main(ctx context.Context) error {
 		return err
 	}
 
+	tspendExist, err := chainDB.CheckTableExist(dcrpg.TSpentVotesTable)
+	if err != nil {
+		return err
+	}
+	if !tspendExist {
+		createTSpendVotesTableErr := chainDB.CheckCreateTSpendVotesTable()
+		if createTSpendVotesTableErr != nil {
+			return fmt.Errorf("create tspend_votes table failed: %w", createTSpendVotesTableErr)
+		}
+	}
+
 	// Check for missing indexes.
 	missingIndexes, descs, err := chainDB.MissingIndexes()
 	if err != nil {
@@ -1204,6 +1215,29 @@ func _main(ctx context.Context) error {
 		}
 
 		log.Infof("Finished DCR monthly price sync")
+
+		// check and sync for tspend votes
+		// check tspend_votes table exist
+		rowCount, err := chainDB.CountTSpendVotesRows()
+		if err != nil {
+			return fmt.Errorf("Count tspend_votes rows failed: %v", err)
+		}
+		if rowCount <= 0 {
+			log.Infof("Begin checking and syncing tspend_votes table...")
+			syncTSpendVotesData := func() error {
+				err := chainDB.SyncTSpendVotesData()
+				if err != nil {
+					log.Errorf("dcrpg.SyncTSpendVotesData failed")
+					return err
+				}
+				return nil
+			}
+			err = syncTSpendVotesData()
+			if err != nil {
+				return err
+			}
+			log.Infof("Finish checking and syncing tspend_votes table...")
+		}
 	}
 
 	// After sync and indexing, must use upsert statement, which checks for

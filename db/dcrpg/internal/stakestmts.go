@@ -242,6 +242,7 @@ const (
 
 	SelectAllVoteDbIDsHeightsTicketHashes = `SELECT id, height, ticket_hash FROM votes;`
 	SelectAllVoteDbIDsHeightsTicketDbIDs  = `SELECT id, height, ticket_tx_db_id FROM votes;`
+	SelectVoteHashByHeightRange           = `SELECT id, tx_hash FROM votes WHERE is_mainchain AND height >= $1 AND height <= $2;`
 
 	UpdateVotesMainchainAll = `UPDATE votes
 		SET is_mainchain=b.is_mainchain
@@ -477,6 +478,51 @@ const (
 		WHERE agenda_votes.agendas_row_id = (SELECT id from agendas WHERE name = $4)
 			AND votes.height >= $5 AND votes.height <= $6
 			AND votes.is_mainchain = TRUE `
+
+	// create table for saving treasury vote info
+	CreateTSpendVotesTable = `CREATE TABLE IF NOT EXISTS tspend_votes (
+		id SERIAL PRIMARY KEY,
+		votes_row_id INT8,
+		tspend_hash TEXT,
+		tspend_vote_choice INT2
+	);`
+
+	// Insert
+	insertTSpendVotesRow = `INSERT INTO tspend_votes (votes_row_id, tspend_hash,
+	tspend_vote_choice) VALUES ($1, $2, $3) `
+
+	InsertTSpendVotesRow = insertTSpendVotesRow + `RETURNING id;`
+
+	UpsertTSpendVotesRow = insertTSpendVotesRow + `ON CONFLICT (tspend_hash,
+	votes_row_id) DO UPDATE SET tspend_vote_choice = $3 RETURNING id;`
+
+	// DeleteTSpendVotesDuplicateRows removes rows that would violate the unique
+	// index uix_tspend_votes. This should be run prior to creating the index.
+	DeleteTSpendVotesDuplicateRows = `DELETE FROM tspend_votes
+	WHERE id IN (SELECT id FROM (
+			SELECT id,
+				row_number() OVER (PARTITION BY votes_row_id, tspend_hash ORDER BY id DESC) AS rnum
+			FROM tspend_votes) t
+		WHERE t.rnum > 1);`
+
+	// Select
+	SelectTSpendVotesByTime = `SELECT votes.block_time AS timestamp,` +
+		selectTSpendVotesQuery + `GROUP BY timestamp ORDER BY timestamp;`
+
+	SelectTSpendVotesByHeight = `SELECT votes.height AS height,` +
+		selectTSpendVotesQuery + `GROUP BY height ORDER BY height;`
+
+	SelectTSpendVoteTotals = `SELECT ` + selectTSpendVotesQuery + `;`
+
+	selectTSpendVotesQuery = `
+		count(CASE WHEN tspend_votes.tspend_vote_choice = $1 THEN 1 ELSE NULL END) AS yes,
+		count(CASE WHEN tspend_votes.tspend_vote_choice = $2 THEN 1 ELSE NULL END) AS no,
+		count(*) AS total
+	FROM tspend_votes
+	INNER JOIN votes ON tspend_votes.votes_row_id = votes.id
+	WHERE tspend_votes.tspend_hash = $3
+		AND votes.is_mainchain = TRUE `
+	CountTSpendVotesRows = `SELECT COUNT(*) FROM tspend_votes`
 )
 
 // MakeTicketInsertStatement returns the appropriate tickets insert statement
@@ -542,6 +588,13 @@ func MakeAgendaVotesInsertStatement(checked bool) string {
 		return UpsertAgendaVotesRow
 	}
 	return InsertAgendaVotesRow
+}
+
+func MakeTSpendVotesInsertStatement(checked bool) string {
+	if checked {
+		return UpsertTSpendVotesRow
+	}
+	return InsertTSpendVotesRow
 }
 
 // MakeSelectTicketsByPurchaseDate returns the selectTicketsByPurchaseDate query
