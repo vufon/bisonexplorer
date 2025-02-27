@@ -2435,7 +2435,7 @@ func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Execute the HTML template.
-	linkTemplate := fmt.Sprintf("/treasury?start=%%d&n=%d&txntype=%v", limitN, txType)
+	linkTemplate := fmt.Sprintf("/treasury?start=%%d&n=%d&txntype=%s", limitN, txTypeStr)
 	if txTime != "" {
 		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, txTime)
 	}
@@ -2844,7 +2844,7 @@ func (exp *ExplorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
 	}
 	exp.pageData.RUnlock()
 
-	linkTemplate := "/treasury" + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + fmt.Sprintf("%v", txType)
+	linkTemplate := "/treasury" + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + txnTypeToTreasuryType(txType)
 	if time != "" {
 		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
 	}
@@ -2936,6 +2936,18 @@ func parseTreasuryTransactionType(txnTypeStr string) (txType stake.TxType) {
 		return stake.TxTypeTreasuryBase
 	}
 	return stake.TxType(-1)
+}
+
+func txnTypeToTreasuryType(txnType stake.TxType) string {
+	switch txnType {
+	case stake.TxTypeTSpend:
+		return "tspend"
+	case stake.TxTypeTAdd:
+		return "tadd"
+	case stake.TxTypeTreasuryBase:
+		return "treasurybase"
+	}
+	return "all"
 }
 
 // parseTreasuryParams parses the tx filters for the treasury page. Used by both
