@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.02e0e7870a06f50b.css" rel="stylesheet">
+	<link href="/dist/css/style.130c101f14851769.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -540,7 +540,7 @@
 {{define "menu_bar"}}
 <nav class="dropdownmenu">
   <ul>
-	 <li><a class="menu-item-title">Information</a>
+	 <li><a class="menu-item-title px-3">Information</a>
       <ul class="submenu info-menu-column">
         <li><a data-keynav-skip href="/blocks" data-turbolinks="false" title="Decred blocks">Blocks</a></li>
         <li><a data-keynav-skip href="/mempool" data-turbolinks="false" title="Decred mempool">Mempool</a></li>
@@ -549,15 +549,15 @@
 		<li><a data-keynav-skip href="/agendas" data-turbolinks="false" title="Agendas">Upgrade Agendas</a></li>
       </ul>
     </li>
-	 <li><a class="menu-item-title">Graphics</a>
+	 <li><a class="menu-item-title px-3">Graphics</a>
       <ul class="submenu charts-menu-column">
         <li><a data-keynav-skip href="/charts" data-turbolinks="false" title="Decred charts">Chain Charts</a></li>
         <li><a data-keynav-skip href="/market" data-turbolinks="false" title="Market">Market</a></li>
 		<li><a data-keynav-skip href="/ticketpool" data-turbolinks="false" title="Decred ticket pool">Ticket Pool</a></li>
-		<li><a data-keynav-skip href="/bwdash" data-turbolinks="false" title="Bison wallet dashboard">Bison Wallet Dashboard</a></li>
+		<li><a data-keynav-skip href="/bwdash" data-turbolinks="false" class="nav-btn--promo" title="Bison wallet dashboard">Bison Wallet Dashboard</a></li>
       </ul>
     </li>
-	 <li><a class="menu-item-title">Tools</a>
+	 <li><a class="menu-item-title px-3">Tools</a>
       <ul class="submenu tools-menu-column last-submenu-item">
 		<li><a data-keynav-skip href="/chain" data-turbolinks="false" class="nav-btn--promo" title="Other blockchains">Other Blockchains</a></li>
 	  	<li><a data-keynav-skip href="/finance-report" data-turbolinks="false" class="nav-btn--promo" title="Financial Reports">Financial Reports</a></li>
@@ -592,20 +592,20 @@
 {{define "multichain_menu_bar"}}
 <nav class="dropdownmenu">
   <ul>
-	 <li><a class="menu-item-title">Information</a>
+	 <li><a class="menu-item-title px-3">Information</a>
       <ul class="submenu info-menu-column">
         <li><a data-keynav-skip href="/{{.ChainType}}/blocks" title="Decred blocks">Blocks</a></li>
         <li><a data-keynav-skip href="/{{.ChainType}}/mempool" title="Decred mempool">Mempool</a></li>
       </ul>
     </li>
-	 <li><a class="menu-item-title">Graphics</a>
+	 <li><a class="menu-item-title px-3">Graphics</a>
       <ul class="submenu charts-menu-column">
         <li><a data-keynav-skip href="/{{.ChainType}}/charts" title="Decred charts">Chain Charts</a></li>
         <li><a data-keynav-skip href="/{{.ChainType}}/market" title="Market">Market</a></li>
 		<li><a data-keynav-skip href="/{{.ChainType}}/visualblocks" title="Decred visual lastest blocks">Visual Blocks</a></li>
       </ul>
     </li>
-	 <li><a class="menu-item-title">Tools</a>
+	 <li><a class="menu-item-title px-3">Tools</a>
       <ul class="submenu tools-menu-column last-submenu-item">
 		<li><a data-keynav-skip href="/chain" title="Other blockchains">Other Blockchains</a></li>
 		<li><a data-keynav-skip href="/{{.ChainType}}/supply" title="Next Block Reward Reduction">Supply</a></li>

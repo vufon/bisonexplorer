@@ -1918,7 +1918,7 @@ input:checked + .legacy-slider::before {
 .dropdownmenu a {
   color: #fff;
   display: block;
-  padding: 10px 25px;
+  padding: 10px;
   text-align: center;
   text-decoration: none;
   -webkit-transition: all 0.25s ease;
@@ -1953,25 +1953,19 @@ input:checked + .legacy-slider::before {
 
 .info-menu-column {
   li {
-    width: 180px !important;
+    width: 170px !important;
   }
 }
 
 .charts-menu-column {
   li {
-    width: 140px !important;
+    width: 230px !important;
   }
 }
 
 .tools-menu-column {
   li {
-    width: 230px !important;
-  }
-}
-
-.other-menu-column {
-  li {
-    width: 180px !important;
+    width: 210px !important;
   }
 }
 
