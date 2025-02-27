@@ -972,6 +972,7 @@ func _main(ctx context.Context) error {
 			rd.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.AddressTable)
 			rd.Get("/treasury", explore.TreasuryPage)
 			rd.Get("/treasurytable", explore.TreasuryTable)
+			rd.Get("/atomicswaps-table", explore.AtomicSwapsTable)
 			rd.Get("/agendas", explore.AgendasPage)
 			rd.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)
 			rd.Get("/proposals", explore.ProposalsPage)
@@ -995,6 +996,7 @@ func _main(ctx context.Context) error {
 			rd.Get("/finance-report", explore.FinanceReportPage)
 			rd.Get("/finance-report/detail", explore.FinanceDetailPage)
 			rd.Get("/supply", explore.SupplyPage)
+			rd.Get("/atomic-swaps", explore.AtomicSwapsPage)
 		})
 		mainRedirect := func(url string) http.HandlerFunc {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -1057,6 +1059,7 @@ func _main(ctx context.Context) error {
 		r.Get("/addresstable/{x}", redirectOneParam("/decred/addresstable"))
 		r.Get("/treasury", mainRedirect("/decred/treasury"))
 		r.Get("/treasurytable", mainRedirect("/decred/treasurytable"))
+		r.Get("/atomicswaps-table", mainRedirect("/decred/atomicswaps-table"))
 		r.Get("/agendas", mainRedirect("/decred/agendas"))
 		r.Get("/agenda/{x}", redirectOneParam("/decred/agenda"))
 		r.Get("/proposals", mainRedirect("/decred/proposals"))
@@ -1078,6 +1081,7 @@ func _main(ctx context.Context) error {
 		r.Get("/finance-report", mainRedirect("/decred/finance-report"))
 		r.Get("/finance-report/detail", mainRedirect("/decred/finance-report/detail"))
 		r.Get("/supply", mainRedirect("/decred/supply"))
+		r.Get("/atomic-swaps", mainRedirect("/decred/atomic-swaps"))
 
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.

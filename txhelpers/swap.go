@@ -326,6 +326,7 @@ type AtomicSwapData struct {
 	ContractVout     uint32
 	SpendTx          *chainhash.Hash
 	SpendVin         uint32
+	SpendHeight      uint32
 	Value            int64
 	ContractAddress  string
 	RecipientAddress string

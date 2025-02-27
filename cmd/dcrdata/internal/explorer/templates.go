@@ -560,7 +560,7 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			}
 			return t.Format("2006-01-02 15:04:05 MST")
 		},
-		"dateTimeWithoutTimeZone": func(a uint64) string {
+		"dateTimeWithoutTimeZone": func(a int64) string {
 			if a == 0 {
 				return "N/A"
 			}

@@ -3178,6 +3178,47 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 	return priceMap
 }
 
+// GetAtomicSwapList fetches filtered atomic swap list.
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*txhelpers.AtomicSwapData, allCount int64, err error) {
+	var rows *sql.Rows
+	rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectAtomicSwaps, n, offset)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var swap txhelpers.AtomicSwapData
+		var contractTx, spendTx string
+		var scretHash []byte
+		err = rows.Scan(&contractTx, &swap.ContractVout, &spendTx, &swap.SpendVin, &swap.SpendHeight,
+			&swap.ContractAddress, &swap.Value, &scretHash, &swap.Secret, &swap.Locktime)
+		if err != nil {
+			return
+		}
+		var txHash, spendTxHash *chainhash.Hash
+		txHash, err = chainhash.NewHashFromStr(contractTx)
+		if err != nil {
+			return
+		}
+		spendTxHash, err = chainhash.NewHashFromStr(spendTx)
+		if err != nil {
+			return
+		}
+		copy(swap.SecretHash[:], scretHash)
+		swap.ContractTx = txHash
+		swap.SpendTx = spendTxHash
+		swaps = append(swaps, &swap)
+	}
+	err = rows.Err()
+	if err != nil {
+		return
+	}
+	// get count all atomic swaps
+	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&allCount)
+	return
+}
+
 func (pgb *ChainDB) TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error) {
 	return pgb.TreasuryTxnsWithPeriod(n, offset, txType, 0, 0)
 }

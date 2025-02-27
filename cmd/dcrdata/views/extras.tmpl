@@ -634,7 +634,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.1db7dbe4a437d495.bundle.js"
+	src="/dist/js/app.2231343ad86bbec8.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -968,6 +968,31 @@
 				data-yes="#"
 				data-no="(unconfirmed)"
 			>{{.Confirmations}}</td> */}}
+		</tr>
+	{{- end}}
+	</tbody>
+</table>
+</div>
+{{- end}}
+
+{{define "atomicSwapsTable"}}
+<div class="btable-table-wrap maxh-none">
+    <table class="btable-table w-100 table-responsive-sm">
+	<thead>
+		<tr class="bg-none">
+		<th class="text-start">Transaction</th>
+		<th class="text-end">Amount</th>
+		<th class="text-end">Block</th>
+		<th class="d-none d-sm-table-cell text-end">Time (UTC)</th>
+		</tr>
+	</thead>
+	<tbody class="bgc-white">
+	{{- range .SwapsList}}
+		<tr>
+			<td class="clipboard">{{template "hashElide" (hashlink .ContractTx.String (printf "/tx/%s" .ContractTx.String))}}</td>
+			<td class="text-end fs15">{{template "decimalParts" (amountAsDecimalParts .Value false)}}</td>
+			<td class="text-end fs15">{{.SpendHeight}}</td>
+			<td class="addr-tx-time d-none d-sm-table-cell text-end">{{dateTimeWithoutTimeZone .Locktime}}</td>
 		</tr>
 	{{- end}}
 	</tbody>

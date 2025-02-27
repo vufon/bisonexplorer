@@ -27,4 +27,11 @@ const (
 	IndexSwapsOnHeightV0 = `CREATE INDEX idx_swaps_height ON swaps (spend_height);`
 	IndexSwapsOnHeight   = IndexSwapsOnHeightV0
 	DeindexSwapsOnHeight = `DROP INDEX idx_swaps_height;`
+
+	SelectAtomicSwaps = `SELECT * FROM swaps 
+		ORDER BY lock_time DESC
+		LIMIT $1 OFFSET $2;`
+
+	CountAtomicSwapsRow = `SELECT COUNT(*)
+		FROM swaps`
 )
