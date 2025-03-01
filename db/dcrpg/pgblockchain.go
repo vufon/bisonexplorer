@@ -65,6 +65,7 @@ import (
 	ltcwire "github.com/ltcsuite/ltcd/wire"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 )
 
 var (
@@ -1771,6 +1772,11 @@ func (pgb *ChainDB) CheckCreate24hBlocksTable() (err error) {
 // Check exist or create a new proposal_meta table
 func (pgb *ChainDB) CheckCreateTSpendVotesTable() (err error) {
 	return checkExistAndCreateTSpendVotesTable(pgb.db)
+}
+
+// Check exist or create a new btc swaps table
+func (pgb *ChainDB) CheckCreateBtcSwapsTable() (err error) {
+	return checkExistAndCreateBtcSwapsTable(pgb.db)
 }
 
 // Check exist or create a new address_summary table
@@ -9350,6 +9356,15 @@ func (pgb *ChainDB) GetMutilchainExplorerFullBlocks(chainType string, start, end
 	return result
 }
 
+func (pgb *ChainDB) GetMultichainMinBlockHeight(chainType string) (int32, error) {
+	var minDBHeight int32
+	err := pgb.db.QueryRow(mutilchainquery.MakeSelectMinBlockHeight(chainType)).Scan(&minDBHeight)
+	if err != nil && err != sql.ErrNoRows {
+		return 0, err
+	}
+	return minDBHeight, nil
+}
+
 func (pgb *ChainDB) GetSubsidyReductionInterval(chainType string) int32 {
 	switch chainType {
 	case mutilchain.TYPELTC:
@@ -9650,6 +9665,64 @@ func (pgb *ChainDB) SignalBTCHeight(height uint32) {
 			pgb.shutdownDcrdata()
 		}
 	}
+}
+
+func (pgb *ChainDB) SyncBlockTimeWithMinHeight(chainType string, minHeight int32) error {
+	height := minHeight - 1
+	for height >= 1 {
+		hash, time, err := pgb.GetMultichainBlockHashTime(chainType, height)
+		if err != nil {
+			return err
+		}
+		// insert to block
+		err = pgb.InsertToMultichainBlockSimpleInfo(chainType, hash, int64(height), time)
+		if err != nil {
+			return err
+		}
+		height--
+	}
+	return nil
+}
+
+func (pgb *ChainDB) InsertToMultichainBlockSimpleInfo(chainType, hash string, height, heightTime int64) error {
+	var id int64
+	err := pgb.db.QueryRow(mutilchainquery.MakeInsertSimpleBlockInfo(chainType), hash, height, heightTime).Scan(&id)
+	return err
+}
+
+func (pgb *ChainDB) GetMultichainBlockHashTime(chainType string, height int32) (string, int64, error) {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return pgb.GetLTCBlockHashTime(height)
+	case mutilchain.TYPEBTC:
+		return pgb.GetBTCBlockHashTime(height)
+	default:
+		return "", 0, nil
+	}
+}
+
+func (pgb *ChainDB) GetBTCBlockHashTime(height int32) (string, int64, error) {
+	blockhash, err := pgb.BtcClient.GetBlockHash(int64(height))
+	if err != nil {
+		return "", 0, err
+	}
+	blockRst, rstErr := pgb.BtcClient.GetBlock(blockhash)
+	if rstErr != nil {
+		return "", 0, rstErr
+	}
+	return blockhash.String(), blockRst.Header.Timestamp.Unix(), nil
+}
+
+func (pgb *ChainDB) GetLTCBlockHashTime(height int32) (string, int64, error) {
+	blockhash, err := pgb.LtcClient.GetBlockHash(int64(height))
+	if err != nil {
+		return "", 0, err
+	}
+	blockRst, rstErr := pgb.LtcClient.GetBlock(blockhash)
+	if rstErr != nil {
+		return "", 0, rstErr
+	}
+	return blockhash.String(), blockRst.Header.Timestamp.Unix(), nil
 }
 
 func (pgb *ChainDB) MixedUtxosByHeight() (heights, utxoCountReg, utxoValueReg, utxoCountStk, utxoValueStk []int64, err error) {

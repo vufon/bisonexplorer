@@ -242,7 +242,19 @@ func _main(ctx context.Context) error {
 	if !tspendExist {
 		createTSpendVotesTableErr := chainDB.CheckCreateTSpendVotesTable()
 		if createTSpendVotesTableErr != nil {
-			return fmt.Errorf("create tspend_votes table failed: %w", createTSpendVotesTableErr)
+			return fmt.Errorf("create %s table failed: %w", dcrpg.TSpentVotesTable, createTSpendVotesTableErr)
+		}
+	}
+
+	// check btc swaps table and create
+	btcSwapsExist, err := chainDB.CheckTableExist(dcrpg.BtcSwapsTable)
+	if err != nil {
+		return err
+	}
+	if !btcSwapsExist {
+		createBtcSwapsTableErr := chainDB.CheckCreateBtcSwapsTable()
+		if createBtcSwapsTableErr != nil {
+			return fmt.Errorf("create %s table failed: %w", dcrpg.BtcSwapsTable, createBtcSwapsTableErr)
 		}
 	}
 
@@ -1894,6 +1906,23 @@ func _main(ctx context.Context) error {
 					log.Error(err)
 				} else {
 					log.Infof("Sync last 20 BTC Blocks successfully")
+				}
+				// handler older btc blocks height
+				// check oldest block height
+				minBlockHeight, err := chainDB.GetMultichainMinBlockHeight(mutilchain.TYPEBTC)
+				if err != nil {
+					log.Error("Get btc min block height failed: %v", err)
+				} else {
+					if minBlockHeight > 1 {
+						log.Infof("Start sync block time with min height. Min height: %d", minBlockHeight)
+						// insert block time info to blocks table
+						err = chainDB.SyncBlockTimeWithMinHeight(mutilchain.TYPEBTC, minBlockHeight)
+						if err != nil {
+							log.Error("Sync btc block time with min height failed: %v", err)
+						} else {
+							log.Infof("Sync btc block time with min height successfully. Min height: %d", minBlockHeight)
+						}
+					}
 				}
 			}()
 		}

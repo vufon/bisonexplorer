@@ -845,6 +845,12 @@ func checkExistAndCreateTSpendVotesTable(db *sql.DB) error {
 	return err
 }
 
+// Check exist and create proposal_meta table
+func checkExistAndCreateBtcSwapsTable(db *sql.DB) error {
+	err := createTable(db, BtcSwapsTable, internal.CreateBtcAtomicSwapTable)
+	return err
+}
+
 // Check exist and create monthly_price table
 func checkExistAndCreateMonthlyPriceTable(db *sql.DB) error {
 	err := createTable(db, "monthly_price", internal.CreateMonthlyPriceTable)

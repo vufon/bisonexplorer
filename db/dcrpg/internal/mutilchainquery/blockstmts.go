@@ -72,6 +72,8 @@ const (
 		CONSTRAINT ux_%sblock_hash UNIQUE (hash)
 	);`
 
+	InsertBlockSimpleInfo = `INSERT INTO %sblocks (hash, height, time) VALUES ($1, $2, $3) RETURNING id;`
+
 	IndexBlockTableOnHash = `CREATE UNIQUE INDEX uix_%sblock_hash
 		ON %sblocks(hash);`
 	DeindexBlockTableOnHash = `DROP INDEX uix_%sblock_hash;`
@@ -121,10 +123,19 @@ const (
 	SelectBlockHeightByHash = `SELECT height FROM %sblocks WHERE hash = $1;`
 	SelectBlockHashByHeight = `SELECT hash FROM %sblocks WHERE height = $1;`
 	DeleteOlderThan20Blocks = `DELETE FROM %sblocks WHERE height < $1;`
+	SelectMinBlockHeight    = `SELECT min(height) FROM %sblocks;`
 )
 
 func MakeSelectBlockStats(chainType string) string {
 	return fmt.Sprintf(SelectBlockStats, chainType)
+}
+
+func MakeSelectMinBlockHeight(chainType string) string {
+	return fmt.Sprintf(SelectMinBlockHeight, chainType)
+}
+
+func MakeInsertSimpleBlockInfo(chainType string) string {
+	return fmt.Sprintf(InsertBlockSimpleInfo, chainType)
 }
 
 func MakeRetrieveBlockInfoData(chainType string) string {
