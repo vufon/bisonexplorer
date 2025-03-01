@@ -461,6 +461,9 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"hashrateDecimalParts":  hashrateFormatting,
 		"hashratePostfix":       hashratePostfix,
 		"difficultyDisp":        difficultyDisp,
+		"normalFloat": func(n float64) string {
+			return strconv.FormatFloat(n, 'f', 7, 64)
+		},
 		"amountAsDecimalParts": func(v int64, useCommas bool) []string {
 			return float64Formatting(dcrutil.Amount(v).ToCoin(), 8, useCommas)
 		},

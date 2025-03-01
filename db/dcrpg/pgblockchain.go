@@ -3208,6 +3208,31 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*txhelpers.Atomi
 		copy(swap.SecretHash[:], scretHash)
 		swap.ContractTx = txHash
 		swap.SpendTx = spendTxHash
+		// get tx
+		var rawContract, rawSpend *chainjson.TxRawResult
+		rawContract, err = pgb.Client.GetRawTransactionVerbose(pgb.ctx, txHash)
+		if err != nil {
+			return
+		}
+		rawSpend, err = pgb.Client.GetRawTransactionVerbose(pgb.ctx, spendTxHash)
+		if err != nil {
+			return
+		}
+		swap.ContractHeight = rawContract.BlockHeight
+		swap.ContractTime = rawContract.Time
+		swap.SpendTime = rawSpend.Time
+		// get fees for contract tx
+		var contractFees, redeemFees dcrutil.Amount
+		contractFees, err = txhelpers.GetTxFee(rawContract)
+		if err != nil {
+			return
+		}
+		swap.ContractFees = int64(contractFees)
+		redeemFees, err = txhelpers.GetTxFee(rawSpend)
+		if err != nil {
+			return
+		}
+		swap.RedemptionFees = int64(redeemFees)
 		swaps = append(swaps, &swap)
 	}
 	err = rows.Err()
