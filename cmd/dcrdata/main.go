@@ -1925,10 +1925,45 @@ func _main(ctx context.Context) error {
 					}
 				}
 			}
+			// sync atomic swap for Decred
+			chainDB.SyncDecredAtomicSwap()
 			// sync atomic swap for btc
 			chainDB.SyncBTCAtomicSwap()
 		}()
 	}
+
+	go func() {
+		if chainDB.ChainDBDisabled && !btcDisabled {
+			err = chainDB.SyncLast20BTCBlocks(btcHeight)
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Infof("Sync last 20 BTC Blocks successfully")
+			}
+			// handler older btc blocks height
+			// check oldest block height
+			minBlockHeight, err := chainDB.GetMultichainMinBlockHeight(mutilchain.TYPEBTC)
+			if err != nil {
+				log.Error("Get btc min block height failed: %v", err)
+			} else {
+				if minBlockHeight > 1 {
+					log.Infof("Start sync block time with min height. Min height: %d", minBlockHeight)
+					// insert block time info to blocks table
+					err = chainDB.SyncBlockTimeWithMinHeight(mutilchain.TYPEBTC, minBlockHeight)
+					if err != nil {
+						log.Error("Sync btc block time with min height failed: %v", err)
+					} else {
+						log.Infof("Sync btc block time with min height successfully. Min height: %d", minBlockHeight)
+					}
+				}
+			}
+		}
+		// sync atomic swap for Decred
+		chainDB.SyncDecredAtomicSwap()
+		// sync atomic swap for btc
+		chainDB.SyncBTCAtomicSwap()
+	}()
+
 	//Start sync 24h metrics
 	// go chainDB.Sync24BlocksAsync()
 	//End sync 24h metrics

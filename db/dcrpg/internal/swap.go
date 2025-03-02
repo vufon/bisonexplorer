@@ -13,15 +13,16 @@ const (
 		secret BYTEA,        -- NULL for refund
 		lock_time INT8,
 		target_token TEXT,
+		is_refund BOOLEAN DEFAULT false,
 		CONSTRAINT spend_tx_in PRIMARY KEY (spend_tx, spend_vin)
 	);`
 
 	CreateAtomicSwapTable = CreateAtomicSwapTableV0
 
 	InsertContractSpend = `INSERT INTO swaps (contract_tx, contract_vout, spend_tx, spend_vin, spend_height,
-		p2sh_addr, value, secret_hash, secret, lock_time)
+		p2sh_addr, value, secret_hash, secret, lock_time, is_refund)
 	VALUES ($1, $2, $3, $4, $5,
-		$6, $7, $8, $9, $10) 
+		$6, $7, $8, $9, $10, $11) 
 	ON CONFLICT (spend_tx, spend_vin)
 		DO UPDATE SET spend_height = $5;`
 

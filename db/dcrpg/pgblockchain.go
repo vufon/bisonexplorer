@@ -3198,7 +3198,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*dbtypes.AtomicS
 		var scretHash []byte
 		var targetToken sql.NullString
 		err = rows.Scan(&tokenSwap.ContractTx, &tokenSwap.ContractVout, &tokenSwap.SpendTx, &tokenSwap.SpendVin, &tokenSwap.SpendHeight,
-			&tokenSwap.ContractAddress, &tokenSwap.Value, &scretHash, &tokenSwap.Secret, &tokenSwap.Locktime, &targetToken)
+			&tokenSwap.ContractAddress, &tokenSwap.Value, &scretHash, &tokenSwap.Secret, &tokenSwap.Locktime, &targetToken, &tokenSwap.IsRefund)
 		if err != nil {
 			return
 		}
@@ -6562,13 +6562,13 @@ txns:
 			continue
 		}
 		for _, red := range swapTxns.Redemptions {
-			err = InsertSwap(pgb.db, height, red)
+			err = InsertSwap(pgb.db, height, red, false)
 			if err != nil {
 				log.Errorf("InsertSwap: %v", err)
 			}
 		}
 		for _, ref := range swapTxns.Refunds {
-			err = InsertSwap(pgb.db, height, ref)
+			err = InsertSwap(pgb.db, height, ref, true)
 			if err != nil {
 				log.Errorf("InsertSwap: %v", err)
 			}

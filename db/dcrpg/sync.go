@@ -1061,6 +1061,84 @@ func (pgb *ChainDB) supplementUnknownTicketError(err error) error {
 		err, badTxBlock, numToPurge)
 }
 
+func (pgb *ChainDB) SyncDecredAtomicSwap() error {
+	// Get list of unsynchronized btc blocks atomic swap transaction
+	var syncHeights []int64
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectBlocksUnsynchoronized)
+	if err != nil {
+		log.Errorf("Get list of unsynchronized decred blocks failed %v", err)
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var height int64
+		if err = rows.Scan(&height); err != nil {
+			log.Errorf("Scan decred blocks unsync failed %v", err)
+			return err
+		}
+		syncHeights = append(syncHeights, height)
+	}
+	if err = rows.Err(); err != nil {
+		log.Errorf("Scan decred blocks unsync failed %v", err)
+		return err
+	}
+	for _, syncHeight := range syncHeights {
+		err = pgb.SyncDecredAtomicSwapData(syncHeight)
+		if err != nil {
+			log.Errorf("Scan decred blocks unsync failed %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (pgb *ChainDB) SyncDecredAtomicSwapData(height int64) error {
+	log.Infof("Start Sync DCR swap data with height: %d", height)
+	blockhash, err := pgb.Client.GetBlockHash(pgb.ctx, height)
+	if err != nil {
+		return err
+	}
+
+	msgBlock, err := pgb.Client.GetBlock(pgb.ctx, blockhash)
+	if err != nil {
+		return err
+	}
+	// Check all regular tree txns except coinbase.
+	for _, tx := range msgBlock.Transactions[1:] {
+		// This will only identify the redeem and refund txns, unlike the use of
+		// TxAtomicSwapsInfo in API and explorer calls.
+		swapTxns, err := txhelpers.MsgTxAtomicSwapsInfo(tx, nil, pgb.chainParams)
+		if err != nil {
+			log.Warnf("MsgTxAtomicSwapsInfo: %v", err)
+			continue
+		}
+		if swapTxns == nil || swapTxns.Found == "" {
+			continue
+		}
+		for _, red := range swapTxns.Redemptions {
+			err = InsertSwap(pgb.db, height, red, false)
+			if err != nil {
+				log.Errorf("InsertSwap: %v", err)
+			}
+		}
+		for _, ref := range swapTxns.Refunds {
+			err = InsertSwap(pgb.db, height, ref, true)
+			if err != nil {
+				log.Errorf("InsertSwap: %v", err)
+			}
+		}
+	}
+	// update block synced status
+	var blockId int64
+	err = pgb.db.QueryRow(internal.UpdateBlockAtomicSwapSynced, height).Scan(&blockId)
+	if err != nil {
+		log.Errorf("Update DCR block synced status failed: %v", err)
+		return err
+	}
+	log.Infof("Finish Sync DCR swap data with height: %d", height)
+	return nil
+}
+
 func (pgb *ChainDB) SyncBTCAtomicSwap() error {
 	// Get list of unsynchronized btc blocks atomic swap transaction
 	var btcSyncHeights []int64
@@ -1073,19 +1151,19 @@ func (pgb *ChainDB) SyncBTCAtomicSwap() error {
 	for rows.Next() {
 		var btcHeight int64
 		if err = rows.Scan(&btcHeight); err != nil {
-			log.Errorf("Scan blocks unsync failed %v", err)
+			log.Errorf("Scan bitcoin blocks unsync failed %v", err)
 			return err
 		}
 		btcSyncHeights = append(btcSyncHeights, btcHeight)
 	}
 	if err = rows.Err(); err != nil {
-		log.Errorf("Scan blocks unsync failed %v", err)
+		log.Errorf("Scan bitcoin blocks unsync failed %v", err)
 		return err
 	}
 	for _, syncHeight := range btcSyncHeights {
 		err = pgb.SyncBTCAtomicSwapData(syncHeight)
 		if err != nil {
-			log.Errorf("Scan blocks unsync failed %v", err)
+			log.Errorf("Scan bitcoin blocks unsync failed %v", err)
 			return err
 		}
 	}

@@ -34,7 +34,8 @@ const (
 		stake_version INT4,
 		previous_hash TEXT,
 		chainwork TEXT,
-		winners TEXT[]
+		winners TEXT[],
+		synced BOOLEAN DEFAULT false
 	);`
 
 	// Block inserts. is_valid refers to blocks that have been validated by
@@ -48,12 +49,12 @@ const (
 		numtx, num_rtx, tx, txDbIDs, num_stx, stx, stxDbIDs,
 		time, nonce, vote_bits, voters,
 		fresh_stake, revocations, pool_size, bits, sbits,
-		difficulty, stake_version, previous_hash, chainwork, winners)
+		difficulty, stake_version, previous_hash, chainwork, winners, synced)
 	VALUES ($1, $2, $3, $4, $5, $6,
 		$7, $8, $9, $10, $11, $12, $13,
 		$14, $15, $16, $17, $18, $19,
 		$20, $21, $22, $23, $24, $25,
-		$26, $27) `
+		$26, $27, $28) `
 
 	// InsertBlockRow inserts a new block row without checking for unique index
 	// conflicts. This should only be used before the unique indexes are created
@@ -64,6 +65,8 @@ const (
 	// the inserted/updated block row id.
 	UpsertBlockRow = insertBlockRow + `ON CONFLICT (hash) DO UPDATE
 		SET is_valid = $4, is_mainchain = $5 RETURNING id;`
+
+	UpdateBlockAtomicSwapSynced = `UPDATE blocks SET synced = true WHERE height = $1 RETURNING id;`
 
 	// InsertBlockRowOnConflictDoNothing allows an INSERT with a DO NOTHING on
 	// conflict with blocks' unique tx index, while returning the row id of
@@ -195,6 +198,8 @@ const (
 		WHERE time > $1
 		GROUP BY date
 		ORDER BY date;`
+
+	SelectBlocksUnsynchoronized = `SELECT height FROM blocks WHERE synced IS NOT TRUE ORDER BY height DESC`
 
 	// blocks table updates
 

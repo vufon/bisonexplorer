@@ -3561,7 +3561,7 @@ func retrieveTotalAgendaVotesCount(ctx context.Context, db *sql.DB, agendaID str
 
 // --- atomic swap tables
 
-func InsertSwap(db SqlExecutor, spendHeight int64, swapInfo *txhelpers.AtomicSwapData) error {
+func InsertSwap(db SqlExecutor, spendHeight int64, swapInfo *txhelpers.AtomicSwapData, isRefund bool) error {
 	var secret interface{} // only nil interface stores a NULL, not even nil slice
 	if len(swapInfo.Secret) > 0 {
 		secret = swapInfo.Secret
@@ -3569,7 +3569,7 @@ func InsertSwap(db SqlExecutor, spendHeight int64, swapInfo *txhelpers.AtomicSwa
 	_, err := db.Exec(internal.InsertContractSpend, swapInfo.ContractTx.String(), swapInfo.ContractVout,
 		swapInfo.SpendTx.String(), swapInfo.SpendVin, spendHeight,
 		swapInfo.ContractAddress, swapInfo.Value,
-		swapInfo.SecretHash[:], secret, swapInfo.Locktime)
+		swapInfo.SecretHash[:], secret, swapInfo.Locktime, isRefund)
 	return err
 }
 
@@ -4622,7 +4622,7 @@ func InsertBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, isMainchain, check
 		dbBlock.Time, int64(dbBlock.Nonce), int16(dbBlock.VoteBits), dbBlock.Voters,
 		dbBlock.FreshStake, dbBlock.Revocations, dbBlock.PoolSize, int64(dbBlock.Bits),
 		int64(dbBlock.SBits), dbBlock.Difficulty, int32(dbBlock.StakeVersion),
-		dbBlock.PreviousHash, dbBlock.ChainWork, pq.Array(dbBlock.Winners)).Scan(&id)
+		dbBlock.PreviousHash, dbBlock.ChainWork, pq.Array(dbBlock.Winners), true).Scan(&id)
 	return id, err
 }
 
