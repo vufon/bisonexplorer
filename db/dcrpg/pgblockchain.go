@@ -3198,7 +3198,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*txhelpers.Atomi
 		var contractTx, spendTx string
 		var scretHash []byte
 		err = rows.Scan(&contractTx, &swap.ContractVout, &spendTx, &swap.SpendVin, &swap.SpendHeight,
-			&swap.ContractAddress, &swap.Value, &scretHash, &swap.Secret, &swap.Locktime)
+			&swap.ContractAddress, &swap.Value, &scretHash, &swap.Secret, &swap.Locktime, &swap.TargetToken)
 		if err != nil {
 			return
 		}

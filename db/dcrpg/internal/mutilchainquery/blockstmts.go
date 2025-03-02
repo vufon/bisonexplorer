@@ -69,7 +69,7 @@ const (
 		num_vouts INT4,
 		fees INT8,
 		total_sent INT8,
-		synced BOOLEAN,
+		synced BOOLEAN DEFAULT FALSE,
 		CONSTRAINT ux_%sblock_hash UNIQUE (hash)
 	);`
 
@@ -77,7 +77,9 @@ const (
 
 	SelectBlocksWithTimeRange = `SELECT height FROM %sblocks WHERE time >= $1 AND time <= $2`
 
-	UpdateBlockSynced = `UPDATE %sblocks SET synced = true WHERE height = $1`
+	SelectBlocksUnsynchoronized = `SELECT height FROM %sblocks WHERE synced IS NOT TRUE ORDER BY height DESC`
+
+	UpdateBlockSynced = `UPDATE %sblocks SET synced = true WHERE height = $1 RETURNING id`
 
 	InsertBlockSimpleInfo = `INSERT INTO %sblocks (hash, height, time) VALUES ($1, $2, $3) RETURNING id;`
 
@@ -139,6 +141,10 @@ func MakeSelectBlockStats(chainType string) string {
 
 func MakeSelectBlockWithMinTime(chainType string) string {
 	return fmt.Sprintf(SelectBlockWithMinTime, chainType)
+}
+
+func MakeSelectBlocksUnsynchoronized(chainType string) string {
+	return fmt.Sprintf(SelectBlocksUnsynchoronized, chainType)
 }
 
 func MakeSelectBlocksWithTimeRange(chainType string) string {

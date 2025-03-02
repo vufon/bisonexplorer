@@ -341,6 +341,7 @@ type AtomicSwapData struct {
 	Secret           []byte
 	Contract         []byte
 	IsRefund         bool
+	TargetToken      string
 }
 
 func (asd *AtomicSwapData) ToAPI() *AtomicSwap {

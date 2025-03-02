@@ -9,7 +9,6 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -1063,61 +1062,30 @@ func (pgb *ChainDB) supplementUnknownTicketError(err error) error {
 }
 
 func (pgb *ChainDB) SyncBTCAtomicSwap() error {
-	var maxDecredHeightFromBtcSwaps int64
-	err := pgb.db.QueryRow(internal.SelectDecredMaxHeight).Scan(&maxDecredHeightFromBtcSwaps)
-	if err != nil {
-		log.Errorf("failed 1 %v", err)
-		return err
-	}
-	// min sync btc height
-	var minDecredContractTx string
-	var maxLockTime int64
-	err = pgb.db.QueryRow(internal.SelectDecredMinContractTx, maxDecredHeightFromBtcSwaps).Scan(&minDecredContractTx)
-	if err != nil {
-		log.Errorf("failed 2 %v", err)
-		return err
-	}
-	err = pgb.db.QueryRow(internal.SelectDecredMaxLockTime, maxDecredHeightFromBtcSwaps).Scan(&maxLockTime)
-	if err != nil {
-		log.Errorf("failed 3 %v", err)
-		return err
-	}
-	hash, err := chainhash.NewHashFromStr(minDecredContractTx)
-	if err != nil {
-		return err
-	}
-
-	minContractTx, err := pgb.GetRawTransactionVerbose(hash)
-	if err != nil {
-		return err
-	}
-	minContractTime := minContractTx.Time
-	// select heights from btc blocks
+	// Get list of unsynchronized btc blocks atomic swap transaction
 	var btcSyncHeights []int64
-	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.MakeSelectBlocksWithTimeRange(mutilchain.TYPEBTC), minContractTime, maxLockTime)
+	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.MakeSelectBlocksUnsynchoronized(mutilchain.TYPEBTC))
 	if err != nil {
-		log.Errorf("failed 5 %v", err)
+		log.Errorf("Get list of unsynchronized btc blocks failed %v", err)
 		return err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var btcHeight int64
 		if err = rows.Scan(&btcHeight); err != nil {
-			log.Errorf("failed 6 %v", err)
+			log.Errorf("Scan blocks unsync failed %v", err)
 			return err
 		}
 		btcSyncHeights = append(btcSyncHeights, btcHeight)
 	}
 	if err = rows.Err(); err != nil {
-		log.Errorf("failed 7 %v", err)
+		log.Errorf("Scan blocks unsync failed %v", err)
 		return err
 	}
-	sort.Slice(btcSyncHeights, func(i, j int) bool {
-		return btcSyncHeights[i] < btcSyncHeights[j]
-	})
 	for _, syncHeight := range btcSyncHeights {
 		err = pgb.SyncBTCAtomicSwapData(syncHeight)
 		if err != nil {
+			log.Errorf("Scan blocks unsync failed %v", err)
 			return err
 		}
 	}
@@ -1125,6 +1093,7 @@ func (pgb *ChainDB) SyncBTCAtomicSwap() error {
 }
 
 func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
+	log.Infof("Start Sync BTC swap data with height: %d", height)
 	blockhash, err := pgb.BtcClient.GetBlockHash(height)
 	if err != nil {
 		return err
@@ -1155,6 +1124,13 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 			log.Errorf("InsertBTCSwap err: %v", err)
 			continue
 		}
+	}
+	// update block synced status
+	var blockId int64
+	err = pgb.db.QueryRow(mutilchainquery.MakeUpdateBlockSynced(mutilchain.TYPEBTC), height).Scan(&blockId)
+	if err != nil {
+		log.Errorf("Update BTC block synced status failed: %v", err)
+		return err
 	}
 	log.Infof("Finish Sync BTC swap data with height: %d", height)
 	return nil
