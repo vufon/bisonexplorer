@@ -69,8 +69,19 @@ const (
 		num_vouts INT4,
 		fees INT8,
 		total_sent INT8,
+		synced BOOLEAN DEFAULT FALSE,
 		CONSTRAINT ux_%sblock_hash UNIQUE (hash)
 	);`
+
+	SelectBlockWithMinTime = `SELECT MAX(height) FROM %sblocks WHERE time < $1`
+
+	SelectBlocksWithTimeRange = `SELECT height FROM %sblocks WHERE time >= $1 AND time <= $2`
+
+	SelectBlocksUnsynchoronized = `SELECT height FROM %sblocks WHERE synced IS NOT TRUE ORDER BY height DESC`
+
+	UpdateBlockSynced = `UPDATE %sblocks SET synced = true WHERE height = $1 RETURNING id`
+
+	InsertBlockSimpleInfo = `INSERT INTO %sblocks (hash, height, time) VALUES ($1, $2, $3) RETURNING id;`
 
 	IndexBlockTableOnHash = `CREATE UNIQUE INDEX uix_%sblock_hash
 		ON %sblocks(hash);`
@@ -121,10 +132,35 @@ const (
 	SelectBlockHeightByHash = `SELECT height FROM %sblocks WHERE hash = $1;`
 	SelectBlockHashByHeight = `SELECT hash FROM %sblocks WHERE height = $1;`
 	DeleteOlderThan20Blocks = `DELETE FROM %sblocks WHERE height < $1;`
+	SelectMinBlockHeight    = `SELECT min(height) FROM %sblocks;`
 )
 
 func MakeSelectBlockStats(chainType string) string {
 	return fmt.Sprintf(SelectBlockStats, chainType)
+}
+
+func MakeSelectBlockWithMinTime(chainType string) string {
+	return fmt.Sprintf(SelectBlockWithMinTime, chainType)
+}
+
+func MakeSelectBlocksUnsynchoronized(chainType string) string {
+	return fmt.Sprintf(SelectBlocksUnsynchoronized, chainType)
+}
+
+func MakeSelectBlocksWithTimeRange(chainType string) string {
+	return fmt.Sprintf(SelectBlocksWithTimeRange, chainType)
+}
+
+func MakeUpdateBlockSynced(chainType string) string {
+	return fmt.Sprintf(UpdateBlockSynced, chainType)
+}
+
+func MakeSelectMinBlockHeight(chainType string) string {
+	return fmt.Sprintf(SelectMinBlockHeight, chainType)
+}
+
+func MakeInsertSimpleBlockInfo(chainType string) string {
+	return fmt.Sprintf(InsertBlockSimpleInfo, chainType)
 }
 
 func MakeRetrieveBlockInfoData(chainType string) string {

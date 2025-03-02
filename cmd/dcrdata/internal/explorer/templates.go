@@ -461,6 +461,9 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"hashrateDecimalParts":  hashrateFormatting,
 		"hashratePostfix":       hashratePostfix,
 		"difficultyDisp":        difficultyDisp,
+		"normalFloat": func(n float64) string {
+			return strconv.FormatFloat(n, 'f', 7, 64)
+		},
 		"amountAsDecimalParts": func(v int64, useCommas bool) []string {
 			return float64Formatting(dcrutil.Amount(v).ToCoin(), 8, useCommas)
 		},
@@ -560,7 +563,7 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			}
 			return t.Format("2006-01-02 15:04:05 MST")
 		},
-		"dateTimeWithoutTimeZone": func(a uint64) string {
+		"dateTimeWithoutTimeZone": func(a int64) string {
 			if a == 0 {
 				return "N/A"
 			}

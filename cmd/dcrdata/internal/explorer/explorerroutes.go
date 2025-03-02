@@ -2335,6 +2335,71 @@ type TreasuryInfo struct {
 	Time             string
 }
 
+func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
+	// rows per page
+	limitN := defaultAddressRows
+	if nParam := r.URL.Query().Get("n"); nParam != "" {
+		val, err := strconv.ParseUint(nParam, 10, 64)
+		if err != nil {
+			exp.StatusPage(w, defaultErrorCode, "invalid n value", "", ExpStatusError)
+			return
+		}
+		if int64(val) > MaxTreasuryRows {
+			log.Warnf("AtomicSwapsPage: requested up to %d txs rows, "+
+				"limiting to %d", limitN, MaxTreasuryRows)
+			limitN = MaxTreasuryRows
+		} else {
+			limitN = int64(val)
+		}
+	}
+
+	// Number of txns to skip (OFFSET in database query). For UX reasons, the
+	// "start" URL query parameter is used.
+	var offset int64
+	if startParam := r.URL.Query().Get("start"); startParam != "" {
+		val, err := strconv.ParseUint(startParam, 0, 64)
+		if err != nil {
+			exp.StatusPage(w, defaultErrorCode, "invalid start value", "", ExpStatusError)
+			return
+		}
+		offset = int64(val)
+	}
+
+	atomicSwapTxs, allCount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
+		return
+	} else if err != nil {
+		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
+		return
+	}
+	linkTemplate := fmt.Sprintf("/atomic-swaps?start=%%d&n=%d", limitN)
+	str, err := exp.templates.exec("atomicswaps", struct {
+		*CommonPageData
+		SwapsList []*dbtypes.AtomicSwapData
+		Pages     []pageNumber
+		Offset    int64
+		Limit     int64
+		TxCount   int64
+	}{
+		CommonPageData: exp.commonData(r),
+		SwapsList:      atomicSwapTxs,
+		Offset:         offset,
+		Limit:          limitN,
+		TxCount:        allCount,
+		Pages:          calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // TreasuryPage is the page handler for the "/treasury" path
 func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 	ctx := context.WithValue(r.Context(), ctxAddress, exp.pageData.HomeInfo.DevAddress)
@@ -2789,6 +2854,78 @@ func (exp *ExplorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	//enc.SetEscapeHTML(false)
+	err = enc.Encode(response)
+	if err != nil {
+		log.Debug(err)
+	}
+}
+
+// AtomicSwapsTable is the handler for the "/atomicswaps-table" path.
+func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) {
+	// rows per page
+	limitN := defaultAddressRows
+	if nParam := r.URL.Query().Get("n"); nParam != "" {
+		val, err := strconv.ParseUint(nParam, 10, 64)
+		if err != nil {
+			exp.StatusPage(w, defaultErrorCode, "invalid n value", "", ExpStatusError)
+			return
+		}
+		if int64(val) > MaxTreasuryRows {
+			log.Warnf("AtomicSwapsPage: requested up to %d txs rows, "+
+				"limiting to %d", limitN, MaxTreasuryRows)
+			limitN = MaxTreasuryRows
+		} else {
+			limitN = int64(val)
+		}
+	}
+
+	// Number of txns to skip (OFFSET in database query). For UX reasons, the
+	// "start" URL query parameter is used.
+	var offset int64
+	if startParam := r.URL.Query().Get("start"); startParam != "" {
+		val, err := strconv.ParseUint(startParam, 0, 64)
+		if err != nil {
+			exp.StatusPage(w, defaultErrorCode, "invalid start value", "", ExpStatusError)
+			return
+		}
+		offset = int64(val)
+	}
+
+	atomicSwapTxs, allCount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
+		return
+	} else if err != nil {
+		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
+		return
+	}
+
+	linkTemplate := "/atomic-swaps" + "?start=%d&n=" + strconv.FormatInt(limitN, 10)
+	response := struct {
+		TxCount int64        `json:"tx_count"`
+		HTML    string       `json:"html"`
+		Pages   []pageNumber `json:"pages"`
+	}{
+		TxCount: allCount,
+		Pages:   calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
+	}
+
+	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {
+		SwapsList []*dbtypes.AtomicSwapData
+	}{
+		SwapsList: atomicSwapTxs,
+	})
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+		return
+	}
+
+	log.Tracef(`"atomicswaps_table" template HTML size: %.2f kiB (%d)`,
+		float64(len(response.HTML))/1024.0, len(atomicSwapTxs))
+
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
 	err = enc.Encode(response)
 	if err != nil {
 		log.Debug(err)

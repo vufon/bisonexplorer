@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.130c101f14851769.css" rel="stylesheet">
+	<link href="/dist/css/style.23e4a7176cf19154.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -634,7 +634,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.1db7dbe4a437d495.bundle.js"
+	src="/dist/js/app.2231343ad86bbec8.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -968,6 +968,80 @@
 				data-yes="#"
 				data-no="(unconfirmed)"
 			>{{.Confirmations}}</td> */}}
+		</tr>
+	{{- end}}
+	</tbody>
+</table>
+</div>
+{{- end}}
+
+{{define "atomicSwapsTable"}}
+<div class="btable-table-wrap maxh-none">
+    <table class="btable-table w-100 table-responsive-sm">
+	<thead>
+		<tr class="bg-none">
+		<th class="text-start">Transaction</th>
+		<th class="text-start">Amount DCR</th>
+		<th class="text-start">Fees DCR</th>
+		<th class="text-center">Block</th>
+		<th class="d-none d-sm-table-cell text-end">Time (UTC)</th>
+		</tr>
+	</thead>
+	<tbody class="bgc-white">
+	{{- range .SwapsList}}
+		<tr>
+			<td>
+				<div class="d-flex ai-center">
+					<p class="me-2 contract-color fw-600">Contract:</p>
+					<div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div>
+				</div>
+				<div class="d-flex ai-center ms-2 mt-2">
+					<p class="me-2 redemption-color fw-600">Redemption:</p>
+					<div class="clipboard">{{template "hashElide" (hashlink .Source.SpendTx (printf "/tx/%s" .Source.SpendTx))}}</div>
+				</div>
+				{{if ne .Target.ContractTx ""}}
+				<div class="d-flex ai-center">
+					<p class="me-2 contract-color fw-600">{{.Source.TargetToken}} Contract:</p>
+					<div class="clipboard">{{template "hashElide" (hashlink .Target.ContractTx (printf "/%s/tx/%s" .Source.TargetToken .Target.ContractTx))}}</div>
+				</div>
+				<div class="d-flex ai-center ms-2 mt-2">
+					<p class="me-2 redemption-color fw-600">{{.Source.TargetToken}} Redemption:</p>
+					<div class="clipboard">{{template "hashElide" (hashlink .Target.SpendTx (printf "/%s/tx/%s" .Source.TargetToken .Target.SpendTx))}}</div>
+				</div>
+				{{end}}
+			</td>
+			<td class="text-start fs15 contract-color fw-600">
+				<div>{{template "decimalParts" (amountAsDecimalParts .Source.Value false)}}</div>
+				<div>
+					{{if ne .Target.ContractTx ""}}
+						{{template "decimalParts" (amountAsDecimalParts .Target.Value false)}}
+					{{end}}
+				</div>
+			</td>
+			<td class="text-start">
+				<div class="contract-color">{{normalFloat (toFloat64Amount .Source.ContractFees)}}</div>
+				<div class="mt-2 redemption-color">{{normalFloat (toFloat64Amount .Source.RedemptionFees)}}</div>
+				{{if ne .Target.ContractTx ""}}
+					<div class="contract-color">{{normalFloat (toFloat64Amount .Target.ContractFees)}}</div>
+					<div class="mt-2 redemption-color">{{normalFloat (toFloat64Amount .Target.RedemptionFees)}}</div>
+				{{end}}
+			</td>
+			<td class="text-center">
+				<div class="contract-color">{{.Source.ContractHeight}}</div>
+				<div class="mt-2 redemption-color">{{.Source.SpendHeight}}</div>
+				{{if ne .Target.ContractTx ""}}
+					<div class="contract-color">{{.Target.ContractHeight}}</div>
+					<div class="mt-2 redemption-color">{{.Target.SpendHeight}}</div>
+				{{end}}
+			</td>
+			<td class="addr-tx-time d-none d-sm-table-cell text-end">
+				<div class="contract-color">{{dateTimeWithoutTimeZone .Source.ContractTime}}</div>
+				<div class="mt-2 redemption-color">{{dateTimeWithoutTimeZone .Source.SpendTime}}</div>
+				{{if ne .Target.ContractTx ""}}
+					<div class="contract-color">{{dateTimeWithoutTimeZone .Target.ContractTime}}</div>
+					<div class="mt-2 redemption-color">{{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
+				{{end}}
+			</td>
 		</tr>
 	{{- end}}
 	</tbody>

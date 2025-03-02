@@ -1,0 +1,115 @@
+{{define "atomicswaps"}}
+<!DOCTYPE html>
+<html lang="en">
+{{template "html-head" headData .CommonPageData "Decred Atomic Swap Transactions"}}
+{{template "navbar" . }}
+<div class="container mt-2" data-controller="atomicswaps time" data-atomicswaps-offset="{{.Offset}}"
+  data-atomicswaps-txn-count="{{.TxCount}}">
+  <div class="container mt-2">
+    <nav class="breadcrumbs mt-0">
+      <a href="/" class="breadcrumbs__item no-underline ps-2">
+        <span class="homeicon-tags me-1"></span>
+        <span class="link-underline">Homepage</span>
+      </a>
+      <span class="breadcrumbs__item is-active">Atomic Swap Transactions</span>
+    </nav>
+    <div class="row pb-4 px-2 mt-2">
+      <div class="col-24 col-xl-10 bg-white px-3 py-2 me-3 position-relative common-card">
+        <div class="fs22 pb-1 border-bottom-grey">Summary Info</div>
+        <div class="position-relative mt-3 d-flex justify-content-between align-items-start flex-wrap">
+        </div>
+      </div>
+    </div>
+    <div class="position-relative mt-5" data-atomicswaps-target="listbox">
+      <div class="row align-items-center">
+        <div class="me-auto mb-0 h4 col-24 col-md-10 d-flex ai-center">Atomic Swap Transactions
+          <nav aria-label="address transactions navigation" data-limit="{{.Limit}}"
+            class="my-1 ms-2{{if ge (len .SwapsList) .TxCount}} d-hide{{end}}" data-atomicswaps-target="pagebuttons">
+            <ul class="pagination mb-0 pagination-sm">
+              <li class="page-item {{if eq .Offset 0}}disabled{{end}}" data-atomicswaps-target="pageminus">
+                <a class="page-link"
+                  href="/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}"
+                  data-turbolinks="false" data-atomicswaps-target="paginator"
+                  data-action="atomicswaps#prevPage">Previous</a>
+              </li>
+              <li class="page-item {{if lt (subtract .TxCount .Offset) (add .Limit 1)}}disabled{{end}}"
+                data-atomicswaps-target="pageplus">
+                <a class="page-link" href="/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}"
+                  data-turbolinks="false" data-atomicswaps-target="paginator"
+                  data-action="atomicswaps#nextPage">Next</a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+        <div class="d-flex flex-wrap-reverse align-items-center transactions-filter-area py-1 col-24 col-md-14">
+          <div data-atomicswaps-target="paginationheader">
+            <span class="fs12 nowrap text-end" data-atomicswaps-target="range">
+              showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset (int64 (len .SwapsList)))}} of
+              <span data-atomicswaps-target="txnCount" data-txn-count="{{.TxCount}}">{{intComma .TxCount}}</span>
+              transactions
+            </span>
+            <span class="separator mx-2 h-20px block-banner-separator"></span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between">
+            <span></span>
+            <div class="d-flex flex-row">
+              <div class="d-inline-block text-end">
+                <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
+                <select name="pagesize" id="pagesize" data-atomicswaps-target="pagesize"
+                  data-action="change->atomicswaps#changePageSize"
+                  class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt .TxCount 20}}disabled{{end}}"
+                  {{- if lt .TxCount 20}} disabled{{end}}>
+                  {{- $Txlen := len .SwapsList}}
+                  <option {{if eq $Txlen 20}}selected {{end}}value="20" {{if lt .TxCount 20}} disabled{{end}}>20
+                  </option>
+                  <option {{if eq $Txlen 40}}selected {{end}}value="40" {{if lt .TxCount 40}} disabled{{end}}>40
+                  </option>
+                  <option {{if eq $Txlen 80}}selected {{end}}value="80" {{if lt .TxCount 80}} disabled{{end}}>80
+                  </option>
+                  {{- if lt .TxCount 160}}
+                  <option {{if eq $Txlen .TxCount}}selected {{end}}value="{{.TxCount}}" {{if le .TxCount 160}}
+                    disabled{{end}}>{{.TxCount}}</option>
+                  {{- else}}
+                  <option {{if ge $Txlen 160}}selected {{end}}value="160">160</option>
+                  {{- end}}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="position-relative">
+        <div class="loader-v2" data-atomicswaps-target="listLoader"></div>
+        <div class="br-8 b--def bgc-plain-bright pb-10">
+          <div class="position-relative" data-atomicswaps-target="table">
+            {{template "atomicSwapsTable" .}}
+          </div>
+          <div class="text-end pe-3" data-atomicswaps-target="tablePagination">
+            {{if ne .Offset 0}}
+            <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
+              data-action="click->atomicswaps#pageNumberLink"
+              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}"></a>
+            {{end}}
+            {{range $.Pages}}
+            {{if eq .Link ""}}
+            <span>{{.Str}}</span>
+            {{else}}
+            <a class="fs18 pager pagination-number{{if .Active}} active{{end}}"
+              data-action="click->atomicswaps#pageNumberLink" href="{{.Link}}">{{.Str}}</a>
+            {{end}}
+            {{end}}
+            {{if gt (subtract .TxCount .Offset) .Limit}}
+            <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
+              data-action="click->atomicswaps#pageNumberLink"
+              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}"></a>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{template "footer" . }}
+  </body>
+
+</html>
+{{- end}}

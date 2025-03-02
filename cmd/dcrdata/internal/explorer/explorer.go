@@ -94,6 +94,7 @@ type explorerDataSource interface {
 	TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error)
 	TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error)
 	TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error)
+	GetAtomicSwapList(n, offset int64) ([]*dbtypes.AtomicSwapData, int64, error)
 	AddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error)
 	MutilchainAddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *dbtypes.AddressBalance, error)
 	AddressData(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) (*dbtypes.AddressInfo, error)
@@ -498,7 +499,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
 		"chain_addresstable", "supply", "marketlist", "chain_parameters",
-		"whatsnew", "chain_visualblocks", "bwdash"}
+		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

@@ -239,11 +239,11 @@ func (pgb *ChainDB) SyncLast20BTCBlocks(nodeHeight int32) error {
 		return err
 	}
 	//delete blocks
-	err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
-	if err != nil {
-		pgb.BTC20BlocksSyncing = false
-		return err
-	}
+	// err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
+	// if err != nil {
+	// 	pgb.BTC20BlocksSyncing = false
+	// 	return err
+	// }
 	tickTime := 20 * time.Second
 	ticker := time.NewTicker(tickTime)
 	startTime := time.Now()

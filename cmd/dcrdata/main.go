@@ -242,7 +242,19 @@ func _main(ctx context.Context) error {
 	if !tspendExist {
 		createTSpendVotesTableErr := chainDB.CheckCreateTSpendVotesTable()
 		if createTSpendVotesTableErr != nil {
-			return fmt.Errorf("create tspend_votes table failed: %w", createTSpendVotesTableErr)
+			return fmt.Errorf("create %s table failed: %w", dcrpg.TSpentVotesTable, createTSpendVotesTableErr)
+		}
+	}
+
+	// check btc swaps table and create
+	btcSwapsExist, err := chainDB.CheckTableExist(dcrpg.BtcSwapsTable)
+	if err != nil {
+		return err
+	}
+	if !btcSwapsExist {
+		createBtcSwapsTableErr := chainDB.CheckCreateBtcSwapsTable()
+		if createBtcSwapsTableErr != nil {
+			return fmt.Errorf("create %s table failed: %w", dcrpg.BtcSwapsTable, createBtcSwapsTableErr)
 		}
 	}
 
@@ -972,6 +984,7 @@ func _main(ctx context.Context) error {
 			rd.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.AddressTable)
 			rd.Get("/treasury", explore.TreasuryPage)
 			rd.Get("/treasurytable", explore.TreasuryTable)
+			rd.Get("/atomicswaps-table", explore.AtomicSwapsTable)
 			rd.Get("/agendas", explore.AgendasPage)
 			rd.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)
 			rd.Get("/proposals", explore.ProposalsPage)
@@ -995,6 +1008,7 @@ func _main(ctx context.Context) error {
 			rd.Get("/finance-report", explore.FinanceReportPage)
 			rd.Get("/finance-report/detail", explore.FinanceDetailPage)
 			rd.Get("/supply", explore.SupplyPage)
+			rd.Get("/atomic-swaps", explore.AtomicSwapsPage)
 		})
 		mainRedirect := func(url string) http.HandlerFunc {
 			return func(w http.ResponseWriter, r *http.Request) {
@@ -1057,6 +1071,7 @@ func _main(ctx context.Context) error {
 		r.Get("/addresstable/{x}", redirectOneParam("/decred/addresstable"))
 		r.Get("/treasury", mainRedirect("/decred/treasury"))
 		r.Get("/treasurytable", mainRedirect("/decred/treasurytable"))
+		r.Get("/atomicswaps-table", mainRedirect("/decred/atomicswaps-table"))
 		r.Get("/agendas", mainRedirect("/decred/agendas"))
 		r.Get("/agenda/{x}", redirectOneParam("/decred/agenda"))
 		r.Get("/proposals", mainRedirect("/decred/proposals"))
@@ -1078,6 +1093,7 @@ func _main(ctx context.Context) error {
 		r.Get("/finance-report", mainRedirect("/decred/finance-report"))
 		r.Get("/finance-report/detail", mainRedirect("/decred/finance-report/detail"))
 		r.Get("/supply", mainRedirect("/decred/supply"))
+		r.Get("/atomic-swaps", mainRedirect("/decred/atomic-swaps"))
 
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.
@@ -1883,16 +1899,35 @@ func _main(ctx context.Context) error {
 		//end - handler notifier- for ltc
 		//end init collector for btc
 		//sync last 25 blocks
-		if chainDB.ChainDBDisabled {
-			go func() {
+		go func() {
+			if chainDB.ChainDBDisabled {
 				err = chainDB.SyncLast20BTCBlocks(btcHeight)
 				if err != nil {
 					log.Error(err)
 				} else {
 					log.Infof("Sync last 20 BTC Blocks successfully")
 				}
-			}()
-		}
+				// handler older btc blocks height
+				// check oldest block height
+				minBlockHeight, err := chainDB.GetMultichainMinBlockHeight(mutilchain.TYPEBTC)
+				if err != nil {
+					log.Error("Get btc min block height failed: %v", err)
+				} else {
+					if minBlockHeight > 1 {
+						log.Infof("Start sync block time with min height. Min height: %d", minBlockHeight)
+						// insert block time info to blocks table
+						err = chainDB.SyncBlockTimeWithMinHeight(mutilchain.TYPEBTC, minBlockHeight)
+						if err != nil {
+							log.Error("Sync btc block time with min height failed: %v", err)
+						} else {
+							log.Infof("Sync btc block time with min height successfully. Min height: %d", minBlockHeight)
+						}
+					}
+				}
+			}
+			// sync atomic swap for btc
+			chainDB.SyncBTCAtomicSwap()
+		}()
 	}
 	//Start sync 24h metrics
 	// go chainDB.Sync24BlocksAsync()

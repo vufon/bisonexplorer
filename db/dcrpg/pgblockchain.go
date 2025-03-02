@@ -65,6 +65,7 @@ import (
 	ltcwire "github.com/ltcsuite/ltcd/wire"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 )
 
 var (
@@ -1773,6 +1774,11 @@ func (pgb *ChainDB) CheckCreateTSpendVotesTable() (err error) {
 	return checkExistAndCreateTSpendVotesTable(pgb.db)
 }
 
+// Check exist or create a new btc swaps table
+func (pgb *ChainDB) CheckCreateBtcSwapsTable() (err error) {
+	return checkExistAndCreateBtcSwapsTable(pgb.db)
+}
+
 // Check exist or create a new address_summary table
 func (pgb *ChainDB) CheckCreateAddressSummaryTable() (err error) {
 	return checkExistAndCreateAddressSummaryTable(pgb.db)
@@ -3176,6 +3182,138 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 		currentTime = currentTime.AddDate(0, 1, 0)
 	}
 	return priceMap
+}
+
+// GetAtomicSwapList fetches filtered atomic swap list.
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*dbtypes.AtomicSwapData, allCount int64, err error) {
+	var rows *sql.Rows
+	rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectAtomicSwaps, n, offset)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		swapItem := dbtypes.AtomicSwapData{}
+		var tokenSwap dbtypes.TokenAtomicSwapData
+		var scretHash []byte
+		var targetToken sql.NullString
+		err = rows.Scan(&tokenSwap.ContractTx, &tokenSwap.ContractVout, &tokenSwap.SpendTx, &tokenSwap.SpendVin, &tokenSwap.SpendHeight,
+			&tokenSwap.ContractAddress, &tokenSwap.Value, &scretHash, &tokenSwap.Secret, &tokenSwap.Locktime, &targetToken)
+		if err != nil {
+			return
+		}
+		if targetToken.Valid {
+			tokenSwap.TargetToken = targetToken.String
+		} else {
+			tokenSwap.TargetToken = ""
+		}
+		var txHash, spendTxHash *chainhash.Hash
+		txHash, err = chainhash.NewHashFromStr(tokenSwap.ContractTx)
+		if err != nil {
+			return
+		}
+		spendTxHash, err = chainhash.NewHashFromStr(tokenSwap.SpendTx)
+		if err != nil {
+			return
+		}
+		copy(tokenSwap.SecretHash[:], scretHash)
+		// get tx
+		var rawContract, rawSpend *chainjson.TxRawResult
+		rawContract, err = pgb.Client.GetRawTransactionVerbose(pgb.ctx, txHash)
+		if err != nil {
+			return
+		}
+		rawSpend, err = pgb.Client.GetRawTransactionVerbose(pgb.ctx, spendTxHash)
+		if err != nil {
+			return
+		}
+		tokenSwap.ContractHeight = rawContract.BlockHeight
+		tokenSwap.ContractTime = rawContract.Time
+		tokenSwap.SpendTime = rawSpend.Time
+		// get fees for contract tx
+		var contractFees, redeemFees dcrutil.Amount
+		contractFees, err = txhelpers.GetTxFee(rawContract)
+		if err != nil {
+			return
+		}
+		tokenSwap.ContractFees = int64(contractFees)
+		redeemFees, err = txhelpers.GetTxFee(rawSpend)
+		if err != nil {
+			return
+		}
+		tokenSwap.RedemptionFees = int64(redeemFees)
+		swapItem.Source = &tokenSwap
+
+		// get swap target info
+		var targetSwap dbtypes.TokenAtomicSwapData
+		var dcrSpendTx string
+		var dcrSpendHeight int64
+		var targetScretHash []byte
+		err = pgb.db.QueryRow(internal.SelectAtomicBtcSwapsWithDcrSpendTx, tokenSwap.SpendTx, tokenSwap.SecretHash[:]).Scan(&targetSwap.ContractTx, &dcrSpendTx, &dcrSpendHeight,
+			&targetSwap.ContractVout, &targetSwap.SpendTx, &targetSwap.SpendVin, &targetSwap.SpendHeight, &targetSwap.ContractAddress, &targetSwap.Value,
+			&targetScretHash, &targetSwap.Secret, &targetSwap.Locktime)
+		if err == nil {
+			var targetTxHash, targetSpendTxHash *btc_chainhash.Hash
+			targetTxHash, err = btc_chainhash.NewHashFromStr(targetSwap.ContractTx)
+			if err != nil {
+				return
+			}
+			targetSpendTxHash, err = btc_chainhash.NewHashFromStr(targetSwap.SpendTx)
+			if err != nil {
+				return
+			}
+			copy(targetSwap.SecretHash[:], targetScretHash)
+			// get tx
+			var rawContract *btcjson.TxRawResult
+			var rawSpend, contractSimpleRaw *btcutil.Tx
+			rawContract, err = pgb.BtcClient.GetRawTransactionVerbose(targetTxHash)
+			if err != nil {
+				return
+			}
+			contractSimpleRaw, err = pgb.BtcClient.GetRawTransaction(targetTxHash)
+			if err != nil {
+				return
+			}
+			rawSpend, err = pgb.BtcClient.GetRawTransaction(targetSpendTxHash)
+			if err != nil {
+				return
+			}
+			var targetBlockHeader *btcjson.GetBlockHeaderVerboseResult
+			var targetBlockHash *btc_chainhash.Hash
+			targetBlockHash, err = btc_chainhash.NewHashFromStr(rawContract.BlockHash)
+			if err != nil {
+				return
+			}
+			targetBlockHeader, err = pgb.BtcClient.GetBlockHeaderVerbose(targetBlockHash)
+			if err != nil {
+				return
+			}
+			targetSwap.ContractHeight = int64(targetBlockHeader.Height)
+			targetSwap.ContractTime = int64(rawContract.Time)
+			targetSwap.SpendTime = targetSwap.Locktime
+			// get fees for contract tx
+			var contractFees, redeemFees btcutil.Amount
+			contractFees, err = txhelpers.CalculateBTCTxFee(pgb.BtcClient, contractSimpleRaw.MsgTx())
+			if err != nil {
+				return
+			}
+			targetSwap.ContractFees = int64(contractFees)
+			redeemFees, err = txhelpers.CalculateBTCTxFee(pgb.BtcClient, rawSpend.MsgTx())
+			if err != nil {
+				return
+			}
+			targetSwap.RedemptionFees = int64(redeemFees)
+		}
+		swapItem.Target = &targetSwap
+		swaps = append(swaps, &swapItem)
+	}
+	err = rows.Err()
+	if err != nil {
+		return
+	}
+	// get count all atomic swaps
+	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&allCount)
+	return
 }
 
 func (pgb *ChainDB) TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error) {
@@ -4894,7 +5032,8 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 	pgb.BtcBestBlock.Time = blockData.Header.Time
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalBTCHeight(uint32(blockData.Header.Height))
-
+	// sync for atomic swap
+	pgb.SyncBTCAtomicSwapData(int64(blockData.Header.Height))
 	return nil
 }
 
@@ -9284,6 +9423,15 @@ func (pgb *ChainDB) GetMutilchainExplorerFullBlocks(chainType string, start, end
 	return result
 }
 
+func (pgb *ChainDB) GetMultichainMinBlockHeight(chainType string) (int32, error) {
+	var minDBHeight int32
+	err := pgb.db.QueryRow(mutilchainquery.MakeSelectMinBlockHeight(chainType)).Scan(&minDBHeight)
+	if err != nil && err != sql.ErrNoRows {
+		return 0, err
+	}
+	return minDBHeight, nil
+}
+
 func (pgb *ChainDB) GetSubsidyReductionInterval(chainType string) int32 {
 	switch chainType {
 	case mutilchain.TYPELTC:
@@ -9584,6 +9732,64 @@ func (pgb *ChainDB) SignalBTCHeight(height uint32) {
 			pgb.shutdownDcrdata()
 		}
 	}
+}
+
+func (pgb *ChainDB) SyncBlockTimeWithMinHeight(chainType string, minHeight int32) error {
+	height := minHeight - 1
+	for height >= 1 {
+		hash, time, err := pgb.GetMultichainBlockHashTime(chainType, height)
+		if err != nil {
+			return err
+		}
+		// insert to block
+		err = pgb.InsertToMultichainBlockSimpleInfo(chainType, hash, int64(height), time)
+		if err != nil {
+			return err
+		}
+		height--
+	}
+	return nil
+}
+
+func (pgb *ChainDB) InsertToMultichainBlockSimpleInfo(chainType, hash string, height, heightTime int64) error {
+	var id int64
+	err := pgb.db.QueryRow(mutilchainquery.MakeInsertSimpleBlockInfo(chainType), hash, height, heightTime).Scan(&id)
+	return err
+}
+
+func (pgb *ChainDB) GetMultichainBlockHashTime(chainType string, height int32) (string, int64, error) {
+	switch chainType {
+	case mutilchain.TYPELTC:
+		return pgb.GetLTCBlockHashTime(height)
+	case mutilchain.TYPEBTC:
+		return pgb.GetBTCBlockHashTime(height)
+	default:
+		return "", 0, nil
+	}
+}
+
+func (pgb *ChainDB) GetBTCBlockHashTime(height int32) (string, int64, error) {
+	blockhash, err := pgb.BtcClient.GetBlockHash(int64(height))
+	if err != nil {
+		return "", 0, err
+	}
+	blockRst, rstErr := pgb.BtcClient.GetBlock(blockhash)
+	if rstErr != nil {
+		return "", 0, rstErr
+	}
+	return blockhash.String(), blockRst.Header.Timestamp.Unix(), nil
+}
+
+func (pgb *ChainDB) GetLTCBlockHashTime(height int32) (string, int64, error) {
+	blockhash, err := pgb.LtcClient.GetBlockHash(int64(height))
+	if err != nil {
+		return "", 0, err
+	}
+	blockRst, rstErr := pgb.LtcClient.GetBlock(blockhash)
+	if rstErr != nil {
+		return "", 0, rstErr
+	}
+	return blockhash.String(), blockRst.Header.Timestamp.Unix(), nil
 }
 
 func (pgb *ChainDB) MixedUtxosByHeight() (heights, utxoCountReg, utxoValueReg, utxoCountStk, utxoValueStk []int64, err error) {

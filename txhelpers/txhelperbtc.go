@@ -9,8 +9,10 @@ import (
 	"github.com/btcsuite/btcd/btcutil"
 	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/txscript"
 	btctxscript "github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	btcwire "github.com/btcsuite/btcd/wire"
 )
 
@@ -295,6 +297,49 @@ func BTCTxPrevOutsByAddr(txAddrOuts BTCMempoolAddressStore, txnsStore BTCTxnsSto
 		}
 	}
 	return
+}
+
+// Get total of BTC for tx inputs
+func getBTCTotalInput(client *rpcclient.Client, tx *wire.MsgTx) (btcutil.Amount, error) {
+	var totalInput btcutil.Amount
+
+	for _, vin := range tx.TxIn {
+		prevTx, err := client.GetRawTransactionVerbose(&vin.PreviousOutPoint.Hash)
+		if err != nil {
+			return 0, err
+		}
+		// Get output of prev tx (UTXO)
+		prevOutput := prevTx.Vout[vin.PreviousOutPoint.Index]
+		satoshis := btcutil.Amount(prevOutput.Value * 1e8) // Chuyển từ BTC -> satoshis
+		totalInput += satoshis
+	}
+
+	return totalInput, nil
+}
+
+// Get total of BTC for tx outputs
+func getBTCTotalOutput(tx *wire.MsgTx) btcutil.Amount {
+	var totalOutput btcutil.Amount
+
+	for _, vout := range tx.TxOut {
+		totalOutput += btcutil.Amount(vout.Value)
+	}
+
+	return totalOutput
+}
+
+// Calculate tx fee from msgTx for BTC
+func CalculateBTCTxFee(client *rpcclient.Client, msgTx *wire.MsgTx) (btcutil.Amount, error) {
+	// Calculate input total
+	totalInput, err := getBTCTotalInput(client, msgTx)
+	if err != nil {
+		return 0, err
+	}
+	// Calculate output total
+	totalOutput := getBTCTotalOutput(msgTx)
+	// Calculate tx fees
+	fee := totalInput - totalOutput
+	return fee, nil
 }
 
 func BTCTxFeeRate(msgTx *btcwire.MsgTx, client BTCVerboseTransactionGetter) (btcutil.Amount, btcutil.Amount) {

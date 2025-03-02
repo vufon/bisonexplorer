@@ -324,17 +324,24 @@ type OutputSpenderTxOut struct {
 type AtomicSwapData struct {
 	ContractTx       *chainhash.Hash
 	ContractVout     uint32
+	ContractHeight   int64
 	SpendTx          *chainhash.Hash
 	SpendVin         uint32
+	SpendHeight      uint32
 	Value            int64
 	ContractAddress  string
 	RecipientAddress string
 	RefundAddress    string
+	ContractTime     int64
+	SpendTime        int64
+	ContractFees     int64
+	RedemptionFees   int64
 	Locktime         int64
 	SecretHash       [32]byte
 	Secret           []byte
 	Contract         []byte
 	IsRefund         bool
+	TargetToken      string
 }
 
 func (asd *AtomicSwapData) ToAPI() *AtomicSwap {

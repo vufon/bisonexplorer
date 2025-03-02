@@ -1235,6 +1235,18 @@ func TxFee(msgTx *wire.MsgTx) dcrutil.Amount {
 	return dcrutil.Amount(amtIn - amtOut)
 }
 
+// TxFee computes and returns the fee for a given tx
+func GetTxFee(txRaw *chainjson.TxRawResult) (dcrutil.Amount, error) {
+	var amtIn, amtOut float64
+	for _, txin := range txRaw.Vin {
+		amtIn += txin.AmountIn
+	}
+	for _, txout := range txRaw.Vout {
+		amtOut += txout.Value
+	}
+	return dcrutil.NewAmount(amtIn - amtOut)
+}
+
 // TxFeeRate computes and returns the total fee in atoms and fee rate in
 // atoms/kB for a given tx.
 func TxFeeRate(msgTx *wire.MsgTx) (dcrutil.Amount, dcrutil.Amount) {
