@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.23e4a7176cf19154.css" rel="stylesheet">
+	<link href="/dist/css/style.49e958af76ad353b.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -729,7 +729,7 @@
 {{- $txType := .TxnType}}
 {{- if .Transactions}}
    <div class="btable-table-wrap maxh-none">
-            <table class="btable-table w-100">
+   <table class="btable-table w-100">
 	<thead>
 		<tr class="bg-none">
 		<th class="d-none d-sm-table-cell">Tx Type</th>
@@ -977,69 +977,70 @@
 
 {{define "atomicSwapsTable"}}
 <div class="btable-table-wrap maxh-none">
-    <table class="btable-table w-100 table-responsive-sm">
-	<thead>
-		<tr class="bg-none">
-		<th class="text-start">Transaction</th>
-		<th class="text-start">Amount DCR</th>
-		<th class="text-start">Fees DCR</th>
-		<th class="text-center">Block</th>
-		<th class="d-none d-sm-table-cell text-end">Time (UTC)</th>
-		</tr>
-	</thead>
+    <table class="btable-table atomic-table w-100 table-responsive-sm">
 	<tbody class="bgc-white">
 	{{- range .SwapsList}}
 		<tr>
+			<!-- Only 1 column -->
 			<td>
-				<div class="d-flex ai-center">
-					<p class="me-2 contract-color fw-600">Contract:</p>
-					<div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div>
-				</div>
-				<div class="d-flex ai-center ms-2 mt-2">
-					<p class="me-2 redemption-color fw-600">Redemption:</p>
-					<div class="clipboard">{{template "hashElide" (hashlink .Source.SpendTx (printf "/tx/%s" .Source.SpendTx))}}</div>
-				</div>
-				{{if ne .Target.ContractTx ""}}
-				<div class="d-flex ai-center">
-					<p class="me-2 contract-color fw-600">{{.Source.TargetToken}} Contract:</p>
-					<div class="clipboard">{{template "hashElide" (hashlink .Target.ContractTx (printf "/%s/tx/%s" .Source.TargetToken .Target.ContractTx))}}</div>
-				</div>
-				<div class="d-flex ai-center ms-2 mt-2">
-					<p class="me-2 redemption-color fw-600">{{.Source.TargetToken}} Redemption:</p>
-					<div class="clipboard">{{template "hashElide" (hashlink .Target.SpendTx (printf "/%s/tx/%s" .Source.TargetToken .Target.SpendTx))}}</div>
-				</div>
-				{{end}}
-			</td>
-			<td class="text-start fs15 contract-color fw-600">
-				<div>{{template "decimalParts" (amountAsDecimalParts .Source.Value false)}}</div>
-				<div>
-					{{if ne .Target.ContractTx ""}}
-						{{template "decimalParts" (amountAsDecimalParts .Target.Value false)}}
+				{{$hasTargetToken := (ne .Source.TargetToken "")}}
+				<div class="d-flex ai-center fw-600 fs15">
+					<p>Pair: {{if $hasTargetToken}}DCR/{{toUpperCase .Source.TargetToken}}{{else}}Verifying{{end}}</p>
+					<div class="d-flex ai-center ms-3">Amount:&nbsp;<div>{{template "decimalParts" (amountAsDecimalParts .Source.Value false)}}</div>&nbsp;DCR
+					{{if $hasTargetToken}}
+					&nbsp;(
+					<div>{{template "decimalParts" (amountAsDecimalParts .Target.Value false)}}</div>&nbsp;{{toUpperCase .Source.TargetToken}})
 					{{end}}
+					</div>
 				</div>
-			</td>
-			<td class="text-start">
-				<div class="contract-color">{{normalFloat (toFloat64Amount .Source.ContractFees)}}</div>
-				<div class="mt-2 redemption-color">{{normalFloat (toFloat64Amount .Source.RedemptionFees)}}</div>
-				{{if ne .Target.ContractTx ""}}
-					<div class="contract-color">{{normalFloat (toFloat64Amount .Target.ContractFees)}}</div>
-					<div class="mt-2 redemption-color">{{normalFloat (toFloat64Amount .Target.RedemptionFees)}}</div>
-				{{end}}
-			</td>
-			<td class="text-center">
-				<div class="contract-color">{{.Source.ContractHeight}}</div>
-				<div class="mt-2 redemption-color">{{.Source.SpendHeight}}</div>
-				{{if ne .Target.ContractTx ""}}
-					<div class="contract-color">{{.Target.ContractHeight}}</div>
-					<div class="mt-2 redemption-color">{{.Target.SpendHeight}}</div>
-				{{end}}
-			</td>
-			<td class="addr-tx-time d-none d-sm-table-cell text-end">
-				<div class="contract-color">{{dateTimeWithoutTimeZone .Source.ContractTime}}</div>
-				<div class="mt-2 redemption-color">{{dateTimeWithoutTimeZone .Source.SpendTime}}</div>
-				{{if ne .Target.ContractTx ""}}
-					<div class="contract-color">{{dateTimeWithoutTimeZone .Target.ContractTime}}</div>
-					<div class="mt-2 redemption-color">{{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
+				<p class="fs13">{{dateTimeWithoutTimeZone .Source.ContractTime}}</p>
+				<div class="row mt-3">
+					<div class="col-24 col-md-12 mb-3">
+						<div class="d-flex ai-center">
+							<img src="/images/dcr-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contract:</span> <div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div></div>
+						</div>
+						<div class="row mt-1">
+							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Source.ContractHeight}}">{{.Source.ContractHeight}}</a></p>
+							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Source.ContractFees)}} DCR</p>
+						</div>
+					</div>
+					<div class="col-24 col-md-12 mb-3">
+						<div class="d-flex ai-center">
+							<img src="/images/dcr-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Redemption:</span> <div class="clipboard">{{template "hashElide" (hashlink .Source.SpendTx (printf "/tx/%s" .Source.SpendTx))}}</div></div>
+						</div>
+						<div class="row mt-1">
+							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Source.SpendHeight}}">{{.Source.SpendHeight}}</a></p>
+							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Source.RedemptionFees)}} DCR</p>
+						</div>
+						<div>Redemption at: {{dateTimeWithoutTimeZone .Source.SpendTime}}</div>
+					</div>
+				</div>
+				{{if $hasTargetToken}}
+				<div class="row">
+					<div class="col-24 col-md-12 mb-1">
+						<div class="d-flex ai-center">
+							<img src="/images/{{.Source.TargetToken}}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contract:</span> <div class="clipboard">{{template "hashElide" (hashlink .Target.ContractTx (printf "/%s/tx/%s" .Source.TargetToken .Target.ContractTx))}}</div></div>
+						</div>
+						<div class="row mt-1">
+							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{.Source.TargetToken}}/block/{{.Target.ContractHeight}}">{{.Target.ContractHeight}}</a></p>
+							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Target.ContractFees)}} {{toUpperCase .Source.TargetToken}}</p>
+						</div>
+					</div>
+					<div class="col-24 col-md-12 mb-1">
+						<div class="d-flex ai-center">
+							<img src="/images/{{.Source.TargetToken}}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Redemption:</span> <div class="clipboard">{{template "hashElide" (hashlink .Target.SpendTx (printf "/%s/tx/%s" .Source.TargetToken .Target.SpendTx))}}</div></div>
+						</div>
+						<div class="row mt-1">
+							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{.Source.TargetToken}}/block/{{.Target.SpendHeight}}">{{.Target.SpendHeight}}</a></p>
+							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Target.RedemptionFees)}} {{toUpperCase .Source.TargetToken}}</p>
+						</div>
+						<div>Redemption at: {{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
+					</div>
+				</div>
 				{{end}}
 			</td>
 		</tr>

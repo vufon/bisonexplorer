@@ -28,13 +28,13 @@
             <ul class="pagination mb-0 pagination-sm">
               <li class="page-item {{if eq .Offset 0}}disabled{{end}}" data-atomicswaps-target="pageminus">
                 <a class="page-link"
-                  href="/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}"
+                  href="/decred/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#prevPage">Previous</a>
               </li>
               <li class="page-item {{if lt (subtract .TxCount .Offset) (add .Limit 1)}}disabled{{end}}"
                 data-atomicswaps-target="pageplus">
-                <a class="page-link" href="/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}"
+                <a class="page-link" href="/decred/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#nextPage">Next</a>
               </li>
