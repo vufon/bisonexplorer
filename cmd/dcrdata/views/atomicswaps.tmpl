@@ -17,10 +17,29 @@
       <div class="col-24 col-xl-10 bg-white px-3 py-2 me-3 position-relative common-card">
         <div class="fs22 pb-1 border-bottom-grey">Summary Info</div>
         <div class="position-relative mt-3 d-flex justify-content-between align-items-start flex-wrap">
+          <div class="d-inline-block text-start pe-2 pb-3">
+            <span class="text-secondary fs13">Total Trading Amount</span>
+            <br>
+            <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
+              {{template "decimalParts" (amountAsDecimalParts .TotalTradingAmount true)}} <span class="text-secondary fs14">DCR</span><br>
+            </span>
+          </div>
+          <div class="d-inline-block text-start pe-2 pb-3">
+            <span class="text-secondary fs13">Total Contracts</span>
+            <br>
+            <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
+              <span class="fs18">{{intComma .TxCount}}</span> <span class="text-secondary fs14">contracts</span>
+            </span>
+            <br>
+            <span class="text-secondary fs14 lh1rem">102,333 redemptions, 35 refunds</span>
+          </div>
+        </div>
+        <div class="position-relative d-flex justify-content-between align-items-start flex-wrap">
+          <span>You can also refer to the <a href="/decred/bwdash">Bison Wallet Dashboard</a> to track market data of atomic swaps.</span>
         </div>
       </div>
     </div>
-    <div class="position-relative mt-5" data-atomicswaps-target="listbox">
+    <div class="position-relative" data-atomicswaps-target="listbox">
       <div class="row align-items-center">
         <div class="me-auto mb-0 h4 col-24 col-md-10 d-flex ai-center">Atomic Swap Transactions
           <nav aria-label="address transactions navigation" data-limit="{{.Limit}}"

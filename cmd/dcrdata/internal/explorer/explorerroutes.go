@@ -2365,7 +2365,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		offset = int64(val)
 	}
 
-	atomicSwapTxs, allCount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	atomicSwapTxs, allCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2375,18 +2375,20 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 	linkTemplate := fmt.Sprintf("/atomic-swaps?start=%%d&n=%d", limitN)
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
-		SwapsList []*dbtypes.AtomicSwapData
-		Pages     []pageNumber
-		Offset    int64
-		Limit     int64
-		TxCount   int64
+		SwapsList          []*dbtypes.AtomicSwapData
+		Pages              []pageNumber
+		Offset             int64
+		Limit              int64
+		TxCount            int64
+		TotalTradingAmount int64
 	}{
-		CommonPageData: exp.commonData(r),
-		SwapsList:      atomicSwapTxs,
-		Offset:         offset,
-		Limit:          limitN,
-		TxCount:        allCount,
-		Pages:          calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
+		CommonPageData:     exp.commonData(r),
+		SwapsList:          atomicSwapTxs,
+		Offset:             offset,
+		Limit:              limitN,
+		TxCount:            allCount,
+		TotalTradingAmount: totalTradingAmount,
+		Pages:              calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
 	})
 
 	if err != nil {
@@ -2891,7 +2893,7 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 		offset = int64(val)
 	}
 
-	atomicSwapTxs, allCount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	atomicSwapTxs, allCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
