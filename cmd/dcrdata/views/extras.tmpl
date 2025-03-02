@@ -993,25 +993,54 @@
 			<td>
 				<div class="d-flex ai-center">
 					<p class="me-2 contract-color fw-600">Contract:</p>
-					<div class="clipboard">{{template "hashElide" (hashlink .ContractTx.String (printf "/tx/%s" .ContractTx.String))}}</div>
+					<div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div>
 				</div>
 				<div class="d-flex ai-center ms-2 mt-2">
 					<p class="me-2 redemption-color fw-600">Redemption:</p>
-					<div class="clipboard">{{template "hashElide" (hashlink .SpendTx.String (printf "/tx/%s" .SpendTx.String))}}</div>
+					<div class="clipboard">{{template "hashElide" (hashlink .Source.SpendTx (printf "/tx/%s" .Source.SpendTx))}}</div>
 				</div>
-				</td>
-			<td class="text-start fs15 contract-color fw-600">{{template "decimalParts" (amountAsDecimalParts .Value false)}}</td>
+				{{if ne .Target.ContractTx ""}}
+				<div class="d-flex ai-center">
+					<p class="me-2 contract-color fw-600">{{.Source.TargetToken}} Contract:</p>
+					<div class="clipboard">{{template "hashElide" (hashlink .Target.ContractTx (printf "/%s/tx/%s" .Source.TargetToken .Target.ContractTx))}}</div>
+				</div>
+				<div class="d-flex ai-center ms-2 mt-2">
+					<p class="me-2 redemption-color fw-600">{{.Source.TargetToken}} Redemption:</p>
+					<div class="clipboard">{{template "hashElide" (hashlink .Target.SpendTx (printf "/%s/tx/%s" .Source.TargetToken .Target.SpendTx))}}</div>
+				</div>
+				{{end}}
+			</td>
+			<td class="text-start fs15 contract-color fw-600">
+				<div>{{template "decimalParts" (amountAsDecimalParts .Source.Value false)}}</div>
+				<div>
+					{{if ne .Target.ContractTx ""}}
+						{{template "decimalParts" (amountAsDecimalParts .Target.Value false)}}
+					{{end}}
+				</div>
+			</td>
 			<td class="text-start">
-				<div class="contract-color">{{normalFloat (toFloat64Amount .ContractFees)}}</div>
-				<div class="mt-2 redemption-color">{{normalFloat (toFloat64Amount .RedemptionFees)}}</div>
+				<div class="contract-color">{{normalFloat (toFloat64Amount .Source.ContractFees)}}</div>
+				<div class="mt-2 redemption-color">{{normalFloat (toFloat64Amount .Source.RedemptionFees)}}</div>
+				{{if ne .Target.ContractTx ""}}
+					<div class="contract-color">{{normalFloat (toFloat64Amount .Target.ContractFees)}}</div>
+					<div class="mt-2 redemption-color">{{normalFloat (toFloat64Amount .Target.RedemptionFees)}}</div>
+				{{end}}
 			</td>
 			<td class="text-center">
-				<div class="contract-color">{{.ContractHeight}}</div>
-				<div class="mt-2 redemption-color">{{.SpendHeight}}</div>
+				<div class="contract-color">{{.Source.ContractHeight}}</div>
+				<div class="mt-2 redemption-color">{{.Source.SpendHeight}}</div>
+				{{if ne .Target.ContractTx ""}}
+					<div class="contract-color">{{.Target.ContractHeight}}</div>
+					<div class="mt-2 redemption-color">{{.Target.SpendHeight}}</div>
+				{{end}}
 			</td>
 			<td class="addr-tx-time d-none d-sm-table-cell text-end">
-				<div class="contract-color">{{dateTimeWithoutTimeZone .ContractTime}}</div>
-				<div class="mt-2 redemption-color">{{dateTimeWithoutTimeZone .SpendTime}}</div>
+				<div class="contract-color">{{dateTimeWithoutTimeZone .Source.ContractTime}}</div>
+				<div class="mt-2 redemption-color">{{dateTimeWithoutTimeZone .Source.SpendTime}}</div>
+				{{if ne .Target.ContractTx ""}}
+					<div class="contract-color">{{dateTimeWithoutTimeZone .Target.ContractTime}}</div>
+					<div class="mt-2 redemption-color">{{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
+				{{end}}
 			</td>
 		</tr>
 	{{- end}}

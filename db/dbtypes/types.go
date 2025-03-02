@@ -1874,6 +1874,34 @@ func UncompactMergedRows(merged []*AddressRowMerged) []*AddressRow {
 	return rows
 }
 
+type AtomicSwapData struct {
+	Source *TokenAtomicSwapData
+	Target *TokenAtomicSwapData
+}
+
+type TokenAtomicSwapData struct {
+	ContractTx       string
+	ContractVout     uint32
+	ContractHeight   int64
+	SpendTx          string
+	SpendVin         uint32
+	SpendHeight      uint32
+	Value            int64
+	ContractAddress  string
+	RecipientAddress string
+	RefundAddress    string
+	ContractTime     int64
+	SpendTime        int64
+	ContractFees     int64
+	RedemptionFees   int64
+	Locktime         int64
+	SecretHash       [32]byte
+	Secret           []byte
+	Contract         []byte
+	IsRefund         bool
+	TargetToken      string
+}
+
 // AddressTxnOutput is a compact version of api/types.AddressTxnOutput.
 type AddressTxnOutput struct {
 	Address  string

@@ -3185,35 +3185,38 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 }
 
 // GetAtomicSwapList fetches filtered atomic swap list.
-func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*txhelpers.AtomicSwapData, allCount int64, err error) {
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*dbtypes.AtomicSwapData, allCount int64, err error) {
 	var rows *sql.Rows
 	rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectAtomicSwaps, n, offset)
 	if err != nil {
 		return
 	}
 	defer rows.Close()
-
 	for rows.Next() {
-		var swap txhelpers.AtomicSwapData
-		var contractTx, spendTx string
+		swapItem := dbtypes.AtomicSwapData{}
+		var tokenSwap dbtypes.TokenAtomicSwapData
 		var scretHash []byte
-		err = rows.Scan(&contractTx, &swap.ContractVout, &spendTx, &swap.SpendVin, &swap.SpendHeight,
-			&swap.ContractAddress, &swap.Value, &scretHash, &swap.Secret, &swap.Locktime, &swap.TargetToken)
+		var targetToken sql.NullString
+		err = rows.Scan(&tokenSwap.ContractTx, &tokenSwap.ContractVout, &tokenSwap.SpendTx, &tokenSwap.SpendVin, &tokenSwap.SpendHeight,
+			&tokenSwap.ContractAddress, &tokenSwap.Value, &scretHash, &tokenSwap.Secret, &tokenSwap.Locktime, &targetToken)
 		if err != nil {
 			return
+		}
+		if targetToken.Valid {
+			tokenSwap.TargetToken = targetToken.String
+		} else {
+			tokenSwap.TargetToken = ""
 		}
 		var txHash, spendTxHash *chainhash.Hash
-		txHash, err = chainhash.NewHashFromStr(contractTx)
+		txHash, err = chainhash.NewHashFromStr(tokenSwap.ContractTx)
 		if err != nil {
 			return
 		}
-		spendTxHash, err = chainhash.NewHashFromStr(spendTx)
+		spendTxHash, err = chainhash.NewHashFromStr(tokenSwap.SpendTx)
 		if err != nil {
 			return
 		}
-		copy(swap.SecretHash[:], scretHash)
-		swap.ContractTx = txHash
-		swap.SpendTx = spendTxHash
+		copy(tokenSwap.SecretHash[:], scretHash)
 		// get tx
 		var rawContract, rawSpend *chainjson.TxRawResult
 		rawContract, err = pgb.Client.GetRawTransactionVerbose(pgb.ctx, txHash)
@@ -3224,22 +3227,79 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*txhelpers.Atomi
 		if err != nil {
 			return
 		}
-		swap.ContractHeight = rawContract.BlockHeight
-		swap.ContractTime = rawContract.Time
-		swap.SpendTime = rawSpend.Time
+		tokenSwap.ContractHeight = rawContract.BlockHeight
+		tokenSwap.ContractTime = rawContract.Time
+		tokenSwap.SpendTime = rawSpend.Time
 		// get fees for contract tx
 		var contractFees, redeemFees dcrutil.Amount
 		contractFees, err = txhelpers.GetTxFee(rawContract)
 		if err != nil {
 			return
 		}
-		swap.ContractFees = int64(contractFees)
+		tokenSwap.ContractFees = int64(contractFees)
 		redeemFees, err = txhelpers.GetTxFee(rawSpend)
 		if err != nil {
 			return
 		}
-		swap.RedemptionFees = int64(redeemFees)
-		swaps = append(swaps, &swap)
+		tokenSwap.RedemptionFees = int64(redeemFees)
+		swapItem.Source = &tokenSwap
+
+		// get swap target info
+		var targetSwap dbtypes.TokenAtomicSwapData
+		var dcrSpendTx string
+		var dcrSpendHeight int64
+		var targetScretHash []byte
+		err = pgb.db.QueryRow(internal.SelectAtomicBtcSwapsWithDcrSpendTx, tokenSwap.SpendTx, tokenSwap.SecretHash[:]).Scan(&targetSwap.ContractTx, &dcrSpendTx, &dcrSpendHeight,
+			&targetSwap.ContractVout, &targetSwap.SpendTx, &targetSwap.SpendVin, &targetSwap.SpendHeight, &targetSwap.ContractAddress, &targetSwap.Value,
+			&targetScretHash, &targetSwap.Secret, &targetSwap.Locktime)
+		if err == nil {
+			var targetTxHash, targetSpendTxHash *btc_chainhash.Hash
+			targetTxHash, err = btc_chainhash.NewHashFromStr(targetSwap.ContractTx)
+			if err != nil {
+				return
+			}
+			targetSpendTxHash, err = btc_chainhash.NewHashFromStr(targetSwap.SpendTx)
+			if err != nil {
+				return
+			}
+			copy(targetSwap.SecretHash[:], targetScretHash)
+			// get tx
+			var rawContract *btcjson.TxRawResult
+			var rawSpend, contractSimpleRaw *btcutil.Tx
+			rawContract, err = pgb.BtcClient.GetRawTransactionVerbose(targetTxHash)
+			if err != nil {
+				return
+			}
+			contractSimpleRaw, err = pgb.BtcClient.GetRawTransaction(targetTxHash)
+			if err != nil {
+				return
+			}
+			rawSpend, err = pgb.BtcClient.GetRawTransaction(targetSpendTxHash)
+			if err != nil {
+				return
+			}
+			var targetBlockHeader *btcjson.GetBlockHeaderVerboseResult
+			var targetBlockHash *btc_chainhash.Hash
+			targetBlockHash, err = btc_chainhash.NewHashFromStr(rawContract.BlockHash)
+			if err != nil {
+				return
+			}
+			targetBlockHeader, err = pgb.BtcClient.GetBlockHeaderVerbose(targetBlockHash)
+			if err != nil {
+				return
+			}
+			targetSwap.ContractHeight = int64(targetBlockHeader.Height)
+			targetSwap.ContractTime = int64(rawContract.Time)
+			targetSwap.SpendTime = targetSwap.Locktime
+			// get fees for contract tx
+			var contractFees, redeemFees btcutil.Amount
+			contractFees, _ = txhelpers.BTCTxFeeRate(contractSimpleRaw.MsgTx(), pgb.BtcClient)
+			targetSwap.ContractFees = int64(contractFees)
+			redeemFees, _ = txhelpers.BTCTxFeeRate(rawSpend.MsgTx(), pgb.BtcClient)
+			targetSwap.RedemptionFees = int64(redeemFees)
+		}
+		swapItem.Target = &targetSwap
+		swaps = append(swaps, &swapItem)
 	}
 	err = rows.Err()
 	if err != nil {

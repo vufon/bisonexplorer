@@ -35,6 +35,8 @@ const (
 		ORDER BY lock_time DESC
 		LIMIT $1 OFFSET $2;`
 
+	SelectAtomicBtcSwapsWithDcrSpendTx = `SELECT * FROM btc_swaps WHERE decred_spend_tx = $1 AND secret_hash = $2 LIMIT 1`
+
 	CountAtomicBtcSwapsRow = `SELECT COUNT(*)
 		FROM btc_swaps`
 	SelectDecredMinHeight = `SELECT COALESCE(MIN(decred_spend_height), 0) AS min_decred_height FROM btc_swaps`

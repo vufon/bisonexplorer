@@ -1113,6 +1113,11 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 			continue
 		}
 		for _, red := range swapRes.Redemptions {
+			contractTx, err := pgb.BtcClient.GetRawTransaction(red.ContractTx)
+			if err != nil {
+				continue
+			}
+			red.Value = contractTx.MsgTx().TxOut[red.ContractVout].Value
 			err = InsertBtcSwap(pgb.db, height, red)
 			if err != nil {
 				log.Errorf("InsertBTCSwap err: %v", err)
@@ -1120,6 +1125,11 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 			}
 		}
 		for _, ref := range swapRes.Refunds {
+			contractTx, err := pgb.BtcClient.GetRawTransaction(ref.ContractTx)
+			if err != nil {
+				continue
+			}
+			ref.Value = contractTx.MsgTx().TxOut[ref.ContractVout].Value
 			err = InsertBtcSwap(pgb.db, height, ref)
 			log.Errorf("InsertBTCSwap err: %v", err)
 			continue
