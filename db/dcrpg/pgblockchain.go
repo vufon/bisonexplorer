@@ -3293,9 +3293,15 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*dbtypes.AtomicS
 			targetSwap.SpendTime = targetSwap.Locktime
 			// get fees for contract tx
 			var contractFees, redeemFees btcutil.Amount
-			contractFees, _ = txhelpers.BTCTxFeeRate(contractSimpleRaw.MsgTx(), pgb.BtcClient)
+			contractFees, err = txhelpers.CalculateBTCTxFee(pgb.BtcClient, contractSimpleRaw.MsgTx())
+			if err != nil {
+				return
+			}
 			targetSwap.ContractFees = int64(contractFees)
-			redeemFees, _ = txhelpers.BTCTxFeeRate(rawSpend.MsgTx(), pgb.BtcClient)
+			redeemFees, err = txhelpers.CalculateBTCTxFee(pgb.BtcClient, rawSpend.MsgTx())
+			if err != nil {
+				return
+			}
 			targetSwap.RedemptionFees = int64(redeemFees)
 		}
 		swapItem.Target = &targetSwap
