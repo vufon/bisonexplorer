@@ -9,8 +9,10 @@ import (
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	"github.com/ltcsuite/ltcd/chaincfg/chainhash"
 	"github.com/ltcsuite/ltcd/ltcutil"
+	"github.com/ltcsuite/ltcd/rpcclient"
 	"github.com/ltcsuite/ltcd/txscript"
 	ltctxscript "github.com/ltcsuite/ltcd/txscript"
+	"github.com/ltcsuite/ltcd/wire"
 	ltcwire "github.com/ltcsuite/ltcd/wire"
 )
 
@@ -318,4 +320,47 @@ func LTCTxFeeRate(msgTx *ltcwire.MsgTx, client LTCVerboseTransactionGetter) (ltc
 	}
 	txSize := int64(msgTx.SerializeSize())
 	return ltcutil.Amount(amtIn - amtOut), ltcutil.Amount(FeeRate(amtIn, amtOut, txSize))
+}
+
+// Get total of BTC for tx inputs
+func getLTCTotalInput(client *rpcclient.Client, tx *wire.MsgTx) (ltcutil.Amount, error) {
+	var totalInput ltcutil.Amount
+
+	for _, vin := range tx.TxIn {
+		prevTx, err := client.GetRawTransactionVerbose(&vin.PreviousOutPoint.Hash)
+		if err != nil {
+			return 0, err
+		}
+		// Get output of prev tx (UTXO)
+		prevOutput := prevTx.Vout[vin.PreviousOutPoint.Index]
+		satoshis := ltcutil.Amount(prevOutput.Value * 1e8) // Chuyển từ BTC -> satoshis
+		totalInput += satoshis
+	}
+
+	return totalInput, nil
+}
+
+// Get total of BTC for tx outputs
+func getLTCTotalOutput(tx *wire.MsgTx) ltcutil.Amount {
+	var totalOutput ltcutil.Amount
+
+	for _, vout := range tx.TxOut {
+		totalOutput += ltcutil.Amount(vout.Value)
+	}
+
+	return totalOutput
+}
+
+// Calculate tx fee from msgTx for BTC
+func CalculateLTCTxFee(client *rpcclient.Client, msgTx *wire.MsgTx) (ltcutil.Amount, error) {
+	// Calculate input total
+	totalInput, err := getLTCTotalInput(client, msgTx)
+	if err != nil {
+		return 0, err
+	}
+	// Calculate output total
+	totalOutput := getLTCTotalOutput(msgTx)
+	// Calculate tx fees
+	fee := totalInput - totalOutput
+	return fee, nil
 }

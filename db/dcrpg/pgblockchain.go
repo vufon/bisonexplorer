@@ -1779,6 +1779,11 @@ func (pgb *ChainDB) CheckCreateBtcSwapsTable() (err error) {
 	return checkExistAndCreateBtcSwapsTable(pgb.db)
 }
 
+// Check exist or create a new ltc swaps table
+func (pgb *ChainDB) CheckCreateLtcSwapsTable() (err error) {
+	return checkExistAndCreateLtcSwapsTable(pgb.db)
+}
+
 // Check exist or create a new address_summary table
 func (pgb *ChainDB) CheckCreateAddressSummaryTable() (err error) {
 	return checkExistAndCreateAddressSummaryTable(pgb.db)
@@ -4987,7 +4992,8 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 	pgb.LtcBestBlock.Time = blockData.Header.Time
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalLTCHeight(uint32(blockData.Header.Height))
-
+	// sync for ltc atomic swap
+	pgb.SyncLTCAtomicSwapData(int64(blockData.Header.Height))
 	return nil
 }
 
@@ -5037,7 +5043,7 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 	pgb.BtcBestBlock.Time = blockData.Header.Time
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalBTCHeight(uint32(blockData.Header.Height))
-	// sync for atomic swap
+	// sync for btc atomic swap
 	pgb.SyncBTCAtomicSwapData(int64(blockData.Header.Height))
 	return nil
 }

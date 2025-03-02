@@ -387,6 +387,13 @@ func IndexBtcSwapsTableOnHeight(db *sql.DB) (err error) {
 	return
 }
 
+// IndexLtcSwapsTableOnHeight creates the index for the ltc swaps table over spend
+// block height.
+func IndexLtcSwapsTableOnHeight(db *sql.DB) (err error) {
+	_, err = db.Exec(internal.IndexLtcSwapsOnHeight)
+	return
+}
+
 // DeindexSwapsTableOnHeight drops the index for the swaps table over spend
 // block height.
 func DeindexSwapsTableOnHeight(db *sql.DB) (err error) {
@@ -396,6 +403,11 @@ func DeindexSwapsTableOnHeight(db *sql.DB) (err error) {
 
 func DeindexBtcSwapsTableOnHeight(db *sql.DB) (err error) {
 	_, err = db.Exec(internal.DeindexBtcSwapsOnHeight)
+	return
+}
+
+func DeindexLtcSwapsTableOnHeight(db *sql.DB) (err error) {
+	_, err = db.Exec(internal.DeindexLtcSwapsOnHeight)
 	return
 }
 
@@ -588,6 +600,7 @@ func (pgb *ChainDB) DeindexAll() error {
 		// swaps table
 		{DeindexSwapsTableOnHeight},
 		{DeindexBtcSwapsTableOnHeight},
+		{DeindexLtcSwapsTableOnHeight},
 	}
 
 	var err error
@@ -742,6 +755,7 @@ func (pgb *ChainDB) IndexAll(barLoad chan *dbtypes.ProgressBarLoad) error {
 		// swaps table
 		{Msg: "swaps on spend height", IndexFunc: IndexSwapsTableOnHeight},
 		{Msg: "btc swaps on spend height", IndexFunc: IndexBtcSwapsTableOnHeight},
+		{Msg: "ltc swaps on spend height", IndexFunc: IndexLtcSwapsTableOnHeight},
 	}
 
 	for _, val := range allIndexes {

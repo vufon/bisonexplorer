@@ -23,6 +23,7 @@ import (
 	"github.com/decred/dcrdata/v8/rpcutils"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/decred/dcrdata/v8/txhelpers/btctxhelper"
+	"github.com/decred/dcrdata/v8/txhelpers/ltctxhelper"
 )
 
 const (
@@ -1139,6 +1140,37 @@ func (pgb *ChainDB) SyncDecredAtomicSwapData(height int64) error {
 	return nil
 }
 
+func (pgb *ChainDB) SyncLTCAtomicSwap() error {
+	// Get list of unsynchronized ltc blocks atomic swap transaction
+	var ltcSyncHeights []int64
+	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.MakeSelectBlocksUnsynchoronized(mutilchain.TYPELTC))
+	if err != nil {
+		log.Errorf("Get list of unsynchronized ltc blocks failed %v", err)
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ltcHeight int64
+		if err = rows.Scan(&ltcHeight); err != nil {
+			log.Errorf("Scan litecoin blocks unsync failed %v", err)
+			return err
+		}
+		ltcSyncHeights = append(ltcSyncHeights, ltcHeight)
+	}
+	if err = rows.Err(); err != nil {
+		log.Errorf("Scan litecoin blocks unsync failed %v", err)
+		return err
+	}
+	for _, syncHeight := range ltcSyncHeights {
+		err = pgb.SyncLTCAtomicSwapData(syncHeight)
+		if err != nil {
+			log.Errorf("Scan litecoin blocks unsync failed %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
 func (pgb *ChainDB) SyncBTCAtomicSwap() error {
 	// Get list of unsynchronized btc blocks atomic swap transaction
 	var btcSyncHeights []int64
@@ -1221,5 +1253,59 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 		return err
 	}
 	log.Infof("Finish Sync BTC swap data with height: %d", height)
+	return nil
+}
+
+func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
+	log.Infof("Start Sync LTC swap data with height: %d", height)
+	blockhash, err := pgb.LtcClient.GetBlockHash(height)
+	if err != nil {
+		return err
+	}
+
+	msgBlock, err := pgb.LtcClient.GetBlock(blockhash)
+	if err != nil {
+		return err
+	}
+	// Check all regular tree txns except coinbase.
+	for _, tx := range msgBlock.Transactions[1:] {
+		swapRes, err := ltctxhelper.MsgTxAtomicSwapsInfo(tx, nil, pgb.ltcChainParams)
+		if err != nil {
+			return err
+		}
+		if swapRes == nil || swapRes.Found == "" {
+			continue
+		}
+		for _, red := range swapRes.Redemptions {
+			contractTx, err := pgb.LtcClient.GetRawTransaction(red.ContractTx)
+			if err != nil {
+				continue
+			}
+			red.Value = contractTx.MsgTx().TxOut[red.ContractVout].Value
+			err = InsertLtcSwap(pgb.db, height, red)
+			if err != nil {
+				log.Errorf("InsertLTCSwap err: %v", err)
+				continue
+			}
+		}
+		for _, ref := range swapRes.Refunds {
+			contractTx, err := pgb.LtcClient.GetRawTransaction(ref.ContractTx)
+			if err != nil {
+				continue
+			}
+			ref.Value = contractTx.MsgTx().TxOut[ref.ContractVout].Value
+			err = InsertLtcSwap(pgb.db, height, ref)
+			log.Errorf("InsertLTCSwap err: %v", err)
+			continue
+		}
+	}
+	// update block synced status
+	var blockId int64
+	err = pgb.db.QueryRow(mutilchainquery.MakeUpdateBlockSynced(mutilchain.TYPELTC), height).Scan(&blockId)
+	if err != nil {
+		log.Errorf("Update LTC block synced status failed: %v", err)
+		return err
+	}
+	log.Infof("Finish Sync LTC swap data with height: %d", height)
 	return nil
 }
