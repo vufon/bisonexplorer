@@ -1899,8 +1899,8 @@ func _main(ctx context.Context) error {
 		//end - handler notifier- for ltc
 		//end init collector for btc
 		//sync last 25 blocks
-		if chainDB.ChainDBDisabled {
-			go func() {
+		go func() {
+			if chainDB.ChainDBDisabled {
 				err = chainDB.SyncLast20BTCBlocks(btcHeight)
 				if err != nil {
 					log.Error(err)
@@ -1924,8 +1924,10 @@ func _main(ctx context.Context) error {
 						}
 					}
 				}
-			}()
-		}
+			}
+			// sync atomic swap for btc
+			chainDB.SyncBTCAtomicSwap()
+		}()
 	}
 	//Start sync 24h metrics
 	// go chainDB.Sync24BlocksAsync()

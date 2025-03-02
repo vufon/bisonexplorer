@@ -4966,7 +4966,8 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 	pgb.BtcBestBlock.Time = blockData.Header.Time
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalBTCHeight(uint32(blockData.Header.Height))
-
+	// sync for atomic swap
+	pgb.SyncBTCAtomicSwapData(int64(blockData.Header.Height))
 	return nil
 }
 

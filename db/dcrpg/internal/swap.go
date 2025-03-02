@@ -32,6 +32,12 @@ const (
 		ORDER BY lock_time DESC
 		LIMIT $1 OFFSET $2;`
 
+	SelectDecredMinTime = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
 	CountAtomicSwapsRow = `SELECT COUNT(*)
 		FROM swaps`
+	SelectAtomicSwapsTimeWithMinHeight = `SELECT lock_time FROM swaps WHERE spend_height > $1
+		ORDER BY lock_time`
+	SelectDecredMinContractTx   = `SELECT contract_tx FROM swaps WHERE spend_height > $1 ORDER BY lock_time LIMIT 1`
+	SelectDecredMaxLockTime     = `SELECT lock_time FROM swaps WHERE spend_height > $1 ORDER BY lock_time DESC LIMIT 1`
+	SelectExistSwapBySecretHash = `SELECT spend_tx, spend_height FROM swaps WHERE secret_hash = $1 LIMIT 1`
 )
