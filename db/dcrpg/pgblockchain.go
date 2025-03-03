@@ -3194,7 +3194,7 @@ func (pgb *ChainDB) GetAtomicSwapsQuery(pair, status string) string {
 }
 
 // GetAtomicSwapList fetches filtered atomic swap list.
-func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swaps []*dbtypes.AtomicSwapData, allCount int64, totalAmount int64, err error) {
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swaps []*dbtypes.AtomicSwapData, allCount, allFilterCount int64, totalAmount int64, err error) {
 	var rows *sql.Rows
 	atomicSwapsQuery := pgb.GetAtomicSwapsQuery(pair, status)
 	rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsQuery, n, offset)
@@ -3271,6 +3271,11 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swa
 		swaps = append(swaps, &swapItem)
 	}
 	err = rows.Err()
+	if err != nil {
+		return
+	}
+	// get count all atomic swaps with filter pair, status
+	err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithFilter(pair, status)).Scan(&allFilterCount)
 	if err != nil {
 		return
 	}

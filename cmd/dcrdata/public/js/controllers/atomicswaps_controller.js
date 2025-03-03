@@ -9,7 +9,8 @@ let ctrl = null
 export default class extends Controller {
   static get targets () {
     return ['pagesize', 'txnCount', 'paginator', 'pageplus', 'pageminus', 'listbox', 'table',
-      'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader', 'pair', 'status']
+      'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader', 'pair',
+      'status', 'topTablePagination']
   }
 
   async connect () {
@@ -156,15 +157,21 @@ export default class extends Controller {
 
   setTablePaginationLinks () {
     const tablePagesLink = ctrl.tablePaginationParams
-    if (tablePagesLink.length === 0) return ctrl.tablePaginationTarget.classList.add('d-hide')
+    if (tablePagesLink.length === 0) {
+      ctrl.tablePaginationTarget.classList.add('d-hide')
+      ctrl.topTablePaginationTarget.classList.add('d-hide')
+      return
+    }
     ctrl.tablePaginationTarget.classList.remove('d-hide')
+    ctrl.topTablePaginationTarget.classList.remove('d-hide')
     const txCount = parseInt(ctrl.paginationParams.count)
     const offset = parseInt(ctrl.paginationParams.offset)
     const pageSize = parseInt(ctrl.paginationParams.pagesize)
     let links = ''
-
+    console.log('offset: ', offset, ', pagesize: ', pageSize, ', tx count: ', txCount)
     if (typeof offset !== 'undefined' && offset > 0) {
-      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize} ` +
+      console.log('set left narrow')
+      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
       'class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20" data-action="click->atomicswaps#pageNumberLink"></a>' + '\n'
     }
 
@@ -174,10 +181,13 @@ export default class extends Controller {
     }).join('\n')
 
     if ((txCount - offset) > pageSize) {
-      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize} ` +
+      console.log('set right narrow')
+      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
       'class="d-inline-block dcricon-arrow-right pagination-number pagination-narrow m-1 fs20" data-action="click->atomicswaps#pageNumberLink"></a>'
     }
-    ctrl.tablePaginationTarget.innerHTML = dompurify.sanitize(links)
+    const paginationHTML = dompurify.sanitize(links)
+    ctrl.tablePaginationTarget.innerHTML = paginationHTML
+    ctrl.topTablePaginationTarget.innerHTML = paginationHTML
   }
 
   get pageSize () {

@@ -2368,7 +2368,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 	pair := r.URL.Query().Get("pair")
 	status := r.URL.Query().Get("status")
 
-	atomicSwapTxs, allCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
+	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2396,6 +2396,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		Pair               string
 		Status             string
 		TxCount            int64
+		AllCountSummary    int64
 		RefundCount        int64
 		TotalTradingAmount int64
 	}{
@@ -2403,12 +2404,13 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		SwapsList:          atomicSwapTxs,
 		Offset:             offset,
 		Limit:              limitN,
-		TxCount:            allCount,
+		TxCount:            allFilterCount,
 		TotalTradingAmount: totalTradingAmount,
 		RefundCount:        refundCount,
 		Pair:               pair,
 		Status:             status,
-		Pages:              calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
+		AllCountSummary:    allCount,
+		Pages:              calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	})
 
 	if err != nil {
@@ -2916,7 +2918,7 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	// get pair param
 	pair := r.URL.Query().Get("pair")
 	status := r.URL.Query().Get("status")
-	atomicSwapTxs, allCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
+	atomicSwapTxs, allCount, allFilterCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2932,12 +2934,14 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 		linkTemplate += "&status=" + status
 	}
 	response := struct {
-		TxCount int64        `json:"tx_count"`
-		HTML    string       `json:"html"`
-		Pages   []pageNumber `json:"pages"`
+		TxCount         int64        `json:"tx_count"`
+		HTML            string       `json:"html"`
+		AllCountSummary int64        `json:"all_count"`
+		Pages           []pageNumber `json:"pages"`
 	}{
-		TxCount: allCount,
-		Pages:   calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
+		TxCount:         allFilterCount,
+		AllCountSummary: allCount,
+		Pages:           calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	}
 
 	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {

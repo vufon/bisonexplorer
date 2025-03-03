@@ -44,6 +44,7 @@ const (
 	SelectAtomicSwapsWithFilter = `SELECT * FROM swaps %s
 		ORDER BY lock_time DESC
 		LIMIT $1 OFFSET $2;`
+	CountAtomicSwapsRowWithFilter = `SELECT COUNT(*) FROM swaps %s`
 
 	SelectDecredMinTime = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
 	CountAtomicSwapsRow = `SELECT COUNT(*)
@@ -58,6 +59,14 @@ const (
 )
 
 func MakeSelectAtomicSwapsWithFilter(pair, status string) string {
+	return MakeSelectWithFilter(SelectAtomicSwapsWithFilter, pair, status)
+}
+
+func MakeCountAtomicSwapsRowWithFilter(pair, status string) string {
+	return MakeSelectWithFilter(CountAtomicSwapsRowWithFilter, pair, status)
+}
+
+func MakeSelectWithFilter(input, pair, status string) string {
 	queries := make([]string, 0)
 	if pair != "" && pair != "all" {
 		queries = append(queries, fmt.Sprintf("target_token = '%s'", pair))
@@ -72,7 +81,7 @@ func MakeSelectAtomicSwapsWithFilter(pair, status string) string {
 		}
 	}
 	if len(queries) == 0 {
-		return fmt.Sprintf(SelectAtomicSwapsWithFilter, "")
+		return fmt.Sprintf(input, "")
 	}
-	return fmt.Sprintf(SelectAtomicSwapsWithFilter, "WHERE "+strings.Join(queries, " AND "))
+	return fmt.Sprintf(input, "WHERE "+strings.Join(queries, " AND "))
 }
