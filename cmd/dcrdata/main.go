@@ -1736,17 +1736,6 @@ func _main(ctx context.Context) error {
 		}
 		//end - handler notifier for ltc
 		//end init collector for ltc
-		//sync last 20 blocks
-		if chainDB.ChainDBDisabled {
-			go func() {
-				err = chainDB.SyncLast20LTCBlocks(ltcHeight)
-				if err != nil {
-					log.Error(err)
-				} else {
-					log.Infof("Sync last 20 LTC Blocks successfully")
-				}
-			}()
-		}
 	}
 
 	if !btcDisabled {
@@ -1898,37 +1887,71 @@ func _main(ctx context.Context) error {
 		}
 		//end - handler notifier- for ltc
 		//end init collector for btc
-		//sync last 25 blocks
-		go func() {
-			if chainDB.ChainDBDisabled {
-				err = chainDB.SyncLast20BTCBlocks(btcHeight)
-				if err != nil {
-					log.Error(err)
-				} else {
-					log.Infof("Sync last 20 BTC Blocks successfully")
-				}
-				// handler older btc blocks height
-				// check oldest block height
-				minBlockHeight, err := chainDB.GetMultichainMinBlockHeight(mutilchain.TYPEBTC)
-				if err != nil {
-					log.Error("Get btc min block height failed: %v", err)
-				} else {
-					if minBlockHeight > 1 {
-						log.Infof("Start sync block time with min height. Min height: %d", minBlockHeight)
-						// insert block time info to blocks table
-						err = chainDB.SyncBlockTimeWithMinHeight(mutilchain.TYPEBTC, minBlockHeight)
-						if err != nil {
-							log.Error("Sync btc block time with min height failed: %v", err)
-						} else {
-							log.Infof("Sync btc block time with min height successfully. Min height: %d", minBlockHeight)
-						}
+	}
+
+	go func() {
+		if chainDB.ChainDBDisabled && !btcDisabled {
+			err = chainDB.SyncLast20BTCBlocks(btcHeight)
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Infof("Sync last 20 BTC Blocks successfully")
+			}
+			// handler older btc blocks height
+			// check oldest block height
+			minBlockHeight, err := chainDB.GetMultichainMinBlockHeight(mutilchain.TYPEBTC)
+			if err != nil {
+				log.Error("Get btc min block height failed: %v", err)
+			} else {
+				if minBlockHeight > 1 {
+					log.Infof("BTC: Start sync block time with min height. Min height: %d", minBlockHeight)
+					// insert block time info to blocks table
+					err = chainDB.SyncBlockTimeWithMinHeight(mutilchain.TYPEBTC, minBlockHeight)
+					if err != nil {
+						log.Error("Sync btc block time with min height failed: %v", err)
+					} else {
+						log.Infof("Sync btc block time with min height successfully. Min height: %d", minBlockHeight)
 					}
 				}
 			}
-			// sync atomic swap for btc
-			chainDB.SyncBTCAtomicSwap()
-		}()
-	}
+		}
+		// sync atomic swap for Decred
+		chainDB.SyncDecredAtomicSwap()
+		// sync atomic swap for btc
+		chainDB.SyncBTCAtomicSwap()
+	}()
+
+	go func() {
+		//sync last 20 blocks
+		if chainDB.ChainDBDisabled && !ltcDisabled {
+			err = chainDB.SyncLast20LTCBlocks(ltcHeight)
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Infof("Sync last 20 LTC Blocks successfully")
+			}
+			// handler older ltc blocks height
+			// check oldest block height
+			minBlockHeight, err := chainDB.GetMultichainMinBlockHeight(mutilchain.TYPELTC)
+			if err != nil {
+				log.Error("Get ltc min block height failed: %v", err)
+			} else {
+				if minBlockHeight > 1 {
+					log.Infof("LTC: Start sync block time with min height. Min height: %d", minBlockHeight)
+					// insert block time info to blocks table
+					err = chainDB.SyncBlockTimeWithMinHeight(mutilchain.TYPELTC, minBlockHeight)
+					if err != nil {
+						log.Error("Sync ltc block time with min height failed: %v", err)
+					} else {
+						log.Infof("Sync ltc block time with min height successfully. Min height: %d", minBlockHeight)
+					}
+				}
+			}
+		}
+		// sync atomic swap for ltc
+		chainDB.SyncLTCAtomicSwap()
+	}()
+
 	//Start sync 24h metrics
 	// go chainDB.Sync24BlocksAsync()
 	//End sync 24h metrics

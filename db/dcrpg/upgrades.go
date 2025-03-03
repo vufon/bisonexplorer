@@ -547,14 +547,14 @@ func (u *Upgrader) upgradeSchema9to10() (err error) {
 				continue
 			}
 			for _, red := range swapTxns.Redemptions {
-				err = InsertSwap(u.db, height, red)
+				err = InsertSwap(u.db, height, red, false)
 				if err != nil {
 					return makeErr("InsertSwap: %w", err)
 				}
 				redeems++
 			}
 			for _, ref := range swapTxns.Refunds {
-				err = InsertSwap(u.db, height, ref)
+				err = InsertSwap(u.db, height, ref, true)
 				if err != nil {
 					return makeErr("InsertSwap: %w", err)
 				}

@@ -15,6 +15,7 @@ import (
 
 const TSpentVotesTable = "tspend_votes"
 const BtcSwapsTable = "btc_swaps"
+const LtcSwapsTable = "ltc_swaps"
 
 var createTableStatements = [][2]string{
 	{"meta", internal.CreateMetaTable},
@@ -37,6 +38,7 @@ var createTableStatements = [][2]string{
 	{"treasury", internal.CreateTreasuryTable},
 	{"swaps", internal.CreateAtomicSwapTable},
 	{"btc_swaps", internal.CreateBtcAtomicSwapTable},
+	{"ltc_swaps", internal.CreateLtcAtomicSwapTable},
 	{"monthly_price", internal.CreateMonthlyPriceTable},
 	{"blocks24h", internal.Create24hBlocksTable},
 	{"tspend_votes", internal.CreateTSpendVotesTable},

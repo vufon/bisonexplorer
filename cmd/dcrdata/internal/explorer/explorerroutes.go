@@ -2364,29 +2364,53 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		}
 		offset = int64(val)
 	}
+	// get pair param
+	pair := r.URL.Query().Get("pair")
+	status := r.URL.Query().Get("status")
 
-	atomicSwapTxs, allCount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
 		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
 		return
 	}
+	refundCount, err := exp.dataSource.CountRefundContract()
+	if err != nil {
+		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
+		return
+	}
 	linkTemplate := fmt.Sprintf("/atomic-swaps?start=%%d&n=%d", limitN)
+	if pair != "" {
+		linkTemplate += "&pair=" + pair
+	}
+	if status != "" {
+		linkTemplate += "&status=" + status
+	}
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
-		SwapsList []*dbtypes.AtomicSwapData
-		Pages     []pageNumber
-		Offset    int64
-		Limit     int64
-		TxCount   int64
+		SwapsList          []*dbtypes.AtomicSwapData
+		Pages              []pageNumber
+		Offset             int64
+		Limit              int64
+		Pair               string
+		Status             string
+		TxCount            int64
+		AllCountSummary    int64
+		RefundCount        int64
+		TotalTradingAmount int64
 	}{
-		CommonPageData: exp.commonData(r),
-		SwapsList:      atomicSwapTxs,
-		Offset:         offset,
-		Limit:          limitN,
-		TxCount:        allCount,
-		Pages:          calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
+		CommonPageData:     exp.commonData(r),
+		SwapsList:          atomicSwapTxs,
+		Offset:             offset,
+		Limit:              limitN,
+		TxCount:            allFilterCount,
+		TotalTradingAmount: totalTradingAmount,
+		RefundCount:        refundCount,
+		Pair:               pair,
+		Status:             status,
+		AllCountSummary:    allCount,
+		Pages:              calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	})
 
 	if err != nil {
@@ -2891,7 +2915,10 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 		offset = int64(val)
 	}
 
-	atomicSwapTxs, allCount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	// get pair param
+	pair := r.URL.Query().Get("pair")
+	status := r.URL.Query().Get("status")
+	atomicSwapTxs, allCount, allFilterCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2900,13 +2927,21 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	}
 
 	linkTemplate := "/atomic-swaps" + "?start=%d&n=" + strconv.FormatInt(limitN, 10)
+	if pair != "" {
+		linkTemplate += "&pair=" + pair
+	}
+	if status != "" {
+		linkTemplate += "&status=" + status
+	}
 	response := struct {
-		TxCount int64        `json:"tx_count"`
-		HTML    string       `json:"html"`
-		Pages   []pageNumber `json:"pages"`
+		TxCount         int64        `json:"tx_count"`
+		HTML            string       `json:"html"`
+		AllCountSummary int64        `json:"all_count"`
+		Pages           []pageNumber `json:"pages"`
 	}{
-		TxCount: allCount,
-		Pages:   calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
+		TxCount:         allFilterCount,
+		AllCountSummary: allCount,
+		Pages:           calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	}
 
 	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {

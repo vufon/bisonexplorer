@@ -9,7 +9,8 @@ let ctrl = null
 export default class extends Controller {
   static get targets () {
     return ['pagesize', 'txnCount', 'paginator', 'pageplus', 'pageminus', 'listbox', 'table',
-      'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader']
+      'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader', 'pair',
+      'status', 'topTablePagination']
   }
 
   async connect () {
@@ -20,17 +21,20 @@ export default class extends Controller {
 
     // These two are templates for query parameter sets.
     // When url query parameters are set, these will also be updated.
-    const settings = ctrl.settings = TurboQuery.nullTemplate(['n', 'start'])
-
-    ctrl.state = Object.assign({}, settings)
+    ctrl.settings = TurboQuery.nullTemplate(['n', 'start', 'pair', 'status'])
+    // Get initial view settings from the url
+    ctrl.query.update(ctrl.settings)
+    ctrl.state = Object.assign({}, ctrl.settings)
+    ctrl.settings.pair = ctrl.settings.pair && ctrl.settings.pair !== '' ? ctrl.settings.pair : 'all'
+    ctrl.settings.status = ctrl.settings.status && ctrl.settings.status !== '' ? ctrl.settings.status : 'all'
+    this.pairTarget.value = ctrl.settings.pair
+    this.statusTarget.value = ctrl.settings.status
     // Parse stimulus data
     const cdata = ctrl.data
     ctrl.paginationParams = {
       offset: parseInt(cdata.get('offset')),
       count: parseInt(cdata.get('txnCount'))
     }
-    // Get initial view settings from the url
-    ctrl.query.update(settings)
   }
 
   bindElements () {
@@ -45,8 +49,18 @@ export default class extends Controller {
     })
   }
 
+  changePair (e) {
+    ctrl.settings.pair = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
+  changeStatus (e) {
+    ctrl.settings.status = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
   makeTableUrl (count, offset) {
-    return `/atomicswaps-table?n=${count}&start=${offset}`
+    return `/atomicswaps-table?n=${count}&start=${offset}${ctrl.settings.pair && ctrl.settings.pair !== '' ? '&pair=' + ctrl.settings.pair : ''}${ctrl.settings.status && ctrl.settings.status !== '' ? '&status=' + ctrl.settings.status : ''}`
   }
 
   changePageSize () {
@@ -143,15 +157,21 @@ export default class extends Controller {
 
   setTablePaginationLinks () {
     const tablePagesLink = ctrl.tablePaginationParams
-    if (tablePagesLink.length === 0) return ctrl.tablePaginationTarget.classList.add('d-hide')
+    if (tablePagesLink.length === 0) {
+      ctrl.tablePaginationTarget.classList.add('d-hide')
+      ctrl.topTablePaginationTarget.classList.add('d-hide')
+      return
+    }
     ctrl.tablePaginationTarget.classList.remove('d-hide')
+    ctrl.topTablePaginationTarget.classList.remove('d-hide')
     const txCount = parseInt(ctrl.paginationParams.count)
     const offset = parseInt(ctrl.paginationParams.offset)
     const pageSize = parseInt(ctrl.paginationParams.pagesize)
     let links = ''
-
+    console.log('offset: ', offset, ', pagesize: ', pageSize, ', tx count: ', txCount)
     if (typeof offset !== 'undefined' && offset > 0) {
-      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize} ` +
+      console.log('set left narrow')
+      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
       'class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20" data-action="click->atomicswaps#pageNumberLink"></a>' + '\n'
     }
 
@@ -161,10 +181,13 @@ export default class extends Controller {
     }).join('\n')
 
     if ((txCount - offset) > pageSize) {
-      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize} ` +
+      console.log('set right narrow')
+      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
       'class="d-inline-block dcricon-arrow-right pagination-number pagination-narrow m-1 fs20" data-action="click->atomicswaps#pageNumberLink"></a>'
     }
-    ctrl.tablePaginationTarget.innerHTML = dompurify.sanitize(links)
+    const paginationHTML = dompurify.sanitize(links)
+    ctrl.tablePaginationTarget.innerHTML = paginationHTML
+    ctrl.topTablePaginationTarget.innerHTML = paginationHTML
   }
 
   get pageSize () {
