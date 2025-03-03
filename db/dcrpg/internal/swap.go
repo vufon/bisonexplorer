@@ -39,6 +39,7 @@ const (
 	SelectDecredMinTime = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
 	CountAtomicSwapsRow = `SELECT COUNT(*)
 		FROM swaps`
+	CountRefundAtomicSwapsRow          = `SELECT COUNT(*) FROM swaps WHERE is_refund`
 	SelectTotalTradingAmount           = `SELECT SUM(value) FROM swaps`
 	SelectAtomicSwapsTimeWithMinHeight = `SELECT lock_time FROM swaps WHERE spend_height > $1
 		ORDER BY lock_time`

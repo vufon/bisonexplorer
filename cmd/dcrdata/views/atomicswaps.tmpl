@@ -31,7 +31,7 @@
               <span class="fs18">{{intComma .TxCount}}</span> <span class="text-secondary fs14">contracts</span>
             </span>
             <br>
-            <span class="text-secondary fs14 lh1rem">102,333 redemptions, 35 refunds</span>
+            <span class="text-secondary fs14 lh1rem">{{intComma (subtract .TxCount .RefundCount)}} redemptions, {{intComma .RefundCount}} refunds</span>
           </div>
         </div>
         <div class="position-relative d-flex justify-content-between align-items-start flex-wrap">

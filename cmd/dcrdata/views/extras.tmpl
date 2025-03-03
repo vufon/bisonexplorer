@@ -1008,7 +1008,7 @@
 					<div class="col-24 col-md-12 mb-3">
 						<div class="d-flex ai-center">
 							<img src="/images/dcr-icon.png" width="20" height="20">
-							<div class="ms-2"><span class="fw-600">Redemption:</span> <div class="clipboard">{{template "hashElide" (hashlink .Source.SpendTx (printf "/tx/%s" .Source.SpendTx))}}</div></div>
+							<div class="ms-2"><span class="fw-600">{{if .Source.IsRefund}}Refund{{else}}Redemption{{end}}:</span> <div class="clipboard">{{template "hashElide" (hashlink .Source.SpendTx (printf "/tx/%s" .Source.SpendTx))}}</div></div>
 						</div>
 						<div class="row mt-1">
 							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Source.SpendHeight}}">{{.Source.SpendHeight}}</a></p>
@@ -1032,13 +1032,13 @@
 					<div class="col-24 col-md-12 mb-1">
 						<div class="d-flex ai-center">
 							<img src="/images/{{.Source.TargetToken}}-icon.png" width="20" height="20">
-							<div class="ms-2"><span class="fw-600">Redemption:</span> <div class="clipboard">{{template "hashElide" (hashlink .Target.SpendTx (printf "/%s/tx/%s" .Source.TargetToken .Target.SpendTx))}}</div></div>
+							<div class="ms-2"><span class="fw-600">{{if .Source.IsRefund}}Refund{{else}}Redemption{{end}}:</span> <div class="clipboard">{{template "hashElide" (hashlink .Target.SpendTx (printf "/%s/tx/%s" .Source.TargetToken .Target.SpendTx))}}</div></div>
 						</div>
 						<div class="row mt-1">
 							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{.Source.TargetToken}}/block/{{.Target.SpendHeight}}">{{.Target.SpendHeight}}</a></p>
 							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Target.RedemptionFees)}} {{toUpperCase .Source.TargetToken}}</p>
 						</div>
-						<div>Redemption at: {{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
+						<div>{{if .Source.IsRefund}}Refund{{else}}Redemption{{end}} at: {{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
 					</div>
 				</div>
 				{{end}}

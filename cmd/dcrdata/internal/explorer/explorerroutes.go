@@ -2372,6 +2372,11 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
 		return
 	}
+	refundCount, err := exp.dataSource.CountRefundContract()
+	if err != nil {
+		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
+		return
+	}
 	linkTemplate := fmt.Sprintf("/atomic-swaps?start=%%d&n=%d", limitN)
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
@@ -2380,6 +2385,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		Offset             int64
 		Limit              int64
 		TxCount            int64
+		RefundCount        int64
 		TotalTradingAmount int64
 	}{
 		CommonPageData:     exp.commonData(r),
@@ -2388,6 +2394,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		Limit:              limitN,
 		TxCount:            allCount,
 		TotalTradingAmount: totalTradingAmount,
+		RefundCount:        refundCount,
 		Pages:              calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
 	})
 
