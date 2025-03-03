@@ -2364,8 +2364,11 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		}
 		offset = int64(val)
 	}
+	// get pair param
+	pair := r.URL.Query().Get("pair")
+	status := r.URL.Query().Get("status")
 
-	atomicSwapTxs, allCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	atomicSwapTxs, allCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2378,12 +2381,20 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	linkTemplate := fmt.Sprintf("/atomic-swaps?start=%%d&n=%d", limitN)
+	if pair != "" {
+		linkTemplate += "&pair=" + pair
+	}
+	if status != "" {
+		linkTemplate += "&status=" + status
+	}
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
 		SwapsList          []*dbtypes.AtomicSwapData
 		Pages              []pageNumber
 		Offset             int64
 		Limit              int64
+		Pair               string
+		Status             string
 		TxCount            int64
 		RefundCount        int64
 		TotalTradingAmount int64
@@ -2395,6 +2406,8 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		TxCount:            allCount,
 		TotalTradingAmount: totalTradingAmount,
 		RefundCount:        refundCount,
+		Pair:               pair,
+		Status:             status,
 		Pages:              calcPages(int(allCount), int(limitN), int(offset), linkTemplate),
 	})
 
@@ -2900,7 +2913,10 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 		offset = int64(val)
 	}
 
-	atomicSwapTxs, allCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset)
+	// get pair param
+	pair := r.URL.Query().Get("pair")
+	status := r.URL.Query().Get("status")
+	atomicSwapTxs, allCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2909,6 +2925,12 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	}
 
 	linkTemplate := "/atomic-swaps" + "?start=%d&n=" + strconv.FormatInt(limitN, 10)
+	if pair != "" {
+		linkTemplate += "&pair=" + pair
+	}
+	if status != "" {
+		linkTemplate += "&status=" + status
+	}
 	response := struct {
 		TxCount int64        `json:"tx_count"`
 		HTML    string       `json:"html"`

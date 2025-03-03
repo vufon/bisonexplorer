@@ -9,7 +9,7 @@ let ctrl = null
 export default class extends Controller {
   static get targets () {
     return ['pagesize', 'txnCount', 'paginator', 'pageplus', 'pageminus', 'listbox', 'table',
-      'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader']
+      'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader', 'pair', 'status']
   }
 
   async connect () {
@@ -20,17 +20,20 @@ export default class extends Controller {
 
     // These two are templates for query parameter sets.
     // When url query parameters are set, these will also be updated.
-    const settings = ctrl.settings = TurboQuery.nullTemplate(['n', 'start'])
-
-    ctrl.state = Object.assign({}, settings)
+    ctrl.settings = TurboQuery.nullTemplate(['n', 'start', 'pair', 'status'])
+    // Get initial view settings from the url
+    ctrl.query.update(ctrl.settings)
+    ctrl.state = Object.assign({}, ctrl.settings)
+    ctrl.settings.pair = ctrl.settings.pair && ctrl.settings.pair !== '' ? ctrl.settings.pair : 'all'
+    ctrl.settings.status = ctrl.settings.status && ctrl.settings.status !== '' ? ctrl.settings.status : 'all'
+    this.pairTarget.value = ctrl.settings.pair
+    this.statusTarget.value = ctrl.settings.status
     // Parse stimulus data
     const cdata = ctrl.data
     ctrl.paginationParams = {
       offset: parseInt(cdata.get('offset')),
       count: parseInt(cdata.get('txnCount'))
     }
-    // Get initial view settings from the url
-    ctrl.query.update(settings)
   }
 
   bindElements () {
@@ -45,8 +48,18 @@ export default class extends Controller {
     })
   }
 
+  changePair (e) {
+    ctrl.settings.pair = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
+  changeStatus (e) {
+    ctrl.settings.status = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
   makeTableUrl (count, offset) {
-    return `/atomicswaps-table?n=${count}&start=${offset}`
+    return `/atomicswaps-table?n=${count}&start=${offset}${ctrl.settings.pair && ctrl.settings.pair !== '' ? '&pair=' + ctrl.settings.pair : ''}${ctrl.settings.status && ctrl.settings.status !== '' ? '&status=' + ctrl.settings.status : ''}`
   }
 
   changePageSize () {

@@ -3189,10 +3189,15 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 	return priceMap
 }
 
+func (pgb *ChainDB) GetAtomicSwapsQuery(pair, status string) string {
+	return internal.MakeSelectAtomicSwapsWithFilter(pair, status)
+}
+
 // GetAtomicSwapList fetches filtered atomic swap list.
-func (pgb *ChainDB) GetAtomicSwapList(n, offset int64) (swaps []*dbtypes.AtomicSwapData, allCount int64, totalAmount int64, err error) {
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swaps []*dbtypes.AtomicSwapData, allCount int64, totalAmount int64, err error) {
 	var rows *sql.Rows
-	rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectAtomicSwaps, n, offset)
+	atomicSwapsQuery := pgb.GetAtomicSwapsQuery(pair, status)
+	rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsQuery, n, offset)
 	if err != nil {
 		return
 	}

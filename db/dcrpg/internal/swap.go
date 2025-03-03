@@ -1,5 +1,10 @@
 package internal
 
+import (
+	"fmt"
+	"strings"
+)
+
 const (
 	CreateAtomicSwapTableV0 = `CREATE TABLE IF NOT EXISTS swaps (
 		contract_tx TEXT,
@@ -36,6 +41,10 @@ const (
 		ORDER BY lock_time DESC
 		LIMIT $1 OFFSET $2;`
 
+	SelectAtomicSwapsWithFilter = `SELECT * FROM swaps %s
+		ORDER BY lock_time DESC
+		LIMIT $1 OFFSET $2;`
+
 	SelectDecredMinTime = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
 	CountAtomicSwapsRow = `SELECT COUNT(*)
 		FROM swaps`
@@ -47,3 +56,23 @@ const (
 	SelectDecredMaxLockTime     = `SELECT lock_time FROM swaps WHERE spend_height > $1 ORDER BY lock_time DESC LIMIT 1`
 	SelectExistSwapBySecretHash = `SELECT spend_tx, spend_height, spend_vin FROM swaps WHERE secret_hash = $1 LIMIT 1`
 )
+
+func MakeSelectAtomicSwapsWithFilter(pair, status string) string {
+	queries := make([]string, 0)
+	if pair != "" && pair != "all" {
+		queries = append(queries, fmt.Sprintf("target_token = '%s'", pair))
+	}
+	if status != "" && status != "all" {
+		switch status {
+		case "refund":
+			queries = append(queries, "is_refund = true")
+		case "redemption":
+			queries = append(queries, "is_refund = false")
+		default:
+		}
+	}
+	if len(queries) == 0 {
+		return fmt.Sprintf(SelectAtomicSwapsWithFilter, "")
+	}
+	return fmt.Sprintf(SelectAtomicSwapsWithFilter, "WHERE "+strings.Join(queries, " AND "))
+}
