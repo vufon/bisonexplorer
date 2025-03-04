@@ -2194,6 +2194,7 @@ type TreasuryTx struct {
 	BlockHeight int64
 	BlockTime   TimeDef
 	Status      string
+	TSpendMeta  *TreasurySpendMetaData
 }
 
 type TreasurySummary struct {

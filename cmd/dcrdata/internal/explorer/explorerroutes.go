@@ -2976,7 +2976,7 @@ func (exp *ExplorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-
+	txTypeStr := r.URL.Query().Get("txntype")
 	year := int64(0)
 	month := int64(0)
 	var parseErr error
@@ -3032,6 +3032,7 @@ func (exp *ExplorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
 
 	type txData struct {
 		Transactions []*dbtypes.TreasuryTx
+		TxnType      string
 	}
 
 	response.HTML, err = exp.templates.exec("treasurytable", struct {
@@ -3039,6 +3040,7 @@ func (exp *ExplorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
 	}{
 		Data: txData{
 			Transactions: txns,
+			TxnType:      txTypeStr,
 		},
 	})
 	if err != nil {

@@ -3490,6 +3490,25 @@ func (pgb *ChainDB) TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType,
 			return nil, err
 		}
 		txns = append(txns, &tx)
+		// get vote info if tx is tspend
+		if tx.Type == int(stake.TxTypeTSpend) {
+			hash, err := chainhash.NewHashFromStr(tx.TxID)
+			if err != nil {
+				log.Errorf("Convert hash from string failed: txid: %v, error: %v", tx.TxID, err)
+				continue
+			}
+			tSpendTally, err := pgb.TSpendVotes(hash)
+			if err != nil {
+				log.Errorf("Failed to retrieve vote tally for tspend %v: %v", tx.TxID, err)
+				continue
+			}
+			tx.TSpendMeta = new(dbtypes.TreasurySpendMetaData)
+			tx.TSpendMeta.TreasurySpendVotes = tSpendTally
+			totalVotes := tx.TSpendMeta.YesVotes + tx.TSpendMeta.NoVotes
+			if totalVotes > 0 {
+				tx.TSpendMeta.Approval = float32(tx.TSpendMeta.YesVotes) / float32(totalVotes)
+			}
+		}
 	}
 
 	if err = rows.Err(); err != nil {

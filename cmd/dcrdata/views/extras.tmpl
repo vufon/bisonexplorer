@@ -949,6 +949,11 @@
 		<th class="text-start">Transaction</th>
 		<th class="text-end">Amount</th>
 		<th class="text-end">Block</th>
+		{{if eq $.TxnType "tspend"}}
+		<th class="text-end">Yes Votes</th>
+		<th class="text-end">No Votes</th>
+		<th class="text-end">Approval Rate</th>
+		{{end}}
 		<th class="d-none d-sm-table-cell text-end">Time (UTC)</th>
 		<!-- <th class="text-end"><span class="d-sm-none position-relative" data-tooltip="Confirmations">Cons</span><span class="d-none d-sm-inline">Confirms</span></th> -->
 		</tr>
@@ -960,6 +965,13 @@
 			<td class="clipboard">{{template "hashElide" (hashlink .TxID (printf "/tx/%s" .TxID))}}</td>
 			<td class="text-end fs15">{{template "decimalParts" (amountAsDecimalParts .Amount false)}}</td>
 			<td class="text-end fs15">{{.BlockHeight}}</td>
+			{{if and (eq $.TxnType "tspend") .TSpendMeta}}
+				{{with .TSpendMeta}}
+				<td class="text-end fs15">{{.YesVotes}}</td>
+				<td class="text-end fs15">{{.NoVotes}}</td>
+				<td class="text-end fs15">{{printf "%.2f" (f32x100 .Approval)}}%</td>
+				{{end}}
+			{{end}}
 			<td class="addr-tx-time d-none d-sm-table-cell text-end">{{.BlockTime.DatetimeWithoutTZ}}</td>
 			{{/*  <td class="addr-tx-confirms text-end"
 				data-newblock-target="confirmations"
