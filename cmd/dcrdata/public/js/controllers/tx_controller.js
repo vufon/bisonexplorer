@@ -65,7 +65,8 @@ export default class extends Controller {
   static get targets () {
     return ['unconfirmed', 'confirmations', 'formattedAge', 'age', 'progressBar',
       'ticketStage', 'expiryChance', 'mempoolTd', 'ticketMsg',
-      'expiryMsg', 'statusMsg', 'spendingTx', 'approvalMeter', 'cumulativeVoteChoices', 'voteChoicesByBlock']
+      'expiryMsg', 'statusMsg', 'spendingTx', 'approvalMeter', 'cumulativeVoteChoices',
+      'voteChoicesByBlock', 'outputRow', 'showMoreText', 'showMoreIcon']
   }
 
   initialize () {
@@ -79,6 +80,7 @@ export default class extends Controller {
     this.type = this.data.get('type')
     this.isTSpend = this.type === 'Treasury Spend'
     this.processBlock = this._processBlock.bind(this)
+    this.tspendExpend = false
     this.targetBlockTime = parseInt(document.getElementById('navBar').dataset.blocktime)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
 
@@ -129,6 +131,31 @@ export default class extends Controller {
         plotter: barChartPlotter
       }
     )
+  }
+
+  toggleExpand () {
+    this.tspendExpend = !this.tspendExpend
+    if (!this.outputRowTargets || this.outputRowTargets.length === 0) {
+      return
+    }
+    this.outputRowTargets.forEach((rowTarget) => {
+      // get index
+      const index = rowTarget.dataset.index
+      if (Number(index) < 5) {
+        return
+      }
+      if (this.tspendExpend) {
+        rowTarget.classList.remove('d-hide')
+      } else {
+        rowTarget.classList.add('d-hide')
+      }
+    })
+    this.showMoreTextTarget.textContent = this.tspendExpend ? 'Show Less' : 'Show More'
+    if (this.tspendExpend) {
+      this.showMoreIconTarget.classList.add('reverse')
+    } else {
+      this.showMoreIconTarget.classList.remove('reverse')
+    }
   }
 
   disconnect () {
