@@ -11,6 +11,9 @@
       <span class="homeicon-tags me-1"></span>
       <span class="link-underline">Homepage</span>
     </a>
+    {{if .IsTreasury}}
+    <a href="/treasury?txntype={{.FilterTreasuryType}}" class="breadcrumbs__item item-link">Treasury</a>
+    {{end}}
     <span class="breadcrumbs__item is-active">Transaction Detail</span>
   </nav>
   {{$isMempool := (eq .BlockHeight 0)}}

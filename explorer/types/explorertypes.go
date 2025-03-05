@@ -180,21 +180,23 @@ type TrimmedTxInfo struct {
 // TxInfo models data needed for display on the tx page
 type TxInfo struct {
 	*TxBasic
-	SpendingTxns     []TxInID
-	Vin              []Vin
-	MutilchainVin    []MutilchainVin
-	Vout             []Vout
-	BlockHeight      int64
-	BlockIndex       uint32
-	BlockHash        string
-	BlockMiningFee   int64
-	Confirmations    int64
-	Time             TimeDef
-	Mature           string
-	VoteFundsLocked  string
-	Maturity         int64   // Total number of blocks before mature
-	MaturityTimeTill float64 // Time in hours until mature
-	TSpendMeta       *dbtypes.TreasurySpendMetaData
+	SpendingTxns       []TxInID
+	Vin                []Vin
+	MutilchainVin      []MutilchainVin
+	Vout               []Vout
+	BlockHeight        int64
+	BlockIndex         uint32
+	BlockHash          string
+	BlockMiningFee     int64
+	Confirmations      int64
+	Time               TimeDef
+	Mature             string
+	VoteFundsLocked    string
+	Maturity           int64   // Total number of blocks before mature
+	MaturityTimeTill   float64 // Time in hours until mature
+	TSpendMeta         *dbtypes.TreasurySpendMetaData
+	IsTreasury         bool
+	FilterTreasuryType string
 	TicketInfo
 }
 
@@ -243,6 +245,21 @@ func (t *TxInfo) IsTreasuryAdd() bool {
 // IsRevocation checks whether this transaction is a revocation.
 func (t *TxInfo) IsRevocation() bool {
 	return t.Type == RevTypeStr
+}
+
+func (t *TxInfo) SetFilterTreasuryType() {
+	switch {
+	case t.IsTreasuryAdd():
+		t.FilterTreasuryType = "tadd"
+		return
+	case t.IsTreasurySpend():
+		t.FilterTreasuryType = "tspend"
+		return
+	case t.IsTreasurybase():
+		t.FilterTreasuryType = "treasurybase"
+		return
+	}
+	t.FilterTreasuryType = ""
 }
 
 // IsLiveTicket verifies the conditions: 1. is a ticket, 2. is mature,

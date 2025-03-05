@@ -9279,6 +9279,8 @@ func (pgb *ChainDB) GetExplorerTx(txid string) *exptypes.TxInfo {
 		}
 	} else if tx.Type == exptypes.CoinbaseTypeStr || tx.IsTreasurybase() || tx.IsRevocation() ||
 		tx.IsTreasuryAdd() || tx.IsTreasurySpend() {
+		tx.IsTreasury = tx.IsTreasurybase() || tx.IsTreasuryAdd() || tx.IsTreasurySpend()
+		tx.SetFilterTreasuryType()
 		if tx.Confirmations < int64(pgb.chainParams.CoinbaseMaturity) {
 			tx.Mature = "False"
 		} else {
