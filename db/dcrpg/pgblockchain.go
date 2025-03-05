@@ -3489,32 +3489,33 @@ func (pgb *ChainDB) TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType,
 		if err != nil {
 			return nil, err
 		}
-		txns = append(txns, &tx)
 		// get vote info if tx is tspend
 		if tx.Type == int(stake.TxTypeTSpend) {
-			hash, err := chainhash.NewHashFromStr(tx.TxID)
+			tspendMeta, err := pgb.getTSpendSimpleVoteInfo(tx.TxID)
 			if err != nil {
-				log.Errorf("Convert hash from string failed: txid: %v, error: %v", tx.TxID, err)
+				log.Warnf("Get Tspend vote info failed. TxID: %s, Error: %v", tx.TxID, err)
 				continue
 			}
-			tSpendTally, err := pgb.TSpendVotes(hash)
-			if err != nil {
-				log.Errorf("Failed to retrieve vote tally for tspend %v: %v", tx.TxID, err)
-				continue
-			}
-			tx.TSpendMeta = new(dbtypes.TreasurySpendMetaData)
-			tx.TSpendMeta.TreasurySpendVotes = tSpendTally
-			totalVotes := tx.TSpendMeta.YesVotes + tx.TSpendMeta.NoVotes
-			if totalVotes > 0 {
-				tx.TSpendMeta.Approval = float32(tx.TSpendMeta.YesVotes) / float32(totalVotes)
-			}
+			tx.TSpendMeta = tspendMeta
 		}
+		txns = append(txns, &tx)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	return txns, nil
+}
+
+// Get Simple tspend vote info (yes, no, total votes, approval rate)
+func (pgb *ChainDB) getTSpendSimpleVoteInfo(txHash string) (*dbtypes.TreasurySpendVotesSummaryData, error) {
+	var res dbtypes.TreasurySpendVotesSummaryData
+	err := pgb.db.QueryRow(internal.SelectTSpendVotesSummary, dbtypes.TSpendYes, dbtypes.TSpendNo, txHash).Scan(&res.YesVotes, &res.NoVotes, &res.TotalVotes)
+	if err != nil {
+		return nil, err
+	}
+	res.Approval = float32(res.YesVotes) / float32(res.TotalVotes)
+	return &res, nil
 }
 
 func (pgb *ChainDB) updateProjectFundCache() error {
