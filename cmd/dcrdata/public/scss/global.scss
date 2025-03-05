@@ -2254,7 +2254,63 @@ body.darkBG {
         border-radius: 0 8px 8px 0;
         padding-right: 15px;
       }
+
+      .table-expand-row {
+        border-radius: 8px !important;
+      }
     }
+
+    .expand-row:hover {
+      background-color: #f4fbff !important;
+    }
+  }
+}
+
+.expand-bounce {
+  -moz-animation: bounce 2s infinite;
+  -webkit-animation: bounce 2s infinite;
+  animation: bounce 2s infinite;
+}
+
+.expand-bounce.reverse {
+  -moz-animation: bouncereverse 2s infinite;
+  -webkit-animation: bouncereverse 2s infinite;
+  animation: bouncereverse 2s infinite;
+}
+
+@keyframes bounce {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(-7px);
+  }
+
+  60% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes bouncereverse {
+  0%,
+  20%,
+  50%,
+  80%,
+  100% {
+    transform: translateY(0) scaleY(-1);
+  }
+
+  40% {
+    transform: translateY(-7px) scaleY(-1);
+  }
+
+  60% {
+    transform: translateY(-3px) scaleY(-1);
   }
 }
 

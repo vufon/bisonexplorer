@@ -524,8 +524,13 @@
               </tr>
             </thead>
             <tbody class="bgc-white">
+              {{$isTSpend := false}}
+              {{if $.Data.TSpendMeta}}
+                {{$isTSpend = true}}
+              {{end}}
               {{range $i, $v := .Vout}}
-              <tr {{if and (eq $.HighlightInOut "out" ) (eq $.HighlightInOutID .Index)}} class="blue-row" {{end}}>
+              <tr class="{{if and (eq $.HighlightInOut "out" ) (eq $.HighlightInOutID .Index)}}blue-row{{end}} {{if and $isTSpend (gt $i 4)}}d-hide{{end}}" 
+                data-tx-target="outputRow" data-index="{{$i}}">
                 <td class="shrink-to-fit">{{.Index}}</td>
                 <td class="position-relative clipboard">
                   {{range .Addresses}}
@@ -572,6 +577,12 @@
                   {{template "decimalParts" (float64AsDecimalParts .Amount 8 false)}}
                 </td>
               </tr>
+              {{end}}
+              {{if $isTSpend}}
+                <tr class="expand-row"><td data-action="click->tx#toggleExpand" colspan="6" class="text-center table-expand-row cursor-pointer">
+                  <div><p class="mb-0" data-tx-target="showMoreText">Show More</p>
+                    <img data-tx-target="showMoreIcon" class="h30 expand-bounce mt-1" src="/images/expand-down.svg" alt="side chain">
+                  </div></td></tr>
               {{end}}
             </tbody>
           </table>

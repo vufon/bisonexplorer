@@ -3489,6 +3489,15 @@ func (pgb *ChainDB) TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType,
 		if err != nil {
 			return nil, err
 		}
+		// get vote info if tx is tspend
+		if tx.Type == int(stake.TxTypeTSpend) {
+			tspendMeta, err := pgb.getTSpendSimpleVoteInfo(tx.TxID)
+			if err != nil {
+				log.Warnf("Get Tspend vote info failed. TxID: %s, Error: %v", tx.TxID, err)
+				continue
+			}
+			tx.TSpendMeta = tspendMeta
+		}
 		txns = append(txns, &tx)
 	}
 
@@ -3496,6 +3505,17 @@ func (pgb *ChainDB) TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType,
 		return nil, err
 	}
 	return txns, nil
+}
+
+// Get Simple tspend vote info (yes, no, total votes, approval rate)
+func (pgb *ChainDB) getTSpendSimpleVoteInfo(txHash string) (*dbtypes.TreasurySpendVotesSummaryData, error) {
+	var res dbtypes.TreasurySpendVotesSummaryData
+	err := pgb.db.QueryRow(internal.SelectTSpendVotesSummary, dbtypes.TSpendYes, dbtypes.TSpendNo, txHash).Scan(&res.YesVotes, &res.NoVotes, &res.TotalVotes)
+	if err != nil {
+		return nil, err
+	}
+	res.Approval = float32(res.YesVotes) / float32(res.TotalVotes)
+	return &res, nil
 }
 
 func (pgb *ChainDB) updateProjectFundCache() error {

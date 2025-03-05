@@ -522,7 +522,11 @@ const (
 	INNER JOIN votes ON tspend_votes.votes_row_id = votes.id
 	WHERE tspend_votes.tspend_hash = $3
 		AND votes.is_mainchain = TRUE `
-	CountTSpendVotesRows = `SELECT COUNT(*) FROM tspend_votes`
+	CountTSpendVotesRows     = `SELECT COUNT(*) FROM tspend_votes`
+	SelectTSpendVotesSummary = `SELECT count(CASE WHEN tspend_votes.tspend_vote_choice = $1 THEN 1 ELSE NULL END) AS yes,
+		count(CASE WHEN tspend_votes.tspend_vote_choice = $2 THEN 1 ELSE NULL END) AS no,
+		count(*) AS total
+	FROM tspend_votes WHERE tspend_hash = $3`
 )
 
 // MakeTicketInsertStatement returns the appropriate tickets insert statement

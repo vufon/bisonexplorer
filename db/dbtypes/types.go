@@ -798,6 +798,13 @@ type TreasurySpendMetaData struct {
 	Approval         float32
 }
 
+type TreasurySpendVotesSummaryData struct {
+	YesVotes   int64
+	NoVotes    int64
+	TotalVotes int64
+	Approval   float32
+}
+
 // BlockChainData defines data holding the latest block chain state from the
 // getblockchaininfo rpc endpoint.
 type BlockChainData struct {
@@ -2194,6 +2201,7 @@ type TreasuryTx struct {
 	BlockHeight int64
 	BlockTime   TimeDef
 	Status      string
+	TSpendMeta  *TreasurySpendVotesSummaryData
 }
 
 type TreasurySummary struct {
