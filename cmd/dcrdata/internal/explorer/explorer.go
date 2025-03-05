@@ -171,6 +171,7 @@ type explorerDataSource interface {
 	SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType string) (*dbtypes.Block24hInfo, error)
 	SyncAddressSummary() error
 	SyncTreasurySummary() error
+	GetMutilchainMempoolTxTime(txid string, chainType string) int64
 }
 
 type PoliteiaBackend interface {
@@ -1321,4 +1322,17 @@ func (exp *ExplorerUI) mempoolTime(txid string) types.TimeDef {
 		return types.NewTimeDefFromUNIX(0)
 	}
 	return types.NewTimeDefFromUNIX(tx.Time)
+}
+
+func (exp *ExplorerUI) mutilchainMempoolTime(txid string, chainType string) types.TimeDef {
+	exp.invsMtx.RLock()
+	defer exp.invsMtx.RUnlock()
+	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
+	for _, memTxs := range mempoolInfo.Transactions {
+		if memTxs.TxID == txid {
+			fmt.Println("check time: ", memTxs.Time)
+			return types.NewTimeDefFromUNIX(memTxs.Time)
+		}
+	}
+	return types.NewTimeDefFromUNIX(0)
 }

@@ -1477,6 +1477,10 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			Index: spendingTxVinInds[i],
 		}
 	}
+	// For an unconfirmed tx, get the time it was received in explorer's mempool.
+	if tx.BlockHeight == 0 {
+		tx.Time = types.NewTimeDefFromUNIX(exp.dataSource.GetMutilchainMempoolTxTime(tx.TxID, chainType))
+	}
 	pageData := struct {
 		*CommonPageData
 		Data        *types.TxInfo

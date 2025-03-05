@@ -8914,11 +8914,10 @@ func (pgb *ChainDB) BtcTxResult(txhash *btc_chainhash.Hash) (*btcjson.TxRawResul
 	if err != nil {
 		return nil, 0, fmt.Errorf("BTC: GetRawTransactionVerbose failed for %v: %w", txhash, err)
 	}
-	blockHeight, err := pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPEBTC)
-	if err != nil {
-		return nil, 0, fmt.Errorf("Get BTC block height failed: %w", err)
+	var blockHeight int64
+	if txraw.BlockHash != "" {
+		blockHeight, _ = pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPEBTC)
 	}
-
 	return txraw, blockHeight, nil
 }
 
@@ -8927,11 +8926,10 @@ func (pgb *ChainDB) LtcTxResult(txhash *ltc_chainhash.Hash) (*ltcjson.TxRawResul
 	if err != nil {
 		return nil, 0, fmt.Errorf("LTC: GetRawTransactionVerbose failed for %v: %w", txhash, err)
 	}
-	blockHeight, err := pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPELTC)
-	if err != nil {
-		return nil, 0, fmt.Errorf("Get LTC block height failed: %w", err)
+	var blockHeight int64
+	if txraw.BlockHash != "" {
+		blockHeight, _ = pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPELTC)
 	}
-
 	return txraw, blockHeight, nil
 }
 
@@ -9065,6 +9063,28 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 	tx.SpendingTxns = make([]exptypes.TxInID, len(outputs))
 	tx.FeeCoin = totalVin - totalVout
 	return tx
+}
+
+func (pgb *ChainDB) GetMutilchainMempoolTxTime(txid string, chainType string) int64 {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		mempoolTxsMap, err := pgb.BtcClient.GetRawMempoolVerbose()
+		if err == nil {
+			mempoolTx, exist := mempoolTxsMap[txid]
+			if exist {
+				return mempoolTx.Time
+			}
+		}
+	case mutilchain.TYPELTC:
+		mempoolTxsMap, err := pgb.LtcClient.GetRawMempoolVerbose()
+		if err == nil {
+			mempoolTx, exist := mempoolTxsMap[txid]
+			if exist {
+				return mempoolTx.Time
+			}
+		}
+	}
+	return int64(0)
 }
 
 func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {

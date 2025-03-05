@@ -103,10 +103,12 @@
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">Size:</td>
                      <td class="text-start py-1">{{.FormattedSize}}</td>
                   </tr>
+                  {{if eq $isMempool false}}
                   <tr>
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">Block Hash:</td>
                      <td class="text-start py-1">{{.BlockHash}}</td>
                   </tr>
+                  {{end}}
                </tbody>
             </table>
             <span></span>{{/* dummy for flex alignment */}}
