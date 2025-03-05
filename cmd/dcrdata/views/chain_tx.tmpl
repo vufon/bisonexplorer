@@ -1,6 +1,7 @@
 {{define "chain_tx"}}
 <!DOCTYPE html>
 {{$ChainType := .ChainType}}
+{{$conv := .Conversions}}
 <html lang="en">
    {{template "html-head" headData .CommonPageData (printf "%s Transaction - %.20s..." (chainName $ChainType) .Data.TxID)}}
    {{template "mutilchain_navbar" . }}
@@ -15,6 +16,7 @@
          <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
          <span class="breadcrumbs__item is-active">Transaction Detail</span>
       </nav>
+      {{$isMempool := (eq .BlockHeight 0)}}
      <div class="row px-1 my-2">
          <div class="col-24 col-xl-12 bg-green-3 p-3 p-sm-4 position-relative common-card">
             <div class="card-pointer pointer-right d-none d-xl-block"></div>
@@ -44,7 +46,47 @@
                   <span class="lh1rem d-inline-block pt-1"
                      ><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}</span><span class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
                   </span>
+                  {{if $conv.Total}}
+                  <br>
+                  <div class="lh1rem d-inline-block text-secondary"><span
+                     class="fs16 lh1rem d-inline-block text-nowrap">{{threeSigFigs $conv.Total.Value}}
+                     <span class="fs14">{{$conv.Total.Index}}</span>
+                     </span>
+                     <span class="fs12">(today)</span>
+                  </div>
+                  {{end}}
                </div>
+               <div class="col-8 tx-block-num">
+                  <span class="text-secondary fs13"><span class="d-none d-sm-inline">Included in Block</span><span
+                      class="d-sm-none">Block #</span></span>
+                  <br>
+                  <span class="fs18 fw-bold lh1rem d-inline-block pt-1">
+                    {{if $isMempool}}
+                    <span><span class="mp-unconfirmed-msg">mempool</span><a href="" class="fs18 mp-unconfirmed-link"></a></span>
+                    {{else}}
+                    <div class="fs18">
+                      <a href="/{{$ChainType}}/block/{{.BlockHeight}}"
+                        class="fs18">{{.BlockHeight}}</a>
+                    </div>
+                    {{end}}
+                  </span>
+                  <br>
+                  <span class="fs16 text-secondary lh1rem  d-inline-block jsonly"><span class="mp-unconfirmed-time"
+                      data-time-target="age" data-age="{{.Time.UNIX}}"></span> ago</span>
+                </div>
+                <div class="col-8 text-start">
+                  <span class="text-secondary fs13">Fee</span>
+                  <br>
+                  <span class="lh1rem d-inline-block pt-1"><span class="fs18 fs14-decimal fw-bold">{{template "decimalParts"
+                      (float64AsDecimalParts .FeeCoin 8 true 2)}}</span><span class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
+                  </span>
+                  {{if $conv.Fees}}
+                  <br>
+                  <span class="text-secondary fs16 lh1rem d-inline-block">{{threeSigFigs $conv.Fees.Value}}
+                    <span class="fs14 lh1rem  d-inline-block">{{$conv.Fees.Index}} <span class="fs12">(today)</span></span>
+                  </span>
+                  {{end}}
+                </div>
             </div>
          </div>
          <div class="col-24 col-xl-12 py-3 px-3 px-xl-4 d-flex flex-column justify-content-between blue-card">
@@ -61,10 +103,12 @@
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">Size:</td>
                      <td class="text-start py-1">{{.FormattedSize}}</td>
                   </tr>
+                  {{if eq $isMempool false}}
                   <tr>
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">Block Hash:</td>
                      <td class="text-start py-1">{{.BlockHash}}</td>
                   </tr>
+                  {{end}}
                </tbody>
             </table>
             <span></span>{{/* dummy for flex alignment */}}
@@ -81,6 +125,8 @@
                            <th class="shrink-to-fit">#</th>
                            <th class="text-nowrap">Previous Outpoint</th>
                            <th class="addr-hash-column">Addresses</th>
+                           <th class="text-center shrink-to-fit">Block</th>
+                           <th class="text-end shrink-to-fit">{{toUpperCase $ChainType}}</th>
                         </tr>
                      </thead>
                      <tbody class="bgc-white">
@@ -99,6 +145,16 @@
                            N/A
                            {{end}}
                         </td>
+                        <td class="shrink-to-fit">
+                           {{if eq .BlockHeight 0}}
+                           pending
+                           {{else}}
+                           <a href="/{{$ChainType}}/block/{{.BlockHeight}}">{{.BlockHeight}}</a>
+                           {{end}}
+                         </td>
+                         <td class="mono fs13 text-end shrink-to-fit">{{if lt .AmountIn 0.0}} N/A {{else}}
+                           {{template "decimalParts" (float64AsDecimalParts .AmountIn 8 false)}} {{end}}
+                         </td>
                         </tr>
                         {{end}}
                      </tbody>

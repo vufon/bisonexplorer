@@ -171,6 +171,7 @@ type explorerDataSource interface {
 	SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType string) (*dbtypes.Block24hInfo, error)
 	SyncAddressSummary() error
 	SyncTreasurySummary() error
+	GetMutilchainMempoolTxTime(txid string, chainType string) int64
 }
 
 type PoliteiaBackend interface {
