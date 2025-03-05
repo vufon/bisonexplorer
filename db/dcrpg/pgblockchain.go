@@ -7295,6 +7295,45 @@ func (pgb *ChainDB) GetBlockByHash(hash string) (*wire.MsgBlock, error) {
 	return pgb.Client.GetBlock(context.TODO(), blockHash)
 }
 
+func (pgb *ChainDB) GetMutilchainBlockHeightByHash(hash string, chainType string) (int64, error) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return pgb.GetBTCBlockByHash(hash)
+	case mutilchain.TYPELTC:
+		return pgb.GetLTCBlockByHash(hash)
+	default:
+		return 0, nil
+	}
+}
+
+func (pgb *ChainDB) GetBTCBlockByHash(hash string) (int64, error) {
+	blockHash, err := btc_chainhash.NewHashFromStr(hash)
+	if err != nil {
+		log.Errorf("BTC: Invalid block hash %s", hash)
+		return 0, err
+	}
+	blockRst, err := pgb.BtcClient.GetBlockVerbose(blockHash)
+	if err != nil {
+		log.Errorf("BTC: Get msg block failed %s", hash)
+		return 0, err
+	}
+	return blockRst.Height, nil
+}
+
+func (pgb *ChainDB) GetLTCBlockByHash(hash string) (int64, error) {
+	blockHash, err := ltc_chainhash.NewHashFromStr(hash)
+	if err != nil {
+		log.Errorf("LTC: Invalid block hash %s", hash)
+		return 0, err
+	}
+	blockRst, err := pgb.LtcClient.GetBlockVerbose(blockHash)
+	if err != nil {
+		log.Errorf("LTC: Get msg block failed %s", hash)
+		return 0, err
+	}
+	return blockRst.Height, nil
+}
+
 // GetHeader fetches the *chainjson.GetBlockHeaderVerboseResult for a given
 // block height.
 func (pgb *ChainDB) GetHeader(idx int) *chainjson.GetBlockHeaderVerboseResult {
@@ -8870,61 +8909,30 @@ func (pgb *ChainDB) txWithTicketPrice(txhash *chainhash.Hash) (*chainjson.TxRawR
 	return txraw, ticketPrice, nil
 }
 
-func (pgb *ChainDB) BtcTxResult(txhash *btc_chainhash.Hash) (*btcjson.TxRawResult, error) {
-	// If the transaction is unconfirmed, the RPC client must provide the ticket
-	// price. Ensure the best block does not change between calls to
-	// getrawtransaction and getstakedifficulty.
-	blockHash, _, err := pgb.BtcClient.GetBestBlock()
+func (pgb *ChainDB) BtcTxResult(txhash *btc_chainhash.Hash) (*btcjson.TxRawResult, int64, error) {
+	txraw, err := pgb.BtcClient.GetRawTransactionVerbose(txhash)
 	if err != nil {
-		return nil, fmt.Errorf("GetBestBlock failed: %w", err)
+		return nil, 0, fmt.Errorf("BTC: GetRawTransactionVerbose failed for %v: %w", txhash, err)
+	}
+	blockHeight, err := pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPEBTC)
+	if err != nil {
+		return nil, 0, fmt.Errorf("Get BTC block height failed: %w", err)
 	}
 
-	var txraw *btcjson.TxRawResult
-	for {
-		txraw, err = pgb.BtcClient.GetRawTransactionVerbose(txhash)
-		if err != nil {
-			return nil, fmt.Errorf("GetRawTransactionVerbose failed for %v: %w", txhash, err)
-		}
-
-		blockHash1, _, err := pgb.BtcClient.GetBestBlock()
-		if err != nil {
-			return nil, fmt.Errorf("GetBestBlock failed: %w", err)
-		}
-
-		if blockHash.IsEqual(blockHash1) {
-			break
-		}
-		blockHash = blockHash1 // try again
-	}
-
-	return txraw, nil
+	return txraw, blockHeight, nil
 }
 
-func (pgb *ChainDB) LtcTxResult(txhash *ltc_chainhash.Hash) (*ltcjson.TxRawResult, error) {
-	blockHash, _, err := pgb.LtcClient.GetBestBlock()
+func (pgb *ChainDB) LtcTxResult(txhash *ltc_chainhash.Hash) (*ltcjson.TxRawResult, int64, error) {
+	txraw, err := pgb.LtcClient.GetRawTransactionVerbose(txhash)
 	if err != nil {
-		return nil, fmt.Errorf("GetBestBlock failed: %w", err)
+		return nil, 0, fmt.Errorf("LTC: GetRawTransactionVerbose failed for %v: %w", txhash, err)
+	}
+	blockHeight, err := pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPELTC)
+	if err != nil {
+		return nil, 0, fmt.Errorf("Get LTC block height failed: %w", err)
 	}
 
-	var txraw *ltcjson.TxRawResult
-	for {
-		txraw, err = pgb.LtcClient.GetRawTransactionVerbose(txhash)
-		if err != nil {
-			return nil, fmt.Errorf("GetRawTransactionVerbose failed for %v: %w", txhash, err)
-		}
-
-		blockHash1, _, err := pgb.LtcClient.GetBestBlock()
-		if err != nil {
-			return nil, fmt.Errorf("GetBestBlock failed: %w", err)
-		}
-
-		if blockHash.IsEqual(blockHash1) {
-			break
-		}
-		blockHash = blockHash1 // try again
-	}
-
-	return txraw, nil
+	return txraw, blockHeight, nil
 }
 
 func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
@@ -8937,7 +8945,7 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 		return nil
 	}
 
-	txraw, err := pgb.LtcTxResult(txhash)
+	txraw, blockHeight, err := pgb.LtcTxResult(txhash)
 	if err != nil {
 		log.Errorf("Mutilchain Tx Info: %v", err)
 		return nil
@@ -8953,12 +8961,13 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 	tx := &exptypes.TxInfo{
 		TxBasic:       txBasic,
 		BlockHash:     txraw.BlockHash,
+		BlockHeight:   blockHeight,
 		Confirmations: int64(txraw.Confirmations),
 		Time:          exptypes.NewTimeDefFromUNIX(txraw.Time),
 	}
 
 	// tree := txType stake.TxTypeRegular
-
+	var totalVin float64
 	inputs := make([]exptypes.MutilchainVin, 0, len(txraw.Vin))
 	for i := range txraw.Vin {
 		vin := &txraw.Vin[i]
@@ -8991,6 +9000,19 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 
 		// Assemble and append this vin.
 		coinIn := valueIn.ToBTC()
+		totalVin += coinIn
+		vinBlockHeight := int64(0)
+		vinHash, err := ltc_chainhash.NewHashFromStr(vin.Txid)
+		if err != nil {
+			log.Errorf("LTC: Invalid vin transaction hash %s", vin.Txid)
+		} else {
+			txraw, err := pgb.LtcClient.GetRawTransactionVerbose(vinHash)
+			if err != nil {
+				log.Errorf("LTC: GetRawTransactionVerbose failed for %v: %w", vinHash, err)
+			} else {
+				vinBlockHeight, _ = pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPELTC)
+			}
+		}
 		inputs = append(inputs, exptypes.MutilchainVin{
 			Txid:            vin.Txid,
 			Coinbase:        vin.Coinbase,
@@ -9000,6 +9022,8 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 			Addresses:       addresses,
 			FormattedAmount: humanize.Commaf(coinIn),
 			Index:           uint32(i),
+			AmountIn:        coinIn,
+			BlockHeight:     vinBlockHeight,
 		})
 	}
 	tx.MutilchainVin = inputs
@@ -9009,6 +9033,7 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 		float64(tx.Confirmations)) / float64(pgb.ltcChainParams.CoinbaseMaturity)) * CoinbaseMaturityInHours
 
 	outputs := make([]exptypes.Vout, 0, len(txraw.Vout))
+	var totalVout float64
 	for i, vout := range txraw.Vout {
 		// Determine spent status with gettxout, including mempool.
 		txout, err := pgb.LtcClient.GetTxOut(txhash, uint32(i), true)
@@ -9032,12 +9057,13 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 			Spent:           txout == nil,
 			Index:           vout.N,
 		})
+		totalVout += vout.Value
 	}
 	tx.Vout = outputs
 
 	// Initialize the spending transaction slice for safety.
 	tx.SpendingTxns = make([]exptypes.TxInID, len(outputs))
-
+	tx.FeeCoin = totalVin - totalVout
 	return tx
 }
 
@@ -9051,7 +9077,7 @@ func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
 		return nil
 	}
 
-	txraw, err := pgb.BtcTxResult(txhash)
+	txraw, blockHeight, err := pgb.BtcTxResult(txhash)
 	if err != nil {
 		log.Errorf("Mutilchain Tx Info: %v", err)
 		return nil
@@ -9067,12 +9093,13 @@ func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
 	tx := &exptypes.TxInfo{
 		TxBasic:       txBasic,
 		BlockHash:     txraw.BlockHash,
+		BlockHeight:   blockHeight,
 		Confirmations: int64(txraw.Confirmations),
 		Time:          exptypes.NewTimeDefFromUNIX(txraw.Time),
 	}
 
 	// tree := txType stake.TxTypeRegular
-
+	var totalVin float64
 	inputs := make([]exptypes.MutilchainVin, 0, len(txraw.Vin))
 	for i := range txraw.Vin {
 		vin := &txraw.Vin[i]
@@ -9105,6 +9132,19 @@ func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
 
 		// Assemble and append this vin.
 		coinIn := valueIn.ToBTC()
+		totalVin += coinIn
+		vinBlockHeight := int64(0)
+		vinHash, err := btc_chainhash.NewHashFromStr(vin.Txid)
+		if err != nil {
+			log.Errorf("BTC: Invalid vin transaction hash %s", vin.Txid)
+		} else {
+			txraw, err := pgb.BtcClient.GetRawTransactionVerbose(vinHash)
+			if err != nil {
+				log.Errorf("BTC: GetRawTransactionVerbose failed for %v: %w", vinHash, err)
+			} else {
+				vinBlockHeight, _ = pgb.GetMutilchainBlockHeightByHash(txraw.BlockHash, mutilchain.TYPEBTC)
+			}
+		}
 		inputs = append(inputs, exptypes.MutilchainVin{
 			Txid:            vin.Txid,
 			Coinbase:        vin.Coinbase,
@@ -9114,6 +9154,8 @@ func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
 			Addresses:       addresses,
 			FormattedAmount: humanize.Commaf(coinIn),
 			Index:           uint32(i),
+			AmountIn:        coinIn,
+			BlockHeight:     vinBlockHeight,
 		})
 	}
 	tx.MutilchainVin = inputs
@@ -9123,6 +9165,7 @@ func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
 		float64(tx.Confirmations)) / float64(pgb.btcChainParams.CoinbaseMaturity)) * CoinbaseMaturityInHours
 
 	outputs := make([]exptypes.Vout, 0, len(txraw.Vout))
+	var totalVout float64
 	for i, vout := range txraw.Vout {
 		// Determine spent status with gettxout, including mempool.
 		txout, err := pgb.BtcClient.GetTxOut(txhash, uint32(i), true)
@@ -9146,12 +9189,12 @@ func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
 			Spent:           txout == nil,
 			Index:           vout.N,
 		})
+		totalVout += vout.Value
 	}
 	tx.Vout = outputs
-
 	// Initialize the spending transaction slice for safety.
 	tx.SpendingTxns = make([]exptypes.TxInID, len(outputs))
-
+	tx.FeeCoin = totalVin - totalVout
 	return tx
 }
 

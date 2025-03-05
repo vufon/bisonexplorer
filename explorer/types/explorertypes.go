@@ -161,6 +161,7 @@ type TxBasic struct {
 	Total         float64
 	Fee           dcrutil.Amount
 	FeeRate       dcrutil.Amount
+	FeeCoin       float64
 	VoteInfo      *VoteInfo
 	Coinbase      bool
 	Treasurybase  bool
@@ -450,6 +451,8 @@ type MutilchainVin struct {
 	Sequence        uint32   `json:"sequence"`
 	Witness         []string `json:"txinwitness"`
 	Addresses       []string
+	AmountIn        float64 `json:"amountin"`
+	BlockHeight     int64
 	FormattedAmount string
 	Index           uint32
 	DisplayText     string

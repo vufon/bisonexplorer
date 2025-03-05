@@ -1395,7 +1395,7 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			exp.StatusPage(w, defaultErrorCode, "VoutsForTx failed", "", ExpStatusError)
 			return
 		}
-
+		var totalVout float64
 		// Convert to explorer.Vout, getting spending information from DB.
 		for iv := range vouts {
 			// Determine if the outpoint is spent
@@ -1417,6 +1417,7 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 				Index:           vouts[iv].TxIndex,
 				Version:         vouts[iv].Version,
 			})
+			totalVout += amount
 		}
 
 		// Retrieve vins from DB.
@@ -1431,6 +1432,7 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		// Convert to explorer.Vin from dbtypes.VinTxProperty.
+		var totalVin float64
 		for iv := range vins {
 			// Decode all addresses from previous outpoint's pkScript.
 			var addresses []string
@@ -1438,17 +1440,21 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			if err != nil {
 				log.Errorf("Failed to decode pkScript: %v", err)
 			}
-
 			addresses = exp.GetAddressListFromPkScript(pkScriptsStr, chainType)
 			txIndex := vins[iv].TxIndex
+			coinIn := exp.GetCointAmountByTypeChain(int64(vins[iv].ValueIn), chainType)
+			totalVin += coinIn
 			tx.MutilchainVin = append(tx.MutilchainVin, types.MutilchainVin{
-				Txid:      hash,
-				Vout:      vins[iv].PrevTxIndex,
-				Sequence:  vins[iv].Sequence,
-				Addresses: addresses,
-				Index:     txIndex,
+				Txid:        hash,
+				Vout:        vins[iv].PrevTxIndex,
+				Sequence:    vins[iv].Sequence,
+				Addresses:   addresses,
+				Index:       txIndex,
+				AmountIn:    coinIn,
+				BlockHeight: int64(vins[iv].BlockHeight),
 			})
 		}
+		tx.FeeCoin = totalVin - totalVout
 	} // tx == nil (not found by dcrd)
 	// For each output of this transaction, look up any spending transactions,
 	// and the index of the spending transaction input.
@@ -1471,15 +1477,23 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			Index: spendingTxVinInds[i],
 		}
 	}
-
 	pageData := struct {
 		*CommonPageData
-		Data      *types.TxInfo
-		ChainType string
+		Data        *types.TxInfo
+		ChainType   string
+		Conversions struct {
+			Total *exchanges.Conversion
+			Fees  *exchanges.Conversion
+		}
 	}{
 		CommonPageData: exp.commonData(r),
 		Data:           tx,
 		ChainType:      chainType,
+	}
+	// Get a fiat-converted value for the total and the fees.
+	if exp.xcBot != nil {
+		pageData.Conversions.Total = exp.xcBot.MutilchainConversion(tx.Total, chainType)
+		pageData.Conversions.Fees = exp.xcBot.MutilchainConversion(tx.FeeCoin, chainType)
 	}
 
 	str, err := exp.templates.exec("chain_tx", pageData)
