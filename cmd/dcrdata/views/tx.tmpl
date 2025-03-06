@@ -14,7 +14,7 @@
     {{if .IsTreasury}}
     <a href="/treasury?txntype={{.FilterTreasuryType}}" class="breadcrumbs__item item-link">Treasury</a>
     {{end}}
-    <span class="breadcrumbs__item is-active">Transaction Detail</span>
+    <span class="breadcrumbs__item is-active">Transaction</span>
   </nav>
   {{$isMempool := (eq .BlockHeight 0)}}
   <div class="row px-1 my-2">
@@ -399,7 +399,7 @@
               <td class="text-start py-1 text-secondary">{{formatDateTime .VoteEndDate}}</td>
               {{else}}
               <td class="text-end medium-sans text-nowrap pe-2 py-2">Voting Ended:</td>
-              <td class="text-start py-1 text-secondary" data-tx-target="formattedAge">{{$.Data.Time.String}}</td>
+              <td class="text-start py-1 text-secondary" data-tx-target="formattedAge">{{formatDateTime $.Data.Time.T}}</td>
               {{end}}
               {{end}}
             </tr>
