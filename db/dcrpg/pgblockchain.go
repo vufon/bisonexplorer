@@ -9948,7 +9948,7 @@ func (pgb *ChainDB) SyncBlockTimeWithMinHeight(chainType string, minHeight int32
 
 func (pgb *ChainDB) InsertToMultichainBlockSimpleInfo(chainType, hash string, height, heightTime int64) error {
 	var id int64
-	err := pgb.db.QueryRow(mutilchainquery.MakeInsertSimpleBlockInfo(chainType), hash, height, heightTime).Scan(&id)
+	err := pgb.db.QueryRow(mutilchainquery.MakeInsertSimpleBlockInfo(chainType), hash, height, heightTime, false).Scan(&id)
 	return err
 }
 

@@ -81,7 +81,12 @@ const (
 
 	UpdateBlockSynced = `UPDATE %sblocks SET synced = true WHERE height = $1 RETURNING id`
 
-	InsertBlockSimpleInfo = `INSERT INTO %sblocks (hash, height, time) VALUES ($1, $2, $3) RETURNING id;`
+	insertBlockSimpleInfo = `INSERT INTO %sblocks (hash, height, time, synced) VALUES ($1, $2, $3, $4) `
+
+	InsertBlockSimpleInfo = insertBlockSimpleInfo + `RETURNING id;`
+
+	UpsertBlockSimpleInfo = insertBlockSimpleInfo + `ON CONFLICT (hash) DO UPDATE
+		SET synced = $4 RETURNING id;`
 
 	IndexBlockTableOnHash = `CREATE UNIQUE INDEX uix_%sblock_hash
 		ON %sblocks(hash);`
@@ -153,6 +158,10 @@ func MakeSelectBlocksWithTimeRange(chainType string) string {
 
 func MakeUpdateBlockSynced(chainType string) string {
 	return fmt.Sprintf(UpdateBlockSynced, chainType)
+}
+
+func MakeUpsertBlockSimpleInfo(chainType string) string {
+	return fmt.Sprintf(UpsertBlockSimpleInfo, chainType)
 }
 
 func MakeSelectMinBlockHeight(chainType string) string {
