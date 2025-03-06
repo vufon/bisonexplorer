@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.2fa538aef0df0fef.css" rel="stylesheet">
+	<link href="/dist/css/style.80a171f5b9836539.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -996,16 +996,29 @@
 			<!-- Only 1 column -->
 			<td>
 				{{$hasTargetToken := (ne .Source.TargetToken "")}}
+				<div class="d-md-flex ai-center justify-content-between pb-1 border-2-bottom-grey">
 				<div class="d-flex ai-center fw-600 fs15">
-					<p>Pair: {{if $hasTargetToken}}DCR/{{toUpperCase .Source.TargetToken}}{{else}}Verifying{{end}}</p>
-					<div class="d-flex ai-center ms-3">Amount:&nbsp;<div>{{template "decimalParts" (amountAsDecimalParts .Source.Value false)}}</div>&nbsp;DCR
+					<div class="d-flex ai-center">
+						{{if $hasTargetToken}}
+						<div class="p-relative d-flex ai-center pair-icons">
+							<img src="/images/dcr-icon.png" width="20" height="20"> 
+							<img src="/images/{{.Source.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
+						</div>
+						{{else}}
+						  <img src="/images/synchronize.png" width="20" height="20" class="me-1"> 
+						{{end}}
+						<p>{{if $hasTargetToken}}DCR/{{toUpperCase .Source.TargetToken}}{{else}}Verifying{{end}}</p>
+					</div>
+					<div class="d-flex ai-center ms-3">Amount:&nbsp;<div>{{normalWithPrecFloat (toFloat64Amount .Source.Value) -1}}</div>&nbsp;DCR
 					{{if $hasTargetToken}}
 					&nbsp;(
-					<div>{{template "decimalParts" (amountAsDecimalParts .Target.Value false)}}</div>&nbsp;{{toUpperCase .Source.TargetToken}})
+					<div>{{normalWithPrecFloat (toFloat64Amount .Target.Value) -1}}</div>&nbsp;{{toUpperCase .Source.TargetToken}})
 					{{end}}
 					</div>
+					<span class="common-label ms-2 {{if .Source.IsRefund}}refund{{else}}success{{end}}-bg fw-400 fs13">{{if .Source.IsRefund}}Refund{{else}}Completed{{end}}</span>
 				</div>
-				<p class="fs13">{{dateTimeWithoutTimeZone .Source.ContractTime}}</p>
+				<p class="fs13 fw-bold">{{dateTimeWithoutTimeZone .Source.ContractTime}}</p>
+				</div>
 				<div class="row mt-3">
 					<div class="col-24 col-md-12 mb-3">
 						<div class="d-flex ai-center">
@@ -1026,7 +1039,7 @@
 							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Source.SpendHeight}}">{{.Source.SpendHeight}}</a></p>
 							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Source.RedemptionFees)}} DCR</p>
 						</div>
-						<div>Redemption at: {{dateTimeWithoutTimeZone .Source.SpendTime}}</div>
+						<div>{{if .Source.IsRefund}}Refunded{{else}}Redeemed{{end}} at: {{dateTimeWithoutTimeZone .Source.SpendTime}}</div>
 					</div>
 				</div>
 				{{if $hasTargetToken}}
@@ -1050,7 +1063,7 @@
 							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{.Source.TargetToken}}/block/{{.Target.SpendHeight}}">{{.Target.SpendHeight}}</a></p>
 							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Target.RedemptionFees)}} {{toUpperCase .Source.TargetToken}}</p>
 						</div>
-						<div>{{if .Source.IsRefund}}Refund{{else}}Redemption{{end}} at: {{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
+						<div>{{if .Source.IsRefund}}Refunded{{else}}Redeemed{{end}} at: {{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
 					</div>
 				</div>
 				{{end}}

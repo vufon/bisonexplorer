@@ -20,10 +20,11 @@
           <div class="d-inline-block text-start pe-2 pb-3">
             <span class="text-secondary fs13">Total Trading Amount</span>
             <br>
-            <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
-              {{template "decimalParts" (amountAsDecimalParts .TotalTradingAmount true)}} <span
-                class="text-secondary fs14">DCR</span><br>
-            </span>
+            <div class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
+              {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .TotalTradingAmount) 2 true)}}
+            <span
+                class="text-secondary fs14">DCR</span>
+            </div>
           </div>
           <div class="d-inline-block text-start pe-2 pb-3">
             <span class="text-secondary fs13">Total Contracts</span>
