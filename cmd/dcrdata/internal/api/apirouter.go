@@ -200,6 +200,12 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		r.Get("/addressesTxs/{addresses}", app.getAddressesTxs)
 	})
 
+	// get chart data for atomic swap transactions
+	mux.Route("/atomic-swaps", func(r chi.Router) {
+		r.With(m.ChartGroupingCtx).Get("/amount/{chartgrouping}", app.getSwapsAmountChartData)
+		r.With(m.ChartGroupingCtx).Get("/txcount/{chartgrouping}", app.getSwapsTxcountChartData)
+	})
+
 	mux.Route("/chainaddress", func(r chi.Router) {
 		r.Route("/{chaintype}/{address}", func(rd chi.Router) {
 			rd.Use(m.AddressPathCtxN(1))

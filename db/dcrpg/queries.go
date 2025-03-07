@@ -2533,6 +2533,62 @@ func retrieveTxHistoryByType(ctx context.Context, db *sql.DB, addr, timeInterval
 	return items, nil
 }
 
+// Retrieve swaps data with trading amount summary
+func retrieveSwapsByAmount(ctx context.Context, db *sql.DB, timeInterval string) (*dbtypes.ChartsData, error) {
+	rows, err := db.QueryContext(ctx, internal.MakeSelectSwapsAmount(timeInterval))
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	items := new(dbtypes.ChartsData)
+	for rows.Next() {
+		var dataTime time.Time
+		var redeemed, refund uint64
+		err = rows.Scan(&dataTime, &redeemed, &refund)
+		if err != nil {
+			return nil, err
+		}
+
+		items.Time = append(items.Time, dbtypes.NewTimeDef(dataTime))
+		items.RedeemAmount = append(items.RedeemAmount, redeemed)
+		items.RefundAmount = append(items.RefundAmount, refund)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
+// Retrieve swaps data with tx count summary
+func retrieveSwapsByTxcount(ctx context.Context, db *sql.DB, timeInterval string) (*dbtypes.ChartsData, error) {
+	rows, err := db.QueryContext(ctx, internal.MakeSelectSwapsTxcount(timeInterval))
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+
+	items := new(dbtypes.ChartsData)
+	for rows.Next() {
+		var dataTime time.Time
+		var redeemedCount, refundCount uint64
+		err = rows.Scan(&dataTime, &redeemedCount, &refundCount)
+		if err != nil {
+			return nil, err
+		}
+
+		items.Time = append(items.Time, dbtypes.NewTimeDef(dataTime))
+		items.RedeemCount = append(items.RedeemCount, redeemedCount)
+		items.RefundCount = append(items.RefundCount, refundCount)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
 // retrieveTxHistoryByAmount fetches the transaction amount flow i.e. received
 // and sent amount for all the transactions associated with a given address and for
 // the given time interval. The time interval is grouping records by week,

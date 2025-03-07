@@ -72,6 +72,8 @@ type DataSource interface {
 	VotesInBlock(hash string) (int16, error)
 	TxHistoryData(address string, addrChart dbtypes.HistoryChart,
 		chartGroupings dbtypes.TimeBasedGrouping) (*dbtypes.ChartsData, error)
+	SwapsChartData(swapChart dbtypes.AtomicSwapChart,
+		chartGroupings dbtypes.TimeBasedGrouping) (*dbtypes.ChartsData, error)
 	TreasuryBalance() (*dbtypes.TreasuryBalance, error)
 	BinnedTreasuryIO(chartGroupings dbtypes.TimeBasedGrouping) (*dbtypes.ChartsData, error)
 	TicketPoolVisualization(interval dbtypes.TimeBasedGrouping) (
@@ -3185,6 +3187,86 @@ func (c *appContext) addressIoCsv(crlf bool, w http.ResponseWriter, r *http.Requ
 		writer.Flush()
 		wf.Flush()
 	}
+}
+
+// Get contract count chart data for atomic swap
+func (c *appContext) getSwapsTxcountChartData(w http.ResponseWriter, r *http.Request) {
+	chartGrouping := m.GetChartGroupingCtx(r)
+	if chartGrouping == "" {
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		return
+	}
+
+	interval := dbtypes.TimeGroupingFromStr(chartGrouping)
+	if interval == dbtypes.UnknownGrouping {
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		return
+	}
+	data, err := c.DataSource.SwapsChartData(dbtypes.SwapTxCount, interval)
+	if dbtypes.IsTimeoutErr(err) {
+		apiLog.Errorf("SwapsChartData by txcount: %v", err)
+		http.Error(w, "Database timeout.", http.StatusServiceUnavailable)
+		return
+	}
+	if err != nil {
+		log.Warnf("failed to get swap chart data by txcount : %v", err)
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		return
+	}
+
+	if len(data.Time) > 0 {
+		lastTime := data.Time[len(data.Time)-1]
+		now := time.Now()
+		//one day before
+		oneDayBefore := now.AddDate(0, -1, 0)
+		addNow := lastTime.T.Before(oneDayBefore)
+		if addNow {
+			data.Time = append(data.Time, dbtypes.NewTimeDef(now))
+			data.RedeemCount = append(data.RedeemCount, 0)
+			data.RefundCount = append(data.RefundCount, 0)
+		}
+	}
+	writeJSON(w, data, m.GetIndentCtx(r))
+}
+
+// Get trading amount chart data for atomic swaps
+func (c *appContext) getSwapsAmountChartData(w http.ResponseWriter, r *http.Request) {
+	chartGrouping := m.GetChartGroupingCtx(r)
+	if chartGrouping == "" {
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		return
+	}
+
+	interval := dbtypes.TimeGroupingFromStr(chartGrouping)
+	if interval == dbtypes.UnknownGrouping {
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		return
+	}
+	data, err := c.DataSource.SwapsChartData(dbtypes.SwapAmount, interval)
+	if dbtypes.IsTimeoutErr(err) {
+		apiLog.Errorf("SwapsChartData by amount: %v", err)
+		http.Error(w, "Database timeout.", http.StatusServiceUnavailable)
+		return
+	}
+	if err != nil {
+		log.Warnf("failed to get swap chart data by amount : %v", err)
+		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+		return
+	}
+
+	if len(data.Time) > 0 {
+		lastTime := data.Time[len(data.Time)-1]
+		now := time.Now()
+		//one day before
+		oneDayBefore := now.AddDate(0, -1, 0)
+		addNow := lastTime.T.Before(oneDayBefore)
+		if addNow {
+			data.Time = append(data.Time, dbtypes.NewTimeDef(now))
+			data.RedeemAmount = append(data.RedeemAmount, 0)
+			data.RefundAmount = append(data.RefundAmount, 0)
+		}
+	}
+	writeJSON(w, data, m.GetIndentCtx(r))
 }
 
 func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Request) {

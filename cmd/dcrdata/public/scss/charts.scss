@@ -505,6 +505,22 @@ input ~ .checkmark {
   background-color: #ff0090;
 }
 
+.customcheck input:checked ~ .redeem-amount {
+  background-color: #2971ff;
+}
+
+.customcheck input:checked ~ .refund-amount {
+  background-color: #ff9a29;
+}
+
+.customcheck input:checked ~ .redeem-txcount {
+  background-color: #15b16a;
+}
+
+.customcheck input:checked ~ .refund-txcount {
+  background-color: #9c3e76;
+}
+
 .customcheck input:checked ~ .tickets-price,
 .customcheck input:checked ~ .coin-supply {
   background-color: #255595;
