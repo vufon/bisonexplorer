@@ -62,7 +62,7 @@ function amountFormatter (data) {
     if (series.y === 0) return ''
     const l = '<span style="color: ' + series.color + ';"> ' + series.labelHTML
     html = '<span style="color:#2d2d2d;">' + html + '</span>'
-    html += '<br>' + series.dashHTML + l + ': ' + (isNaN(series.y) ? '' : humanize.subsidyToString(series.y)) + '</span>'
+    html += '<br>' + series.dashHTML + l + ': ' + (isNaN(series.y) ? '' : series.y + ' DCR') + '</span>'
   })
   return html
 }

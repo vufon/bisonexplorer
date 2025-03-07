@@ -2551,8 +2551,9 @@ func retrieveSwapsByAmount(ctx context.Context, db *sql.DB, timeInterval string)
 		}
 
 		items.Time = append(items.Time, dbtypes.NewTimeDef(dataTime))
-		items.RedeemAmount = append(items.RedeemAmount, redeemed)
-		items.RefundAmount = append(items.RefundAmount, refund)
+
+		items.RedeemAmount = append(items.RedeemAmount, dcrutil.Amount(redeemed).ToCoin())
+		items.RefundAmount = append(items.RefundAmount, dcrutil.Amount(refund).ToCoin())
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err

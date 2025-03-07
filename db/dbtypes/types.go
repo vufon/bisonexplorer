@@ -1977,8 +1977,8 @@ type ChartsData struct {
 	NetHash      []uint64  `json:"nethash,omitempty"`
 	Marketing    []uint64  `json:"marketing,omitempty"`
 	Development  []uint64  `json:"development,omitempty"`
-	RedeemAmount []uint64  `json:"redeemAmount,omitempty"`
-	RefundAmount []uint64  `json:"refundAmount,omitempty"`
+	RedeemAmount []float64 `json:"redeemAmount,omitempty"`
+	RefundAmount []float64 `json:"refundAmount,omitempty"`
 	RedeemCount  []uint64  `json:"redeemCount,omitempty"`
 	RefundCount  []uint64  `json:"refundCount,omitempty"`
 }
