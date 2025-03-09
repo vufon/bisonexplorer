@@ -56,6 +56,20 @@ const (
 	SelectDecredMinContractTx   = `SELECT contract_tx FROM swaps WHERE spend_height > $1 ORDER BY lock_time LIMIT 1`
 	SelectDecredMaxLockTime     = `SELECT lock_time FROM swaps WHERE spend_height > $1 ORDER BY lock_time DESC LIMIT 1`
 	SelectExistSwapBySecretHash = `SELECT spend_tx, spend_height, spend_vin FROM swaps WHERE secret_hash = $1 LIMIT 1`
+
+	selectSwapsAmount = `SELECT %s as timestamp,
+		SUM(CASE WHEN is_refund = FALSE THEN value ELSE 0 END) as redeemed,
+		SUM(CASE WHEN is_refund = TRUE THEN value ELSE 0 END) as refund
+		FROM swaps
+		GROUP BY timestamp
+		ORDER BY timestamp;`
+
+	selectSwapsTxcount = `SELECT %s as timestamp,
+		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,
+		COUNT(*) FILTER (WHERE is_refund = TRUE) AS refund_count
+		FROM swaps
+		GROUP BY timestamp
+		ORDER BY timestamp;`
 )
 
 func MakeSelectAtomicSwapsWithFilter(pair, status string) string {
@@ -84,4 +98,20 @@ func MakeSelectWithFilter(input, pair, status string) string {
 		return fmt.Sprintf(input, "")
 	}
 	return fmt.Sprintf(input, "WHERE "+strings.Join(queries, " AND "))
+}
+
+func MakeSelectSwapsAmount(group string) string {
+	return formatSwapsGroupingQuery(selectSwapsAmount, group, "lock_time")
+}
+
+func MakeSelectSwapsTxcount(group string) string {
+	return formatSwapsGroupingQuery(selectSwapsTxcount, group, "lock_time")
+}
+
+func formatSwapsGroupingQuery(mainQuery, group, column string) string {
+	if group == "all" {
+		return fmt.Sprintf(mainQuery, column)
+	}
+	subQuery := fmt.Sprintf("date_trunc('%s', TO_TIMESTAMP(%s))", group, column)
+	return fmt.Sprintf(mainQuery, subQuery)
 }

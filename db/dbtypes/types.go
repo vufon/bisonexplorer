@@ -639,12 +639,18 @@ func TimeGroupingFromStr(groupings string) TimeBasedGrouping {
 // HistoryChart is used to differentiate the distinct graphs that appear on the
 // address history page.
 type HistoryChart int8
+type AtomicSwapChart int8
 
 // These are the recognized HistoryChart values.
 const (
 	TxsType HistoryChart = iota
 	AmountFlow
 	ChartUnknown
+)
+
+const (
+	SwapAmount AtomicSwapChart = iota
+	SwapTxCount
 )
 
 type TicketPoolStatus int16
@@ -1946,31 +1952,35 @@ type AddressMetrics struct {
 // ChartsData defines the fields that store the values needed to plot the charts
 // on the frontend.
 type ChartsData struct {
-	Difficulty  []float64 `json:"difficulty,omitempty"`
-	Time        []TimeDef `json:"time,omitempty"`
-	Size        []uint64  `json:"size,omitempty"`
-	ChainSize   []uint64  `json:"chainsize,omitempty"`
-	Count       []uint64  `json:"count,omitempty"`
-	SizeF       []float64 `json:"sizef,omitempty"`
-	ValueF      []float64 `json:"valuef,omitempty"`
-	Unspent     []uint64  `json:"unspent,omitempty"`
-	Revoked     []uint64  `json:"revoked,omitempty"`
-	Height      []uint64  `json:"height,omitempty"`
-	Pooled      []uint64  `json:"pooled,omitempty"`
-	Solo        []uint64  `json:"solo,omitempty"`
-	SentRtx     []uint64  `json:"sentRtx,omitempty"`
-	ReceivedRtx []uint64  `json:"receivedRtx,omitempty"`
-	Tickets     []uint64  `json:"tickets,omitempty"`
-	Votes       []uint64  `json:"votes,omitempty"`
-	RevokeTx    []uint64  `json:"revokeTx,omitempty"`
-	Amount      []float64 `json:"amount,omitempty"`
-	Received    []float64 `json:"received,omitempty"`
-	Sent        []float64 `json:"sent,omitempty"`
-	Net         []float64 `json:"net,omitempty"`
-	ChainWork   []uint64  `json:"chainwork,omitempty"`
-	NetHash     []uint64  `json:"nethash,omitempty"`
-	Marketing   []uint64  `json:"marketing,omitempty"`
-	Development []uint64  `json:"development,omitempty"`
+	Difficulty   []float64 `json:"difficulty,omitempty"`
+	Time         []TimeDef `json:"time,omitempty"`
+	Size         []uint64  `json:"size,omitempty"`
+	ChainSize    []uint64  `json:"chainsize,omitempty"`
+	Count        []uint64  `json:"count,omitempty"`
+	SizeF        []float64 `json:"sizef,omitempty"`
+	ValueF       []float64 `json:"valuef,omitempty"`
+	Unspent      []uint64  `json:"unspent,omitempty"`
+	Revoked      []uint64  `json:"revoked,omitempty"`
+	Height       []uint64  `json:"height,omitempty"`
+	Pooled       []uint64  `json:"pooled,omitempty"`
+	Solo         []uint64  `json:"solo,omitempty"`
+	SentRtx      []uint64  `json:"sentRtx,omitempty"`
+	ReceivedRtx  []uint64  `json:"receivedRtx,omitempty"`
+	Tickets      []uint64  `json:"tickets,omitempty"`
+	Votes        []uint64  `json:"votes,omitempty"`
+	RevokeTx     []uint64  `json:"revokeTx,omitempty"`
+	Amount       []float64 `json:"amount,omitempty"`
+	Received     []float64 `json:"received,omitempty"`
+	Sent         []float64 `json:"sent,omitempty"`
+	Net          []float64 `json:"net,omitempty"`
+	ChainWork    []uint64  `json:"chainwork,omitempty"`
+	NetHash      []uint64  `json:"nethash,omitempty"`
+	Marketing    []uint64  `json:"marketing,omitempty"`
+	Development  []uint64  `json:"development,omitempty"`
+	RedeemAmount []float64 `json:"redeemAmount,omitempty"`
+	RefundAmount []float64 `json:"refundAmount,omitempty"`
+	RedeemCount  []uint64  `json:"redeemCount,omitempty"`
+	RefundCount  []uint64  `json:"refundCount,omitempty"`
 }
 
 // ScriptPubKeyData is part of the result of decodescript(ScriptPubKeyHex)

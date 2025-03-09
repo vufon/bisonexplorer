@@ -1403,11 +1403,11 @@ textarea::placeholder {
 }
 
 .border-bottom-grey {
-  border-bottom: 1px solid #d9d3d3 !important;
+  border-bottom: 1px solid #ededed !important;
 }
 
 .border-2-bottom-grey {
-  border-bottom: 2px solid #d9d3d3 !important;
+  border-bottom: 2px solid #ededed !important;
 }
 
 .border--cyan-d3 {
@@ -2609,10 +2609,19 @@ body.darkBG {
   background-color: #0c644e;
 }
 
-.contract-color {
-  color: rgb(18 85 107);
+.success-bg {
+  background-color: #c4e7be;
 }
 
-.redemption-color {
-  color: rgb(135 34 147);
+.refund-bg {
+  background-color: #ffcaff;
+}
+
+.second-pair {
+  position: absolute;
+  left: 15px;
+}
+
+.pair-icons {
+  margin-right: 20px;
 }

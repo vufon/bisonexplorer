@@ -1247,7 +1247,8 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 	}
 	// update block synced status
 	var blockId int64
-	err = pgb.db.QueryRow(mutilchainquery.MakeUpdateBlockSynced(mutilchain.TYPEBTC), height).Scan(&blockId)
+	err = pgb.db.QueryRow(mutilchainquery.MakeUpsertBlockSimpleInfo(mutilchain.TYPEBTC), blockhash.String(),
+		height, msgBlock.Header.Timestamp.Unix(), true).Scan(&blockId)
 	if err != nil {
 		log.Errorf("Update BTC block synced status failed: %v", err)
 		return err
@@ -1301,7 +1302,8 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 	}
 	// update block synced status
 	var blockId int64
-	err = pgb.db.QueryRow(mutilchainquery.MakeUpdateBlockSynced(mutilchain.TYPELTC), height).Scan(&blockId)
+	err = pgb.db.QueryRow(mutilchainquery.MakeUpsertBlockSimpleInfo(mutilchain.TYPELTC), blockhash.String(),
+		height, msgBlock.Header.Timestamp.Unix(), true).Scan(&blockId)
 	if err != nil {
 		log.Errorf("Update LTC block synced status failed: %v", err)
 		return err

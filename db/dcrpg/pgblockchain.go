@@ -5314,6 +5314,35 @@ func (pgb *ChainDB) TxHistoryData(address string, addrChart dbtypes.HistoryChart
 	return
 }
 
+// SwapsChartData fetches the atomic swap info chart data for specified chart
+// type and time grouping.
+func (pgb *ChainDB) SwapsChartData(swapChart dbtypes.AtomicSwapChart,
+	chartGroupings dbtypes.TimeBasedGrouping) (cd *dbtypes.ChartsData, err error) {
+	if chartGroupings >= dbtypes.NumIntervals {
+		return nil, fmt.Errorf("invalid time grouping %d", chartGroupings)
+	}
+	// TODO: Handler cache for swaps chart data
+	// Make the pointed to ChartsData eligible for garbage collection.
+	cd = nil
+	timeInterval := chartGroupings.String()
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	defer cancel()
+	switch swapChart {
+	case dbtypes.SwapAmount:
+		cd, err = retrieveSwapsByAmount(ctx, pgb.db, timeInterval)
+	case dbtypes.SwapTxCount:
+		cd, err = retrieveSwapsByTxcount(ctx, pgb.db, timeInterval)
+	default:
+		cd, err = nil, fmt.Errorf("unknown error occurred")
+	}
+	err = pgb.replaceCancelError(err)
+	if err != nil {
+		return
+	}
+	// TODO: Update cache.
+	return
+}
+
 func (pgb *ChainDB) BinnedTreasuryIO(chartGroupings dbtypes.TimeBasedGrouping) (*dbtypes.ChartsData, error) {
 	if chartGroupings >= dbtypes.NumIntervals {
 		return nil, fmt.Errorf("invalid time grouping %d", chartGroupings)
@@ -9948,7 +9977,7 @@ func (pgb *ChainDB) SyncBlockTimeWithMinHeight(chainType string, minHeight int32
 
 func (pgb *ChainDB) InsertToMultichainBlockSimpleInfo(chainType, hash string, height, heightTime int64) error {
 	var id int64
-	err := pgb.db.QueryRow(mutilchainquery.MakeInsertSimpleBlockInfo(chainType), hash, height, heightTime).Scan(&id)
+	err := pgb.db.QueryRow(mutilchainquery.MakeInsertSimpleBlockInfo(chainType), hash, height, heightTime, false).Scan(&id)
 	return err
 }
 
