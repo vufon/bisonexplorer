@@ -412,6 +412,9 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"intMultiply": func(a, b int) int {
 			return a * b
 		},
+		"floatMultiply": func(a, b float64) float64 {
+			return a * b
+		},
 		"timezone": func() string {
 			t, _ := time.Now().Zone()
 			return t

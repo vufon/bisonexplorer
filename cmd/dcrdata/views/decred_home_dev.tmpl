@@ -35,7 +35,8 @@
                         </div>
                      </div>
                      <div class="home-menu-content group-menu-content">
-                        <a href="/blocks" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                        <a href="/blocks" data-turbolinks="false"
+                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                            <div class="ta-center">
                               <p class="fw-600 m-0 home-menu-item-title">Blocks</p>
                               <span class="fs-13 menu-item-description">Latest block information</span>
@@ -82,13 +83,15 @@
                         </div>
                      </div>
                      <div class="home-menu-content group-menu-content">
-                        <a href="/charts" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                        <a href="/charts" data-turbolinks="false"
+                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                            <div class="ta-center">
                               <p class="fw-600 m-0 home-menu-item-title">Chain Charts</p>
                               <span class="fs-13 menu-item-description">Charts from chain data</span>
                            </div>
                         </a>
-                        <a href="/market" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                        <a href="/market" data-turbolinks="false"
+                           class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                            <div class="ta-center">
                               <p class="fw-600 m-0 home-menu-item-title">Market</p>
                               <span class="fs-13 menu-item-description">Information from the market</span>
@@ -125,18 +128,19 @@
                            <div class="home-menu-content group-menu-content pe-2">
                               {{if eq .NetName "Mainnet"}}
                               <a href="/chain"
-                              class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                              <div class="ta-center">
-                                 <p class="fw-600 m-0 home-menu-item-title btn--promo">Other Blockchains</p>
-                                 <span class="fs-13 menu-item-description">All supported blockchains</span>
-                              </div>
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title btn--promo">Other Blockchains</p>
+                                    <span class="fs-13 menu-item-description">All supported blockchains</span>
+                                 </div>
                               </a>
                               {{end}}
                               <a href="/finance-report" data-turbolinks="false"
                                  class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                                  <div class="ta-center">
                                     <p class="fw-600 m-0 home-menu-item-title btn--promo">Financial Reports</p>
-                                    <span class="fs-13 menu-item-description">Treasury/Proposals financial reports</span>
+                                    <span class="fs-13 menu-item-description">Treasury/Proposals financial
+                                       reports</span>
                                  </div>
                               </a>
                               <a href="/stakingcalc" data-turbolinks="false"
@@ -146,13 +150,15 @@
                                     <span class="fs-13 menu-item-description">Estimated staking reward</span>
                                  </div>
                               </a>
-                              <a href="/supply" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                              <a href="/supply" data-turbolinks="false"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                                  <div class="ta-center">
                                     <p class="fw-600 m-0 home-menu-item-title btn--promo">Supply</p>
                                     <span class="fs-13 menu-item-description">Distribution information</span>
                                  </div>
                               </a>
-                              <a href="/attack-cost" data-turbolinks="false" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                              <a href="/attack-cost" data-turbolinks="false" data-turbolinks="false"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
                                  <div class="ta-center">
                                     <p class="fw-600 m-0 home-menu-item-title">Attack Cost</p>
                                     <span class="fs-13 menu-item-description">Attack Cost Calculator</span>
@@ -162,55 +168,63 @@
                         </div>
                         <div class="col-12">
                            <div class="home-menu-content group-menu-content ps-2">
-                           <a href="/parameters" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                              <div class="ta-center">
-                                 <p class="fw-600 m-0 home-menu-item-title">Parameters</p>
-                                 <span class="fs-13 menu-item-description">Blockchain Paramerters</span>
-                              </div>
-                           </a>
-                           <a href="/decodetx" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                              <div class="ta-center">
-                                 <p class="fw-600 m-0 home-menu-item-title">Decode/Broadcast Tx</p>
-                                 <span class="fs-13 menu-item-description">Broadcast Transactions</span>
-                              </div>
-                           </a>
-                           <a href="/whatsnew" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                              <div class="ta-center">
-                                 <p class="fw-600 m-0 home-menu-item-title btn--promo">Whats New</p>
-                                 <span class="fs-13 menu-item-description">Changes on Bison Explorer</span>
-                              </div>
-                           </a>
-                           <a href="/verify-message" data-turbolinks="false" class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
-                              <div class="ta-center">
-                                 <p class="fw-600 m-0 home-menu-item-title">Verify Message</p>
-                                 <span class="fs-13 menu-item-description">Verify signed address</span>
-                              </div>
-                           </a>
-                           <nav class="dropdownmenu home-menu-item p-0 d-flex ai-center justify-content-center cursor-pointer">
-                              <ul class="w-100i">
-                                 <li class="w-100i">
-                                    <a class="fw-600 home-menu-item-title more-menu-item px-0 c-grey-5"><span>More</span><span
-                                          class="dcricon-arrow-down ms-2"></span></a>
-                                    <ul class="submenu w-100i">
-                                       <li class="w-100i">{{- if eq .NetName "Mainnet"}}
-                                          <a class="dropdown-item c-grey-5" href="{{.Links.Testnet}}">Switch To Testnet</a>
-                                          {{- else}}
-                                          <a class="dropdown-item c-grey-5" href="{{.Links.Mainnet}}">Switch To Mainnet</a>
-                                          {{- end}}
-                                       </li>
-                                       <li class="w-100i"><a class="dropdown-item c-grey-5" rel="noopener noreferrer"
-                                             data-keynav-skip href="{{.Links.APIDocs}}" target="_blank">JSON API Docs</a>
-                                       </li>
-                                       <li class="w-100i"><a class="dropdown-item c-grey-5" data-keynav-skip
-                                             data-turbolinks="false" id="keynav-toggle">
-                                             <span class="m-0 text c-grey-5">Enable Hot Keys</span>
-                                             <span class="menu-item-description"><br /><span class="keys-hint">(<span
-                                                      class="arrows">
-                                                      &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span></span>
-                                          </a>
-                                       </li>
-                                    </ul>
-                           </nav>
+                              <a href="/parameters" data-turbolinks="false"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title">Parameters</p>
+                                    <span class="fs-13 menu-item-description">Blockchain Paramerters</span>
+                                 </div>
+                              </a>
+                              <a href="/decodetx" data-turbolinks="false"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title">Decode/Broadcast Tx</p>
+                                    <span class="fs-13 menu-item-description">Broadcast Transactions</span>
+                                 </div>
+                              </a>
+                              <a href="/whatsnew" data-turbolinks="false"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title btn--promo">Whats New</p>
+                                    <span class="fs-13 menu-item-description">Changes on Bison Explorer</span>
+                                 </div>
+                              </a>
+                              <a href="/verify-message" data-turbolinks="false"
+                                 class="home-menu-item home-menu-link d-flex ai-center justify-content-center">
+                                 <div class="ta-center">
+                                    <p class="fw-600 m-0 home-menu-item-title">Verify Message</p>
+                                    <span class="fs-13 menu-item-description">Verify signed address</span>
+                                 </div>
+                              </a>
+                              <nav
+                                 class="dropdownmenu home-menu-item p-0 d-flex ai-center justify-content-center cursor-pointer">
+                                 <ul class="w-100i">
+                                    <li class="w-100i">
+                                       <a class="fw-600 home-menu-item-title more-menu-item px-0 c-grey-5"><span>More</span><span
+                                             class="dcricon-arrow-down ms-2"></span></a>
+                                       <ul class="submenu w-100i">
+                                          <li class="w-100i">{{- if eq .NetName "Mainnet"}}
+                                             <a class="dropdown-item c-grey-5" href="{{.Links.Testnet}}">Switch To
+                                                Testnet</a>
+                                             {{- else}}
+                                             <a class="dropdown-item c-grey-5" href="{{.Links.Mainnet}}">Switch To
+                                                Mainnet</a>
+                                             {{- end}}
+                                          </li>
+                                          <li class="w-100i"><a class="dropdown-item c-grey-5" rel="noopener noreferrer"
+                                                data-keynav-skip href="{{.Links.APIDocs}}" target="_blank">JSON API
+                                                Docs</a>
+                                          </li>
+                                          <li class="w-100i"><a class="dropdown-item c-grey-5" data-keynav-skip
+                                                data-turbolinks="false" id="keynav-toggle">
+                                                <span class="m-0 text c-grey-5">Enable Hot Keys</span>
+                                                <span class="menu-item-description"><br /><span class="keys-hint">(<span
+                                                         class="arrows">
+                                                         &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span></span>
+                                             </a>
+                                          </li>
+                                       </ul>
+                              </nav>
                            </div>
                         </div>
                      </div>
@@ -255,10 +269,9 @@
                               <div class="row border-1-grey px-0 chart-wrapper">
                                  <!-- market chart start -->
                                  <div class="row w-100 ms-2 ps-0 align-items-top" data-controller="market"
-                                    data-market-dcrbtcprice="{{$botState.DCRBTCPrice}}" 
+                                    data-market-dcrbtcprice="{{$botState.DCRBTCPrice}}"
                                     data-market-dcrbtcvolume="{{$botState.DCRBTCVolume}}"
-                                    data-market-price="{{$botState.Price}}"
-                                    data-market-volume="{{$botState.Volume}}">
+                                    data-market-price="{{$botState.Price}}" data-market-volume="{{$botState.Volume}}">
                                     {{- /* LEFT COLUMN */ -}}
                                     <div class="col-24 col-lg-auto p-0 d-none">
                                        {{- /* PRICE */ -}}
@@ -358,35 +371,71 @@
                                     </div>
                                     {{- /* RIGHT COLUMN */ -}}
                                     <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 p-0">
-                                       <div class="col me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative">
+                                       <div
+                                          class="col me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative">
                                           <div class="loader-v2 loading" data-market-target="chartLoader"></div>
+                                          <div class="d-flex justify-content-center my-3">
+                                             <div class="text-center small-box px-3 me-2">
+                                                <p class="fw-bold">Exchange Rate</p>
+                                                <p>
+                                                   {{if $conv -}}
+                                                   $<span class="fs-17"
+                                                      data-homepage-target="exchangeRate">{{$conv.ExchangeRate.TwoDecimals}}</span>
+                                                   {{end}}
+                                                </p>
+                                             </div>
+                                             {{if $botState}}
+                                             <div class="text-center small-box px-3 me-2">
+                                                <p class="fw-bold">Volume (24h)</p>
+                                                <p class="fs-17">
+                                                   {{threeSigFigs $botState.Volume}} DCR <span class="fs15">(~ ${{threeSigFigs
+                                                      (floatMultiply $botState.Volume $botState.Price)}})</span>
+                                                </p>
+                                             </div>
+                                             <div class="text-center small-box px-3 me-2">
+                                                <p class="fw-bold">Vol/Mkt Cap (24h)</p>
+                                                <p><span class="fs-17">{{printf "%.2f" (x100 (divideFloat $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
+                                             </div>
+                                             <div class="text-center small-box px-3 me-2">
+                                                <p class="fw-bold">Low</p>
+                                                <p>$<span class="fs-17">{{printf "%.2f" $botState.LowPrice}}</span></p>
+                                             </div>
+                                             <div class="text-center small-box px-3 me-2">
+                                                <p class="fw-bold">High</p>
+                                                <p>$<span class="fs-17">{{printf "%.2f" $botState.HighPrice}}</span></p>
+                                             </div>
+                                             {{end}}
+                                          </div>
                                           {{- /* CHART ONTROLS */ -}}
                                           <div
-                                             class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
+                                             class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center border--2_top flex-wrap pt-2 px-1 px-lg-3 mb-2">
                                              {{- /* PAIR SELECTION */ -}}
                                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
-                                                 <label>Pair</label>
-                                                 <select
-                                                     class="chart-box d-inline-flex"
-                                                     data-market-target="pairSelect"
-                                                     data-action="change->market#changePair"
-                                                 >
-                                                     <option value="usdt" selected>DCR/USDT</option>
-                                                     <option value="btc">DCR/BTC</option>
-                                                 </select>
+                                                <label>Pair</label>
+                                                <select class="chart-box d-inline-flex" data-market-target="pairSelect"
+                                                   data-action="change->market#changePair">
+                                                   <option value="usdt" selected>DCR/USDT</option>
+                                                   <option value="btc">DCR/BTC</option>
+                                                </select>
                                              </div>
                                              {{- /* EXCHANGE SELECTION */ -}}
-                                             <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="exchanges"
-                                             data-action="click->market#changeExchange">
+                                             <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                                data-market-target="exchanges"
+                                                data-action="click->market#changeExchange">
                                                 <label>Exchange</label>
                                                 <div class="btn-group" data-market-target="exchangeBtnArea">
                                                    {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
                                                    {{if ne $exchange.Token "dcrdex"}}
-                                                   <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
-                                                   class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
+                                                   <button name="{{$exchange.Token}}" {{if
+                                                      $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}"
+                                                      data-sticks="1" data-bins="{{$exchange.State.StickList}}" {{end}}
+                                                      {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName
+                                                      $exchange.Token}}</button>
                                                    {{end}}
                                                    {{end}}
-                                                   <button name="aggregated" data-market-target="aggOption" data-depth="1"
+                                                   <button name="aggregated" data-market-target="aggOption"
+                                                      data-depth="1"
                                                       class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
                                                 </div>
                                              </div>
@@ -412,13 +461,21 @@
                                                 data-market-target="bin" data-action="click->market#changeBin">
                                                 <label class="text-nowrap">Bin Size</label>
                                                 <div class="btn-group">
-                                                   <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
-                                                   <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
-                                                   <button name="1h" class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
-                                                   <button name="4h" class="active tab-button home-chart-toggle-btn white c-txt-main">4 Hours</button>
-                                                   <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
-                                                   <button name="1w" class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
-                                                   <button name="1mo" class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
+                                                   <button name="5m"
+                                                      class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
+                                                   <button name="30m"
+                                                      class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
+                                                   <button name="1h"
+                                                      class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
+                                                   <button name="4h"
+                                                      class="active tab-button home-chart-toggle-btn white c-txt-main">4
+                                                      Hours</button>
+                                                   <button name="1d"
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
+                                                   <button name="1w"
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
+                                                   <button name="1mo"
+                                                      class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
                                                 </div>
                                              </div>
                                              {{- /* DISPLAY CURRENCY */ -}}
@@ -534,7 +591,8 @@
                                  <div class="col-24 col-sm-12">
                                     <div class="network-stats-block">
                                        <span class="network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=coin-supply">
+                                          <a class="link-hover-underline" data-turbolinks="false"
+                                             href="/charts?chart=coin-supply">
                                              Total Coin Supply<span class="nowrap fw-600">&nbsp(of 21 mil)</span>
                                           </a>
                                        </span>
@@ -572,22 +630,6 @@
                                        {{- end}}
                                     </div>
                                  </div>
-                                 {{if $conv -}}
-                                 <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false" href="/market">
-                                             Exchange Rate
-                                          </a>
-                                       </span>
-                                       <div class="network-stats-content d-inline-block mt-4">
-                                          <span
-                                             data-homepage-target="exchangeRate">{{$conv.ExchangeRate.TwoDecimals}}</span>
-                                          <span class="info-line-2-sub">{{$conv.ExchangeRate.Index}}</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                                 {{- end}}
                               </div>
                               {{end}}
                            </div>
@@ -615,7 +657,8 @@
                                  <div class="col-24 col-sm-12">
                                     <div class="network-stats-block">
                                        <span class="network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=pow-difficulty">
+                                          <a class="link-hover-underline" data-turbolinks="false"
+                                             href="/charts?chart=pow-difficulty">
                                              Difficulty</a>
                                        </span>
                                        <span class="network-stats-content d-inline-block mt-4"
@@ -628,7 +671,8 @@
                                  <div class="col-24 col-sm-12">
                                     <div class="network-stats-block">
                                        <span class="network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=hashrate">
+                                          <a class="link-hover-underline" data-turbolinks="false"
+                                             href="/charts?chart=hashrate">
                                              Hashrate
                                           </a>
                                        </span>
@@ -721,10 +765,12 @@
                                  <div class="col-12">
                                     <p class="network-stats-block">
                                        <span class="network-stats-title">Lastest Block</span>
-                                       <span class="network-stats-content d-inline-block mt-4">
+                                       <span class="network-stats-content d-inline-block mt-3">
                                           <a class="fs-28" data-turbolinks="false" href="/block/{{.Hash}}"
                                              data-homepage-target="blockHeight">{{.Height}}</a>
                                        </span>
+                                       <span class="stats-subinfo fs-15i" data-type="age" data-time-target="age"
+                                          data-age="{{.BlockTime.UNIX}}"></span>
                                     </p>
                                  </div>
                                  <div class="col-12">
@@ -806,105 +852,121 @@
                            <div class="explore-card__values-content">
                               <div class="row justify-content-between">
                                  <div class="col-24 mb-3">
-                                 <div>
-                                 {{with .TrimmedMempool -}}    
-                                 <!-- add mempool element -->
-                                <div class="block visible px-0" data-homepage-target="memBlock">
-                                    <div class="block-rows homepage-blocks-row">
-                                        <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
-                                            <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
-                                                title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
-                                                data-homepage-target="tooltip">
-                                                <span class="block-element-link">
-                                                    <span class="paint left-vs-block-data" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                    <div>
+                                       {{with .TrimmedMempool -}}
+                                       <!-- add mempool element -->
+                                       <div class="block visible px-0" data-homepage-target="memBlock">
+                                          <div class="block-rows homepage-blocks-row">
+                                             <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
+                                                <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
+                                                   title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
+                                                   data-homepage-target="tooltip">
+                                                   <span class="block-element-link">
+                                                      <span class="paint left-vs-block-data"
+                                                         style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                                   </span>
                                                 </span>
-                                            </span>
-                                            <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
-                                                title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
-                                                data-homepage-target="tooltip">
-                                                <span class="block-element-link">
-                                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                                <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
+                                                   title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
+                                                   data-homepage-target="tooltip">
+                                                   <span class="block-element-link">
+                                                      <span class="paint"
+                                                         style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                                   </span>
                                                 </span>
-                                            </span>
-                                            <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Dev}}"
-                                                title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Dev}}"}'
-                                                data-homepage-target="tooltip">
-                                                <span class="block-element-link">
-                                                    <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                                <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Dev}}"
+                                                   title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Dev}}"}'
+                                                   data-homepage-target="tooltip">
+                                                   <span class="block-element-link">
+                                                      <span class="paint"
+                                                         style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                                   </span>
                                                 </span>
-                                            </span>
-                                            <span class="fees right-vs-block-data" style="flex-grow: {{.Fees}}"
-                                                title='{"object": "Tx Fees", "total": "{{.Fees}}"}'
-                                                data-homepage-target="tooltip">
-                                                <span class="block-element-link"></span>
-                                            </span>
-                                        </div>
-                                        <div class="block-votes px-1 mt-1" style="flex-grow: 1">
-                                       {{$VoteLength := subtract (toint64 (len .Votes)) 1}}
-                                       {{range $index, $vote := .Votes}}
-                                          <span style="background: {{if $vote.VoteValid}}linear-gradient(to right, #2971ff 0%, #528cff 100%){{else}}linear-gradient(to right, #fd714a 0%, #f6896a 100%){{end}};" data-homepage-target="tooltip"
-                                             title='{"object": "Vote", "voteValid": "{{$vote.VoteValid}}"}' class="{{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index $VoteLength}}right-vs-block-data{{end}}">
-                                             <a class="block-element-link" href="/tx/{{$vote.TxID}}"></a>
-                                          </span>
+                                                <span class="fees right-vs-block-data" style="flex-grow: {{.Fees}}"
+                                                   title='{"object": "Tx Fees", "total": "{{.Fees}}"}'
+                                                   data-homepage-target="tooltip">
+                                                   <span class="block-element-link"></span>
+                                                </span>
+                                             </div>
+                                             <div class="block-votes px-1 mt-1" style="flex-grow: 1">
+                                                {{$VoteLength := subtract (toint64 (len .Votes)) 1}}
+                                                {{range $index, $vote := .Votes}}
+                                                <span
+                                                   style="background: {{if $vote.VoteValid}}linear-gradient(to right, #2971ff 0%, #528cff 100%){{else}}linear-gradient(to right, #fd714a 0%, #f6896a 100%){{end}};"
+                                                   data-homepage-target="tooltip"
+                                                   title='{"object": "Vote", "voteValid": "{{$vote.VoteValid}}"}'
+                                                   class="{{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index $VoteLength}}right-vs-block-data{{end}}">
+                                                   <a class="block-element-link" href="/tx/{{$vote.TxID}}"></a>
+                                                </span>
+                                                {{end}}
+                                                {{if lt (len .Votes) 5}}
+                                                {{$remainingVoteCount := intSubtract 5 (len .Votes)}}
+                                                {{range (zeroSlice $remainingVoteCount)}}
+                                                <span title="Empty vote slot"></span>
+                                                {{end}}
+                                                {{end}}
+                                             </div>
+
+                                             <div class="block-tickets px-1 mt-1" style="flex-grow: 1">
+                                                <!-- show tickets before revs, if tickets are more than 50, truncate at 30 and show more tip -->
+                                                {{$tickets := .Tickets}}
+                                                {{$ticketsCount := len .Tickets}}
+                                                {{$revCount := len .Revocations}}
+                                                {{if gt $ticketsCount 50}} {{$tickets = clipSlice .Tickets 30}} {{end}}
+                                                {{range $index,$ticket := $tickets}}
+                                                <span
+                                                   class="block-ticket {{if eq $index 0}}left-vs-block-data{{end}} {{if and (eq $index (subtract (toint64 $ticketsCount) 1)) (eq $revCount 0)}}right-vs-block-data{{end}}"
+                                                   data-homepage-target="tooltip"
+                                                   title='{"object": "Ticket", "total": "{{$ticket.Total}}", "vout": "{{$ticket.VoutCount}}", "vin": "{{$ticket.VinCount}}"}'>
+                                                   <a class="block-element-link" href="/tx/{{$ticket.TxID}}"></a>
+                                                </span>
+                                                {{end}}
+                                                {{if gt $ticketsCount 50}}
+                                                <!-- show total number of tickets -->
+                                                <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;"
+                                                   title="Total of {{$ticketsCount}} tickets">
+                                                   <a class="block-element-link" href="#">+ {{intSubtract $ticketsCount
+                                                      30}}</a>
+                                                </span>
+                                                {{end}}
+                                                {{range $index,$rev := .Revocations}}
+                                                <span
+                                                   class="block-rev {{if and (eq $ticketsCount 0) (eq $index 0)}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $revCount) 1)}}right-vs-block-data{{end}}"
+                                                   data-homepage-target="tooltip"
+                                                   title='{"object": "Revocation", "total": "{{$rev.Total}}", "vout": "{{$rev.VoutCount}}", "vin": "{{$rev.VinCount}}"}'>
+                                                   <a class="block-element-link" href="/tx/{{$rev.TxID}}"></a>
+                                                </span>
+                                                {{end}}
+                                                {{$ticketsRevsCount := intAdd $ticketsCount (len .Revocations)}}
+                                                {{range (zeroSlice (intSubtract 20 $ticketsRevsCount))}}
+                                                <span title="Empty ticket slot"></span>
+                                                {{end}}
+                                             </div>
+
+                                             <div class="block-transactions px-1 my-1" style="flex-grow: 1">
+                                                {{$txs := .Transactions}}
+                                                {{$txCount := len .Transactions}}
+                                                {{if gt $txCount 50}} {{$txs = clipSlice .Transactions 30}} {{end}}
+                                                {{range $index,$tx := $txs}}
+                                                <span
+                                                   class="block-tx {{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $txCount) 1)}}right-vs-block-data{{end}}"
+                                                   style="flex-grow: {{$tx.Total}}" data-homepage-target="tooltip"
+                                                   title='{"object": "Transaction", "total": "{{$tx.Total}}", "vout": "{{$tx.VoutCount}}", "vin": "{{$tx.VinCount}}"}'>
+                                                   <a class="block-element-link" href="/tx/{{$tx.TxID}}"></a>
+                                                </span>
+                                                {{end}}
+                                                {{if gt $txCount 50}}
+                                                <!-- show total number of tickets -->
+                                                <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;"
+                                                   title="Total of {{$txCount}} transactions">
+                                                   <a class="block-element-link" href="#">+ {{intSubtract $txCount
+                                                      30}}</a>
+                                                </span>
+                                                {{end}}
+                                             </div>
+                                          </div>
+                                       </div>
                                        {{end}}
-                                        {{if lt (len .Votes) 5}}
-                                        {{$remainingVoteCount := intSubtract 5 (len .Votes)}}
-                                        {{range (zeroSlice $remainingVoteCount)}}
-                                        <span title="Empty vote slot"></span>
-                                        {{end}}
-                                        {{end}}
-                                        </div>
-                
-                                        <div class="block-tickets px-1 mt-1" style="flex-grow: 1">
-                                        <!-- show tickets before revs, if tickets are more than 50, truncate at 30 and show more tip -->
-                                        {{$tickets := .Tickets}}
-                                        {{$ticketsCount := len .Tickets}}
-                                        {{$revCount := len .Revocations}}
-                                        {{if gt $ticketsCount 50}} {{$tickets = clipSlice .Tickets 30}} {{end}}
-                                       {{range $index,$ticket := $tickets}}
-                                       <span class="block-ticket {{if eq $index 0}}left-vs-block-data{{end}} {{if and (eq $index (subtract (toint64 $ticketsCount) 1)) (eq $revCount 0)}}right-vs-block-data{{end}}" data-homepage-target="tooltip"
-                                          title='{"object": "Ticket", "total": "{{$ticket.Total}}", "vout": "{{$ticket.VoutCount}}", "vin": "{{$ticket.VinCount}}"}'>
-                                          <a class="block-element-link" href="/tx/{{$ticket.TxID}}"></a>
-                                       </span>
-                                       {{end}}
-                                        {{if gt $ticketsCount 50}}
-                                        <!-- show total number of tickets -->
-                                        <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;" title="Total of {{$ticketsCount}} tickets">
-                                            <a class="block-element-link" href="#">+ {{intSubtract $ticketsCount 30}}</a>
-                                        </span>
-                                        {{end}}
-                                        {{range $index,$rev := .Revocations}}
-                                        <span class="block-rev {{if and (eq $ticketsCount 0) (eq $index 0)}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $revCount) 1)}}right-vs-block-data{{end}}" data-homepage-target="tooltip"
-                                            title='{"object": "Revocation", "total": "{{$rev.Total}}", "vout": "{{$rev.VoutCount}}", "vin": "{{$rev.VinCount}}"}'>
-                                            <a class="block-element-link" href="/tx/{{$rev.TxID}}"></a>
-                                        </span>
-                                        {{end}}
-                                        {{$ticketsRevsCount := intAdd $ticketsCount (len .Revocations)}}
-                                        {{range (zeroSlice (intSubtract 20 $ticketsRevsCount))}}
-                                        <span title="Empty ticket slot"></span>
-                                        {{end}}
-                                        </div>
-                
-                                        <div class="block-transactions px-1 my-1" style="flex-grow: 1">
-                                        {{$txs := .Transactions}}
-                                        {{$txCount := len .Transactions}}
-                                        {{if gt $txCount 50}} {{$txs = clipSlice .Transactions 30}} {{end}}
-                                          {{range $index,$tx := $txs}}
-                                          <span class="block-tx {{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $txCount) 1)}}right-vs-block-data{{end}}" style="flex-grow: {{$tx.Total}}" data-homepage-target="tooltip"
-                                             title='{"object": "Transaction", "total": "{{$tx.Total}}", "vout": "{{$tx.VoutCount}}", "vin": "{{$tx.VinCount}}"}'>
-                                             <a class="block-element-link" href="/tx/{{$tx.TxID}}"></a>
-                                          </span>
-                                          {{end}}
-                                        {{if gt $txCount 50}}
-                                        <!-- show total number of tickets -->
-                                        <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;" title="Total of {{$txCount}} transactions">
-                                            <a class="block-element-link" href="#">+ {{intSubtract $txCount 30}}</a>
-                                        </span>
-                                        {{end}}
-                                        </div>
-                                    </div>
-                                </div>
-                              {{end}}
                                     </div>
                                  </div>
                                  <div class="col-12 col-xl-6">
@@ -915,7 +977,8 @@
                                           <span class="fs-17 fw-400 mempool-label-value"> regular</span>
                                        </span>
                                        <span class="network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value" data-homepage-target="mpRegTotal">{{threeSigFigs
+                                          <span class="fs-20 fw-600 mempool-data-value"
+                                             data-homepage-target="mpRegTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.RegularTotal}}</span>
                                           <span class="fs-17 fw-400 mempool-label-value">DCR</span>
                                        </span>
@@ -929,7 +992,8 @@
                                           <span class="fs-17 fw-400 mempool-label-value"> tickets</span>
                                        </span>
                                        <span class="network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value" data-homepage-target="mpTicketTotal">{{threeSigFigs
+                                          <span class="fs-20 fw-600 mempool-data-value"
+                                             data-homepage-target="mpTicketTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.TicketTotal}}</span>
                                           <span class="fs-17 fw-400 mempool-label-value">DCR</span>
                                        </span>
@@ -943,7 +1007,8 @@
                                           <span class="fs-17 fw-400 mempool-label-value"> revokes</span>
                                        </span>
                                        <span class="network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value" data-homepage-target="mpRevTotal">{{threeSigFigs
+                                          <span class="fs-20 fw-600 mempool-data-value"
+                                             data-homepage-target="mpRevTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.RevokeTotal}}</span>
                                           <span class="fs-17 fw-400 mempool-label-value">DCR</span>
                                        </span>
@@ -952,7 +1017,8 @@
                                  <div class="col-12 col-xl-6">
                                     <div class="network-stats-block">
                                        <span class="network-stats-title h-50 pt-3">
-                                          <span data-homepage-target="mpVoteCount" class="fs-20 fw-600 mempool-data-value lh1rem"
+                                          <span data-homepage-target="mpVoteCount"
+                                             class="fs-20 fw-600 mempool-data-value lh1rem"
                                              data-tickets-per-block="{{.Mempool.VotingInfo.MaxVotesPerBlock}}">
                                              {{$afterFirst := false -}}
                                              {{- range $hash, $tally := .Mempool.VotingInfo.VoteTallys -}}
@@ -968,7 +1034,8 @@
                                           <span class="fs-17 fw-400 mempool-label-value"> votes</span>
                                        </span>
                                        <span class="network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value" data-homepage-target="mpVoteTotal">{{threeSigFigs
+                                          <span class="fs-20 fw-600 mempool-data-value"
+                                             data-homepage-target="mpVoteTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.VoteTotal}}</span>
                                           <span class="fs-17 fw-400 mempool-label-value">DCR</span>
                                        </span>
@@ -1015,7 +1082,8 @@
                               <div class="col-24 col-md-8">
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">
-                                       <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=ticket-price&zoom=month">
+                                       <a class="link-hover-underline" data-turbolinks="false"
+                                          href="/charts?chart=ticket-price&zoom=month">
                                           Current Ticket Price
                                        </a>
                                     </span>
@@ -1059,7 +1127,8 @@
                               <div class="col-24 col-md-8">
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">
-                                       <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=ticket-pool-size">
+                                       <a class="link-hover-underline" data-turbolinks="false"
+                                          href="/charts?chart=ticket-pool-size">
                                           Ticket Pool Size
                                        </a>
                                     </span>
@@ -1116,8 +1185,9 @@
                               </div>
                               <div class="col-24 col-md-8">
                                  <div class="network-stats-block">
-                                    <span class="network-stats-title"><a data-turbolinks="false" class="link-hover-underline"
-                                          href="/charts?chart=stake-participation">Total Staked DCR</a></span>
+                                    <span class="network-stats-title"><a data-turbolinks="false"
+                                          class="link-hover-underline" href="/charts?chart=stake-participation">Total
+                                          Staked DCR</a></span>
                                     <span class="network-stats-content d-inline-block mt-3">
                                        <span data-homepage-target="poolValue">
                                           {{template "decimalParts" (float64AsDecimalParts .PoolInfo.Value 0 true)}}
@@ -1139,23 +1209,23 @@
                   <!-- Start 24h Metrics Card -->
                   <div class="explore-card-wrap">
                      <div class="explore-card-content">
-                           <div class="explore-card__header bg-for-header">
-                              <span class="homeicon-candle explore-card__header__logo" alt="Ticket Pool route"
-                                 loading="lazy"></span>
-                              <div class="explore-card__header__text ml-15">
-                                 <h5 class="explore-card__header__text__name"> 24h Metrics </h5>
-                                 <span class="explore-card__header__arrow">
-                                    <span class='the-arrow -right'>
-                                       <span class='shaft'></span>
-                                    </span>
+                        <div class="explore-card__header bg-for-header">
+                           <span class="homeicon-candle explore-card__header__logo" alt="Ticket Pool route"
+                              loading="lazy"></span>
+                           <div class="explore-card__header__text ml-15">
+                              <h5 class="explore-card__header__text__name"> 24h Metrics </h5>
+                              <span class="explore-card__header__arrow">
+                                 <span class='the-arrow -right'>
+                                    <span class='shaft'></span>
                                  </span>
-                                 <div class="explore-card__header__text__price">
-                                    <div class="price-wrap d-flex ai-center">
-                                       <span class="price-usd fs-13">Some statistics from the past 24 hours</span>
-                                    </div>
+                              </span>
+                              <div class="explore-card__header__text__price">
+                                 <div class="price-wrap d-flex ai-center">
+                                    <span class="price-usd fs-13">Some statistics from the past 24 hours</span>
                                  </div>
                               </div>
                            </div>
+                        </div>
                         <div class="explore-card__values-content">
                            <div class="row">
                               {{if .Info.Block24hInfo}}
@@ -1164,10 +1234,10 @@
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">
                                        Mined Blocks
-                                      </span>
-                                      <div class="network-stats-content d-inline-block mt-4">
-                                      {{int64Comma .Blocks}}
-                                      </div>
+                                    </span>
+                                    <div class="network-stats-content d-inline-block mt-4">
+                                       {{int64Comma .Blocks}}
+                                    </div>
                                  </div>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
@@ -1182,13 +1252,14 @@
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">Total Sent</span>
                                     <div class="network-stats-content d-inline-block mt-3">
-                                       {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Sent24h) 2 true)}}
+                                       {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Sent24h) 2
+                                       true)}}
                                     </div>
                                     <span class="info-line-2-sub">DCR</span>
                                     {{if $conv -}}
                                     <span class="stats-subinfo">
-                                    {{threeSigFigs $conv.Sent24h.Value}}
-                                    {{$conv.Sent24h.Index}}</span>
+                                       {{threeSigFigs $conv.Sent24h.Value}}
+                                       {{$conv.Sent24h.Index}}</span>
                                     {{end}}
                                  </div>
                               </div>
@@ -1196,13 +1267,14 @@
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">Total Fees</span>
                                     <div class="network-stats-content d-inline-block mt-3">
-                                       {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .Fees24h) 2 true)}}
+                                       {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Fees24h) 2
+                                       true)}}
                                     </div>
                                     <span class="info-line-2-sub">DCR</span>
                                     {{if $conv -}}
                                     <span class="stats-subinfo">
-                                    {{threeSigFigs $conv.Fees24h.Value}}
-                                    {{$conv.Fees24h.Index}}</span>
+                                       {{threeSigFigs $conv.Fees24h.Value}}
+                                       {{$conv.Fees24h.Index}}</span>
                                     {{end}}
                                  </div>
                               </div>
@@ -1214,27 +1286,18 @@
                                     </span>
                                  </p>
                               </div>
-                              {{if $.MarketCap}}
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="network-stats-block">
-                                    <span class="network-stats-title">Market Volume</span>
-                                    <span class="network-stats-content d-inline-block mt-4">
-                                       ${{difficultyDisp $.MarketCap.Volumn}}
-                                    </span>
-                                 </p>
-                              </div>
-                              {{end}}
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
                                  <div class="network-stats-block">
                                     <span class="network-stats-title">Swaps Amount</span>
                                     <div class="network-stats-content d-inline-block mt-3">
-                                       {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .AtomicSwapAmount) 2 true)}}
+                                       {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                       .AtomicSwapAmount) 2 true)}}
                                     </div>
                                     <span class="info-line-2-sub">DCR</span>
                                     {{if $conv -}}
                                     <span class="stats-subinfo">
-                                    {{threeSigFigs $conv.SwapsAmount24h.Value}}
-                                    {{$conv.SwapsAmount24h.Index}}</span>
+                                       {{threeSigFigs $conv.SwapsAmount24h.Value}}
+                                       {{$conv.SwapsAmount24h.Index}}</span>
                                     {{end}}
                                  </div>
                               </div>
@@ -1244,7 +1307,8 @@
                                     <span class="network-stats-content d-inline-block mt-3">
                                        {{int64Comma (add .SwapRedeemCount .SwapRefundCount)}}
                                     </span>
-                                    <span class="stats-subinfo">{{int64Comma .SwapRedeemCount}} redemptions, {{int64Comma .SwapRefundCount}} refunds</span>
+                                    <span class="stats-subinfo">{{int64Comma .SwapRedeemCount}} redemptions,
+                                       {{int64Comma .SwapRefundCount}} refunds</span>
                                  </p>
                               </div>
                               {{end}}
@@ -1286,8 +1350,7 @@
                         <div class="explore-card__values-content market-chart-content">
                            <section class="p-2">
                               <div class="row">
-                                 <div
-                                    class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center">
+                                 <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center">
                                     <div class="chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
                                        <div class="chart-control-label">CHART</div>
                                        <div class="chart-control">

@@ -420,6 +420,8 @@ type BaseState struct {
 	BaseVolume float64 `json:"base_volume,omitempty"`
 	Volume     float64 `json:"volume,omitempty"`
 	Change     float64 `json:"change,omitempty"`
+	Low        float64 `json:"low"`  // low price
+	High       float64 `json:"high"` // high price
 	Stamp      int64   `json:"timestamp,omitempty"`
 }
 
@@ -1909,6 +1911,16 @@ func (coinex *CoinexExchange) Refresh() {
 		coinex.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceRes.Last), err)
 		return
 	}
+	lowPrice, err := strconv.ParseFloat(priceRes.Low, 64)
+	if err != nil {
+		coinex.fail(fmt.Sprintf("Failed to parse float from Low=%s", priceRes.Last), err)
+		return
+	}
+	highPrice, err := strconv.ParseFloat(priceRes.High, 64)
+	if err != nil {
+		coinex.fail(fmt.Sprintf("Failed to parse float from High=%s", priceRes.Last), err)
+		return
+	}
 	quoteVolume, err := strconv.ParseFloat(priceRes.Volume, 64)
 	if err != nil {
 		coinex.fail(fmt.Sprintf("Failed to parse float from QuoteVolume=%s", priceRes.Volume), err)
@@ -1955,6 +1967,8 @@ func (coinex *CoinexExchange) Refresh() {
 		BaseState: BaseState{
 			Symbol:     coinex.Symbol,
 			Price:      price,
+			Low:        lowPrice,
+			High:       highPrice,
 			BaseVolume: volume,
 			Volume:     quoteVolume,
 			Change:     priceChange,
@@ -1977,6 +1991,16 @@ func (binance *BinanceExchange) Refresh() {
 	price, err := strconv.ParseFloat(priceResponse.LastPrice, 64)
 	if err != nil {
 		binance.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceResponse.LastPrice), err)
+		return
+	}
+	lowPrice, err := strconv.ParseFloat(priceResponse.LowPrice, 64)
+	if err != nil {
+		binance.fail(fmt.Sprintf("Failed to parse float from LowPrice=%s", priceResponse.LowPrice), err)
+		return
+	}
+	highPrice, err := strconv.ParseFloat(priceResponse.HighPrice, 64)
+	if err != nil {
+		binance.fail(fmt.Sprintf("Failed to parse float from HighPrice=%s", priceResponse.HighPrice), err)
 		return
 	}
 	quoteVolume, err := strconv.ParseFloat(priceResponse.QuoteVolume, 64)
@@ -2029,6 +2053,8 @@ func (binance *BinanceExchange) Refresh() {
 		BaseState: BaseState{
 			Symbol:     binance.Symbol,
 			Price:      price,
+			Low:        lowPrice,
+			High:       highPrice,
 			BaseVolume: volume,
 			Volume:     quoteVolume,
 			Change:     priceChange,
@@ -2051,6 +2077,16 @@ func (kucoin *KucoinExchange) Refresh() {
 	price, err := strconv.ParseFloat(priceResponse.Data.Last, 64)
 	if err != nil {
 		kucoin.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceResponse.Data.Last), err)
+		return
+	}
+	lowPrice, err := strconv.ParseFloat(priceResponse.Data.Low, 64)
+	if err != nil {
+		kucoin.fail(fmt.Sprintf("Failed to parse float from Low=%s", priceResponse.Data.Low), err)
+		return
+	}
+	highPrice, err := strconv.ParseFloat(priceResponse.Data.High, 64)
+	if err != nil {
+		kucoin.fail(fmt.Sprintf("Failed to parse float from High=%s", priceResponse.Data.High), err)
 		return
 	}
 	volumeValue, err := strconv.ParseFloat(priceResponse.Data.VolValue, 64)
@@ -2103,6 +2139,8 @@ func (kucoin *KucoinExchange) Refresh() {
 		BaseState: BaseState{
 			Symbol:     kucoin.Symbol,
 			Price:      price,
+			Low:        lowPrice,
+			High:       highPrice,
 			BaseVolume: volume,
 			Volume:     volumeValue,
 			Change:     priceChange,
@@ -2826,6 +2864,8 @@ func (huobi *HuobiExchange) Refresh() {
 		BaseState: BaseState{
 			Symbol:     huobi.Symbol,
 			Price:      priceResponse.Tick.Close,
+			Low:        priceResponse.Tick.Low,
+			High:       priceResponse.Tick.High,
 			BaseVolume: volume / priceResponse.Tick.Close,
 			Volume:     volume,
 			Change:     priceResponse.Tick.Close - priceResponse.Tick.Open,

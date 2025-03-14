@@ -346,7 +346,7 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
-// Home is the page handler for the "/" path.
+// Home is the page handler for the "/homedev" path. TODO: remove dev homepage
 func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 	height, err := exp.dataSource.GetHeight()
 	if err != nil {

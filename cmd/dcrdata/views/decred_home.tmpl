@@ -572,22 +572,6 @@
                                        {{- end}}
                                     </div>
                                  </div>
-                                 {{if $conv -}}
-                                 <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false" href="/market">
-                                             Exchange Rate
-                                          </a>
-                                       </span>
-                                       <div class="network-stats-content d-inline-block mt-4">
-                                          <span
-                                             data-homepage-target="exchangeRate">{{$conv.ExchangeRate.TwoDecimals}}</span>
-                                          <span class="info-line-2-sub">{{$conv.ExchangeRate.Index}}</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                                 {{- end}}
                               </div>
                               {{end}}
                            </div>
