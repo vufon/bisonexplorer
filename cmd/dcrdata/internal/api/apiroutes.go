@@ -3437,6 +3437,12 @@ func (c *appContext) ChartTypeData(w http.ResponseWriter, r *http.Request) {
 	writeJSONBytes(w, chartData)
 }
 
+func (c *appContext) getAvgBlockTime(w http.ResponseWriter, r *http.Request) {
+	chartType := "duration-btw-blocks"
+	avgBlockTime, _ := c.charts.GetAverageBlockTime(chartType)
+	writeJSON(w, avgBlockTime, m.GetIndentCtx(r))
+}
+
 func (c *appContext) MutilchainChartTypeData(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {

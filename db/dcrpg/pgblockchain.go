@@ -2910,6 +2910,11 @@ func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[strin
 	}
 }
 
+func (pgb *ChainDB) GetPeerCount() (int, error) {
+	peers, err := pgb.Client.GetPeerInfo(pgb.ctx)
+	return len(peers), err
+}
+
 func (pgb *ChainDB) GetPriceAll() (*dbtypes.BitDegreeOhlcResponse, error) {
 	var result dbtypes.BitDegreeOhlcResponse
 	fetchUrl := "https://www.bitdegree.org/api/cryptocurrencies/ohlc-chart/decred-dcr"
@@ -3927,6 +3932,12 @@ func (pgb *ChainDB) nonMergedTxnCount(addr string, txnView dbtypes.AddrTxnViewTy
 		return 0, fmt.Errorf("NonMergedTxnCount: requested count for merged view")
 	}
 	return int(count), nil
+}
+
+func (pgb *ChainDB) GetBlockchainSummaryInfo() (addrCount, outputs int64, err error) {
+	// get blockchain total address count, outputs count
+	err = pgb.db.QueryRow(internal.CountAddressOutputs).Scan(&addrCount, &outputs)
+	return
 }
 
 // CountTransactions gets the total row count for the given address and address

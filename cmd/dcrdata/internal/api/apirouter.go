@@ -48,6 +48,7 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 	}
 
 	mux.Route("/block", func(r chi.Router) {
+		r.Get("/avg-block-time", app.getAvgBlockTime)
 		r.Route("/best", func(rd chi.Router) {
 			rd.Use(app.BlockIndexLatestCtx)
 			rd.Get("/", app.getBlockSummary)

@@ -5,6 +5,7 @@ import { keyNav } from '../services/keyboard_navigation_service'
 import globalEventBus from '../services/event_bus_service'
 import Mempool from '../helpers/mempool_helper'
 import TurboQuery from '../helpers/turbolinks_helper'
+import { requestJSON } from '../helpers/http'
 
 const conversionRate = 100000000
 
@@ -186,7 +187,7 @@ export default class extends Controller {
       'mpRevTotal', 'mpRevCount', 'voteTally', 'blockVotes', 'blockHeight', 'blockSize',
       'blockTotal', 'consensusMsg', 'powConverted', 'convertedDev',
       'convertedSupply', 'convertedDevSub', 'exchangeRate', 'convertedStake',
-      'mixedPct', 'searchKey', 'memBlock', 'tooltip'
+      'mixedPct', 'searchKey', 'memBlock', 'tooltip', 'avgBlockTime'
     ]
   }
 
@@ -225,6 +226,16 @@ export default class extends Controller {
     this.processBlock = this._processBlock.bind(this)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
     this.setupTooltips()
+    const isDev = this.data.get('dev')
+    if (isDev && isDev !== '') {
+      this.setAvgBlockTime()
+    }
+  }
+
+  async setAvgBlockTime () {
+    const url = '/api/block/avg-block-time'
+    const resData = await requestJSON(url)
+    this.avgBlockTimeTarget.textContent = humanize.timeDuration(resData * 1000)
   }
 
   handleMempoolUpdate (evt) {

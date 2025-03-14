@@ -22,7 +22,8 @@
    data-charts-bs="{{.ChainParams.BaseSubsidy}}" data-charts-sri="{{.ChainParams.SubsidyReductionInterval}}"
    data-charts-mul-subsidy="{{.ChainParams.MulSubsidy}}" data-charts-div-subsidy="{{.ChainParams.DivSubsidy}}"
    data-charts-window-size="{{.ChainParams.StakeDiffWindowSize}}"
-   data-charts-block-time="{{.ChainParams.TargetTimePerBlock.Seconds}}">
+   data-charts-block-time="{{.ChainParams.TargetTimePerBlock.Seconds}}"
+   data-homepage-dev="true">
    <div class="hp-header-wrap area pb-5">
       <div class="container">
          <div class="row homepage-search-area mt-4 pt-2">
@@ -388,13 +389,15 @@
                                              <div class="text-center small-box px-3 me-2">
                                                 <p class="fw-bold">Volume (24h)</p>
                                                 <p class="fs-17">
-                                                   {{threeSigFigs $botState.Volume}} DCR <span class="fs15">(~ ${{threeSigFigs
+                                                   {{threeSigFigs $botState.Volume}} DCR <span class="fs15">(~
+                                                      ${{threeSigFigs
                                                       (floatMultiply $botState.Volume $botState.Price)}})</span>
                                                 </p>
                                              </div>
                                              <div class="text-center small-box px-3 me-2">
                                                 <p class="fw-bold">Vol/Mkt Cap (24h)</p>
-                                                <p><span class="fs-17">{{printf "%.2f" (x100 (divideFloat $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
+                                                <p><span class="fs-17">{{printf "%.2f" (x100 (divideFloat
+                                                      $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
                                              </div>
                                              <div class="text-center small-box px-3 me-2">
                                                 <p class="fw-bold">Low</p>
@@ -578,10 +581,9 @@
                                           </span>
                                           <span class="info-line-2-sub">DCR</span>
                                           <span class="position-relative"
-                                                data-tooltip='include {{printf "%.2f" (toFloat64Amount .DevFund)}} DCR in legacy treasury'>
-                                                <span
-                                                class="dcricon-info fs15 cursor-pointer">
-                                                </span>
+                                             data-tooltip='include {{printf "%.2f" (toFloat64Amount .DevFund)}} DCR in legacy treasury'>
+                                             <span class="dcricon-info fs15 cursor-pointer">
+                                             </span>
                                           </span>
                                        </span>
                                        {{if $conv -}}
@@ -1227,6 +1229,158 @@
                      </div>
                   </div>
                   <!-- End Ticket Pool Card -->
+               </div>
+               <div class="hp-explore__cards-content-2-1 mb-3">
+                  <div class="info-left-card">
+                     <!-- Start Summary Card -->
+                     <div class="explore-card-wrap">
+                        <div class="explore-card-content">
+                           <div class="explore-card__header bg-for-header">
+                              <span class="homeicon-calc explore-card__header__logo" alt="Mining Card"
+                                 loading="lazy"></span>
+                              <div class="explore-card__header__text ml-15">
+                                 <h5 class="explore-card__header__text__name"> Blockchain Information </h5>
+                                 <div class="explore-card__header__text__price">
+                                    <div class="price-wrap d-flex ai-center">
+                                       <span class="price-usd fs-13">Decred blockchain summary</span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="explore-card__values-content">
+                              {{with .Info -}}
+                              <div class="row">
+                                 <div class="col-24 col-sm-12 col-lg-8">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">Online Nodes</span>
+                                       <div class="network-stats-content d-inline-block mt-4">
+                                          <span>{{.PeerCount}}</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div class="col-24 col-sm-12 col-lg-8">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/charts?chart=tx-count">
+                                             Total Transactions
+                                          </a>
+                                       </span>
+                                       <span class="network-stats-content d-inline-block mt-4">
+                                          {{int64Comma .TotalTransactions}}
+                                       </span>
+                                    </div>
+                                 </div>
+                                 <div class="col-24 col-sm-12 col-lg-8">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">
+                                          Total Addresses
+                                       </span>
+                                       <span class="network-stats-content d-inline-block mt-4">
+                                          {{int64Comma .TotalAddresses}}
+                                       </span>
+                                    </div>
+                                 </div>
+                                 <div class="col-24 col-sm-12 col-lg-8">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">
+                                          Total Outputs
+                                       </span>
+                                       <span class="network-stats-content d-inline-block mt-4">
+                                          {{int64Comma .TotalOutputs}}
+                                       </span>
+                                    </div>
+                                 </div>
+                                 <div class="col-24 col-sm-12 col-lg-8">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/charts?chart=blockchain-size">
+                                             Blockchain Size
+                                          </a>
+                                       </span>
+                                       <span class="network-stats-content d-inline-block mt-4">
+                                          {{.FormattedSize}}
+                                       </span>
+                                    </div>
+                                 </div>
+                                 <div class="col-24 col-sm-12 col-lg-8">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">
+                                          <a class="link-hover-underline" href="/charts?chart=blockchain-size">
+                                             Average Block Time
+                                          </a>
+                                       </span>
+                                       <span class="network-stats-content d-inline-block mt-4" data-homepage-target="avgBlockTime">0</span>
+                                    </div>
+                                 </div>
+                              </div>
+                              {{end}}
+                           </div>
+                        </div>
+                     </div>
+                     <!-- End Summary Card -->
+                  </div>
+                  <div class="info-right-card">
+                     <!-- Start Atomic Swaps Card -->
+                     <div class="explore-card-wrap">
+                        <div class="explore-card-content">
+                           <a href='/blocks' class="link-to-subpage">
+                              <div class="explore-card__header">
+                                 <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
+                                    loading="lazy"></span>
+                                 <div class="explore-card__header__text ml-15">
+                                    <h5 class="explore-card__header__text__name"> Blocks </h5>
+                                    <span class="explore-card__header__arrow">
+                                       <span class='the-arrow -right'>
+                                          <span class='shaft'></span>
+                                       </span>
+                                    </span>
+                                    <div class="explore-card__header__text__price">
+                                       <div class="price-wrap d-flex ai-center">
+                                          <span class="price-usd fs-13">Block list and details</span>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </a>
+                           <div class="explore-card__values-content">
+                              <div class="row justify-content-between">
+                                 <div class="col-12">
+                                    <p class="network-stats-block">
+                                       <span class="network-stats-title">Lastest Block</span>
+                                       <span class="network-stats-content d-inline-block mt-4">
+                                          <a class="fs-28"></a>
+                                       </span>
+                                    </p>
+                                 </div>
+                                 <div class="col-12">
+                                    <p class="network-stats-block">
+                                       <span class="network-stats-title">Value</span>
+                                       <span class="network-stats-content d-inline-block mt-4">
+                                          <span></span>
+                                          <span class="info-line-2-sub"></span>
+                                       </span>
+                                    </p>
+                                 </div>
+                                 <div class="col-12">
+                                    <p class="network-stats-block">
+                                       <span class="network-stats-title">Size</span>
+                                       <span class="network-stats-content d-inline-block mt-4"></span>
+                                    </p>
+                                 </div>
+                                 <div class="col-12">
+                                    <p class="network-stats-block">
+                                       <span class="network-stats-title">Age</span>
+                                       <span class="network-stats-content d-inline-block mt-4">-</span>
+                                    </p>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     <!-- End Atomic Swaps Card -->
+                  </div>
+               </div>
+               <div class="hp-explore__cards-content-1">
                   <!-- Start 24h Metrics Card -->
                   <div class="explore-card-wrap">
                      <div class="explore-card-content">
@@ -1339,6 +1493,8 @@
                      </div>
                   </div>
                   <!-- End Metrics 24h Card -->
+               </div>
+               <div class="hp-explore__cards-content-1">
                   <!-- Start Chain Charts Card -->
                   <div class="explore-card-wrap">
                      <div class="explore-card-content">
