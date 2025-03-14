@@ -574,9 +574,15 @@
                                        <span class="network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="devFund">
                                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add
-                                             .DevFund .TreasuryBalance.Balance)) 0 true)}}
+                                             .DevFund .TreasuryBalance.Balance)) 2 true 2)}}
                                           </span>
                                           <span class="info-line-2-sub">DCR</span>
+                                          <span class="position-relative"
+                                                data-tooltip='include {{printf "%.2f" (toFloat64Amount .DevFund)}} DCR in legacy treasury'>
+                                                <span
+                                                class="dcricon-info fs15 cursor-pointer">
+                                                </span>
+                                          </span>
                                        </span>
                                        {{if $conv -}}
                                        <span class="stats-subinfo">
@@ -628,6 +634,21 @@
                                           {{$conv.TreasurySplit.TwoDecimals}} {{$conv.TreasurySplit.Index}}
                                        </span>
                                        {{- end}}
+                                    </div>
+                                 </div>
+                                 <div class="col-24 col-sm-12">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">Treasury Spent</span>
+                                       <span class="network-stats-content d-inline-block mt-3">
+                                          <span class="fs15-decimal">
+                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                             .TreasuryBalance.Spent) 2 true 2)}}
+                                          </span>
+                                          <span class="info-line-2-sub">DCR</span>
+                                       </span>
+                                       <span class="stats-subinfo">
+                                          {{.TreasuryBalance.SpendCount}} spends
+                                       </span>
                                     </div>
                                  </div>
                               </div>
