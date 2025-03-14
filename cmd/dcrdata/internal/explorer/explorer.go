@@ -710,8 +710,10 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.TicketReward = 100 * posSubsPerVote /
 		blockData.CurrentStakeDiff.CurrentStakeDifficulty
 	// get peer count
-	peerCount, _ := exp.dataSource.GetPeerCount()
-	p.HomeInfo.PeerCount = int64(peerCount)
+	peerCount, err := exp.dataSource.GetPeerCount()
+	if err == nil {
+		p.HomeInfo.PeerCount = int64(peerCount)
+	}
 	// Get additional blockchain info
 	p.HomeInfo.TotalAddresses, p.HomeInfo.TotalOutputs, _ = exp.dataSource.GetBlockchainSummaryInfo()
 	// The actual reward of a ticket needs to also take into consideration the

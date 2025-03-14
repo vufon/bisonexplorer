@@ -2910,9 +2910,10 @@ func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[strin
 	}
 }
 
-func (pgb *ChainDB) GetPeerCount() (int, error) {
-	peers, err := pgb.Client.GetPeerInfo(pgb.ctx)
-	return len(peers), err
+func (pgb *ChainDB) GetPeerCount() (peerCount int, err error) {
+	// get peer count from jholdstock api
+	peerCount, err = externalapi.GetWorldNodesCount()
+	return
 }
 
 func (pgb *ChainDB) GetPriceAll() (*dbtypes.BitDegreeOhlcResponse, error) {
