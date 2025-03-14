@@ -3288,6 +3288,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swa
 	err = pgb.db.QueryRow(internal.SelectTotalTradingAmount).Scan(&totalAmount)
 	return
 }
+
 func (pgb *ChainDB) CountRefundContract() (int64, error) {
 	var refundCount int64
 	err := pgb.db.QueryRow(internal.CountRefundAtomicSwapsRow).Scan(&refundCount)

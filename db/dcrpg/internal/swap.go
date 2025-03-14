@@ -56,6 +56,11 @@ const (
 	SelectDecredMinContractTx   = `SELECT contract_tx FROM swaps WHERE spend_height > $1 ORDER BY lock_time LIMIT 1`
 	SelectDecredMaxLockTime     = `SELECT lock_time FROM swaps WHERE spend_height > $1 ORDER BY lock_time DESC LIMIT 1`
 	SelectExistSwapBySecretHash = `SELECT spend_tx, spend_height, spend_vin FROM swaps WHERE secret_hash = $1 LIMIT 1`
+	Select24hSwapSummary        = `SELECT SUM(value), 
+		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,
+		COUNT(*) FILTER (WHERE is_refund = TRUE) AS refund_count
+		FROM swaps 
+		WHERE TO_TIMESTAMP(lock_time) >= NOW() - INTERVAL '24 hours'`
 
 	selectSwapsAmount = `SELECT %s as timestamp,
 		SUM(CASE WHEN is_refund = FALSE THEN value ELSE 0 END) as redeemed,

@@ -2494,6 +2494,10 @@ func retrieveOldestTxBlockTime(ctx context.Context, db *sql.DB, addr string) (bl
 func retrieve24hMetricsData(ctx context.Context, db *sql.DB, chainType string) (*dbtypes.Block24hInfo, error) {
 	res := dbtypes.Block24hInfo{}
 	err := db.QueryRowContext(ctx, internal.Select24hMetricsSummary, chainType).Scan(&res.Blocks, &res.Spent24h, &res.Sent24h, &res.Fees24h, &res.NumTx24h, &res.NumVin24h, &res.NumVout24h)
+	if err != nil {
+		return nil, err
+	}
+	err = db.QueryRow(internal.Select24hSwapSummary).Scan(&res.AtomicSwapAmount, &res.SwapRedeemCount, &res.SwapRefundCount)
 	return &res, err
 }
 
