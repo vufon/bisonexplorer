@@ -487,6 +487,10 @@ const (
 		tspend_vote_choice INT2
 	);`
 
+	IndexTSpendVotesTable = `CREATE UNIQUE INDEX ` + IndexOfTSpendVotesTableOnRowIDs +
+		` ON tspend_votes(tspend_hash, votes_row_id);`
+	DeindexTSpendVotesTable = `DROP INDEX ` + IndexOfTSpendVotesTableOnRowIDs + ` CASCADE;`
+
 	// Insert
 	insertTSpendVotesRow = `INSERT INTO tspend_votes (votes_row_id, tspend_hash,
 	tspend_vote_choice) VALUES ($1, $2, $3) `

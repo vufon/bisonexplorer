@@ -812,11 +812,21 @@
   }
 }
 
+.main-container.new-homepage {
+  position: relative;
+  margin-top: 70px;
+  margin-bottom: 70px;
+}
+
 .hp-explore-wrap {
   background-color: #fff;
   margin-top: -21px;
   padding-bottom: 70px;
   border-top: 2px solid #e9ebed;
+}
+
+.hp-explore-wrap.homepage-page {
+  margin-top: 0;
 }
 
 .decred-sub-page {
@@ -1203,7 +1213,7 @@ body.darkBG .day-night-icon {
 
 .hp-explore-wrap section {
   font-family: unset;
-  font-size: unset;
+  font-size: 1rem;
   line-height: unset;
   margin: unset;
   max-width: unset;
