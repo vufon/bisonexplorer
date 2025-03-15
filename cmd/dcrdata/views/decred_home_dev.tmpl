@@ -250,7 +250,7 @@
                               <span class="homeicon-market explore-card__header__logo" alt="Market Charts route"
                                  loading="lazy"></span>
                               <div class="explore-card__header__text ml-15">
-                                 <h5 class="explore-card__header__text__name"> Market Charts </h5>
+                                 <h5 class="explore-card__header__text__name"> Market </h5>
                                  <span class="explore-card__header__arrow">
                                     <span class='the-arrow -right'>
                                        <span class='shaft'></span>
@@ -258,7 +258,7 @@
                                  </span>
                                  <div class="explore-card__header__text__price">
                                     <div class="price-wrap d-flex ai-center">
-                                       <span class="price-usd fs-13">Long-term market historic price chart</span>
+                                       <span class="price-usd fs-13">Market information and long-term market historic price chart</span>
                                     </div>
                                  </div>
                               </div>
@@ -1252,7 +1252,11 @@
                               <div class="row">
                                  <div class="col-24 col-sm-12 col-lg-8">
                                     <div class="network-stats-block">
-                                       <span class="network-stats-title">Online Nodes</span>
+                                       <span class="network-stats-title">
+                                          <a class="link-hover-underline" target="_blank" href="https://nodes.jholdstock.uk">
+                                          Online Nodes
+                                          </a>                                       
+                                       </span>
                                        <div class="network-stats-content d-inline-block mt-4">
                                           <span>{{.PeerCount}}</span>
                                        </div>
@@ -1321,14 +1325,15 @@
                   </div>
                   <div class="info-right-card">
                      <!-- Start Atomic Swaps Card -->
+                     {{with .Info -}}
                      <div class="explore-card-wrap">
                         <div class="explore-card-content">
-                           <a href='/blocks' class="link-to-subpage">
+                           <a href='/atomic-swaps' class="link-to-subpage">
                               <div class="explore-card__header">
                                  <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
                                     loading="lazy"></span>
                                  <div class="explore-card__header__text ml-15">
-                                    <h5 class="explore-card__header__text__name"> Blocks </h5>
+                                    <h5 class="explore-card__header__text__name"> Atomic Swaps </h5>
                                     <span class="explore-card__header__arrow">
                                        <span class='the-arrow -right'>
                                           <span class='shaft'></span>
@@ -1336,7 +1341,7 @@
                                     </span>
                                     <div class="explore-card__header__text__price">
                                        <div class="price-wrap d-flex ai-center">
-                                          <span class="price-usd fs-13">Block list and details</span>
+                                          <span class="price-usd fs-13">Aggregated data of atomic swaps</span>
                                        </div>
                                     </div>
                                  </div>
@@ -1345,38 +1350,39 @@
                            <div class="explore-card__values-content">
                               <div class="row justify-content-between">
                                  <div class="col-12">
+                                    <div class="network-stats-block">
+                                       <span class="network-stats-title">Total Trading Amount</span>
+                                       <div class="network-stats-content d-inline-block mt-4">
+                                          {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .SwapsTotalAmount) 2 true)}}
+                                       </div>
+                                       <span class="info-line-2-sub">DCR</span>
+                                    </div>
+                                 </div>
+                                 <div class="col-12">
                                     <p class="network-stats-block">
-                                       <span class="network-stats-title">Lastest Block</span>
-                                       <span class="network-stats-content d-inline-block mt-4">
-                                          <a class="fs-28"></a>
+                                       <span class="network-stats-title">Total Contracts</span>
+                                       <span class="network-stats-content d-inline-block mt-3">
+                                          <span>{{intComma .SwapsTotalContract}}</span>
+                                          <span class="stats-subinfo">
+                                             {{intComma (subtract .SwapsTotalContract .RefundCount)}} redemptions,
+                                             {{intComma .RefundCount}} refunds
+                                          </span>
                                        </span>
                                     </p>
                                  </div>
                                  <div class="col-12">
                                     <p class="network-stats-block">
-                                       <span class="network-stats-title">Value</span>
-                                       <span class="network-stats-content d-inline-block mt-4">
-                                          <span></span>
-                                          <span class="info-line-2-sub"></span>
+                                       <span class="network-stats-title">Bison Wallet Vol</span>
+                                       <span class="network-stats-content d-inline-block mt-3">
+                                          <span>N/A</span>
                                        </span>
-                                    </p>
-                                 </div>
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Size</span>
-                                       <span class="network-stats-content d-inline-block mt-4"></span>
-                                    </p>
-                                 </div>
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Age</span>
-                                       <span class="network-stats-content d-inline-block mt-4">-</span>
                                     </p>
                                  </div>
                               </div>
                            </div>
                         </div>
                      </div>
+                     {{end}}
                      <!-- End Atomic Swaps Card -->
                   </div>
                </div>
@@ -1484,6 +1490,14 @@
                                     </span>
                                     <span class="stats-subinfo">{{int64Comma .SwapRedeemCount}} redemptions,
                                        {{int64Comma .SwapRefundCount}} refunds</span>
+                                 </p>
+                              </div>
+                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
+                                 <p class="network-stats-block">
+                                    <span class="network-stats-title">Bison Wallet Vol</span>
+                                    <span class="network-stats-content d-inline-block mt-4">
+                                       N/A
+                                    </span>
                                  </p>
                               </div>
                               {{end}}

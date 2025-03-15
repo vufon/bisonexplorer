@@ -174,6 +174,7 @@ type explorerDataSource interface {
 	GetMutilchainMempoolTxTime(txid string, chainType string) int64
 	GetPeerCount() (int, error)
 	GetBlockchainSummaryInfo() (addrCount, outputs int64, err error)
+	GetAtomicSwapSummary() (txCount, amount int64, err error)
 }
 
 type PoliteiaBackend interface {
@@ -716,6 +717,10 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	}
 	// Get additional blockchain info
 	p.HomeInfo.TotalAddresses, p.HomeInfo.TotalOutputs, _ = exp.dataSource.GetBlockchainSummaryInfo()
+	// Get atomic swaps summary info
+	p.HomeInfo.SwapsTotalContract, p.HomeInfo.SwapsTotalAmount, _ = exp.dataSource.GetAtomicSwapSummary()
+	// Get atomic swaps refund contract count
+	p.HomeInfo.RefundCount, _ = exp.dataSource.CountRefundContract()
 	// The actual reward of a ticket needs to also take into consideration the
 	// ticket maturity (time from ticket purchase until its eligible to vote)
 	// and coinbase maturity (time after vote until funds distributed to ticket

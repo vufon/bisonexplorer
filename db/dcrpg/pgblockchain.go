@@ -3285,13 +3285,18 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swa
 	if err != nil {
 		return
 	}
+	allCount, totalAmount, err = pgb.GetAtomicSwapSummary()
+	return
+}
+
+func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount int64, err error) {
 	// get count all atomic swaps
-	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&allCount)
+	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&txCount)
 	if err != nil {
 		return
 	}
 	// get total trading amount
-	err = pgb.db.QueryRow(internal.SelectTotalTradingAmount).Scan(&totalAmount)
+	err = pgb.db.QueryRow(internal.SelectTotalTradingAmount).Scan(&amount)
 	return
 }
 
