@@ -3310,11 +3310,10 @@ func (pgb *ChainDB) CountRefundContract() (int64, error) {
 }
 
 func (pgb *ChainDB) GetBTCAtomicSwapTarget(tokenSwap dbtypes.TokenAtomicSwapData) (*dbtypes.TokenAtomicSwapData, error) {
-	var dcrSpendTx string
-	var dcrSpendHeight int64
+	var dcrContractTx string
 	var targetScretHash []byte
 	var targetSwap dbtypes.TokenAtomicSwapData
-	err := pgb.db.QueryRow(internal.SelectAtomicBtcSwapsWithDcrSpendTx, tokenSwap.SpendTx, tokenSwap.SecretHash[:]).Scan(&targetSwap.ContractTx, &dcrSpendTx, &dcrSpendHeight,
+	err := pgb.db.QueryRow(internal.SelectAtomicBtcSwapsWithDcrContractTx, tokenSwap.ContractTx, tokenSwap.SecretHash[:]).Scan(&targetSwap.ContractTx, &dcrContractTx,
 		&targetSwap.ContractVout, &targetSwap.SpendTx, &targetSwap.SpendVin, &targetSwap.SpendHeight, &targetSwap.ContractAddress, &targetSwap.Value,
 		&targetScretHash, &targetSwap.Secret, &targetSwap.Locktime)
 	if err != nil {

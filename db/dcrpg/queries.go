@@ -3643,33 +3643,30 @@ func InsertSwap(db SqlExecutor, spendHeight int64, swapInfo *txhelpers.AtomicSwa
 
 // --- btc atomic swap tables
 func InsertBtcSwap(db *sql.DB, spendHeight int64, swapInfo *btctxhelper.AtomicSwapData) error {
-	// check secret hash on decred swaps
-	var dcrSpendTx string
-	var dcrSpendHeight int64
-	var dcrSpendVin int64
-	err := db.QueryRow(internal.SelectExistSwapBySecretHash, swapInfo.SecretHash[:]).Scan(&dcrSpendTx, &dcrSpendHeight, &dcrSpendVin)
+	// check secret hash on decred swaps. And get dcr contract tx
+	var dcrContractTx string
+	err := db.QueryRow(internal.SelectExistSwapBySecretHash, swapInfo.SecretHash[:]).Scan(&dcrContractTx)
 	if err != nil {
 		return err
 	}
-	log.Infof("Matched with Decred swap tx: %s", dcrSpendTx)
+	log.Infof("Matched with Decred swap contract tx: %s", dcrContractTx)
 	var secret interface{} // only nil interface stores a NULL, not even nil slice
 	if len(swapInfo.Secret) > 0 {
 		secret = swapInfo.Secret
 	}
 	var contractTx string
-	err = db.QueryRow(internal.InsertBtcContractSpend, swapInfo.ContractTx.String(), dcrSpendTx, dcrSpendHeight,
+	err = db.QueryRow(internal.InsertBtcContractSpend, swapInfo.ContractTx.String(), dcrContractTx,
 		swapInfo.ContractVout, swapInfo.SpendTx.String(), swapInfo.SpendVin, spendHeight, swapInfo.ContractAddress, swapInfo.Value,
 		swapInfo.SecretHash[:], secret, swapInfo.Locktime).Scan(&contractTx)
 	if err != nil {
 		return err
 	}
 	// update target token on decred swap
-	var tokenUpdatedContract string
-	err = db.QueryRow(internal.UpdateTargetToken, mutilchain.TYPEBTC, dcrSpendTx, dcrSpendVin).Scan(&tokenUpdatedContract)
+	_, err = db.Exec(internal.UpdateTargetToken, mutilchain.TYPEBTC, dcrContractTx)
 	if err != nil {
 		return err
 	}
-	log.Infof("Inserted Btc Swap match with Decred swap. Decred spend tx: %s, Bitcoin spend tx: %s", dcrSpendTx, spendHeight)
+	log.Infof("Inserted Btc Swap match with Decred swap. Decred contract tx: %s, Bitcoin contract tx: %s", dcrContractTx, swapInfo.ContractTx.String())
 	return nil
 }
 

@@ -1063,7 +1063,7 @@ func (pgb *ChainDB) supplementUnknownTicketError(err error) error {
 }
 
 func (pgb *ChainDB) SyncDecredAtomicSwap() error {
-	// Get list of unsynchronized btc blocks atomic swap transaction
+	// Get list of unsynchronized blocks atomic swap transaction
 	var syncHeights []int64
 	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectBlocksUnsynchoronized)
 	if err != nil {

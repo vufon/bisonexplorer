@@ -31,7 +31,7 @@ const (
 	ON CONFLICT (spend_tx, spend_vin)
 		DO UPDATE SET spend_height = $5;`
 
-	UpdateTargetToken = `UPDATE swaps SET target_token = $1 WHERE spend_tx = $2 AND spend_vin = $3 RETURNING contract_tx;`
+	UpdateTargetToken = `UPDATE swaps SET target_token = $1 WHERE contract_tx = $2;`
 
 	IndexSwapsOnHeightV0 = `CREATE INDEX idx_swaps_height ON swaps (spend_height);`
 	IndexSwapsOnHeight   = IndexSwapsOnHeightV0
@@ -55,7 +55,7 @@ const (
 		ORDER BY lock_time`
 	SelectDecredMinContractTx   = `SELECT contract_tx FROM swaps WHERE spend_height > $1 ORDER BY lock_time LIMIT 1`
 	SelectDecredMaxLockTime     = `SELECT lock_time FROM swaps WHERE spend_height > $1 ORDER BY lock_time DESC LIMIT 1`
-	SelectExistSwapBySecretHash = `SELECT spend_tx, spend_height, spend_vin FROM swaps WHERE secret_hash = $1 LIMIT 1`
+	SelectExistSwapBySecretHash = `SELECT contract_tx FROM swaps WHERE secret_hash = $1 LIMIT 1`
 	Select24hSwapSummary        = `SELECT SUM(value), 
 		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,
 		COUNT(*) FILTER (WHERE is_refund = TRUE) AS refund_count
