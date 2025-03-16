@@ -190,6 +190,7 @@ type homeConversions struct {
 	TreasuryBalance *exchanges.Conversion
 	Sent24h         *exchanges.Conversion
 	Fees24h         *exchanges.Conversion
+	SwapsAmount24h  *exchanges.Conversion
 }
 
 // For the exchange rates on the homepage
@@ -298,6 +299,141 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	}
 
 	str, err := exp.templates.exec("decred_home", struct {
+		*CommonPageData
+		Info             *types.HomeInfo
+		Mempool          *types.MempoolInfo
+		TrimmedMempool   *types.TrimmedMempoolInfo
+		BestBlock        *types.BlockBasic
+		BlockTally       []int
+		Consensus        int
+		Blocks           []*types.BlockBasic
+		Conversions      *homeConversions
+		PercentChange    float64
+		Premine          int64
+		TargetPoolSize   uint32
+		XcState          *exchanges.ExchangeBotState
+		VotingSummary    *agendas.VoteSummary
+		ProposalCountMap string
+		VotesStatus      string
+		MarketCap        *dbtypes.MarketCapData
+	}{
+		CommonPageData:   commonData,
+		Info:             homeInfo,
+		Mempool:          inv,
+		TrimmedMempool:   mempoolInfo,
+		BestBlock:        bestBlock,
+		BlockTally:       tallys,
+		Consensus:        consensus,
+		Blocks:           blocks,
+		Conversions:      conversions,
+		PercentChange:    homeInfo.PoolInfo.PercentTarget - 100,
+		Premine:          exp.premine,
+		TargetPoolSize:   tpSize,
+		XcState:          exp.getExchangeState(),
+		VotingSummary:    exp.voteTracker.Summary(),
+		ProposalCountMap: proposalCountJsonStr,
+		VotesStatus:      voteStatusJsonStr,
+		MarketCap:        marketCap,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
+// Home is the page handler for the "/homedev" path. TODO: remove dev homepage
+func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
+	height, err := exp.dataSource.GetHeight()
+	if err != nil {
+		log.Errorf("GetHeight failed: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
+			ExpStatusError)
+		return
+	}
+
+	blocks := exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
+	var bestBlock *types.BlockBasic
+	if blocks == nil {
+		bestBlock = new(types.BlockBasic)
+	} else {
+		bestBlock = blocks[0]
+	}
+
+	// Safely retrieve the current inventory pointer.
+	inv := exp.MempoolInventory()
+	mempoolInfo := inv.Trim()
+	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
+	inv.RLock()
+	exp.pageData.RLock()
+	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
+	//get ticket pool size
+	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
+	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
+
+	//get vote statuses of proposals
+	votesStatus := map[string]string{
+		strconv.Itoa(int(ticketvotev1.VoteStatusUnauthorized)): "Unauthorized",
+		strconv.Itoa(int(ticketvotev1.VoteStatusAuthorized)):   "Authorized",
+		strconv.Itoa(int(ticketvotev1.VoteStatusStarted)):      "Started",
+		strconv.Itoa(int(ticketvotev1.VoteStatusFinished)):     "Finished",
+		strconv.Itoa(int(ticketvotev1.VoteStatusApproved)):     "Approved",
+		strconv.Itoa(int(ticketvotev1.VoteStatusRejected)):     "Rejected",
+		strconv.Itoa(int(ticketvotev1.VoteStatusIneligible)):   "Ineligible",
+	}
+
+	var proposalCountMap = exp.proposals.CountProposals(votesStatus)
+	var proposalCountJsonStr = ""
+	var voteStatusJsonStr = ""
+
+	proposalCountJson, err := json.Marshal(proposalCountMap)
+	if err == nil {
+		proposalCountJsonStr = string(proposalCountJson)
+	}
+	voteStatusJson, err := json.Marshal(votesStatus)
+	if err == nil {
+		voteStatusJsonStr = string(voteStatusJson)
+	}
+
+	// Get fiat conversions if available
+	homeInfo := exp.pageData.HomeInfo
+	var conversions *homeConversions
+	xcBot := exp.xcBot
+	if xcBot != nil {
+		conversions = &homeConversions{
+			ExchangeRate:    xcBot.Conversion(1.0),
+			StakeDiff:       xcBot.Conversion(homeInfo.StakeDiff),
+			CoinSupply:      xcBot.Conversion(dcrutil.Amount(homeInfo.CoinSupply).ToCoin()),
+			PowSplit:        xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.PoW).ToCoin()),
+			TreasurySplit:   xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.Dev).ToCoin()),
+			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + homeInfo.TreasuryBalance.Balance).ToCoin()),
+		}
+		if homeInfo.Block24hInfo != nil {
+			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())
+			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Fees24h).ToCoin())
+			conversions.SwapsAmount24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.AtomicSwapAmount).ToCoin())
+		}
+	}
+
+	exp.pageData.RUnlock()
+	inv.RUnlock()
+
+	var commonData = exp.commonData(r)
+	commonData.IsHomepage = true
+
+	var marketCap *dbtypes.MarketCapData
+	for _, capData := range exp.CoinCapDataList {
+		if capData.Symbol == dbtypes.ChainSymbolMap[mutilchain.TYPEDCR] {
+			marketCap = capData
+			break
+		}
+	}
+
+	str, err := exp.templates.exec("decred_home_dev", struct {
 		*CommonPageData
 		Info             *types.HomeInfo
 		Mempool          *types.MempoolInfo

@@ -2276,13 +2276,16 @@ type TreasuryBalance struct {
 }
 
 type Block24hInfo struct {
-	Blocks     int64 `json:"blocks"`
-	Spent24h   int64 `json:"spent24h"`
-	Sent24h    int64 `json:"sent24h"`
-	Fees24h    int64 `json:"fees24h"`
-	NumTx24h   int64 `json:"numTx24h"`
-	NumVin24h  int64 `json:"numVin24h"`
-	NumVout24h int64 `json:"numVout24h"`
+	Blocks           int64 `json:"blocks"`
+	Spent24h         int64 `json:"spent24h"`
+	Sent24h          int64 `json:"sent24h"`
+	Fees24h          int64 `json:"fees24h"`
+	NumTx24h         int64 `json:"numTx24h"`
+	NumVin24h        int64 `json:"numVin24h"`
+	NumVout24h       int64 `json:"numVout24h"`
+	AtomicSwapAmount int64 `json:"atomicSwapAmount"`
+	SwapRedeemCount  int64 `json:"swapRedeemCount"`
+	SwapRefundCount  int64 `json:"swapRefundCount"`
 }
 
 // AddressTransactions collects the transactions for an address as AddressTx

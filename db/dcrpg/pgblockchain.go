@@ -2910,6 +2910,12 @@ func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[strin
 	}
 }
 
+func (pgb *ChainDB) GetPeerCount() (peerCount int, err error) {
+	// get peer count from jholdstock api
+	peerCount, err = externalapi.GetWorldNodesCount()
+	return
+}
+
 func (pgb *ChainDB) GetPriceAll() (*dbtypes.BitDegreeOhlcResponse, error) {
 	var result dbtypes.BitDegreeOhlcResponse
 	fetchUrl := "https://www.bitdegree.org/api/cryptocurrencies/ohlc-chart/decred-dcr"
@@ -3279,15 +3285,21 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swa
 	if err != nil {
 		return
 	}
+	allCount, totalAmount, err = pgb.GetAtomicSwapSummary()
+	return
+}
+
+func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount int64, err error) {
 	// get count all atomic swaps
-	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&allCount)
+	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&txCount)
 	if err != nil {
 		return
 	}
 	// get total trading amount
-	err = pgb.db.QueryRow(internal.SelectTotalTradingAmount).Scan(&totalAmount)
+	err = pgb.db.QueryRow(internal.SelectTotalTradingAmount).Scan(&amount)
 	return
 }
+
 func (pgb *ChainDB) CountRefundContract() (int64, error) {
 	var refundCount int64
 	err := pgb.db.QueryRow(internal.CountRefundAtomicSwapsRow).Scan(&refundCount)
@@ -3926,6 +3938,12 @@ func (pgb *ChainDB) nonMergedTxnCount(addr string, txnView dbtypes.AddrTxnViewTy
 		return 0, fmt.Errorf("NonMergedTxnCount: requested count for merged view")
 	}
 	return int(count), nil
+}
+
+func (pgb *ChainDB) GetBlockchainSummaryInfo() (addrCount, outputs int64, err error) {
+	// get blockchain total address count, outputs count
+	err = pgb.db.QueryRow(internal.CountAddressOutputs).Scan(&addrCount, &outputs)
+	return
 }
 
 // CountTransactions gets the total row count for the given address and address

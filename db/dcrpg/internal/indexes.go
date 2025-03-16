@@ -70,6 +70,9 @@ const (
 
 	IndexOfAgendaVotesTableOnRowIDs = "uix_agenda_votes"
 
+	// tspend_votes table
+	IndexOfTSpendVotesTableOnRowIDs = "uix_tspend_votes"
+
 	// stats table
 
 	IndexOfHeightOnStatsTable = "uix_stats_height" // REMOVED

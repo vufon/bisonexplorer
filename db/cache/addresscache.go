@@ -912,9 +912,10 @@ type AddressCache struct {
 	// Unlike addresses and address rows, which are counted precisely, UTXO
 	// limits are enforced per-address. maxUTXOsPerAddr is computed on
 	// construction from the specified total utxo capacity specified in bytes.
-	maxUTXOsPerAddr int
-	cacheMetrics    cacheMetrics
-	ProjectAddress  string
+	maxUTXOsPerAddr  int
+	averageBlockTime int64
+	cacheMetrics     cacheMetrics
+	ProjectAddress   string
 }
 
 // NewAddressCache constructs an AddressCache with capacity for the specified

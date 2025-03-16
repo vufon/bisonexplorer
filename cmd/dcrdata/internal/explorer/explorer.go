@@ -172,6 +172,9 @@ type explorerDataSource interface {
 	SyncAddressSummary() error
 	SyncTreasurySummary() error
 	GetMutilchainMempoolTxTime(txid string, chainType string) int64
+	GetPeerCount() (int, error)
+	GetBlockchainSummaryInfo() (addrCount, outputs int64, err error)
+	GetAtomicSwapSummary() (txCount, amount int64, err error)
 }
 
 type PoliteiaBackend interface {
@@ -501,7 +504,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
 		"chain_addresstable", "supply", "marketlist", "chain_parameters",
-		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table"}
+		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table", "decred_home_dev"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -707,7 +710,17 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		float64(exp.ChainParams.TicketsPerBlock)
 	p.HomeInfo.TicketReward = 100 * posSubsPerVote /
 		blockData.CurrentStakeDiff.CurrentStakeDifficulty
-
+	// get peer count
+	peerCount, err := exp.dataSource.GetPeerCount()
+	if err == nil {
+		p.HomeInfo.PeerCount = int64(peerCount)
+	}
+	// Get additional blockchain info
+	p.HomeInfo.TotalAddresses, p.HomeInfo.TotalOutputs, _ = exp.dataSource.GetBlockchainSummaryInfo()
+	// Get atomic swaps summary info
+	p.HomeInfo.SwapsTotalContract, p.HomeInfo.SwapsTotalAmount, _ = exp.dataSource.GetAtomicSwapSummary()
+	// Get atomic swaps refund contract count
+	p.HomeInfo.RefundCount, _ = exp.dataSource.CountRefundContract()
 	// The actual reward of a ticket needs to also take into consideration the
 	// ticket maturity (time from ticket purchase until its eligible to vote)
 	// and coinbase maturity (time after vote until funds distributed to ticket

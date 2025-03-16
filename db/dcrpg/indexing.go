@@ -334,7 +334,6 @@ func DeindexProposalMetaTableOnProposalToken(db *sql.DB) (err error) {
 }
 
 // agenda votes table indexes
-
 func IndexAgendaVotesTableOnAgendaID(db *sql.DB) (err error) {
 	_, err = db.Exec(internal.IndexAgendaVotesTableOnAgendaID)
 	return
@@ -342,6 +341,17 @@ func IndexAgendaVotesTableOnAgendaID(db *sql.DB) (err error) {
 
 func DeindexAgendaVotesTableOnAgendaID(db *sql.DB) (err error) {
 	_, err = db.Exec(internal.DeindexAgendaVotesTableOnAgendaID)
+	return
+}
+
+// agenda votes table indexes
+func IndexTSpendVotesTable(db *sql.DB) (err error) {
+	_, err = db.Exec(internal.IndexTSpendVotesTable)
+	return
+}
+
+func DeindexTSpendVotesTable(db *sql.DB) (err error) {
+	_, err = db.Exec(internal.DeindexTSpendVotesTable)
 	return
 }
 
@@ -590,6 +600,9 @@ func (pgb *ChainDB) DeindexAll() error {
 		// agenda votes table
 		{DeindexAgendaVotesTableOnAgendaID},
 
+		// tspend_votes table
+		{DeindexTSpendVotesTable},
+
 		// stats table
 		{DeindexStatsTableOnHeight},
 
@@ -736,7 +749,8 @@ func (pgb *ChainDB) IndexAll(barLoad chan *dbtypes.ProgressBarLoad) error {
 
 		// agenda votes table
 		{Msg: "agenda votes table on Agenda ID", IndexFunc: IndexAgendaVotesTableOnAgendaID},
-
+		// tspend_votes table
+		{Msg: "treasury spend votes table on tspend_hash + votes_row_id", IndexFunc: IndexTSpendVotesTable},
 		// Not indexing the address table on matching_tx_hash here. See
 		// IndexAddressTable to create them all.
 		{Msg: "addresses table on tx hash", IndexFunc: IndexAddressTableOnTxHash},

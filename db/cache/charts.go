@@ -398,6 +398,7 @@ type ChartGobject struct {
 type cachedChart struct {
 	cacheID uint64
 	data    []byte
+	intData uint64
 }
 
 // A generic structure for JSON encoding arbitrary data.
@@ -960,6 +961,13 @@ func cacheKey(chartID string, bin binLevel, axis axisType, rangeOpt string) stri
 	return key
 }
 
+// A cacheKey is used to specify cached data of a given type and BinLevel.
+func customCacheKey(chartID string) string {
+	// The axis type is only required when bin level is set to DayBin.
+	key := chartID + "-custome"
+	return key
+}
+
 // Grabs the cacheID associated with the provided BinLevel. Should
 // be called under at least a (ChartData).cacheMtx.RLock.
 func (charts *ChartData) cacheID(bin binLevel) uint64 {
@@ -985,6 +993,15 @@ func (charts *ChartData) getCache(chartID string, bin binLevel, axis axisType, r
 	return
 }
 
+func (charts *ChartData) getCustomCache(chartID string) (data *cachedChart, found bool) {
+	// Ignore zero length since bestHeight would just be set to zero anyway.
+	ck := customCacheKey(chartID)
+	charts.cacheMtx.RLock()
+	defer charts.cacheMtx.RUnlock()
+	data, found = charts.cache[ck]
+	return
+}
+
 // Store the chart associated with the provided type and BinLevel.
 func (charts *ChartData) cacheChart(chartID string, bin binLevel, axis axisType, rangeOpt string, data []byte) {
 	ck := cacheKey(chartID, bin, axis, rangeOpt)
@@ -999,9 +1016,23 @@ func (charts *ChartData) cacheChart(chartID string, bin binLevel, axis axisType,
 	}
 }
 
+// Store custom value
+func (charts *ChartData) cacheCustomIntValue(chartID string, data uint64) {
+	ck := customCacheKey(chartID)
+	charts.cacheMtx.Lock()
+	defer charts.cacheMtx.Unlock()
+	// Using the current best cacheID. This leaves open the small possibility that
+	// the cacheID is wrong, if the cacheID has been updated between the
+	// ChartMaker and here. This would just cause a one block delay.
+	charts.cache[ck] = &cachedChart{
+		intData: data,
+	}
+}
+
 // ChartMaker is a function that accepts a chart type and BinLevel, and returns
 // a JSON-encoded chartResponse.
 type ChartMaker func(charts *ChartData, bin binLevel, axis axisType, rangeOpt string) ([]byte, error)
+type CustomUintsMaker func(charts *ChartData) uint64
 
 var chartMakers = map[string]ChartMaker{
 	BlockSize:       blockSizeChart,
@@ -1019,6 +1050,10 @@ var chartMakers = map[string]ChartMaker{
 	TicketPoolValue: poolValueChart,
 	WindMissedVotes: missedVotesChart,
 	PercentStaked:   stakedCoinsChart,
+}
+
+var customMakers = map[string]CustomUintsMaker{
+	DurationBTW: durationBTWCustom,
 }
 
 // Chart will return a JSON-encoded chartResponse of the provided chart,
@@ -1047,6 +1082,24 @@ func (charts *ChartData) Chart(chartID, binString, axisString, rangeString strin
 		return nil, err
 	}
 	charts.cacheChart(chartID, bin, axis, rangeString, data)
+	return data, nil
+}
+
+func (charts *ChartData) GetAverageBlockTime(chartID string) (uint64, error) {
+	cache, found := charts.getCustomCache(chartID)
+	if found {
+		return cache.intData, nil
+	}
+	maker, hasMaker := customMakers[chartID]
+	if !hasMaker {
+		return 0, UnknownChartErr
+	}
+	// Do the locking here, rather than in encode, so that the helper functions
+	// (accumulate, btw) are run under lock.
+	charts.mtx.RLock()
+	data := maker(charts)
+	charts.mtx.RUnlock()
+	charts.cacheCustomIntValue(chartID, data)
 	return data, nil
 }
 
@@ -1105,6 +1158,30 @@ func blockTimes(blocks ChartUints) (ChartUints, ChartUints) {
 		last = v
 	}
 	return blocks[1:], times
+}
+
+func calculateAvgBlockTime(ticks, blocks ChartUints) uint64 {
+	if len(ticks) < 2 {
+		// Return empty arrays so that JSON-encoding will have the correct type.
+		return 0
+	}
+	nextIdx := 1
+	next := ticks[nextIdx]
+	lastIdx := 0
+	totalBlockTime := uint64(0)
+	for i, t := range blocks {
+		if t > next {
+			_, pts := blockTimes(blocks[lastIdx:i])
+			totalBlockTime += pts.Avg(0, len(pts))
+			nextIdx++
+			if nextIdx > len(ticks)-1 {
+				break
+			}
+			lastIdx = i
+			next = ticks[nextIdx]
+		}
+	}
+	return totalBlockTime / uint64(nextIdx)
 }
 
 // Take the average block times on the intervals defined by the ticks argument.
@@ -1306,6 +1383,10 @@ func durationBTWChart(charts *ChartData, bin binLevel, axis axisType, _ string) 
 		}
 	}
 	return nil, InvalidBinErr
+}
+
+func durationBTWCustom(charts *ChartData) uint64 {
+	return calculateAvgBlockTime(charts.Days.Time, charts.Blocks.Time)
 }
 
 // hashrate converts the provided chainwork data to hashrate data. Since

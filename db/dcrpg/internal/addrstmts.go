@@ -201,6 +201,10 @@ const (
 		WHERE address = ANY($1) AND valid_mainchain
 		ORDER BY block_time DESC, tx_hash ASC;`
 
+	CountAddressOutputs = `SELECT 
+		(SELECT COUNT(DISTINCT address) FROM addresses) AS addr_count,
+		(SELECT SUM(num_vout) FROM transactions) AS outputs;`
+
 	SelectLegacySummaryByMonth = `SELECT ts1.month, coalesce(ts1.invalue, 0) as invalue , coalesce(ts2.outvalue, 0) as outvalue
 		FROM (SELECT address, tx_type, SUM(value) as invalue, DATE_TRUNC('month',block_time) as month FROM addresses GROUP BY month,address,tx_type) ts1
 		FULL OUTER JOIN 
