@@ -8,6 +8,7 @@ import (
 const (
 	CreateAtomicSwapTableV0 = `CREATE TABLE IF NOT EXISTS swaps (
 		contract_tx TEXT,
+		contract_time INT8,
 		contract_vout INT4,
 		spend_tx TEXT,
 		spend_vin INT4,
@@ -24,12 +25,12 @@ const (
 
 	CreateAtomicSwapTable = CreateAtomicSwapTableV0
 
-	InsertContractSpend = `INSERT INTO swaps (contract_tx, contract_vout, spend_tx, spend_vin, spend_height,
+	InsertContractSpend = `INSERT INTO swaps (contract_tx, contract_time, contract_vout, spend_tx, spend_vin, spend_height,
 		p2sh_addr, value, secret_hash, secret, lock_time, is_refund)
 	VALUES ($1, $2, $3, $4, $5,
-		$6, $7, $8, $9, $10, $11) 
+		$6, $7, $8, $9, $10, $11, $12) 
 	ON CONFLICT (spend_tx, spend_vin)
-		DO UPDATE SET spend_height = $5;`
+		DO UPDATE SET spend_height = $6;`
 
 	UpdateTargetToken = `UPDATE swaps SET target_token = $1 WHERE contract_tx = $2;`
 
@@ -37,18 +38,17 @@ const (
 	IndexSwapsOnHeight   = IndexSwapsOnHeightV0
 	DeindexSwapsOnHeight = `DROP INDEX idx_swaps_height;`
 
-	SelectAtomicSwaps = `SELECT * FROM swaps 
-		ORDER BY lock_time DESC
+	SelectAtomicSwapsContractTxsWithFilter = `SELECT contract_tx, (ARRAY_AGG(target_token))[1] AS target FROM swaps %s
+		GROUP BY contract_tx ORDER BY MAX(contract_time) DESC
 		LIMIT $1 OFFSET $2;`
 
-	SelectAtomicSwapsWithFilter = `SELECT * FROM swaps %s
-		ORDER BY lock_time DESC
-		LIMIT $1 OFFSET $2;`
-	CountAtomicSwapsRowWithFilter = `SELECT COUNT(*) FROM swaps %s`
+	SelectContractDetailOutputs = `SELECT * FROM swaps 
+		WHERE contract_tx = $1 ORDER BY lock_time DESC;`
 
-	SelectDecredMinTime = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
-	CountAtomicSwapsRow = `SELECT COUNT(*)
-		FROM swaps`
+	CountAtomicSwapsRowWithFilter = `SELECT COUNT(1) FROM (SELECT contract_tx FROM swaps %s GROUP BY contract_tx) AS ctx;`
+
+	SelectDecredMinTime                = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
+	CountAtomicSwapsRow                = `SELECT COUNT(1) FROM (SELECT contract_tx FROM swaps GROUP BY contract_tx) AS ctx;`
 	CountRefundAtomicSwapsRow          = `SELECT COUNT(*) FROM swaps WHERE is_refund`
 	SelectTotalTradingAmount           = `SELECT SUM(value) FROM swaps`
 	SelectAtomicSwapsTimeWithMinHeight = `SELECT lock_time FROM swaps WHERE spend_height > $1
@@ -77,8 +77,8 @@ const (
 		ORDER BY timestamp;`
 )
 
-func MakeSelectAtomicSwapsWithFilter(pair, status string) string {
-	return MakeSelectWithFilter(SelectAtomicSwapsWithFilter, pair, status)
+func MakeSelectAtomicSwapsContractTxsWithFilter(pair, status string) string {
+	return MakeSelectWithFilter(SelectAtomicSwapsContractTxsWithFilter, pair, status)
 }
 
 func MakeCountAtomicSwapsRowWithFilter(pair, status string) string {

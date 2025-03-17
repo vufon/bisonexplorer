@@ -2545,7 +2545,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 	}
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
-		SwapsList          []*dbtypes.AtomicSwapData
+		SwapsList          []*dbtypes.AtomicSwapFullData
 		Pages              []pageNumber
 		Offset             int64
 		Limit              int64
@@ -3101,7 +3101,7 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	}
 
 	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {
-		SwapsList []*dbtypes.AtomicSwapData
+		SwapsList []*dbtypes.AtomicSwapFullData
 	}{
 		SwapsList: atomicSwapTxs,
 	})

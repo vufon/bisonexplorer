@@ -1890,6 +1890,9 @@ func _main(ctx context.Context) error {
 		//end init collector for btc
 	}
 
+	// check and sync atomic swap for Decred before sync for btc, ltc
+	chainDB.SyncDecredAtomicSwap()
+
 	go func() {
 		if chainDB.ChainDBDisabled && !btcDisabled {
 			err = chainDB.SyncLast20BTCBlocks(btcHeight)
@@ -1916,8 +1919,6 @@ func _main(ctx context.Context) error {
 				}
 			}
 		}
-		// sync atomic swap for Decred
-		chainDB.SyncDecredAtomicSwap()
 		// sync atomic swap for btc
 		chainDB.SyncBTCAtomicSwap()
 	}()

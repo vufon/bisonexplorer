@@ -34,5 +34,5 @@ const (
 		ORDER BY lock_time DESC
 		LIMIT $1 OFFSET $2;`
 
-	SelectAtomicLtcSwapsWithDcrContractTx = `SELECT * FROM ltc_swaps WHERE decred_contract_tx = $1 AND secret_hash = $2 LIMIT 1`
+	SelectAtomicLtcSwapsWithDcrContractTx = `SELECT * FROM ltc_swaps WHERE decred_contract_tx = $1 ORDER BY lock_time DESC;`
 )

@@ -1117,13 +1117,13 @@ func (pgb *ChainDB) SyncDecredAtomicSwapData(height int64) error {
 			continue
 		}
 		for _, red := range swapTxns.Redemptions {
-			err = InsertSwap(pgb.db, height, red, false)
+			err = InsertSwap(pgb.db, pgb.ctx, pgb.Client, height, red, false)
 			if err != nil {
 				log.Errorf("InsertSwap: %v", err)
 			}
 		}
 		for _, ref := range swapTxns.Refunds {
-			err = InsertSwap(pgb.db, height, ref, true)
+			err = InsertSwap(pgb.db, pgb.ctx, pgb.Client, height, ref, true)
 			if err != nil {
 				log.Errorf("InsertSwap: %v", err)
 			}

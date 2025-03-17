@@ -3628,13 +3628,21 @@ func retrieveTotalAgendaVotesCount(ctx context.Context, db *sql.DB, agendaID str
 }
 
 // --- atomic swap tables
-
-func InsertSwap(db SqlExecutor, spendHeight int64, swapInfo *txhelpers.AtomicSwapData, isRefund bool) error {
+func InsertSwap(db SqlExecutor, ctx context.Context, bg BlockGetter, spendHeight int64, swapInfo *txhelpers.AtomicSwapData, isRefund bool) error {
 	var secret interface{} // only nil interface stores a NULL, not even nil slice
 	if len(swapInfo.Secret) > 0 {
 		secret = swapInfo.Secret
 	}
-	_, err := db.Exec(internal.InsertContractSpend, swapInfo.ContractTx.String(), swapInfo.ContractVout,
+	contractTx := swapInfo.ContractTx.String()
+	contractHash, err := chainhash.NewHashFromStr(contractTx)
+	if err != nil {
+		return err
+	}
+	rawContract, err := bg.GetRawTransactionVerbose(ctx, contractHash)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(internal.InsertContractSpend, swapInfo.ContractTx.String(), rawContract.Time, swapInfo.ContractVout,
 		swapInfo.SpendTx.String(), swapInfo.SpendVin, spendHeight,
 		swapInfo.ContractAddress, swapInfo.Value,
 		swapInfo.SecretHash[:], secret, swapInfo.Locktime, isRefund)

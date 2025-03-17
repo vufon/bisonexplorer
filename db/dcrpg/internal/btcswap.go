@@ -30,5 +30,5 @@ const (
 	IndexBtcSwapsOnHeight   = IndexBtcSwapsOnHeightV0
 	DeindexBtcSwapsOnHeight = `DROP INDEX idx_btc_waps_height;`
 
-	SelectAtomicBtcSwapsWithDcrContractTx = `SELECT * FROM btc_swaps WHERE decred_contract_tx = $1 AND secret_hash = $2 LIMIT 1`
+	SelectAtomicBtcSwapsWithDcrContractTx = `SELECT * FROM btc_swaps WHERE decred_contract_tx = $1 ORDER BY lock_time DESC;`
 )
