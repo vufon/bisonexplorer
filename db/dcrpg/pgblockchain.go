@@ -3197,7 +3197,10 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 }
 
 // GetAtomicSwapsContractTxsQuery return query for get atomic swap contract tx list
-func (pgb *ChainDB) GetAtomicSwapsContractTxsQuery(pair, status string) string {
+func (pgb *ChainDB) GetAtomicSwapsContractTxsQuery(pair, status, searchKey string) string {
+	if searchKey != "" {
+		return internal.MakeSelectAtomicSwapsContractTxsWithSearchFilter(pair, status)
+	}
 	return internal.MakeSelectAtomicSwapsContractTxsWithFilter(pair, status)
 }
 
@@ -3269,10 +3272,28 @@ func (pgb *ChainDB) GetContractDetailOutputs(contractTx, targetTokenString strin
 }
 
 // GetAtomicSwapList fetches filtered atomic swap list.
-func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swaps []*dbtypes.AtomicSwapFullData, allCount, allFilterCount int64, totalAmount int64, err error) {
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey string) (swaps []*dbtypes.AtomicSwapFullData, allCount, allFilterCount int64, totalAmount int64, err error) {
+	allCount, totalAmount, err = pgb.GetAtomicSwapSummary()
+	if err != nil {
+		return
+	}
+	// get count all atomic swaps with filter pair, status
+	if searchKey != "" {
+		err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithSearchFilter(pair, status), searchKey).Scan(&allFilterCount)
+	} else {
+		err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithFilter(pair, status)).Scan(&allFilterCount)
+	}
+	if err != nil {
+		return
+	}
 	var rows *sql.Rows
-	atomicSwapsContractTxQuery := pgb.GetAtomicSwapsContractTxsQuery(pair, status)
-	rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsContractTxQuery, n, offset)
+	atomicSwapsContractTxQuery := pgb.GetAtomicSwapsContractTxsQuery(pair, status, searchKey)
+	if searchKey != "" {
+		rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsContractTxQuery, searchKey, n, offset)
+	} else {
+		rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsContractTxQuery, n, offset)
+	}
+
 	if err != nil {
 		return
 	}
@@ -3297,15 +3318,6 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status string) (swa
 		swaps = append(swaps, swapItem)
 	}
 	err = rows.Err()
-	if err != nil {
-		return
-	}
-	// get count all atomic swaps with filter pair, status
-	err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithFilter(pair, status)).Scan(&allFilterCount)
-	if err != nil {
-		return
-	}
-	allCount, totalAmount, err = pgb.GetAtomicSwapSummary()
 	return
 }
 

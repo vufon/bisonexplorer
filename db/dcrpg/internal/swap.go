@@ -42,10 +42,22 @@ const (
 		GROUP BY contract_tx ORDER BY MAX(contract_time) DESC
 		LIMIT $1 OFFSET $2;`
 
+	SelectAtomicSwapsContractTxsWithSearchFilter = `SELECT contract_tx, (ARRAY_AGG(target_token))[1] AS target FROM swaps WHERE contract_tx = $1 OR spend_tx = $1 
+		OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
+		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
+		 %s 
+ 		GROUP BY contract_tx ORDER BY MAX(contract_time) DESC
+		LIMIT $2 OFFSET $3;`
+
 	SelectContractDetailOutputs = `SELECT * FROM swaps 
 		WHERE contract_tx = $1 ORDER BY lock_time DESC;`
 
-	CountAtomicSwapsRowWithFilter = `SELECT COUNT(1) FROM (SELECT contract_tx FROM swaps %s GROUP BY contract_tx) AS ctx;`
+	CountAtomicSwapsRowWithFilter       = `SELECT COUNT(1) FROM (SELECT contract_tx FROM swaps %s GROUP BY contract_tx) AS ctx;`
+	CountAtomicSwapsRowWithSearchFilter = `SELECT COUNT(1) FROM (SELECT contract_tx FROM swaps WHERE contract_tx = $1 OR spend_tx = $1 
+	OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
+	OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
+	%s 
+ 	GROUP BY contract_tx) AS ctx;`
 
 	SelectDecredMinTime                = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
 	CountAtomicSwapsRow                = `SELECT COUNT(1) FROM (SELECT contract_tx FROM swaps GROUP BY contract_tx) AS ctx;`
@@ -78,14 +90,22 @@ const (
 )
 
 func MakeSelectAtomicSwapsContractTxsWithFilter(pair, status string) string {
-	return MakeSelectWithFilter(SelectAtomicSwapsContractTxsWithFilter, pair, status)
+	return MakeSelectWithFilter(SelectAtomicSwapsContractTxsWithFilter, pair, status, false)
+}
+
+func MakeSelectAtomicSwapsContractTxsWithSearchFilter(pair, status string) string {
+	return MakeSelectWithFilter(SelectAtomicSwapsContractTxsWithSearchFilter, pair, status, true)
 }
 
 func MakeCountAtomicSwapsRowWithFilter(pair, status string) string {
-	return MakeSelectWithFilter(CountAtomicSwapsRowWithFilter, pair, status)
+	return MakeSelectWithFilter(CountAtomicSwapsRowWithFilter, pair, status, false)
 }
 
-func MakeSelectWithFilter(input, pair, status string) string {
+func MakeCountAtomicSwapsRowWithSearchFilter(pair, status string) string {
+	return MakeSelectWithFilter(CountAtomicSwapsRowWithSearchFilter, pair, status, true)
+}
+
+func MakeSelectWithFilter(input, pair, status string, withoutWhere bool) string {
 	queries := make([]string, 0)
 	if pair != "" && pair != "all" {
 		queries = append(queries, fmt.Sprintf("target_token = '%s'", pair))
@@ -102,7 +122,11 @@ func MakeSelectWithFilter(input, pair, status string) string {
 	if len(queries) == 0 {
 		return fmt.Sprintf(input, "")
 	}
-	return fmt.Sprintf(input, "WHERE "+strings.Join(queries, " AND "))
+	var cond string
+	if !withoutWhere {
+		cond = "WHERE "
+	}
+	return fmt.Sprintf(input, cond+strings.Join(queries, " AND "))
 }
 
 func MakeSelectSwapsAmount(group string) string {

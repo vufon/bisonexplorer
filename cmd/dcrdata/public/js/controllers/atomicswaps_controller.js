@@ -11,6 +11,7 @@ import humanize from '../helpers/humanize_helper'
 let Dygraph // lazy loaded on connect
 const maxAddrRows = 160
 let ctrl = null
+let isSearching = false
 
 function amountTxCountProcessor (chart, d, binSize) {
   const amountData = []
@@ -112,7 +113,8 @@ export default class extends Controller {
     return ['pagesize', 'txnCount', 'paginator', 'pageplus', 'pageminus', 'listbox', 'table',
       'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader', 'pair',
       'status', 'topTablePagination', 'fullscreen', 'bigchart', 'littlechart', 'chartbox', 'chartLoader',
-      'options', 'zoom', 'interval', 'flow', 'expando', 'noconfirms', 'chart', 'redeemRadio', 'refundRadio']
+      'options', 'zoom', 'interval', 'flow', 'expando', 'noconfirms', 'chart', 'redeemRadio', 'refundRadio',
+      'searchBox', 'searchInput', 'searchBtn', 'clearSearchBtn']
   }
 
   async connect () {
@@ -130,7 +132,7 @@ export default class extends Controller {
 
     // These two are templates for query parameter sets.
     // When url query parameters are set, these will also be updated.
-    ctrl.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'bin', 'flow', 'n', 'start', 'pair', 'status'])
+    ctrl.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'bin', 'flow', 'n', 'start', 'pair', 'status', 'search'])
     // Get initial view settings from the url
     ctrl.query.update(ctrl.settings)
     ctrl.state = Object.assign({}, ctrl.settings)
@@ -160,6 +162,16 @@ export default class extends Controller {
       ctrl.settings.chart = ctrl.chartType
     }
 
+    if (ctrl.settings.search && ctrl.settings.search !== '') {
+      this.searchInputTarget.value = ctrl.settings.search
+      isSearching = true
+      this.searchBtnTarget.classList.add('d-none')
+      this.clearSearchBtnTarget.classList.remove('d-none')
+    } else {
+      this.searchBtnTarget.classList.remove('d-none')
+      this.clearSearchBtnTarget.classList.add('d-none')
+    }
+
     Dygraph = await getDefault(
       import(/* webpackChunkName: "dygraphs" */ '../vendor/dygraphs.min.js')
     )
@@ -183,6 +195,41 @@ export default class extends Controller {
     if (!this.requestedChart) {
       this.fetchGraphData(this.chartType, this.getBin())
     }
+  }
+
+  searchInputKeypress (e) {
+    if (e.keyCode === 13) {
+      this.searchAtomicSwapContract()
+    }
+  }
+
+  searchAtomicSwapContract () {
+    // if search key is empty, ignore
+    if (!this.searchInputTarget.value || this.searchInputTarget.value === '') {
+      this.searchBtnTarget.classList.remove('d-none')
+      this.clearSearchBtnTarget.classList.add('d-none')
+      if (isSearching) {
+        this.settings.search = ''
+        isSearching = false
+        this.paginationParams.offset = 0
+        this.fetchTable(this.pageSize, this.paginationParams.offset)
+      }
+      return
+    }
+    this.searchBtnTarget.classList.add('d-none')
+    this.clearSearchBtnTarget.classList.remove('d-none')
+    this.settings.search = this.searchInputTarget.value
+    this.paginationParams.offset = 0
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
+  clearSearch () {
+    this.settings.search = ''
+    this.searchInputTarget.value = ''
+    this.searchBtnTarget.classList.remove('d-none')
+    this.clearSearchBtnTarget.classList.add('d-none')
+    isSearching = false
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
   }
 
   drawGraph () {
@@ -524,16 +571,17 @@ export default class extends Controller {
 
   changePair (e) {
     ctrl.settings.pair = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
-    this.fetchTable(this.pageSize, this.paginationParams.offset)
+    this.clearSearch()
   }
 
   changeStatus (e) {
     ctrl.settings.status = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
-    this.fetchTable(this.pageSize, this.paginationParams.offset)
+    this.clearSearch()
   }
 
   makeTableUrl (count, offset) {
-    return `/atomicswaps-table?n=${count}&start=${offset}${ctrl.settings.pair && ctrl.settings.pair !== '' ? '&pair=' + ctrl.settings.pair : ''}${ctrl.settings.status && ctrl.settings.status !== '' ? '&status=' + ctrl.settings.status : ''}`
+    return `/atomicswaps-table?n=${count}&start=${offset}${ctrl.settings.pair && ctrl.settings.pair !== '' ? '&pair=' + ctrl.settings.pair : ''}${ctrl.settings.status && ctrl.settings.status !== '' ? '&status=' + ctrl.settings.status : ''}
+      ${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}`
   }
 
   changePageSize () {
@@ -642,7 +690,7 @@ export default class extends Controller {
     const pageSize = parseInt(ctrl.paginationParams.pagesize)
     let links = ''
     if (typeof offset !== 'undefined' && offset > 0) {
-      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
+      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}" ` +
         'class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20" data-action="click->atomicswaps#pageNumberLink"></a>' + '\n'
     }
 
@@ -652,7 +700,7 @@ export default class extends Controller {
     }).join('\n')
 
     if ((txCount - offset) > pageSize) {
-      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
+      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}" ` +
         'class="d-inline-block dcricon-arrow-right pagination-number pagination-narrow m-1 fs20" data-action="click->atomicswaps#pageNumberLink"></a>'
     }
     const paginationHTML = dompurify.sanitize(links)
