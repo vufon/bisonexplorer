@@ -50,7 +50,26 @@
         </div>
         {{- end}}
         {{if $.SwapsFound}}
-        <div class="d-inline-block swap-box mx-2 fs14">{{$.SwapsFound}}</div>
+        {{if and .SwapsList (gt (len .SwapsList) 0)}}
+        {{$firstItem := index .SwapsList 0}}
+        {{$hasTargetToken := ne $firstItem.Source.TargetToken ""}}
+        <div class="d-inline-block text-white br-10 {{.SwapsType}}-bg px-2 mx-2 fs14">
+          <div class="d-flex ai-center">
+            {{if $hasTargetToken}}
+            <div class="p-relative d-flex ai-center pair-icons">
+              <img src="/images/dcr-icon.png" width="20" height="20">
+              <img src="/images/{{$firstItem.Source.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
+            </div>
+            {{else}}
+            <img src="/images/synchronize.png" width="20" height="20" class="me-1">
+            {{end}}
+            <p>{{if $hasTargetToken}}DCR/{{toUpperCase
+              $firstItem.Source.TargetToken}}{{else}}Verifying{{end}}&nbsp;{{$.SwapsFound}}</p>
+          </div>
+        </div>
+        {{else}}
+        <div class="d-inline-block text-white px-2 mx-2 fs14">{{$.SwapsFound}}</div>
+        {{end}}
         {{end}}
       </div>
       {{if and (ne .BlockHeight 0) (not $.IsConfirmedMainchain)}}
@@ -399,7 +418,8 @@
               <td class="text-start py-1 text-secondary">{{formatDateTime .VoteEndDate}}</td>
               {{else}}
               <td class="text-end medium-sans text-nowrap pe-2 py-2">Voting Ended:</td>
-              <td class="text-start py-1 text-secondary" data-tx-target="formattedAge">{{formatDateTime $.Data.Time.T}}</td>
+              <td class="text-start py-1 text-secondary" data-tx-target="formattedAge">{{formatDateTime $.Data.Time.T}}
+              </td>
               {{end}}
               {{end}}
             </tr>
@@ -529,11 +549,11 @@
             <tbody class="bgc-white">
               {{$isTSpend := false}}
               {{if $.Data.TSpendMeta}}
-                {{$isTSpend = true}}
+              {{$isTSpend = true}}
               {{end}}
               {{range $i, $v := .Vout}}
-              <tr class="{{if and (eq $.HighlightInOut "out" ) (eq $.HighlightInOutID .Index)}}blue-row{{end}} {{if and $isTSpend (gt $i 4)}}d-hide{{end}}" 
-                data-tx-target="outputRow" data-index="{{$i}}">
+              <tr class="{{if and (eq $.HighlightInOut " out" ) (eq $.HighlightInOutID .Index)}}blue-row{{end}} {{if and
+                $isTSpend (gt $i 4)}}d-hide{{end}}" data-tx-target="outputRow" data-index="{{$i}}">
                 <td class="shrink-to-fit">{{.Index}}</td>
                 <td class="position-relative clipboard">
                   {{range .Addresses}}
@@ -582,10 +602,16 @@
               </tr>
               {{end}}
               {{if $isTSpend}}
-                <tr class="expand-row"><td data-action="click->tx#toggleExpand" colspan="6" class="text-center table-expand-row cursor-pointer">
-                  <div><p class="mb-0" data-tx-target="showMoreText">Show More</p>
-                    <img data-tx-target="showMoreIcon" class="h30 expand-bounce mt-1" src="/images/expand-down.svg" alt="side chain">
-                  </div></td></tr>
+              <tr class="expand-row">
+                <td data-action="click->tx#toggleExpand" colspan="6"
+                  class="text-center table-expand-row cursor-pointer">
+                  <div>
+                    <p class="mb-0" data-tx-target="showMoreText">Show More</p>
+                    <img data-tx-target="showMoreIcon" class="h30 expand-bounce mt-1" src="/images/expand-down.svg"
+                      alt="side chain">
+                  </div>
+                </td>
+              </tr>
               {{end}}
             </tbody>
           </table>
@@ -593,7 +619,14 @@
       </div>
     </div>
   </div>
-
+  <div>
+    <div class="br-8 b--def bgc-plain-bright pb-10">
+      <h5 class="pt-3 ps-3">Swap Details</h5>
+      <div class="position-relative">
+        {{template "atomicSwapsTable" .}}
+      </div>
+    </div>
+  </div>
   {{if .VoteInfo}}
   {{with .VoteInfo}}
   <div class="row mb-3">

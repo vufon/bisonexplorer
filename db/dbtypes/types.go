@@ -1930,6 +1930,11 @@ type TokenAtomicSwapData struct {
 	TargetToken      string
 }
 
+type SimpleContractInfo struct {
+	ContractTx  string
+	TargetToken string
+}
+
 // AddressTxnOutput is a compact version of api/types.AddressTxnOutput.
 type AddressTxnOutput struct {
 	Address  string

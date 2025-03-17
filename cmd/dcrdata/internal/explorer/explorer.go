@@ -175,6 +175,7 @@ type explorerDataSource interface {
 	GetPeerCount() (int, error)
 	GetBlockchainSummaryInfo() (addrCount, outputs int64, err error)
 	GetAtomicSwapSummary() (txCount, amount int64, err error)
+	GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error)
 }
 
 type PoliteiaBackend interface {

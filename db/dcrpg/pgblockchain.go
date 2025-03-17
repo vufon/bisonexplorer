@@ -8736,6 +8736,66 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 	return block
 }
 
+func (pgb *ChainDB) GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error) {
+	result := make([]*dbtypes.SimpleContractInfo, 0)
+	if swapType != utils.CONTRACT_TYPE {
+		// get contract tx list from spend_tx
+		rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectContractTxsFromSpendTx, txid)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var contractTx string
+			var targetToken sql.NullString
+			err = rows.Scan(&contractTx, &targetToken)
+			if err != nil {
+				return nil, err
+			}
+			targetTokenString := ""
+			if targetToken.Valid {
+				targetTokenString = targetToken.String
+			}
+			result = append(result, &dbtypes.SimpleContractInfo{
+				ContractTx:  contractTx,
+				TargetToken: targetTokenString,
+			})
+		}
+		err = rows.Err()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// get contract simple info
+		var targetToken sql.NullString
+		err := pgb.db.QueryRow(internal.SelectTargetTokenOfContract, txid).Scan(&targetToken)
+		if err != nil {
+			return nil, err
+		}
+		targetTokenString := ""
+		if targetToken.Valid {
+			targetTokenString = targetToken.String
+		}
+		result = append(result, &dbtypes.SimpleContractInfo{
+			ContractTx:  txid,
+			TargetToken: targetTokenString,
+		})
+	}
+	return pgb.GetSwapDataByContractTxs(result)
+}
+
+func (pgb *ChainDB) GetSwapDataByContractTxs(contractTxs []*dbtypes.SimpleContractInfo) (result []*dbtypes.AtomicSwapFullData, err error) {
+	for _, contractTx := range contractTxs {
+		var swapItem *dbtypes.AtomicSwapFullData
+		swapItem, err = pgb.GetContractDetailOutputs(contractTx.ContractTx, contractTx.TargetToken)
+		if err != nil {
+			return
+		}
+		result = append(result, swapItem)
+	}
+	return
+}
+
 func (pgb *ChainDB) GetSwapType(txid string) string {
 	var isContract, isTarget, isRefund bool
 	err := pgb.db.QueryRow(internal.CheckSwapsType, txid).Scan(&isContract, &isTarget, &isRefund)

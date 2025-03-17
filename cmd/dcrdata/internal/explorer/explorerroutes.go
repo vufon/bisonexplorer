@@ -2352,6 +2352,17 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	}
 	if swapsInfo == nil {
 		swapsInfo = new(txhelpers.TxSwapResults)
+	} else {
+		// check and get detail Swap data
+		relatedContract, err := exp.dataSource.GetSwapFullData(tx.TxID, swapsInfo.SwapType)
+		if err != nil {
+			log.Errorf("Unable to get list of contracts related to transaction %v: %v", tx.TxID, err)
+			exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+			return
+		}
+		tx.SwapsList = relatedContract
+		tx.SwapsType = swapsInfo.SwapType
+		tx.SimpleListMode = true
 	}
 
 	// Prepare the string to display for previous outpoint.
@@ -2559,6 +2570,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		AllCountSummary    int64
 		RefundCount        int64
 		TotalTradingAmount int64
+		SimpleListMode     bool
 	}{
 		CommonPageData:     exp.commonData(r),
 		SwapsList:          atomicSwapTxs,
@@ -2571,6 +2583,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		SearchKey:          searchKey,
 		Status:             status,
 		AllCountSummary:    allCount,
+		SimpleListMode:     false,
 		Pages:              calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	})
 
@@ -3110,9 +3123,11 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	}
 
 	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {
-		SwapsList []*dbtypes.AtomicSwapFullData
+		SwapsList      []*dbtypes.AtomicSwapFullData
+		SimpleListMode bool
 	}{
-		SwapsList: atomicSwapTxs,
+		SwapsList:      atomicSwapTxs,
+		SimpleListMode: false,
 	})
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)

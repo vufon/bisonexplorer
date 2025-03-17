@@ -27,6 +27,12 @@
   transform: translateX(-50%);
 }
 
+.highlight-box {
+  background: #e5f2fb;
+  border-radius: 12px;
+  padding: 0.5rem;
+}
+
 body.darkBG {
   .secondary-card {
     background-color: $card-bg-secondary-dark;

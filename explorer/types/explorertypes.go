@@ -200,6 +200,9 @@ type TxInfo struct {
 	TSpendMeta         *dbtypes.TreasurySpendMetaData
 	IsTreasury         bool
 	FilterTreasuryType string
+	SwapsList          []*dbtypes.AtomicSwapFullData
+	SwapsType          string
+	SimpleListMode     bool
 	TicketInfo
 }
 

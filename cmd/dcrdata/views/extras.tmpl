@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.24726183c4d772f2.css" rel="stylesheet">
+	<link href="/dist/css/style.581d420a3651572e.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -1037,7 +1037,7 @@
 							<img src="/images/dcr-icon.png" width="20" height="20">
 							<div class="ms-2"><span class="fw-600">Contract</span></div>
 						</div>
-						<div class="row mt-1">
+						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Source.ContractTx)}}highlight-box{{end}}">
 							<div class="col-24">
 								<div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div>
 							</div>
@@ -1051,7 +1051,7 @@
 							<div class="ms-2"><span class="fw-600">{{if .Source.IsRefund}}Refund{{else}}Redemption{{end}}</span></div>
 						</div>
 						{{- range .Source.OutspendSwapData}}
-						<div class="row mt-1">
+						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .SpendTx)}}highlight-box{{end}}">
 							<div class="col-24">
 								<div class="clipboard">{{template "hashElide" (hashlink .SpendTx (printf "/tx/%s" .SpendTx))}}</div>
 							</div>

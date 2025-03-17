@@ -95,6 +95,8 @@ const (
 	FROM swaps 
 		WHERE contract_tx = $1 OR spend_tx = $1 
 	LIMIT 1;`
+	SelectContractTxsFromSpendTx = `SELECT contract_tx, target_token FROM swaps WHERE spend_tx = $1 ORDER BY contract_time DESC`
+	SelectTargetTokenOfContract  = `SELECT target_token FROM swaps WHERE contract_tx = $1 LIMIT 1;`
 )
 
 func MakeSelectAtomicSwapsContractTxsWithFilter(pair, status string) string {
