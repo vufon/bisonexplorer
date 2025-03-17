@@ -1,5 +1,12 @@
 package utils
 
+const (
+	// swap type
+	CONTRACT_TYPE   = "contract"
+	REDEMPTION_TYPE = "redemption"
+	REFUND_TYPE     = "refund"
+)
+
 var AgendasDetail = map[string][]string{
 	"lnsupport":            {"Start Lightning Network Support", "The [[Lightning Network((https://lightning.network))]] is the most directly useful application of smart contracts to date since it allows for off-chain transactions that optionally settle on-chain. This infrastructure has clear benefits for both scaling and privacy. Decred is optimally positioned for this integration."},
 	"sdiffalgorithm":       {"Change PoS Staking Algorithm", "Specifies a proposed replacement algorithm for determining the stake difficulty (commonly called the ticket price). This proposal resolves all issues with a new algorithm that adheres to the referenced ideals."},

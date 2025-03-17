@@ -87,6 +87,14 @@ const (
 		FROM swaps
 		GROUP BY timestamp
 		ORDER BY timestamp;`
+
+	CheckSwapsType = `SELECT 
+		contract_tx = $1 AS is_contract,
+		spend_tx = $1 AS is_target,
+		is_refund = TRUE AS refund 
+	FROM swaps 
+		WHERE contract_tx = $1 OR spend_tx = $1 
+	LIMIT 1;`
 )
 
 func MakeSelectAtomicSwapsContractTxsWithFilter(pair, status string) string {

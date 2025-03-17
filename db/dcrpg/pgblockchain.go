@@ -66,6 +66,7 @@ import (
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
+	"github.com/decred/dcrdata/v8/utils"
 )
 
 var (
@@ -8667,6 +8668,11 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 				exptx.Fee, exptx.FeeRate, exptx.Fees = 0.0, 0.0, 0.0
 			}
 		}
+		// check swaps tx
+		exptx.SwapsType = pgb.GetSwapType(exptx.TxID)
+		if exptx.SwapsType != "" {
+			exptx.SwapsTypeDisplay = utils.GetSwapTypeDisplay(exptx.SwapsType)
+		}
 		txs = append(txs, exptx)
 		totalMixed += int64(exptx.MixCount) * exptx.MixDenom
 	}
@@ -8728,6 +8734,24 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.lastExplorerBlock.Unlock()
 
 	return block
+}
+
+func (pgb *ChainDB) GetSwapType(txid string) string {
+	var isContract, isTarget, isRefund bool
+	err := pgb.db.QueryRow(internal.CheckSwapsType, txid).Scan(&isContract, &isTarget, &isRefund)
+	if err != nil {
+		return ""
+	}
+	if isContract {
+		return utils.CONTRACT_TYPE
+	}
+	if !isTarget {
+		return ""
+	}
+	if isTarget && isRefund {
+		return utils.REFUND_TYPE
+	}
+	return utils.REDEMPTION_TYPE
 }
 
 // GetExplorerBlock gets a *exptypes.Blockinfo for the specified block.

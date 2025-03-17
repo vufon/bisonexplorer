@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.ceb737f9c2233426.css" rel="stylesheet">
+	<link href="/dist/css/style.24726183c4d772f2.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -1024,7 +1024,7 @@
 					<div>{{normalWithPrecFloat (toFloat64Amount .Target.TotalAmount) -1}}</div>&nbsp;{{toUpperCase .Source.TargetToken}})
 					{{end}}
 					</div>
-					<span class="common-label ms-2 {{if .Source.IsRefund}}refund{{else}}success{{end}}-bg fw-400 fs13">{{if .Source.IsRefund}}Refund{{else}}Completed{{end}}</span>
+					<span class="common-label py-1 px-2 text-white ms-2 {{if .Source.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if .Source.IsRefund}}Refund{{else}}Completed{{end}}</span>
 				</div>
 				<div>
 					<p class="fs13"><span class="mw-70px d-inline-block">Created At:</span> {{dateTimeWithoutTimeZone .Source.ContractTime}}</p>
