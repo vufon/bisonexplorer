@@ -3401,6 +3401,14 @@ func (exp *ExplorerUI) AddressListData(address string, txnType dbtypes.AddrTxnVi
 		err = fmt.Errorf(defaultErrorMessage)
 		return nil, err
 	}
+	// check swap tx type for transactions
+	for index, transaction := range addrData.Transactions {
+		transaction.SwapsType = exp.dataSource.GetSwapType(transaction.TxID)
+		if transaction.SwapsType != "" {
+			transaction.SwapsTypeDisplay = utils.GetSwapTypeDisplay(transaction.SwapsType)
+		}
+		addrData.Transactions[index] = transaction
+	}
 	return
 }
 

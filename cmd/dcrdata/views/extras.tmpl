@@ -772,7 +772,7 @@
 	<tbody class="bgc-white">
 	{{- range .Transactions}}
 		<tr{{if eq .Confirmations 0}} data-address-target="pending" data-txid="{{.TxID}}"{{end}}>
-			<td class="d-none d-sm-table-cell">{{.TxType}}</td>
+			<td class="d-none d-sm-table-cell">{{if .SwapsType}}<span class="common-label py-1 px-2 text-white ms-2 {{.SwapsType}}-bg fs13">{{.SwapsTypeDisplay}}</span>{{else}}{{.TxType}}{{end}}</td>
 			<td class="clipboard">{{template "hashElide" (hashlink .TxID .Link)}}</td>
 		{{- if eq $txType "merged_debit"}}
 			<td class="text-end">{{.MergedTxnCount}}</td>

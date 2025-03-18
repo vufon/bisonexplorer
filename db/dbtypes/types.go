@@ -2170,22 +2170,24 @@ type SideChain struct {
 
 // AddressTx models data for transactions on the address page.
 type AddressTx struct {
-	TxID           string
-	TxType         string
-	InOutID        uint32
-	Size           uint32
-	FormattedSize  string
-	Total          float64
-	Confirmations  uint64
-	Time           TimeDef
-	ReceivedTotal  float64
-	SentTotal      float64
-	IsFunding      bool
-	MatchedTx      string
-	MatchedTxIndex uint32
-	MergedTxnCount uint64 `json:",omitempty"`
-	BlockHeight    uint32
-	IsUnconfirmed  bool
+	TxID             string
+	TxType           string
+	InOutID          uint32
+	Size             uint32
+	FormattedSize    string
+	Total            float64
+	Confirmations    uint64
+	Time             TimeDef
+	ReceivedTotal    float64
+	SentTotal        float64
+	IsFunding        bool
+	MatchedTx        string
+	MatchedTxIndex   uint32
+	MergedTxnCount   uint64 `json:",omitempty"`
+	BlockHeight      uint32
+	IsUnconfirmed    bool
+	SwapsType        string
+	SwapsTypeDisplay string
 }
 
 type MonthlyUsdPrice struct {
