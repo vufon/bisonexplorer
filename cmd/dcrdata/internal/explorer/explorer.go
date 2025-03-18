@@ -142,6 +142,8 @@ type explorerDataSource interface {
 	DecodeRawTransaction(txhex string) (*chainjson.TxRawResult, error)
 	SendRawTransaction(txhex string) (string, error)
 	GetTransactionByHash(txid string) (*wire.MsgTx, error)
+	GetLTCTransactionByHash(txid string) (*ltcutil.Tx, error)
+	GetBTCTransactionByHash(txid string) (*btcutil.Tx, error)
 	GetHeight() (int64, error)
 	GetMutilchainHeight(chainType string) (int64, error)
 	TxHeight(txid *chainhash.Hash) (height int64)
@@ -177,6 +179,7 @@ type explorerDataSource interface {
 	GetAtomicSwapSummary() (txCount, amount int64, err error)
 	GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error)
 	GetSwapType(txid string) string
+	GetMultichainSwapFullData(txid, swapType, chainType string) ([]*dbtypes.AtomicSwapFullData, error)
 }
 
 type PoliteiaBackend interface {

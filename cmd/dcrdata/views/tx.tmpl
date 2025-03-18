@@ -7,7 +7,7 @@
 {{with .Data}}
 {{$targetToken := "" }}
 {{$hasTargetToken := false}}
-{{if $.SwapFirstSource}}
+{{if and $.SwapsFound $.SwapFirstSource}}
 {{$targetToken = $.SwapFirstSource.TargetToken}}
 {{$hasTargetToken = ne $.SwapFirstSource.TargetToken ""}}
 {{end}}

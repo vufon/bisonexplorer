@@ -39,6 +39,8 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/txhelpers/btctxhelper"
+	"github.com/decred/dcrdata/v8/txhelpers/ltctxhelper"
 	"github.com/decred/dcrdata/v8/utils"
 	ticketvotev1 "github.com/decred/politeia/politeiawww/api/ticketvote/v1"
 	humanize "github.com/dustin/go-humanize"
@@ -1617,18 +1619,45 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	if tx.BlockHeight == 0 {
 		tx.Time = types.NewTimeDefFromUNIX(exp.dataSource.GetMutilchainMempoolTxTime(tx.TxID, chainType))
 	}
+	// TODO: Find atomic swaps related to this tx
+	// swapsInfo, err := exp.GetMultichainAtomicSwapsInfo(tx, chainType)
+	// if err != nil {
+	// 	log.Errorf("Unable to get atomic swap info for transaction %v: %v", tx.TxID, err)
+	// }
+	// var swapFirstSource *dbtypes.AtomicSwapContractData
+	// if swapsInfo == nil {
+	// 	swapsInfo = new(txhelpers.MultichainTxSwapResults)
+	// } else {
+	// 	// check and get detail Swap data
+	// 	relatedContract, err := exp.dataSource.GetMultichainSwapFullData(tx.TxID, swapsInfo.SwapType, chainType)
+	// 	if err != nil {
+	// 		log.Errorf("Unable to get list of contracts related to transaction %v: %v", tx.TxID, err)
+	// 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+	// 		return
+	// 	}
+	// 	tx.SwapsList = relatedContract
+	// 	if len(tx.SwapsList) > 0 {
+	// 		swapFirstSource = tx.SwapsList[0].Source
+	// 	}
+	// 	tx.SwapsType = swapsInfo.SwapType
+	// 	tx.SimpleListMode = true
+	// }
 	pageData := struct {
 		*CommonPageData
-		Data        *types.TxInfo
-		ChainType   string
-		Conversions struct {
+		Data            *types.TxInfo
+		ChainType       string
+		SwapsFound      string
+		SwapFirstSource *dbtypes.AtomicSwapContractData
+		Conversions     struct {
 			Total *exchanges.Conversion
 			Fees  *exchanges.Conversion
 		}
 	}{
-		CommonPageData: exp.commonData(r),
-		Data:           tx,
-		ChainType:      chainType,
+		CommonPageData:  exp.commonData(r),
+		Data:            tx,
+		ChainType:       chainType,
+		SwapsFound:      "",
+		SwapFirstSource: nil,
 	}
 	// Get a fiat-converted value for the total and the fees.
 	if exp.xcBot != nil {
@@ -1646,6 +1675,10 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
 	w.WriteHeader(http.StatusOK)
 	io.WriteString(w, str)
+}
+
+func (exp *ExplorerUI) multichainTxAtomicSwapsInfo(txid string) {
+
 }
 
 // Block is the page handler for the "/block" path.
@@ -2486,6 +2519,90 @@ func (exp *ExplorerUI) txAtomicSwapsInfo(tx *types.TxInfo) (*txhelpers.TxSwapRes
 	}
 
 	return txhelpers.MsgTxAtomicSwapsInfo(msgTx, outputSpenders, exp.ChainParams)
+}
+
+func (exp *ExplorerUI) GetMultichainAtomicSwapsInfo(tx *types.TxInfo, chainType string) (*txhelpers.MultichainTxSwapResults, error) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return exp.GetBtcTxAtomicSwapsInfo(tx)
+	case mutilchain.TYPELTC:
+		return exp.GetLtcTxAtomicSwapsInfo(tx)
+	default:
+		return nil, fmt.Errorf("mutilchain type failed")
+	}
+}
+
+func (exp *ExplorerUI) GetBtcTxAtomicSwapsInfo(tx *types.TxInfo) (*txhelpers.MultichainTxSwapResults, error) {
+	// Check if tx is a coinbase tx and return empty swap info.
+	if tx.Coinbase {
+		return new(txhelpers.MultichainTxSwapResults), nil
+	}
+	// Getting the msgTx for MsgTxAtomicSwapsInfo. Rethink TxInfo as an input!
+	txRaw, err := exp.dataSource.GetBTCTransactionByHash(tx.TxID)
+	if err != nil {
+		return nil, fmt.Errorf("BTC: GetRawTransaction failed for %s: %v", tx.TxID, err)
+	}
+	msgTx := txRaw.MsgTx()
+	// Spending information for P2SH outputs are required to determine
+	// contract outputs in this tx.
+	outputSpenders := make(map[uint32]*btctxhelper.OutputSpenderTxOut)
+	for _, vout := range tx.Vout {
+		txOut := msgTx.TxOut[vout.Index]
+		scriptClass := btctxscript.GetScriptClass(txOut.PkScript)
+		isP2SH := scriptClass == btctxscript.ScriptHashTy
+		if !vout.Spent || !isP2SH {
+			// only retrieve spending tx for spent p2sh outputs
+			continue
+		}
+		spender := tx.SpendingTxns[vout.Index]
+		spendingMsgTx, err := exp.dataSource.GetBTCTransactionByHash(spender.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("BTC: GetRawTransaction failed for %s: %v", spender.Hash, err)
+		}
+		outputSpenders[vout.Index] = &btctxhelper.OutputSpenderTxOut{
+			Tx:  spendingMsgTx.MsgTx(),
+			Vin: spender.Index,
+		}
+	}
+
+	return btctxhelper.MsgTxAtomicSwapsInfo(msgTx, outputSpenders, exp.BtcChainParams)
+}
+
+func (exp *ExplorerUI) GetLtcTxAtomicSwapsInfo(tx *types.TxInfo) (*txhelpers.MultichainTxSwapResults, error) {
+	// Check if tx is a coinbase tx and return empty swap info.
+	if tx.Coinbase {
+		return new(txhelpers.MultichainTxSwapResults), nil
+	}
+
+	// Getting the msgTx for MsgTxAtomicSwapsInfo. Rethink TxInfo as an input!
+	txRaw, err := exp.dataSource.GetLTCTransactionByHash(tx.TxID)
+	if err != nil {
+		return nil, fmt.Errorf("LTC: GetRawTransaction failed for %s: %v", tx.TxID, err)
+	}
+	msgTx := txRaw.MsgTx()
+	// Spending information for P2SH outputs are required to determine
+	// contract outputs in this tx.
+	outputSpenders := make(map[uint32]*ltctxhelper.OutputSpenderTxOut)
+	for _, vout := range tx.Vout {
+		txOut := msgTx.TxOut[vout.Index]
+		scriptClass := ltctxscript.GetScriptClass(txOut.PkScript)
+		isP2SH := scriptClass == ltctxscript.ScriptHashTy
+		if !vout.Spent || !isP2SH {
+			// only retrieve spending tx for spent p2sh outputs
+			continue
+		}
+		spender := tx.SpendingTxns[vout.Index]
+		spendingMsgTx, err := exp.dataSource.GetLTCTransactionByHash(spender.Hash)
+		if err != nil {
+			return nil, fmt.Errorf("LTC: GetRawTransaction failed for %s: %v", spender.Hash, err)
+		}
+		outputSpenders[vout.Index] = &ltctxhelper.OutputSpenderTxOut{
+			Tx:  spendingMsgTx.MsgTx(),
+			Vin: spender.Index,
+		}
+	}
+
+	return ltctxhelper.MsgTxAtomicSwapsInfo(msgTx, outputSpenders, exp.LtcChainParams)
 }
 
 type TreasuryInfo struct {

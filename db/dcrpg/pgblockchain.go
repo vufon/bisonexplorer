@@ -8784,6 +8784,39 @@ func (pgb *ChainDB) GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwa
 	return pgb.GetSwapDataByContractTxs(result)
 }
 
+// GetMultichainSwapFullData return swap full data with multichain spendtx/contractx
+func (pgb *ChainDB) GetMultichainSwapFullData(txid, swapType, chainType string) ([]*dbtypes.AtomicSwapFullData, error) {
+	result := make([]*dbtypes.SimpleContractInfo, 0)
+	var query string
+	if swapType == utils.CONTRACT_TYPE {
+		query = fmt.Sprintf(internal.SelectDecredContractTxsFromMultichainContractTx, chainType)
+	} else {
+		query = fmt.Sprintf(internal.SelectDecredContractTxsFromMultichainSpendTx, chainType)
+	}
+	// get contract tx list from spend_tx
+	rows, err := pgb.db.QueryContext(pgb.ctx, query, txid)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var contractTx string
+		err = rows.Scan(&contractTx)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, &dbtypes.SimpleContractInfo{
+			ContractTx:  contractTx,
+			TargetToken: chainType,
+		})
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return pgb.GetSwapDataByContractTxs(result)
+}
+
 func (pgb *ChainDB) GetSwapDataByContractTxs(contractTxs []*dbtypes.SimpleContractInfo) (result []*dbtypes.AtomicSwapFullData, err error) {
 	for _, contractTx := range contractTxs {
 		var swapItem *dbtypes.AtomicSwapFullData

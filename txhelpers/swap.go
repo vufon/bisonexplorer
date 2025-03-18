@@ -345,6 +345,22 @@ type AtomicSwapData struct {
 	TargetToken      string
 }
 
+type MultichainAtomicSwapData struct {
+	ContractTx       string
+	ContractVout     uint32
+	SpendTx          string
+	SpendVin         uint32
+	Value            int64
+	ContractAddress  string
+	RecipientAddress string
+	RefundAddress    string
+	Locktime         int64
+	SecretHash       [32]byte
+	Secret           []byte
+	Contract         []byte
+	IsRefund         bool
+}
+
 func (asd *AtomicSwapData) ToAPI() *AtomicSwap {
 	return &AtomicSwap{
 		ContractTxRef:     fmt.Sprintf("%s:%d", asd.ContractTx, asd.ContractVout),
@@ -369,6 +385,15 @@ type TxSwapResults struct {
 	Contracts   map[uint32]*AtomicSwapData
 	Redemptions map[uint32]*AtomicSwapData
 	Refunds     map[uint32]*AtomicSwapData
+}
+
+type MultichainTxSwapResults struct {
+	TxID        string
+	Found       string
+	SwapType    string
+	Contracts   map[uint32]*MultichainAtomicSwapData
+	Redemptions map[uint32]*MultichainAtomicSwapData
+	Refunds     map[uint32]*MultichainAtomicSwapData
 }
 
 func (tsr *TxSwapResults) ToAPI() *TxAtomicSwaps {
@@ -424,6 +449,7 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 			return
 		}
 		txSwaps.Found = fmt.Sprintf("%s, %s", txSwaps.Found, found)
+		txSwaps.SwapType = swapType
 	}
 
 	// Check if any of this tx's inputs are redeems or refunds, i.e. inputs that

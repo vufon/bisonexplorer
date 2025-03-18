@@ -10,12 +10,15 @@ import (
 	"time"
 
 	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
 	btcchainhash "github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	chainjson "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/wire"
 	ltcjson "github.com/ltcsuite/ltcd/btcjson"
+	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
+	"github.com/ltcsuite/ltcd/ltcutil"
 
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/cache"
@@ -26,7 +29,33 @@ import (
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
-// GetTransactionByHash gets a wire.MsgTx for the specified transaction hash.
+// GetLTCTransactionByHash gets a wire.MsgTx for the specified transaction hash.
+func (pgb *ChainDB) GetLTCTransactionByHash(txid string) (*ltcutil.Tx, error) {
+	txhash, err := ltcchainhash.NewHashFromStr(txid)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := pgb.LtcClient.GetRawTransaction(txhash)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+// GetBTCTransactionByHash gets a wire.MsgTx for the specified transaction hash.
+func (pgb *ChainDB) GetBTCTransactionByHash(txid string) (*btcutil.Tx, error) {
+	txhash, err := btcchainhash.NewHashFromStr(txid)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := pgb.BtcClient.GetRawTransaction(txhash)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+// GetTransactionByHash gets a btc_wire.MsgTx for the specified transaction hash.
 func (pgb *ChainDB) GetTransactionByHash(txid string) (*wire.MsgTx, error) {
 	txhash, err := chainhash.NewHashFromStr(txid)
 	if err != nil {

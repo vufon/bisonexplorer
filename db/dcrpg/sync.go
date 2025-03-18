@@ -1223,7 +1223,7 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 			continue
 		}
 		for _, red := range swapRes.Redemptions {
-			contractTx, err := pgb.BtcClient.GetRawTransaction(red.ContractTx)
+			contractTx, err := pgb.GetBTCTransactionByHash(red.ContractTx)
 			if err != nil {
 				continue
 			}
@@ -1235,7 +1235,7 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 			}
 		}
 		for _, ref := range swapRes.Refunds {
-			contractTx, err := pgb.BtcClient.GetRawTransaction(ref.ContractTx)
+			contractTx, err := pgb.GetBTCTransactionByHash(ref.ContractTx)
 			if err != nil {
 				continue
 			}
@@ -1278,7 +1278,7 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 			continue
 		}
 		for _, red := range swapRes.Redemptions {
-			contractTx, err := pgb.LtcClient.GetRawTransaction(red.ContractTx)
+			contractTx, err := pgb.GetLTCTransactionByHash(red.ContractTx)
 			if err != nil {
 				continue
 			}
@@ -1290,7 +1290,7 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 			}
 		}
 		for _, ref := range swapRes.Refunds {
-			contractTx, err := pgb.LtcClient.GetRawTransaction(ref.ContractTx)
+			contractTx, err := pgb.GetLTCTransactionByHash(ref.ContractTx)
 			if err != nil {
 				continue
 			}

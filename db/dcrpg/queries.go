@@ -28,8 +28,6 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
-	"github.com/decred/dcrdata/v8/txhelpers/btctxhelper"
-	"github.com/decred/dcrdata/v8/txhelpers/ltctxhelper"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lib/pq"
 
@@ -3650,7 +3648,7 @@ func InsertSwap(db SqlExecutor, ctx context.Context, bg BlockGetter, spendHeight
 }
 
 // --- btc atomic swap tables
-func InsertBtcSwap(db *sql.DB, spendHeight int64, swapInfo *btctxhelper.AtomicSwapData) error {
+func InsertBtcSwap(db *sql.DB, spendHeight int64, swapInfo *txhelpers.MultichainAtomicSwapData) error {
 	// check secret hash on decred swaps. And get dcr contract tx
 	var dcrContractTx string
 	err := db.QueryRow(internal.SelectExistSwapBySecretHash, swapInfo.SecretHash[:]).Scan(&dcrContractTx)
@@ -3663,8 +3661,8 @@ func InsertBtcSwap(db *sql.DB, spendHeight int64, swapInfo *btctxhelper.AtomicSw
 		secret = swapInfo.Secret
 	}
 	var contractTx string
-	err = db.QueryRow(internal.InsertBtcContractSpend, swapInfo.ContractTx.String(), dcrContractTx,
-		swapInfo.ContractVout, swapInfo.SpendTx.String(), swapInfo.SpendVin, spendHeight, swapInfo.ContractAddress, swapInfo.Value,
+	err = db.QueryRow(internal.InsertBtcContractSpend, swapInfo.ContractTx, dcrContractTx,
+		swapInfo.ContractVout, swapInfo.SpendTx, swapInfo.SpendVin, spendHeight, swapInfo.ContractAddress, swapInfo.Value,
 		swapInfo.SecretHash[:], secret, swapInfo.Locktime).Scan(&contractTx)
 	if err != nil {
 		return err
@@ -3674,12 +3672,12 @@ func InsertBtcSwap(db *sql.DB, spendHeight int64, swapInfo *btctxhelper.AtomicSw
 	if err != nil {
 		return err
 	}
-	log.Infof("Inserted Btc Swap match with Decred swap. Decred contract tx: %s, Bitcoin contract tx: %s", dcrContractTx, swapInfo.ContractTx.String())
+	log.Infof("Inserted Btc Swap match with Decred swap. Decred contract tx: %s, Bitcoin contract tx: %s", dcrContractTx, swapInfo.ContractTx)
 	return nil
 }
 
 // --- ltc atomic swap tables
-func InsertLtcSwap(db *sql.DB, spendHeight int64, swapInfo *ltctxhelper.AtomicSwapData) error {
+func InsertLtcSwap(db *sql.DB, spendHeight int64, swapInfo *txhelpers.MultichainAtomicSwapData) error {
 	// check secret hash on decred swaps. And get dcr contract tx
 	var dcrContractTx string
 	err := db.QueryRow(internal.SelectExistSwapBySecretHash, swapInfo.SecretHash[:]).Scan(&dcrContractTx)
@@ -3692,8 +3690,8 @@ func InsertLtcSwap(db *sql.DB, spendHeight int64, swapInfo *ltctxhelper.AtomicSw
 		secret = swapInfo.Secret
 	}
 	var contractTx string
-	err = db.QueryRow(internal.InsertLtcContractSpend, swapInfo.ContractTx.String(), dcrContractTx,
-		swapInfo.ContractVout, swapInfo.SpendTx.String(), swapInfo.SpendVin, spendHeight, swapInfo.ContractAddress, swapInfo.Value,
+	err = db.QueryRow(internal.InsertLtcContractSpend, swapInfo.ContractTx, dcrContractTx,
+		swapInfo.ContractVout, swapInfo.SpendTx, swapInfo.SpendVin, spendHeight, swapInfo.ContractAddress, swapInfo.Value,
 		swapInfo.SecretHash[:], secret, swapInfo.Locktime).Scan(&contractTx)
 	if err != nil {
 		return err
@@ -3703,7 +3701,7 @@ func InsertLtcSwap(db *sql.DB, spendHeight int64, swapInfo *ltctxhelper.AtomicSw
 	if err != nil {
 		return err
 	}
-	log.Infof("Inserted Ltc Swap match with Decred swap. Decred contract tx: %s, Litecoin contract tx: %s", dcrContractTx, swapInfo.ContractTx.String())
+	log.Infof("Inserted Ltc Swap match with Decred swap. Decred contract tx: %s, Litecoin contract tx: %s", dcrContractTx, swapInfo.ContractTx)
 	return nil
 }
 

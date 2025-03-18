@@ -14,6 +14,8 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/utils"
 )
 
 // AtomicSwapContractPushes models the data pushes of an atomic swap contract.
@@ -112,34 +114,10 @@ type OutputSpenderTxOut struct {
 	Vin uint32
 }
 
-type AtomicSwapData struct {
-	ContractTx       *chainhash.Hash
-	ContractVout     uint32
-	SpendTx          *chainhash.Hash
-	SpendVin         uint32
-	Value            int64
-	ContractAddress  string
-	RecipientAddress string
-	RefundAddress    string
-	Locktime         int64
-	SecretHash       [32]byte
-	Secret           []byte
-	Contract         []byte
-	IsRefund         bool
-}
-
-type TxSwapResults struct {
-	TxID        chainhash.Hash
-	Found       string
-	Contracts   map[uint32]*AtomicSwapData
-	Redemptions map[uint32]*AtomicSwapData
-	Refunds     map[uint32]*AtomicSwapData
-}
-
 var zeroHash chainhash.Hash
 
 func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSpenderTxOut,
-	params *chaincfg.Params) (*TxSwapResults, error) {
+	params *chaincfg.Params) (*txhelpers.MultichainTxSwapResults, error) {
 
 	// Skip if the tx is generating coins (coinbase, treasurybase, stakebase).
 	for _, input := range msgTx.TxIn {
@@ -150,21 +128,66 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 
 	hash := msgTx.TxHash()
 
-	txSwaps := &TxSwapResults{
-		TxID: hash,
+	txSwaps := &txhelpers.MultichainTxSwapResults{
+		TxID: hash.String(),
 	}
 
-	appendFound := func(found string) {
+	appendFound := func(found, swapType string) {
 		if txSwaps.Found == "" {
 			txSwaps.Found = found
+			txSwaps.SwapType = swapType
 			return
 		}
 		if strings.Contains(txSwaps.Found, found) {
 			return
 		}
 		txSwaps.Found = fmt.Sprintf("%s, %s", txSwaps.Found, found)
+		txSwaps.SwapType = swapType
 	}
 
+	// Check if any of this tx's inputs are redeems or refunds, i.e. inputs that
+	// spend the output of an atomic swap contract.
+	for i, vin := range msgTx.TxIn {
+		contractData, contractScript, secret, isRefund, err :=
+			ExtractSwapDataFromWitness(vin.Witness, params)
+		if err != nil {
+			return nil, fmt.Errorf("error checking if input redeems a contract: %v", err)
+		}
+		if contractData == nil {
+			continue
+		}
+		swapInfo := &txhelpers.MultichainAtomicSwapData{
+			ContractTx:   vin.PreviousOutPoint.Hash.String(),
+			ContractVout: vin.PreviousOutPoint.Index,
+			SpendTx:      hash.String(),
+			SpendVin:     uint32(i),
+			// Value:            vin.ValueIn, // lame, caller needs to retrieve the prev tx output
+			ContractAddress:  contractData.ContractAddress.String(),
+			RecipientAddress: contractData.RecipientAddress.String(),
+			RefundAddress:    contractData.RefundAddress.String(),
+			Locktime:         contractData.Locktime,
+			SecretHash:       contractData.SecretHash,
+			Secret:           secret, // should be empty for refund
+			Contract:         contractScript,
+			IsRefund:         isRefund,
+		}
+		if isRefund {
+			if txSwaps.Refunds == nil {
+				txSwaps.Refunds = make(map[uint32]*txhelpers.MultichainAtomicSwapData)
+			}
+			txSwaps.Refunds[uint32(i)] = swapInfo
+			appendFound("Refund", utils.REFUND_TYPE)
+		} else {
+			if txSwaps.Redemptions == nil {
+				txSwaps.Redemptions = make(map[uint32]*txhelpers.MultichainAtomicSwapData)
+			}
+			txSwaps.Redemptions[uint32(i)] = swapInfo
+			appendFound("Redemption", utils.REDEMPTION_TYPE)
+		}
+	}
+	if len(outputSpenders) == 0 {
+		return txSwaps, nil
+	}
 	// Check if any of this tx's outputs are contracts. Requires the output to
 	// be spent AND the spending input to have the correct sigscript type.
 	for i, vout := range msgTx.TxOut {
@@ -196,14 +219,14 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 			return nil, fmt.Errorf("error checking if tx output is a contract: %v", err)
 		}
 		if contractData != nil {
-			appendFound("Contract")
+			appendFound("Contract", utils.CONTRACT_TYPE)
 			if txSwaps.Contracts == nil {
-				txSwaps.Contracts = make(map[uint32]*AtomicSwapData)
+				txSwaps.Contracts = make(map[uint32]*txhelpers.MultichainAtomicSwapData)
 			}
-			txSwaps.Contracts[uint32(i)] = &AtomicSwapData{
-				ContractTx:       &hash,
+			txSwaps.Contracts[uint32(i)] = &txhelpers.MultichainAtomicSwapData{
+				ContractTx:       hash.String(),
 				ContractVout:     uint32(i),
-				SpendTx:          &spendHash,
+				SpendTx:          spendHash.String(),
 				SpendVin:         spender.Vin,
 				Value:            vout.Value,
 				ContractAddress:  contractData.ContractAddress.String(),
@@ -215,47 +238,6 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 				Contract:         contractScript,
 				IsRefund:         isRefund,
 			}
-		}
-	}
-
-	// Check if any of this tx's inputs are redeems or refunds, i.e. inputs that
-	// spend the output of an atomic swap contract.
-	for i, vin := range msgTx.TxIn {
-		contractData, contractScript, secret, isRefund, err :=
-			ExtractSwapDataFromWitness(vin.Witness, params)
-		if err != nil {
-			return nil, fmt.Errorf("error checking if input redeems a contract: %v", err)
-		}
-		if contractData == nil {
-			continue
-		}
-		swapInfo := &AtomicSwapData{
-			ContractTx:   &vin.PreviousOutPoint.Hash,
-			ContractVout: vin.PreviousOutPoint.Index,
-			SpendTx:      &hash,
-			SpendVin:     uint32(i),
-			// Value:            vin.ValueIn, // lame, caller needs to retrieve the prev tx output
-			ContractAddress:  contractData.ContractAddress.String(),
-			RecipientAddress: contractData.RecipientAddress.String(),
-			RefundAddress:    contractData.RefundAddress.String(),
-			Locktime:         contractData.Locktime,
-			SecretHash:       contractData.SecretHash,
-			Secret:           secret, // should be empty for refund
-			Contract:         contractScript,
-			IsRefund:         isRefund,
-		}
-		if isRefund {
-			if txSwaps.Refunds == nil {
-				txSwaps.Refunds = make(map[uint32]*AtomicSwapData)
-			}
-			txSwaps.Refunds[uint32(i)] = swapInfo
-			appendFound("Refund")
-		} else {
-			if txSwaps.Redemptions == nil {
-				txSwaps.Redemptions = make(map[uint32]*AtomicSwapData)
-			}
-			txSwaps.Redemptions[uint32(i)] = swapInfo
-			appendFound("Redemption")
 		}
 	}
 

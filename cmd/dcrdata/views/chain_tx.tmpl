@@ -34,6 +34,21 @@
                   >
                   {{.Confirmations}}  confirmations
                </div>
+               {{if $.SwapsFound}}
+               {{if and .SwapsList (gt (len .SwapsList) 0)}}
+               <div class="d-inline-block text-white br-10 {{.SwapsType}}-bg px-2 mx-2 fs14">
+                 <div class="d-flex ai-center">
+                   <div class="p-relative d-flex ai-center pair-icons">
+                     <img src="/images/{{$ChainType}}-icon.png" width="20" height="20" class="second-pair">
+                     <img src="/images/dcr-icon.png" width="20" height="20">
+                   </div>
+                   <p>{{$ChainType}}/DCR&nbsp;{{$.SwapsFound}}</p>
+                 </div>
+               </div>
+               {{else}}
+               <div class="d-inline-block text-white px-2 mx-2 fs14">{{$.SwapsFound}}</div>
+               {{end}}
+               {{end}}
             </div>
             <div class="text-start lh1rem py-2">
                <div class="fs13 text-secondary pb-1">Transaction ID</div>
