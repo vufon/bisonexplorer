@@ -1045,7 +1045,11 @@
 						</div>
 						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Source.ContractTx)}}highlight-box{{end}}">
 							<div class="col-24">
-								<div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div>
+								{{if and $.SimpleListMode (eq $.TxID .Source.ContractTx)}}
+									<div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.Source.ContractTx}}{{template "copyTextIcon"}}</div>
+								{{else}}
+									<div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div>
+								{{end}}
 							</div>
 							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Source.ContractHeight}}">{{.Source.ContractHeight}}</a></p>
 							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Source.ContractFees)}} DCR</p>

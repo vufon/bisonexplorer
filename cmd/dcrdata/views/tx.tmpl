@@ -260,7 +260,7 @@
           <tr>
             <td class="text-end medium-sans text-nowrap pe-2 py-2">Swaps Info:
             </td>
-            <td class="text-start py-1 text-secondary"><a href="/api/tx/swaps/{{.TxID}}?indent=true"
+            <td class="text-start py-1 text-secondary"><a class="c-green" href="/api/tx/swaps/{{.TxID}}?indent=true"
                 data-turbolinks="false">swaps</a>
             </td>
           </tr>
@@ -631,11 +631,11 @@
           <img src="/images/{{$targetToken}}-icon.png" width="20" height="20" class="second-pair">
         </div>
         {{end}}
-        <h5>Swap Details</h5>
+        <h5>Swap Details</h5><span class="common-label px-2 text-white ms-2 {{if $.SwapFirstSource.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if $.SwapFirstSource.IsRefund}}Refund{{else}}Redemption{{end}}</span>
       </div>
       {{if $.SwapFirstSource}}
       <p class="fs13 ps-3"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone
-        $.SwapFirstSource.ContractTime}}&nbsp;-&nbsp;<span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone
+        $.SwapFirstSource.ContractTime}}&nbsp;–&nbsp;<span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone
         $.SwapFirstSource.LockTime}}</p>
       {{end}}
       <div class="position-relative">

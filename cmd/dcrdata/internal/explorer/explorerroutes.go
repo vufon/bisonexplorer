@@ -2385,7 +2385,7 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 			vin.TextIsHash = true
 			vin.Link = "/tx/" + vin.Txid + "/out/" + voutStr
 			if swapsInfo.Redemptions[vin.Index] != nil || swapsInfo.Refunds[vin.Index] != nil {
-				vin.DisplayText = "Swap"
+				vin.DisplayText = "swap contract"
 			} else {
 				vin.DisplayText = vin.Txid + ":" + voutStr
 			}
@@ -2396,7 +2396,11 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	for idx := range tx.Vout {
 		vout := &tx.Vout[idx]
 		if swapsInfo.Contracts[vout.Index] != nil {
-			vout.Type = "swap"
+			if swapsInfo.Contracts[vout.Index].IsRefund {
+				vout.Type = "swap refund"
+				continue
+			}
+			vout.Type = "swap redemption"
 		}
 	}
 
