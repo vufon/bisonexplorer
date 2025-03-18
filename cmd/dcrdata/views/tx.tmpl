@@ -5,6 +5,12 @@
 {{template "navbar" . }}
 {{$conv := .Conversions}}
 {{with .Data}}
+{{$targetToken := "" }}
+{{$hasTargetToken := false}}
+{{if $.SwapFirstSource}}
+{{$targetToken = $.SwapFirstSource.TargetToken}}
+{{$hasTargetToken = ne $.SwapFirstSource.TargetToken ""}}
+{{end}}
 <div class="container mt-2" data-controller="time tx" data-tx-txid="{{.TxID}}" data-tx-type="{{.Type}}">
   <nav class="breadcrumbs mt-0">
     <a href="/" class="breadcrumbs__item no-underline ps-2">
@@ -51,20 +57,16 @@
         {{- end}}
         {{if $.SwapsFound}}
         {{if and .SwapsList (gt (len .SwapsList) 0)}}
-        {{$firstItem := index .SwapsList 0}}
-        {{$hasTargetToken := ne $firstItem.Source.TargetToken ""}}
         <div class="d-inline-block text-white br-10 {{.SwapsType}}-bg px-2 mx-2 fs14">
           <div class="d-flex ai-center">
             {{if $hasTargetToken}}
             <div class="p-relative d-flex ai-center pair-icons">
               <img src="/images/dcr-icon.png" width="20" height="20">
-              <img src="/images/{{$firstItem.Source.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
+              <img src="/images/{{$targetToken}}-icon.png" width="20" height="20" class="second-pair">
             </div>
-            {{else}}
-            <img src="/images/synchronize.png" width="20" height="20" class="me-1">
             {{end}}
             <p>{{if $hasTargetToken}}DCR/{{toUpperCase
-              $firstItem.Source.TargetToken}}{{else}}Verifying{{end}}&nbsp;{{$.SwapsFound}}</p>
+              $targetToken}}&nbsp;{{end}}{{$.SwapsFound}}</p>
           </div>
         </div>
         {{else}}
@@ -465,7 +467,7 @@
   </div>
   {{end}}
 
-  <div class="row mb-5">
+  <div class="row mb-3">
     <div class="col-lg-12 mt-4 mb-2">
       <h5 class="pb-2">{{len .Vin}} Input{{if gt (len .Vin) 1}}s{{end}} Consumed</h5>
       <div class="br-8 b--def bgc-plain-bright pb-10">
@@ -619,14 +621,29 @@
       </div>
     </div>
   </div>
+  {{if $.SwapsFound}}
   <div>
     <div class="br-8 b--def bgc-plain-bright pb-10">
-      <h5 class="pt-3 ps-3">Swap Details</h5>
+      <div class="d-flex ai-center pt-3 ps-3">
+        {{if $hasTargetToken}}
+        <div class="p-relative d-flex ai-center pair-icons">
+          <img src="/images/dcr-icon.png" width="20" height="20">
+          <img src="/images/{{$targetToken}}-icon.png" width="20" height="20" class="second-pair">
+        </div>
+        {{end}}
+        <h5>Swap Details</h5>
+      </div>
+      {{if $.SwapFirstSource}}
+      <p class="fs13 ps-3"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone
+        $.SwapFirstSource.ContractTime}}&nbsp;-&nbsp;<span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone
+        $.SwapFirstSource.LockTime}}</p>
+      {{end}}
       <div class="position-relative">
         {{template "atomicSwapsTable" .}}
       </div>
     </div>
   </div>
+  {{end}}
   {{if .VoteInfo}}
   {{with .VoteInfo}}
   <div class="row mb-3">

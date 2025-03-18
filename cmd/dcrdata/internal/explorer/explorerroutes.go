@@ -2350,6 +2350,7 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("Unable to get atomic swap info for transaction %v: %v", tx.TxID, err)
 	}
+	var swapFirstSource *dbtypes.AtomicSwapContractData
 	if swapsInfo == nil {
 		swapsInfo = new(txhelpers.TxSwapResults)
 	} else {
@@ -2361,6 +2362,9 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		tx.SwapsList = relatedContract
+		if len(tx.SwapsList) > 0 {
+			swapFirstSource = tx.SwapsList[0].Source
+		}
 		tx.SwapsType = swapsInfo.SwapType
 		tx.SimpleListMode = true
 	}
@@ -2410,6 +2414,7 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		HighlightInOut       string
 		HighlightInOutID     int64
 		SwapsFound           string
+		SwapFirstSource      *dbtypes.AtomicSwapContractData
 		Conversions          struct {
 			Total *exchanges.Conversion
 			Fees  *exchanges.Conversion
@@ -2422,6 +2427,7 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		IsConfirmedMainchain: isConfirmedMainchain,
 		HighlightInOut:       inout,
 		HighlightInOutID:     inoutid,
+		SwapFirstSource:      swapFirstSource,
 		SwapsFound:           swapsInfo.Found,
 	}
 
