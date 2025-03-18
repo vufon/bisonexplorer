@@ -1005,7 +1005,7 @@
 			<!-- Only 1 column -->
 			<td>
 				{{$hasTargetToken := (ne .Source.TargetToken "")}}
-				<div class="d-md-flex ai-center justify-content-between pb-1 border-2-bottom-grey">
+				<div class="pb-1 border-2-bottom-grey">
 				<div class="d-flex ai-center fw-600 fs15">
 					{{if eq $.SimpleListMode false}}
 					<div class="d-flex ai-center">
@@ -1031,10 +1031,8 @@
 					{{end}}
 				</div>
 				{{if eq $.SimpleListMode false}}
-				<div>
-					<p class="fs13"><span class="mw-70px d-inline-block">Created At:</span> {{dateTimeWithoutTimeZone .Source.ContractTime}}</p>
-					<p class="fs13"><span class="mw-70px d-inline-block">Locked At:</span> {{dateTimeWithoutTimeZone .Source.LockTime}}</p>
-				</div>
+				<p class="fs13"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone .Source.ContractTime}}&nbsp;–&nbsp;
+					<span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone .Source.LockTime}}</p>
 				{{end}}
 				</div>
 				<div class="row mt-3">
