@@ -6,11 +6,7 @@
 {{$conv := .Conversions}}
 {{with .Data}}
 {{$targetToken := "" }}
-{{$hasTargetToken := false}}
-{{if and $.SwapsFound $.SwapFirstSource}}
-{{$targetToken = $.SwapFirstSource.TargetToken}}
-{{$hasTargetToken = ne $.SwapFirstSource.TargetToken ""}}
-{{end}}
+{{$hasTargetToken := ne $.TargetToken ""}}
 <div class="container mt-2" data-controller="time tx" data-tx-txid="{{.TxID}}" data-tx-type="{{.Type}}">
   <nav class="breadcrumbs mt-0">
     <a href="/" class="breadcrumbs__item no-underline ps-2">
@@ -62,11 +58,11 @@
             {{if $hasTargetToken}}
             <div class="p-relative d-flex ai-center pair-icons">
               <img src="/images/dcr-icon.png" width="20" height="20">
-              <img src="/images/{{$targetToken}}-icon.png" width="20" height="20" class="second-pair">
+              <img src="/images/{{$.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
             </div>
             {{end}}
             <p>{{if $hasTargetToken}}DCR/{{toUpperCase
-              $targetToken}}&nbsp;{{end}}{{$.SwapsFound}}</p>
+              $.TargetToken}}&nbsp;{{end}}{{$.SwapsFound}}</p>
           </div>
         </div>
         {{else}}
@@ -628,16 +624,11 @@
         {{if $hasTargetToken}}
         <div class="p-relative d-flex ai-center pair-icons">
           <img src="/images/dcr-icon.png" width="20" height="20">
-          <img src="/images/{{$targetToken}}-icon.png" width="20" height="20" class="second-pair">
+          <img src="/images/{{$.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
         </div>
         {{end}}
-        <h5>Swap Details</h5><span class="common-label px-2 text-white ms-2 {{if $.SwapFirstSource.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if $.SwapFirstSource.IsRefund}}Refund{{else}}Redemption{{end}}</span>
+        <h5>Swap Details</h5><span class="common-label px-2 text-white ms-2 {{if $.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if $.IsRefund}}Refund{{else}}Redemption{{end}}</span>
       </div>
-      {{if $.SwapFirstSource}}
-      <p class="fs13 ps-3"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone
-        $.SwapFirstSource.ContractTime}}&nbsp;–&nbsp;<span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone
-        $.SwapFirstSource.LockTime}}</p>
-      {{end}}
       <div class="position-relative">
         {{template "atomicSwapsTable" .}}
       </div>

@@ -1891,8 +1891,26 @@ func UncompactMergedRows(merged []*AddressRowMerged) []*AddressRow {
 // Source: From Token (DCR)
 // Target: Target Token (LTC/BTC/...)
 type AtomicSwapFullData struct {
-	Source *AtomicSwapContractData
-	Target *AtomicSwapContractData
+	IsRefund    bool
+	TargetToken string
+	Source      *AtomicSwapForTokenData
+	Target      *AtomicSwapForTokenData
+}
+
+type AtomicSwapForTokenData struct {
+	TotalAmount int64
+	Contracts   []*AtomicSwapTxData
+	Results     []*AtomicSwapTxData
+}
+
+type AtomicSwapTxData struct {
+	Txid   string
+	Fees   int64
+	Time   int64
+	Height int64
+	Value  int64
+	Vin    int64
+	Vout   int64
 }
 
 type AtomicSwapContractData struct {
@@ -1930,7 +1948,7 @@ type TokenAtomicSwapData struct {
 	TargetToken      string
 }
 
-type SimpleContractInfo struct {
+type SimpleGroupInfo struct {
 	ContractTx  string
 	TargetToken string
 }

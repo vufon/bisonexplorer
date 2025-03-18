@@ -3626,7 +3626,7 @@ func retrieveTotalAgendaVotesCount(ctx context.Context, db *sql.DB, agendaID str
 }
 
 // --- atomic swap tables
-func InsertSwap(db SqlExecutor, ctx context.Context, bg BlockGetter, spendHeight int64, swapInfo *txhelpers.AtomicSwapData, isRefund bool) error {
+func InsertSwap(db SqlExecQueryer, ctx context.Context, bg BlockGetter, spendHeight int64, swapInfo *txhelpers.AtomicSwapData, isRefund bool) error {
 	var secret interface{} // only nil interface stores a NULL, not even nil slice
 	if len(swapInfo.Secret) > 0 {
 		secret = swapInfo.Secret
@@ -3640,11 +3640,38 @@ func InsertSwap(db SqlExecutor, ctx context.Context, bg BlockGetter, spendHeight
 	if err != nil {
 		return err
 	}
+	// get group tx
+	groupTx, err := GetSwapGroupTx(db, swapInfo.ContractTx.String(), swapInfo.SpendTx.String())
+	if err != nil {
+		return err
+	}
 	_, err = db.Exec(internal.InsertContractSpend, swapInfo.ContractTx.String(), rawContract.Time, swapInfo.ContractVout,
 		swapInfo.SpendTx.String(), swapInfo.SpendVin, spendHeight,
 		swapInfo.ContractAddress, swapInfo.Value,
-		swapInfo.SecretHash[:], secret, swapInfo.Locktime, isRefund)
+		swapInfo.SecretHash[:], secret, swapInfo.Locktime, isRefund, groupTx)
 	return err
+}
+
+// GetSwapGroupTx return group tx of contractTx or spentTx
+func GetSwapGroupTx(db SqlExecQueryer, contractTx, spentTx string) (string, error) {
+	// check contractTx or spentTx exist on swaps table
+	var groupTx sql.NullString
+	err := db.QueryRow(internal.SelectSwapGroupTx, contractTx, spentTx).Scan(&groupTx)
+	if err != nil && err != sql.ErrNoRows {
+		return "", err
+	}
+	var groupTxString string
+	if err == sql.ErrNoRows {
+		groupTxString = contractTx
+		return groupTxString, nil
+	}
+	if groupTx.Valid {
+		groupTxString = groupTx.String
+	}
+	if groupTxString == "" {
+		groupTxString = contractTx
+	}
+	return groupTxString, nil
 }
 
 // --- btc atomic swap tables

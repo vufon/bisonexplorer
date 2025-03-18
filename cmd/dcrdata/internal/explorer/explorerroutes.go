@@ -1620,34 +1620,40 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 		tx.Time = types.NewTimeDefFromUNIX(exp.dataSource.GetMutilchainMempoolTxTime(tx.TxID, chainType))
 	}
 	// TODO: Find atomic swaps related to this tx
-	// swapsInfo, err := exp.GetMultichainAtomicSwapsInfo(tx, chainType)
-	// if err != nil {
-	// 	log.Errorf("Unable to get atomic swap info for transaction %v: %v", tx.TxID, err)
-	// }
-	// var swapFirstSource *dbtypes.AtomicSwapContractData
-	// if swapsInfo == nil {
-	// 	swapsInfo = new(txhelpers.MultichainTxSwapResults)
-	// } else {
-	// 	// check and get detail Swap data
-	// 	relatedContract, err := exp.dataSource.GetMultichainSwapFullData(tx.TxID, swapsInfo.SwapType, chainType)
-	// 	if err != nil {
-	// 		log.Errorf("Unable to get list of contracts related to transaction %v: %v", tx.TxID, err)
-	// 		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-	// 		return
-	// 	}
-	// 	tx.SwapsList = relatedContract
-	// 	if len(tx.SwapsList) > 0 {
-	// 		swapFirstSource = tx.SwapsList[0].Source
-	// 	}
-	// 	tx.SwapsType = swapsInfo.SwapType
-	// 	tx.SimpleListMode = true
-	// }
+	swapsInfo, err := exp.GetMultichainAtomicSwapsInfo(tx, chainType)
+	if err != nil {
+		log.Errorf("Unable to get atomic swap info for transaction %v: %v", tx.TxID, err)
+	}
+	var swapFirstSource *dbtypes.AtomicSwapForTokenData
+	var targetToken string
+	var isRefund bool
+	if swapsInfo == nil {
+		swapsInfo = new(txhelpers.MultichainTxSwapResults)
+	} else {
+		// check and get detail Swap data
+		relatedContract, err := exp.dataSource.GetMultichainSwapFullData(tx.TxID, swapsInfo.SwapType, chainType)
+		if err != nil {
+			log.Errorf("Unable to get list of contracts related to transaction %v: %v", tx.TxID, err)
+			exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+			return
+		}
+		tx.SwapsList = relatedContract
+		if len(tx.SwapsList) > 0 {
+			swapFirstSource = tx.SwapsList[0].Source
+			targetToken = tx.SwapsList[0].TargetToken
+			isRefund = tx.SwapsList[0].IsRefund
+		}
+		tx.SwapsType = swapsInfo.SwapType
+		tx.SimpleListMode = true
+	}
 	pageData := struct {
 		*CommonPageData
 		Data            *types.TxInfo
 		ChainType       string
 		SwapsFound      string
-		SwapFirstSource *dbtypes.AtomicSwapContractData
+		SwapFirstSource *dbtypes.AtomicSwapForTokenData
+		TargetToken     string
+		IsRefund        bool
 		Conversions     struct {
 			Total *exchanges.Conversion
 			Fees  *exchanges.Conversion
@@ -1657,7 +1663,9 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 		Data:            tx,
 		ChainType:       chainType,
 		SwapsFound:      "",
-		SwapFirstSource: nil,
+		SwapFirstSource: swapFirstSource,
+		TargetToken:     targetToken,
+		IsRefund:        isRefund,
 	}
 	// Get a fiat-converted value for the total and the fees.
 	if exp.xcBot != nil {
@@ -2383,7 +2391,9 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("Unable to get atomic swap info for transaction %v: %v", tx.TxID, err)
 	}
-	var swapFirstSource *dbtypes.AtomicSwapContractData
+	var swapFirstSource *dbtypes.AtomicSwapForTokenData
+	var targetToken string
+	var isRefund bool
 	if swapsInfo == nil {
 		swapsInfo = new(txhelpers.TxSwapResults)
 	} else {
@@ -2397,6 +2407,8 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		tx.SwapsList = relatedContract
 		if len(tx.SwapsList) > 0 {
 			swapFirstSource = tx.SwapsList[0].Source
+			targetToken = tx.SwapsList[0].TargetToken
+			isRefund = tx.SwapsList[0].IsRefund
 		}
 		tx.SwapsType = swapsInfo.SwapType
 		tx.SimpleListMode = true
@@ -2451,7 +2463,9 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		HighlightInOut       string
 		HighlightInOutID     int64
 		SwapsFound           string
-		SwapFirstSource      *dbtypes.AtomicSwapContractData
+		SwapFirstSource      *dbtypes.AtomicSwapForTokenData
+		TargetToken          string
+		IsRefund             bool
 		Conversions          struct {
 			Total *exchanges.Conversion
 			Fees  *exchanges.Conversion
@@ -2466,6 +2480,8 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		HighlightInOutID:     inoutid,
 		SwapFirstSource:      swapFirstSource,
 		SwapsFound:           swapsInfo.Found,
+		TargetToken:          targetToken,
+		IsRefund:             isRefund,
 	}
 
 	// Get a fiat-converted value for the total and the fees.

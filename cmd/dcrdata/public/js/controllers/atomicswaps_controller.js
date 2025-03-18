@@ -232,6 +232,14 @@ export default class extends Controller {
     this.fetchTable(this.pageSize, this.paginationParams.offset)
   }
 
+  onTypeChange (e) {
+    if (!e.target.value || e.target.value === '') {
+      return
+    }
+    this.searchBtnTarget.classList.remove('d-none')
+    this.clearSearchBtnTarget.classList.add('d-none')
+  }
+
   drawGraph () {
     const settings = ctrl.settings
     ctrl.noconfirmsTarget.classList.add('d-hide')

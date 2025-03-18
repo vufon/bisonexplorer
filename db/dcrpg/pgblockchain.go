@@ -3205,71 +3205,165 @@ func (pgb *ChainDB) GetAtomicSwapsContractTxsQuery(pair, status, searchKey strin
 	return internal.MakeSelectAtomicSwapsContractTxsWithFilter(pair, status)
 }
 
-// GetContractDetailOutputs return all detail data of contract
-func (pgb *ChainDB) GetContractDetailOutputs(contractTx, targetTokenString string) (*dbtypes.AtomicSwapFullData, error) {
+// GetAtomicSwapsContractGroupQuery return query for get atomic swap contract tx list
+func (pgb *ChainDB) GetAtomicSwapsContractGroupQuery(pair, status, searchKey string) string {
+	if searchKey != "" {
+		return internal.MakeSelectAtomicSwapsContractGroupWithSearchFilter(pair, status)
+	}
+	return internal.MakeSelectAtomicSwapsContractGroupWithFilter(pair, status)
+}
+
+func (pgb *ChainDB) GetSwapFullDataByContractTx(contractTx string) (spends []*dbtypes.AtomicSwapTxData, err error) {
+	// get contract spends data
 	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectContractDetailOutputs, contractTx)
+	rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectAtomicSpendsByContractTx, contractTx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var spendData dbtypes.AtomicSwapTxData
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		if err != nil {
+			return
+		}
+		spends = append(spends, &spendData)
+	}
+	err = rows.Err()
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (pgb *ChainDB) GetLTCSwapFullDataByContractTx(contractTx string) (spends []*dbtypes.AtomicSwapTxData, err error) {
+	// get contract spends data
+	var rows *sql.Rows
+	rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectLTCAtomicSpendsByContractTx, contractTx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var spendData dbtypes.AtomicSwapTxData
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		if err != nil {
+			return
+		}
+		spends = append(spends, &spendData)
+	}
+	err = rows.Err()
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (pgb *ChainDB) GetBTCSwapFullDataByContractTx(contractTx string) (spends []*dbtypes.AtomicSwapTxData, err error) {
+	// get contract spends data
+	var rows *sql.Rows
+	rows, err = pgb.db.QueryContext(pgb.ctx, internal.SelectBTCAtomicSpendsByContractTx, contractTx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var spendData dbtypes.AtomicSwapTxData
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		if err != nil {
+			return
+		}
+		spends = append(spends, &spendData)
+	}
+	err = rows.Err()
+	if err != nil {
+		return
+	}
+	return
+}
+
+// GetContractDetailOutputs return all detail data of contract
+func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string) (*dbtypes.AtomicSwapFullData, error) {
+	var isRefund bool
+	err := pgb.db.QueryRow(internal.CheckSwapIsRefund, groupTx).Scan(&isRefund)
+	if err != nil {
+		return nil, err
+	}
+	cSwapData := &dbtypes.AtomicSwapFullData{
+		TargetToken: targetTokenString,
+		IsRefund:    isRefund,
+		Source: &dbtypes.AtomicSwapForTokenData{
+			Contracts: make([]*dbtypes.AtomicSwapTxData, 0),
+			Results:   make([]*dbtypes.AtomicSwapTxData, 0),
+		},
+	}
+	// Get contract txs with
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectContractListByGroupTx, groupTx)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	results := dbtypes.AtomicSwapFullData{}
-	sourceData := dbtypes.AtomicSwapContractData{}
-	sourceData.OutspendSwapData = make([]*dbtypes.TokenAtomicSwapData, 0)
-	totalAmount := int64(0)
 	for rows.Next() {
-		var scretHash []byte
-		var targetToken sql.NullString
-		var swapInfo dbtypes.TokenAtomicSwapData
-		err = rows.Scan(&swapInfo.ContractTx, &swapInfo.ContractTime, &swapInfo.ContractVout, &swapInfo.SpendTx,
-			&swapInfo.SpendVin, &swapInfo.SpendHeight, &swapInfo.ContractAddress, &swapInfo.Value, &scretHash,
-			&swapInfo.Secret, &swapInfo.Locktime, &targetToken, &swapInfo.IsRefund)
+		var contractData dbtypes.AtomicSwapTxData
+		err = rows.Scan(&contractData.Txid, &contractData.Time, &contractData.Value)
 		if err != nil {
 			return nil, err
 		}
-		copy(swapInfo.SecretHash[:], scretHash)
-		totalAmount += swapInfo.Value
-		swapInfo.SpendTime = swapInfo.Locktime
-		sourceData.OutspendSwapData = append(sourceData.OutspendSwapData, &swapInfo)
+		// get spends of contract
+		spendDatas, err := pgb.GetSwapFullDataByContractTx(contractData.Txid)
+		if err != nil {
+			return nil, err
+		}
+		// check and insert to Source spends data
+		for _, spend := range spendDatas {
+			exist := false
+			for index, existSpend := range cSwapData.Source.Results {
+				if spend.Txid == existSpend.Txid {
+					exist = true
+					existSpend.Value += spend.Value
+					cSwapData.Source.Results[index] = existSpend
+					break
+				}
+			}
+			if !exist {
+				cSwapData.Source.Results = append(cSwapData.Source.Results, spend)
+			}
+		}
+		contractTxHash, err := chainhash.NewHashFromStr(contractData.Txid)
+		if err != nil {
+			return nil, err
+		}
+		contractTxRaw, err := pgb.Client.GetRawTransactionVerbose(pgb.ctx, contractTxHash)
+		if err != nil {
+			return nil, err
+		}
+		contractData.Height = contractTxRaw.BlockHeight
+		contractFees, err := txhelpers.GetTxFee(contractTxRaw)
+		if err != nil {
+			return nil, err
+		}
+		contractData.Fees = int64(contractFees)
+		cSwapData.Source.TotalAmount += contractData.Value
+		cSwapData.Source.Contracts = append(cSwapData.Source.Contracts, &contractData)
 	}
 	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
-	if len(sourceData.OutspendSwapData) == 0 {
-		return nil, fmt.Errorf("get outspending swap data failed")
-	}
-	sourceData.ContractTx = contractTx
-	sourceData.TargetToken = targetTokenString
-	sourceData.ContractTime = sourceData.OutspendSwapData[0].ContractTime
-	sourceData.TotalAmount = totalAmount
-	sourceData.IsRefund = sourceData.OutspendSwapData[0].IsRefund
-	sourceData.LockTime = sourceData.OutspendSwapData[0].Locktime
-	contractTxHash, err := chainhash.NewHashFromStr(contractTx)
-	if err != nil {
-		return nil, err
-	}
-	contractTxRaw, err := pgb.Client.GetRawTransactionVerbose(pgb.ctx, contractTxHash)
-	if err != nil {
-		return nil, err
-	}
-	sourceData.ContractHeight = contractTxRaw.BlockHeight
-	contractFees, err := txhelpers.GetTxFee(contractTxRaw)
-	if err != nil {
-		return nil, err
-	}
-	sourceData.ContractFees = int64(contractFees)
-	results.Source = &sourceData
 	// Get remaining token swap info on pair
-	targetData := &dbtypes.AtomicSwapContractData{}
+	targetData := &dbtypes.AtomicSwapForTokenData{}
 	switch targetTokenString {
 	case mutilchain.TYPEBTC:
-		targetData, _ = pgb.GetBTCAtomicSwapTarget(contractTx)
+		targetData, _ = pgb.GetBTCAtomicSwapTarget(groupTx)
 	case mutilchain.TYPELTC:
-		targetData, _ = pgb.GetLTCAtomicSwapTarget(contractTx)
+		targetData, _ = pgb.GetLTCAtomicSwapTarget(groupTx)
 	}
-	results.Target = targetData
-	return &results, nil
+	cSwapData.Target = targetData
+	// get swap data for decred by contract list
+	return cSwapData, nil
 }
 
 // GetAtomicSwapList fetches filtered atomic swap list.
@@ -3288,11 +3382,11 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 		return
 	}
 	var rows *sql.Rows
-	atomicSwapsContractTxQuery := pgb.GetAtomicSwapsContractTxsQuery(pair, status, searchKey)
+	atomicSwapsContractGroupQuery := pgb.GetAtomicSwapsContractGroupQuery(pair, status, searchKey)
 	if searchKey != "" {
-		rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsContractTxQuery, searchKey, n, offset)
+		rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsContractGroupQuery, searchKey, n, offset)
 	} else {
-		rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsContractTxQuery, n, offset)
+		rows, err = pgb.db.QueryContext(pgb.ctx, atomicSwapsContractGroupQuery, n, offset)
 	}
 
 	if err != nil {
@@ -3301,9 +3395,10 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 
 	defer rows.Close()
 	for rows.Next() {
-		var contractTx string
+		var groupTx string
 		var targetToken sql.NullString
-		err = rows.Scan(&contractTx, &targetToken)
+		var isRefund bool
+		err = rows.Scan(&groupTx, &targetToken, &isRefund)
 		if err != nil {
 			return
 		}
@@ -3312,7 +3407,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 			targetTokenString = targetToken.String
 		}
 		var swapItem *dbtypes.AtomicSwapFullData
-		swapItem, err = pgb.GetContractDetailOutputs(contractTx, targetTokenString)
+		swapItem, err = pgb.GetContractSwapDataByGroup(groupTx, targetTokenString)
 		if err != nil {
 			return
 		}
@@ -3343,127 +3438,154 @@ func (pgb *ChainDB) CountRefundContract() (int64, error) {
 }
 
 // GetBTCAtomicSwapTarget return atomic swap detail of BTC
-func (pgb *ChainDB) GetBTCAtomicSwapTarget(decredContractTx string) (*dbtypes.AtomicSwapContractData, error) {
-	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectAtomicBtcSwapsWithDcrContractTx, decredContractTx)
+func (pgb *ChainDB) GetBTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapForTokenData, error) {
+	targetData := &dbtypes.AtomicSwapForTokenData{
+		Contracts: make([]*dbtypes.AtomicSwapTxData, 0),
+		Results:   make([]*dbtypes.AtomicSwapTxData, 0),
+	}
+	// Get contract txs with
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectBTCContractListByGroupTx, groupTx)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	result := &dbtypes.AtomicSwapContractData{}
-	result.OutspendSwapData = make([]*dbtypes.TokenAtomicSwapData, 0)
-	totalAmount := int64(0)
 	for rows.Next() {
-		var swapInfo dbtypes.TokenAtomicSwapData
-		var decredContractTx string
-		var scretHash []byte
-		err = rows.Scan(&swapInfo.ContractTx, &decredContractTx, &swapInfo.ContractVout, &swapInfo.SpendTx,
-			&swapInfo.SpendVin, &swapInfo.SpendHeight, &swapInfo.ContractAddress, &swapInfo.Value, &scretHash,
-			&swapInfo.Secret, &swapInfo.Locktime)
+		var contractData dbtypes.AtomicSwapTxData
+		err = rows.Scan(&contractData.Txid, &contractData.Value)
 		if err != nil {
 			return nil, err
 		}
-		copy(swapInfo.SecretHash[:], scretHash)
-		totalAmount += swapInfo.Value
-		swapInfo.SpendTime = swapInfo.Locktime
-		result.OutspendSwapData = append(result.OutspendSwapData, &swapInfo)
+		// get spends of contract
+		spendDatas, err := pgb.GetBTCSwapFullDataByContractTx(contractData.Txid)
+		if err != nil {
+			return nil, err
+		}
+		// check and insert to Source spends data
+		for _, spend := range spendDatas {
+			exist := false
+			for index, existSpend := range targetData.Results {
+				if spend.Txid == existSpend.Txid {
+					exist = true
+					existSpend.Value += spend.Value
+					targetData.Results[index] = existSpend
+					break
+				}
+			}
+			if !exist {
+				targetData.Results = append(targetData.Results, spend)
+			}
+		}
+
+		contractTxHash, err := btc_chainhash.NewHashFromStr(contractData.Txid)
+		if err != nil {
+			return nil, err
+		}
+		contractTxRaw, err := pgb.BtcClient.GetRawTransactionVerbose(contractTxHash)
+		if err != nil {
+			return nil, err
+		}
+		targetTxRaw, err := pgb.BtcClient.GetRawTransaction(contractTxHash)
+		if err != nil {
+			return nil, err
+		}
+		targetBlockHash, err := btc_chainhash.NewHashFromStr(contractTxRaw.BlockHash)
+		if err != nil {
+			return nil, err
+		}
+		targetBlockHeader, err := pgb.BtcClient.GetBlockHeaderVerbose(targetBlockHash)
+		if err != nil {
+			return nil, err
+		}
+		contractData.Height = int64(targetBlockHeader.Height)
+		contractFees, err := txhelpers.CalculateBTCTxFee(pgb.BtcClient, targetTxRaw.MsgTx())
+		if err != nil {
+			return nil, err
+		}
+		contractData.Fees = int64(contractFees)
+		contractData.Time = targetBlockHeader.Time
+		targetData.TotalAmount += contractData.Value
+		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
-	if len(result.OutspendSwapData) == 0 {
-		return nil, fmt.Errorf("get BTC outspending swap data failed: DCR Contract tx %s", decredContractTx)
-	}
-	result.ContractTx = result.OutspendSwapData[0].ContractTx
-	result.TotalAmount = totalAmount
-	targetTxHash, err := btc_chainhash.NewHashFromStr(result.ContractTx)
+	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
-	targetTxRaw, err := pgb.BtcClient.GetRawTransaction(targetTxHash)
-	if err != nil {
-		return nil, err
-	}
-	rawContract, err := pgb.BtcClient.GetRawTransactionVerbose(targetTxHash)
-	if err != nil {
-		return nil, err
-	}
-	targetBlockHash, err := btc_chainhash.NewHashFromStr(rawContract.BlockHash)
-	if err != nil {
-		return nil, err
-	}
-	targetBlockHeader, err := pgb.BtcClient.GetBlockHeaderVerbose(targetBlockHash)
-	if err != nil {
-		return nil, err
-	}
-	result.ContractTime = targetBlockHeader.Time
-	result.ContractHeight = int64(targetBlockHeader.Height)
-	contractFees, err := txhelpers.CalculateBTCTxFee(pgb.BtcClient, targetTxRaw.MsgTx())
-	if err != nil {
-		return nil, err
-	}
-	result.ContractFees = int64(contractFees)
-	return result, nil
+	return targetData, nil
 }
 
 // GetLTCAtomicSwapTarget return atomic swap detail of LTC
-func (pgb *ChainDB) GetLTCAtomicSwapTarget(decredContractTx string) (*dbtypes.AtomicSwapContractData, error) {
-	var rows *sql.Rows
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectAtomicLtcSwapsWithDcrContractTx, decredContractTx)
+func (pgb *ChainDB) GetLTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapForTokenData, error) {
+	targetData := &dbtypes.AtomicSwapForTokenData{
+		Contracts: make([]*dbtypes.AtomicSwapTxData, 0),
+		Results:   make([]*dbtypes.AtomicSwapTxData, 0),
+	}
+	// Get contract txs with
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectLTCContractListByGroupTx, groupTx)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-
-	result := &dbtypes.AtomicSwapContractData{}
-	result.OutspendSwapData = make([]*dbtypes.TokenAtomicSwapData, 0)
-	totalAmount := int64(0)
 	for rows.Next() {
-		var swapInfo dbtypes.TokenAtomicSwapData
-		var decredContractTx string
-		var scretHash []byte
-		err = rows.Scan(&swapInfo.ContractTx, &decredContractTx, &swapInfo.ContractVout, &swapInfo.SpendTx,
-			&swapInfo.SpendVin, &swapInfo.SpendHeight, &swapInfo.ContractAddress, &swapInfo.Value, &scretHash,
-			&swapInfo.Secret, &swapInfo.Locktime)
+		var contractData dbtypes.AtomicSwapTxData
+		err = rows.Scan(&contractData.Txid, &contractData.Value)
 		if err != nil {
 			return nil, err
 		}
-		copy(swapInfo.SecretHash[:], scretHash)
-		totalAmount += swapInfo.Value
-		swapInfo.SpendTime = swapInfo.Locktime
-		result.OutspendSwapData = append(result.OutspendSwapData, &swapInfo)
+		// get spends of contract
+		spendDatas, err := pgb.GetLTCSwapFullDataByContractTx(contractData.Txid)
+		if err != nil {
+			return nil, err
+		}
+		// check and insert to Source spends data
+		for _, spend := range spendDatas {
+			exist := false
+			for index, existSpend := range targetData.Results {
+				if spend.Txid == existSpend.Txid {
+					exist = true
+					existSpend.Value += spend.Value
+					targetData.Results[index] = existSpend
+					break
+				}
+			}
+			if !exist {
+				targetData.Results = append(targetData.Results, spend)
+			}
+		}
+
+		contractTxHash, err := ltc_chainhash.NewHashFromStr(contractData.Txid)
+		if err != nil {
+			return nil, err
+		}
+		contractTxRaw, err := pgb.LtcClient.GetRawTransactionVerbose(contractTxHash)
+		if err != nil {
+			return nil, err
+		}
+		targetTxRaw, err := pgb.LtcClient.GetRawTransaction(contractTxHash)
+		if err != nil {
+			return nil, err
+		}
+		targetBlockHash, err := ltc_chainhash.NewHashFromStr(contractTxRaw.BlockHash)
+		if err != nil {
+			return nil, err
+		}
+		targetBlockHeader, err := pgb.LtcClient.GetBlockHeaderVerbose(targetBlockHash)
+		if err != nil {
+			return nil, err
+		}
+		contractData.Height = int64(targetBlockHeader.Height)
+		contractFees, err := txhelpers.CalculateLTCTxFee(pgb.LtcClient, targetTxRaw.MsgTx())
+		if err != nil {
+			return nil, err
+		}
+		contractData.Fees = int64(contractFees)
+		contractData.Time = targetBlockHeader.Time
+		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
-	if len(result.OutspendSwapData) == 0 {
-		return nil, fmt.Errorf("get LTC outspending swap data failed: DCR Contract tx %s", decredContractTx)
-	}
-	result.ContractTx = result.OutspendSwapData[0].ContractTx
-	result.TotalAmount = totalAmount
-	targetTxHash, err := ltc_chainhash.NewHashFromStr(result.ContractTx)
+	err = rows.Err()
 	if err != nil {
 		return nil, err
 	}
-	targetTxRaw, err := pgb.LtcClient.GetRawTransaction(targetTxHash)
-	if err != nil {
-		return nil, err
-	}
-	rawContract, err := pgb.LtcClient.GetRawTransactionVerbose(targetTxHash)
-	if err != nil {
-		return nil, err
-	}
-	targetBlockHash, err := ltc_chainhash.NewHashFromStr(rawContract.BlockHash)
-	if err != nil {
-		return nil, err
-	}
-	targetBlockHeader, err := pgb.LtcClient.GetBlockHeaderVerbose(targetBlockHash)
-	if err != nil {
-		return nil, err
-	}
-	result.ContractTime = targetBlockHeader.Time
-	result.ContractHeight = int64(targetBlockHeader.Height)
-	contractFees, err := txhelpers.CalculateLTCTxFee(pgb.LtcClient, targetTxRaw.MsgTx())
-	if err != nil {
-		return nil, err
-	}
-	result.ContractFees = int64(contractFees)
-	return result, nil
+	return targetData, nil
 }
 
 func (pgb *ChainDB) TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error) {
@@ -8737,56 +8859,35 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 }
 
 func (pgb *ChainDB) GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error) {
-	result := make([]*dbtypes.SimpleContractInfo, 0)
+	result := make([]*dbtypes.SimpleGroupInfo, 0)
+	var query string
 	if swapType != utils.CONTRACT_TYPE {
-		// get contract tx list from spend_tx
-		rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectContractTxsFromSpendTx, txid)
-		if err != nil {
-			return nil, err
-		}
-		defer rows.Close()
-		for rows.Next() {
-			var contractTx string
-			var targetToken sql.NullString
-			err = rows.Scan(&contractTx, &targetToken)
-			if err != nil {
-				return nil, err
-			}
-			targetTokenString := ""
-			if targetToken.Valid {
-				targetTokenString = targetToken.String
-			}
-			result = append(result, &dbtypes.SimpleContractInfo{
-				ContractTx:  contractTx,
-				TargetToken: targetTokenString,
-			})
-		}
-		err = rows.Err()
-		if err != nil {
-			return nil, err
-		}
+		query = internal.SelectGroupTxBySpendTx
 	} else {
-		// get contract simple info
-		var targetToken sql.NullString
-		err := pgb.db.QueryRow(internal.SelectTargetTokenOfContract, txid).Scan(&targetToken)
-		if err != nil {
-			return nil, err
-		}
-		targetTokenString := ""
-		if targetToken.Valid {
-			targetTokenString = targetToken.String
-		}
-		result = append(result, &dbtypes.SimpleContractInfo{
-			ContractTx:  txid,
-			TargetToken: targetTokenString,
-		})
+		query = internal.SelectTargetTokenOfContract
 	}
+
+	// get contract simple info
+	var targetToken sql.NullString
+	var groupTx string
+	err := pgb.db.QueryRow(query, txid).Scan(&targetToken, &groupTx)
+	if err != nil {
+		return nil, err
+	}
+	targetTokenString := ""
+	if targetToken.Valid {
+		targetTokenString = targetToken.String
+	}
+	result = append(result, &dbtypes.SimpleGroupInfo{
+		ContractTx:  groupTx,
+		TargetToken: targetTokenString,
+	})
 	return pgb.GetSwapDataByContractTxs(result)
 }
 
 // GetMultichainSwapFullData return swap full data with multichain spendtx/contractx
 func (pgb *ChainDB) GetMultichainSwapFullData(txid, swapType, chainType string) ([]*dbtypes.AtomicSwapFullData, error) {
-	result := make([]*dbtypes.SimpleContractInfo, 0)
+	result := make([]*dbtypes.SimpleGroupInfo, 0)
 	var query string
 	if swapType == utils.CONTRACT_TYPE {
 		query = fmt.Sprintf(internal.SelectDecredContractTxsFromMultichainContractTx, chainType)
@@ -8800,13 +8901,14 @@ func (pgb *ChainDB) GetMultichainSwapFullData(txid, swapType, chainType string) 
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var contractTx string
-		err = rows.Scan(&contractTx)
+		var groupTx string
+		err = rows.Scan(&groupTx)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, &dbtypes.SimpleContractInfo{
-			ContractTx:  contractTx,
+		// check isRefund of decred contract tx
+		result = append(result, &dbtypes.SimpleGroupInfo{
+			ContractTx:  groupTx,
 			TargetToken: chainType,
 		})
 	}
@@ -8817,10 +8919,10 @@ func (pgb *ChainDB) GetMultichainSwapFullData(txid, swapType, chainType string) 
 	return pgb.GetSwapDataByContractTxs(result)
 }
 
-func (pgb *ChainDB) GetSwapDataByContractTxs(contractTxs []*dbtypes.SimpleContractInfo) (result []*dbtypes.AtomicSwapFullData, err error) {
-	for _, contractTx := range contractTxs {
+func (pgb *ChainDB) GetSwapDataByContractTxs(groupInfos []*dbtypes.SimpleGroupInfo) (result []*dbtypes.AtomicSwapFullData, err error) {
+	for _, contractTx := range groupInfos {
 		var swapItem *dbtypes.AtomicSwapFullData
-		swapItem, err = pgb.GetContractDetailOutputs(contractTx.ContractTx, contractTx.TargetToken)
+		swapItem, err = pgb.GetContractSwapDataByGroup(contractTx.ContractTx, contractTx.TargetToken)
 		if err != nil {
 			return
 		}
