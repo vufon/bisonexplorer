@@ -5,6 +5,8 @@ const (
 	CONTRACT_TYPE   = "contract"
 	REDEMPTION_TYPE = "redemption"
 	REFUND_TYPE     = "refund"
+
+	TimeFmt = "2006-01-02 15:04:05 (MST)"
 )
 
 var AgendasDetail = map[string][]string{

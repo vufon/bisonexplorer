@@ -162,7 +162,10 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		})
 		r.With(m.TransactionHashCtx).Get("/hex/{txid}", app.getTransactionHex)
 		r.With(m.TransactionHashCtx).Get("/decoded/{txid}", app.getDecodedTx)
+		r.With(m.MultichainTxHashCtx).Get("/hex/{chaintype}/{txid}", app.getMultichainTransactionHex)
+		r.With(m.MultichainTxHashCtx).Get("/decoded/{chaintype}/{txid}", app.getMultichainDecodedTx)
 		r.With(m.TransactionHashCtx).Get("/swaps/{txid}", app.getTxSwapsInfo)
+		r.With(m.MultichainTxHashCtx).Get("/swaps/{chaintype}/{txid}", app.getMultichainTxSwapsInfo)
 	})
 
 	mux.Route("/txs", func(r chi.Router) {

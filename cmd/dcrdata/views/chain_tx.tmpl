@@ -21,7 +21,7 @@
       <div class="col-24 col-xl-12 bg-green-3 p-3 p-sm-4 position-relative common-card">
          <div class="card-pointer pointer-right d-none d-xl-block"></div>
          <div class="card-pointer pointer-bottom d-xl-none"></div>
-         <div class="pb-1 ps-1 position-relative">
+         <div class="pb-1 ps-1 d-flex ai-center">
             <img src="/images/{{$ChainType}}-icon.png" width="20" height="20">
             <div class="d-inline-block confirmations-box mx-2 fs14" data-controller="newblock"
                data-newblock-target="confirmations" data-tx-target="confirmations"
@@ -109,6 +109,12 @@
          <table class="w-100 fs14 my-1 mb-xl-3">
             <tbody>
                <tr>
+                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Raw Tx:</td>
+                  <td class="text-start py-1">
+                     <a href="/api/tx/decoded/{{$ChainType}}/{{.TxID}}?indent=true" class="c-green" data-turbolinks="false">decoded</a>
+                     &middot;
+                     <a href="/api/tx/hex/{{$ChainType}}/{{.TxID}}" class="c-green" data-turbolinks="false">hex</a>
+                  </td>
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Time:</td>
                   <td class="text-start py-1" data-tx-target="formattedAge">{{.Time.String}}</td>
                </tr>
@@ -121,7 +127,16 @@
                {{if eq $isMempool false}}
                <tr>
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Block Hash:</td>
-                  <td class="text-start py-1">{{.BlockHash}}</td>
+                  <td class="text-start py-1" colspan="3">{{.BlockHash}}</td>
+               </tr>
+               {{end}}
+               {{if $.SwapsFound}}
+               <tr>
+                 <td class="text-end medium-sans text-nowrap pe-2 py-2">Swaps Info:
+                 </td>
+                 <td class="text-start py-1 text-secondary"><a class="c-green" href="/api/tx/swaps/{{$ChainType}}/{{.TxID}}?indent=true"
+                     data-turbolinks="false">swaps</a>
+                 </td>
                </tr>
                {{end}}
             </tbody>

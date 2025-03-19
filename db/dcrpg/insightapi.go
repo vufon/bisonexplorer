@@ -182,6 +182,48 @@ func (pgb *ChainDB) GetTransactionHex(txid *chainhash.Hash) string {
 	return txHex
 }
 
+// GetMultichainTransactionHex returns the full serialized transaction for the specified
+// transaction hash as a hex encode string.
+func (pgb *ChainDB) GetMultichainTransactionHex(txid, chainType string) string {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return pgb.GetBTCTxHex(txid)
+	case mutilchain.TYPELTC:
+		return pgb.GetLTCTxHex(txid)
+	}
+	return ""
+}
+
+// GetBTCTxHex return btc transaction hex from txid
+func (pgb *ChainDB) GetBTCTxHex(txid string) string {
+	txhash, err := btcchainhash.NewHashFromStr(txid)
+	if err != nil {
+		log.Errorf("New BTC hash failed: %v", err)
+		return ""
+	}
+	tx, err := pgb.BtcClient.GetRawTransactionVerbose(txhash)
+	if err != nil {
+		log.Errorf("Get BTC transaction verbose failed: %v", err)
+		return ""
+	}
+	return tx.Hex
+}
+
+// GetLTCTxHex return ltc transaction hex from txid
+func (pgb *ChainDB) GetLTCTxHex(txid string) string {
+	txhash, err := ltcchainhash.NewHashFromStr(txid)
+	if err != nil {
+		log.Errorf("New LTC hash failed: %v", err)
+		return ""
+	}
+	tx, err := pgb.LtcClient.GetRawTransactionVerbose(txhash)
+	if err != nil {
+		log.Errorf("Get LTC transaction verbose failed: %v", err)
+		return ""
+	}
+	return tx.Hex
+}
+
 // GetBlockVerboseByHash returns a *chainjson.GetBlockVerboseResult for the
 // specified block hash, optionally with transaction details.
 func (pgb *ChainDB) GetBlockVerboseByHash(hash string, verboseTx bool) *chainjson.GetBlockVerboseResult {

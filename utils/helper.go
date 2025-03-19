@@ -189,3 +189,15 @@ func GetSwapTypeDisplay(swapType string) string {
 	}
 	return ""
 }
+
+func GetSwapTypeFound(swapType string) string {
+	switch swapType {
+	case CONTRACT_TYPE:
+		return "Contract"
+	case REDEMPTION_TYPE:
+		return "Redemption"
+	case REFUND_TYPE:
+		return "Refund"
+	}
+	return ""
+}

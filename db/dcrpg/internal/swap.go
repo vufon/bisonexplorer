@@ -47,6 +47,7 @@ const (
 		GROUP BY contract_tx ORDER BY MAX(contract_time) DESC
 		LIMIT $1 OFFSET $2;`
 
+	SelectMultichainSwapInfoRows                 = `SELECT * FROM %s_swaps WHERE contract_tx = $1 OR spend_tx = $1 ORDER BY lock_time DESC;`
 	SelectAtomicSwapsContractTxsWithSearchFilter = `SELECT contract_tx, (ARRAY_AGG(target_token))[1] AS target FROM swaps WHERE contract_tx = $1 OR spend_tx = $1 
 		OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
 		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1)

@@ -819,6 +819,8 @@ func _main(ctx context.Context) error {
 	// Start dcrdata's JSON web API.
 	app := api.NewContext(&api.AppContextConfig{
 		Client:            dcrdClient,
+		BtcClient:         chainDB.BtcClient,
+		LtcClient:         chainDB.LtcClient,
 		Params:            activeChain,
 		DataSource:        chainDB,
 		XcBot:             xcBot,
@@ -829,7 +831,6 @@ func _main(ctx context.Context) error {
 		ChainDisabledMap:  chainDisabledMap,
 		CoinCaps:          coinCaps,
 	})
-
 	getMarketCapData := func() {
 		//get coin cap data from extenal api
 		coinCapData := externalapi.GetCoinigyCapData(coinCaps)
