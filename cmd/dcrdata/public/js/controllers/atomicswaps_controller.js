@@ -132,12 +132,13 @@ export default class extends Controller {
 
     // These two are templates for query parameter sets.
     // When url query parameters are set, these will also be updated.
-    ctrl.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'bin', 'flow', 'n', 'start', 'pair', 'status', 'search'])
+    ctrl.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'bin', 'flow', 'n', 'start', 'pair', 'status', 'search', 'mode'])
     // Get initial view settings from the url
     ctrl.query.update(ctrl.settings)
     ctrl.state = Object.assign({}, ctrl.settings)
     ctrl.settings.pair = ctrl.settings.pair && ctrl.settings.pair !== '' ? ctrl.settings.pair : 'all'
     ctrl.settings.status = ctrl.settings.status && ctrl.settings.status !== '' ? ctrl.settings.status : 'all'
+    ctrl.settings.mode = ctrl.settings.mode && ctrl.settings.mode !== '' ? ctrl.settings.mode : 'simple'
     this.pairTarget.value = ctrl.settings.pair
     this.statusTarget.value = ctrl.settings.status
     // Parse stimulus data
@@ -270,6 +271,13 @@ export default class extends Controller {
     // Set the current view to prevent unnecessary reloads.
     Object.assign(ctrl.state, settings)
     ctrl.fetchGraphData(settings.chart, settings.bin)
+  }
+
+  changeViewMode () {
+    ctrl.settings.mode = ctrl.settings.mode === 'full' ? 'simple' : 'full'
+    document.getElementById('viewListToggle').checked = ctrl.settings.mode === 'full'
+    ctrl.query.replace(ctrl.settings)
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
   }
 
   async fetchGraphData (chart, bin) {
@@ -595,7 +603,7 @@ export default class extends Controller {
 
   makeTableUrl (count, offset) {
     return `/atomicswaps-table?n=${count}&start=${offset}${ctrl.settings.pair && ctrl.settings.pair !== '' ? '&pair=' + ctrl.settings.pair : ''}${ctrl.settings.status && ctrl.settings.status !== '' ? '&status=' + ctrl.settings.status : ''}
-      ${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}`
+      ${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}${ctrl.settings.mode && ctrl.settings.mode !== '' ? '&mode=' + ctrl.settings.mode : ''}`
   }
 
   changePageSize () {
@@ -733,7 +741,7 @@ export default class extends Controller {
     const pageSize = parseInt(ctrl.paginationParams.pagesize)
     let links = ''
     if (typeof offset !== 'undefined' && offset > 0) {
-      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}" ` +
+      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}${ctrl.settings.mode && ctrl.settings.mode !== '' ? '&mode=' + ctrl.settings.mode : ''}" ` +
         'class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20" data-action="click->atomicswaps#pageNumberLink"></a>' + '\n'
     }
 
@@ -743,7 +751,7 @@ export default class extends Controller {
     }).join('\n')
 
     if ((txCount - offset) > pageSize) {
-      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}" ` +
+      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}${ctrl.settings.mode && ctrl.settings.mode !== '' ? '&mode=' + ctrl.settings.mode : ''}" ` +
         'class="d-inline-block dcricon-arrow-right pagination-number pagination-narrow m-1 fs20" data-action="click->atomicswaps#pageNumberLink"></a>'
     }
     const paginationHTML = dompurify.sanitize(links)

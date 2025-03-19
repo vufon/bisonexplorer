@@ -1708,10 +1708,6 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	io.WriteString(w, str)
 }
 
-func (exp *ExplorerUI) multichainTxAtomicSwapsInfo(txid string) {
-
-}
-
 // Block is the page handler for the "/block" path.
 func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
@@ -2614,9 +2610,13 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		offset = int64(val)
 	}
 	// get pair param
-	pair := r.URL.Query().Get("pair")
-	status := r.URL.Query().Get("status")
-	searchKey := r.URL.Query().Get("search")
+	pair := strings.TrimSpace(r.URL.Query().Get("pair"))
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	searchKey := strings.TrimSpace(r.URL.Query().Get("search"))
+	listMode := strings.TrimSpace(r.URL.Query().Get("mode"))
+	if listMode == "" {
+		listMode = "simple"
+	}
 	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
@@ -2639,6 +2639,9 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 	if searchKey != "" {
 		linkTemplate += "&search=" + searchKey
 	}
+	if listMode != "" {
+		linkTemplate += "&mode=" + listMode
+	}
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
 		SwapsList          []*dbtypes.AtomicSwapFullData
@@ -2653,6 +2656,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		RefundCount        int64
 		TotalTradingAmount int64
 		SimpleListMode     bool
+		ListMode           string
 	}{
 		CommonPageData:     exp.commonData(r),
 		SwapsList:          atomicSwapTxs,
@@ -2666,6 +2670,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		Status:             status,
 		AllCountSummary:    allCount,
 		SimpleListMode:     false,
+		ListMode:           listMode,
 		Pages:              calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	})
 
@@ -3172,9 +3177,10 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// get pair param
-	pair := r.URL.Query().Get("pair")
-	status := r.URL.Query().Get("status")
-	searchKey := r.URL.Query().Get("search")
+	pair := strings.TrimSpace(r.URL.Query().Get("pair"))
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	searchKey := strings.TrimSpace(r.URL.Query().Get("search"))
+	listMode := strings.TrimSpace(r.URL.Query().Get("mode"))
 	atomicSwapTxs, allCount, allFilterCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
@@ -3193,6 +3199,9 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	if searchKey != "" {
 		linkTemplate += "&search=" + searchKey
 	}
+	if listMode != "" {
+		linkTemplate += "&mode=" + listMode
+	}
 	response := struct {
 		TxCount         int64        `json:"tx_count"`
 		HTML            string       `json:"html"`
@@ -3209,9 +3218,11 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {
 		SwapsList      []*dbtypes.AtomicSwapFullData
 		SimpleListMode bool
+		ListMode       string
 	}{
 		SwapsList:      atomicSwapTxs,
 		SimpleListMode: false,
+		ListMode:       listMode,
 	})
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)

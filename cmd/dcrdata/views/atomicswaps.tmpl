@@ -107,14 +107,18 @@
             <ul class="pagination mb-0 pagination-sm">
               <li class="page-item {{if eq .Offset 0}}disabled{{end}}" data-atomicswaps-target="pageminus">
                 <a class="page-link"
-                  href="/decred/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}"
+                  href="/decred/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}
+                        {{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                        {{if .ListMode}}&mode={{.ListMode}}{{end}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#prevPage">Previous</a>
               </li>
               <li class="page-item {{if lt (subtract .TxCount .Offset) (add .Limit 1)}}disabled{{end}}"
                 data-atomicswaps-target="pageplus">
                 <a class="page-link"
-                  href="/decred/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}"
+                  href="/decred/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                        {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                        {{if .ListMode}}&mode={{.ListMode}}{{end}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#nextPage">Next</a>
               </li>
@@ -190,12 +194,22 @@
 
       <div class="position-relative">
         <div class="loader-v2" data-atomicswaps-target="listLoader"></div>
-        <div class="br-8 b--def bgc-plain-bright pb-10">
-          <div class="text-end pe-3 mt-2" data-atomicswaps-target="topTablePagination">
+        <div class='br-8 b--def bgc-plain-bright pb-10'>
+          <div class="d-md-flex justify-content-md-between ai-center">
+            <div class="d-flex ai-center ms-4">
+              <span class="me-3 me-md-2 fw-bold" style="position:sticky;left:10px;">Full Mode</span>
+              <label class="switch mt-2" style="position:sticky;left:60px;">
+              <input type="checkbox" id="viewListToggle" data-action="change->atomicswaps#changeViewMode">
+              <span class="legacy-slider round"></span>
+              </label>
+           </div>
+           <div class="pe-3 mt-2" data-atomicswaps-target="topTablePagination">
             {{if ne .Offset 0}}
             <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}"></a>
+              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
             {{range $.Pages}}
             {{if eq .Link ""}}
@@ -208,17 +222,26 @@
             {{if gt (subtract .TxCount .Offset) .Limit}}
             <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}"></a>
+              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
           </div>
+          </div>
           <div class="position-relative" data-atomicswaps-target="table">
-            {{template "atomicSwapsTable" .}}
+            {{if eq $.ListMode "full"}}
+              {{template "atomicSwapsTable" .}}
+            {{else}}
+              {{template "atomicSwapsSimpleTable" .}}
+            {{end}}
           </div>
           <div class="text-end pe-3" data-atomicswaps-target="tablePagination">
             {{if ne .Offset 0}}
             <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}"></a>
+              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                  {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                  {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
             {{range $.Pages}}
             {{if eq .Link ""}}
@@ -231,7 +254,9 @@
             {{if gt (subtract .TxCount .Offset) .Limit}}
             <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}"></a>
+              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
           </div>
         </div>

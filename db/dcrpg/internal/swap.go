@@ -48,16 +48,16 @@ const (
 		LIMIT $1 OFFSET $2;`
 
 	SelectMultichainSwapInfoRows                 = `SELECT * FROM %s_swaps WHERE contract_tx = $1 OR spend_tx = $1 ORDER BY lock_time DESC;`
-	SelectAtomicSwapsContractTxsWithSearchFilter = `SELECT contract_tx, (ARRAY_AGG(target_token))[1] AS target FROM swaps WHERE contract_tx = $1 OR spend_tx = $1 
+	SelectAtomicSwapsContractTxsWithSearchFilter = `SELECT contract_tx, (ARRAY_AGG(target_token))[1] AS target FROM swaps WHERE (contract_tx = $1 OR spend_tx = $1 
 		OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
-		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
+		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1))
 		 %s 
  		GROUP BY contract_tx ORDER BY MAX(contract_time) DESC
 		LIMIT $2 OFFSET $3;`
 
-	SelectAtomicSwapsContractGroupWithSearchFilter = `SELECT group_tx, (ARRAY_AGG(target_token))[1] AS target, (ARRAY_AGG(is_refund))[1] AS refund FROM swaps WHERE contract_tx = $1 OR spend_tx = $1 
+	SelectAtomicSwapsContractGroupWithSearchFilter = `SELECT group_tx, (ARRAY_AGG(target_token))[1] AS target, (ARRAY_AGG(is_refund))[1] AS refund FROM swaps WHERE (contract_tx = $1 OR spend_tx = $1 
 		OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
-		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
+		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1))
 		 %s 
  		GROUP BY group_tx ORDER BY MAX(contract_time) DESC
 		LIMIT $2 OFFSET $3;`
@@ -70,9 +70,9 @@ const (
 	SelectSwapGroupTx                   = `SELECT group_tx FROM swaps WHERE contract_tx = $1 OR spend_tx = $2 LIMIT 1`
 	CountAtomicSwapsRowWithFilter       = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps %s GROUP BY group_tx) AS ctx;`
 	CountAtomicSwapsRowWithSearchFilter = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps 
-	WHERE contract_tx = $1 OR spend_tx = $1 
+	WHERE (contract_tx = $1 OR spend_tx = $1 
 	OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
-	OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
+	OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1))
 	%s 
  	GROUP BY group_tx) AS ctx;`
 
@@ -185,6 +185,8 @@ func MakeSelectWithFilter(input, pair, status string, withoutWhere bool) string 
 	var cond string
 	if !withoutWhere {
 		cond = "WHERE "
+	} else {
+		cond = " AND "
 	}
 	return fmt.Sprintf(input, cond+strings.Join(queries, " AND "))
 }
