@@ -1187,7 +1187,7 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a target="_blank" href="/decred/block/{{.Height}}">{{.Height}}</a>
+					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-start">
 					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
@@ -1213,7 +1213,7 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a target="_blank" href="/decred/block/{{.Height}}">{{.Height}}</a>
+					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-start">
 					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
@@ -1241,7 +1241,7 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a target="_blank" href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
+					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-start">
 					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
@@ -1267,7 +1267,7 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken  .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a target="_blank" href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
+					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-start">
 					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
