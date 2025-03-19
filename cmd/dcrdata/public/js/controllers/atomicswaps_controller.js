@@ -11,6 +11,7 @@ import humanize from '../helpers/humanize_helper'
 let Dygraph // lazy loaded on connect
 const maxAddrRows = 160
 let ctrl = null
+let isSearching = false
 
 function amountTxCountProcessor (chart, d, binSize) {
   const amountData = []
@@ -112,7 +113,8 @@ export default class extends Controller {
     return ['pagesize', 'txnCount', 'paginator', 'pageplus', 'pageminus', 'listbox', 'table',
       'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader', 'pair',
       'status', 'topTablePagination', 'fullscreen', 'bigchart', 'littlechart', 'chartbox', 'chartLoader',
-      'options', 'zoom', 'interval', 'flow', 'expando', 'noconfirms', 'chart', 'redeemRadio', 'refundRadio']
+      'options', 'zoom', 'interval', 'flow', 'expando', 'noconfirms', 'chart', 'redeemRadio', 'refundRadio',
+      'searchBox', 'searchInput', 'searchBtn', 'clearSearchBtn']
   }
 
   async connect () {
@@ -130,12 +132,13 @@ export default class extends Controller {
 
     // These two are templates for query parameter sets.
     // When url query parameters are set, these will also be updated.
-    ctrl.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'bin', 'flow', 'n', 'start', 'pair', 'status'])
+    ctrl.settings = TurboQuery.nullTemplate(['chart', 'zoom', 'bin', 'flow', 'n', 'start', 'pair', 'status', 'search', 'mode'])
     // Get initial view settings from the url
     ctrl.query.update(ctrl.settings)
     ctrl.state = Object.assign({}, ctrl.settings)
     ctrl.settings.pair = ctrl.settings.pair && ctrl.settings.pair !== '' ? ctrl.settings.pair : 'all'
     ctrl.settings.status = ctrl.settings.status && ctrl.settings.status !== '' ? ctrl.settings.status : 'all'
+    ctrl.settings.mode = ctrl.settings.mode && ctrl.settings.mode !== '' ? ctrl.settings.mode : 'simple'
     this.pairTarget.value = ctrl.settings.pair
     this.statusTarget.value = ctrl.settings.status
     // Parse stimulus data
@@ -158,6 +161,16 @@ export default class extends Controller {
     }
     if (ctrl.settings.chart == null || !ctrl.validChartType(ctrl.settings.chart)) {
       ctrl.settings.chart = ctrl.chartType
+    }
+
+    if (ctrl.settings.search && ctrl.settings.search !== '') {
+      this.searchInputTarget.value = ctrl.settings.search
+      isSearching = true
+      this.searchBtnTarget.classList.add('d-none')
+      this.clearSearchBtnTarget.classList.remove('d-none')
+    } else {
+      this.searchBtnTarget.classList.remove('d-none')
+      this.clearSearchBtnTarget.classList.add('d-none')
     }
 
     Dygraph = await getDefault(
@@ -185,6 +198,55 @@ export default class extends Controller {
     }
   }
 
+  searchInputKeypress (e) {
+    if (e.keyCode === 13) {
+      this.searchAtomicSwapContract()
+    }
+  }
+
+  searchAtomicSwapContract () {
+    // if search key is empty, ignore
+    if (!this.searchInputTarget.value || this.searchInputTarget.value === '') {
+      this.searchBtnTarget.classList.remove('d-none')
+      this.clearSearchBtnTarget.classList.add('d-none')
+      if (isSearching) {
+        this.settings.search = ''
+        isSearching = false
+        this.paginationParams.offset = 0
+        this.fetchTable(this.pageSize, this.paginationParams.offset)
+      }
+      return
+    }
+    this.searchBtnTarget.classList.add('d-none')
+    this.clearSearchBtnTarget.classList.remove('d-none')
+    this.settings.search = this.searchInputTarget.value
+    this.paginationParams.offset = 0
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
+  async clearSearchState () {
+    this.settings.search = ''
+    this.searchInputTarget.value = ''
+    this.searchBtnTarget.classList.remove('d-none')
+    this.clearSearchBtnTarget.classList.add('d-none')
+    isSearching = false
+    this.paginationParams.offset = 0
+    await this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
+  async clearSearch () {
+    await this.clearSearchState()
+    this.resetPageSizeOptions()
+  }
+
+  onTypeChange (e) {
+    if (!e.target.value || e.target.value === '') {
+      return
+    }
+    this.searchBtnTarget.classList.remove('d-none')
+    this.clearSearchBtnTarget.classList.add('d-none')
+  }
+
   drawGraph () {
     const settings = ctrl.settings
     ctrl.noconfirmsTarget.classList.add('d-hide')
@@ -209,6 +271,13 @@ export default class extends Controller {
     // Set the current view to prevent unnecessary reloads.
     Object.assign(ctrl.state, settings)
     ctrl.fetchGraphData(settings.chart, settings.bin)
+  }
+
+  changeViewMode () {
+    ctrl.settings.mode = ctrl.settings.mode === 'full' ? 'simple' : 'full'
+    document.getElementById('viewListToggle').checked = ctrl.settings.mode === 'full'
+    ctrl.query.replace(ctrl.settings)
+    this.fetchTable(this.pageSize, this.paginationParams.offset)
   }
 
   async fetchGraphData (chart, bin) {
@@ -524,16 +593,17 @@ export default class extends Controller {
 
   changePair (e) {
     ctrl.settings.pair = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
-    this.fetchTable(this.pageSize, this.paginationParams.offset)
+    this.clearSearchState()
   }
 
   changeStatus (e) {
     ctrl.settings.status = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
-    this.fetchTable(this.pageSize, this.paginationParams.offset)
+    this.clearSearchState()
   }
 
   makeTableUrl (count, offset) {
-    return `/atomicswaps-table?n=${count}&start=${offset}${ctrl.settings.pair && ctrl.settings.pair !== '' ? '&pair=' + ctrl.settings.pair : ''}${ctrl.settings.status && ctrl.settings.status !== '' ? '&status=' + ctrl.settings.status : ''}`
+    return `/atomicswaps-table?n=${count}&start=${offset}${ctrl.settings.pair && ctrl.settings.pair !== '' ? '&pair=' + ctrl.settings.pair : ''}${ctrl.settings.status && ctrl.settings.status !== '' ? '&status=' + ctrl.settings.status : ''}
+      ${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}${ctrl.settings.mode && ctrl.settings.mode !== '' ? '&mode=' + ctrl.settings.mode : ''}`
   }
 
   changePageSize () {
@@ -578,10 +648,39 @@ export default class extends Controller {
     ctrl.query.replace(settings)
     ctrl.paginationParams.offset = offset
     ctrl.paginationParams.pagesize = count
+    ctrl.paginationParams.currentcount = Number(tableResponse.current_count)
     ctrl.setPageability()
     ctrl.tablePaginationParams = tableResponse.pages
     ctrl.setTablePaginationLinks()
     ctrl.listLoaderTarget.classList.remove('loading')
+  }
+
+  // reset page size selector
+  resetPageSizeOptions () {
+    const params = ctrl.paginationParams
+    const rowMax = params.count
+    const dispCount = params.currentcount
+    let pageSizeOptions = ''
+    if (rowMax > 20) {
+      this.pagesizeTarget.classList.remove('disabled')
+      this.pagesizeTarget.disabled = false
+    } else {
+      this.pagesizeTarget.classList.add('disabled')
+      this.pagesizeTarget.disabled = true
+    }
+    pageSizeOptions += `<option ${dispCount === 20 ? 'selected' : ''} value="20" ${dispCount <= 20 ? 'disabled' : ''}>20</option>`
+    pageSizeOptions += `<option ${dispCount === 40 ? 'selected' : ''} value="40" ${dispCount <= 40 ? 'disabled' : ''}>40</option>`
+    pageSizeOptions += `<option ${dispCount === 80 ? 'selected' : ''} value="80" ${dispCount <= 80 ? 'disabled' : ''}>80</option>`
+    if (rowMax <= 160) {
+      pageSizeOptions += `<option ${dispCount === rowMax ? 'selected' : ''} value="${rowMax}" ${rowMax <= 160 ? 'disabled' : ''}>${rowMax}</option>`
+    } else {
+      pageSizeOptions += `<option ${dispCount >= 160 ? 'selected' : ''} value="160">160</option>`
+    }
+    this.pagesizeTarget.innerHTML = pageSizeOptions
+    this.pageSizeOptions = this.hasPagesizeTarget ? this.pagesizeTarget.querySelectorAll('option') : []
+    const settings = ctrl.settings
+    settings.n = this.pageSize
+    ctrl.query.replace(settings)
   }
 
   setPageability () {
@@ -622,10 +721,10 @@ export default class extends Controller {
     })
     setAbility(ctrl.pagesizeTarget, rowMax > 20)
     const suffix = rowMax > 1 ? 's' : ''
-    let rangeEnd = params.offset + count
+    let rangeEnd = Number(params.offset) + Number(count)
     if (rangeEnd > rowMax) rangeEnd = rowMax
-    ctrl.rangeTarget.innerHTML = 'showing ' + (params.offset + 1) + ' &ndash; ' +
-      rangeEnd + ' of ' + rowMax.toLocaleString() + ' transaction' + suffix
+    ctrl.rangeTarget.innerHTML = 'showing ' + (Number(params.offset) + 1).toLocaleString() + ' &ndash; ' +
+      rangeEnd.toLocaleString() + ' of ' + rowMax.toLocaleString() + ' transaction' + suffix
   }
 
   setTablePaginationLinks () {
@@ -642,7 +741,7 @@ export default class extends Controller {
     const pageSize = parseInt(ctrl.paginationParams.pagesize)
     let links = ''
     if (typeof offset !== 'undefined' && offset > 0) {
-      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
+      links = `<a href="/atomic-swaps?start=${offset - pageSize}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}${ctrl.settings.mode && ctrl.settings.mode !== '' ? '&mode=' + ctrl.settings.mode : ''}" ` +
         'class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20" data-action="click->atomicswaps#pageNumberLink"></a>' + '\n'
     }
 
@@ -652,7 +751,7 @@ export default class extends Controller {
     }).join('\n')
 
     if ((txCount - offset) > pageSize) {
-      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}" ` +
+      links += '\n' + `<a href="/atomic-swaps?start=${(offset + pageSize)}&n=${pageSize}&pair=${ctrl.settings.pair}&status=${ctrl.settings.status}${ctrl.settings.search && ctrl.settings.search !== '' ? '&search=' + ctrl.settings.search : ''}${ctrl.settings.mode && ctrl.settings.mode !== '' ? '&mode=' + ctrl.settings.mode : ''}" ` +
         'class="d-inline-block dcricon-arrow-right pagination-number pagination-narrow m-1 fs20" data-action="click->atomicswaps#pageNumberLink"></a>'
     }
     const paginationHTML = dompurify.sanitize(links)

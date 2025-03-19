@@ -819,6 +819,8 @@ func _main(ctx context.Context) error {
 	// Start dcrdata's JSON web API.
 	app := api.NewContext(&api.AppContextConfig{
 		Client:            dcrdClient,
+		BtcClient:         chainDB.BtcClient,
+		LtcClient:         chainDB.LtcClient,
 		Params:            activeChain,
 		DataSource:        chainDB,
 		XcBot:             xcBot,
@@ -829,7 +831,6 @@ func _main(ctx context.Context) error {
 		ChainDisabledMap:  chainDisabledMap,
 		CoinCaps:          coinCaps,
 	})
-
 	getMarketCapData := func() {
 		//get coin cap data from extenal api
 		coinCapData := externalapi.GetCoinigyCapData(coinCaps)
@@ -1890,6 +1891,9 @@ func _main(ctx context.Context) error {
 		//end init collector for btc
 	}
 
+	// check and sync atomic swap for Decred before sync for btc, ltc
+	chainDB.SyncDecredAtomicSwap()
+
 	go func() {
 		if chainDB.ChainDBDisabled && !btcDisabled {
 			err = chainDB.SyncLast20BTCBlocks(btcHeight)
@@ -1916,8 +1920,6 @@ func _main(ctx context.Context) error {
 				}
 			}
 		}
-		// sync atomic swap for Decred
-		chainDB.SyncDecredAtomicSwap()
 		// sync atomic swap for btc
 		chainDB.SyncBTCAtomicSwap()
 	}()

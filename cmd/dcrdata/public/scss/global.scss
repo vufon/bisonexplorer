@@ -1680,6 +1680,10 @@ hr {
   min-width: 2em;
 }
 
+.mw-70px {
+  min-width: 70px;
+}
+
 .mw-75px {
   min-width: 75px;
 }
@@ -2618,12 +2622,24 @@ body.darkBG {
   background-color: #0c644e;
 }
 
+.contract-bg {
+  background-color: #4f69a6;
+}
+
+.redemption-bg {
+  background-color: #407737;
+}
+
 .success-bg {
   background-color: #c4e7be;
 }
 
 .refund-bg {
-  background-color: #ffcaff;
+  background-color: #a961a9;
+}
+
+.refund-brighter-bg {
+  background-color: #f1c8f1;
 }
 
 .second-pair {
@@ -2633,4 +2649,8 @@ body.darkBG {
 
 .pair-icons {
   margin-right: 20px;
+}
+
+.swap-group-header {
+  background: #d4e4ed;
 }

@@ -1887,9 +1887,42 @@ func UncompactMergedRows(merged []*AddressRowMerged) []*AddressRow {
 	return rows
 }
 
-type AtomicSwapData struct {
-	Source *TokenAtomicSwapData
-	Target *TokenAtomicSwapData
+// AtomicSwapFullData: full detail for atomic swap contract
+// Source: From Token (DCR)
+// Target: Target Token (LTC/BTC/...)
+type AtomicSwapFullData struct {
+	IsRefund    bool
+	TargetToken string
+	Source      *AtomicSwapForTokenData
+	Target      *AtomicSwapForTokenData
+}
+
+type AtomicSwapForTokenData struct {
+	TotalAmount int64
+	Contracts   []*AtomicSwapTxData
+	Results     []*AtomicSwapTxData
+}
+
+type AtomicSwapTxData struct {
+	Txid   string
+	Fees   int64
+	Time   int64
+	Height int64
+	Value  int64
+	Vin    int64
+	Vout   int64
+}
+
+type AtomicSwapContractData struct {
+	ContractTx       string
+	ContractFees     int64
+	ContractHeight   int64
+	ContractTime     int64
+	LockTime         int64
+	TotalAmount      int64
+	TargetToken      string
+	IsRefund         bool
+	OutspendSwapData []*TokenAtomicSwapData
 }
 
 type TokenAtomicSwapData struct {
@@ -1913,6 +1946,11 @@ type TokenAtomicSwapData struct {
 	Contract         []byte
 	IsRefund         bool
 	TargetToken      string
+}
+
+type SimpleGroupInfo struct {
+	ContractTx  string
+	TargetToken string
 }
 
 // AddressTxnOutput is a compact version of api/types.AddressTxnOutput.
@@ -2150,22 +2188,24 @@ type SideChain struct {
 
 // AddressTx models data for transactions on the address page.
 type AddressTx struct {
-	TxID           string
-	TxType         string
-	InOutID        uint32
-	Size           uint32
-	FormattedSize  string
-	Total          float64
-	Confirmations  uint64
-	Time           TimeDef
-	ReceivedTotal  float64
-	SentTotal      float64
-	IsFunding      bool
-	MatchedTx      string
-	MatchedTxIndex uint32
-	MergedTxnCount uint64 `json:",omitempty"`
-	BlockHeight    uint32
-	IsUnconfirmed  bool
+	TxID             string
+	TxType           string
+	InOutID          uint32
+	Size             uint32
+	FormattedSize    string
+	Total            float64
+	Confirmations    uint64
+	Time             TimeDef
+	ReceivedTotal    float64
+	SentTotal        float64
+	IsFunding        bool
+	MatchedTx        string
+	MatchedTxIndex   uint32
+	MergedTxnCount   uint64 `json:",omitempty"`
+	BlockHeight      uint32
+	IsUnconfirmed    bool
+	SwapsType        string
+	SwapsTypeDisplay string
 }
 
 type MonthlyUsdPrice struct {

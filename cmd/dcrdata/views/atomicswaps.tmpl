@@ -24,9 +24,8 @@
             <span class="text-secondary fs13">Total Trading Amount</span>
             <br>
             <div class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
-              {{template "decimalParts"  (float64AsDecimalParts (toFloat64Amount .TotalTradingAmount) 2 true)}}
-            <span
-                class="text-secondary fs14">DCR</span>
+              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .TotalTradingAmount) 2 true)}}
+              <span class="text-secondary fs14">DCR</span>
             </div>
           </div>
           <div class="d-inline-block text-start pe-2 pb-3">
@@ -55,21 +54,14 @@
               <div class="loader-v2 loading" data-atomicswaps-target="chartLoader"></div>
               <div class="btn-set secondary-card d-inline-flex flex-nowrap mx-2">
                 <label>Chart</label>
-                <select
-                  class="chart-box d-inline-flex"
-                  data-atomicswaps-target="options"
-                  data-action="change->atomicswaps#changeGraph"
-                >
+                <select class="chart-box d-inline-flex" data-atomicswaps-target="options"
+                  data-action="change->atomicswaps#changeGraph">
                   <option name="amount" value="amount">Trading Amount</option>
                   <option name="txcount" value="txcount">Tx Count</option>
                 </select>
               </div>
-              <div
-                class="btn-set secondary-card d-inline-flex flex-nowrap mx-2"
-                data-toggle="buttons"
-                data-atomicswaps-target="zoom"
-                data-action="click->atomicswaps#onZoom"
-              >
+              <div class="btn-set secondary-card d-inline-flex flex-nowrap mx-2" data-toggle="buttons"
+                data-atomicswaps-target="zoom" data-action="click->atomicswaps#onZoom">
                 <label>Zoom</label>
                 <button class="btn-selected" name="all" data-fixed="1">All</button>
                 <button name="year">Year</button>
@@ -77,12 +69,8 @@
                 <button name="week">Week</button>
                 <button name="day">Day</button>
               </div>
-              <div
-                class="btn-set secondary-card d-inline-flex flex-nowrap mx-2"
-                data-toggle="buttons"
-                data-atomicswaps-target="interval"
-                data-action="click->atomicswaps#changeBin"
-              >
+              <div class="btn-set secondary-card d-inline-flex flex-nowrap mx-2" data-toggle="buttons"
+                data-atomicswaps-target="interval" data-action="click->atomicswaps#changeBin">
                 <label class="d-inline-flex pe-1">Group By </label>
                 <button name="year">Year</button>
                 <button class="btn-selected" name="month">Month</button>
@@ -102,7 +90,8 @@
               </div>
             </div>
             <div class="p-3 address_chart_wrap">
-              <div class="expando dcricon-expand" data-atomicswaps-target="expando" data-action="click->atomicswaps#toggleExpand"></div>
+              <div class="expando dcricon-expand" data-atomicswaps-target="expando"
+                data-action="click->atomicswaps#toggleExpand"></div>
               <div class="py-5 fs16 d-none" data-atomicswaps-target="noconfirms"></div>
               <div data-atomicswaps-target="chart" class="address_chart"></div>
             </div>
@@ -118,13 +107,18 @@
             <ul class="pagination mb-0 pagination-sm">
               <li class="page-item {{if eq .Offset 0}}disabled{{end}}" data-atomicswaps-target="pageminus">
                 <a class="page-link"
-                  href="/decred/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"
+                  href="/decred/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}
+                        {{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                        {{if .ListMode}}&mode={{.ListMode}}{{end}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#prevPage">Previous</a>
               </li>
               <li class="page-item {{if lt (subtract .TxCount .Offset) (add .Limit 1)}}disabled{{end}}"
                 data-atomicswaps-target="pageplus">
-                <a class="page-link" href="/decred/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"
+                <a class="page-link"
+                  href="/decred/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                        {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                        {{if .ListMode}}&mode={{.ListMode}}{{end}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#nextPage">Next</a>
               </li>
@@ -133,69 +127,89 @@
         </div>
       </div>
       <div class="d-md-flex ai-center justify-content-between my-2">
-      <div class="d-flex ai-center">
-        <label class="mb-0 ms-2 me-1" for="pair">Pair</label>
-        <select name="pair" data-atomicswaps-target="pair" data-action="change->atomicswaps#changePair"
-          class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
-          <option selected value="all">All</option>
-          <option value="btc">DCR/BTC</option>
-          <option value="ltc">DCR/LTC</option>
-        </select>
-        <label class="mb-0 ms-2 me-1" for="status">Status</label>
-        <select name="status" data-atomicswaps-target="status" data-action="change->atomicswaps#changeStatus"
-          class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
-          <option selected value="all">All</option>
-          <option value="redemption">Redemption</option>
-          <option value="refund">Refund</option>
-        </select>
-      </div>
-
-      <div class="d-flex flex-wrap-reverse align-items-center transactions-filter-area py-1 col-24 col-md-14">
-        <div data-atomicswaps-target="paginationheader">
-          <span class="fs12 nowrap text-end" data-atomicswaps-target="range">
-            showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset (int64 (len .SwapsList)))}} of
-            <span data-atomicswaps-target="txnCount" data-txn-count="{{.TxCount}}">{{intComma .TxCount}}</span>
-            transactions
-          </span>
-          <span class="separator mx-2 h-20px block-banner-separator"></span>
+        <div class="d-flex ai-center">
+          <label class="mb-0 ms-2 me-1" for="pair">Pair</label>
+          <select name="pair" data-atomicswaps-target="pair" data-action="change->atomicswaps#changePair"
+            class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
+            <option selected value="all">All</option>
+            <option value="btc">DCR/BTC</option>
+            <option value="ltc">DCR/LTC</option>
+          </select>
+          <label class="mb-0 ms-2 me-1" for="status">Status</label>
+          <select name="status" data-atomicswaps-target="status" data-action="change->atomicswaps#changeStatus"
+            class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
+            <option selected value="all">All</option>
+            <option value="redemption">Redemption</option>
+            <option value="refund">Refund</option>
+          </select>
+          <label class="mb-0 ms-2 me-1">Search</label>
+          <div data-atomicswaps-target="searchBox" class="report-search-box px-1 ps-2">
+            <input tabindex="0" type="text" name="search" class="report-search-input mousetrap"
+              placeholder="Search by txhash" spellcheck="false" autocomplete="off"
+              data-atomicswaps-target="searchInput"
+              data-action="keyup->atomicswaps#searchInputKeypress input->atomicswaps#onTypeChange" />
+            <button class="report-search" data-atomicswaps-target="searchBtn"
+              data-action="click->atomicswaps#searchAtomicSwapContract"><i class="dcricon-search"></i></button>
+            <button class="report-search d-none" data-atomicswaps-target="clearSearchBtn"
+              data-action="click->atomicswaps#clearSearch"><i class="dcricon-closenb"></i></button>
+          </div>
         </div>
-        <div class="d-flex align-items-center justify-content-between">
-          <span></span>
-          <div class="d-flex flex-row">
-            <div class="d-inline-block text-end">
-              <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
-              <select name="pagesize" id="pagesize" data-atomicswaps-target="pagesize"
-                data-action="change->atomicswaps#changePageSize"
-                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt .TxCount 20}}disabled{{end}}"
-                {{- if lt .TxCount 20}} disabled{{end}}>
-                {{- $Txlen := len .SwapsList}}
-                <option {{if eq $Txlen 20}}selected {{end}}value="20" {{if lt .TxCount 20}} disabled{{end}}>20
-                </option>
-                <option {{if eq $Txlen 40}}selected {{end}}value="40" {{if lt .TxCount 40}} disabled{{end}}>40
-                </option>
-                <option {{if eq $Txlen 80}}selected {{end}}value="80" {{if lt .TxCount 80}} disabled{{end}}>80
-                </option>
-                {{- if lt .TxCount 160}}
-                <option {{if eq $Txlen .TxCount}}selected {{end}}value="{{.TxCount}}" {{if le .TxCount 160}}
-                  disabled{{end}}>{{.TxCount}}</option>
-                {{- else}}
-                <option {{if ge $Txlen 160}}selected {{end}}value="160">160</option>
-                {{- end}}
-              </select>
+        <div class="d-flex flex-wrap-reverse align-items-center transactions-filter-area py-1">
+          <div data-atomicswaps-target="paginationheader">
+            <span class="fs12 nowrap text-end" data-atomicswaps-target="range">
+              showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset (int64 (len .SwapsList)))}} of
+              <span data-atomicswaps-target="txnCount" data-txn-count="{{.TxCount}}">{{intComma .TxCount}}</span>
+              contracts
+            </span>
+            <span class="separator mx-2 h-20px block-banner-separator"></span>
+          </div>
+          <div class="d-flex align-items-center justify-content-between">
+            <span></span>
+            <div class="d-flex flex-row">
+              <div class="d-inline-block text-end">
+                <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
+                <select name="pagesize" id="pagesize" data-atomicswaps-target="pagesize"
+                  data-action="change->atomicswaps#changePageSize"
+                  class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt .TxCount 20}}disabled{{end}}"
+                  {{- if lt .TxCount 20}} disabled{{end}}>
+                  {{- $Txlen := len .SwapsList}}
+                  <option {{if eq $Txlen 20}}selected {{end}}value="20" {{if lt .TxCount 20}} disabled{{end}}>20
+                  </option>
+                  <option {{if eq $Txlen 40}}selected {{end}}value="40" {{if lt .TxCount 40}} disabled{{end}}>40
+                  </option>
+                  <option {{if eq $Txlen 80}}selected {{end}}value="80" {{if lt .TxCount 80}} disabled{{end}}>80
+                  </option>
+                  {{- if lt .TxCount 160}}
+                  <option {{if eq $Txlen .TxCount}}selected {{end}}value="{{.TxCount}}" {{if le .TxCount 160}}
+                    disabled{{end}}>{{.TxCount}}</option>
+                  {{- else}}
+                  <option {{if ge $Txlen 160}}selected {{end}}value="160">160</option>
+                  {{- end}}
+                </select>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
       <div class="position-relative">
         <div class="loader-v2" data-atomicswaps-target="listLoader"></div>
-        <div class="br-8 b--def bgc-plain-bright pb-10">
-          <div class="text-end pe-3 mt-2" data-atomicswaps-target="topTablePagination">
+        <div class='br-8 b--def bgc-plain-bright pb-10'>
+          <div class="d-md-flex justify-content-md-between ai-center">
+            <div class="d-flex ai-center ms-4">
+              <span class="me-3 me-md-2 fw-bold" style="position:sticky;left:10px;">Full Mode</span>
+              <label class="switch mt-2" style="position:sticky;left:60px;">
+              <input type="checkbox" id="viewListToggle" data-action="change->atomicswaps#changeViewMode">
+              <span class="legacy-slider round"></span>
+              </label>
+           </div>
+           <div class="pe-3 mt-2" data-atomicswaps-target="topTablePagination">
             {{if ne .Offset 0}}
             <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"></a>
+              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
             {{range $.Pages}}
             {{if eq .Link ""}}
@@ -208,17 +222,26 @@
             {{if gt (subtract .TxCount .Offset) .Limit}}
             <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"></a>
+              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
           </div>
+          </div>
           <div class="position-relative" data-atomicswaps-target="table">
-            {{template "atomicSwapsTable" .}}
+            {{if eq $.ListMode "full"}}
+              {{template "atomicSwapsTable" .}}
+            {{else}}
+              {{template "atomicSwapsSimpleTable" .}}
+            {{end}}
           </div>
           <div class="text-end pe-3" data-atomicswaps-target="tablePagination">
             {{if ne .Offset 0}}
             <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"></a>
+              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                  {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                  {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
             {{range $.Pages}}
             {{if eq .Link ""}}
@@ -231,7 +254,9 @@
             {{if gt (subtract .TxCount .Offset) .Limit}}
             <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
               data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}"></a>
+              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
+                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
+                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
             {{end}}
           </div>
         </div>

@@ -172,10 +172,12 @@ type TxBasic struct {
 // TrimmedTxInfo for use with /visualblocks
 type TrimmedTxInfo struct {
 	*TxBasic
-	Fees      float64
-	VinCount  int
-	VoutCount int
-	VoteValid bool
+	SwapsType        string
+	SwapsTypeDisplay string
+	Fees             float64
+	VinCount         int
+	VoutCount        int
+	VoteValid        bool
 }
 
 // TxInfo models data needed for display on the tx page
@@ -198,6 +200,9 @@ type TxInfo struct {
 	TSpendMeta         *dbtypes.TreasurySpendMetaData
 	IsTreasury         bool
 	FilterTreasuryType string
+	SwapsList          []*dbtypes.AtomicSwapFullData
+	SwapsType          string
+	SimpleListMode     bool
 	TicketInfo
 }
 

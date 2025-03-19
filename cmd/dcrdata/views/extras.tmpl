@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.7069170bbf2772be.css" rel="stylesheet">
+	<link href="/dist/css/style.260fd396813a6bc5.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -643,7 +643,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.fa625099e4d033dc.bundle.js"
+	src="/dist/js/app.fdb5c2247ef84c5f.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -772,7 +772,7 @@
 	<tbody class="bgc-white">
 	{{- range .Transactions}}
 		<tr{{if eq .Confirmations 0}} data-address-target="pending" data-txid="{{.TxID}}"{{end}}>
-			<td class="d-none d-sm-table-cell">{{.TxType}}</td>
+			<td class="d-none d-sm-table-cell">{{if .SwapsType}}<span class="common-label py-1 px-2 text-white ms-2 {{.SwapsType}}-bg fs13">{{.SwapsTypeDisplay}}</span>{{else}}{{.TxType}}{{end}}</td>
 			<td class="clipboard">{{template "hashElide" (hashlink .TxID .Link)}}</td>
 		{{- if eq $txType "merged_debit"}}
 			<td class="text-end">{{.MergedTxnCount}}</td>
@@ -863,7 +863,9 @@
 	<tbody class="bgc-white">
 	{{- range .Transactions}}
 		<tr{{if eq .Confirmations 0}} data-address-target="pending" data-txid="{{.TxID}}"{{end}}>
-			<td class="clipboard">{{template "hashElide" (hashlink .TxID (print "/" $ChainType "/tx/" .TxID))}}</td>
+			<td class="d-flex ai-center">
+				<div class="clipboard">{{template "hashElide" (hashlink .TxID (print "/" $ChainType "/tx/" .TxID))}}</div>
+				{{if .SwapsType}}<span class="common-label py-1 px-2 text-white ms-2 {{.SwapsType}}-bg fs13">{{.SwapsTypeDisplay}}</span>{{end}}</td>
 			{{- if ne .ReceivedTotal 0.0}}
 			<td class="text-end">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
 			{{- else}}
@@ -1004,75 +1006,120 @@
 		<tr>
 			<!-- Only 1 column -->
 			<td>
-				{{$hasTargetToken := (ne .Source.TargetToken "")}}
-				<div class="d-md-flex ai-center justify-content-between pb-1 border-2-bottom-grey">
+				{{$isRefund := .IsRefund}}
+				{{$hasTargetToken := (ne .TargetToken "")}}
+				<div class="pb-1 border-2-bottom-grey">
 				<div class="d-flex ai-center fw-600 fs15">
+					{{if eq $.SimpleListMode false}}
 					<div class="d-flex ai-center">
 						{{if $hasTargetToken}}
 						<div class="p-relative d-flex ai-center pair-icons">
-							<img src="/images/dcr-icon.png" width="20" height="20"> 
-							<img src="/images/{{.Source.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20"> 
+							<img src="/images/{{.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
 						</div>
 						{{else}}
 						  <img src="/images/synchronize.png" width="20" height="20" class="me-1"> 
 						{{end}}
-						<p>{{if $hasTargetToken}}DCR/{{toUpperCase .Source.TargetToken}}{{else}}Verifying{{end}}</p>
+						<p>{{if $hasTargetToken}}DCR/{{toUpperCase .TargetToken}}{{else}}Verifying{{end}}</p>
 					</div>
-					<div class="d-flex ai-center ms-3">Amount:&nbsp;<div>{{normalWithPrecFloat (toFloat64Amount .Source.Value) -1}}</div>&nbsp;DCR
+					{{end}}
+					<div class="d-flex ai-center {{if eq $.SimpleListMode false}}ms-3{{end}}">Amount:&nbsp;<div>{{normalWithPrecFloat (toFloat64Amount .Source.TotalAmount) -1}}</div>&nbsp;DCR
 					{{if $hasTargetToken}}
 					&nbsp;(
-					<div>{{normalWithPrecFloat (toFloat64Amount .Target.Value) -1}}</div>&nbsp;{{toUpperCase .Source.TargetToken}})
+					<div>{{normalWithPrecFloat (toFloat64Amount .Target.TotalAmount) -1}}</div>&nbsp;{{toUpperCase .TargetToken}})
 					{{end}}
 					</div>
-					<span class="common-label ms-2 {{if .Source.IsRefund}}refund{{else}}success{{end}}-bg fw-400 fs13">{{if .Source.IsRefund}}Refund{{else}}Completed{{end}}</span>
+					{{if eq $.SimpleListMode false}}
+					<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter{{else}}success{{end}}-bg fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
+					{{end}}
 				</div>
-				<p class="fs13 fw-bold">{{dateTimeWithoutTimeZone .Source.ContractTime}}</p>
 				</div>
 				<div class="row mt-3">
 					<div class="col-24 col-md-12 mb-3">
 						<div class="d-flex ai-center">
-							<img src="/images/dcr-icon.png" width="20" height="20">
-							<div class="ms-2"><span class="fw-600">Contract:</span> <div class="clipboard">{{template "hashElide" (hashlink .Source.ContractTx (printf "/tx/%s" .Source.ContractTx))}}</div></div>
+							<img src="/images/dcr-icon-notran.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contract</span></div>
 						</div>
-						<div class="row mt-1">
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Source.ContractHeight}}">{{.Source.ContractHeight}}</a></p>
-							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Source.ContractFees)}} DCR</p>
+						{{- range .Source.Contracts}}
+						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
+							<div class="col-24">
+								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
+									<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+								{{else}}
+									<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
+								{{end}}
+							</div>
+							<p class="col-12 ps-2">Block Height: <a href="/decred/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} DCR</p>
+							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Fees)}} DCR</p>
+							<p class="col-12 ps-2"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
+						{{end}}
 					</div>
 					<div class="col-24 col-md-12 mb-3">
 						<div class="d-flex ai-center">
-							<img src="/images/dcr-icon.png" width="20" height="20">
-							<div class="ms-2"><span class="fw-600">{{if .Source.IsRefund}}Refund{{else}}Redemption{{end}}:</span> <div class="clipboard">{{template "hashElide" (hashlink .Source.SpendTx (printf "/tx/%s" .Source.SpendTx))}}</div></div>
+							<img src="/images/dcr-icon-notran.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">{{if $isRefund}}Refund{{else}}Redemption{{end}}</span></div>
 						</div>
-						<div class="row mt-1">
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Source.SpendHeight}}">{{.Source.SpendHeight}}</a></p>
-							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Source.RedemptionFees)}} DCR</p>
+						{{- range .Source.Results}}
+						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
+							<div class="col-24">
+								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
+									<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+								{{else}}
+									<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
+								{{end}}
+							</div>
+							<p class="col-12 ps-2">Block Height: <a href="/decred/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} DCR</p>
+							<p class="col-12 ps-2"><span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
-						<div>{{if .Source.IsRefund}}Refunded{{else}}Redeemed{{end}} at: {{dateTimeWithoutTimeZone .Source.SpendTime}}</div>
+						{{end}}
 					</div>
 				</div>
 				{{if $hasTargetToken}}
 				<div class="row">
+					{{ $targetToken := .TargetToken }}
 					<div class="col-24 col-md-12 mb-1">
 						<div class="d-flex ai-center">
-							<img src="/images/{{.Source.TargetToken}}-icon.png" width="20" height="20">
-							<div class="ms-2"><span class="fw-600">Contract:</span> <div class="clipboard">{{template "hashElide" (hashlink .Target.ContractTx (printf "/%s/tx/%s" .Source.TargetToken .Target.ContractTx))}}</div></div>
+							<img src="/images/{{$targetToken}}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contracts</span></div>
 						</div>
-						<div class="row mt-1">
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{.Source.TargetToken}}/block/{{.Target.ContractHeight}}">{{.Target.ContractHeight}}</a></p>
-							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Target.ContractFees)}} {{toUpperCase .Source.TargetToken}}</p>
+						{{- range .Target.Contracts}}
+						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
+							<div class="col-24">
+								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
+								<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+								{{else}}
+								<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken .Txid))}}</div>
+								{{end}}
+							</div>
+							<p class="col-12 ps-2">Block Height: <a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} {{toUpperCase $targetToken}}</p>
+							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Fees)}} {{toUpperCase $targetToken}}</p>
+							<p class="col-12 ps-2"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
+						{{end}}
 					</div>
 					<div class="col-24 col-md-12 mb-1">
 						<div class="d-flex ai-center">
-							<img src="/images/{{.Source.TargetToken}}-icon.png" width="20" height="20">
-							<div class="ms-2"><span class="fw-600">{{if .Source.IsRefund}}Refund{{else}}Redemption{{end}}:</span> <div class="clipboard">{{template "hashElide" (hashlink .Target.SpendTx (printf "/%s/tx/%s" .Source.TargetToken .Target.SpendTx))}}</div></div>
+							<img src="/images/{{$targetToken}}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">{{if $isRefund}}Refund{{else}}Redemption{{end}}</span></div>
 						</div>
-						<div class="row mt-1">
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{.Source.TargetToken}}/block/{{.Target.SpendHeight}}">{{.Target.SpendHeight}}</a></p>
-							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Target.RedemptionFees)}} {{toUpperCase .Source.TargetToken}}</p>
+						{{- range .Target.Results}}
+						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
+							<div class="col-24">
+								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
+								<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+								{{else}}
+								<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken  .Txid))}}</div>
+								{{end}}
+							</div>
+							<p class="col-12 ps-2">Block Height: <a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} {{toUpperCase $targetToken}}</p>
+							<p class="col-12 ps-2"><span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
-						<div>{{if .Source.IsRefund}}Refunded{{else}}Redeemed{{end}} at: {{dateTimeWithoutTimeZone .Target.SpendTime}}</div>
+						{{end}}
 					</div>
 				</div>
 				{{end}}
@@ -1081,5 +1128,159 @@
 	{{- end}}
 	</tbody>
 </table>
+</div>
+{{- end}}
+
+{{define "atomicSwapsSimpleTable"}}
+<div class="btable-table-wrap maxh-none mt-2">
+    <table class="btable-table w-100 table-responsive-sm">
+		<thead>
+			<tr class="bg-none">
+				<th class="text-start fw-bold">Pair/Currency</th>
+				<th class="text-center fw-bold">Txid</th>
+				<th class="text-start fw-bold">Height</th>
+				<th class="text-start fw-bold">Value</th>
+				<th class="d-none d-sm-table-cell text-end fw-bold">Create/Lock Time (UTC)</th>
+			</tr>
+		</thead>
+		<tbody class="bgc-white">
+		{{- range .SwapsList}}
+			{{$isRefund := .IsRefund}}
+			{{$hasTargetToken := (ne .TargetToken "")}}
+			<!-- Begin first row is group info -->
+			<tr class="swap-group-header">
+				<td class="text-start" colspan="2">
+					<div class="d-flex ai-center">
+						{{if $hasTargetToken}}
+						<div class="p-relative d-flex ai-center pair-icons">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20"> 
+							<img src="/images/{{.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
+						</div>
+						{{else}}
+						  <img src="/images/synchronize.png" width="20" height="20" class="me-1"> 
+						{{end}}
+						<p class="fw-bold">{{if $hasTargetToken}}DCR/{{toUpperCase .TargetToken}}{{else}}Verifying{{end}}</p>
+						<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter{{else}}success{{end}}-bg fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
+					</div>
+				</td>
+				<td class="text-center"></td>
+				<td class="text-start d-flex fw-bold">
+					{{normalWithPrecFloat (toFloat64Amount .Source.TotalAmount) -1}}&nbsp;DCR
+					{{if $hasTargetToken}}&nbsp;({{normalWithPrecFloat (toFloat64Amount .Target.TotalAmount) -1}}&nbsp;{{toUpperCase .TargetToken}})
+					{{end}}
+				</td>
+				<td class="text-end"></td>
+			</tr>
+			<!-- End first row is group info -->
+			<!-- Begin Source contracts -->
+			{{- range .Source.Contracts}}
+			<tr>
+				<td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contract</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
+				</td>
+				<td class="text-start">
+					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
+				</td>
+				<td class="text-start">
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
+				</td>
+				<td class="text-end">
+					{{dateTimeWithoutTimeZone .Time}}
+				</td>
+			</tr>
+			{{end}}
+			<!-- End Source contracts -->
+			<!-- Begin Source redemptions -->
+			{{- range .Source.Results}}
+			<tr>
+				<td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">{{if $isRefund}}Refund{{else}}Redemption{{end}}</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
+				</td>
+				<td class="text-start">
+					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
+				</td>
+				<td class="text-start">
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
+				</td>
+				<td class="text-end">
+					{{dateTimeWithoutTimeZone .Time}}
+				</td>
+			</tr>
+			{{end}}
+			<!-- End Source redemptions -->
+			{{if $hasTargetToken}}
+			{{ $targetToken := .TargetToken }}
+			<!-- Begin Target contracts -->
+			{{- range .Target.Contracts}}
+			<tr>
+				<td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/{{$targetToken}}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contract</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken .Txid))}}</div>
+				</td>
+				<td class="text-start">
+					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
+				</td>
+				<td class="text-start">
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
+				</td>
+				<td class="text-end">
+					{{dateTimeWithoutTimeZone .Time}}
+				</td>
+			</tr>
+			{{end}}
+			<!-- End Target contracts -->
+			<!-- Begin Target redemptions -->
+			{{- range .Target.Results}}
+			<tr>
+				<td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/{{$targetToken}}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">{{if $isRefund}}Refund{{else}}Redemption{{end}}</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken  .Txid))}}</div>
+				</td>
+				<td class="text-start">
+					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
+				</td>
+				<td class="text-start">
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
+				</td>
+				<td class="text-end">
+					{{dateTimeWithoutTimeZone .Time}}
+				</td>
+			</tr>
+			{{end}}
+			<!-- End Target redemptions -->
+			{{end}}
+		{{end}}
+		</tbody>
+	</table>
 </div>
 {{- end}}

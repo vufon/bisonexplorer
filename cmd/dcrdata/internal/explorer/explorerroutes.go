@@ -1617,18 +1617,78 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	if tx.BlockHeight == 0 {
 		tx.Time = types.NewTimeDefFromUNIX(exp.dataSource.GetMutilchainMempoolTxTime(tx.TxID, chainType))
 	}
+
+	for index, _ := range tx.MutilchainVin {
+		tx.MutilchainVin[index].TextIsHash = true
+		tx.MutilchainVin[index].DisplayText = tx.TxID
+	}
+	// Find atomic swaps related to this tx
+	swapsInfo := txhelpers.MultichainTxSwapResults{}
+	var swapFirstSource *dbtypes.AtomicSwapForTokenData
+	var isRefund bool
+	relatedContract, swapType, err := exp.dataSource.GetMultichainSwapFullData(tx.TxID, "", chainType)
+	if err == nil {
+		swapsInfo.Found = utils.GetSwapTypeDisplay(swapType)
+		swapFirstSource = relatedContract.Source
+		isRefund = relatedContract.IsRefund
+		tx.SimpleListMode = true
+		tx.SwapsType = swapType
+		tx.SwapsList = make([]*dbtypes.AtomicSwapFullData, 0)
+		tx.SwapsList = append(tx.SwapsList, relatedContract)
+		// Prepare the string to display for previous outpoint.
+		if relatedContract.Target != nil && len(relatedContract.Target.Results) > 0 {
+			for _, contractData := range relatedContract.Target.Contracts {
+				// if tx is contract. check vout
+				if contractData.Txid == tx.TxID {
+					voutIndexs, err := exp.dataSource.GetMutilchainVoutIndexsOfContract(contractData.Txid, chainType)
+					if err == nil {
+						for _, voutIndex := range voutIndexs {
+							if len(tx.Vout) > voutIndex {
+								if isRefund {
+									tx.Vout[voutIndex].Type = "swap refund"
+									continue
+								}
+								tx.Vout[voutIndex].Type = "swap redemption"
+							}
+						}
+					}
+				}
+			}
+			for _, targetSpend := range relatedContract.Target.Results {
+				// if tx is redemption/refund, check vin
+				if targetSpend.Txid == tx.TxID {
+					vinIndexs, err := exp.dataSource.GetMutilchainVinIndexsOfRedeem(targetSpend.Txid, chainType)
+					if err == nil {
+						for _, vinIndex := range vinIndexs {
+							if len(tx.MutilchainVin) > vinIndex {
+								tx.MutilchainVin[vinIndex].DisplayText = "swap contract"
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	pageData := struct {
 		*CommonPageData
-		Data        *types.TxInfo
-		ChainType   string
-		Conversions struct {
+		Data            *types.TxInfo
+		ChainType       string
+		SwapsFound      string
+		SwapFirstSource *dbtypes.AtomicSwapForTokenData
+		TargetToken     string
+		IsRefund        bool
+		Conversions     struct {
 			Total *exchanges.Conversion
 			Fees  *exchanges.Conversion
 		}
 	}{
-		CommonPageData: exp.commonData(r),
-		Data:           tx,
-		ChainType:      chainType,
+		CommonPageData:  exp.commonData(r),
+		Data:            tx,
+		ChainType:       chainType,
+		SwapsFound:      swapsInfo.Found,
+		SwapFirstSource: swapFirstSource,
+		IsRefund:        isRefund,
 	}
 	// Get a fiat-converted value for the total and the fees.
 	if exp.xcBot != nil {
@@ -2350,8 +2410,27 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf("Unable to get atomic swap info for transaction %v: %v", tx.TxID, err)
 	}
+	var swapFirstSource *dbtypes.AtomicSwapForTokenData
+	var targetToken string
+	var isRefund bool
 	if swapsInfo == nil {
 		swapsInfo = new(txhelpers.TxSwapResults)
+	} else {
+		// check and get detail Swap data
+		relatedContract, err := exp.dataSource.GetSwapFullData(tx.TxID, swapsInfo.SwapType)
+		if err != nil {
+			log.Errorf("Unable to get list of contracts related to transaction %v: %v", tx.TxID, err)
+			exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+			return
+		}
+		tx.SwapsList = relatedContract
+		if len(tx.SwapsList) > 0 {
+			swapFirstSource = tx.SwapsList[0].Source
+			targetToken = tx.SwapsList[0].TargetToken
+			isRefund = tx.SwapsList[0].IsRefund
+		}
+		tx.SwapsType = swapsInfo.SwapType
+		tx.SimpleListMode = true
 	}
 
 	// Prepare the string to display for previous outpoint.
@@ -2370,7 +2449,7 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 			vin.TextIsHash = true
 			vin.Link = "/tx/" + vin.Txid + "/out/" + voutStr
 			if swapsInfo.Redemptions[vin.Index] != nil || swapsInfo.Refunds[vin.Index] != nil {
-				vin.DisplayText = "Swap"
+				vin.DisplayText = "swap contract"
 			} else {
 				vin.DisplayText = vin.Txid + ":" + voutStr
 			}
@@ -2381,7 +2460,11 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	for idx := range tx.Vout {
 		vout := &tx.Vout[idx]
 		if swapsInfo.Contracts[vout.Index] != nil {
-			vout.Type = "swap"
+			if swapsInfo.Contracts[vout.Index].IsRefund {
+				vout.Type = "swap refund"
+				continue
+			}
+			vout.Type = "swap redemption"
 		}
 	}
 
@@ -2399,6 +2482,9 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		HighlightInOut       string
 		HighlightInOutID     int64
 		SwapsFound           string
+		SwapFirstSource      *dbtypes.AtomicSwapForTokenData
+		TargetToken          string
+		IsRefund             bool
 		Conversions          struct {
 			Total *exchanges.Conversion
 			Fees  *exchanges.Conversion
@@ -2411,7 +2497,10 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 		IsConfirmedMainchain: isConfirmedMainchain,
 		HighlightInOut:       inout,
 		HighlightInOutID:     inoutid,
+		SwapFirstSource:      swapFirstSource,
 		SwapsFound:           swapsInfo.Found,
+		TargetToken:          targetToken,
+		IsRefund:             isRefund,
 	}
 
 	// Get a fiat-converted value for the total and the fees.
@@ -2521,10 +2610,14 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		offset = int64(val)
 	}
 	// get pair param
-	pair := r.URL.Query().Get("pair")
-	status := r.URL.Query().Get("status")
-
-	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
+	pair := strings.TrimSpace(r.URL.Query().Get("pair"))
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	searchKey := strings.TrimSpace(r.URL.Query().Get("search"))
+	listMode := strings.TrimSpace(r.URL.Query().Get("mode"))
+	if listMode == "" {
+		listMode = "simple"
+	}
+	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2543,18 +2636,27 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 	if status != "" {
 		linkTemplate += "&status=" + status
 	}
+	if searchKey != "" {
+		linkTemplate += "&search=" + searchKey
+	}
+	if listMode != "" {
+		linkTemplate += "&mode=" + listMode
+	}
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
-		SwapsList          []*dbtypes.AtomicSwapData
+		SwapsList          []*dbtypes.AtomicSwapFullData
 		Pages              []pageNumber
 		Offset             int64
 		Limit              int64
 		Pair               string
 		Status             string
+		SearchKey          string
 		TxCount            int64
 		AllCountSummary    int64
 		RefundCount        int64
 		TotalTradingAmount int64
+		SimpleListMode     bool
+		ListMode           string
 	}{
 		CommonPageData:     exp.commonData(r),
 		SwapsList:          atomicSwapTxs,
@@ -2564,8 +2666,11 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		TotalTradingAmount: totalTradingAmount,
 		RefundCount:        refundCount,
 		Pair:               pair,
+		SearchKey:          searchKey,
 		Status:             status,
 		AllCountSummary:    allCount,
+		SimpleListMode:     false,
+		ListMode:           listMode,
 		Pages:              calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	})
 
@@ -3072,9 +3177,11 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// get pair param
-	pair := r.URL.Query().Get("pair")
-	status := r.URL.Query().Get("status")
-	atomicSwapTxs, allCount, allFilterCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status)
+	pair := strings.TrimSpace(r.URL.Query().Get("pair"))
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	searchKey := strings.TrimSpace(r.URL.Query().Get("search"))
+	listMode := strings.TrimSpace(r.URL.Query().Get("mode"))
+	atomicSwapTxs, allCount, allFilterCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -3089,21 +3196,33 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	if status != "" {
 		linkTemplate += "&status=" + status
 	}
+	if searchKey != "" {
+		linkTemplate += "&search=" + searchKey
+	}
+	if listMode != "" {
+		linkTemplate += "&mode=" + listMode
+	}
 	response := struct {
 		TxCount         int64        `json:"tx_count"`
 		HTML            string       `json:"html"`
 		AllCountSummary int64        `json:"all_count"`
+		CurrentCount    int          `json:"current_count"`
 		Pages           []pageNumber `json:"pages"`
 	}{
 		TxCount:         allFilterCount,
 		AllCountSummary: allCount,
+		CurrentCount:    len(atomicSwapTxs),
 		Pages:           calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	}
 
 	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {
-		SwapsList []*dbtypes.AtomicSwapData
+		SwapsList      []*dbtypes.AtomicSwapFullData
+		SimpleListMode bool
+		ListMode       string
 	}{
-		SwapsList: atomicSwapTxs,
+		SwapsList:      atomicSwapTxs,
+		SimpleListMode: false,
+		ListMode:       listMode,
 	})
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
@@ -3367,6 +3486,14 @@ func (exp *ExplorerUI) AddressListData(address string, txnType dbtypes.AddrTxnVi
 		err = fmt.Errorf(defaultErrorMessage)
 		return nil, err
 	}
+	// check swap tx type for transactions
+	for index, transaction := range addrData.Transactions {
+		transaction.SwapsType = exp.dataSource.GetSwapType(transaction.TxID)
+		if transaction.SwapsType != "" {
+			transaction.SwapsTypeDisplay = utils.GetSwapTypeDisplay(transaction.SwapsType)
+		}
+		addrData.Transactions[index] = transaction
+	}
 	return
 }
 
@@ -3380,6 +3507,20 @@ func (exp *ExplorerUI) MutilchainAddressListData(address string, txnType dbtypes
 		log.Errorf("AddressData error encountered: %v", err)
 		err = fmt.Errorf(defaultErrorMessage)
 		return nil, err
+	}
+	// check swap tx type for transactions
+	for index, transaction := range addrData.Transactions {
+		var swapType string
+		swapType, err := exp.dataSource.GetMultichainSwapType(transaction.TxID, chainType)
+		if err != nil {
+			fmt.Errorf("get swap type failed. Chain Type: %s, Txid: %s", chainType, transaction.TxID)
+			continue
+		}
+		transaction.SwapsType = swapType
+		if transaction.SwapsType != "" {
+			transaction.SwapsTypeDisplay = utils.GetSwapTypeDisplay(transaction.SwapsType)
+		}
+		addrData.Transactions[index] = transaction
 	}
 	return
 }
@@ -4599,9 +4740,14 @@ func calcPages(rows, pageSize, offset int, link string) pageNumbers {
 	if endIdx == 0 {
 		return nums
 	}
-	pages := endIdx + 1
+	var pages int
+	if rows%pageSize == 0 {
+		pages = endIdx
+		endIdx -= 1
+	} else {
+		pages = endIdx + 1
+	}
 	currentPageIdx := offset / pageSize
-
 	if pages > 10 {
 		nums = append(nums, makePageNumber(currentPageIdx == 0, fmt.Sprintf(link, 0), "1"))
 		start := currentPageIdx - 3

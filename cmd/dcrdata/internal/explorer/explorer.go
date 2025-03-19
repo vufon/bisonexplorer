@@ -94,7 +94,7 @@ type explorerDataSource interface {
 	TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error)
 	TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error)
 	TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error)
-	GetAtomicSwapList(n, offset int64, pair, status string) ([]*dbtypes.AtomicSwapData, int64, int64, int64, error)
+	GetAtomicSwapList(n, offset int64, pair, status, searchKey string) ([]*dbtypes.AtomicSwapFullData, int64, int64, int64, error)
 	CountRefundContract() (int64, error)
 	AddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error)
 	MutilchainAddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *dbtypes.AddressBalance, error)
@@ -142,6 +142,8 @@ type explorerDataSource interface {
 	DecodeRawTransaction(txhex string) (*chainjson.TxRawResult, error)
 	SendRawTransaction(txhex string) (string, error)
 	GetTransactionByHash(txid string) (*wire.MsgTx, error)
+	GetLTCTransactionByHash(txid string) (*ltcutil.Tx, error)
+	GetBTCTransactionByHash(txid string) (*btcutil.Tx, error)
 	GetHeight() (int64, error)
 	GetMutilchainHeight(chainType string) (int64, error)
 	TxHeight(txid *chainhash.Hash) (height int64)
@@ -175,6 +177,12 @@ type explorerDataSource interface {
 	GetPeerCount() (int, error)
 	GetBlockchainSummaryInfo() (addrCount, outputs int64, err error)
 	GetAtomicSwapSummary() (txCount, amount int64, err error)
+	GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error)
+	GetSwapType(txid string) string
+	GetMultichainSwapType(txid, chainType string) (string, error)
+	GetMultichainSwapFullData(txid, swapType, chainType string) (*dbtypes.AtomicSwapFullData, string, error)
+	GetMutilchainVoutIndexsOfContract(contractTx, chainType string) ([]int, error)
+	GetMutilchainVinIndexsOfRedeem(spendTx, chainType string) ([]int, error)
 }
 
 type PoliteiaBackend interface {

@@ -17,6 +17,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/dcrdata/v8/utils"
 )
 
 const timeFmt = "2006-01-02 15:04:05 (MST)"
@@ -344,6 +345,22 @@ type AtomicSwapData struct {
 	TargetToken      string
 }
 
+type MultichainAtomicSwapData struct {
+	ContractTx       string
+	ContractVout     uint32
+	SpendTx          string
+	SpendVin         uint32
+	Value            int64
+	ContractAddress  string
+	RecipientAddress string
+	RefundAddress    string
+	Locktime         int64
+	SecretHash       [32]byte
+	Secret           []byte
+	Contract         []byte
+	IsRefund         bool
+}
+
 func (asd *AtomicSwapData) ToAPI() *AtomicSwap {
 	return &AtomicSwap{
 		ContractTxRef:     fmt.Sprintf("%s:%d", asd.ContractTx, asd.ContractVout),
@@ -364,9 +381,19 @@ func (asd *AtomicSwapData) ToAPI() *AtomicSwap {
 type TxSwapResults struct {
 	TxID        chainhash.Hash
 	Found       string
+	SwapType    string
 	Contracts   map[uint32]*AtomicSwapData
 	Redemptions map[uint32]*AtomicSwapData
 	Refunds     map[uint32]*AtomicSwapData
+}
+
+type MultichainTxSwapResults struct {
+	TxID        string
+	Found       string
+	SwapType    string
+	Contracts   map[uint32]*MultichainAtomicSwapData
+	Redemptions map[uint32]*MultichainAtomicSwapData
+	Refunds     map[uint32]*MultichainAtomicSwapData
 }
 
 func (tsr *TxSwapResults) ToAPI() *TxAtomicSwaps {
@@ -405,11 +432,12 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 	var hash *chainhash.Hash
 	var txSwaps *TxSwapResults
 
-	appendFound := func(found string) {
+	appendFound := func(found, swapType string) {
 		if txSwaps == nil { // first one
 			txSwaps = &TxSwapResults{
-				TxID:  *hash, // assign hash before doing appendFound!
-				Found: found,
+				TxID:     *hash, // assign hash before doing appendFound!
+				Found:    found,
+				SwapType: swapType,
 			}
 			return
 		}
@@ -421,6 +449,7 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 			return
 		}
 		txSwaps.Found = fmt.Sprintf("%s, %s", txSwaps.Found, found)
+		txSwaps.SwapType = swapType
 	}
 
 	// Check if any of this tx's inputs are redeems or refunds, i.e. inputs that
@@ -453,13 +482,13 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 			IsRefund:         isRefund,
 		}
 		if isRefund {
-			appendFound("Refund")
+			appendFound("Refund", utils.REFUND_TYPE)
 			if txSwaps.Refunds == nil {
 				txSwaps.Refunds = make(map[uint32]*AtomicSwapData)
 			}
 			txSwaps.Refunds[uint32(i)] = swapInfo
 		} else {
-			appendFound("Redemption")
+			appendFound("Redemption", utils.REDEMPTION_TYPE)
 			if txSwaps.Redemptions == nil {
 				txSwaps.Redemptions = make(map[uint32]*AtomicSwapData)
 			}
@@ -505,7 +534,7 @@ func MsgTxAtomicSwapsInfo(msgTx *wire.MsgTx, outputSpenders map[uint32]*OutputSp
 			return nil, fmt.Errorf("error checking if tx output is a contract: %w", err)
 		}
 		if contractData != nil {
-			appendFound("Contract")
+			appendFound("Contract", utils.CONTRACT_TYPE)
 			if txSwaps.Contracts == nil {
 				txSwaps.Contracts = make(map[uint32]*AtomicSwapData)
 			}

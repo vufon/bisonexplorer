@@ -177,3 +177,27 @@ func ReplaceDCP(input string) string {
 	}
 	return input
 }
+
+func GetSwapTypeDisplay(swapType string) string {
+	switch swapType {
+	case CONTRACT_TYPE:
+		return "Swap Contract"
+	case REDEMPTION_TYPE:
+		return "Swap Redemption"
+	case REFUND_TYPE:
+		return "Swap Refund"
+	}
+	return ""
+}
+
+func GetSwapTypeFound(swapType string) string {
+	switch swapType {
+	case CONTRACT_TYPE:
+		return "Contract"
+	case REDEMPTION_TYPE:
+		return "Redemption"
+	case REFUND_TYPE:
+		return "Refund"
+	}
+	return ""
+}

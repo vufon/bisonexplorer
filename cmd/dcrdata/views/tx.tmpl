@@ -5,6 +5,8 @@
 {{template "navbar" . }}
 {{$conv := .Conversions}}
 {{with .Data}}
+{{$targetToken := "" }}
+{{$hasTargetToken := ne $.TargetToken ""}}
 <div class="container mt-2" data-controller="time tx" data-tx-txid="{{.TxID}}" data-tx-type="{{.Type}}">
   <nav class="breadcrumbs mt-0">
     <a href="/" class="breadcrumbs__item no-underline ps-2">
@@ -50,7 +52,22 @@
         </div>
         {{- end}}
         {{if $.SwapsFound}}
-        <div class="d-inline-block swap-box mx-2 fs14">{{$.SwapsFound}}</div>
+        {{if and .SwapsList (gt (len .SwapsList) 0)}}
+        <div class="d-inline-block text-white br-10 {{.SwapsType}}-bg px-2 mx-2 fs14">
+          <div class="d-flex ai-center">
+            {{if $hasTargetToken}}
+            <div class="p-relative d-flex ai-center pair-icons">
+              <img src="/images/dcr-icon-notran.png" width="20" height="20">
+              <img src="/images/{{$.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
+            </div>
+            {{end}}
+            <p>{{if $hasTargetToken}}DCR/{{toUpperCase
+              $.TargetToken}}&nbsp;{{end}}{{$.SwapsFound}}</p>
+          </div>
+        </div>
+        {{else}}
+        <div class="d-inline-block text-white px-2 mx-2 fs14">{{$.SwapsFound}}</div>
+        {{end}}
         {{end}}
       </div>
       {{if and (ne .BlockHeight 0) (not $.IsConfirmedMainchain)}}
@@ -239,7 +256,7 @@
           <tr>
             <td class="text-end medium-sans text-nowrap pe-2 py-2">Swaps Info:
             </td>
-            <td class="text-start py-1 text-secondary"><a href="/api/tx/swaps/{{.TxID}}?indent=true"
+            <td class="text-start py-1 text-secondary"><a class="c-green" href="/api/tx/swaps/{{.TxID}}?indent=true"
                 data-turbolinks="false">swaps</a>
             </td>
           </tr>
@@ -399,7 +416,8 @@
               <td class="text-start py-1 text-secondary">{{formatDateTime .VoteEndDate}}</td>
               {{else}}
               <td class="text-end medium-sans text-nowrap pe-2 py-2">Voting Ended:</td>
-              <td class="text-start py-1 text-secondary" data-tx-target="formattedAge">{{formatDateTime $.Data.Time.T}}</td>
+              <td class="text-start py-1 text-secondary" data-tx-target="formattedAge">{{formatDateTime $.Data.Time.T}}
+              </td>
               {{end}}
               {{end}}
             </tr>
@@ -445,7 +463,7 @@
   </div>
   {{end}}
 
-  <div class="row mb-5">
+  <div class="row mb-3">
     <div class="col-lg-12 mt-4 mb-2">
       <h5 class="pb-2">{{len .Vin}} Input{{if gt (len .Vin) 1}}s{{end}} Consumed</h5>
       <div class="br-8 b--def bgc-plain-bright pb-10">
@@ -529,11 +547,11 @@
             <tbody class="bgc-white">
               {{$isTSpend := false}}
               {{if $.Data.TSpendMeta}}
-                {{$isTSpend = true}}
+              {{$isTSpend = true}}
               {{end}}
               {{range $i, $v := .Vout}}
-              <tr class="{{if and (eq $.HighlightInOut "out" ) (eq $.HighlightInOutID .Index)}}blue-row{{end}} {{if and $isTSpend (gt $i 4)}}d-hide{{end}}" 
-                data-tx-target="outputRow" data-index="{{$i}}">
+              <tr class="{{if and (eq $.HighlightInOut " out" ) (eq $.HighlightInOutID .Index)}}blue-row{{end}} {{if and
+                $isTSpend (gt $i 4)}}d-hide{{end}}" data-tx-target="outputRow" data-index="{{$i}}">
                 <td class="shrink-to-fit">{{.Index}}</td>
                 <td class="position-relative clipboard">
                   {{range .Addresses}}
@@ -582,10 +600,16 @@
               </tr>
               {{end}}
               {{if $isTSpend}}
-                <tr class="expand-row"><td data-action="click->tx#toggleExpand" colspan="6" class="text-center table-expand-row cursor-pointer">
-                  <div><p class="mb-0" data-tx-target="showMoreText">Show More</p>
-                    <img data-tx-target="showMoreIcon" class="h30 expand-bounce mt-1" src="/images/expand-down.svg" alt="side chain">
-                  </div></td></tr>
+              <tr class="expand-row">
+                <td data-action="click->tx#toggleExpand" colspan="6"
+                  class="text-center table-expand-row cursor-pointer">
+                  <div>
+                    <p class="mb-0" data-tx-target="showMoreText">Show More</p>
+                    <img data-tx-target="showMoreIcon" class="h30 expand-bounce mt-1" src="/images/expand-down.svg"
+                      alt="side chain">
+                  </div>
+                </td>
+              </tr>
               {{end}}
             </tbody>
           </table>
@@ -593,7 +617,25 @@
       </div>
     </div>
   </div>
-
+  {{if $.SwapsFound}}
+  <div>
+    <div class="br-8 b--def bgc-plain-bright pb-10">
+      <div class="d-flex ai-center pt-3 pb-1 ps-3">
+        {{if $hasTargetToken}}
+        <div class="p-relative d-flex ai-center pair-icons">
+          <img src="/images/dcr-icon-notran.png" width="20" height="20">
+          <img src="/images/{{$.TargetToken}}-icon.png" width="20" height="20" class="second-pair">
+        </div>
+        {{end}}
+        <h5>Swap Details</h5><span class="common-label px-2 text-white ms-2 {{if $.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if $.IsRefund}}Refund{{else}}Redemption{{end}}</span>
+      </div>
+      <a href="/decred/atomic-swaps" class="link-underline fs14 ms-5">All Atomic Swaps</a>
+      <div class="position-relative">
+        {{template "atomicSwapsTable" .}}
+      </div>
+    </div>
+  </div>
+  {{end}}
   {{if .VoteInfo}}
   {{with .VoteInfo}}
   <div class="row mb-3">

@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	btcClient "github.com/btcsuite/btcd/rpcclient"
 	"github.com/decred/dcrd/blockchain/standalone/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
@@ -44,6 +45,7 @@ import (
 	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/decred/dcrdata/v8/utils"
 	"github.com/go-chi/chi/v5"
+	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 
 	m "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 )
@@ -147,11 +149,16 @@ type DataSource interface {
 	GetLegacySummaryGroupByMonth(year int) ([]dbtypes.TreasurySummary, error)
 	GetTreasurySummaryAllYear() ([]dbtypes.TreasurySummary, error)
 	GetLegacySummaryAllYear() ([]dbtypes.TreasurySummary, error)
+	GetMultichainTransactionHex(txid, chainType string) string
+	GetMultichainTransactionVerbose(txid, chainType string) (any, error)
+	GetMultichainSwapInfoData(txid, chainType string) (swapsInfo *txhelpers.TxAtomicSwaps, err error)
 }
 
 // dcrdata application context used by all route handlers
 type appContext struct {
 	nodeClient       *rpcclient.Client
+	btcNodeClient    *btcClient.Client
+	ltcNodeClient    *ltcClient.Client
 	Params           *chaincfg.Params
 	DataSource       DataSource
 	Status           *apitypes.Status
@@ -171,6 +178,8 @@ type appContext struct {
 // argument to its constructor.
 type AppContextConfig struct {
 	Client            *rpcclient.Client
+	BtcClient         *btcClient.Client
+	LtcClient         *ltcClient.Client
 	Params            *chaincfg.Params
 	DataSource        DataSource
 	XcBot             *exchanges.ExchangeBot
@@ -210,6 +219,8 @@ func NewContext(cfg *AppContextConfig) *appContext {
 
 	return &appContext{
 		nodeClient:       cfg.Client,
+		btcNodeClient:    cfg.BtcClient,
+		ltcNodeClient:    cfg.LtcClient,
 		Params:           cfg.Params,
 		DataSource:       cfg.DataSource,
 		xcBot:            cfg.XcBot,
@@ -735,6 +746,50 @@ func (c *appContext) getTransactionHex(w http.ResponseWriter, r *http.Request) {
 	hex := c.DataSource.GetTransactionHex(txid)
 
 	fmt.Fprint(w, hex)
+}
+
+func (c *appContext) getMultichainTransactionHex(w http.ResponseWriter, r *http.Request) {
+	chainType, txid := m.GetMultichainTxID(r)
+	if chainType == "" || txid == "" {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	hex := c.DataSource.GetMultichainTransactionHex(txid, chainType)
+	fmt.Fprint(w, hex)
+}
+
+// getTxSwapsInfo checks the inputs and outputs of the specified transaction for
+// information about completed atomic swaps that were created and/or redeemed in
+// the transaction.
+func (c *appContext) getMultichainTxSwapsInfo(w http.ResponseWriter, r *http.Request) {
+	chainType, txid := m.GetMultichainTxID(r)
+	if chainType == "" || txid == "" {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	swapsInfo, err := c.DataSource.GetMultichainSwapInfoData(txid, chainType)
+	swapsInfo.TxID = txid
+	if err != nil {
+		apiLog.Errorf("getMultichainTxSwapsInfo get swapsInfo failed: Type: %s, txid: %s", chainType, txid)
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	writeJSON(w, swapsInfo, m.GetIndentCtx(r))
+}
+
+func (c *appContext) getMultichainDecodedTx(w http.ResponseWriter, r *http.Request) {
+	chainType, txid := m.GetMultichainTxID(r)
+	if chainType == "" || txid == "" {
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	tx, err := c.DataSource.GetMultichainTransactionVerbose(txid, chainType)
+	if err != nil {
+		apiLog.Errorf("Unable to get multichain transaction: Type: %s, txid: %s", chainType, txid)
+		http.Error(w, http.StatusText(422), 422)
+		return
+	}
+	writeJSON(w, tx, m.GetIndentCtx(r))
 }
 
 func (c *appContext) getProposalTimeMinMax() (int64, int64, error) {

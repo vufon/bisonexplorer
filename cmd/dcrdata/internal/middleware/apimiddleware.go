@@ -306,6 +306,22 @@ func GetTxIDCtx(r *http.Request) (*chainhash.Hash, error) {
 	return hash, nil
 }
 
+// GetMultichainTxID retrieves the ctxTxHash and ctxChainType data from the request context.
+// If not set, the return value is an empty strings.
+func GetMultichainTxID(r *http.Request) (string, string) {
+	hashStr, ok := r.Context().Value(ctxTxHash).(string)
+	if !ok {
+		apiLog.Trace("tx hash not set")
+		return "", ""
+	}
+	chainType, ok := r.Context().Value(ctxChainType).(string)
+	if !ok {
+		apiLog.Trace("chain type not set")
+		return "", ""
+	}
+	return chainType, hashStr
+}
+
 // GetTxnsCtx retrieves the ctxTxns data from the request context. If not set,
 // the return value is an empty string slice.
 func GetTxnsCtx(r *http.Request) ([]*chainhash.Hash, error) {
@@ -735,6 +751,18 @@ func TransactionHashCtx(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		txid := chi.URLParam(r, "txid")
 		ctx := context.WithValue(r.Context(), ctxTxHash, txid)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// MultichainTxHashCtx returns a http.HandlerFunc that embeds the value at the
+// url part {chaintype}/{txid} into the request context.
+func MultichainTxHashCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		txid := chi.URLParam(r, "txid")
+		chainType := chi.URLParam(r, "chaintype")
+		ctx := context.WithValue(r.Context(), ctxTxHash, txid)
+		ctx = context.WithValue(ctx, ctxChainType, chainType)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

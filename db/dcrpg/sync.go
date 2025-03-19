@@ -1063,7 +1063,7 @@ func (pgb *ChainDB) supplementUnknownTicketError(err error) error {
 }
 
 func (pgb *ChainDB) SyncDecredAtomicSwap() error {
-	// Get list of unsynchronized btc blocks atomic swap transaction
+	// Get list of unsynchronized blocks atomic swap transaction
 	var syncHeights []int64
 	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectBlocksUnsynchoronized)
 	if err != nil {
@@ -1117,13 +1117,13 @@ func (pgb *ChainDB) SyncDecredAtomicSwapData(height int64) error {
 			continue
 		}
 		for _, red := range swapTxns.Redemptions {
-			err = InsertSwap(pgb.db, height, red, false)
+			err = InsertSwap(pgb.db, pgb.ctx, pgb.Client, height, red, false)
 			if err != nil {
 				log.Errorf("InsertSwap: %v", err)
 			}
 		}
 		for _, ref := range swapTxns.Refunds {
-			err = InsertSwap(pgb.db, height, ref, true)
+			err = InsertSwap(pgb.db, pgb.ctx, pgb.Client, height, ref, true)
 			if err != nil {
 				log.Errorf("InsertSwap: %v", err)
 			}
@@ -1223,7 +1223,7 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 			continue
 		}
 		for _, red := range swapRes.Redemptions {
-			contractTx, err := pgb.BtcClient.GetRawTransaction(red.ContractTx)
+			contractTx, err := pgb.GetBTCTransactionByHash(red.ContractTx)
 			if err != nil {
 				continue
 			}
@@ -1235,7 +1235,7 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 			}
 		}
 		for _, ref := range swapRes.Refunds {
-			contractTx, err := pgb.BtcClient.GetRawTransaction(ref.ContractTx)
+			contractTx, err := pgb.GetBTCTransactionByHash(ref.ContractTx)
 			if err != nil {
 				continue
 			}
@@ -1278,7 +1278,7 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 			continue
 		}
 		for _, red := range swapRes.Redemptions {
-			contractTx, err := pgb.LtcClient.GetRawTransaction(red.ContractTx)
+			contractTx, err := pgb.GetLTCTransactionByHash(red.ContractTx)
 			if err != nil {
 				continue
 			}
@@ -1290,7 +1290,7 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 			}
 		}
 		for _, ref := range swapRes.Refunds {
-			contractTx, err := pgb.LtcClient.GetRawTransaction(ref.ContractTx)
+			contractTx, err := pgb.GetLTCTransactionByHash(ref.ContractTx)
 			if err != nil {
 				continue
 			}

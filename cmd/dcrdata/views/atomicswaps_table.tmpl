@@ -1,3 +1,7 @@
 {{define "atomicswaps_table"}}
-{{template "atomicSwapsTable" .}}
+    {{if eq $.ListMode "full"}}
+        {{template "atomicSwapsTable" .}}
+    {{else}}
+        {{template "atomicSwapsSimpleTable" .}}
+    {{end}}
 {{end}}
