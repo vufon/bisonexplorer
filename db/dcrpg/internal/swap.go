@@ -93,6 +93,29 @@ const (
 		GROUP BY timestamp
 		ORDER BY timestamp;`
 
+	SelectMultichainSwapType = `SELECT * FROM (
+    SELECT 
+        CASE 
+            WHEN bs.contract_tx = $1
+            THEN 'contract'
+            WHEN bs.spend_tx = $1
+            THEN CASE WHEN 
+				EXISTS (
+                    SELECT 1 FROM swaps sw 
+                    WHERE sw.is_refund = TRUE 
+                    AND sw.group_tx = bs.decred_contract_tx
+                ) 
+                THEN 'refund' 
+                ELSE 'redemption' 
+            END
+            ELSE NULL
+        END AS swaptype
+    FROM %s_swaps bs) t 
+	WHERE t.swaptype IS NOT NULL;`
+
+	SelectVoutIndexOfContract = `SELECT contract_vout FROM %s_swaps WHERE contract_tx = $1;`
+	SelectVinIndexOfRedeem    = `SELECT spend_vin FROM %s_swaps WHERE spend_tx = $1;`
+
 	selectSwapsTxcount = `SELECT %s as timestamp,
 		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,
 		COUNT(*) FILTER (WHERE is_refund = TRUE) AS refund_count
@@ -112,8 +135,8 @@ const (
 		 FROM swaps WHERE spend_tx = $1 GROUP BY group_tx ORDER BY contime DESC) AS ctx;`
 	SelectTargetTokenOfContract                     = `SELECT target_token, group_tx FROM swaps WHERE contract_tx = $1 LIMIT 1;`
 	SelectGroupTxBySpendTx                          = `SELECT target_token, group_tx FROM swaps WHERE spend_tx = $1 LIMIT 1;`
-	SelectDecredContractTxsFromMultichainSpendTx    = `SELECT decred_contract_tx FROM %s_swaps WHERE spend_tx = $1 GROUP BY decred_contract_tx`
-	SelectDecredContractTxsFromMultichainContractTx = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = $1 GROUP BY decred_contract_tx`
+	SelectDecredContractTxsFromMultichainSpendTx    = `SELECT decred_contract_tx FROM %s_swaps WHERE spend_tx = $1 GROUP BY decred_contract_tx LIMIT 1;`
+	SelectDecredContractTxsFromMultichainContractTx = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = $1 GROUP BY decred_contract_tx LIMIT 1;`
 	CheckSwapIsRefund                               = `SELECT is_refund FROM swaps WHERE group_tx = $1 LIMIT 1;`
 )
 
