@@ -223,14 +223,19 @@ export default class extends Controller {
     this.fetchTable(this.pageSize, this.paginationParams.offset)
   }
 
-  clearSearch () {
+  async clearSearchState () {
     this.settings.search = ''
     this.searchInputTarget.value = ''
     this.searchBtnTarget.classList.remove('d-none')
     this.clearSearchBtnTarget.classList.add('d-none')
     isSearching = false
     this.paginationParams.offset = 0
-    this.fetchTable(this.pageSize, this.paginationParams.offset)
+    await this.fetchTable(this.pageSize, this.paginationParams.offset)
+  }
+
+  async clearSearch () {
+    await this.clearSearchState()
+    this.resetPageSizeOptions()
   }
 
   onTypeChange (e) {
@@ -580,12 +585,12 @@ export default class extends Controller {
 
   changePair (e) {
     ctrl.settings.pair = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
-    this.clearSearch()
+    this.clearSearchState()
   }
 
   changeStatus (e) {
     ctrl.settings.status = (!e.target.value || e.target.value === '') ? 'all' : e.target.value
-    this.clearSearch()
+    this.clearSearchState()
   }
 
   makeTableUrl (count, offset) {
@@ -635,10 +640,39 @@ export default class extends Controller {
     ctrl.query.replace(settings)
     ctrl.paginationParams.offset = offset
     ctrl.paginationParams.pagesize = count
+    ctrl.paginationParams.currentcount = Number(tableResponse.current_count)
     ctrl.setPageability()
     ctrl.tablePaginationParams = tableResponse.pages
     ctrl.setTablePaginationLinks()
     ctrl.listLoaderTarget.classList.remove('loading')
+  }
+
+  // reset page size selector
+  resetPageSizeOptions () {
+    const params = ctrl.paginationParams
+    const rowMax = params.count
+    const dispCount = params.currentcount
+    let pageSizeOptions = ''
+    if (rowMax > 20) {
+      this.pagesizeTarget.classList.remove('disabled')
+      this.pagesizeTarget.disabled = false
+    } else {
+      this.pagesizeTarget.classList.add('disabled')
+      this.pagesizeTarget.disabled = true
+    }
+    pageSizeOptions += `<option ${dispCount === 20 ? 'selected' : ''} value="20" ${dispCount <= 20 ? 'disabled' : ''}>20</option>`
+    pageSizeOptions += `<option ${dispCount === 40 ? 'selected' : ''} value="40" ${dispCount <= 40 ? 'disabled' : ''}>40</option>`
+    pageSizeOptions += `<option ${dispCount === 80 ? 'selected' : ''} value="80" ${dispCount <= 80 ? 'disabled' : ''}>80</option>`
+    if (rowMax <= 160) {
+      pageSizeOptions += `<option ${dispCount === rowMax ? 'selected' : ''} value="${rowMax}" ${rowMax <= 160 ? 'disabled' : ''}>${rowMax}</option>`
+    } else {
+      pageSizeOptions += `<option ${dispCount >= 160 ? 'selected' : ''} value="160">160</option>`
+    }
+    this.pagesizeTarget.innerHTML = pageSizeOptions
+    this.pageSizeOptions = this.hasPagesizeTarget ? this.pagesizeTarget.querySelectorAll('option') : []
+    const settings = ctrl.settings
+    settings.n = this.pageSize
+    ctrl.query.replace(settings)
   }
 
   setPageability () {

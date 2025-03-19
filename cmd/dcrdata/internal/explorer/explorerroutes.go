@@ -3197,10 +3197,12 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 		TxCount         int64        `json:"tx_count"`
 		HTML            string       `json:"html"`
 		AllCountSummary int64        `json:"all_count"`
+		CurrentCount    int          `json:"current_count"`
 		Pages           []pageNumber `json:"pages"`
 	}{
 		TxCount:         allFilterCount,
 		AllCountSummary: allCount,
+		CurrentCount:    len(atomicSwapTxs),
 		Pages:           calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	}
 
