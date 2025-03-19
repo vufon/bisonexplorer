@@ -3495,6 +3495,20 @@ func (exp *ExplorerUI) MutilchainAddressListData(address string, txnType dbtypes
 		err = fmt.Errorf(defaultErrorMessage)
 		return nil, err
 	}
+	// check swap tx type for transactions
+	for index, transaction := range addrData.Transactions {
+		var swapType string
+		swapType, err := exp.dataSource.GetMultichainSwapType(transaction.TxID, chainType)
+		if err != nil {
+			fmt.Errorf("get swap type failed. Chain Type: %s, Txid: %s", chainType, transaction.TxID)
+			continue
+		}
+		transaction.SwapsType = swapType
+		if transaction.SwapsType != "" {
+			transaction.SwapsTypeDisplay = utils.GetSwapTypeDisplay(transaction.SwapsType)
+		}
+		addrData.Transactions[index] = transaction
+	}
 	return
 }
 

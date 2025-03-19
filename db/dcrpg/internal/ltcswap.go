@@ -37,5 +37,5 @@ const (
 	SelectAtomicLtcSwapsWithDcrContractTx = `SELECT * FROM ltc_swaps WHERE decred_contract_tx = $1 ORDER BY lock_time DESC;`
 	SelectLTCContractListByGroupTx        = `SELECT ctx.contract_tx, SUM(value) FROM (SELECT contract_tx, value FROM ltc_swaps 
 		WHERE decred_contract_tx = $1 ORDER BY lock_time DESC) AS ctx GROUP BY ctx.contract_tx;`
-	SelectLTCAtomicSpendsByContractTx = `SELECT spend_tx, spend_vin, spend_height, value, lock_time FROM ltc_swaps WHERE contract_tx = $1 ORDER BY lock_time;`
+	SelectLTCAtomicSpendsByContractTx = `SELECT spend_tx, spend_vin, spend_height, value, lock_time FROM ltc_swaps WHERE contract_tx = $1 AND decred_contract_tx = $2 ORDER BY lock_time;`
 )

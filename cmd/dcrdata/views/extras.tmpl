@@ -863,7 +863,9 @@
 	<tbody class="bgc-white">
 	{{- range .Transactions}}
 		<tr{{if eq .Confirmations 0}} data-address-target="pending" data-txid="{{.TxID}}"{{end}}>
-			<td class="clipboard">{{template "hashElide" (hashlink .TxID (print "/" $ChainType "/tx/" .TxID))}}</td>
+			<td class="d-flex ai-center">
+				<div class="clipboard">{{template "hashElide" (hashlink .TxID (print "/" $ChainType "/tx/" .TxID))}}</div>
+				{{if .SwapsType}}<span class="common-label py-1 px-2 text-white ms-2 {{.SwapsType}}-bg fs13">{{.SwapsTypeDisplay}}</span>{{end}}</td>
 			{{- if ne .ReceivedTotal 0.0}}
 			<td class="text-end">{{template "decimalParts" (float64AsDecimalParts .ReceivedTotal 8 false)}}</td>
 			{{- else}}

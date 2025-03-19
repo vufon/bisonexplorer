@@ -62,7 +62,7 @@ const (
  		GROUP BY group_tx ORDER BY MAX(contract_time) DESC
 		LIMIT $2 OFFSET $3;`
 
-	SelectAtomicSpendsByContractTx = `SELECT spend_tx, spend_vin, spend_height, value, lock_time FROM swaps WHERE contract_tx = $1 ORDER BY lock_time;`
+	SelectAtomicSpendsByContractTx = `SELECT spend_tx, spend_vin, spend_height, value, lock_time FROM swaps WHERE contract_tx = $1 AND group_tx = $2 ORDER BY lock_time;`
 
 	SelectContractListByGroupTx = `SELECT ctx.contract_tx, MAX(ctx.contract_time), SUM(value) FROM (SELECT contract_tx, contract_time, value FROM swaps 
 		WHERE group_tx = $1 ORDER BY contract_time,lock_time DESC) AS ctx GROUP BY ctx.contract_tx;`

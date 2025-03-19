@@ -179,6 +179,7 @@ type explorerDataSource interface {
 	GetAtomicSwapSummary() (txCount, amount int64, err error)
 	GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error)
 	GetSwapType(txid string) string
+	GetMultichainSwapType(txid, chainType string) (string, error)
 	GetMultichainSwapFullData(txid, swapType, chainType string) (*dbtypes.AtomicSwapFullData, string, error)
 	GetMutilchainVoutIndexsOfContract(contractTx, chainType string) ([]int, error)
 	GetMutilchainVinIndexsOfRedeem(spendTx, chainType string) ([]int, error)
