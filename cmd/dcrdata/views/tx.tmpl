@@ -620,7 +620,7 @@
   {{if $.SwapsFound}}
   <div>
     <div class="br-8 b--def bgc-plain-bright pb-10">
-      <div class="d-flex ai-center pt-3 ps-3">
+      <div class="d-flex ai-center pt-3 pb-1 ps-3">
         {{if $hasTargetToken}}
         <div class="p-relative d-flex ai-center pair-icons">
           <img src="/images/dcr-icon-notran.png" width="20" height="20">
@@ -629,6 +629,7 @@
         {{end}}
         <h5>Swap Details</h5><span class="common-label px-2 text-white ms-2 {{if $.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if $.IsRefund}}Refund{{else}}Redemption{{end}}</span>
       </div>
+      <a href="/decred/atomic-swaps" class="link-underline fs14 ms-5">All Atomic Swaps</a>
       <div class="position-relative">
         {{template "atomicSwapsTable" .}}
       </div>

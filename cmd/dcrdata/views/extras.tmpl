@@ -1044,12 +1044,12 @@
 						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
 							<div class="col-24">
 								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
-									<div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+									<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
 								{{else}}
 									<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
 								{{end}}
 							</div>
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Block Height: <a href="/decred/block/{{.Height}}">{{.Height}}</a></p>
 							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} DCR</p>
 							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Fees)}} DCR</p>
 							<p class="col-12 ps-2"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone .Time}}</p>
@@ -1065,12 +1065,12 @@
 						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
 							<div class="col-24">
 								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
-									<div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+									<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
 								{{else}}
 									<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
 								{{end}}
 							</div>
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/decred/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Block Height: <a href="/decred/block/{{.Height}}">{{.Height}}</a></p>
 							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} DCR</p>
 							<p class="col-12 ps-2"><span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
@@ -1089,12 +1089,12 @@
 						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
 							<div class="col-24">
 								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
-								<div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+								<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
 								{{else}}
 								<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken .Txid))}}</div>
 								{{end}}
 							</div>
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Block Height: <a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a></p>
 							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} {{toUpperCase $targetToken}}</p>
 							<p class="col-12 ps-2">Fees: {{normalFloat (toFloat64Amount .Fees)}} {{toUpperCase $targetToken}}</p>
 							<p class="col-12 ps-2"><span class="fw-bold">Created: </span>{{dateTimeWithoutTimeZone .Time}}</p>
@@ -1110,12 +1110,12 @@
 						<div class="row mt-1 {{if and $.SimpleListMode (eq $.TxID .Txid)}}highlight-box{{end}}">
 							<div class="col-24">
 								{{if and $.SimpleListMode (eq $.TxID .Txid)}}
-								<div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
+								<div class="d-inline-block fs14 break-word rounded medium-sans pb-1 clipboard">{{.Txid}}{{template "copyTextIcon"}}</div>
 								{{else}}
 								<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken  .Txid))}}</div>
 								{{end}}
 							</div>
-							<p class="col-12 ps-2">Block Height: <a target="_blank" href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a></p>
+							<p class="col-12 ps-2">Block Height: <a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a></p>
 							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} {{toUpperCase $targetToken}}</p>
 							<p class="col-12 ps-2"><span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
