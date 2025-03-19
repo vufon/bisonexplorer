@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.260fd396813a6bc5.css" rel="stylesheet">
+	<link href="/dist/css/style.cb5260ab4a58bc74.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -1030,7 +1030,7 @@
 					{{end}}
 					</div>
 					{{if eq $.SimpleListMode false}}
-					<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter{{else}}success{{end}}-bg fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
+					<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
 					{{end}}
 				</div>
 				</div>
@@ -1160,7 +1160,7 @@
 						  <img src="/images/synchronize.png" width="20" height="20" class="me-1"> 
 						{{end}}
 						<p class="fw-bold">{{if $hasTargetToken}}DCR/{{toUpperCase .TargetToken}}{{else}}Verifying{{end}}</p>
-						<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter{{else}}success{{end}}-bg fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
+						<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
 					</div>
 				</td>
 				<td class="text-center"></td>
