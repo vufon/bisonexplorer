@@ -229,6 +229,7 @@ export default class extends Controller {
     this.searchBtnTarget.classList.remove('d-none')
     this.clearSearchBtnTarget.classList.add('d-none')
     isSearching = false
+    this.paginationParams.offset = 0
     this.fetchTable(this.pageSize, this.paginationParams.offset)
   }
 
@@ -678,10 +679,10 @@ export default class extends Controller {
     })
     setAbility(ctrl.pagesizeTarget, rowMax > 20)
     const suffix = rowMax > 1 ? 's' : ''
-    let rangeEnd = params.offset + count
+    let rangeEnd = Number(params.offset) + Number(count)
     if (rangeEnd > rowMax) rangeEnd = rowMax
-    ctrl.rangeTarget.innerHTML = 'showing ' + (params.offset + 1) + ' &ndash; ' +
-      rangeEnd + ' of ' + rowMax.toLocaleString() + ' transaction' + suffix
+    ctrl.rangeTarget.innerHTML = 'showing ' + (Number(params.offset) + 1).toLocaleString() + ' &ndash; ' +
+      rangeEnd.toLocaleString() + ' of ' + rowMax.toLocaleString() + ' transaction' + suffix
   }
 
   setTablePaginationLinks () {

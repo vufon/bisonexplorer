@@ -4727,9 +4727,14 @@ func calcPages(rows, pageSize, offset int, link string) pageNumbers {
 	if endIdx == 0 {
 		return nums
 	}
-	pages := endIdx + 1
+	var pages int
+	if rows%pageSize == 0 {
+		pages = endIdx
+		endIdx -= 1
+	} else {
+		pages = endIdx + 1
+	}
 	currentPageIdx := offset / pageSize
-
 	if pages > 10 {
 		nums = append(nums, makePageNumber(currentPageIdx == 0, fmt.Sprintf(link, 0), "1"))
 		start := currentPageIdx - 3
