@@ -190,6 +190,10 @@ export default class extends Controller {
     this.defaultSettings = {
       vsdisp: false
     }
+    // if isn't decred blocks page, ignore
+    if (!window.location.href.includes('/decred')) {
+      return
+    }
     this.query.update(this.settings)
     this.settings.vsdisp = this.settings.vsdisp === true || this.settings.vsdisp === 'true'
     document.getElementById('vsBlocksToggle').checked = this.settings.vsdisp
@@ -199,6 +203,10 @@ export default class extends Controller {
     this.processBlock = this._processBlock.bind(this)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
     this.pageOffset = this.data.get('initialOffset')
+    // if isn't decred blocks page, ignore
+    if (!window.location.href.includes('/decred')) {
+      return
+    }
     this.initTableColumn()
     this.setupTooltips()
   }

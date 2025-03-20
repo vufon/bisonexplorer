@@ -141,48 +141,6 @@
                   <div id="menu">
                      <a class="menu-item ps-3 mt-4" data-keynav-skip href="/" title="Home">Home</a>
                      <div class="border-top-grey">
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/blocks" title="Decred blocks">Blocks</a>
-                           <a class="menu-item col-12" data-keynav-skip href="/mempool" title="Decred mempool">Mempool</a>
-                        </p>
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/treasury" title="Decred Treasury">Treasury</a>
-                           <a class="menu-item col-12" data-keynav-skip href="/proposals" title="Proposals">Proposals</a>
-                        </p>
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/agendas" title="Agendas">Agendas</a>
-                        </p>
-                     </div>
-                     <div class="border-top-grey">
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/ticketpool" title="Decred ticket pool">Ticket Pool</a>
-                           <a class="menu-item col-12 jsonly" data-keynav-skip href="/charts" title="Decred charts">Charts</a>
-                        </p>
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/market" title="Market">Market</a>
-                           <a class="menu-item col-12" data-keynav-skip href="/home-report" title="Finance Report Homepage">Financial Reports</a>
-                        </p>
-                     </div>
-                     <div class="border-top-grey">
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/attack-cost" title="Decred Attack Cost">Attack Cost</a>
-                           <a class="menu-item col-12" data-keynav-skip href="/parameters" title="Chain Parameters">Parameters</a>
-                        </p>
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/decodetx" title="Decode or send a raw transaction">Decode/Broadcast Tx</a>
-                           <a class="menu-item col-12" data-keynav-skip href="/stakingcalc" title="Staking Reward Calculator">Staking Reward Calculator</a>
-                        </p>
-                     </div>
-                     <div class="border-top-grey">
-                        <p class="row ps-1">
-                           <a class="menu-item col-12" data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a>
-						   <a class="menu-item col-12" data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a>
-                           {{- if eq .NetName "Mainnet"}}
-                           <a class="menu-item col-12" data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>
-                           {{- else}}
-                           <a class="menu-item col-12" data-keynav-skip href="{{.Links.Mainnet}}" title="Home">Switch To Mainnet</a>
-                           {{- end}}
-                        </p>
                         <div class="row ps-1">
                            <form action="/set" method="post" data-menu-target="form" class="menu-form col-12">
                               <input type="hidden" name="darkmode" value="darkmode">
@@ -196,10 +154,6 @@
                                  </div>
                               </button>
                            </form>
-                           <a class="menu-item col-12" data-keynav-skip href="{{.Links.APIDocs}}" title="API Endpoints" target="_blank" rel="noopener noreferrer">JSON API Docs</a>
-                           <a class="menu-item jsonly col-24" data-keynav-skip data-turbolinks="false" id="keynav-toggle">
-                           <span class="text">Enable Hot Keys</span><br /><span class="keys-hint">(<span class="arrows"> &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
-                           </a>
                         </div>
                      </div>
                   </div>
@@ -273,72 +227,29 @@
 				<div id="menu">
 				<a class="menu-item ps-3 mt-4" data-keynav-skip href="/" title="Home">Home</a>
 					<div class="border-top-grey">
-					<p class="row ps-1">
-						<a class="menu-item col-12" data-keynav-skip href="/blocks" title="Decred blocks">Blocks</a>
-						<a class="menu-item col-12" data-keynav-skip href="/mempool" title="Decred mempool">Mempool</a>
-					</p>
-					<p class="row ps-1">
-						<a class="menu-item col-12" data-keynav-skip href="/treasury" title="Decred Treasury">Treasury</a>
-						<a class="menu-item col-12" data-keynav-skip href="/proposals" title="Proposals">Proposals</a>
-					</p>
-					<p class="row ps-1">
-					<a class="menu-item col-12" data-keynav-skip href="/agendas" title="Agendas">Agendas</a>
-					</p>
-					</div>
-
-					<div class="border-top-grey">
-						<p class="row ps-1">
-						<a class="menu-item col-12" data-keynav-skip href="/ticketpool" title="Decred ticket pool">Ticket Pool</a>
-						<a class="menu-item col-12 jsonly" data-keynav-skip href="/charts" title="Decred charts">Charts</a>
-						</p>
-						<p class="row ps-1">
-							<a class="menu-item col-12" data-keynav-skip href="/market" title="Market">Market</a>
-							<a class="menu-item col-12" data-keynav-skip href="/home-report" title="Finance Report Homepage">Financial Reports</a>
-						</p>
-					</div>
-					<div class="border-top-grey">
-						<p class="row ps-1">
-<a class="menu-item col-12" data-keynav-skip href="/attack-cost" title="Decred Attack Cost">Attack Cost</a>
-					<a class="menu-item col-12" data-keynav-skip href="/parameters" title="Chain Parameters">Parameters</a>
-						</p>
-						<p class="row ps-1">
-						<a class="menu-item col-12" data-keynav-skip href="/decodetx" title="Decode or send a raw transaction">Decode/Broadcast Tx</a>
-					<a class="menu-item col-12" data-keynav-skip href="/stakingcalc" title="Staking Reward Calculator">Staking Reward Calculator</a>
-						</p>
-					</div>
-					<div class="border-top-grey">
-					<p class="row ps-1">
-					<a class="menu-item col-12" data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a>
-					<a class="menu-item col-12" data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a>
-				{{- if eq .NetName "Mainnet"}}
-					<a class="menu-item col-12" data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>
-				{{- else}}
-					<a class="menu-item col-12" data-keynav-skip href="{{.Links.Mainnet}}" title="Home">Switch To Mainnet</a>
-				{{- end}}
-					</p>
-<div class="row ps-1">
-<form action="/set" method="post" data-menu-target="form" class="menu-form col-12">
-						<input type="hidden" name="darkmode" value="darkmode">
-						<input type="hidden" name="requestURI" value="{{.RequestURI}}">
-						<button type="submit" data-action="click->menu#onSunClick"
-								class="menu-submit text-start w-100 p-0"
-								data-keynav-skip>
-								<div class="menu-item">
-								  <span id="sun-icon" class="dcricon-sun-fill no-underline pe-2"></span>
-								  Night Mode
-								</div>
-						</button>
-					</form>
-<a class="menu-item col-12" data-keynav-skip href="{{.Links.APIDocs}}" title="API Endpoints" target="_blank" rel="noopener noreferrer">JSON API Docs</a>
-	<a class="menu-item jsonly col-24" data-keynav-skip data-turbolinks="false" href="#" id="keynav-toggle">
-						<span class="text">Enable Hot Keys</span><br /><span class="keys-hint">(<span class="arrows"> &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
-					</a>
-					</div>
+						<div class="row ps-1">
+							<form action="/set" method="post" data-menu-target="form" class="menu-form col-12">
+								<input type="hidden" name="darkmode" value="darkmode">
+								<input type="hidden" name="requestURI" value="{{.RequestURI}}">
+								<button type="submit" data-action="click->menu#onSunClick"
+									class="menu-submit text-start w-100 p-0"
+									data-keynav-skip>
+									<div class="menu-item">
+								  		<span id="sun-icon" class="dcricon-sun-fill no-underline pe-2"></span>
+								  			Night Mode
+									</div>
+								</button>
+							</form>
+							<a class="menu-item col-12" data-keynav-skip href="{{.Links.APIDocs}}" title="API Endpoints" target="_blank" rel="noopener noreferrer">JSON API Docs</a>
+							<a class="menu-item jsonly col-24" data-keynav-skip data-turbolinks="false" href="#" id="keynav-toggle">
+								<span class="text">Enable Hot Keys</span><br /><span class="keys-hint">(<span class="arrows"> &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
+							</a>
+						</div>
 					</div>
 				</div>
 			</div>
-            </div>
-         </nav>
+        </div>
+    </nav>
    </div>
 </header>
 {{end}}
@@ -375,6 +286,16 @@
 	  />
    <button class="search-bttn" type="submit"><span class="dcricon-search search-box-icon fs-22"></span></button>
 </form>
+<nav id="hamburger-menu"
+data-controller="menu" 
+data-turbolinks-permanent
+data-menu-homepage="{{.IsHomepage}}">
+<div id="menu-toggle" class="px-0">
+   <div data-menu-target="homeMenu">
+	  <input type="checkbox" id="common-menu-input" data-menu-target="toggle" data-action="change->menu#toggle"/>
+   </div>
+</div>
+</nav>
 </div>
 </div>
 </header>
@@ -472,48 +393,6 @@
 				<div id="menu">
 				   <a class="menu-item ps-3 mt-4" data-keynav-skip href="/" title="Home">Home</a>
 				   <div class="border-top-grey">
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/blocks" title="Decred blocks">Blocks</a>
-						 <a class="menu-item col-12" data-keynav-skip href="/mempool" title="Decred mempool">Mempool</a>
-					  </p>
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/treasury" title="Decred Treasury">Treasury</a>
-						 <a class="menu-item col-12" data-keynav-skip href="/proposals" title="Proposals">Proposals</a>
-					  </p>
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/agendas" title="Agendas">Agendas</a>
-					  </p>
-				   </div>
-				   <div class="border-top-grey">
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/ticketpool" title="Decred ticket pool">Ticket Pool</a>
-						 <a class="menu-item col-12 jsonly" data-keynav-skip href="/charts" title="Decred charts">Charts</a>
-					  </p>
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/market" title="Market">Market</a>
-						 <a class="menu-item col-12" data-keynav-skip href="/home-report" title="Finance Report Homepage">Financial Reports</a>
-					  </p>
-				   </div>
-				   <div class="border-top-grey">
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/attack-cost" title="Decred Attack Cost">Attack Cost</a>
-						 <a class="menu-item col-12" data-keynav-skip href="/parameters" title="Chain Parameters">Parameters</a>
-					  </p>
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/decodetx" title="Decode or send a raw transaction">Decode/Broadcast Tx</a>
-						 <a class="menu-item col-12" data-keynav-skip href="/stakingcalc" title="Staking Reward Calculator">Staking Reward Calculator</a>
-					  </p>
-				   </div>
-				   <div class="border-top-grey">
-					  <p class="row ps-1">
-						 <a class="menu-item col-12" data-keynav-skip href="/verify-message" title="Verify Message">Verify Message</a>
-						 <a class="menu-item col-12" data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a>
-						 {{- if eq .NetName "Mainnet"}}
-						 <a class="menu-item col-12" data-keynav-skip href="{{.Links.Testnet}}" title="Home">Switch To Testnet</a>
-						 {{- else}}
-						 <a class="menu-item col-12" data-keynav-skip href="{{.Links.Mainnet}}" title="Home">Switch To Mainnet</a>
-						 {{- end}}
-					  </p>
 					  <div class="row ps-1">
 						 <form action="/set" method="post" data-menu-target="form" class="menu-form col-12">
 							<input type="hidden" name="darkmode" value="darkmode">
@@ -643,7 +522,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.fdb5c2247ef84c5f.bundle.js"
+	src="/dist/js/app.60809483304fe95b.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
