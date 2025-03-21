@@ -2600,6 +2600,16 @@ func GetMonthFromString(month string) int64 {
 	return monthParse
 }
 
+type PoolDataItem struct {
+	BlockHeight int64  `json:"blockheight"`
+	PoolName    string `json:"poolName"`
+	BlockUrl    string `json:"blockurl"`
+	MinedBy     string `json:"minedby"`
+	Miner       string `json:"miner"`
+	Confirmed   bool   `json:"confirmed"`
+	PoolType    string `json:"poolType"`
+}
+
 type MarketCapData struct {
 	Symbol        string  `json:"symbol"`
 	SymbolDisplay string  `json:"symbolDisplay"`

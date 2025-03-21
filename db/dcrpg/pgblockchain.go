@@ -3810,6 +3810,33 @@ func (pgb *ChainDB) DevBalance() (*dbtypes.AddressBalance, error) {
 	return nil, fmt.Errorf("unable to query for balance during reorg")
 }
 
+// GetLast5PoolDataList return last 5 block pool info
+func (pgb *ChainDB) GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error) {
+	bestBlockHeight := pgb.bestBlock.Height()
+	poolData, err := externalapi.GetLastBlocksPool(bestBlockHeight)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*dbtypes.PoolDataItem, 0)
+	for i := bestBlockHeight; i > bestBlockHeight-5; i-- {
+		exist := false
+		for _, pool := range poolData {
+			if pool.BlockHeight == i {
+				exist = true
+				result = append(result, pool)
+				break
+			}
+		}
+		if !exist {
+			result = append(result, &dbtypes.PoolDataItem{
+				BlockHeight: i,
+				PoolType:    "",
+			})
+		}
+	}
+	return result, nil
+}
+
 // AddressBalance attempts to retrieve balance information for a specific
 // address from cache, and if cache is stale or missing data for the address, a
 // DB query is used. A successful DB query will freshen the cache.

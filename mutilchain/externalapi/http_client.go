@@ -3,6 +3,7 @@ package externalapi
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -137,6 +138,33 @@ func (c *HttpClient) query(reqConfig *ReqConfig) (resp *http.Response, err error
 func HttpRequest(reqConfig *ReqConfig, respObj interface{}) error {
 	client := newClient()
 
+	httpResp, err := client.query(reqConfig)
+	if err != nil {
+		return err
+	}
+	dec := json.NewDecoder(httpResp.Body)
+	if err := dec.Decode(respObj); err != nil {
+		return err
+	}
+	httpResp.Body.Close()
+	return nil
+}
+
+// request without tls
+func SkipTLSHttpRequest(reqConfig *ReqConfig, respObj interface{}) error {
+	// Initialize context use to cancel all pending requests when shutdown request is made.
+	ctx, cancel := context.WithCancel(context.Background())
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &HttpClient{
+		context:    ctx,
+		cancelFunc: cancel,
+		httpClient: &http.Client{
+			Timeout:   defaultHttpClientTimeout,
+			Transport: tr,
+		},
+	}
 	httpResp, err := client.query(reqConfig)
 	if err != nil {
 		return err

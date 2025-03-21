@@ -588,6 +588,7 @@ type HomeInfo struct {
 	SwapsTotalAmount      int64                    `json:"swapsTotalAmount"`
 	SwapsTotalContract    int64                    `json:"swapsTotalContract"`
 	RefundCount           int64                    `json:"refundCount"`
+	PoolDataList          []*dbtypes.PoolDataItem  `json:"poolDataList"`
 }
 
 type MutilchainHomeInfo struct {

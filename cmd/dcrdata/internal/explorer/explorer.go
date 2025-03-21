@@ -183,6 +183,7 @@ type explorerDataSource interface {
 	GetMultichainSwapFullData(txid, swapType, chainType string) (*dbtypes.AtomicSwapFullData, string, error)
 	GetMutilchainVoutIndexsOfContract(contractTx, chainType string) ([]int, error)
 	GetMutilchainVinIndexsOfRedeem(spendTx, chainType string) ([]int, error)
+	GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error)
 }
 
 type PoliteiaBackend interface {
@@ -729,6 +730,13 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.SwapsTotalContract, p.HomeInfo.SwapsTotalAmount, _ = exp.dataSource.GetAtomicSwapSummary()
 	// Get atomic swaps refund contract count
 	p.HomeInfo.RefundCount, _ = exp.dataSource.CountRefundContract()
+	// Get last 5 pool info
+	poolResult, err := exp.dataSource.GetLast5PoolDataList()
+	if err != nil {
+		log.Errorf("PoolAPI: Get Pool info from Pool API failed: %v", err)
+	} else {
+		p.HomeInfo.PoolDataList = poolResult
+	}
 	// The actual reward of a ticket needs to also take into consideration the
 	// ticket maturity (time from ticket purchase until its eligible to vote)
 	// and coinbase maturity (time after vote until funds distributed to ticket

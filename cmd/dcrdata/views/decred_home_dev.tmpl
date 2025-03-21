@@ -297,289 +297,730 @@
             <div class="row mt-2">
                <div class="col-24 col-md-12 col-lg-8 p-2">
                   <div class="new-home-card-container">
-                  <div class="py-2 px-3 new-home-card-header d-flex ai-center">
-                     <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
-                                    loading="lazy"></span>
-                     <p class="ms-2 mb-0 fw-600 fs-17">Lastest Blocks</p>
-                  </div>
-                  {{with .BestBlock -}}
-                  <div class="row justify-content-between px-3 py-2">
-                     <div class="col-12">
-                        <p class="new-network-stats-block pb-2">
-                           <span class="new-network-stats-title">Height</span>
-                           <span class="new-network-stats-content d-inline-block">
-                              <a class="fs-22" data-turbolinks="false" href="/block/{{.Hash}}"
-                                 data-homepage-target="blockHeight">{{.Height}}</a>
-                           </span>
-                           <span class="stats-subinfo fs-15i" data-type="age" data-time-target="age"
-                              data-age="{{.BlockTime.UNIX}}"></span>
-                        </p>
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Lastest Blocks</p>
                      </div>
-                     <div class="col-12">
-                        <p class="new-network-stats-block pb-2">
-                           <span class="new-network-stats-title">Value</span>
-                           <span class="new-network-stats-content d-inline-block pt-1">
-                              <span data-homepage-target="blockTotal">
-                                 {{threeSigFigs .Total}}</span>
-                              <span class="new-info-line-2-sub">DCR</span>
-                           </span>
-                           <!--<span class="stats-subinfo">Phash/s</span> -->
-                        </p>
-                     </div>
-                     <div class="col-12">
-                        <p class="new-network-stats-block pb-2">
-                           <span class="new-network-stats-title">Votes
-                              {{if eq $.Consensus -1 -}}
-                              <span data-homepage-target="consensusMsg" class="fs-13 text-danger">rejected</span>
-                              {{else if eq $.Consensus 0}}
-                              <span data-homepage-target="consensusMsg" class="fs-13"></span>
-                              {{else}}
-                              <span data-homepage-target="consensusMsg" class="fs-13 text-green">approved</span>
-                              {{- end}}
-                           </span>
-                           <span class="d-inl new-network-stats-content d-inline-block pt-1"
-                              data-homepage-target="blockVotes" data-hash="{{.Hash}}">
-                              {{range $index, $vote := $.BlockTally -}}
-                              <span class="d-inline-block position-relative"
-                                 data-tooltip="{{if eq $vote -1}}the stakeholder has voted to reject this block{{else if eq $vote 1}}the stakeholder has voted to accept this block{{else}}this vote has not been received yet{{end}}">
-                                 <span
-                                    class="fs-22 dcricon-{{if eq $vote -1}}reject{{else if eq $vote 1}}affirm{{else}}missing{{end}}"></span>
+                     {{with .BestBlock -}}
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Height</span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <a class="fs-22" data-turbolinks="false" href="/block/{{.Hash}}"
+                                    data-homepage-target="blockHeight">{{.Height}}</a>
                               </span>
-                              {{- end}}
-                           </span>
-                        </p>
+                              <span class="stats-subinfo fs-15i" data-type="age" data-time-target="age"
+                                 data-age="{{.BlockTime.UNIX}}"></span>
+                           </p>
+                        </div>
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Value</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span data-homepage-target="blockTotal">
+                                    {{threeSigFigs .Total}}</span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              <!--<span class="stats-subinfo">Phash/s</span> -->
+                           </p>
+                        </div>
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Votes
+                                 {{if eq $.Consensus -1 -}}
+                                 <span data-homepage-target="consensusMsg" class="fs-13 text-danger">rejected</span>
+                                 {{else if eq $.Consensus 0}}
+                                 <span data-homepage-target="consensusMsg" class="fs-13"></span>
+                                 {{else}}
+                                 <span data-homepage-target="consensusMsg" class="fs-13 text-green">approved</span>
+                                 {{- end}}
+                              </span>
+                              <span class="d-inl new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="blockVotes" data-hash="{{.Hash}}">
+                                 {{range $index, $vote := $.BlockTally -}}
+                                 <span class="d-inline-block position-relative"
+                                    data-tooltip="{{if eq $vote -1}}the stakeholder has voted to reject this block{{else if eq $vote 1}}the stakeholder has voted to accept this block{{else}}this vote has not been received yet{{end}}">
+                                    <span
+                                       class="fs-22 dcricon-{{if eq $vote -1}}reject{{else if eq $vote 1}}affirm{{else}}missing{{end}}"></span>
+                                 </span>
+                                 {{- end}}
+                              </span>
+                           </p>
+                        </div>
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Size</span>
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="blockSize">{{.FormattedBytes}}</span>
+                           </p>
+                        </div>
                      </div>
-                     <div class="col-12">
-                        <p class="new-network-stats-block pb-2">
-                           <span class="new-network-stats-title">Size</span>
-                           <span class="new-network-stats-content d-inline-block pt-1"
-                              data-homepage-target="blockSize">{{.FormattedBytes}}</span>
-                        </p>
-                     </div>
+                     {{end}}
                   </div>
-                  {{end}}
-               </div>
                </div>
                <div class="col-24 col-md-12 col-lg-16 p-2">
                   <div class="new-home-card-container">
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="dcricon-tree explore-card__header__logo" alt="distribution of decred"
-                                       loading="lazy"></span>
+                           loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">Distribution</p>
                      </div>
-                  {{with .Info -}}
-                  <div class="row justify-content-between px-3 py-2">
-                     <div class="col-24 col-sm-12">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              <a class="link-hover-underline" data-turbolinks="false" href="/treasury">
-                                 Treasury</a>
-                           </span>
-                           <span class="new-network-stats-content d-inline-block">
-                              <span data-homepage-target="devFund">
-                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add
-                                 .DevFund .TreasuryBalance.Balance)) 2 true 2)}}
+                     {{with .Info -}}
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-24 col-sm-12">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false" href="/treasury">
+                                    Treasury</a>
                               </span>
-                              <span class="new-info-line-2-sub">DCR</span>
-                              <span class="position-relative"
-                                 data-tooltip='include {{printf "%.2f" (toFloat64Amount .DevFund)}} DCR in legacy treasury'>
-                                 <span class="dcricon-info fs13 cursor-pointer">
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span data-homepage-target="devFund">
+                                    {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add
+                                    .DevFund .TreasuryBalance.Balance)) 2 true 2)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                                 <span class="position-relative"
+                                    data-tooltip='include {{printf "%.2f" (toFloat64Amount .DevFund)}} DCR in legacy treasury'>
+                                    <span class="dcricon-info fs13 cursor-pointer">
+                                    </span>
                                  </span>
                               </span>
-                           </span>
-                           {{if $conv -}}
-                           <span class="stats-subinfo">
-                              <span data-homepage-target="convertedDev">
-                                 {{threeSigFigs $conv.TreasuryBalance.Value}}
-                                 {{$conv.TreasuryBalance.Index}}
-                              </span>
-                           </span>
-                           {{- end}}
-                        </div>
-                     </div>
-                     <div class="col-24 col-sm-12">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=coin-supply">
-                                 Total Coin Supply<span class="nowrap fw-600">&nbsp(of 21 mil)</span>
-                              </a>
-                           </span>
-                           <span class="new-network-stats-content d-inline-block">
-                              <span data-homepage-target="coinSupply">
-                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                 .CoinSupply) 0 true)}}
-                              </span>
-                              <span class="new-info-line-2-sub">DCR</span>
-                           </span>
-                           <span class="stats-subinfo">
                               {{if $conv -}}
-                              <span data-homepage-target="convertedSupply">{{threeSigFigs
-                                 $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
+                              <span class="stats-subinfo">
+                                 <span data-homepage-target="convertedDev">
+                                    {{threeSigFigs $conv.TreasuryBalance.Value}}
+                                    {{$conv.TreasuryBalance.Index}}
+                                 </span>
+                              </span>
                               {{- end}}
-                              <span data-homepage-target="mixedPct">{{printf "%.0f"
-                                 .MixedPercent}}</span>%
-                              mixed
-                           </span>
+                           </div>
                         </div>
-                     </div>
-                     <div class="col-24 col-sm-12">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">Treasury Block Reward</span>
-                           <span class="new-network-stats-content d-inline-block">
-                              <span data-homepage-target="bsubsidyDev" class="fs15-decimal">
-                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                 .NBlockSubsidy.Dev) 8 true 2)}}
+                        <div class="col-24 col-sm-12">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/charts?chart=coin-supply">
+                                    Total Coin Supply<span class="nowrap fw-600">&nbsp(of 21 mil)</span>
+                                 </a>
                               </span>
-                              <span class="new-info-line-2-sub">DCR</span>
-                           </span>
-                           {{if $conv -}}
-                           <span class="stats-subinfo" data-homepage-target="convertedDevSub">
-                              {{$conv.TreasurySplit.TwoDecimals}} {{$conv.TreasurySplit.Index}}
-                           </span>
-                           {{- end}}
-                        </div>
-                     </div>
-                     <div class="col-24 col-sm-12">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">Treasury Spent</span>
-                           <span class="new-network-stats-content d-inline-block">
-                              <span class="fs15-decimal">
-                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                 .TreasuryBalance.Spent) 2 true 2)}}
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span data-homepage-target="coinSupply">
+                                    {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                    .CoinSupply) 0 true)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
                               </span>
-                              <span class="new-info-line-2-sub">DCR</span>
-                           </span>
-                           <span class="stats-subinfo">
-                              {{.TreasuryBalance.SpendCount}} spends
-                           </span>
+                              <span class="stats-subinfo">
+                                 {{if $conv -}}
+                                 <span data-homepage-target="convertedSupply">{{threeSigFigs
+                                    $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
+                                 {{- end}}
+                                 <span data-homepage-target="mixedPct">{{printf "%.0f"
+                                    .MixedPercent}}</span>%
+                                 mixed
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-24 col-sm-12">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">Treasury Block Reward</span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span data-homepage-target="bsubsidyDev" class="fs15-decimal">
+                                    {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                    .NBlockSubsidy.Dev) 8 true 2)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              {{if $conv -}}
+                              <span class="stats-subinfo" data-homepage-target="convertedDevSub">
+                                 {{$conv.TreasurySplit.TwoDecimals}} {{$conv.TreasurySplit.Index}}
+                              </span>
+                              {{- end}}
+                           </div>
+                        </div>
+                        <div class="col-24 col-sm-12">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">Treasury Spent</span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span class="fs15-decimal">
+                                    {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                    .TreasuryBalance.Spent) 2 true 2)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              <span class="stats-subinfo">
+                                 {{.TreasuryBalance.SpendCount}} spends
+                              </span>
+                           </div>
                         </div>
                      </div>
+                     {{end}}
                   </div>
-                  {{end}}
-               </div>
                </div>
                {{with .Info -}}
                <div class="col-24 col-lg-8 p-2">
                   <div class="new-home-card-container">
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
-                                       loading="lazy"></span>
+                           loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">Other Information</p>
                      </div>
-                  <div class="row justify-content-between px-3 py-2">
-                     <div class="col-24 col-sm-12">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              <a class="link-hover-underline" target="_blank"
-                                 href="https://nodes.jholdstock.uk">
-                                 Online Nodes
-                              </a>
-                           </span>
-                           <div class="new-network-stats-content d-inline-block pt-1">
-                              <span>{{.PeerCount}}</span>
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-24 col-sm-12">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" target="_blank" href="https://nodes.jholdstock.uk">
+                                    Online Nodes
+                                 </a>
+                              </span>
+                              <div class="new-network-stats-content d-inline-block pt-1">
+                                 <span>{{.PeerCount}}</span>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-24 col-sm-12">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" href="/charts?chart=blockchain-size">
+                                    Blockchain Size
+                                 </a>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{.FormattedSize}}
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-24 col-sm-12">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" href="/charts?chart=blockchain-size">
+                                    Average Block Time
+                                 </a>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="avgBlockTime">0</span>
                            </div>
                         </div>
                      </div>
-                     <div class="col-24 col-sm-12">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              <a class="link-hover-underline" href="/charts?chart=blockchain-size">
-                                 Blockchain Size
-                              </a>
-                           </span>
-                           <span class="new-network-stats-content d-inline-block pt-1">
-                              {{.FormattedSize}}
-                           </span>
-                        </div>
-                     </div>
-                     <div class="col-24 col-sm-12">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              <a class="link-hover-underline" href="/charts?chart=blockchain-size">
-                                 Average Block Time
-                              </a>
-                           </span>
-                           <span class="new-network-stats-content d-inline-block pt-1"
-                              data-homepage-target="avgBlockTime">0</span>
-                        </div>
-                     </div>
                   </div>
-               </div>
                </div>
                <div class="col-24 col-lg-16 p-2">
                   <div class="new-home-card-container">
-                  <div class="py-2 px-3 new-home-card-header d-flex ai-center">
-                     <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
-                                       loading="lazy"></span>
-                     <p class="ms-2 mb-0 fw-600 fs-17">Summary Information</p>
-                  </div>
-                  <div class="row px-3 py-2">
-                     <div class="col-12 col-sm-8 col-lg-6">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              <a class="link-hover-underline" href="/charts?chart=tx-count">
-                                 Total Transactions
-                              </a>
-                           </span>
-                           <span class="new-network-stats-content d-inline-block pt-1">
-                              {{int64Comma .TotalTransactions}}
-                           </span>
-                        </div>
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Summary Information</p>
                      </div>
-                     <div class="col-12 col-sm-8 col-lg-6">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              Total Addresses
-                           </span>
-                           <span class="new-network-stats-content d-inline-block pt-1">
-                              {{int64Comma .TotalAddresses}}
-                           </span>
-                        </div>
-                     </div>
-                     <div class="col-12 col-sm-8 col-lg-6">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">
-                              Total Outputs
-                           </span>
-                           <span class="new-network-stats-content d-inline-block pt-1">
-                              {{int64Comma .TotalOutputs}}
-                           </span>
-                        </div>
-                     </div>
-                     <div class="col-12 col-sm-8 col-lg-6">
-                        <div class="new-network-stats-block">
-                           <span class="new-network-stats-title">Total Trading Amount</span>
-                           <div class="new-network-stats-content d-inline-block pt-1">
-                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                              .SwapsTotalAmount) 2 true)}}
-                           </div>
-                           <span class="new-info-line-2-sub">DCR</span>
-                        </div>
-                     </div>
-                     <div class="col-12 col-sm-8 col-lg-6">
-                        <p class="new-network-stats-block">
-                           <span class="new-network-stats-title">Total Swap Contracts</span>
-                           <span class="new-network-stats-content d-inline-block">
-                              <span>{{intComma .SwapsTotalContract}}</span>
-                              <span class="stats-subinfo">
-                                 {{intComma (subtract .SwapsTotalContract .RefundCount)}} redemptions,
-                                 {{intComma .RefundCount}} refunds
+                     <div class="row px-3 py-2">
+                        <div class="col-12 col-sm-8 col-lg-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" href="/charts?chart=tx-count">
+                                    Total Transactions
+                                 </a>
                               </span>
-                           </span>
-                        </p>
-                     </div>
-                     <div class="col-12 col-sm-8 col-lg-6">
-                        <p class="new-network-stats-block">
-                           <span class="new-network-stats-title">Bison Wallet Vol</span>
-                           <span class="new-network-stats-content d-inline-block pt-1">
-                              <span>N/A</span>
-                           </span>
-                        </p>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{int64Comma .TotalTransactions}}
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 col-lg-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Total Addresses
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{int64Comma .TotalAddresses}}
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 col-lg-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Total Outputs
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{int64Comma .TotalOutputs}}
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 col-lg-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">Total Trading Amount</span>
+                              <div class="new-network-stats-content d-inline-block pt-1">
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                 .SwapsTotalAmount) 2 true)}}
+                              </div>
+                              <span class="new-info-line-2-sub">DCR</span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 col-lg-6">
+                           <p class="new-network-stats-block">
+                              <span class="new-network-stats-title">Total Swap Contracts</span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span>{{intComma .SwapsTotalContract}}</span>
+                                 <span class="stats-subinfo">
+                                    {{intComma (subtract .SwapsTotalContract .RefundCount)}} redemptions,
+                                    {{intComma .RefundCount}} refunds
+                                 </span>
+                              </span>
+                           </p>
+                        </div>
+                        <div class="col-12 col-sm-8 col-lg-6">
+                           <p class="new-network-stats-block">
+                              <span class="new-network-stats-title">Bison Wallet Vol</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>N/A</span>
+                              </span>
+                           </p>
+                        </div>
                      </div>
                   </div>
-               </div>
                </div>
                {{end}}
+            </div>
+         </section>
+      </div>
+   </div>
+   <div class="hp-explore-wrap homepage-page">
+      <div class="container px-0 py-2">
+         <section class="h-100 px-3 py-2">
+            <div class="row mt-2">
+               <div class="col-24 col-lg-8 p-2">
+                  <div class="new-home-card-container">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-mempool explore-card__header__logo" alt="Mempool route"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Mempool</p>
+                     </div>
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-24 mb-3">
+                           <div>
+                              {{with .TrimmedMempool -}}
+                              <!-- add mempool element -->
+                              <div class="block visible px-0" data-homepage-target="memBlock">
+                                 <div class="block-rows homepage-blocks-row">
+                                    <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
+                                       <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
+                                          title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
+                                          data-homepage-target="tooltip">
+                                          <span class="block-element-link">
+                                             <span class="paint left-vs-block-data"
+                                                style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                          </span>
+                                       </span>
+                                       <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
+                                          title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
+                                          data-homepage-target="tooltip">
+                                          <span class="block-element-link">
+                                             <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                          </span>
+                                       </span>
+                                       <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Dev}}"
+                                          title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Dev}}"}'
+                                          data-homepage-target="tooltip">
+                                          <span class="block-element-link">
+                                             <span class="paint" style="width: {{intMultiply (len .Votes) 20}}%"></span>
+                                          </span>
+                                       </span>
+                                       <span class="fees right-vs-block-data" style="flex-grow: {{.Fees}}"
+                                          title='{"object": "Tx Fees", "total": "{{.Fees}}"}'
+                                          data-homepage-target="tooltip">
+                                          <span class="block-element-link"></span>
+                                       </span>
+                                    </div>
+                                    <div class="block-votes px-1 mt-1" style="flex-grow: 1">
+                                       {{$VoteLength := subtract (toint64 (len .Votes)) 1}}
+                                       {{range $index, $vote := .Votes}}
+                                       <span
+                                          style="background: {{if $vote.VoteValid}}linear-gradient(to right, #2971ff 0%, #528cff 100%){{else}}linear-gradient(to right, #fd714a 0%, #f6896a 100%){{end}};"
+                                          data-homepage-target="tooltip"
+                                          title='{"object": "Vote", "voteValid": "{{$vote.VoteValid}}"}'
+                                          class="{{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index $VoteLength}}right-vs-block-data{{end}}">
+                                          <a class="block-element-link" href="/tx/{{$vote.TxID}}"></a>
+                                       </span>
+                                       {{end}}
+                                       {{if lt (len .Votes) 5}}
+                                       {{$remainingVoteCount := intSubtract 5 (len .Votes)}}
+                                       {{range (zeroSlice $remainingVoteCount)}}
+                                       <span title="Empty vote slot"></span>
+                                       {{end}}
+                                       {{end}}
+                                    </div>
+
+                                    <div class="block-tickets px-1 mt-1" style="flex-grow: 1">
+                                       <!-- show tickets before revs, if tickets are more than 50, truncate at 30 and show more tip -->
+                                       {{$tickets := .Tickets}}
+                                       {{$ticketsCount := len .Tickets}}
+                                       {{$revCount := len .Revocations}}
+                                       {{if gt $ticketsCount 50}} {{$tickets = clipSlice .Tickets 30}}
+                                       {{end}}
+                                       {{range $index,$ticket := $tickets}}
+                                       <span
+                                          class="block-ticket {{if eq $index 0}}left-vs-block-data{{end}} {{if and (eq $index (subtract (toint64 $ticketsCount) 1)) (eq $revCount 0)}}right-vs-block-data{{end}}"
+                                          data-homepage-target="tooltip"
+                                          title='{"object": "Ticket", "total": "{{$ticket.Total}}", "vout": "{{$ticket.VoutCount}}", "vin": "{{$ticket.VinCount}}"}'>
+                                          <a class="block-element-link" href="/tx/{{$ticket.TxID}}"></a>
+                                       </span>
+                                       {{end}}
+                                       {{if gt $ticketsCount 50}}
+                                       <!-- show total number of tickets -->
+                                       <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;"
+                                          title="Total of {{$ticketsCount}} tickets">
+                                          <a class="block-element-link" href="#">+ {{intSubtract
+                                             $ticketsCount
+                                             30}}</a>
+                                       </span>
+                                       {{end}}
+                                       {{range $index,$rev := .Revocations}}
+                                       <span
+                                          class="block-rev {{if and (eq $ticketsCount 0) (eq $index 0)}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $revCount) 1)}}right-vs-block-data{{end}}"
+                                          data-homepage-target="tooltip"
+                                          title='{"object": "Revocation", "total": "{{$rev.Total}}", "vout": "{{$rev.VoutCount}}", "vin": "{{$rev.VinCount}}"}'>
+                                          <a class="block-element-link" href="/tx/{{$rev.TxID}}"></a>
+                                       </span>
+                                       {{end}}
+                                       {{$ticketsRevsCount := intAdd $ticketsCount (len .Revocations)}}
+                                       {{range (zeroSlice (intSubtract 20 $ticketsRevsCount))}}
+                                       <span title="Empty ticket slot"></span>
+                                       {{end}}
+                                    </div>
+
+                                    <div class="block-transactions px-1 my-1" style="flex-grow: 1">
+                                       {{$txs := .Transactions}}
+                                       {{$txCount := len .Transactions}}
+                                       {{if gt $txCount 50}} {{$txs = clipSlice .Transactions 30}} {{end}}
+                                       {{range $index,$tx := $txs}}
+                                       <span
+                                          class="block-tx {{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $txCount) 1)}}right-vs-block-data{{end}}"
+                                          style="flex-grow: {{$tx.Total}}" data-homepage-target="tooltip"
+                                          title='{"object": "Transaction", "total": "{{$tx.Total}}", "vout": "{{$tx.VoutCount}}", "vin": "{{$tx.VinCount}}"}'>
+                                          <a class="block-element-link" href="/tx/{{$tx.TxID}}"></a>
+                                       </span>
+                                       {{end}}
+                                       {{if gt $txCount 50}}
+                                       <!-- show total number of tickets -->
+                                       <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;"
+                                          title="Total of {{$txCount}} transactions">
+                                          <a class="block-element-link" href="#">+ {{intSubtract $txCount
+                                             30}}</a>
+                                       </span>
+                                       {{end}}
+                                    </div>
+                                 </div>
+                              </div>
+                              {{end}}
+                           </div>
+                        </div>
+                        <div class="col-12 col-xl-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title h-50 pt-3">
+                                 <span data-homepage-target="mpRegCount"
+                                    class="fs-16 fw-600 mempool-data-value">{{.Mempool.NumRegular}}</span>
+                                 <span class="fs-15 fw-400 mempool-label-value"> regular</span>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block mt-2">
+                                 <span class="fs-16 fw-600 mempool-data-value"
+                                    data-homepage-target="mpRegTotal">{{threeSigFigs
+                                    .Mempool.LikelyMineable.RegularTotal}}</span>
+                                 <span class="fs-15 fw-400 mempool-label-value">DCR</span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-xl-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title h-50 pt-3">
+                                 <span data-homepage-target="mpTicketCount"
+                                    class="fs-16 fw-600 mempool-data-value">{{.Mempool.NumTickets}}</span>
+                                 <span class="fs-15 fw-400 mempool-label-value"> tickets</span>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block mt-2">
+                                 <span class="fs-16 fw-600 mempool-data-value"
+                                    data-homepage-target="mpTicketTotal">{{threeSigFigs
+                                    .Mempool.LikelyMineable.TicketTotal}}</span>
+                                 <span class="fs-15 fw-400 mempool-label-value">DCR</span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-xl-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title h-50 pt-3">
+                                 <span data-homepage-target="mpRevCount"
+                                    class="fs-16 fw-600 lh1rem mempool-data-value">{{.Mempool.NumRevokes}}</span>
+                                 <span class="fs-15 fw-400 mempool-label-value"> revokes</span>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block mt-2">
+                                 <span class="fs-16 fw-600 mempool-data-value"
+                                    data-homepage-target="mpRevTotal">{{threeSigFigs
+                                    .Mempool.LikelyMineable.RevokeTotal}}</span>
+                                 <span class="fs-15 fw-400 mempool-label-value">DCR</span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-xl-6">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title h-50 pt-3">
+                                 <span data-homepage-target="mpVoteCount" class="fs-16 fw-600 mempool-data-value lh1rem"
+                                    data-tickets-per-block="{{.Mempool.VotingInfo.MaxVotesPerBlock}}">
+                                    {{$afterFirst := false -}}
+                                    {{- range $hash, $tally := .Mempool.VotingInfo.VoteTallys -}}
+                                    {{if $afterFirst}} + {{end}}
+                                    <span class="position-relative d-inline-block" data-homepage-target="voteTally"
+                                       data-hash="{{$hash}}" data-affirmed="{{$tally.Affirmations}}"
+                                       data-count="{{$tally.VoteCount}}"
+                                       data-tooltip="for block {{$hash}}">{{$tally.VoteCount}}</span>
+                                    {{$afterFirst = true}}
+                                    {{- end}}
+                                 </span>
+                                 <span class="fs-15 fw-400 mempool-label-value"> votes</span>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block mt-2">
+                                 <span class="fs-16 fw-600 mempool-data-value"
+                                    data-homepage-target="mpVoteTotal">{{threeSigFigs
+                                    .Mempool.LikelyMineable.VoteTotal}}</span>
+                                 <span class="fs-15 fw-400 mempool-label-value">DCR</span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Total Sent</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span data-homepage-target="mempool" {{template "mempoolDump" .Mempool}}>
+                                    {{threeSigFigs .Mempool.LikelyMineable.Total}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                           </p>
+                        </div>
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Total Size</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>
+                                    6KB
+                                 </span>
+                              </span>
+                           </p>
+                        </div>
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Fees Range</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>
+                                    1 ~ 2.5 atoms/vB
+                                 </span>
+                              </span>
+                           </p>
+                        </div>
+                        <div class="col-12">
+                           <p class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Treasury Spending</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>
+                                    6,655
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              <span class="stats-subinfo">
+                                 2254 votes yes
+                              </span>
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="col-24 col-lg-16 p-2">
+                  <div class="new-home-card-container">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="dcricon-pickaxe explore-card__header__logo" alt="Mining Card"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Mining</p>
+                     </div>
+                     {{with .Info -}}
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-24">
+                           <p>PoW hash algorithm: <a target="_blank" class="subdata-card fs-18"
+                                 href="https://github.com/decred/dcps/blob/master/dcp-0011/dcp-0011.mediawiki">Blake3</a>
+                           </p>
+                        </div>
+                        <div class="col-24 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/charts?chart=pow-difficulty">
+                                    Difficulty</a>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="difficulty">
+                                 {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty
+                                 1.0)
+                                 0 true)}}
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-24 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=hashrate">
+                                    Hashrate
+                                 </a>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span data-homepage-target="hashrate">
+                                    {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">{{hashratePostfix .HashRate}}</span>
+                              </span>
+                              <span class="stats-subinfo">
+                                 <span data-homepage-target="hashrateDelta">{{template "fmtPercentage"
+                                    .HashRateChangeMonth}}</span> in past 30 days
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-24 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 PoW reward
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span data-homepage-target="bsubsidyPow" class="fs15-decimal">
+                                    {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                    .NBlockSubsidy.PoW) 8 true 2)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              {{if $conv -}}
+                              <span class="stats-subinfo" data-homepage-target="powConverted">
+                                 {{$conv.PowSplit.TwoDecimals}} {{$conv.PowSplit.Index}}
+                              </span>
+                              {{end}}
+                           </div>
+                        </div>
+                        <div class="col-24 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Next Block Reward Reduction
+                              </span>
+                              <div class="new-network-stats-content">
+                                 <div class="row justify-content-center">
+                                    <div class="progress progress-frame mt-1 p-0">
+                                       <div class="progress-bar rounded" data-homepage-target="powBar"
+                                          role="progressbar"
+                                          style="width: {{rewardAdjustmentProgress .IdxInRewardWindow}}%;"
+                                          aria-valuenow="{{.IdxInRewardWindow}}" aria-valuemin="0"
+                                          aria-valuemax="{{.Params.RewardWindowSize}}">
+                                          <span id="powreward" class="nowrap ps-1">
+                                             block <span data-homepage-target="rewardIdx">{{.IdxInRewardWindow}}</span>
+                                             of {{.Params.RewardWindowSize}}
+                                          </span>
+                                       </div>
+                                    </div>
+                                    <span class="stats-subinfo fw-400 mt-1">{{remaining .IdxInRewardWindow
+                                       .Params.RewardWindowSize .Params.BlockTime}}</span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-24 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Block Fees Avg
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>0.4</span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-24 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Tx Fee Avg
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>0.000251</span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                           </div>
+                        </div>
+                        {{if .PoolDataList}}
+                        <div class="col-24">
+                           <div class="br-8 b--def bgc-plain-bright pb-10">
+                              <div class="btable-table-wrap maxh-none">
+                                <table class="btable-table w-100">
+                                  <thead>
+                                    <tr class="bg-none">
+                                      <th class="text-start">Block</th>
+                                      <th class="text-center">Pool Name</th>
+                                      <th class="text-center">Miner</th>
+                                      <th class="text-center">Mined By</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody class="bgc-white">
+                                    {{range .PoolDataList}}
+                                    <tr>
+                                      <td class="text-start">
+                                       <a data-turbolinks="false" href="/block/{{.BlockHeight}}">{{.BlockHeight}}</a>
+                                      </td>
+                                      <td class="d-flex justify-content-center ai-center">
+                                       {{if .PoolType}}
+                                          {{if eq .PoolType "threepool"}}
+                                             <div class="tooltip1 me-1">
+                                                <img src="/images/CA_24.webp" width="24" height="24" alt="CA">
+                                             </div>
+                                             <a href="https://decred.miningandco.com" target="_blank">
+                                                miningandco.com
+                                             </a>
+                                          {{end}}
+                                          {{if eq .PoolType "miningandco"}}
+                                          <div class="tooltip1 me-1">
+                                             <img src="/images/RU_24.webp" width="24" height="24" alt="CA">
+                                          </div>
+                                          <a href="https://dcr.e4pool.com" target="_blank">
+                                             e4pool.com
+                                          </a>
+                                          {{end}}
+                                          {{if eq .PoolType "e4pool"}}
+                                          <div class="tooltip1 me-1">
+                                             <img src="/images/BR_24.webp" width="24" height="24" alt="CA">
+                                          </div>
+                                          <a href="https://dcr.threepool.tech/" target="_blank">
+                                             threepool.tech
+                                          </a>
+                                          {{end}}
+                                       {{else}}
+                                       <p>N/A</p>
+                                       {{end}}
+                                      </td>
+                                      <td class="text-center">
+                                       {{if .PoolType}}
+                                       <p>{{.Miner}}</p>
+                                       {{else}}
+                                       <p>N/A</p>
+                                       {{end}}
+                                      </td>
+                                      <td class="text-center">
+                                       {{if .PoolType}}
+                                       <p>{{.MinedBy}}</p>
+                                       {{else}}
+                                       <p>N/A</p>
+                                       {{end}}
+                                      </td>
+                                    </tr>
+                                    {{end}}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                        </div>
+                        {{end}}
+                     </div>
+                     {{end}}
+                  </div>
+               </div>
             </div>
          </section>
       </div>
@@ -849,349 +1290,6 @@
       {{- else -}} {{/* EXCHANGE MONITORING DISABLED */}}
       <h4 class="py-5 text-center">Exchange monitoring disabled</h4>
       {{- end -}}
-   </div>
-   <div class="hp-explore-wrap homepage-page">
-      <div class="container">
-         <section>
-            <div class="hp-explore__cards-wrap mt-0">
-               <div class="hp-explore__cards-content-2-1">
-                  <div class="info-left-card">
-                     <!-- Start Mining Card -->
-                     <div class="explore-card-wrap mt-3">
-                        <div class="explore-card-content">
-                           <div class="explore-card__header bg-for-header">
-                              <span class="dcricon-pickaxe explore-card__header__logo" alt="Mining Card"
-                                 loading="lazy"></span>
-                              <div class="explore-card__header__text ml-15">
-                                 <h5 class="explore-card__header__text__name"> Mining </h5>
-                                 <div class="explore-card__header__text__price">
-                                    <div class="price-wrap d-flex ai-center">
-                                       <span class="price-usd fs-15">PoW hash algorithm:
-                                          <a target="_blank" class="subdata-card fs-18"
-                                             href="https://github.com/decred/dcps/blob/master/dcp-0011/dcp-0011.mediawiki">Blake3</a>
-                                       </span>
-                                    </div>
-                                 </div>
-                              </div>
-                           </div>
-                           <div class="explore-card__values-content">
-                              {{with .Info -}}
-                              <div class="row justify-content-between">
-                                 <div class="col-24 col-sm-12">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false"
-                                             href="/charts?chart=pow-difficulty">
-                                             Difficulty</a>
-                                       </span>
-                                       <span class="new-network-stats-content d-inline-block mt-4"
-                                          data-homepage-target="difficulty">
-                                          {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty
-                                          1.0)
-                                          0 true)}}
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false"
-                                             href="/charts?chart=hashrate">
-                                             Hashrate
-                                          </a>
-                                       </span>
-                                       <span class="new-network-stats-content d-inline-block mt-3">
-                                          <span data-homepage-target="hashrate">
-                                             {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
-                                          </span>
-                                          <span class="new-info-line-2-sub">{{hashratePostfix .HashRate}}</span>
-                                       </span>
-                                       <span class="stats-subinfo">
-                                          <span data-homepage-target="hashrateDelta">{{template "fmtPercentage"
-                                             .HashRateChangeMonth}}</span> in past 30 days
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title">PoW reward</span>
-                                       <span class="new-network-stats-content d-inline-block mt-3">
-                                          <span data-homepage-target="bsubsidyPow" class="fs15-decimal">
-                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                             .NBlockSubsidy.PoW) 8 true 2)}}
-                                          </span>
-                                          <span class="new-info-line-2-sub">DCR</span>
-                                       </span>
-                                       {{if $conv -}}
-                                       <span class="stats-subinfo" data-homepage-target="powConverted">
-                                          {{$conv.PowSplit.TwoDecimals}} {{$conv.PowSplit.Index}}
-                                       </span>
-                                       {{- end}}
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title">Next Block Reward Reduction</span>
-                                       <div class="new-network-stats-content">
-                                          <div class="row justify-content-center">
-                                             <div class="progress progress-frame mt-3 p-0">
-                                                <div class="progress-bar rounded" data-homepage-target="powBar"
-                                                   role="progressbar"
-                                                   style="width: {{rewardAdjustmentProgress .IdxInRewardWindow}}%;"
-                                                   aria-valuenow="{{.IdxInRewardWindow}}" aria-valuemin="0"
-                                                   aria-valuemax="{{.Params.RewardWindowSize}}">
-                                                   <span id="powreward" class="nowrap ps-1">
-                                                      block <span
-                                                         data-homepage-target="rewardIdx">{{.IdxInRewardWindow}}</span>
-                                                      of {{.Params.RewardWindowSize}}
-                                                   </span>
-                                                </div>
-                                             </div>
-                                             <span class="stats-subinfo fw-400 mt-2">{{remaining .IdxInRewardWindow
-                                                .Params.RewardWindowSize .Params.BlockTime}}</span>
-                                          </div>
-                                       </div>
-                                    </div>
-                                 </div>
-                              </div>
-                              {{end}}
-                           </div>
-                        </div>
-                     </div>
-                     <!-- End Mining Card -->
-                  </div>
-                  <div class="info-right-card">
-                     <!-- Start Mempool Card -->
-                     <div class="explore-card-wrap mt-3">
-                        <div class="explore-card-content">
-                           <a href='/mempool' data-turbolinks="false" class="link-to-subpage">
-                              <div class="explore-card__header">
-                                 <span class="homeicon-mempool explore-card__header__logo" alt="Mempool route"
-                                    loading="lazy"></span>
-                                 <div class="explore-card__header__text ml-15">
-                                    <h5 class="explore-card__header__text__name"> Mempool </h5>
-                                    <span class="explore-card__header__arrow">
-                                       <span class='the-arrow -right'>
-                                          <span class='shaft'></span>
-                                       </span>
-                                    </span>
-                                    <div class="explore-card__header__text__price">
-                                       <div class="price-wrap d-flex ai-center" value-usd="2072.12"
-                                          change24h="-0.13053">
-                                          <span class="price-usd">Total sent:&nbsp;<span
-                                                class="position-relative fw-600 subdata-card fs-18"
-                                                data-homepage-target="mempool" {{template "mempoolDump"
-                                                .Mempool}}>{{threeSigFigs .Mempool.LikelyMineable.Total}}</span>
-                                             <span>DCR</span></span>
-                                       </div>
-                                    </div>
-                                 </div>
-                              </div>
-                           </a>
-                           <div class="explore-card__values-content">
-                              <div class="row justify-content-between">
-                                 <div class="col-24 mb-3">
-                                    <div>
-                                       {{with .TrimmedMempool -}}
-                                       <!-- add mempool element -->
-                                       <div class="block visible px-0" data-homepage-target="memBlock">
-                                          <div class="block-rows homepage-blocks-row">
-                                             <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
-                                                <span class="pow" style="flex-grow: {{toFloat64Amount .Subsidy.PoW}}"
-                                                   title='{"object": "PoW Reward", "total": "{{toFloat64Amount .Subsidy.PoW}}"}'
-                                                   data-homepage-target="tooltip">
-                                                   <span class="block-element-link">
-                                                      <span class="paint left-vs-block-data"
-                                                         style="width: {{intMultiply (len .Votes) 20}}%"></span>
-                                                   </span>
-                                                </span>
-                                                <span class="pos" style="flex-grow: {{toFloat64Amount .Subsidy.PoS}}"
-                                                   title='{"object": "PoS Reward", "total": "{{toFloat64Amount .Subsidy.PoS}}"}'
-                                                   data-homepage-target="tooltip">
-                                                   <span class="block-element-link">
-                                                      <span class="paint"
-                                                         style="width: {{intMultiply (len .Votes) 20}}%"></span>
-                                                   </span>
-                                                </span>
-                                                <span class="fund" style="flex-grow: {{toFloat64Amount .Subsidy.Dev}}"
-                                                   title='{"object": "Project Fund", "total": "{{toFloat64Amount .Subsidy.Dev}}"}'
-                                                   data-homepage-target="tooltip">
-                                                   <span class="block-element-link">
-                                                      <span class="paint"
-                                                         style="width: {{intMultiply (len .Votes) 20}}%"></span>
-                                                   </span>
-                                                </span>
-                                                <span class="fees right-vs-block-data" style="flex-grow: {{.Fees}}"
-                                                   title='{"object": "Tx Fees", "total": "{{.Fees}}"}'
-                                                   data-homepage-target="tooltip">
-                                                   <span class="block-element-link"></span>
-                                                </span>
-                                             </div>
-                                             <div class="block-votes px-1 mt-1" style="flex-grow: 1">
-                                                {{$VoteLength := subtract (toint64 (len .Votes)) 1}}
-                                                {{range $index, $vote := .Votes}}
-                                                <span
-                                                   style="background: {{if $vote.VoteValid}}linear-gradient(to right, #2971ff 0%, #528cff 100%){{else}}linear-gradient(to right, #fd714a 0%, #f6896a 100%){{end}};"
-                                                   data-homepage-target="tooltip"
-                                                   title='{"object": "Vote", "voteValid": "{{$vote.VoteValid}}"}'
-                                                   class="{{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index $VoteLength}}right-vs-block-data{{end}}">
-                                                   <a class="block-element-link" href="/tx/{{$vote.TxID}}"></a>
-                                                </span>
-                                                {{end}}
-                                                {{if lt (len .Votes) 5}}
-                                                {{$remainingVoteCount := intSubtract 5 (len .Votes)}}
-                                                {{range (zeroSlice $remainingVoteCount)}}
-                                                <span title="Empty vote slot"></span>
-                                                {{end}}
-                                                {{end}}
-                                             </div>
-
-                                             <div class="block-tickets px-1 mt-1" style="flex-grow: 1">
-                                                <!-- show tickets before revs, if tickets are more than 50, truncate at 30 and show more tip -->
-                                                {{$tickets := .Tickets}}
-                                                {{$ticketsCount := len .Tickets}}
-                                                {{$revCount := len .Revocations}}
-                                                {{if gt $ticketsCount 50}} {{$tickets = clipSlice .Tickets 30}}
-                                                {{end}}
-                                                {{range $index,$ticket := $tickets}}
-                                                <span
-                                                   class="block-ticket {{if eq $index 0}}left-vs-block-data{{end}} {{if and (eq $index (subtract (toint64 $ticketsCount) 1)) (eq $revCount 0)}}right-vs-block-data{{end}}"
-                                                   data-homepage-target="tooltip"
-                                                   title='{"object": "Ticket", "total": "{{$ticket.Total}}", "vout": "{{$ticket.VoutCount}}", "vin": "{{$ticket.VinCount}}"}'>
-                                                   <a class="block-element-link" href="/tx/{{$ticket.TxID}}"></a>
-                                                </span>
-                                                {{end}}
-                                                {{if gt $ticketsCount 50}}
-                                                <!-- show total number of tickets -->
-                                                <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;"
-                                                   title="Total of {{$ticketsCount}} tickets">
-                                                   <a class="block-element-link" href="#">+ {{intSubtract
-                                                      $ticketsCount
-                                                      30}}</a>
-                                                </span>
-                                                {{end}}
-                                                {{range $index,$rev := .Revocations}}
-                                                <span
-                                                   class="block-rev {{if and (eq $ticketsCount 0) (eq $index 0)}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $revCount) 1)}}right-vs-block-data{{end}}"
-                                                   data-homepage-target="tooltip"
-                                                   title='{"object": "Revocation", "total": "{{$rev.Total}}", "vout": "{{$rev.VoutCount}}", "vin": "{{$rev.VinCount}}"}'>
-                                                   <a class="block-element-link" href="/tx/{{$rev.TxID}}"></a>
-                                                </span>
-                                                {{end}}
-                                                {{$ticketsRevsCount := intAdd $ticketsCount (len .Revocations)}}
-                                                {{range (zeroSlice (intSubtract 20 $ticketsRevsCount))}}
-                                                <span title="Empty ticket slot"></span>
-                                                {{end}}
-                                             </div>
-
-                                             <div class="block-transactions px-1 my-1" style="flex-grow: 1">
-                                                {{$txs := .Transactions}}
-                                                {{$txCount := len .Transactions}}
-                                                {{if gt $txCount 50}} {{$txs = clipSlice .Transactions 30}} {{end}}
-                                                {{range $index,$tx := $txs}}
-                                                <span
-                                                   class="block-tx {{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $txCount) 1)}}right-vs-block-data{{end}}"
-                                                   style="flex-grow: {{$tx.Total}}" data-homepage-target="tooltip"
-                                                   title='{"object": "Transaction", "total": "{{$tx.Total}}", "vout": "{{$tx.VoutCount}}", "vin": "{{$tx.VinCount}}"}'>
-                                                   <a class="block-element-link" href="/tx/{{$tx.TxID}}"></a>
-                                                </span>
-                                                {{end}}
-                                                {{if gt $txCount 50}}
-                                                <!-- show total number of tickets -->
-                                                <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;"
-                                                   title="Total of {{$txCount}} transactions">
-                                                   <a class="block-element-link" href="#">+ {{intSubtract $txCount
-                                                      30}}</a>
-                                                </span>
-                                                {{end}}
-                                             </div>
-                                          </div>
-                                       </div>
-                                       {{end}}
-                                    </div>
-                                 </div>
-                                 <div class="col-12 col-xl-6">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title h-50 pt-3">
-                                          <span data-homepage-target="mpRegCount"
-                                             class="fs-20 fw-600 mempool-data-value">{{.Mempool.NumRegular}}</span>
-                                          <span class="fs-17 fw-400 mempool-label-value"> regular</span>
-                                       </span>
-                                       <span class="new-network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value"
-                                             data-homepage-target="mpRegTotal">{{threeSigFigs
-                                             .Mempool.LikelyMineable.RegularTotal}}</span>
-                                          <span class="fs-17 fw-400 mempool-label-value">DCR</span>
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-12 col-xl-6">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title h-50 pt-3">
-                                          <span data-homepage-target="mpTicketCount"
-                                             class="fs-20 fw-600 mempool-data-value">{{.Mempool.NumTickets}}</span>
-                                          <span class="fs-17 fw-400 mempool-label-value"> tickets</span>
-                                       </span>
-                                       <span class="new-network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value"
-                                             data-homepage-target="mpTicketTotal">{{threeSigFigs
-                                             .Mempool.LikelyMineable.TicketTotal}}</span>
-                                          <span class="fs-17 fw-400 mempool-label-value">DCR</span>
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-12 col-xl-6">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title h-50 pt-3">
-                                          <span data-homepage-target="mpRevCount"
-                                             class="fs-20 fw-600 lh1rem mempool-data-value">{{.Mempool.NumRevokes}}</span>
-                                          <span class="fs-17 fw-400 mempool-label-value"> revokes</span>
-                                       </span>
-                                       <span class="new-network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value"
-                                             data-homepage-target="mpRevTotal">{{threeSigFigs
-                                             .Mempool.LikelyMineable.RevokeTotal}}</span>
-                                          <span class="fs-17 fw-400 mempool-label-value">DCR</span>
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-12 col-xl-6">
-                                    <div class="new-network-stats-block">
-                                       <span class="new-network-stats-title h-50 pt-3">
-                                          <span data-homepage-target="mpVoteCount"
-                                             class="fs-20 fw-600 mempool-data-value lh1rem"
-                                             data-tickets-per-block="{{.Mempool.VotingInfo.MaxVotesPerBlock}}">
-                                             {{$afterFirst := false -}}
-                                             {{- range $hash, $tally := .Mempool.VotingInfo.VoteTallys -}}
-                                             {{if $afterFirst}} + {{end}}
-                                             <span class="position-relative d-inline-block"
-                                                data-homepage-target="voteTally" data-hash="{{$hash}}"
-                                                data-affirmed="{{$tally.Affirmations}}"
-                                                data-count="{{$tally.VoteCount}}"
-                                                data-tooltip="for block {{$hash}}">{{$tally.VoteCount}}</span>
-                                             {{$afterFirst = true}}
-                                             {{- end}}
-                                          </span>
-                                          <span class="fs-17 fw-400 mempool-label-value"> votes</span>
-                                       </span>
-                                       <span class="new-network-stats-content d-inline-block mt-2">
-                                          <span class="fs-20 fw-600 mempool-data-value"
-                                             data-homepage-target="mpVoteTotal">{{threeSigFigs
-                                             .Mempool.LikelyMineable.VoteTotal}}</span>
-                                          <span class="fs-17 fw-400 mempool-label-value">DCR</span>
-                                       </span>
-                                    </div>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                     <!-- End Mempool Card -->
-                  </div>
-               </div>
-            </div>
-         </section>
-      </div>
    </div>
    <div class="hp-explore-wrap homepage-page">
       <div class="container">

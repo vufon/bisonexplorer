@@ -2415,7 +2415,7 @@ func (exp *ExplorerUI) TxPage(w http.ResponseWriter, r *http.Request) {
 	var isRefund bool
 	if swapsInfo == nil {
 		swapsInfo = new(txhelpers.TxSwapResults)
-	} else {
+	} else if swapsInfo.Found != "" {
 		// check and get detail Swap data
 		relatedContract, err := exp.dataSource.GetSwapFullData(tx.TxID, swapsInfo.SwapType)
 		if err != nil {
