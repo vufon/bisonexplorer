@@ -15,6 +15,255 @@
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Decred Explorer by bisonexplorer.com"}}
 {{ template "new_home_navbar" . }}
+<div class="d-flex justify-content-center new-home-header container pt-3 pb-2">
+	<div class="button-group-navigation">
+      <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
+         <img src="/images/blockchain-icon.svg" width="20" height="20" class="home-menu-icon" alt="blockchain info">
+         <span>Information</span></a>
+         <div class="dropdown">
+            <div class="submenu-list__wrapper one-column">
+               <ul class="submenu-list">
+                  <li class="submenu-list__item has-submenu active">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/blocks.svg" width="30" height="30" class="home-menu-icon" alt="blocks information">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Blocks</span>
+                           <span class="submenu-list__item-subtile">Latest block information</span>
+                        </a>
+                     </div>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/mempool.svg" width="30" height="30" class="home-menu-icon" alt="mempool information">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Mempool</span>
+                           <span class="submenu-list__item-subtile">List of pending transactions</span>
+                        </a>
+                     </div>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/treasury.svg" width="30" height="30" class="home-menu-icon" alt="treasury information">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Treasury</span>
+                           <span class="submenu-list__item-subtile">Treasury transactions</span>
+                        </a>
+                     </div>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/proposals.svg" width="30" height="30" class="home-menu-icon" alt="proposals information">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Funding Proposals</span>
+                           <span class="submenu-list__item-subtile">Proposal list for funding</span>
+                        </a>
+                     </div>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/agendas.svg" width="30" height="30" class="home-menu-icon" alt="agendas consensus change">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Upgrade Agendas</span>
+                           <span class="submenu-list__item-subtile">Voting programs for upgrades</span>
+                        </a>
+                     </div>
+                  </li>
+               </ul>
+            </div>
+         </div>
+      </li>
+      <li class="menu-list-item"><a class="home-menu-wrapper mx-1" href="#">
+         <img src="/images/chart-icon.svg" width="20" height="20" class="home-menu-icon" alt="decred chart">
+         <span>Graphics</span></a>
+         <div class="dropdown">
+            <div class="submenu-list__wrapper one-column">
+               <ul class="submenu-list">
+                  <li class="submenu-list__item has-submenu active">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/chain-chart.svg" width="30" height="30" class="home-menu-icon" alt="chain charts">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Chain Charts</span>
+                           <span class="submenu-list__item-subtile">Charts from chain data</span>
+                        </a>
+                     </div>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/market.svg" width="30" height="30" class="home-menu-icon" alt="market charts">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Market</span>
+                           <span class="submenu-list__item-subtile">Information from the market</span>
+                        </a>
+                     </div>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/ticket.svg" width="30" height="30" class="home-menu-icon" alt="ticket pool">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Ticket Pool</span>
+                           <span class="submenu-list__item-subtile">Long-term Ticket Pool state</span>
+                        </a>
+                     </div>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <div class="submenu-list__item-wrapper">
+                        <div class="submenu-list__item-icon">
+                           <img src="/images/bison-wallet.svg" width="30" height="30" class="home-menu-icon" alt="bison wallet">
+                        </div>
+                        <a href="#" class="submenu-list__item-link">
+                           <span class="submenu-list__item-title">Bison Wallet Dashboard</span>
+                           <span class="submenu-list__item-subtile">Summary info for Bison Wallet</span>
+                        </a>
+                     </div>
+                  </li>
+               </ul>
+            </div>
+         </div>
+      </li>
+      <li class="menu-list-item"><a class="home-menu-wrapper mx-1" href="#">
+         <img src="/images/tools-icon.svg" width="20" height="20" class="home-menu-icon" alt="decred tools">
+         <span>Tools</span></a>
+         <div class="dropdown">
+            <div class="submenu-list__wrapper two-column row">
+               <div class="col-24 col-md-12">
+                  <ul class="submenu-list">
+                     <li class="submenu-list__item has-submenu active">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/other.svg" width="30" height="30" class="home-menu-icon" alt="other blockchains">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Other Blockchains</span>
+                              <span class="submenu-list__item-subtile">All supported blockchains</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/financial-report.svg" width="30" height="30" class="home-menu-icon" alt="financial report">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Financial Reports</span>
+                              <span class="submenu-list__item-subtile">Treasury/Proposals financial reports</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/calculator.svg" width="30" height="30" class="home-menu-icon" alt="staking reward calculator">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Staking Reward Calculator</span>
+                              <span class="submenu-list__item-subtile">Estimated staking reward</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/supply.svg" width="30" height="30" class="home-menu-icon" alt="supply page">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Supply</span>
+                              <span class="submenu-list__item-subtile">Distribution information</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/attack-cost.svg" width="30" height="30" class="home-menu-icon" alt="attack cost">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Attack Cost</span>
+                              <span class="submenu-list__item-subtile">Attack Cost Calculator</span>
+                           </a>
+                        </div>
+                     </li>
+                  </ul>
+               </div>
+               <div class="col-24 col-md-12">
+                  <ul class="submenu-list">
+                     <li class="submenu-list__item has-submenu active">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/parameter.svg" width="30" height="30" class="home-menu-icon" alt="parameters">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Parameters</span>
+                              <span class="submenu-list__item-subtile">Blockchain Parameters</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/broadcast.svg" width="30" height="30" class="home-menu-icon" alt="broadcast/decode">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Decode/Broadcast Tx</span>
+                              <span class="submenu-list__item-subtile">Broadcast Transactions</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/whats-new.svg" width="30" height="30" class="home-menu-icon" alt="whats new">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Whats New</span>
+                              <span class="submenu-list__item-subtile">Changes on Bison Explorer</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/verify-message.svg" width="30" height="30" class="home-menu-icon" alt="verify message">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">Verify Message</span>
+                              <span class="submenu-list__item-subtile">Verify signed address</span>
+                           </a>
+                        </div>
+                     </li>
+                     <li class="submenu-list__item has-submenu">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/more-icon.svg" width="30" height="30" class="home-menu-icon" alt="More information">
+                           </div>
+                           <a href="#" class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">More</span>
+                              <span class="submenu-list__item-subtile">v</span>
+                           </a>
+                        </div>
+                     </li>
+                  </ul>
+               </div>
+            </div>
+         </div>
+      </li>
+   </div>
+</div>
 <div class="main-container new-homepage homepage-class homepage-content" id="content"
    data-controller="charts time homepage" data-homepage-vote-status="{{.VotesStatus}}"
    data-homepage-proposal-count="{{.ProposalCountMap}}" data-charts-tps="{{.TargetPoolSize}}"
@@ -1630,11 +1879,186 @@
    const pages = document.querySelectorAll('.page');
 
    content.addEventListener('scroll', () => {
-      let index = Math.round(content.scrollTop / (window.innerHeight - 140));
+      let index = Math.round(content.scrollTop / (window.innerHeight - 180));
       thumbs.forEach(thumb => thumb.classList.remove('active'));
       thumbs[index].classList.add('active');
    });
 </script>
+<style>
+   .home-menu-wrapper {
+   padding: 10px 15px;
+   display: inline-block;
+   border-radius: 5px;
+   margin: 0 1px 0 0;
+   text-decoration: none;
+   text-align: center;
+   cursor: pointer;
+   background: #eefaff;
+   border: 1px solid #adc1d5;
+  }
 
+  .menu-list-item {
+   position: relative;
+   margin: 10px 0;
+   }
+
+   .dropdown {
+   display: none;
+   position: absolute;
+   top: 100%;
+   left: 0;
+   background-color: #f8f9fa;
+   border: 1px solid #ddd;
+   min-width: 150px;
+   z-index: 10000;
+   border-radius: 33px;
+   padding: 30px 30px 50px 30px;
+   }
+
+   .menu-list-item:hover .dropdown {
+   display: block;
+   }
+
+  .home-menu-wrapper.active{
+    border-bottom: 10px solid #2ecc71;
+    transition-property:border-bottom .6s linear 0s;
+    -moz-transition:border-bottom .6s linear 0s;
+    -webkit-transition:border-bottom .6s linear 0s;
+    -o-transition:border-bottom .6s linear 0s;
+    color:#2ecc71;
+  }
+
+  .button-group-navigation .menu-list-item {
+      display: inline-block;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      zoom: 1;
+  }
+  
+  .button-group-navigation .menu-list-item .home-menu-wrapper {
+      float: left;
+      margin-left:-4px;
+  }
+
+  .one-column {
+    width: 280px;
+  }
+
+  .two-column {
+    width: 500px;
+ }
+
+ .home-menu-icon {
+   filter: invert(31%) sepia(78%) saturate(545%) hue-rotate(178deg);
+   }
+
+  .submenu-list__wrapper {
+	position: relative;
+   }
+
+   .submenu-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-left: 0;
+   }
+   
+   .submenu-list__item {
+      display: flex;
+      padding-right: 100px;
+      margin-right: -100px;
+      cursor: pointer;
+   }
+   
+   .submenu-list__item-wrapper {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      padding: 6px 16px 6px 6px;
+      gap: 16px;
+      border-radius: 14px;
+      transition: var(--transition);
+   }
+   
+   .submenu-list__item-wrapper > svg {
+      margin-left: auto;
+      opacity: 0;
+      visibility: hidden;
+      transition: var(--transition);
+   }
+   
+   .submenu-list__wrapper {
+      position: relative;
+   }
+   
+   .submenu-list__item.has-submenu.active .submenu-list__item-wrapper > svg {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+   }
+   
+   .submenu-list__item-link {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+   }
+   
+   .submenu-list__item-title {
+      font-size: 16px;
+      font-weight: 500;
+   }
+   
+   .submenu-list__item-icon {
+      display: flex;
+   }
+   
+   .submenu-list__item-subtile {
+      font-size: 12px;
+      font-weight: 400;
+      color: rgba(160, 161, 165, 1);
+   }
+   
+   @media (hover: hover) and (pointer: fine) {
+      .submenu-list__item.has-submenu:hover .submenu-list__item-wrapper > svg {
+         opacity: 1;
+         visibility: visible;
+         pointer-events: auto;
+      }
+   }
+   
+   @media screen and (max-width: 1280px) {
+      .submenu-list {
+         max-width: 250px;
+      }
+   }
+   
+   @media screen and (max-width: 1024px) {
+      .submenu-list {
+         width: 100%;
+         max-width: 100%;
+         gap: 5px;
+      }
+   
+      .submenu-list__wrapper {
+         margin-top: 30px;
+      }
+   
+      .submenu-list__item {
+         width: 100%;
+         padding: 0;
+         margin: 0;
+      }
+   
+      .submenu-list__item:active .submenu-list__item-wrapper > svg {
+         opacity: 1;
+         visibility: visible;
+      }
+   
+      .submenu-list__title {
+         display: none;
+      }
+   }
+</style>
 </html>
 {{- end}}
