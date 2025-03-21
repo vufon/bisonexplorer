@@ -1539,6 +1539,10 @@ export default class extends Controller {
   }
 
   setExchange (e) {
+    // not handle if is history or volume chart
+    if (settings.chart === 'history' || settings.chart === 'volume') {
+      return
+    }
     let node = e.target || e.srcElement
     while (node && node.nodeName !== 'TR') node = node.parentNode
     if (!node || !node.dataset || !node.dataset.token) return

@@ -3591,7 +3591,7 @@ func (dcr *DecredDEX) Refresh() {
 		// Do nothing in this case. We'll update the bot when we get some data.
 		return
 	}
-
+	price := depth.MidGap()
 	candlesticks := make(map[candlestickKey]Candlesticks)
 	var change float64
 	var volume, bestVolDur uint64
@@ -3618,12 +3618,14 @@ func (dcr *DecredDEX) Refresh() {
 		if bestVolDur == 0 || (binSize < bestVolDur && deepEnough) {
 			bestVolDur = binSize
 			change, volume, _, _ = cache.Delta(time.Now().Add(-time.Hour * 24))
+			// Consistent with other APIs' change data storage (Change is the difference in price, not the ratio)
+			change = change * price
 		}
 	}
 	vol := float64(volume) / 1e8
 	dcr.Update(&ExchangeState{
 		BaseState: BaseState{
-			Price:      depth.MidGap(),
+			Price:      price,
 			Change:     change,
 			Volume:     vol,
 			BaseVolume: vol,
