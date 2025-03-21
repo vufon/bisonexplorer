@@ -290,7 +290,301 @@
    data-charts-mul-subsidy="{{.ChainParams.MulSubsidy}}" data-charts-div-subsidy="{{.ChainParams.DivSubsidy}}"
    data-charts-window-size="{{.ChainParams.StakeDiffWindowSize}}"
    data-charts-block-time="{{.ChainParams.TargetTimePerBlock.Seconds}}">
-   <div class="hp-explore-wrap homepage-page pb-0">
+   <div class="hp-explore-wrap homepage-page">
+      <div class="container px-0 py-2">
+         <section class="h-100 px-3 py-2">
+            <h5 class="explore-card__header__text__name">Blockchain Information</h5>
+            <div class="row mt-2">
+               <div class="col-24 col-md-12 col-lg-8 p-2">
+                  <div class="new-home-card-container">
+                  <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                     <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
+                                    loading="lazy"></span>
+                     <p class="ms-2 mb-0 fw-600 fs-17">Lastest Blocks</p>
+                  </div>
+                  {{with .BestBlock -}}
+                  <div class="row justify-content-between px-3 py-2">
+                     <div class="col-12">
+                        <p class="new-network-stats-block pb-2">
+                           <span class="new-network-stats-title">Height</span>
+                           <span class="new-network-stats-content d-inline-block">
+                              <a class="fs-22" data-turbolinks="false" href="/block/{{.Hash}}"
+                                 data-homepage-target="blockHeight">{{.Height}}</a>
+                           </span>
+                           <span class="stats-subinfo fs-15i" data-type="age" data-time-target="age"
+                              data-age="{{.BlockTime.UNIX}}"></span>
+                        </p>
+                     </div>
+                     <div class="col-12">
+                        <p class="new-network-stats-block pb-2">
+                           <span class="new-network-stats-title">Value</span>
+                           <span class="new-network-stats-content d-inline-block pt-1">
+                              <span data-homepage-target="blockTotal">
+                                 {{threeSigFigs .Total}}</span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                           </span>
+                           <!--<span class="stats-subinfo">Phash/s</span> -->
+                        </p>
+                     </div>
+                     <div class="col-12">
+                        <p class="new-network-stats-block pb-2">
+                           <span class="new-network-stats-title">Votes
+                              {{if eq $.Consensus -1 -}}
+                              <span data-homepage-target="consensusMsg" class="fs-13 text-danger">rejected</span>
+                              {{else if eq $.Consensus 0}}
+                              <span data-homepage-target="consensusMsg" class="fs-13"></span>
+                              {{else}}
+                              <span data-homepage-target="consensusMsg" class="fs-13 text-green">approved</span>
+                              {{- end}}
+                           </span>
+                           <span class="d-inl new-network-stats-content d-inline-block pt-1"
+                              data-homepage-target="blockVotes" data-hash="{{.Hash}}">
+                              {{range $index, $vote := $.BlockTally -}}
+                              <span class="d-inline-block position-relative"
+                                 data-tooltip="{{if eq $vote -1}}the stakeholder has voted to reject this block{{else if eq $vote 1}}the stakeholder has voted to accept this block{{else}}this vote has not been received yet{{end}}">
+                                 <span
+                                    class="fs-22 dcricon-{{if eq $vote -1}}reject{{else if eq $vote 1}}affirm{{else}}missing{{end}}"></span>
+                              </span>
+                              {{- end}}
+                           </span>
+                        </p>
+                     </div>
+                     <div class="col-12">
+                        <p class="new-network-stats-block pb-2">
+                           <span class="new-network-stats-title">Size</span>
+                           <span class="new-network-stats-content d-inline-block pt-1"
+                              data-homepage-target="blockSize">{{.FormattedBytes}}</span>
+                        </p>
+                     </div>
+                  </div>
+                  {{end}}
+               </div>
+               </div>
+               <div class="col-24 col-md-12 col-lg-16 p-2">
+                  <div class="new-home-card-container">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="dcricon-tree explore-card__header__logo" alt="distribution of decred"
+                                       loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Distribution</p>
+                     </div>
+                  {{with .Info -}}
+                  <div class="row justify-content-between px-3 py-2">
+                     <div class="col-24 col-sm-12">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              <a class="link-hover-underline" data-turbolinks="false" href="/treasury">
+                                 Treasury</a>
+                           </span>
+                           <span class="new-network-stats-content d-inline-block">
+                              <span data-homepage-target="devFund">
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add
+                                 .DevFund .TreasuryBalance.Balance)) 2 true 2)}}
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              <span class="position-relative"
+                                 data-tooltip='include {{printf "%.2f" (toFloat64Amount .DevFund)}} DCR in legacy treasury'>
+                                 <span class="dcricon-info fs13 cursor-pointer">
+                                 </span>
+                              </span>
+                           </span>
+                           {{if $conv -}}
+                           <span class="stats-subinfo">
+                              <span data-homepage-target="convertedDev">
+                                 {{threeSigFigs $conv.TreasuryBalance.Value}}
+                                 {{$conv.TreasuryBalance.Index}}
+                              </span>
+                           </span>
+                           {{- end}}
+                        </div>
+                     </div>
+                     <div class="col-24 col-sm-12">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=coin-supply">
+                                 Total Coin Supply<span class="nowrap fw-600">&nbsp(of 21 mil)</span>
+                              </a>
+                           </span>
+                           <span class="new-network-stats-content d-inline-block">
+                              <span data-homepage-target="coinSupply">
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                 .CoinSupply) 0 true)}}
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                           </span>
+                           <span class="stats-subinfo">
+                              {{if $conv -}}
+                              <span data-homepage-target="convertedSupply">{{threeSigFigs
+                                 $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
+                              {{- end}}
+                              <span data-homepage-target="mixedPct">{{printf "%.0f"
+                                 .MixedPercent}}</span>%
+                              mixed
+                           </span>
+                        </div>
+                     </div>
+                     <div class="col-24 col-sm-12">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">Treasury Block Reward</span>
+                           <span class="new-network-stats-content d-inline-block">
+                              <span data-homepage-target="bsubsidyDev" class="fs15-decimal">
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                 .NBlockSubsidy.Dev) 8 true 2)}}
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                           </span>
+                           {{if $conv -}}
+                           <span class="stats-subinfo" data-homepage-target="convertedDevSub">
+                              {{$conv.TreasurySplit.TwoDecimals}} {{$conv.TreasurySplit.Index}}
+                           </span>
+                           {{- end}}
+                        </div>
+                     </div>
+                     <div class="col-24 col-sm-12">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">Treasury Spent</span>
+                           <span class="new-network-stats-content d-inline-block">
+                              <span class="fs15-decimal">
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                 .TreasuryBalance.Spent) 2 true 2)}}
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                           </span>
+                           <span class="stats-subinfo">
+                              {{.TreasuryBalance.SpendCount}} spends
+                           </span>
+                        </div>
+                     </div>
+                  </div>
+                  {{end}}
+               </div>
+               </div>
+               {{with .Info -}}
+               <div class="col-24 col-lg-8 p-2">
+                  <div class="new-home-card-container">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
+                                       loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Other Information</p>
+                     </div>
+                  <div class="row justify-content-between px-3 py-2">
+                     <div class="col-24 col-sm-12">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              <a class="link-hover-underline" target="_blank"
+                                 href="https://nodes.jholdstock.uk">
+                                 Online Nodes
+                              </a>
+                           </span>
+                           <div class="new-network-stats-content d-inline-block pt-1">
+                              <span>{{.PeerCount}}</span>
+                           </div>
+                        </div>
+                     </div>
+                     <div class="col-24 col-sm-12">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              <a class="link-hover-underline" href="/charts?chart=blockchain-size">
+                                 Blockchain Size
+                              </a>
+                           </span>
+                           <span class="new-network-stats-content d-inline-block pt-1">
+                              {{.FormattedSize}}
+                           </span>
+                        </div>
+                     </div>
+                     <div class="col-24 col-sm-12">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              <a class="link-hover-underline" href="/charts?chart=blockchain-size">
+                                 Average Block Time
+                              </a>
+                           </span>
+                           <span class="new-network-stats-content d-inline-block pt-1"
+                              data-homepage-target="avgBlockTime">0</span>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               </div>
+               <div class="col-24 col-lg-16 p-2">
+                  <div class="new-home-card-container">
+                  <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                     <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
+                                       loading="lazy"></span>
+                     <p class="ms-2 mb-0 fw-600 fs-17">Summary Information</p>
+                  </div>
+                  <div class="row px-3 py-2">
+                     <div class="col-12 col-sm-8 col-lg-6">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              <a class="link-hover-underline" href="/charts?chart=tx-count">
+                                 Total Transactions
+                              </a>
+                           </span>
+                           <span class="new-network-stats-content d-inline-block pt-1">
+                              {{int64Comma .TotalTransactions}}
+                           </span>
+                        </div>
+                     </div>
+                     <div class="col-12 col-sm-8 col-lg-6">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              Total Addresses
+                           </span>
+                           <span class="new-network-stats-content d-inline-block pt-1">
+                              {{int64Comma .TotalAddresses}}
+                           </span>
+                        </div>
+                     </div>
+                     <div class="col-12 col-sm-8 col-lg-6">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">
+                              Total Outputs
+                           </span>
+                           <span class="new-network-stats-content d-inline-block pt-1">
+                              {{int64Comma .TotalOutputs}}
+                           </span>
+                        </div>
+                     </div>
+                     <div class="col-12 col-sm-8 col-lg-6">
+                        <div class="new-network-stats-block">
+                           <span class="new-network-stats-title">Total Trading Amount</span>
+                           <div class="new-network-stats-content d-inline-block pt-1">
+                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                              .SwapsTotalAmount) 2 true)}}
+                           </div>
+                           <span class="new-info-line-2-sub">DCR</span>
+                        </div>
+                     </div>
+                     <div class="col-12 col-sm-8 col-lg-6">
+                        <p class="new-network-stats-block">
+                           <span class="new-network-stats-title">Total Swap Contracts</span>
+                           <span class="new-network-stats-content d-inline-block">
+                              <span>{{intComma .SwapsTotalContract}}</span>
+                              <span class="stats-subinfo">
+                                 {{intComma (subtract .SwapsTotalContract .RefundCount)}} redemptions,
+                                 {{intComma .RefundCount}} refunds
+                              </span>
+                           </span>
+                        </p>
+                     </div>
+                     <div class="col-12 col-sm-8 col-lg-6">
+                        <p class="new-network-stats-block">
+                           <span class="new-network-stats-title">Bison Wallet Vol</span>
+                           <span class="new-network-stats-content d-inline-block pt-1">
+                              <span>N/A</span>
+                           </span>
+                        </p>
+                     </div>
+                  </div>
+               </div>
+               </div>
+               {{end}}
+            </div>
+         </section>
+      </div>
+   </div>
+   <div class="hp-explore-wrap homepage-page">
       {{- if $botState -}}
       <!-- market chart start -->
       <div class="row w-100 align-items-top" data-controller="market"
@@ -299,8 +593,9 @@
          {{- /* LEFT COLUMN */ -}}
          <div class="col-24 col-lg-auto p-0">
             {{- /* PRICE */ -}}
-            <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white frame-shadow">
-               <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25" class="me-2">Market Information</div>
+            <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white new-home-card-container">
+               <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
+                     class="me-2">Market Information</div>
                <table class="w-100 mx-0">
                   <tbody>
                      <tr>
@@ -311,18 +606,22 @@
                               {{if eq $botState.DCRUSD24hChange 0.0}}
                               <span></span>
                               {{else if gt $botState.DCRUSD24hChange 0.0}}
-                              <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat $botState.DCRUSD24hChange $botState.Price))}}%</span>
+                              <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat
+                                 $botState.DCRUSD24hChange $botState.Price))}}%</span>
                               {{else}}
-                              <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat (toAbsValue $botState.DCRUSD24hChange) $botState.Price))}}%</span>
+                              <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
+                                 (toAbsValue $botState.DCRUSD24hChange) $botState.Price))}}%</span>
                               {{end}}
                            </p>
                            <p class="fs-14">{{printf "%.6f" $botState.DCRBTCPrice}} BTC</span>
                               {{if eq $botState.DCRBTC24hChange 0.0}}
                               <span></span>
                               {{else if gt $botState.DCRBTC24hChange 0.0}}
-                              <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat $botState.DCRBTC24hChange $botState.DCRBTCPrice))}}%</span>
+                              <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat
+                                 $botState.DCRBTC24hChange $botState.DCRBTCPrice))}}%</span>
                               {{else}}
-                              <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat (toAbsValue $botState.DCRBTC24hChange) $botState.DCRBTCPrice))}}%</span>
+                              <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
+                                 (toAbsValue $botState.DCRBTC24hChange) $botState.DCRBTCPrice))}}%</span>
                               {{end}}
                            </p>
                         </td>
@@ -332,7 +631,7 @@
                         <td class="ps-2 py-2 text-end">
                            <p class="fs-16">
                               {{if $conv -}}
-                                 $<span>{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>
+                              $<span>{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>
                               {{- end}}</span>
                            </p>
                         </td>
@@ -351,80 +650,87 @@
                         <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
                         <td class="ps-2 py-2 text-end">
                            <p><span class="fs-16">{{printf "%.2f" (x100 (divideFloat
-                              $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
+                                 $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
                         </td>
                      </tr>
-                 </tbody>
+                  </tbody>
                </table>
                <div class="d-flex justify-content-between">
                   <p class="mb-0 fs-13">Low</p>
                   <p class="mb-0 fs-13">High</p>
                </div>
                <div class="fs22 text-center pb-3">
-                  <div class="range-price-bar" id="priceBar" data-low="{{$botState.LowPrice}}" data-high="{{$botState.HighPrice}}" data-price="{{$botState.Price}}">
+                  <div class="range-price-bar" id="priceBar" data-low="{{$botState.LowPrice}}"
+                     data-high="{{$botState.HighPrice}}" data-price="{{$botState.Price}}">
                      <div class="d-flex justify-content-between">
                         <span class="fs-13 mt-2">{{printf "%.2f" $botState.LowPrice}}</span>
                         <span class="fs-13 mt-2">{{printf "%.2f" $botState.HighPrice}}</span>
-                    </div>
+                     </div>
                      <div class="range-marker" id="currentMarker"></div>
                      <div class="range-label fs-13" id="currentLabel">{{printf "%.2f" $botState.Price}}</div>
-                 </div>
+                  </div>
                </div>
             </div>
             {{- /* DCR/BTC MARKETS */ -}}
-            <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white frame-shadow">
+            <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white new-home-card-container">
                <table class="mx-auto mx-lg-3">
                   <tbody>
                      <tr class="fs14 lh1rem">
-                       <td></td>
-                       <td class="text-end fw-bold">DCR Vol.</td>
-                       <td class="text-end fw-bold ps-3" data-market-target="fiatLabel"></td>
-                       <td></td>
+                        <td></td>
+                        <td class="text-end fw-bold">DCR Vol.</td>
+                        <td class="text-end fw-bold ps-3" data-market-target="fiatLabel"></td>
+                        <td></td>
                      </tr>
                      {{range $botState.VolumeOrderedExchanges}}
-                         <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
-                             <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}</td>
-                             <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                                 {{threeSigFigs .State.BaseVolume}}
-                             </td>
-                             <td class="ps-3 fs16 py-2 text-end" data-type="price">
-                                 {{threeSigFigs .State.Price}}
-                             </td>
-                             <td class="fs16 px-2" data-type="arrow">
-                               {{if eq .State.Change 0.0}}
-                                   <span></span>
-                               {{else if gt .State.Change 0.0}}
-                                   <span class="dcricon-arrow-up text-green"></span>
-                               {{else}}
-                                   <span class="dcricon-arrow-down text-danger"></span>
-                               {{end}}
-                             </td>
-                         </tr>
-                     {{end}}
-                     <tr class="fs sum-row hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="aggregated">
-                         <td class="py-2 fs18 fw-bold"><div class="exchange-logo aggregated me-2"></div> Aggregate</td>
-                         <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                             {{threeSigFigs $botState.Volume}}
-                         </td>
-                         <td class="ps-1 fs16 py-2 text-end" data-type="price">
-                             {{threeSigFigs $botState.Price}}
-                         </td>
-                         <td class="fs16 px-2" data-type="arrow">
-                           {{if eq $botState.DCRUSD24hChange 0.0}}
-                               <span></span>
-                           {{else if gt $botState.DCRUSD24hChange 0.0}}
-                               <span class="dcricon-arrow-up text-green"></span>
+                     <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
+                        data-token="{{.Token}}">
+                        <td class="py-2 fs18 fw-bold">
+                           <div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}
+                        </td>
+                        <td class="ps-2 fs16 py-2 text-end" data-type="volume">
+                           {{threeSigFigs .State.BaseVolume}}
+                        </td>
+                        <td class="ps-3 fs16 py-2 text-end" data-type="price">
+                           {{threeSigFigs .State.Price}}
+                        </td>
+                        <td class="fs16 px-2" data-type="arrow">
+                           {{if eq .State.Change 0.0}}
+                           <span></span>
+                           {{else if gt .State.Change 0.0}}
+                           <span class="dcricon-arrow-up text-green"></span>
                            {{else}}
-                               <span class="dcricon-arrow-down text-danger"></span>
+                           <span class="dcricon-arrow-down text-danger"></span>
                            {{end}}
-                         </td>
+                        </td>
                      </tr>
-                 </tbody>
+                     {{end}}
+                     <tr class="fs sum-row hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
+                        data-token="aggregated">
+                        <td class="py-2 fs18 fw-bold">
+                           <div class="exchange-logo aggregated me-2"></div> Aggregate
+                        </td>
+                        <td class="ps-2 fs16 py-2 text-end" data-type="volume">
+                           {{threeSigFigs $botState.Volume}}
+                        </td>
+                        <td class="ps-1 fs16 py-2 text-end" data-type="price">
+                           {{threeSigFigs $botState.Price}}
+                        </td>
+                        <td class="fs16 px-2" data-type="arrow">
+                           {{if eq $botState.DCRUSD24hChange 0.0}}
+                           <span></span>
+                           {{else if gt $botState.DCRUSD24hChange 0.0}}
+                           <span class="dcricon-arrow-up text-green"></span>
+                           {{else}}
+                           <span class="dcricon-arrow-down text-danger"></span>
+                           {{end}}
+                        </td>
+                     </tr>
+                  </tbody>
                </table>
             </div>
          </div>
          {{- /* RIGHT COLUMN */ -}}
-         <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 px-3 my-4 frame-shadow">
+         <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 px-3 my-4 new-home-card-container">
             <div class="col me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative">
                <div class="loader-v2 loading" data-market-target="chartLoader"></div>
                {{- /* CHART ONTROLS */ -}}
@@ -544,218 +850,7 @@
       <h4 class="py-5 text-center">Exchange monitoring disabled</h4>
       {{- end -}}
    </div>
-   <div class="hp-explore-wrap homepage-page pb-0">
-      <div class="container">
-         <section>
-            <div class="hp-explore__cards-wrap mt-0">
-               <div class="hp-explore__cards-content-2-1">
-                  <div class="info-left-card">
-                     <!-- Start Treasury Card -->
-                     <div class="explore-card-wrap">
-                        <div class="explore-card-content">
-                           <a href='/supply' data-turbolinks="false" class="link-to-subpage">
-                              <div class="explore-card__header">
-                                 <span class="dcricon-tree explore-card__header__logo" alt="Mining Card"
-                                    loading="lazy"></span>
-                                 <div class="explore-card__header__text ml-15">
-                                    <h5 class="explore-card__header__text__name"> Distribution </h5>
-                                    <div class="explore-card__header__text__price">
-                                       <div class="price-wrap d-flex ai-center">
-                                          <span class="price-usd fs-13">Information about Treasury and Supply</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                              </div>
-                           </a>
-                           <div class="explore-card__values-content">
-                              {{with .Info -}}
-                              <div class="row justify-content-between">
-                                 <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false" href="/treasury">
-                                             Treasury</a>
-                                       </span>
-                                       <span class="network-stats-content d-inline-block mt-3">
-                                          <span data-homepage-target="devFund">
-                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (add
-                                             .DevFund .TreasuryBalance.Balance)) 2 true 2)}}
-                                          </span>
-                                          <span class="info-line-2-sub">DCR</span>
-                                          <span class="position-relative"
-                                             data-tooltip='include {{printf "%.2f" (toFloat64Amount .DevFund)}} DCR in legacy treasury'>
-                                             <span class="dcricon-info fs15 cursor-pointer">
-                                             </span>
-                                          </span>
-                                       </span>
-                                       {{if $conv -}}
-                                       <span class="stats-subinfo">
-                                          <span data-homepage-target="convertedDev">
-                                             {{threeSigFigs $conv.TreasuryBalance.Value}}
-                                             {{$conv.TreasuryBalance.Index}}
-                                          </span>
-                                       </span>
-                                       {{- end}}
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" data-turbolinks="false"
-                                             href="/charts?chart=coin-supply">
-                                             Total Coin Supply<span class="nowrap fw-600">&nbsp(of 21 mil)</span>
-                                          </a>
-                                       </span>
-                                       <span class="network-stats-content d-inline-block mt-3">
-                                          <span data-homepage-target="coinSupply">
-                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                             .CoinSupply) 0 true)}}
-                                          </span>
-                                          <span class="info-line-2-sub">DCR</span>
-                                       </span>
-                                       <span class="stats-subinfo">
-                                          {{if $conv -}}
-                                          <span data-homepage-target="convertedSupply">{{threeSigFigs
-                                             $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
-                                          {{- end}}
-                                          <span data-homepage-target="mixedPct">{{printf "%.0f"
-                                             .MixedPercent}}</span>%
-                                          mixed
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">Treasury Block Reward</span>
-                                       <span class="network-stats-content d-inline-block mt-3">
-                                          <span data-homepage-target="bsubsidyDev" class="fs15-decimal">
-                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                             .NBlockSubsidy.Dev) 8 true 2)}}
-                                          </span>
-                                          <span class="info-line-2-sub">DCR</span>
-                                       </span>
-                                       {{if $conv -}}
-                                       <span class="stats-subinfo" data-homepage-target="convertedDevSub">
-                                          {{$conv.TreasurySplit.TwoDecimals}} {{$conv.TreasurySplit.Index}}
-                                       </span>
-                                       {{- end}}
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">Treasury Spent</span>
-                                       <span class="network-stats-content d-inline-block mt-3">
-                                          <span class="fs15-decimal">
-                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                             .TreasuryBalance.Spent) 2 true 2)}}
-                                          </span>
-                                          <span class="info-line-2-sub">DCR</span>
-                                       </span>
-                                       <span class="stats-subinfo">
-                                          {{.TreasuryBalance.SpendCount}} spends
-                                       </span>
-                                    </div>
-                                 </div>
-                              </div>
-                              {{end}}
-                           </div>
-                        </div>
-                     </div>
-                     <!-- End Treasury Card -->
-                  </div>
-                  <div class="info-right-card">
-                     <!-- Start Blocks Card -->
-                     <div class="explore-card-wrap">
-                        <div class="explore-card-content">
-                           <a href='/blocks' data-turbolinks="false" class="link-to-subpage">
-                              <div class="explore-card__header">
-                                 <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
-                                    loading="lazy"></span>
-                                 <div class="explore-card__header__text ml-15">
-                                    <h5 class="explore-card__header__text__name"> Blocks </h5>
-                                    <span class="explore-card__header__arrow">
-                                       <span class='the-arrow -right'>
-                                          <span class='shaft'></span>
-                                       </span>
-                                    </span>
-                                    <div class="explore-card__header__text__price">
-                                       <div class="price-wrap d-flex ai-center">
-                                          <span class="price-usd fs-13">Block list and details</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                              </div>
-                           </a>
-                           <div class="explore-card__values-content">
-                              {{with .BestBlock -}}
-                              <div class="row justify-content-between">
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Lastest Block</span>
-                                       <span class="network-stats-content d-inline-block mt-3">
-                                          <a class="fs-28" data-turbolinks="false" href="/block/{{.Hash}}"
-                                             data-homepage-target="blockHeight">{{.Height}}</a>
-                                       </span>
-                                       <span class="stats-subinfo fs-15i" data-type="age" data-time-target="age"
-                                          data-age="{{.BlockTime.UNIX}}"></span>
-                                    </p>
-                                 </div>
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Value</span>
-                                       <span class="network-stats-content d-inline-block mt-4">
-                                          <span data-homepage-target="blockTotal">
-                                             {{threeSigFigs .Total}}</span>
-                                          <span class="info-line-2-sub">DCR</span>
-                                       </span>
-                                       <!--<span class="stats-subinfo">Phash/s</span> -->
-                                    </p>
-                                 </div>
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Votes
-                                          {{if eq $.Consensus -1 -}}
-                                          <span data-homepage-target="consensusMsg"
-                                             class="fs-13 text-danger">rejected</span>
-                                          {{else if eq $.Consensus 0}}
-                                          <span data-homepage-target="consensusMsg" class="fs-13"></span>
-                                          {{else}}
-                                          <span data-homepage-target="consensusMsg"
-                                             class="fs-13 text-green">approved</span>
-                                          {{- end}}
-                                       </span>
-                                       <span class="d-inl network-stats-content d-inline-block mt-4"
-                                          data-homepage-target="blockVotes" data-hash="{{.Hash}}">
-                                          {{range $index, $vote := $.BlockTally -}}
-                                          <span class="d-inline-block position-relative"
-                                             data-tooltip="{{if eq $vote -1}}the stakeholder has voted to reject this block{{else if eq $vote 1}}the stakeholder has voted to accept this block{{else}}this vote has not been received yet{{end}}">
-                                             <span
-                                                class="fs-24i dcricon-{{if eq $vote -1}}reject{{else if eq $vote 1}}affirm{{else}}missing{{end}}"></span>
-                                          </span>
-                                          {{- end}}
-                                       </span>
-                                    </p>
-                                 </div>
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Size</span>
-                                       <span class="network-stats-content d-inline-block mt-4"
-                                          data-homepage-target="blockSize">{{.FormattedBytes}}</span>
-                                    </p>
-                                 </div>
-                              </div>
-                              {{end}}
-                           </div>
-                        </div>
-                     </div>
-                     <!-- End Blocks Card -->
-                  </div>
-               </div>
-            </div>
-         </section>
-      </div>
-   </div>
-   <div class="hp-explore-wrap homepage-page pb-0">
+   <div class="hp-explore-wrap homepage-page">
       <div class="container">
          <section>
             <div class="hp-explore__cards-wrap mt-0">
@@ -783,13 +878,13 @@
                               {{with .Info -}}
                               <div class="row justify-content-between">
                                  <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title">
                                           <a class="link-hover-underline" data-turbolinks="false"
                                              href="/charts?chart=pow-difficulty">
                                              Difficulty</a>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-4"
+                                       <span class="new-network-stats-content d-inline-block mt-4"
                                           data-homepage-target="difficulty">
                                           {{template "decimalParts" (float64AsDecimalParts (divideFloat .Difficulty
                                           1.0)
@@ -798,18 +893,18 @@
                                     </div>
                                  </div>
                                  <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title">
                                           <a class="link-hover-underline" data-turbolinks="false"
                                              href="/charts?chart=hashrate">
                                              Hashrate
                                           </a>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-3">
+                                       <span class="new-network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="hashrate">
                                              {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true 3)}}
                                           </span>
-                                          <span class="info-line-2-sub">{{hashratePostfix .HashRate}}</span>
+                                          <span class="new-info-line-2-sub">{{hashratePostfix .HashRate}}</span>
                                        </span>
                                        <span class="stats-subinfo">
                                           <span data-homepage-target="hashrateDelta">{{template "fmtPercentage"
@@ -818,14 +913,14 @@
                                     </div>
                                  </div>
                                  <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">PoW reward</span>
-                                       <span class="network-stats-content d-inline-block mt-3">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title">PoW reward</span>
+                                       <span class="new-network-stats-content d-inline-block mt-3">
                                           <span data-homepage-target="bsubsidyPow" class="fs15-decimal">
                                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                              .NBlockSubsidy.PoW) 8 true 2)}}
                                           </span>
-                                          <span class="info-line-2-sub">DCR</span>
+                                          <span class="new-info-line-2-sub">DCR</span>
                                        </span>
                                        {{if $conv -}}
                                        <span class="stats-subinfo" data-homepage-target="powConverted">
@@ -835,9 +930,9 @@
                                     </div>
                                  </div>
                                  <div class="col-24 col-sm-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">Next Block Reward Reduction</span>
-                                       <div class="network-stats-content">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title">Next Block Reward Reduction</span>
+                                       <div class="new-network-stats-content">
                                           <div class="row justify-content-center">
                                              <div class="progress progress-frame mt-3 p-0">
                                                 <div class="progress-bar rounded" data-homepage-target="powBar"
@@ -1016,13 +1111,13 @@
                                     </div>
                                  </div>
                                  <div class="col-12 col-xl-6">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title h-50 pt-3">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title h-50 pt-3">
                                           <span data-homepage-target="mpRegCount"
                                              class="fs-20 fw-600 mempool-data-value">{{.Mempool.NumRegular}}</span>
                                           <span class="fs-17 fw-400 mempool-label-value"> regular</span>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="new-network-stats-content d-inline-block mt-2">
                                           <span class="fs-20 fw-600 mempool-data-value"
                                              data-homepage-target="mpRegTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.RegularTotal}}</span>
@@ -1031,13 +1126,13 @@
                                     </div>
                                  </div>
                                  <div class="col-12 col-xl-6">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title h-50 pt-3">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title h-50 pt-3">
                                           <span data-homepage-target="mpTicketCount"
                                              class="fs-20 fw-600 mempool-data-value">{{.Mempool.NumTickets}}</span>
                                           <span class="fs-17 fw-400 mempool-label-value"> tickets</span>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="new-network-stats-content d-inline-block mt-2">
                                           <span class="fs-20 fw-600 mempool-data-value"
                                              data-homepage-target="mpTicketTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.TicketTotal}}</span>
@@ -1046,13 +1141,13 @@
                                     </div>
                                  </div>
                                  <div class="col-12 col-xl-6">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title h-50 pt-3">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title h-50 pt-3">
                                           <span data-homepage-target="mpRevCount"
                                              class="fs-20 fw-600 lh1rem mempool-data-value">{{.Mempool.NumRevokes}}</span>
                                           <span class="fs-17 fw-400 mempool-label-value"> revokes</span>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="new-network-stats-content d-inline-block mt-2">
                                           <span class="fs-20 fw-600 mempool-data-value"
                                              data-homepage-target="mpRevTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.RevokeTotal}}</span>
@@ -1061,8 +1156,8 @@
                                     </div>
                                  </div>
                                  <div class="col-12 col-xl-6">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title h-50 pt-3">
+                                    <div class="new-network-stats-block">
+                                       <span class="new-network-stats-title h-50 pt-3">
                                           <span data-homepage-target="mpVoteCount"
                                              class="fs-20 fw-600 mempool-data-value lh1rem"
                                              data-tickets-per-block="{{.Mempool.VotingInfo.MaxVotesPerBlock}}">
@@ -1079,7 +1174,7 @@
                                           </span>
                                           <span class="fs-17 fw-400 mempool-label-value"> votes</span>
                                        </span>
-                                       <span class="network-stats-content d-inline-block mt-2">
+                                       <span class="new-network-stats-content d-inline-block mt-2">
                                           <span class="fs-20 fw-600 mempool-data-value"
                                              data-homepage-target="mpVoteTotal">{{threeSigFigs
                                              .Mempool.LikelyMineable.VoteTotal}}</span>
@@ -1098,7 +1193,7 @@
          </section>
       </div>
    </div>
-   <div class="hp-explore-wrap homepage-page pb-0">
+   <div class="hp-explore-wrap homepage-page">
       <div class="container">
          <section>
             <div class="hp-explore__cards-wrap mt-0">
@@ -1129,18 +1224,18 @@
                            {{with .Info -}}
                            <div class="row justify-content-between">
                               <div class="col-24 col-md-8">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">
                                        <a class="link-hover-underline" data-turbolinks="false"
                                           href="/charts?chart=ticket-price&zoom=month">
                                           Current Ticket Price
                                        </a>
                                     </span>
-                                    <span class="network-stats-content">
+                                    <span class="new-network-stats-content">
                                        <span class="fs15-decimal d-inline-block mt-3" data-homepage-target="blocksdiff">
                                           {{template "decimalParts" (float64AsDecimalParts .StakeDiff 8 false 2)}}
                                        </span>
-                                       <span class="info-line-2-sub">DCR</span>
+                                       <span class="new-info-line-2-sub">DCR</span>
                                     </span>
                                     {{if $conv -}}
                                     <span class="stats-subinfo"
@@ -1150,15 +1245,15 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-8">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">Next Ticket Price</span>
-                                    <span class="network-stats-content d-inline-block mt-3">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Next Ticket Price</span>
+                                    <span class="new-network-stats-content d-inline-block mt-3">
                                        <span>~<span data-homepage-target="nextExpectedSdiff">
                                              {{template "decimalParts" (float64AsDecimalParts .NextExpectedStakeDiff
                                              2
                                              false)}}
                                           </span></span>
-                                       <span class="info-line-2-sub">DCR</span>
+                                       <span class="new-info-line-2-sub">DCR</span>
                                     </span>
                                     <span class="stats-subinfo">
                                        min:&nbsp;
@@ -1175,14 +1270,14 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-8">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">
                                        <a class="link-hover-underline" data-turbolinks="false"
                                           href="/charts?chart=ticket-pool-size">
                                           Ticket Pool Size
                                        </a>
                                     </span>
-                                    <span class="network-stats-content d-inline-block mt-3"
+                                    <span class="new-network-stats-content d-inline-block mt-3"
                                        data-homepage-target="poolSize">
                                        {{intComma .PoolInfo.Size}}
                                     </span>
@@ -1195,14 +1290,14 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-8">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">Vote Reward</span>
-                                    <span class="network-stats-content d-inline-block mt-1">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Vote Reward</span>
+                                    <span class="new-network-stats-content d-inline-block mt-1">
                                        <span data-homepage-target="bsubsidyPos" class="fs15-decimal">
                                           {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (divide
                                           .NBlockSubsidy.PoS 5)) 8 true 2)}}
                                        </span>
-                                       <span class="info-line-2-sub">DCR/vote</span>
+                                       <span class="new-info-line-2-sub">DCR/vote</span>
                                     </span>
                                     <span class="stats-subinfo">
                                        <span data-homepage-target="ticketReward">{{printf "%.2f"
@@ -1213,9 +1308,9 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-8">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">Next Ticket Price Change</span>
-                                    <div class="network-stats-content">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Next Ticket Price Change</span>
+                                    <div class="new-network-stats-content">
                                        <div class="row justify-content-center">
                                           <div class="progress mt-3 progress-frame p-0">
                                              <div class="progress-bar rounded" data-homepage-target="posBar"
@@ -1236,15 +1331,15 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-8">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title"><a data-turbolinks="false"
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title"><a data-turbolinks="false"
                                           class="link-hover-underline" href="/charts?chart=stake-participation">Total
                                           Staked DCR</a></span>
-                                    <span class="network-stats-content d-inline-block mt-3">
+                                    <span class="new-network-stats-content d-inline-block mt-3">
                                        <span data-homepage-target="poolValue">
                                           {{template "decimalParts" (float64AsDecimalParts .PoolInfo.Value 0 true)}}
                                        </span>
-                                       <span class="info-line-2-sub">DCR</span>
+                                       <span class="new-info-line-2-sub">DCR</span>
                                     </span>
                                     <span class="stats-subinfo">
                                        <span data-homepage-target="poolSizePct">
@@ -1263,174 +1358,7 @@
          </section>
       </div>
    </div>
-   <div class="hp-explore-wrap homepage-page pb-0">
-      <div class="container">
-         <section>
-            <div class="hp-explore__cards-wrap mt-0">
-               <div class="hp-explore__cards-content-2-1 mb-3">
-                  <div class="info-left-card">
-                     <!-- Start Summary Card -->
-                     <div class="explore-card-wrap">
-                        <div class="explore-card-content">
-                           <div class="explore-card__header bg-for-header">
-                              <span class="homeicon-calc explore-card__header__logo" alt="Mining Card"
-                                 loading="lazy"></span>
-                              <div class="explore-card__header__text ml-15">
-                                 <h5 class="explore-card__header__text__name"> Blockchain Information </h5>
-                                 <div class="explore-card__header__text__price">
-                                    <div class="price-wrap d-flex ai-center">
-                                       <span class="price-usd fs-13">Decred blockchain summary</span>
-                                    </div>
-                                 </div>
-                              </div>
-                           </div>
-                           <div class="explore-card__values-content">
-                              {{with .Info -}}
-                              <div class="row">
-                                 <div class="col-24 col-sm-12 col-lg-8">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" target="_blank"
-                                             href="https://nodes.jholdstock.uk">
-                                             Online Nodes
-                                          </a>
-                                       </span>
-                                       <div class="network-stats-content d-inline-block mt-4">
-                                          <span>{{.PeerCount}}</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12 col-lg-8">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/charts?chart=tx-count">
-                                             Total Transactions
-                                          </a>
-                                       </span>
-                                       <span class="network-stats-content d-inline-block mt-4">
-                                          {{int64Comma .TotalTransactions}}
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12 col-lg-8">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          Total Addresses
-                                       </span>
-                                       <span class="network-stats-content d-inline-block mt-4">
-                                          {{int64Comma .TotalAddresses}}
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12 col-lg-8">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          Total Outputs
-                                       </span>
-                                       <span class="network-stats-content d-inline-block mt-4">
-                                          {{int64Comma .TotalOutputs}}
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12 col-lg-8">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/charts?chart=blockchain-size">
-                                             Blockchain Size
-                                          </a>
-                                       </span>
-                                       <span class="network-stats-content d-inline-block mt-4">
-                                          {{.FormattedSize}}
-                                       </span>
-                                    </div>
-                                 </div>
-                                 <div class="col-24 col-sm-12 col-lg-8">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">
-                                          <a class="link-hover-underline" href="/charts?chart=blockchain-size">
-                                             Average Block Time
-                                          </a>
-                                       </span>
-                                       <span class="network-stats-content d-inline-block mt-4"
-                                          data-homepage-target="avgBlockTime">0</span>
-                                    </div>
-                                 </div>
-                              </div>
-                              {{end}}
-                           </div>
-                        </div>
-                     </div>
-                     <!-- End Summary Card -->
-                  </div>
-                  <div class="info-right-card">
-                     <!-- Start Atomic Swaps Card -->
-                     {{with .Info -}}
-                     <div class="explore-card-wrap">
-                        <div class="explore-card-content">
-                           <a href='/atomic-swaps' class="link-to-subpage">
-                              <div class="explore-card__header">
-                                 <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
-                                    loading="lazy"></span>
-                                 <div class="explore-card__header__text ml-15">
-                                    <h5 class="explore-card__header__text__name"> Atomic Swaps </h5>
-                                    <span class="explore-card__header__arrow">
-                                       <span class='the-arrow -right'>
-                                          <span class='shaft'></span>
-                                       </span>
-                                    </span>
-                                    <div class="explore-card__header__text__price">
-                                       <div class="price-wrap d-flex ai-center">
-                                          <span class="price-usd fs-13">Aggregated data of atomic swaps</span>
-                                       </div>
-                                    </div>
-                                 </div>
-                              </div>
-                           </a>
-                           <div class="explore-card__values-content">
-                              <div class="row justify-content-between">
-                                 <div class="col-12">
-                                    <div class="network-stats-block">
-                                       <span class="network-stats-title">Total Trading Amount</span>
-                                       <div class="network-stats-content d-inline-block mt-4">
-                                          {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                          .SwapsTotalAmount) 2 true)}}
-                                       </div>
-                                       <span class="info-line-2-sub">DCR</span>
-                                    </div>
-                                 </div>
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Total Contracts</span>
-                                       <span class="network-stats-content d-inline-block mt-3">
-                                          <span>{{intComma .SwapsTotalContract}}</span>
-                                          <span class="stats-subinfo">
-                                             {{intComma (subtract .SwapsTotalContract .RefundCount)}} redemptions,
-                                             {{intComma .RefundCount}} refunds
-                                          </span>
-                                       </span>
-                                    </p>
-                                 </div>
-                                 <div class="col-12">
-                                    <p class="network-stats-block">
-                                       <span class="network-stats-title">Bison Wallet Vol</span>
-                                       <span class="network-stats-content d-inline-block mt-3">
-                                          <span>N/A</span>
-                                       </span>
-                                    </p>
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
-                     </div>
-                     {{end}}
-                     <!-- End Atomic Swaps Card -->
-                  </div>
-               </div>
-            </div>
-         </section>
-      </div>
-   </div>
-   <div class="hp-explore-wrap homepage-page pb-0">
+   <div class="hp-explore-wrap homepage-page">
       <div class="container">
          <section>
             <div class="hp-explore__cards-wrap mt-0">
@@ -1460,31 +1388,31 @@
                               {{if .Info.Block24hInfo}}
                               {{with .Info.Block24hInfo}}
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">
                                        Mined Blocks
                                     </span>
-                                    <div class="network-stats-content d-inline-block mt-4">
+                                    <div class="new-network-stats-content d-inline-block mt-4">
                                        {{int64Comma .Blocks}}
                                     </div>
                                  </div>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="network-stats-block">
-                                    <span class="network-stats-title">Total Transactions</span>
-                                    <span class="network-stats-content d-inline-block mt-4">
+                                 <p class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Total Transactions</span>
+                                    <span class="new-network-stats-content d-inline-block mt-4">
                                        {{int64Comma .NumTx24h}}
                                     </span>
                                  </p>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">Total Sent</span>
-                                    <div class="network-stats-content d-inline-block mt-3">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Total Sent</span>
+                                    <div class="new-network-stats-content d-inline-block mt-3">
                                        {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Sent24h) 2
                                        true)}}
                                     </div>
-                                    <span class="info-line-2-sub">DCR</span>
+                                    <span class="new-info-line-2-sub">DCR</span>
                                     {{if $conv -}}
                                     <span class="stats-subinfo">
                                        {{threeSigFigs $conv.Sent24h.Value}}
@@ -1493,13 +1421,13 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">Total Fees</span>
-                                    <div class="network-stats-content d-inline-block mt-3">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Total Fees</span>
+                                    <div class="new-network-stats-content d-inline-block mt-3">
                                        {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Fees24h) 2
                                        true)}}
                                     </div>
-                                    <span class="info-line-2-sub">DCR</span>
+                                    <span class="new-info-line-2-sub">DCR</span>
                                     {{if $conv -}}
                                     <span class="stats-subinfo">
                                        {{threeSigFigs $conv.Fees24h.Value}}
@@ -1508,21 +1436,21 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="network-stats-block">
-                                    <span class="network-stats-title">Total Outputs</span>
-                                    <span class="network-stats-content d-inline-block mt-4">
+                                 <p class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Total Outputs</span>
+                                    <span class="new-network-stats-content d-inline-block mt-4">
                                        {{int64Comma .NumVout24h}}
                                     </span>
                                  </p>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="network-stats-block">
-                                    <span class="network-stats-title">Swaps Amount</span>
-                                    <div class="network-stats-content d-inline-block mt-3">
+                                 <div class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Swaps Amount</span>
+                                    <div class="new-network-stats-content d-inline-block mt-3">
                                        {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                        .AtomicSwapAmount) 2 true)}}
                                     </div>
-                                    <span class="info-line-2-sub">DCR</span>
+                                    <span class="new-info-line-2-sub">DCR</span>
                                     {{if $conv -}}
                                     <span class="stats-subinfo">
                                        {{threeSigFigs $conv.SwapsAmount24h.Value}}
@@ -1531,9 +1459,9 @@
                                  </div>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="network-stats-block">
-                                    <span class="network-stats-title">Swaps Count</span>
-                                    <span class="network-stats-content d-inline-block mt-3">
+                                 <p class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Swaps Count</span>
+                                    <span class="new-network-stats-content d-inline-block mt-3">
                                        {{int64Comma (add .SwapRedeemCount .SwapRefundCount)}}
                                     </span>
                                     <span class="stats-subinfo">{{int64Comma .SwapRedeemCount}} redemptions,
@@ -1541,9 +1469,9 @@
                                  </p>
                               </div>
                               <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="network-stats-block">
-                                    <span class="network-stats-title">Bison Wallet Vol</span>
-                                    <span class="network-stats-content d-inline-block mt-4">
+                                 <p class="new-network-stats-block">
+                                    <span class="new-network-stats-title">Bison Wallet Vol</span>
+                                    <span class="new-network-stats-content d-inline-block mt-4">
                                        N/A
                                     </span>
                                  </p>
@@ -1560,7 +1488,7 @@
          </section>
       </div>
    </div>
-   <div class="hp-explore-wrap homepage-page pb-0">
+   <div class="hp-explore-wrap homepage-page">
       <div class="container">
          <section>
             <div class="hp-explore__cards-wrap mt-0">
@@ -1839,22 +1767,22 @@
    });
    async function updateMarketPriceRange() {
       try {
-          let bar = document.getElementById("priceBar");
-          let marker = document.getElementById("currentMarker");
-          let label = document.getElementById("currentLabel");
-          const currentPrice = Number(bar.getAttribute("data-price"));
-          const lowPrice = Number(bar.getAttribute("data-low"));
-          const highPrice = Number(bar.getAttribute("data-high"));
+         let bar = document.getElementById("priceBar");
+         let marker = document.getElementById("currentMarker");
+         let label = document.getElementById("currentLabel");
+         const currentPrice = Number(bar.getAttribute("data-price"));
+         const lowPrice = Number(bar.getAttribute("data-low"));
+         const highPrice = Number(bar.getAttribute("data-high"));
 
-          let percent = ((currentPrice - lowPrice) / (highPrice - lowPrice)) * 100;
-          marker.style.left = `${percent}%`;
-          label.style.left = `${percent}%`;
-          label.innerHTML = `${currentPrice.toFixed(2)}`;
+         let percent = ((currentPrice - lowPrice) / (highPrice - lowPrice)) * 100;
+         marker.style.left = `${percent}%`;
+         label.style.left = `${percent}%`;
+         label.innerHTML = `${currentPrice.toFixed(2)}`;
       } catch (error) {
-          console.error("Error when get price:", error);
+         console.error("Error when get price:", error);
       }
-  }
-  updateMarketPriceRange();
+   }
+   updateMarketPriceRange();
 </script>
 <style>
    .home-menu-wrapper {
@@ -2037,8 +1965,9 @@
       height: 10px;
       background: linear-gradient(to right, #d53d13, #42df84, #0a572b);
       border-radius: 5px;
-  }
-  .range-marker {
+   }
+
+   .range-marker {
       position: absolute;
       top: -5px;
       width: 10px;
@@ -2046,14 +1975,15 @@
       background: rgb(20, 82, 96);
       border-radius: 5px;
       transform: translateX(-50%);
-  }
-  .range-label {
+   }
+
+   .range-label {
       position: absolute;
       top: 23px;
       font-size: 14px;
       color: #333;
       transform: translateX(-50%);
-  }
+   }
 </style>
 
 </html>
