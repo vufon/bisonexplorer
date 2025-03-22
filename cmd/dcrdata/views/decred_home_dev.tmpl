@@ -305,7 +305,7 @@
                      {{with .BestBlock -}}
                      <div class="row justify-content-between px-3 py-2">
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Height</span>
                               <span class="new-network-stats-content d-inline-block">
                                  <a class="fs-22" data-turbolinks="false" href="/block/{{.Hash}}"
@@ -313,10 +313,10 @@
                               </span>
                               <span class="stats-subinfo fs-15i" data-type="age" data-time-target="age"
                                  data-age="{{.BlockTime.UNIX}}"></span>
-                           </p>
+                           </div>
                         </div>
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Value</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span data-homepage-target="blockTotal">
@@ -324,10 +324,10 @@
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
                               <!--<span class="stats-subinfo">Phash/s</span> -->
-                           </p>
+                           </div>
                         </div>
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Votes
                                  {{if eq $.Consensus -1 -}}
                                  <span data-homepage-target="consensusMsg" class="fs-13 text-danger">rejected</span>
@@ -347,14 +347,14 @@
                                  </span>
                                  {{- end}}
                               </span>
-                           </p>
+                           </div>
                         </div>
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Size</span>
                               <span class="new-network-stats-content d-inline-block pt-1"
                                  data-homepage-target="blockSize">{{.FormattedBytes}}</span>
-                           </p>
+                           </div>
                         </div>
                      </div>
                      {{end}}
@@ -557,7 +557,7 @@
                            </div>
                         </div>
                         <div class="col-12 col-sm-8 col-lg-6">
-                           <p class="new-network-stats-block">
+                           <div class="new-network-stats-block">
                               <span class="new-network-stats-title">Total Swap Contracts</span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span>{{intComma .SwapsTotalContract}}</span>
@@ -566,15 +566,15 @@
                                     {{intComma .RefundCount}} refunds
                                  </span>
                               </span>
-                           </p>
+                           </div>
                         </div>
                         <div class="col-12 col-sm-8 col-lg-6">
-                           <p class="new-network-stats-block">
+                           <div class="new-network-stats-block">
                               <span class="new-network-stats-title">Bison Wallet Vol</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>N/A</span>
                               </span>
-                           </p>
+                           </div>
                         </div>
                      </div>
                   </div>
@@ -587,6 +587,7 @@
    <div class="hp-explore-wrap homepage-page">
       <div class="container px-0 py-2">
          <section class="h-100 px-3 py-2">
+            <h5 class="explore-card__header__text__name">Mempool Space</h5>
             <div class="row mt-2">
                <div class="col-24 col-lg-8 p-2">
                   <div class="new-home-card-container">
@@ -785,7 +786,7 @@
                            </div>
                         </div>
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Sent</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span data-homepage-target="mempool" {{template "mempoolDump" .Mempool}}>
@@ -793,10 +794,10 @@
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
-                           </p>
+                           </div>
                         </div>
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Size</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
@@ -804,10 +805,10 @@
                                  </span>
                                  <span class="new-info-line-2-sub">kB</span>
                               </span>
-                           </p>
+                           </div>
                         </div>
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Fees Range</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
@@ -815,10 +816,10 @@
                                  </span>
                                  <span class="new-info-line-2-sub">atoms/vB</span>
                               </span>
-                           </p>
+                           </div>
                         </div>
                         <div class="col-12">
-                           <p class="new-network-stats-block pb-2">
+                           <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Treasury Spending</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
@@ -829,7 +830,7 @@
                               <span class="stats-subinfo">
                                  2254 votes yes
                               </span>
-                           </p>
+                           </div>
                         </div>
                      </div>
                   </div>
@@ -952,71 +953,72 @@
                         <div class="col-24">
                            <div class="br-8 b--def bgc-plain-bright pb-10">
                               <div class="btable-table-wrap maxh-none">
-                                <table class="btable-table w-100">
-                                  <thead>
-                                    <tr class="bg-none">
-                                      <th class="text-start">Block</th>
-                                      <th class="text-center">Pool Name</th>
-                                      <th class="text-center">Miner</th>
-                                      <th class="text-center">Mined By</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody class="bgc-white">
-                                    {{range .PoolDataList}}
-                                    <tr>
-                                      <td class="text-start">
-                                       <a data-turbolinks="false" href="/block/{{.BlockHeight}}">{{.BlockHeight}}</a>
-                                      </td>
-                                      <td class="d-flex justify-content-center ai-center">
-                                       {{if .PoolType}}
-                                          {{if eq .PoolType "threepool"}}
+                                 <table class="btable-table w-100">
+                                    <thead>
+                                       <tr class="bg-none">
+                                          <th class="text-start">Block</th>
+                                          <th class="text-center">Pool Name</th>
+                                          <th class="text-center">Miner</th>
+                                          <th class="text-center">Mined By</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody class="bgc-white">
+                                       {{range .PoolDataList}}
+                                       <tr>
+                                          <td class="text-start">
+                                             <a data-turbolinks="false"
+                                                href="/block/{{.BlockHeight}}">{{.BlockHeight}}</a>
+                                          </td>
+                                          <td class="d-flex justify-content-center ai-center">
+                                             {{if .PoolType}}
+                                             {{if eq .PoolType "threepool"}}
                                              <div class="tooltip1 me-1">
                                                 <img src="/images/CA_24.webp" width="24" height="24" alt="CA">
                                              </div>
                                              <a href="https://decred.miningandco.com" target="_blank">
                                                 miningandco.com
                                              </a>
-                                          {{end}}
-                                          {{if eq .PoolType "miningandco"}}
-                                          <div class="tooltip1 me-1">
-                                             <img src="/images/RU_24.webp" width="24" height="24" alt="CA">
-                                          </div>
-                                          <a href="https://dcr.e4pool.com" target="_blank">
-                                             e4pool.com
-                                          </a>
-                                          {{end}}
-                                          {{if eq .PoolType "e4pool"}}
-                                          <div class="tooltip1 me-1">
-                                             <img src="/images/BR_24.webp" width="24" height="24" alt="CA">
-                                          </div>
-                                          <a href="https://dcr.threepool.tech/" target="_blank">
-                                             threepool.tech
-                                          </a>
-                                          {{end}}
-                                       {{else}}
-                                       <p>N/A</p>
+                                             {{end}}
+                                             {{if eq .PoolType "miningandco"}}
+                                             <div class="tooltip1 me-1">
+                                                <img src="/images/RU_24.webp" width="24" height="24" alt="CA">
+                                             </div>
+                                             <a href="https://dcr.e4pool.com" target="_blank">
+                                                e4pool.com
+                                             </a>
+                                             {{end}}
+                                             {{if eq .PoolType "e4pool"}}
+                                             <div class="tooltip1 me-1">
+                                                <img src="/images/BR_24.webp" width="24" height="24" alt="CA">
+                                             </div>
+                                             <a href="https://dcr.threepool.tech/" target="_blank">
+                                                threepool.tech
+                                             </a>
+                                             {{end}}
+                                             {{else}}
+                                             <p>N/A</p>
+                                             {{end}}
+                                          </td>
+                                          <td class="text-center">
+                                             {{if .PoolType}}
+                                             <p>{{.Miner}}</p>
+                                             {{else}}
+                                             <p>N/A</p>
+                                             {{end}}
+                                          </td>
+                                          <td class="text-center">
+                                             {{if .PoolType}}
+                                             <p>{{.MinedBy}}</p>
+                                             {{else}}
+                                             <p>N/A</p>
+                                             {{end}}
+                                          </td>
+                                       </tr>
                                        {{end}}
-                                      </td>
-                                      <td class="text-center">
-                                       {{if .PoolType}}
-                                       <p>{{.Miner}}</p>
-                                       {{else}}
-                                       <p>N/A</p>
-                                       {{end}}
-                                      </td>
-                                      <td class="text-center">
-                                       {{if .PoolType}}
-                                       <p>{{.MinedBy}}</p>
-                                       {{else}}
-                                       <p>N/A</p>
-                                       {{end}}
-                                      </td>
-                                    </tr>
-                                    {{end}}
-                                  </tbody>
-                                </table>
+                                    </tbody>
+                                 </table>
                               </div>
-                            </div>
+                           </div>
                         </div>
                         {{end}}
                      </div>
@@ -1296,6 +1298,7 @@
    <div class="hp-explore-wrap homepage-page row mx-0">
       <div class="px-0 py-2">
          <section class="h-100 px-3 py-2">
+            <h5 class="explore-card__header__text__name">Staking And Voting</h5>
             {{with .Info -}}
             <div class="row mt-2">
                <div class="col-24 col-lg-14 p-2">
@@ -1303,7 +1306,7 @@
                      <a href='/ticketpool' data-turbolinks="false" class="link-to-subpage">
                         <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                            <span class="homeicon-ticket explore-card__header__logo" alt="Ticket Pool route"
-                           loading="lazy"></span>
+                              loading="lazy"></span>
                            <p class="ms-2 mb-0 fw-600 fs-17">Ticket Pool</p>
                         </div>
                      </a>
@@ -1314,7 +1317,7 @@
                                  <a class="link-hover-underline" data-turbolinks="false"
                                     href="/charts?chart=ticket-price&zoom=month">
                                     Current Ticket Price
-                              </a>
+                                 </a>
                               </span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span class="fs15-decimal d-inline-block" data-homepage-target="blocksdiff">
@@ -1336,11 +1339,11 @@
                               </span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span>~<span data-homepage-target="nextExpectedSdiff">
-                                    {{template "decimalParts" (float64AsDecimalParts .NextExpectedStakeDiff
-                                    2
-                                    false)}}
-                                 </span></span>
-                              <span class="new-info-line-2-sub">DCR</span>
+                                       {{template "decimalParts" (float64AsDecimalParts .NextExpectedStakeDiff
+                                       2
+                                       false)}}
+                                    </span></span>
+                                 <span class="new-info-line-2-sub">DCR</span>
                               </span>
                               <span class="stats-subinfo">
                                  min:&nbsp;
@@ -1360,12 +1363,12 @@
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
                                  <a class="link-hover-underline" data-turbolinks="false"
-                                 href="/charts?chart=ticket-pool-size">
-                                 Ticket Pool Size
-                              </a>
+                                    href="/charts?chart=ticket-pool-size">
+                                    Ticket Pool Size
+                                 </a>
                               </span>
                               <span class="new-network-stats-content d-inline-block" data-homepage-target="poolSize">
-                              {{intComma .PoolInfo.Size}}
+                                 {{intComma .PoolInfo.Size}}
                               </span>
                               <span class="stats-subinfo">
                                  <span data-homepage-target="targetPct">
@@ -1404,8 +1407,7 @@
                                  <div class="row justify-content-center">
                                     <div class="progress mt-1 progress-frame p-0">
                                        <div class="progress-bar rounded" data-homepage-target="posBar"
-                                          role="progressbar"
-                                          style="width: {{ticketWindowProgress .IdxBlockInWindow}}%;"
+                                          role="progressbar" style="width: {{ticketWindowProgress .IdxBlockInWindow}}%;"
                                           aria-valuenow="{{.IdxBlockInWindow}}" aria-valuemin="0"
                                           aria-valuemax="{{.Params.WindowSize}}">
                                           <span class="nowrap ps-1">block <span
@@ -1423,9 +1425,9 @@
                         <div class="col-12 col-md-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 <a data-turbolinks="false"
-                                 class="link-hover-underline" href="/charts?chart=stake-participation">Total
-                                 Staked DCR</a>
+                                 <a data-turbolinks="false" class="link-hover-underline"
+                                    href="/charts?chart=stake-participation">Total
+                                    Staked DCR</a>
                               </span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span data-homepage-target="poolValue">
@@ -1445,7 +1447,7 @@
                                  Missed Votes
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                  2
+                                 2
                               </span>
                            </div>
                         </div>
@@ -1510,42 +1512,42 @@
                         <div class="col-24">
                            <div class="br-8 b--def bgc-plain-bright pb-10">
                               <div class="btable-table-wrap maxh-none">
-                                <table class="btable-table w-100">
-                                  <thead>
-                                    <tr class="bg-none">
-                                      <th class="text-start">Address</th>
-                                      <th class="text-center">Live</th>
-                                      <th class="text-center">Voted</th>
-                                      <th class="text-center">Missed</th>
-                                      <th class="text-center">Fees</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody class="bgc-white">
-                                    {{if .VSPList}}
-                                    {{range .VSPList}}
-                                    <tr>
-                                      <td class="text-start">
-                                       <a data-turbolinks="false" href="{{.VSPLink}}">{{.VSPLink}}</a>
-                                      </td>
-                                      <td class="text-center">
-                                          {{.Voting}}
-                                      </td>
-                                      <td class="text-center">
-                                          {{.Voted}}
-                                      </td>
-                                      <td class="text-center">
-                                          {{.Missed}}
-                                      </td>
-                                      <td class="text-center">
-                                          {{.FeePercentage}}%
-                                      </td>
-                                    </tr>
-                                    {{end}}
-                                    {{end}}
-                                  </tbody>
-                                </table>
+                                 <table class="btable-table w-100">
+                                    <thead>
+                                       <tr class="bg-none">
+                                          <th class="text-start">Address</th>
+                                          <th class="text-center">Live</th>
+                                          <th class="text-center">Voted</th>
+                                          <th class="text-center">Missed</th>
+                                          <th class="text-center">Fees</th>
+                                       </tr>
+                                    </thead>
+                                    <tbody class="bgc-white">
+                                       {{if .VSPList}}
+                                       {{range .VSPList}}
+                                       <tr>
+                                          <td class="text-start">
+                                             <a data-turbolinks="false" href="{{.VSPLink}}">{{.VSPLink}}</a>
+                                          </td>
+                                          <td class="text-center">
+                                             {{.Voting}}
+                                          </td>
+                                          <td class="text-center">
+                                             {{.Voted}}
+                                          </td>
+                                          <td class="text-center">
+                                             {{.Missed}}
+                                          </td>
+                                          <td class="text-center">
+                                             {{.FeePercentage}}%
+                                          </td>
+                                       </tr>
+                                       {{end}}
+                                       {{end}}
+                                    </tbody>
+                                 </table>
                               </div>
-                            </div>
+                           </div>
                         </div>
                      </div>
                   </div>
@@ -1556,385 +1558,437 @@
       </div>
    </div>
    <div class="hp-explore-wrap homepage-page">
-      <div class="container">
-         <section>
-            <div class="hp-explore__cards-wrap mt-0">
-               <div class="hp-explore__cards-content-1">
-                  <!-- Start 24h Metrics Card -->
-                  <div class="explore-card-wrap">
-                     <div class="explore-card-content">
-                        <div class="explore-card__header bg-for-header">
-                           <span class="homeicon-candle explore-card__header__logo" alt="Ticket Pool route"
-                              loading="lazy"></span>
-                           <div class="explore-card__header__text ml-15">
-                              <h5 class="explore-card__header__text__name"> 24h Metrics </h5>
-                              <span class="explore-card__header__arrow">
-                                 <span class='the-arrow -right'>
-                                    <span class='shaft'></span>
-                                 </span>
+      <div class="container px-0 py-2">
+         <section class="h-100 px-3 py-2">
+            <h5 class="explore-card__header__text__name">24h Metrics</h5>
+            {{if .Info.Block24hInfo}}
+            {{with .Info.Block24hInfo}}
+            <div class="row mt-2">
+               <div class="col-24 col-sm-16 p-2">
+                  <div class="new-home-card-container">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Chain Summary</p>
+                     </div>
+                     <div class="row px-3 py-2">
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Mined Blocks</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{int64Comma .Blocks}}
                               </span>
-                              <div class="explore-card__header__text__price">
-                                 <div class="price-wrap d-flex ai-center">
-                                    <span class="price-usd fs-13">Some statistics from the past 24 hours</span>
-                                 </div>
-                              </div>
                            </div>
                         </div>
-                        <div class="explore-card__values-content">
-                           <div class="row">
-                              {{if .Info.Block24hInfo}}
-                              {{with .Info.Block24hInfo}}
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">
-                                       Mined Blocks
-                                    </span>
-                                    <div class="new-network-stats-content d-inline-block mt-4">
-                                       {{int64Comma .Blocks}}
-                                    </div>
-                                 </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Total Transactions</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{int64Comma .NumTx24h}}
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Total Sent</span>
+                              <div class="new-network-stats-content d-inline-block">
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Sent24h) 2
+                                 true)}}
                               </div>
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Total Transactions</span>
-                                    <span class="new-network-stats-content d-inline-block mt-4">
-                                       {{int64Comma .NumTx24h}}
-                                    </span>
-                                 </p>
-                              </div>
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Total Sent</span>
-                                    <div class="new-network-stats-content d-inline-block mt-3">
-                                       {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Sent24h) 2
-                                       true)}}
-                                    </div>
-                                    <span class="new-info-line-2-sub">DCR</span>
-                                    {{if $conv -}}
-                                    <span class="stats-subinfo">
-                                       {{threeSigFigs $conv.Sent24h.Value}}
-                                       {{$conv.Sent24h.Index}}</span>
-                                    {{end}}
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Total Fees</span>
-                                    <div class="new-network-stats-content d-inline-block mt-3">
-                                       {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Fees24h) 2
-                                       true)}}
-                                    </div>
-                                    <span class="new-info-line-2-sub">DCR</span>
-                                    {{if $conv -}}
-                                    <span class="stats-subinfo">
-                                       {{threeSigFigs $conv.Fees24h.Value}}
-                                       {{$conv.Fees24h.Index}}</span>
-                                    {{end}}
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Total Outputs</span>
-                                    <span class="new-network-stats-content d-inline-block mt-4">
-                                       {{int64Comma .NumVout24h}}
-                                    </span>
-                                 </p>
-                              </div>
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Swaps Amount</span>
-                                    <div class="new-network-stats-content d-inline-block mt-3">
-                                       {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                       .AtomicSwapAmount) 2 true)}}
-                                    </div>
-                                    <span class="new-info-line-2-sub">DCR</span>
-                                    {{if $conv -}}
-                                    <span class="stats-subinfo">
-                                       {{threeSigFigs $conv.SwapsAmount24h.Value}}
-                                       {{$conv.SwapsAmount24h.Index}}</span>
-                                    {{end}}
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Swaps Count</span>
-                                    <span class="new-network-stats-content d-inline-block mt-3">
-                                       {{int64Comma (add .SwapRedeemCount .SwapRefundCount)}}
-                                    </span>
-                                    <span class="stats-subinfo">{{int64Comma .SwapRedeemCount}} redemptions,
-                                       {{int64Comma .SwapRefundCount}} refunds</span>
-                                 </p>
-                              </div>
-                              <div class="col-24 col-md-12 col-lg-8 col-xl-6">
-                                 <p class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Bison Wallet Vol</span>
-                                    <span class="new-network-stats-content d-inline-block mt-4">
-                                       N/A
-                                    </span>
-                                 </p>
-                              </div>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              {{if $conv -}}
+                              <span class="stats-subinfo">
+                                 {{threeSigFigs $conv.Sent24h.Value}}
+                                 {{$conv.Sent24h.Index}} (today)</span>
                               {{end}}
-                              {{end}}
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Total Fees</span>
+                           <div class="new-network-stats-content d-inline-block">
+                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Fees24h) 2
+                              true)}}
+                           </div>
+                           <span class="new-info-line-2-sub">DCR</span>
+                           {{if $conv -}}
+                           <span class="stats-subinfo">
+                              {{threeSigFigs $conv.Fees24h.Value}}
+                              {{$conv.Fees24h.Index}} (today)</span>
+                           {{end}}
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Total Outputs</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{int64Comma .NumVout24h}}
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Active Addresses</span>
+                           <div class="new-network-stats-content d-inline-block pt-1">
+                              345
+                           </div>
+                        </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Total PoW Reward</span>
+                           <div class="new-network-stats-content d-inline-block">
+                              25
+                           </div>
+                           <span class="new-info-line-2-sub">DCR</span>
+                           <span class="stats-subinfo">
+                              ~ $250 USD
+                           </span>
+                        </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">DCR Supply</span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 269
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              <span class="stats-subinfo">
+                                 ~ $2,800 USD
+                              </span>
                            </div>
                         </div>
                      </div>
                   </div>
-                  <!-- End Metrics 24h Card -->
+               </div>
+               <div class="col-24 col-sm-8 p-2">
+                  <div class="new-home-card-container">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Staking</p>
+                     </div>
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Staked DCR</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 2,550
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              <span class="stats-subinfo">
+                                 ~ 2 tickets
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">PoS Rewards</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 25
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              <span class="stats-subinfo">
+                                 ~ $250 USD (today)
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Voted</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 125
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              <span class="stats-subinfo">
+                                 ~ $1370 USD rewards
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Missed</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 125 votes
+                              </span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="new-home-card-container mt-3">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Atomic Swaps</p>
+                     </div>
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Swaps Amount</span>
+                           <div class="new-network-stats-content d-inline-block pt-1">
+                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                              .AtomicSwapAmount) 2 true)}}
+                           </div>
+                           <span class="new-info-line-2-sub">DCR</span>
+                           {{if $conv -}}
+                           <span class="stats-subinfo">
+                              {{threeSigFigs $conv.SwapsAmount24h.Value}}
+                              {{$conv.SwapsAmount24h.Index}}</span>
+                           {{end}}
+                           </div>
+                        </div>
+                        <div class="col-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Swaps Tx Count</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 {{int64Comma (add .SwapRedeemCount .SwapRefundCount)}}
+                              </span>
+                              <span class="stats-subinfo">{{int64Comma .SwapRedeemCount}} redemptions,
+                                 {{int64Comma .SwapRefundCount}} refunds</span>
+                           </div>
+                        </div>
+                        <div class="col-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Bison Wallet Vol</span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 N/A
+                              </span>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
                </div>
             </div>
+            {{end}}
+            {{end}}
          </section>
       </div>
    </div>
    <div class="hp-explore-wrap homepage-page">
-      <div class="container">
-         <section>
-            <div class="hp-explore__cards-wrap mt-0">
-               <div class="hp-explore__cards-content-1">
-                  <!-- Start Chain Charts Card -->
-                  <div class="explore-card-wrap">
-                     <div class="explore-card-content">
-                        <a href="/charts" data-turbolinks="false" class="link-to-subpage">
-                           <div class="row">
-                              <div class="col-md-8 col-lg-7 col-xl-5">
-                                 <div class="row">
-                                    <div class="explore-card__header ps-4">
-                                       <span class="homeicon-chart explore-card__header__logo" alt="Charts route"
-                                          loading="lazy"></span>
-                                       <div class="explore-card__header__text ml-15">
-                                          <h5 class="explore-card__header__text__name"> Chain Charts </h5>
-                                       </div>
-                                    </div>
+      <div class="container px-0 py-2">
+         <section class="h-100 px-3 py-2">
+            <div class="row mt-2">
+               <div class="col-24 col-sm-16 p-2">
+                  <div class="new-home-card-container">
+                     <a href="/charts" data-turbolinks="false" class="link-to-subpage">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Chain Charts</p>
+                     </div>
+                    </a>
+                     <div class="px-3 py-2">
+                        <div class="row">
+                           <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center">
+                              <div class="chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
+                                 <div class="chart-control-label">CHART</div>
+                                 <div class="chart-control">
+                                    <select id="selectBox" class="form-control chart-form-control"
+                                       data-charts-target="chartSelect" data-action="charts#selectChart">
+                                       <optgroup label="Staking">
+                                          <option value="ticket-price">Ticket Price</option>
+                                          <option value="ticket-pool-size">Ticket Pool Size</option>
+                                          <option value="ticket-pool-value">Ticket Pool Value</option>
+                                          <option value="stake-participation">Stake Participation</option>
+                                          <option value="privacy-participation">Privacy Participation</option>
+                                          <option value="missed-votes">Missed Votes</option>
+                                       </optgroup>
+                                       <optgroup label="Chain">
+                                          <option value="block-size">Block Size</option>
+                                          <option value="blockchain-size">Blockchain Size</option>
+                                          <option value="tx-count">Transaction Count</option>
+                                          <option value="duration-btw-blocks">Duration Between Blocks</option>
+                                       </optgroup>
+                                       <optgroup label="Mining">
+                                          <option value="pow-difficulty">PoW Difficulty</option>
+                                          <option value="chainwork">Total Work</option>
+                                          <option value="hashrate">Hashrate</option>
+                                       </optgroup>
+                                       <optgroup label="Distribution">
+                                          <option value="coin-supply">Coin Supply</option>
+                                          <option value="fees">Fees</option>
+                                       </optgroup>
+                                    </select>
                                  </div>
                               </div>
-                              <div class="col-md-3 col-lg-3 col-xl-4"></div>
-                              <div class="col-md-10 col-lg-11 col-xl-11 ta-center chart-title-name pt-15">
-                                 <span class="fs-22 fw-600" data-charts-target="chartTitleName"></span>
+                              <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                 data-charts-target="rangeSelector">
+                                 <div class="chart-control-label">Blake3 Milestone</div>
+                                 <div class="chart-control chart-filter-selection ps-2">
+                                    <ul class="nav nav-pills">
+                                       <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                          data-action="click->charts#setRange" data-option="all">
+                                          All
+                                       </li>
+                                       <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                          data-action="click->charts#setRange" data-option="before">
+                                          Before
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="rangeOption"
+                                          data-action="click->charts#setRange" data-option="after">
+                                          After
+                                       </li>
+                                    </ul>
+                                 </div>
                               </div>
-                              <div class="col-md-3 col-lg-3 col-xl-4 ta-right p-relative">
-                                 <span class="explore-card__header__arrow">
-                                    <span class='the-arrow -right'>
-                                       <span class='shaft'></span>
-                                    </span>
-                                 </span>
+                              <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                 data-charts-target="zoomSelector">
+                                 <div class="chart-control-label">ZOOM</div>
+                                 <div class="chart-control chart-filter-selection ps-2">
+                                    <ul class="nav nav-pills">
+                                       <li class="nav-item nav-link active" data-charts-target="zoomOption"
+                                          data-action="click->charts#setZoom" data-option="all">
+                                          All
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                          data-action="click->charts#setZoom" data-option="year">
+                                          Year
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                          data-action="click->charts#setZoom" data-option="month">
+                                          Month
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                          data-action="click->charts#setZoom" data-option="week">
+                                          Week
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                          data-action="click->charts#setZoom" data-option="day">
+                                          Day
+                                       </li>
+                                    </ul>
+                                 </div>
+                              </div>
+                              <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                 data-charts-target="binSelector">
+                                 <div class="chart-control-label">BIN</div>
+                                 <div class="chart-control chart-filter-selection ps-2">
+                                    <ul class="nav nav-pills">
+                                       <li class="nav-item nav-link active" data-charts-target="binSize"
+                                          data-action="click->charts#setBin" data-option="day">
+                                          Day
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="binSize"
+                                          data-action="click->charts#setBin" data-option="block">
+                                          Blocks
+                                       </li>
+                                    </ul>
+                                 </div>
+                              </div>
+                              <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                 data-charts-target="scaleSelector">
+                                 <div class="chart-control-label">SCALE</div>
+                                 <div class="chart-control chart-filter-selection ps-2">
+                                    <ul class="nav nav-pills">
+                                       <li class="nav-item nav-link active" data-charts-target="scaleType"
+                                          data-action="click->charts#setScale" data-option="linear">
+                                          Linear
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="scaleType"
+                                          data-action="click->charts#setScale" data-option="log">
+                                          Log
+                                       </li>
+                                    </ul>
+                                 </div>
+                              </div>
+                              <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                 data-charts-target="vSelector">
+                                 <div class="chart-control-label">VISIBILITY</div>
+                                 <div class="chart-control chart-filter-selection ps-2">
+                                    <ul class="nav nav-pills">
+                                       <li class="nav-item" data-charts-target="vSelectorItem"
+                                          data-charts="ticket-price">
+                                          <label class="customcheck ms-2 d-inline-flex">Price
+                                             <input type="checkbox" checked="checked"
+                                                data-action="click->charts#setVisibility"
+                                                data-charts-target="ticketsPrice">
+                                             <span class="checkmark tickets-price"></span>
+                                          </label>
+                                       </li>
+                                       <li class="nav-item" data-charts-target="vSelectorItem"
+                                          data-charts="ticket-price">
+                                          <label class="customcheck mx-2 d-inline-flex">Tickets Bought
+                                             <input type="checkbox" data-action="click->charts#setVisibility"
+                                                data-charts-target="ticketsPurchase">
+                                             <span class="checkmark tickets-bought"></span>
+                                          </label>
+                                       </li>
+                                       <li class="nav-item">
+                                          <label class="customcheck mx-2 d-inline-flex"
+                                             data-charts-target="vSelectorItem" data-charts="coin-supply">Mixed
+                                             Coins
+                                             <input type="checkbox" data-action="click->charts#setVisibility"
+                                                data-charts-target="anonymitySet">
+                                             <span class="checkmark total-mixed"></span>
+                                          </label>
+                                       </li>
+                                    </ul>
+                                 </div>
+                              </div>
+                              <div class="chart-control-wrapper chart-filter-tools mb-1"
+                                 data-charts-target="modeSelector">
+                                 <div class="chart-control-label">MODE</div>
+                                 <div class="chart-control chart-filter-selection ps-2">
+                                    <ul class="nav nav-pills">
+                                       <li class="nav-item nav-link active" data-charts-target="modeOption"
+                                          data-action="click->charts#setMode" data-option="smooth">
+                                          Smooth
+                                       </li>
+                                       <li class="nav-item nav-link" data-charts-target="modeOption"
+                                          data-action="click->charts#setMode" data-option="stepped">
+                                          Stepped
+                                       </li>
+                                    </ul>
+                                 </div>
                               </div>
                            </div>
-                        </a>
-                        <div class="explore-card__values-content market-chart-content">
-                           <section class="p-2">
-                              <div class="row">
-                                 <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center">
-                                    <div class="chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
-                                       <div class="chart-control-label">CHART</div>
-                                       <div class="chart-control">
-                                          <select id="selectBox" class="form-control chart-form-control"
-                                             data-charts-target="chartSelect" data-action="charts#selectChart">
-                                             <optgroup label="Staking">
-                                                <option value="ticket-price">Ticket Price</option>
-                                                <option value="ticket-pool-size">Ticket Pool Size</option>
-                                                <option value="ticket-pool-value">Ticket Pool Value</option>
-                                                <option value="stake-participation">Stake Participation</option>
-                                                <option value="privacy-participation">Privacy Participation</option>
-                                                <option value="missed-votes">Missed Votes</option>
-                                             </optgroup>
-                                             <optgroup label="Chain">
-                                                <option value="block-size">Block Size</option>
-                                                <option value="blockchain-size">Blockchain Size</option>
-                                                <option value="tx-count">Transaction Count</option>
-                                                <option value="duration-btw-blocks">Duration Between Blocks</option>
-                                             </optgroup>
-                                             <optgroup label="Mining">
-                                                <option value="pow-difficulty">PoW Difficulty</option>
-                                                <option value="chainwork">Total Work</option>
-                                                <option value="hashrate">Hashrate</option>
-                                             </optgroup>
-                                             <optgroup label="Distribution">
-                                                <option value="coin-supply">Coin Supply</option>
-                                                <option value="fees">Fees</option>
-                                             </optgroup>
-                                          </select>
-                                       </div>
-                                    </div>
-                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                       data-charts-target="rangeSelector">
-                                       <div class="chart-control-label">Blake3 Milestone</div>
-                                       <div class="chart-control chart-filter-selection ps-2">
-                                          <ul class="nav nav-pills">
-                                             <li class="nav-item nav-link active" data-charts-target="rangeOption"
-                                                data-action="click->charts#setRange" data-option="all">
-                                                All
-                                             </li>
-                                             <li class="nav-item nav-link active" data-charts-target="rangeOption"
-                                                data-action="click->charts#setRange" data-option="before">
-                                                Before
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="rangeOption"
-                                                data-action="click->charts#setRange" data-option="after">
-                                                After
-                                             </li>
-                                          </ul>
-                                       </div>
-                                    </div>
-                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                       data-charts-target="zoomSelector">
-                                       <div class="chart-control-label">ZOOM</div>
-                                       <div class="chart-control chart-filter-selection ps-2">
-                                          <ul class="nav nav-pills">
-                                             <li class="nav-item nav-link active" data-charts-target="zoomOption"
-                                                data-action="click->charts#setZoom" data-option="all">
-                                                All
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                                data-action="click->charts#setZoom" data-option="year">
-                                                Year
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                                data-action="click->charts#setZoom" data-option="month">
-                                                Month
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                                data-action="click->charts#setZoom" data-option="week">
-                                                Week
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                                data-action="click->charts#setZoom" data-option="day">
-                                                Day
-                                             </li>
-                                          </ul>
-                                       </div>
-                                    </div>
-                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                       data-charts-target="binSelector">
-                                       <div class="chart-control-label">BIN</div>
-                                       <div class="chart-control chart-filter-selection ps-2">
-                                          <ul class="nav nav-pills">
-                                             <li class="nav-item nav-link active" data-charts-target="binSize"
-                                                data-action="click->charts#setBin" data-option="day">
-                                                Day
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="binSize"
-                                                data-action="click->charts#setBin" data-option="block">
-                                                Blocks
-                                             </li>
-                                          </ul>
-                                       </div>
-                                    </div>
-                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                       data-charts-target="scaleSelector">
-                                       <div class="chart-control-label">SCALE</div>
-                                       <div class="chart-control chart-filter-selection ps-2">
-                                          <ul class="nav nav-pills">
-                                             <li class="nav-item nav-link active" data-charts-target="scaleType"
-                                                data-action="click->charts#setScale" data-option="linear">
-                                                Linear
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="scaleType"
-                                                data-action="click->charts#setScale" data-option="log">
-                                                Log
-                                             </li>
-                                          </ul>
-                                       </div>
-                                    </div>
-                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                       data-charts-target="vSelector">
-                                       <div class="chart-control-label">VISIBILITY</div>
-                                       <div class="chart-control chart-filter-selection ps-2">
-                                          <ul class="nav nav-pills">
-                                             <li class="nav-item" data-charts-target="vSelectorItem"
-                                                data-charts="ticket-price">
-                                                <label class="customcheck ms-2 d-inline-flex">Price
-                                                   <input type="checkbox" checked="checked"
-                                                      data-action="click->charts#setVisibility"
-                                                      data-charts-target="ticketsPrice">
-                                                   <span class="checkmark tickets-price"></span>
-                                                </label>
-                                             </li>
-                                             <li class="nav-item" data-charts-target="vSelectorItem"
-                                                data-charts="ticket-price">
-                                                <label class="customcheck mx-2 d-inline-flex">Tickets Bought
-                                                   <input type="checkbox" data-action="click->charts#setVisibility"
-                                                      data-charts-target="ticketsPurchase">
-                                                   <span class="checkmark tickets-bought"></span>
-                                                </label>
-                                             </li>
-                                             <li class="nav-item">
-                                                <label class="customcheck mx-2 d-inline-flex"
-                                                   data-charts-target="vSelectorItem" data-charts="coin-supply">Mixed
-                                                   Coins
-                                                   <input type="checkbox" data-action="click->charts#setVisibility"
-                                                      data-charts-target="anonymitySet">
-                                                   <span class="checkmark total-mixed"></span>
-                                                </label>
-                                             </li>
-                                          </ul>
-                                       </div>
-                                    </div>
-                                    <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                       data-charts-target="modeSelector">
-                                       <div class="chart-control-label">MODE</div>
-                                       <div class="chart-control chart-filter-selection ps-2">
-                                          <ul class="nav nav-pills">
-                                             <li class="nav-item nav-link active" data-charts-target="modeOption"
-                                                data-action="click->charts#setMode" data-option="smooth">
-                                                Smooth
-                                             </li>
-                                             <li class="nav-item nav-link" data-charts-target="modeOption"
-                                                data-action="click->charts#setMode" data-option="stepped">
-                                                Stepped
-                                             </li>
-                                          </ul>
-                                       </div>
+                           <div
+                              class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-19 border-1-grey home-chart-wrapper pe-0"
+                              data-charts-target="chartWrapper">
+                              <div class="d-flex w-100 position-relative">
+                                 <div class="chart-name-label d-flex align-items-center">
+                                    <div class="homeicon-chartbar fs-20"></div>
+                                    <span class="chart-name-content" data-charts-target="chartName"></span>
+                                 </div>
+                                 <div class="chartview" data-charts-target="chartsView">
+                                 </div>
+                              </div>
+                              <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
+                                 <div class="row">
+                                    <div class="col-4 column-center chart-control chart-control-wrapper">
+                                       <ul class="nav nav-pills">
+                                          <li class="nav-item nav-link active" data-charts-target="axisOption"
+                                             data-action="click->charts#setAxis" data-option="time">
+                                             Time
+                                          </li>
+                                          <li class="nav-item nav-link" data-charts-target="axisOption"
+                                             data-action="click->charts#setAxis" data-option="height">
+                                             Blocks
+                                          </li>
+                                       </ul>
                                     </div>
                                  </div>
-                                 <div
-                                    class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-19 border-1-grey home-chart-wrapper pe-0"
-                                    data-charts-target="chartWrapper">
-                                    <div class="d-flex w-100 position-relative">
-                                       <div class="chart-name-label d-flex align-items-center">
-                                          <div class="homeicon-chartbar fs-20"></div>
-                                          <span class="chart-name-content" data-charts-target="chartName"></span>
-                                       </div>
-                                       <div class="chartview" data-charts-target="chartsView">
-                                       </div>
+                              </div>
+                              <span class="d-none" data-charts-target="rawDataURL"></span>
+                              <div class="spinner-wrapper">
+                                 <div class="spinner-centerer d-flex align-items-center justify-content-center">
+                                    <div class="spinner">
+                                       <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
                                     </div>
-                                    <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
-                                       <div class="row">
-                                          <div class="col-4 column-center chart-control chart-control-wrapper">
-                                             <ul class="nav nav-pills">
-                                                <li class="nav-item nav-link active" data-charts-target="axisOption"
-                                                   data-action="click->charts#setAxis" data-option="time">
-                                                   Time
-                                                </li>
-                                                <li class="nav-item nav-link" data-charts-target="axisOption"
-                                                   data-action="click->charts#setAxis" data-option="height">
-                                                   Blocks
-                                                </li>
-                                             </ul>
-                                          </div>
-                                       </div>
-                                    </div>
-                                    <span class="d-none" data-charts-target="rawDataURL"></span>
-                                    <div class="spinner-wrapper">
-                                       <div class="spinner-centerer d-flex align-items-center justify-content-center">
-                                          <div class="spinner">
-                                             <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-                                          </div>
-                                       </div>
-                                    </div>
-                                    <div class="d-flex justify-content-center legend-wrapper">
-                                       <div class="legend d-flex align-items-center" data-charts-target="labels">
-                                          <div class="pe-3" data-charts-target="legendEntry">
-                                             <div class="dygraph-legend-line" data-charts-target="legendMarker">
-                                             </div>
-                                          </div>
+                                 </div>
+                              </div>
+                              <div class="d-flex justify-content-center legend-wrapper">
+                                 <div class="legend d-flex align-items-center" data-charts-target="labels">
+                                    <div class="pe-3" data-charts-target="legendEntry">
+                                       <div class="dygraph-legend-line" data-charts-target="legendMarker">
                                        </div>
                                     </div>
                                  </div>
                               </div>
-                              <section>
+                           </div>
                         </div>
                      </div>
                   </div>
-                  <!-- End Chain Charts Card -->
                </div>
             </div>
          </section>
@@ -1948,7 +2002,6 @@
    <img src="/images/blockchain-icon.svg" class="thumb" data-index="3">
    <img src="/images/blockchain-icon.svg" class="thumb" data-index="4">
    <img src="/images/blockchain-icon.svg" class="thumb" data-index="5">
-   <img src="/images/blockchain-icon.svg" class="thumb" data-index="6">
 </div>
 {{ template "footer" . }}
 </body>

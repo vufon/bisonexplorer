@@ -475,6 +475,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 				BlockTime:        exp.ChainParams.TargetTimePerBlock.Nanoseconds(),
 				MeanVotingBlocks: exp.MeanVotingBlocks,
 			},
+			TreasuryBalance: &dbtypes.TreasuryBalance{},
 			PoolInfo: types.TicketPoolInfo{
 				Target: uint32(exp.ChainParams.TicketPoolSize) * uint32(exp.ChainParams.TicketsPerBlock),
 			},
