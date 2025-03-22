@@ -206,7 +206,7 @@
   padding: 0;
   color: #3f3f3f;
   border: 1px solid #cfe2f1;
-  height: 100px;
+  min-height: 110px;
   border-radius: 4px;
   margin: 0.5em 0;
   text-align: center;
@@ -861,7 +861,7 @@
 
 .hp-explore-wrap.homepage-page {
   margin-top: 0;
-  padding-bottom: 0px;
+  padding-bottom: 0;
 }
 
 .decred-sub-page {

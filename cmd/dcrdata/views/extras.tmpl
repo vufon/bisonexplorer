@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.d4ea14abf5f28175.css" rel="stylesheet">
+	<link href="/dist/css/style.d7baade771da96f4.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -365,9 +365,9 @@ data-menu-homepage="{{.IsHomepage}}">
 					<span class="patty d-none"></span>
 					<span class="patty d-none"></span>
 					<span class="patty short d-none"></span>
-					<div id="menu" class="row justify-content-end ai-center">
+					<div id="menu" class="d-flex justify-content-end ai-center">
 					   {{if .Conversions}}
-					   <p class="col-10">1 DCR = <span class="fs-18 fw-bold">$<span data-homepage-target="exchangeRate">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
+					   <p class="me-2 d-none d-md-flex ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold">$<span data-homepage-target="exchangeRate">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
 					   {{end}}
 					   <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
 						  <input type="hidden" name="darkmode" value="darkmode">
@@ -606,7 +606,7 @@ data-menu-homepage="{{.IsHomepage}}">
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.0320553c60c57955.bundle.js"
+	src="/dist/js/app.76e3a4470f45d04e.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

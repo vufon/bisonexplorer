@@ -800,8 +800,9 @@
                               <span class="new-network-stats-title">Total Size</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
-                                    6KB
+                                    6
                                  </span>
+                                 <span class="new-info-line-2-sub">kB</span>
                               </span>
                            </p>
                         </div>
@@ -810,8 +811,9 @@
                               <span class="new-network-stats-title">Fees Range</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
-                                    1 ~ 2.5 atoms/vB
+                                    1 ~ 2.5
                                  </span>
+                                 <span class="new-info-line-2-sub">atoms/vB</span>
                               </span>
                            </p>
                         </div>
@@ -1315,7 +1317,7 @@
                               </a>
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span class="fs15-decimal d-inline-block mt-3" data-homepage-target="blocksdiff">
+                                 <span class="fs15-decimal d-inline-block" data-homepage-target="blocksdiff">
                                     {{template "decimalParts" (float64AsDecimalParts .StakeDiff 8 false 2)}}
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
@@ -1378,7 +1380,7 @@
                               <span class="new-network-stats-title">
                                  Vote Reward
                               </span>
-                              <span class="new-network-stats-content d-inline-block">
+                              <span class="new-network-stats-content d-inline-block mt-0">
                                  <span data-homepage-target="bsubsidyPos" class="fs15-decimal">
                                     {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (divide
                                     .NBlockSubsidy.PoS 5)) 8 true 2)}}
