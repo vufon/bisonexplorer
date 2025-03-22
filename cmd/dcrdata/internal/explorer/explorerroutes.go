@@ -221,26 +221,10 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 			ExpStatusError)
 		return
 	}
-
-	blocks := exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
-	var bestBlock *types.BlockBasic
-	if blocks == nil {
-		bestBlock = new(types.BlockBasic)
-	} else {
-		bestBlock = blocks[0]
-	}
-
+	bestBlock := exp.dataSource.GetExplorerBlockBasic(int(height))
 	// Safely retrieve the current inventory pointer.
 	inv := exp.MempoolInventory()
 	mempoolInfo := inv.Trim()
-	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
-	inv.RLock()
-	exp.pageData.RLock()
-	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
-	//get ticket pool size
-	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
-	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
-
 	//get vote statuses of proposals
 	votesStatus := map[string]string{
 		strconv.Itoa(int(ticketvotev1.VoteStatusUnauthorized)): "Unauthorized",
@@ -251,15 +235,20 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		strconv.Itoa(int(ticketvotev1.VoteStatusRejected)):     "Rejected",
 		strconv.Itoa(int(ticketvotev1.VoteStatusIneligible)):   "Ineligible",
 	}
-
 	var proposalCountMap = exp.proposals.CountProposals(votesStatus)
 	var proposalCountJsonStr = ""
 	var voteStatusJsonStr = ""
-
 	proposalCountJson, err := json.Marshal(proposalCountMap)
 	if err == nil {
 		proposalCountJsonStr = string(proposalCountJson)
 	}
+	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
+	inv.RLock()
+	exp.pageData.RLock()
+	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
+	//get ticket pool size
+	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
+	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
 	voteStatusJson, err := json.Marshal(votesStatus)
 	if err == nil {
 		voteStatusJsonStr = string(voteStatusJson)
@@ -283,7 +272,6 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Fees24h).ToCoin())
 		}
 	}
-
 	exp.pageData.RUnlock()
 	inv.RUnlock()
 
@@ -297,7 +285,6 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-
 	str, err := exp.templates.exec("decred_home", struct {
 		*CommonPageData
 		Info             *types.HomeInfo
@@ -306,7 +293,6 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		BestBlock        *types.BlockBasic
 		BlockTally       []int
 		Consensus        int
-		Blocks           []*types.BlockBasic
 		Conversions      *homeConversions
 		PercentChange    float64
 		Premine          int64
@@ -324,7 +310,6 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		BestBlock:        bestBlock,
 		BlockTally:       tallys,
 		Consensus:        consensus,
-		Blocks:           blocks,
 		Conversions:      conversions,
 		PercentChange:    homeInfo.PoolInfo.PercentTarget - 100,
 		Premine:          exp.premine,
@@ -355,15 +340,7 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 			ExpStatusError)
 		return
 	}
-
-	blocks := exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
-	var bestBlock *types.BlockBasic
-	if blocks == nil {
-		bestBlock = new(types.BlockBasic)
-	} else {
-		bestBlock = blocks[0]
-	}
-
+	bestBlock := exp.dataSource.GetExplorerBlockBasic(int(height))
 	// Safely retrieve the current inventory pointer.
 	inv := exp.MempoolInventory()
 	mempoolInfo := inv.Trim()
@@ -441,7 +418,6 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 		BestBlock        *types.BlockBasic
 		BlockTally       []int
 		Consensus        int
-		Blocks           []*types.BlockBasic
 		Conversions      *homeConversions
 		PercentChange    float64
 		Premine          int64
@@ -459,7 +435,6 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 		BestBlock:        bestBlock,
 		BlockTally:       tallys,
 		Consensus:        consensus,
-		Blocks:           blocks,
 		Conversions:      conversions,
 		PercentChange:    homeInfo.PoolInfo.PercentTarget - 100,
 		Premine:          exp.premine,

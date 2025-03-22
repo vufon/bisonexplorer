@@ -184,6 +184,7 @@ type explorerDataSource interface {
 	GetMutilchainVoutIndexsOfContract(contractTx, chainType string) ([]int, error)
 	GetMutilchainVinIndexsOfRedeem(spendTx, chainType string) ([]int, error)
 	GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error)
+	GetExplorerBlockBasic(height int) *types.BlockBasic
 }
 
 type PoliteiaBackend interface {
@@ -671,6 +672,23 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		treasuryBalance = &dbtypes.TreasuryBalance{}
 	}
 
+	totalSize := exp.dataSource.GetDecredBlockchainSize()
+	totalTransactions := exp.dataSource.GetDecredTotalTransactions()
+	posSubsPerVote := dcrutil.Amount(blockData.ExtraInfo.NextBlockSubsidy.PoS).ToCoin() /
+		float64(exp.ChainParams.TicketsPerBlock)
+	// get peer count
+	peerCount, _ := exp.dataSource.GetPeerCount()
+	// Get additional blockchain info
+	totalAddresses, totalOutputs, _ := exp.dataSource.GetBlockchainSummaryInfo()
+	// Get atomic swaps summary info
+	swapsTotalContract, swapsTotalAmount, _ := exp.dataSource.GetAtomicSwapSummary()
+	// Get atomic swaps refund contract count
+	refundCount, _ := exp.dataSource.CountRefundContract()
+	// Get last 5 pool info
+	poolResult, err := exp.dataSource.GetLast5PoolDataList()
+	if err != nil {
+		log.Errorf("PoolAPI: Get Pool info from Pool API failed: %v", err)
+	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.pageData
 	p.Lock()
@@ -678,7 +696,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	// Store current block and blockchain data.
 	p.BlockInfo = newBlockData
 	p.BlockchainInfo = blockData.BlockchainInfo
-
+	p.HomeInfo.PeerCount = int64(peerCount)
 	// Update HomeInfo.
 	p.HomeInfo.HashRate = hashrate
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
@@ -697,10 +715,15 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.NBlockSubsidy.PoS = blockData.ExtraInfo.NextBlockSubsidy.PoS
 	p.HomeInfo.NBlockSubsidy.PoW = blockData.ExtraInfo.NextBlockSubsidy.PoW
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockSubsidy.Total
-	p.HomeInfo.TotalSize = exp.dataSource.GetDecredBlockchainSize()
-	p.HomeInfo.TotalTransactions = exp.dataSource.GetDecredTotalTransactions()
+	p.HomeInfo.TotalSize = totalSize
+	p.HomeInfo.TotalTransactions = totalTransactions
 	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(p.HomeInfo.TotalSize))
-
+	p.HomeInfo.TotalAddresses = totalAddresses
+	p.HomeInfo.TotalOutputs = totalOutputs
+	p.HomeInfo.SwapsTotalContract = swapsTotalContract
+	p.HomeInfo.SwapsTotalAmount = swapsTotalAmount
+	p.HomeInfo.RefundCount = refundCount
+	p.HomeInfo.PoolDataList = poolResult
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {
@@ -715,28 +738,8 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		}
 	}
 
-	posSubsPerVote := dcrutil.Amount(blockData.ExtraInfo.NextBlockSubsidy.PoS).ToCoin() /
-		float64(exp.ChainParams.TicketsPerBlock)
 	p.HomeInfo.TicketReward = 100 * posSubsPerVote /
 		blockData.CurrentStakeDiff.CurrentStakeDifficulty
-	// get peer count
-	peerCount, err := exp.dataSource.GetPeerCount()
-	if err == nil {
-		p.HomeInfo.PeerCount = int64(peerCount)
-	}
-	// Get additional blockchain info
-	p.HomeInfo.TotalAddresses, p.HomeInfo.TotalOutputs, _ = exp.dataSource.GetBlockchainSummaryInfo()
-	// Get atomic swaps summary info
-	p.HomeInfo.SwapsTotalContract, p.HomeInfo.SwapsTotalAmount, _ = exp.dataSource.GetAtomicSwapSummary()
-	// Get atomic swaps refund contract count
-	p.HomeInfo.RefundCount, _ = exp.dataSource.CountRefundContract()
-	// Get last 5 pool info
-	poolResult, err := exp.dataSource.GetLast5PoolDataList()
-	if err != nil {
-		log.Errorf("PoolAPI: Get Pool info from Pool API failed: %v", err)
-	} else {
-		p.HomeInfo.PoolDataList = poolResult
-	}
 	// The actual reward of a ticket needs to also take into consideration the
 	// ticket maturity (time from ticket purchase until its eligible to vote)
 	// and coinbase maturity (time after vote until funds distributed to ticket

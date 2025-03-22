@@ -9421,6 +9421,16 @@ func (pgb *ChainDB) GetExplorerBlocks(start int, end int) []*exptypes.BlockBasic
 	return summaries
 }
 
+// GetExplorerBlockBasic return block basic information by height
+func (pgb *ChainDB) GetExplorerBlockBasic(height int) *exptypes.BlockBasic {
+	data := pgb.GetBlockVerbose(height, true)
+	block := new(exptypes.BlockBasic)
+	if data != nil {
+		block = makeExplorerBlockBasic(data, pgb.chainParams)
+	}
+	return block
+}
+
 // txWithTicketPrice is a way to perform getrawtransaction and if the
 // transaction is unconfirmed, getstakedifficulty, while the chain server's best
 // block remains unchanged. If the transaction is confirmed, the ticket price is
