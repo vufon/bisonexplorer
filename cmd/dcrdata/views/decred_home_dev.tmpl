@@ -1291,168 +1291,265 @@
       <h4 class="py-5 text-center">Exchange monitoring disabled</h4>
       {{- end -}}
    </div>
-   <div class="hp-explore-wrap homepage-page">
-      <div class="container">
-         <section>
-            <div class="hp-explore__cards-wrap mt-0">
-               <div class="hp-explore__cards-content-1">
-                  <!-- Start Ticket Pool Card -->
-                  <div class="explore-card-wrap">
-                     <div class="explore-card-content">
-                        <a href='/ticketpool' data-turbolinks="false" class="link-to-subpage">
-                           <div class="explore-card__header">
-                              <span class="homeicon-ticket explore-card__header__logo" alt="Ticket Pool route"
-                                 loading="lazy"></span>
-                              <div class="explore-card__header__text ml-15">
-                                 <h5 class="explore-card__header__text__name"> Ticket Pool </h5>
-                                 <span class="explore-card__header__arrow">
-                                    <span class='the-arrow -right'>
-                                       <span class='shaft'></span>
-                                    </span>
+   <div class="hp-explore-wrap homepage-page row mx-0">
+      <div class="px-0 py-2">
+         <section class="h-100 px-3 py-2">
+            {{with .Info -}}
+            <div class="row mt-2">
+               <div class="col-24 col-lg-14 p-2">
+                  <div class="new-home-card-container">
+                     <a href='/ticketpool' data-turbolinks="false" class="link-to-subpage">
+                        <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                           <span class="homeicon-ticket explore-card__header__logo" alt="Ticket Pool route"
+                           loading="lazy"></span>
+                           <p class="ms-2 mb-0 fw-600 fs-17">Ticket Pool</p>
+                        </div>
+                     </a>
+                     <div class="row px-3 py-2">
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/charts?chart=ticket-price&zoom=month">
+                                    Current Ticket Price
+                              </a>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span class="fs15-decimal d-inline-block mt-3" data-homepage-target="blocksdiff">
+                                    {{template "decimalParts" (float64AsDecimalParts .StakeDiff 8 false 2)}}
                                  </span>
-                                 <div class="explore-card__header__text__price">
-                                    <div class="price-wrap d-flex ai-center">
-                                       <span class="price-usd fs-13">Information about tickets and rewards</span>
-                                    </div>
-                                 </div>
-                              </div>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              {{if $conv -}}
+                              <span class="stats-subinfo"
+                                 data-homepage-target="convertedStake">{{$conv.StakeDiff.TwoDecimals}}
+                                 {{$conv.StakeDiff.Index}}</span>
+                              {{- end}}
                            </div>
-                        </a>
-                        <div class="explore-card__values-content">
-                           {{with .Info -}}
-                           <div class="row justify-content-between">
-                              <div class="col-24 col-md-8">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">
-                                       <a class="link-hover-underline" data-turbolinks="false"
-                                          href="/charts?chart=ticket-price&zoom=month">
-                                          Current Ticket Price
-                                       </a>
-                                    </span>
-                                    <span class="new-network-stats-content">
-                                       <span class="fs15-decimal d-inline-block mt-3" data-homepage-target="blocksdiff">
-                                          {{template "decimalParts" (float64AsDecimalParts .StakeDiff 8 false 2)}}
-                                       </span>
-                                       <span class="new-info-line-2-sub">DCR</span>
-                                    </span>
-                                    {{if $conv -}}
-                                    <span class="stats-subinfo"
-                                       data-homepage-target="convertedStake">{{$conv.StakeDiff.TwoDecimals}}
-                                       {{$conv.StakeDiff.Index}}</span>
-                                    {{- end}}
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-8">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Next Ticket Price</span>
-                                    <span class="new-network-stats-content d-inline-block mt-3">
-                                       <span>~<span data-homepage-target="nextExpectedSdiff">
-                                             {{template "decimalParts" (float64AsDecimalParts .NextExpectedStakeDiff
-                                             2
-                                             false)}}
-                                          </span></span>
-                                       <span class="new-info-line-2-sub">DCR</span>
-                                    </span>
-                                    <span class="stats-subinfo">
-                                       min:&nbsp;
-                                       <span data-homepage-target="nextExpectedMin">
-                                          {{template "decimalParts" (float64AsDecimalParts .NextExpectedBoundsMin 2
-                                          false)}}
-                                       </span>
-                                       &nbsp;&mdash;&nbsp;max:&nbsp;
-                                       <span data-homepage-target="nextExpectedMax">
-                                          {{template "decimalParts" (float64AsDecimalParts .NextExpectedBoundsMax 2
-                                          false)}}
-                                       </span>
-                                    </span>
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-8">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">
-                                       <a class="link-hover-underline" data-turbolinks="false"
-                                          href="/charts?chart=ticket-pool-size">
-                                          Ticket Pool Size
-                                       </a>
-                                    </span>
-                                    <span class="new-network-stats-content d-inline-block mt-3"
-                                       data-homepage-target="poolSize">
-                                       {{intComma .PoolInfo.Size}}
-                                    </span>
-                                    <span class="stats-subinfo">
-                                       <span data-homepage-target="targetPct">
-                                          {{printf "%.2f" (toAbsValue $.PercentChange)}}
-                                       </span>
-                                       %{{if lt $.PercentChange 0.0}} under {{else}} over {{end -}} target
-                                    </span>
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-8">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Vote Reward</span>
-                                    <span class="new-network-stats-content d-inline-block mt-1">
-                                       <span data-homepage-target="bsubsidyPos" class="fs15-decimal">
-                                          {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (divide
-                                          .NBlockSubsidy.PoS 5)) 8 true 2)}}
-                                       </span>
-                                       <span class="new-info-line-2-sub">DCR/vote</span>
-                                    </span>
-                                    <span class="stats-subinfo">
-                                       <span data-homepage-target="ticketReward">{{printf "%.2f"
-                                          .TicketReward}}%</span>
-                                       per ~{{.RewardPeriod}}<br />
-                                       <span>{{printf "%.2f" .ASR}}% per year</span>
-                                    </span>
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-8">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title">Next Ticket Price Change</span>
-                                    <div class="new-network-stats-content">
-                                       <div class="row justify-content-center">
-                                          <div class="progress mt-3 progress-frame p-0">
-                                             <div class="progress-bar rounded" data-homepage-target="posBar"
-                                                role="progressbar"
-                                                style="width: {{ticketWindowProgress .IdxBlockInWindow}}%;"
-                                                aria-valuenow="{{.IdxBlockInWindow}}" aria-valuemin="0"
-                                                aria-valuemax="{{.Params.WindowSize}}">
-                                                <span class="nowrap ps-1">block <span
-                                                      data-homepage-target="windowIndex">{{.IdxBlockInWindow}}</span>
-                                                   of
-                                                   {{.Params.WindowSize}}</span>
-                                             </div>
-                                          </div>
-                                          <span class="stats-subinfo mt-2 fw-400">{{remaining .IdxBlockInWindow
-                                             .Params.WindowSize .Params.BlockTime}}</span>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Next Ticket Price
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span>~<span data-homepage-target="nextExpectedSdiff">
+                                    {{template "decimalParts" (float64AsDecimalParts .NextExpectedStakeDiff
+                                    2
+                                    false)}}
+                                 </span></span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              <span class="stats-subinfo">
+                                 min:&nbsp;
+                                 <span data-homepage-target="nextExpectedMin">
+                                    {{template "decimalParts" (float64AsDecimalParts .NextExpectedBoundsMin 2
+                                    false)}}
+                                 </span>
+                                 &nbsp;&mdash;&nbsp;max:&nbsp;
+                                 <span data-homepage-target="nextExpectedMax">
+                                    {{template "decimalParts" (float64AsDecimalParts .NextExpectedBoundsMax 2
+                                    false)}}
+                                 </span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                 href="/charts?chart=ticket-pool-size">
+                                 Ticket Pool Size
+                              </a>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block" data-homepage-target="poolSize">
+                              {{intComma .PoolInfo.Size}}
+                              </span>
+                              <span class="stats-subinfo">
+                                 <span data-homepage-target="targetPct">
+                                    {{printf "%.2f" (toAbsValue $.PercentChange)}}
+                                 </span>
+                                 %{{if lt $.PercentChange 0.0}} under {{else}} over {{end -}} target
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Vote Reward
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span data-homepage-target="bsubsidyPos" class="fs15-decimal">
+                                    {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount (divide
+                                    .NBlockSubsidy.PoS 5)) 8 true 2)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR/vote</span>
+                              </span>
+                              <span class="stats-subinfo">
+                                 <span data-homepage-target="ticketReward">{{printf "%.2f"
+                                    .TicketReward}}%</span>
+                                 per ~{{.RewardPeriod}}<br />
+                                 <span>{{printf "%.2f" .ASR}}% per year</span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Next Ticket Price Change
+                              </span>
+                              <div class="new-network-stats-content">
+                                 <div class="row justify-content-center">
+                                    <div class="progress mt-1 progress-frame p-0">
+                                       <div class="progress-bar rounded" data-homepage-target="posBar"
+                                          role="progressbar"
+                                          style="width: {{ticketWindowProgress .IdxBlockInWindow}}%;"
+                                          aria-valuenow="{{.IdxBlockInWindow}}" aria-valuemin="0"
+                                          aria-valuemax="{{.Params.WindowSize}}">
+                                          <span class="nowrap ps-1">block <span
+                                                data-homepage-target="windowIndex">{{.IdxBlockInWindow}}</span>
+                                             of
+                                             {{.Params.WindowSize}}</span>
                                        </div>
                                     </div>
-                                 </div>
-                              </div>
-                              <div class="col-24 col-md-8">
-                                 <div class="new-network-stats-block">
-                                    <span class="new-network-stats-title"><a data-turbolinks="false"
-                                          class="link-hover-underline" href="/charts?chart=stake-participation">Total
-                                          Staked DCR</a></span>
-                                    <span class="new-network-stats-content d-inline-block mt-3">
-                                       <span data-homepage-target="poolValue">
-                                          {{template "decimalParts" (float64AsDecimalParts .PoolInfo.Value 0 true)}}
-                                       </span>
-                                       <span class="new-info-line-2-sub">DCR</span>
-                                    </span>
-                                    <span class="stats-subinfo">
-                                       <span data-homepage-target="poolSizePct">
-                                          {{printf "%.2f" .PoolInfo.Percentage}}</span>
-                                       % of circulating supply</span>
+                                    <span class="stats-subinfo mt-1 fw-400">{{remaining .IdxBlockInWindow
+                                       .Params.WindowSize .Params.BlockTime}}</span>
                                  </div>
                               </div>
                            </div>
-                           {{end}}
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 <a data-turbolinks="false"
+                                 class="link-hover-underline" href="/charts?chart=stake-participation">Total
+                                 Staked DCR</a>
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span data-homepage-target="poolValue">
+                                    {{template "decimalParts" (float64AsDecimalParts .PoolInfo.Value 0 true)}}
+                                 </span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              <span class="stats-subinfo">
+                                 <span data-homepage-target="poolSizePct">
+                                    {{printf "%.2f" .PoolInfo.Percentage}}</span>
+                                 % of circulating supply</span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Missed Votes
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                  2
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Ticket Fee (Avg)
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span>0.00028</span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Ticket Maturity
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span>256</span>
+                                 <span class="new-info-line-2-sub">Blocks</span>
+                              </span>
+                              <span class="stats-subinfo">~ 20h</span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Ticket Expiration
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span>40,960</span>
+                                 <span class="new-info-line-2-sub">Blocks</span>
+                              </span>
+                              <span class="stats-subinfo">~ 142d</span>
+                           </div>
+                        </div>
+                        <div class="col-12 col-md-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Win Probability
+                              </span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 <span>92.5</span>
+                                 <span class="new-info-line-2-sub">%</span>
+                              </span>
+                              <span class="stats-subinfo">1000 blocks</span>
+                           </div>
                         </div>
                      </div>
                   </div>
-                  <!-- End Ticket Pool Card -->
+               </div>
+               <div class="col-24 col-lg-10 p-2">
+                  <div class="new-home-card-container">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-mempool explore-card__header__logo" alt="Mempool route"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Voting Service Providers</p>
+                     </div>
+                     <div class="row justify-content-between px-3 py-2">
+                        <div class="col-24">
+                           <div class="br-8 b--def bgc-plain-bright pb-10">
+                              <div class="btable-table-wrap maxh-none">
+                                <table class="btable-table w-100">
+                                  <thead>
+                                    <tr class="bg-none">
+                                      <th class="text-start">Address</th>
+                                      <th class="text-center">Live</th>
+                                      <th class="text-center">Voted</th>
+                                      <th class="text-center">Missed</th>
+                                      <th class="text-center">Fees</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody class="bgc-white">
+                                    {{if .VSPList}}
+                                    {{range .VSPList}}
+                                    <tr>
+                                      <td class="text-start">
+                                       <a data-turbolinks="false" href="{{.VSPLink}}">{{.VSPLink}}</a>
+                                      </td>
+                                      <td class="text-center">
+                                          {{.Voting}}
+                                      </td>
+                                      <td class="text-center">
+                                          {{.Voted}}
+                                      </td>
+                                      <td class="text-center">
+                                          {{.Missed}}
+                                      </td>
+                                      <td class="text-center">
+                                          {{.FeePercentage}}%
+                                      </td>
+                                    </tr>
+                                    {{end}}
+                                    {{end}}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                        </div>
+                     </div>
+                  </div>
                </div>
             </div>
+            {{end}}
          </section>
       </div>
    </div>

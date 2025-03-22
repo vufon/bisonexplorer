@@ -375,9 +375,13 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		voteStatusJsonStr = string(voteStatusJson)
 	}
-
 	// Get fiat conversions if available
 	homeInfo := exp.pageData.HomeInfo
+	treasuryBalance := homeInfo.TreasuryBalance
+	balance := int64(0)
+	if treasuryBalance != nil {
+		balance = treasuryBalance.Balance
+	}
 	var conversions *homeConversions
 	xcBot := exp.xcBot
 	if xcBot != nil {
@@ -387,7 +391,7 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 			CoinSupply:      xcBot.Conversion(dcrutil.Amount(homeInfo.CoinSupply).ToCoin()),
 			PowSplit:        xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.PoW).ToCoin()),
 			TreasurySplit:   xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.Dev).ToCoin()),
-			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + homeInfo.TreasuryBalance.Balance).ToCoin()),
+			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + balance).ToCoin()),
 		}
 		if homeInfo.Block24hInfo != nil {
 			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())

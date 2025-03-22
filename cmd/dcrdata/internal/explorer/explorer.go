@@ -40,6 +40,7 @@ import (
 	"github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
 	"github.com/decred/dcrdata/v8/mutilchain"
+	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	humanize "github.com/dustin/go-humanize"
@@ -689,6 +690,11 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	if err != nil {
 		log.Errorf("PoolAPI: Get Pool info from Pool API failed: %v", err)
 	}
+	// Get vsp list
+	vspList, err := externalapi.GetVSPList()
+	if err != nil {
+		log.Errorf("VspAPI: Get vsp list failed: %v", err)
+	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.pageData
 	p.Lock()
@@ -724,6 +730,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.SwapsTotalAmount = swapsTotalAmount
 	p.HomeInfo.RefundCount = refundCount
 	p.HomeInfo.PoolDataList = poolResult
+	p.HomeInfo.VSPList = vspList
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {
