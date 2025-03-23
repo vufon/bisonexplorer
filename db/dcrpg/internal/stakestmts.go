@@ -334,6 +334,18 @@ const (
 			ORDER BY blocks.height;`
 
 	SelectMissCountForBlockRange = `SELECT count(1) FROM misses WHERE height >= $1 AND height <= $2;`
+	// select summary info
+	SelectTicketSummaryInfo = `SELECT 
+    	total_misses, 
+    	last_1000_block_misses, 
+    	ticket_1000_avg_fee
+		FROM 
+    		(SELECT 
+        		COUNT(1) AS total_misses, 
+        		COUNT(1) FILTER (WHERE height > $1 - 1000) AS last_1000_block_misses 
+     		FROM misses) AS mis
+		CROSS JOIN 
+    	(SELECT AVG(fee) AS ticket_1000_avg_fee FROM tickets WHERE block_height > $1 - 1000) AS tic;`
 
 	// proposal_meta table
 	CreateProposalMetaTable = `CREATE TABLE IF NOT EXISTS proposal_meta (

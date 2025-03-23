@@ -2170,6 +2170,19 @@ type BlockDataBasic struct {
 	NumTx      uint32  `json:"txlength,omitempty"`
 }
 
+type TicketsSummaryInfo struct {
+	MissedTickets              uint64
+	Last1000BlocksMissed       uint64
+	Last1000BlocksTicketFeeAvg float64
+	TicketMaturity             uint64
+	TicketMaturityDuration     uint64
+	TicketExpiration           uint64
+	TicketExpirationDuration   uint64
+	WinProbability             float64
+	BlocksNeedToWin            uint64
+	TimeToBlocksNeedToWin      uint64
+}
+
 // BlockStatus describes a block's status in the block chain.
 type BlockStatus struct {
 	IsValid     bool   `json:"is_valid"`

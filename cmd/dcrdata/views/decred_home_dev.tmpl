@@ -1453,24 +1453,39 @@
                                  % of circulating supply</span>
                            </div>
                         </div>
+                        <div class="col-24">
+                           <p class="fw-bold fs18 mb-0 ms-2">Summary</p>
+                        </div>
+                        {{if .TicketsSummary}}
+                        {{with .TicketsSummary}}
                         <div class="col-12 col-md-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 Missed Votes
+                                 Missed Tickets
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 2
+                                 <span class="new-network-stats-content d-inline-block" data-homepage-target="poolSize">
+                                    {{intComma .MissedTickets}}
+                                 </span>
+                                 <span class="stats-subinfo">
+                                    {{intComma .Last1000BlocksMissed}} misses / last 1000 blocks
+                                 </span>
                               </span>
                            </div>
                         </div>
                         <div class="col-12 col-md-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 Ticket Fee (Avg)
+                                 Ticket Fee
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span>0.00028</span>
+                                 <span>
+                                    {{template "decimalParts" (float64AsDecimalParts .Last1000BlocksTicketFeeAvg 8 true 2)}}
+                                 </span>
                                  <span class="new-info-line-2-sub">DCR</span>
+                              </span>
+                              <span class="stats-subinfo">
+                                 last 1000 blocks avg
                               </span>
                            </div>
                         </div>
@@ -1480,10 +1495,10 @@
                                  Ticket Maturity
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span>256</span>
+                                 <span>{{.TicketMaturity}}</span>
                                  <span class="new-info-line-2-sub">Blocks</span>
                               </span>
-                              <span class="stats-subinfo">~ 20h</span>
+                              <span class="stats-subinfo">~ {{secondsToShortDurationString (int64 .TicketMaturityDuration)}}</span>
                            </div>
                         </div>
                         <div class="col-12 col-md-8">
@@ -1492,10 +1507,10 @@
                                  Ticket Expiration
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span>40,960</span>
+                                 <span>{{intComma .TicketExpiration}}</span>
                                  <span class="new-info-line-2-sub">Blocks</span>
                               </span>
-                              <span class="stats-subinfo">~ 142d</span>
+                              <span class="stats-subinfo">~ {{secondsToShortDurationString (int64 .TicketExpirationDuration)}}</span>
                            </div>
                         </div>
                         <div class="col-12 col-md-8">
@@ -1504,12 +1519,14 @@
                                  Win Probability
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span>92.5</span>
-                                 <span class="new-info-line-2-sub">%</span>
+                                 <span>{{normalWithPrecFloat (x100 .WinProbability) 4}}</span>
+                                 <span class="new-info-line-2-sub">%/1 block</span>
                               </span>
-                              <span class="stats-subinfo">1000 blocks</span>
+                              <span class="stats-subinfo">est {{intComma .BlocksNeedToWin}} blocks ~ {{secondsToShortDurationString (int64 .TimeToBlocksNeedToWin)}} to win</span>
                            </div>
                         </div>
+                        {{end}}
+                        {{end}}
                      </div>
                   </div>
                </div>

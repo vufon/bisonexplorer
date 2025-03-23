@@ -10721,3 +10721,32 @@ func (pgb *ChainDB) GetBwDashData() (int64, int64) {
 	}
 	return int64(math.Round(volSum)), int64(math.Round(last30days))
 }
+
+// GetTicketsSummaryInfo return summary information of tickets vote
+func (pgb *ChainDB) GetTicketsSummaryInfo() (*dbtypes.TicketsSummaryInfo, error) {
+	bestBlockHeight := pgb.bestBlock.Height()
+	// get summary info
+	result := dbtypes.TicketsSummaryInfo{}
+	err := pgb.db.QueryRow(internal.SelectTicketSummaryInfo, bestBlockHeight).Scan(&result.MissedTickets, &result.Last1000BlocksMissed, &result.Last1000BlocksTicketFeeAvg)
+	if err != nil {
+		return nil, err
+	}
+	// calculator for ticket maturity
+	result.TicketMaturity = uint64(pgb.chainParams.TicketMaturity)
+	// avg block time
+	timePerBlock := pgb.chainParams.TargetTimePerBlock
+	// calculate ticket maturity duration (by seconds)
+	result.TicketMaturityDuration = uint64(timePerBlock.Seconds()) * result.TicketMaturity
+	// ticket expiration
+	result.TicketExpiration = uint64(pgb.chainParams.TicketExpiry)
+	// calculate to ticket expiration duration (by seconds)
+	result.TicketExpirationDuration = uint64(timePerBlock.Seconds()) * result.TicketExpiration
+	// Calculate Win probability on 1 block
+	result.WinProbability = float64(pgb.chainParams.TicketsPerBlock) / float64(pgb.chainParams.TicketPoolSize*pgb.chainParams.TicketsPerBlock)
+	// Calculate the expected block number to ensure 100% selection
+	threshold := 0.0001
+	blocksNeed := uint64(math.Round(math.Log(threshold) / math.Log(1-result.WinProbability)))
+	result.BlocksNeedToWin = blocksNeed
+	result.TimeToBlocksNeedToWin = uint64(timePerBlock.Seconds()) * result.BlocksNeedToWin
+	return &result, nil
+}
