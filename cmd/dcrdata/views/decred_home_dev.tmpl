@@ -372,7 +372,7 @@
                         <div class="col-24 col-sm-12">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 <a class="link-hover-underline" data-turbolinks="false" href="/treasury">
+                                 <a class="link-hover-underline" data-turbolinks="false" href="/treasury?txntype=all">
                                     Treasury</a>
                               </span>
                               <span class="new-network-stats-content d-inline-block">
@@ -442,7 +442,9 @@
                         </div>
                         <div class="col-24 col-sm-12">
                            <div class="new-network-stats-block">
-                              <span class="new-network-stats-title">Treasury Spent</span>
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false" href="/treasury">
+                                    Treasury Spent</a></span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span class="fs15-decimal">
                                     {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
@@ -1768,14 +1770,19 @@
       <div class="container px-0 py-2">
          <section class="h-100 px-3 py-2">
             <div class="row mt-2">
-               <div class="col-24 col-sm-16 p-2">
+               <div class="col-24 p-2">
                   <div class="new-home-card-container">
                      <a href="/charts" data-turbolinks="false" class="link-to-subpage">
-                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
-                        <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
-                           loading="lazy"></span>
-                        <p class="ms-2 mb-0 fw-600 fs-17">Chain Charts</p>
-                     </div>
+                        <div class="row new-home-card-header mx-0">
+                           <div class="col-xs-24 col-md-8 col-lg-7 col-xl-5 py-2 px-3 d-flex ai-center">
+                              <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
+                              loading="lazy"></span>
+                              <p class="ms-2 mb-0 fw-600 fs-17">Chain Charts</p>
+                           </div>
+                           <div class="col-xs-24 col-md-16 col-lg-17 col-xl-19 d-flex justify-content-center">
+                              <span class="fs-22 fw-600" data-charts-target="chartTitleName"></span>
+                           </div>
+                        </div>
                     </a>
                      <div class="px-3 py-2">
                         <div class="row">
