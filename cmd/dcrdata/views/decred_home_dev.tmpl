@@ -1495,7 +1495,7 @@
                                  Ticket Maturity
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span>{{.TicketMaturity}}</span>
+                                 <span>{{intComma .TicketMaturity}}</span>
                                  <span class="new-info-line-2-sub">Blocks</span>
                               </span>
                               <span class="stats-subinfo">~ {{secondsToShortDurationString (int64 .TicketMaturityDuration)}}</span>
@@ -1643,7 +1643,7 @@
                            {{if $conv -}}
                            <span class="stats-subinfo">
                               {{threeSigFigs $conv.Fees24h.Value}}
-                              {{$conv.Fees24h.Index}} (today)</span>
+                              {{$conv.Fees24h.Index}}</span>
                            {{end}}
                            </div>
                         </div>
@@ -1659,7 +1659,7 @@
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Active Addresses</span>
                            <div class="new-network-stats-content d-inline-block pt-1">
-                              345
+                              {{int64Comma .ActiveAddresses}}
                            </div>
                         </div>
                         </div>
@@ -1667,24 +1667,30 @@
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total PoW Reward</span>
                            <div class="new-network-stats-content d-inline-block">
-                              25
+                              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .TotalPowReward) 2
+                              true)}}
                            </div>
                            <span class="new-info-line-2-sub">DCR</span>
+                           {{if $conv -}}
                            <span class="stats-subinfo">
-                              ~ $250 USD
-                           </span>
+                              {{threeSigFigs $conv.PowReward24h.Value}}
+                              {{$conv.PowReward24h.Index}}</span>
+                           {{end}}
                         </div>
                         </div>
                         <div class="col-12 col-md-8">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">DCR Supply</span>
                               <span class="new-network-stats-content d-inline-block">
-                                 269
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .DCRSupply) 2
+                                 true)}}
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
-                              <span class="stats-subinfo">
-                                 ~ $2,800 USD
-                              </span>
+                              {{if $conv -}}
+                           <span class="stats-subinfo">
+                              {{threeSigFigs $conv.Supply24h.Value}}
+                              {{$conv.Supply24h.Index}}</span>
+                           {{end}}
                            </div>
                         </div>
                      </div>

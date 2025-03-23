@@ -2339,6 +2339,9 @@ type Block24hInfo struct {
 	AtomicSwapAmount int64 `json:"atomicSwapAmount"`
 	SwapRedeemCount  int64 `json:"swapRedeemCount"`
 	SwapRefundCount  int64 `json:"swapRefundCount"`
+	ActiveAddresses  int64 `json:"activeAddresses"`
+	TotalPowReward   int64 `json:"totalPowReward"`
+	DCRSupply        int64 `json:"dcrSupply"`
 }
 
 // AddressTransactions collects the transactions for an address as AddressTx

@@ -10750,3 +10750,10 @@ func (pgb *ChainDB) GetTicketsSummaryInfo() (*dbtypes.TicketsSummaryInfo, error)
 	result.TimeToBlocksNeedToWin = uint64(timePerBlock.Seconds()) * result.BlocksNeedToWin
 	return &result, nil
 }
+
+// Get24hActiveAddressesCount return active addresses count in 24h
+func (pgb *ChainDB) Get24hActiveAddressesCount() int64 {
+	var activeAddr int64
+	pgb.db.QueryRow(internal.SelectCount24hUniqueAddress).Scan(&activeAddr)
+	return activeAddr
+}

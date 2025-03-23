@@ -190,6 +190,7 @@ type explorerDataSource interface {
 	GetBwDashData() (int64, int64)
 	GetAvgTxFee() (int64, error)
 	GetTicketsSummaryInfo() (*dbtypes.TicketsSummaryInfo, error)
+	Get24hActiveAddressesCount() int64
 }
 
 type PoliteiaBackend interface {
@@ -869,9 +870,14 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		}
 		p.Unlock()
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEDCR)
+		// get active addr num count
+		activeAddr := exp.dataSource.Get24hActiveAddressesCount()
 		p.Lock()
 		if err24h == nil {
 			p.HomeInfo.Block24hInfo = summary24h
+			p.HomeInfo.Block24hInfo.ActiveAddresses = activeAddr
+			p.HomeInfo.Block24hInfo.TotalPowReward = p.HomeInfo.Block24hInfo.Blocks * p.HomeInfo.NBlockSubsidy.PoW
+			p.HomeInfo.Block24hInfo.DCRSupply = p.HomeInfo.Block24hInfo.Blocks * p.HomeInfo.NBlockSubsidy.PoW * 100
 		} else {
 			log.Errorf("Sync DCR 24h Metrics Failed: %v", err24h)
 		}
