@@ -582,6 +582,7 @@ type HomeInfo struct {
 	RemainingBlocks       int64                     `json:"remainingBlocks"`
 	TimeRemaining         int64                     `json:"timeRemaining"`
 	BlockTimeAvg          int64                     `json:"blockTimeAvg"`
+	FormattedAvgBlockSize string                    `json:"formattedAvgBlockSize"`
 	BlockReward           int64                     `json:"blockReward"`
 	SubsidyInterval       int64                     `json:"subsidyInterval"`
 	PeerCount             int64                     `json:"peerCount"`
@@ -591,6 +592,8 @@ type HomeInfo struct {
 	RefundCount           int64                     `json:"refundCount"`
 	PoolDataList          []*dbtypes.PoolDataItem   `json:"poolDataList"`
 	VSPList               []externalapi.VSPResponse `json:"vspList"`
+	BisonWalletVol        int64                     `json:"bisonWalletVol"`
+	BWLast30DaysVol       int64                     `json:"bwLast30DaysVol"`
 }
 
 type MutilchainHomeInfo struct {

@@ -186,6 +186,8 @@ type explorerDataSource interface {
 	GetMutilchainVinIndexsOfRedeem(spendTx, chainType string) ([]int, error)
 	GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error)
 	GetExplorerBlockBasic(height int) *types.BlockBasic
+	GetAvgBlockFormattedSize() (string, error)
+	GetBwDashData() (int64, int64)
 }
 
 type PoliteiaBackend interface {
@@ -696,6 +698,13 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	if err != nil {
 		log.Errorf("VspAPI: Get vsp list failed: %v", err)
 	}
+	// Get average block size
+	formattedAvgBlockSize, err := exp.dataSource.GetAvgBlockFormattedSize()
+	if err != nil {
+		log.Errorf("AvgBlockSize: Get Average block size failed: %v", err)
+	}
+	// calculator total bison wallet vol
+	bwVol, bwLast30DaysVol := exp.dataSource.GetBwDashData()
 	// Update pageData with block data and chain (home) info.
 	p := exp.pageData
 	p.Lock()
@@ -732,6 +741,9 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.RefundCount = refundCount
 	p.HomeInfo.PoolDataList = poolResult
 	p.HomeInfo.VSPList = vspList
+	p.HomeInfo.FormattedAvgBlockSize = formattedAvgBlockSize
+	p.HomeInfo.BisonWalletVol = bwVol
+	p.HomeInfo.BWLast30DaysVol = bwLast30DaysVol
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {

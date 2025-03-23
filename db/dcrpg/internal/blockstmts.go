@@ -324,6 +324,7 @@ const (
 		ORDER BY time
 		LIMIT 1;`
 	SelectBlockchainSize = `SELECT SUM(size) FROM blocks WHERE is_mainchain;`
+	SelectAvgBlockSize   = `SELECT ROUND(AVG(COALESCE(size, 0))) FROM blocks WHERE is_mainchain;`
 )
 
 func BlockInsertStatement(checked bool) string {

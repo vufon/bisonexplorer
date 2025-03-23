@@ -10683,3 +10683,31 @@ func (pgb *ChainDB) GetDecredBestBlock() error {
 	pgb.bestBlock = bestBlock
 	return nil
 }
+
+// Get average block size with formatted string
+func (pgb *ChainDB) GetAvgBlockFormattedSize() (string, error) {
+	var avgBlockSize int64
+	err := pgb.db.QueryRow(internal.SelectAvgBlockSize).Scan(&avgBlockSize)
+	if err != nil {
+		return "", err
+	}
+	return humanize.Bytes(uint64(avgBlockSize)), nil
+}
+
+// GetBwDashData get total bison wallet vol (By USD). From dcrsnapcsv (in the future, save to DB)
+// return (total vol : int64, last 30 days vol : int64)
+func (pgb *ChainDB) GetBwDashData() (int64, int64) {
+	dailyData := utils.ReadCsvFileFromUrl("https://raw.githubusercontent.com/bochinchero/dcrsnapcsv/main/data/stream/dex_decred_org_VolUSD.csv")
+	dailyData = dailyData[1:]
+	var volSum, last30days float64
+	count := 0
+	for _, dailyItem := range dailyData {
+		dailySum := utils.SumVolOfBwRow(dailyItem)
+		volSum += dailySum
+		if count < 30 {
+			last30days += dailySum
+			count++
+		}
+	}
+	return int64(math.Round(volSum)), int64(math.Round(last30days))
+}
