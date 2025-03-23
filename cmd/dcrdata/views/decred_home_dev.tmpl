@@ -804,6 +804,12 @@
                                     {{threeSigFigs .Mempool.LikelyMineable.Total}}
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
+                                 {{if $conv -}}
+                                 <span class="stats-subinfo">
+                                    {{threeSigFigs $conv.MempoolSpending.Value}}
+                                       {{$conv.MempoolSpending.Index}}
+                                 </span>
+                                 {{- end}}
                               </span>
                            </div>
                         </div>
@@ -812,20 +818,25 @@
                               <span class="new-network-stats-title">Total Size</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
-                                    6
+                                    {{.Mempool.FormattedTotalSize}}
                                  </span>
-                                 <span class="new-info-line-2-sub">kB</span>
                               </span>
                            </div>
                         </div>
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
-                              <span class="new-network-stats-title">Fees Range</span>
+                              <span class="new-network-stats-title">Mempool Fees</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
-                                    1 ~ 2.5
+                                    {{template "decimalParts" (float64AsDecimalParts .TrimmedMempool.Fees 8 true 2)}}
                                  </span>
-                                 <span class="new-info-line-2-sub">atoms/vB</span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                                 {{if $conv -}}
+                                 <span class="stats-subinfo">
+                                    {{threeSigFigs $conv.MempoolFees.Value}}
+                                       {{$conv.MempoolFees.Index}}
+                                 </span>
+                                 {{- end}}
                               </span>
                            </div>
                         </div>
@@ -834,12 +845,12 @@
                               <span class="new-network-stats-title">Treasury Spending</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
-                                    6,655
+                                    {{threeSigFigs .TrimmedMempool.TSpendTotal}}
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
                               <span class="stats-subinfo">
-                                 2254 votes yes
+                                 {{len .TrimmedMempool.TSpends}} tspend{{if gt (len .TrimmedMempool.TSpends) 1}}s{{end}}
                               </span>
                            </div>
                         </div>
@@ -854,7 +865,7 @@
                         <p class="ms-2 mb-0 fw-600 fs-17">Mining</p>
                      </div>
                      {{with .Info -}}
-                     <div class="row justify-content-between px-3 py-2">
+                     <div class="row px-3 py-2">
                         <div class="col-24">
                            <p>PoW hash algorithm: <a target="_blank" class="subdata-card fs-18"
                                  href="https://github.com/decred/dcps/blob/master/dcp-0011/dcp-0011.mediawiki">Blake3</a>
@@ -897,7 +908,7 @@
                         <div class="col-24 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 PoW reward
+                                 PoW Reward
                               </span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span data-homepage-target="bsubsidyPow" class="fs15-decimal">
@@ -941,21 +952,11 @@
                         <div class="col-24 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 Block Fees Avg
-                              </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span>0.4</span>
-                                 <span class="new-info-line-2-sub">DCR</span>
-                              </span>
-                           </div>
-                        </div>
-                        <div class="col-24 col-lg-8">
-                           <div class="new-network-stats-block">
-                              <span class="new-network-stats-title">
                                  Tx Fee Avg
                               </span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span>0.000251</span>
+                                 <span>{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                    .TxFeeAvg) 8 true 2)}}</span>
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
                            </div>

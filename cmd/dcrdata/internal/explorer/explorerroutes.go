@@ -191,6 +191,8 @@ type homeConversions struct {
 	Sent24h         *exchanges.Conversion
 	Fees24h         *exchanges.Conversion
 	SwapsAmount24h  *exchanges.Conversion
+	MempoolSpending *exchanges.Conversion
+	MempoolFees     *exchanges.Conversion
 }
 
 // For the exchange rates on the homepage
@@ -392,6 +394,8 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 			PowSplit:        xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.PoW).ToCoin()),
 			TreasurySplit:   xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.Dev).ToCoin()),
 			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + balance).ToCoin()),
+			MempoolSpending: xcBot.Conversion(inv.LikelyMineable.Total),
+			MempoolFees:     xcBot.Conversion(mempoolInfo.Fees),
 		}
 		if homeInfo.Block24hInfo != nil {
 			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())

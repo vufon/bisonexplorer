@@ -10694,6 +10694,16 @@ func (pgb *ChainDB) GetAvgBlockFormattedSize() (string, error) {
 	return humanize.Bytes(uint64(avgBlockSize)), nil
 }
 
+// GetAvgTxFee return average tx fees
+func (pgb *ChainDB) GetAvgTxFee() (int64, error) {
+	var avgTxFee int64
+	err := pgb.db.QueryRow(internal.SelectAvgTxFee).Scan(&avgTxFee)
+	if err != nil {
+		return 0, err
+	}
+	return avgTxFee, nil
+}
+
 // GetBwDashData get total bison wallet vol (By USD). From dcrsnapcsv (in the future, save to DB)
 // return (total vol : int64, last 30 days vol : int64)
 func (pgb *ChainDB) GetBwDashData() (int64, int64) {

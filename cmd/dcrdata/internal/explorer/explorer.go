@@ -188,6 +188,7 @@ type explorerDataSource interface {
 	GetExplorerBlockBasic(height int) *types.BlockBasic
 	GetAvgBlockFormattedSize() (string, error)
 	GetBwDashData() (int64, int64)
+	GetAvgTxFee() (int64, error)
 }
 
 type PoliteiaBackend interface {
@@ -703,6 +704,12 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	if err != nil {
 		log.Errorf("AvgBlockSize: Get Average block size failed: %v", err)
 	}
+	// Get average tx fees
+	avgTxFee, err := exp.dataSource.GetAvgTxFee()
+	if err != nil {
+		log.Errorf("GetAvgTxFee: Get Average tx fees failed: %v", err)
+	}
+
 	// calculator total bison wallet vol
 	bwVol, bwLast30DaysVol := exp.dataSource.GetBwDashData()
 	// Update pageData with block data and chain (home) info.
@@ -744,6 +751,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.FormattedAvgBlockSize = formattedAvgBlockSize
 	p.HomeInfo.BisonWalletVol = bwVol
 	p.HomeInfo.BWLast30DaysVol = bwLast30DaysVol
+	p.HomeInfo.TxFeeAvg = avgTxFee
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {

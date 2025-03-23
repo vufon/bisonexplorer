@@ -594,6 +594,7 @@ type HomeInfo struct {
 	VSPList               []externalapi.VSPResponse `json:"vspList"`
 	BisonWalletVol        int64                     `json:"bisonWalletVol"`
 	BWLast30DaysVol       int64                     `json:"bwLast30DaysVol"`
+	TxFeeAvg              int64                     `json:"txFeeAvg"`
 }
 
 type MutilchainHomeInfo struct {
@@ -624,6 +625,7 @@ type TrimmedMempoolInfo struct {
 	Total        float64
 	Time         int64
 	Fees         float64
+	TSpendTotal  float64
 }
 
 // MempoolInfo models data to update mempool info on the home page.
@@ -715,7 +717,12 @@ func (mpi *MempoolInfo) Trim() *TrimmedMempoolInfo {
 	allFees := getTotalFee(data.Transactions) + getTotalFee(data.Revocations) +
 		getTotalFee(data.Tickets) + getTotalFee(data.Votes)
 	data.Fees = allFees.ToCoin()
-
+	// Get total amount of tspends
+	if len(data.TSpends) > 0 {
+		for _, tspend := range data.TSpends {
+			data.TSpendTotal += tspend.Total
+		}
+	}
 	return data
 }
 
