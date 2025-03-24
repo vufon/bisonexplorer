@@ -202,6 +202,20 @@
   text-align: center;
 }
 
+.new-network-stats-block {
+  padding: 0;
+  color: #3f3f3f;
+  border: 1px solid #cfe2f1;
+  min-height: 100px;
+  border-radius: 4px;
+  margin: 0.5em 0;
+  text-align: center;
+}
+
+.large-new-stats-block {
+  min-height: 110px;
+}
+
 .network-stats-title {
   padding: 5px 0;
   font-weight: bold;
@@ -210,6 +224,16 @@
   border-bottom: 1px solid #e0e0e0;
   color: #727272;
   font-size: 17px;
+}
+
+.new-network-stats-title {
+  padding: 5px 0;
+  font-weight: bold;
+  width: 100%;
+  display: block;
+  border-bottom: 1px solid #cfe2f1;
+  color: #727272;
+  font-size: 15px;
 }
 
 .supply-stats-title {
@@ -224,6 +248,15 @@
 
 .network-stats-content {
   font-size: 25px;
+  letter-spacing: 0;
+  color: #656363;
+  border-radius: 4px;
+  text-align: center;
+  margin-top: 5px;
+}
+
+.new-network-stats-content {
+  font-size: 22px;
   letter-spacing: 0;
   color: #656363;
   border-radius: 4px;
@@ -609,6 +642,11 @@
     font-size: 16px;
   }
 
+  .new-info-line-2-sub {
+    color: #656363;
+    font-size: 15px;
+  }
+
   .info-line-3 {
     color: #919191;
     font-size: 14px;
@@ -777,7 +815,6 @@
       max-width: 98%;
       max-height: 100%;
       margin: 0 2%;
-      min-height: 0;
       width: auto;
     }
   }
@@ -801,7 +838,8 @@
     }
 
     .hp-explore__cards-content-2,
-    .hp-explore__cards-content-2-1 {
+    .hp-explore__cards-content-2-1,
+    .hp-explore__cards-content-1-2 {
       padding-right: 0;
     }
   }
@@ -814,19 +852,19 @@
 
 .main-container.new-homepage {
   position: relative;
-  margin-top: 70px;
-  margin-bottom: 70px;
+  margin-bottom: 60px;
+  border-top: 2px solid #e9ebed;
 }
 
 .hp-explore-wrap {
   background-color: #fff;
   margin-top: -21px;
   padding-bottom: 70px;
-  border-top: 2px solid #e9ebed;
 }
 
 .hp-explore-wrap.homepage-page {
   margin-top: 0;
+  padding-bottom: 0;
 }
 
 .decred-sub-page {
@@ -889,7 +927,8 @@
   border-top-right-radius: 10px;
 }
 
-.link-to-subpage:hover {
+.link-to-subpage:hover,
+.link-to-subpage.new-home-card-header:hover {
   background-color: #d7e5f0;
 }
 
@@ -935,7 +974,9 @@ body.darkBG.homepage-body {
 
   .explore-card__header,
   .network-stats-title,
+  .new-network-stats-title,
   .network-stats-content,
+  .new-network-stats-content,
   .chart-title-name,
   .stats-subinfo,
   .stats-content {
@@ -957,7 +998,8 @@ body.darkBG.homepage-body {
     background-color: white;
   }
 
-  .link-to-subpage:hover {
+  .link-to-subpage:hover,
+  .link-to-subpage.new-home-card-header:hover {
     background-color: #636161;
   }
 
@@ -1232,7 +1274,8 @@ body.darkBG .day-night-icon {
 }
 
 .hp-explore__cards-content-2,
-.hp-explore__cards-content-2-1 {
+.hp-explore__cards-content-2-1,
+.hp-explore__cards-content-1-2 {
   grid-gap: 17px;
   padding-right: 17px;
   align-items: start;
@@ -1248,12 +1291,17 @@ body.darkBG .day-night-icon {
   grid-template-columns: 60% 40%;
 }
 
+.hp-explore__cards-content-1-2 {
+  grid-template-columns: 40% 60%;
+}
+
 .home-chain-card {
   grid-template-columns: 50% 50% !important;
 }
 
 @media (max-width: 960px) {
   .hp-explore__cards-content-2-1,
+  .hp-explore__cards-content-1-2,
   .hp-explore__cards-content-2 {
     grid-template-columns: 100%;
     grid-row-gap: 20px;
@@ -1293,7 +1341,7 @@ body.darkBG .day-night-icon {
 }
 
 .explore-card-content {
-  grid-row-gap: 20px;
+  grid-row-gap: 10px;
   display: grid;
   grid-template-columns: 100%;
 }
@@ -1313,7 +1361,7 @@ body.darkBG .day-night-icon {
 }
 
 .explore-card__header__logo {
-  font-size: 30px;
+  font-size: 22px;
 }
 
 .explore-card__header__text__badge--new {
@@ -1381,7 +1429,7 @@ body.darkBG .day-night-icon {
 .explore-card__values-content {
   display: flex;
   flex-direction: column;
-  padding: 25px;
+  padding: 20px;
   padding-top: 0;
 }
 
@@ -1432,7 +1480,7 @@ body.darkBG .day-night-icon {
 }
 
 .explore-card__header__text__name {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
 }
 
@@ -1584,7 +1632,7 @@ body.darkBG {
   }
 
   .info-line-2-sub,
-  .info-line-1,
+  .new-info-line-2-sub .info-line-1,
   .info-line-2,
   .function-feature-card {
     color: white;

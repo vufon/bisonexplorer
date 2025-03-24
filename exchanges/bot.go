@@ -114,25 +114,30 @@ type ExchangeBot struct {
 // ExchangeBotState is the current known state of all exchanges, in a certain
 // base currency, and a volume-averaged price and total volume in DCR.
 type ExchangeBotState struct {
-	BtcIndex     string                    `json:"btc_index"`
-	BtcPrice     float64                   `json:"btc_fiat_price"`
-	Price        float64                   `json:"price"`
-	LowPrice     float64                   `json:"low_price"`
-	HighPrice    float64                   `json:"high_price"`
-	DCRBTCPrice  float64                   `json:"dcr_btc_price"`
-	Volume       float64                   `json:"volume"`
-	DCRBTCVolume float64                   `json:"dcr_btc_volume"`
-	LTCPrice     float64                   `json:"ltc_price"`
-	LTCLowPrice  float64                   `json:"ltc_low_price"`
-	LTCHighPrice float64                   `json:"ltc_high_price"`
-	LTCVolume    float64                   `json:"ltc_volume"`
-	BTCPrice     float64                   `json:"btc_price"`
-	BTCLowPrice  float64                   `json:"btc_low_price"`
-	BTCHighPrice float64                   `json:"btc_high_price"`
-	BTCVolume    float64                   `json:"btc_volume"`
-	DcrBtc       map[string]*ExchangeState `json:"dcr_btc_exchanges"`
-	LtcUsd       map[string]*ExchangeState `json:"ltc_usd_exchanges"`
-	BtcUsd       map[string]*ExchangeState `json:"btc_usd_exchanges"`
+	BtcIndex          string                    `json:"btc_index"`
+	BtcPrice          float64                   `json:"btc_fiat_price"`
+	Price             float64                   `json:"price"`
+	DCRUSD24hChange   float64                   `json:"dcr_usd_24h_change"`
+	LowPrice          float64                   `json:"low_price"`
+	HighPrice         float64                   `json:"high_price"`
+	DCRBTCPrice       float64                   `json:"dcr_btc_price"`
+	DCRBTC24hChange   float64                   `json:"dcr_btc_24h_change"`
+	Volume            float64                   `json:"volume"`
+	DCRBTCVolume      float64                   `json:"dcr_btc_volume"`
+	LTCPrice          float64                   `json:"ltc_price"`
+	LTCPriceChange    float64                   `json:"ltc_price_change"`
+	LTCLowPrice       float64                   `json:"ltc_low_price"`
+	LTCHighPrice      float64                   `json:"ltc_high_price"`
+	LTCVolume         float64                   `json:"ltc_volume"`
+	BTCPrice          float64                   `json:"btc_price"`
+	BTCPriceChange    float64                   `json:"btc_price_change"`
+	BTCUSDPriceChange float64                   `json:"btc_usd_price_change"`
+	BTCLowPrice       float64                   `json:"btc_low_price"`
+	BTCHighPrice      float64                   `json:"btc_high_price"`
+	BTCVolume         float64                   `json:"btc_volume"`
+	DcrBtc            map[string]*ExchangeState `json:"dcr_btc_exchanges"`
+	LtcUsd            map[string]*ExchangeState `json:"ltc_usd_exchanges"`
+	BtcUsd            map[string]*ExchangeState `json:"btc_usd_exchanges"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
 	FiatIndices map[string]*ExchangeState `json:"btc_indices"`
@@ -813,33 +818,40 @@ func (bot *ExchangeBot) ConvertedState(code string) (*ExchangeBotState, error) {
 		}
 	}
 
-	dcrPrice, volume, low, high := bot.processState(bot.currentState.DcrBtc, true)
-	ltcPrice, ltcVolumn, ltcLow, ltcHigh := bot.processState(bot.currentState.LtcUsd, true)
-	btcExchangePrice, btcVolumn, btcLow, btcHigh := bot.processState(bot.currentState.BtcUsd, true)
-	btcPrice, _, _, _ := bot.processState(fiatIndices, false)
+	dcrPrice, dcrChange, volume, low, high := bot.processState(bot.currentState.DcrBtc, true)
+	dcrBtcPrice, dcrBtcChange, dcrBtcvolume := bot.processDCRBTCState(bot.currentState.DcrBtc, true)
+	ltcPrice, ltcChange, ltcVolumn, ltcLow, ltcHigh := bot.processState(bot.currentState.LtcUsd, true)
+	btcExchangePrice, btcUsdChange, btcVolumn, btcLow, btcHigh := bot.processState(bot.currentState.BtcUsd, true)
+	btcPrice, _, _, _, _ := bot.processState(fiatIndices, false)
 	if dcrPrice == 0 || btcPrice == 0 {
 		bot.failed = true
 		return nil, fmt.Errorf("Unable to process price for currency %s", code)
 	}
 	state := ExchangeBotState{
-		BtcIndex:     code,
-		Volume:       volume * btcPrice,
-		Price:        dcrPrice,
-		LowPrice:     low,
-		HighPrice:    high,
-		LTCPrice:     ltcPrice,
-		LTCLowPrice:  ltcLow,
-		LTCHighPrice: ltcHigh,
-		LTCVolume:    ltcVolumn * ltcPrice,
-		BTCPrice:     btcExchangePrice,
-		BTCLowPrice:  btcLow,
-		BTCHighPrice: btcHigh,
-		BTCVolume:    btcVolumn * btcExchangePrice,
-		BtcPrice:     btcPrice,
-		DcrBtc:       bot.currentState.DcrBtc,
-		LtcUsd:       bot.currentState.LtcUsd,
-		BtcUsd:       bot.currentState.BtcUsd,
-		FiatIndices:  fiatIndices,
+		BtcIndex:          code,
+		Volume:            volume * btcPrice,
+		Price:             dcrPrice,
+		LowPrice:          low,
+		HighPrice:         high,
+		LTCPrice:          ltcPrice,
+		LTCLowPrice:       ltcLow,
+		LTCHighPrice:      ltcHigh,
+		LTCVolume:         ltcVolumn * ltcPrice,
+		BTCPrice:          btcExchangePrice,
+		BTCLowPrice:       btcLow,
+		BTCHighPrice:      btcHigh,
+		BTCVolume:         btcVolumn * btcExchangePrice,
+		BtcPrice:          btcPrice,
+		DcrBtc:            bot.currentState.DcrBtc,
+		LtcUsd:            bot.currentState.LtcUsd,
+		BtcUsd:            bot.currentState.BtcUsd,
+		BTCUSDPriceChange: btcUsdChange,
+		FiatIndices:       fiatIndices,
+		DCRBTCPrice:       dcrBtcPrice,
+		DCRBTCVolume:      dcrBtcvolume,
+		DCRUSD24hChange:   dcrChange,
+		DCRBTC24hChange:   dcrBtcChange,
+		LTCPriceChange:    ltcChange,
 	}
 
 	return state.copy(), nil
@@ -886,8 +898,8 @@ func (bot *ExchangeBot) ConvertedRates(code string) (*ExchangeRates, error) {
 		}
 	}
 
-	dcrPrice, _, _, _ := bot.processState(bot.currentState.DcrBtc, true)
-	btcPrice, _, _, _ := bot.processState(fiatIndices, false)
+	dcrPrice, _, _, _, _ := bot.processState(bot.currentState.DcrBtc, true)
+	btcPrice, _, _, _, _ := bot.processState(fiatIndices, false)
 	if dcrPrice == 0 || btcPrice == 0 {
 		bot.failed = true
 		return nil, fmt.Errorf("Unable to process price for currency %s", code)
@@ -1012,8 +1024,8 @@ func (bot *ExchangeBot) processMutilchainState(states map[string]*ExchangeState,
 // processState is a helper function to process a slice of ExchangeState into
 // a price, and optionally a volume sum, and perform some cleanup along the way.
 // If volumeAveraged is false, all exchanges are given equal weight in the avg.
-func (bot *ExchangeBot) processState(states map[string]*ExchangeState, volumeAveraged bool) (float64, float64, float64, float64) {
-	var priceAccumulator, volSum float64
+func (bot *ExchangeBot) processState(states map[string]*ExchangeState, volumeAveraged bool) (float64, float64, float64, float64, float64) {
+	var priceAccumulator, volSum, changeSum float64
 	var deletions []string
 	oldestValid := time.Now().Add(-bot.RequestExpiry)
 	lowPrice := math.MaxFloat64
@@ -1032,6 +1044,7 @@ func (bot *ExchangeBot) processState(states map[string]*ExchangeState, volumeAve
 		}
 		volSum += volume
 		priceAccumulator += volume * state.Price
+		changeSum += volume * state.Change
 		// compare with low price
 		if state.Low > 0 && state.Low < lowPrice {
 			lowPrice = state.Low
@@ -1045,16 +1058,16 @@ func (bot *ExchangeBot) processState(states map[string]*ExchangeState, volumeAve
 		delete(states, token)
 	}
 	if volSum == 0 {
-		return 0, 0, 0, 0
+		return 0, 0, 0, 0, 0
 	}
 	if lowPrice == math.MaxFloat64 {
 		lowPrice = 0
 	}
-	return priceAccumulator / volSum, volSum, lowPrice, highPrice
+	return priceAccumulator / volSum, changeSum / volSum, volSum, lowPrice, highPrice
 }
 
-func (bot *ExchangeBot) processDCRBTCState(states map[string]*ExchangeState, volumeAveraged bool) (float64, float64) {
-	var priceAccumulator, volSum float64
+func (bot *ExchangeBot) processDCRBTCState(states map[string]*ExchangeState, volumeAveraged bool) (float64, float64, float64) {
+	var priceAccumulator, volSum, changeSum float64
 	var deletions []string
 	oldestValid := time.Now().Add(-bot.RequestExpiry)
 	for token, state := range states {
@@ -1071,14 +1084,15 @@ func (bot *ExchangeBot) processDCRBTCState(states map[string]*ExchangeState, vol
 		}
 		volSum += volume
 		priceAccumulator += volume * state.Price
+		changeSum += volume * state.Change
 	}
 	for _, token := range deletions {
 		delete(states, token)
 	}
 	if volSum == 0 {
-		return 0, 0
+		return 0, 0, 0
 	}
-	return priceAccumulator / volSum, volSum
+	return priceAccumulator / volSum, changeSum / volSum, volSum
 }
 
 // updateExchange processes an update from a Decred-BTC Exchange.
@@ -1155,9 +1169,9 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 			bot.currentState.BTCHighPrice = btcHigh
 		}
 	default:
-		dcrPrice, volume, lowPrice, highPrice := bot.processState(bot.currentState.DcrBtc, true)
-		dcrBtcPrice, dcrBtcVolume := bot.processDCRBTCState(bot.currentState.DcrBtc, true)
-		btcPrice, _, _, _ := bot.processState(bot.currentState.FiatIndices, false)
+		dcrPrice, dcrChange, volume, lowPrice, highPrice := bot.processState(bot.currentState.DcrBtc, true)
+		dcrBtcPrice, dcrBtcChange, dcrBtcVolume := bot.processDCRBTCState(bot.currentState.DcrBtc, true)
+		btcPrice, _, _, _, _ := bot.processState(bot.currentState.FiatIndices, false)
 		if dcrPrice == 0 || btcPrice == 0 {
 			bot.failed = true
 		} else {
@@ -1169,6 +1183,8 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 			bot.currentState.DCRBTCVolume = dcrBtcVolume
 			bot.currentState.LowPrice = lowPrice
 			bot.currentState.HighPrice = highPrice
+			bot.currentState.DCRUSD24hChange = dcrChange
+			bot.currentState.DCRBTC24hChange = dcrBtcChange
 		}
 	}
 
@@ -1190,8 +1206,9 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 
 // Called from both updateIndices and updateExchange (under mutex lock).
 func (bot *ExchangeBot) updateState() error {
-	dcrPrice, volume, lowPrice, highPrice := bot.processState(bot.currentState.DcrBtc, true)
-	btcPrice, _, _, _ := bot.processState(bot.currentState.FiatIndices, false)
+	dcrPrice, dcrChange, volume, lowPrice, highPrice := bot.processState(bot.currentState.DcrBtc, true)
+	dcrBtcPrice, dcrBtcChange, dcrBtcVolume := bot.processDCRBTCState(bot.currentState.DcrBtc, true)
+	btcPrice, _, _, _, _ := bot.processState(bot.currentState.FiatIndices, false)
 	if dcrPrice == 0 || btcPrice == 0 {
 		bot.failed = true
 	} else {
@@ -1201,6 +1218,10 @@ func (bot *ExchangeBot) updateState() error {
 		bot.currentState.Volume = volume
 		bot.currentState.LowPrice = lowPrice
 		bot.currentState.HighPrice = highPrice
+		bot.currentState.DCRUSD24hChange = dcrChange
+		bot.currentState.DCRBTCPrice = dcrBtcPrice
+		bot.currentState.DCRBTC24hChange = dcrBtcChange
+		bot.currentState.DCRBTCVolume = dcrBtcVolume
 	}
 
 	var jsonBytes []byte

@@ -206,6 +206,7 @@ WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 	SelectTreasuryRowsByPeriod = `SELECT *
 		FROM treasury WHERE is_mainchain AND block_time >= $1 AND block_time <= $2 AND block_height <= $3
 		ORDER BY block_time, tx_hash ASC;`
+	SelectTreasuryBalanceChangeIn24h = `SELECT SUM(value) FROM treasury WHERE block_time >= NOW() - INTERVAL '24 hours';`
 )
 
 // MakeTreasuryInsertStatement returns the appropriate treasury insert statement

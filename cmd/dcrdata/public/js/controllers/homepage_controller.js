@@ -226,10 +226,10 @@ export default class extends Controller {
     this.processBlock = this._processBlock.bind(this)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
     this.setupTooltips()
-    // const isDev = this.data.get('dev')
-    // if (isDev && isDev !== '') {
-    //   this.setAvgBlockTime()
-    // }
+    const isDev = this.data.get('dev')
+    if (isDev && isDev !== '') {
+      this.setAvgBlockTime()
+    }
   }
 
   async setAvgBlockTime () {

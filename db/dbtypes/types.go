@@ -2170,6 +2170,19 @@ type BlockDataBasic struct {
 	NumTx      uint32  `json:"txlength,omitempty"`
 }
 
+type TicketsSummaryInfo struct {
+	MissedTickets              uint64
+	Last1000BlocksMissed       uint64
+	Last1000BlocksTicketFeeAvg float64
+	TicketMaturity             uint64
+	TicketMaturityDuration     uint64
+	TicketExpiration           uint64
+	TicketExpirationDuration   uint64
+	WinProbability             float64
+	BlocksNeedToWin            uint64
+	TimeToBlocksNeedToWin      uint64
+}
+
 // BlockStatus describes a block's status in the block chain.
 type BlockStatus struct {
 	IsValid     bool   `json:"is_valid"`
@@ -2316,16 +2329,26 @@ type TreasuryBalance struct {
 }
 
 type Block24hInfo struct {
-	Blocks           int64 `json:"blocks"`
-	Spent24h         int64 `json:"spent24h"`
-	Sent24h          int64 `json:"sent24h"`
-	Fees24h          int64 `json:"fees24h"`
-	NumTx24h         int64 `json:"numTx24h"`
-	NumVin24h        int64 `json:"numVin24h"`
-	NumVout24h       int64 `json:"numVout24h"`
-	AtomicSwapAmount int64 `json:"atomicSwapAmount"`
-	SwapRedeemCount  int64 `json:"swapRedeemCount"`
-	SwapRefundCount  int64 `json:"swapRefundCount"`
+	Blocks                int64 `json:"blocks"`
+	Spent24h              int64 `json:"spent24h"`
+	Sent24h               int64 `json:"sent24h"`
+	Fees24h               int64 `json:"fees24h"`
+	NumTx24h              int64 `json:"numTx24h"`
+	NumVin24h             int64 `json:"numVin24h"`
+	NumVout24h            int64 `json:"numVout24h"`
+	AtomicSwapAmount      int64 `json:"atomicSwapAmount"`
+	SwapRedeemCount       int64 `json:"swapRedeemCount"`
+	SwapRefundCount       int64 `json:"swapRefundCount"`
+	ActiveAddresses       int64 `json:"activeAddresses"`
+	TotalPowReward        int64 `json:"totalPowReward"`
+	DCRSupply             int64 `json:"dcrSupply"`
+	StakedDCR             int64 `json:"stakedDCR"`
+	NumTickets            int64 `json:"numTickets"`
+	PosReward             int64 `json:"posReward"`
+	Voted                 int64 `json:"voted"`
+	Missed                int64 `json:"missed"`
+	TreasuryBalanceChange int64 `json:"treasuryBalanceChange"`
+	BisonWalletVol        int64 `json:"bisonWalletVol"`
 }
 
 // AddressTransactions collects the transactions for an address as AddressTx
@@ -2598,6 +2621,16 @@ func GetMonthFromString(month string) int64 {
 		return 0
 	}
 	return monthParse
+}
+
+type PoolDataItem struct {
+	BlockHeight int64  `json:"blockheight"`
+	PoolName    string `json:"poolName"`
+	BlockUrl    string `json:"blockurl"`
+	MinedBy     string `json:"minedby"`
+	Miner       string `json:"miner"`
+	Confirmed   bool   `json:"confirmed"`
+	PoolType    string `json:"poolType"`
 }
 
 type MarketCapData struct {

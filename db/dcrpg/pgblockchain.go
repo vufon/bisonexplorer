@@ -3810,6 +3810,33 @@ func (pgb *ChainDB) DevBalance() (*dbtypes.AddressBalance, error) {
 	return nil, fmt.Errorf("unable to query for balance during reorg")
 }
 
+// GetLast5PoolDataList return last 5 block pool info
+func (pgb *ChainDB) GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error) {
+	bestBlockHeight := pgb.bestBlock.Height()
+	poolData, err := externalapi.GetLastBlocksPool(bestBlockHeight)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*dbtypes.PoolDataItem, 0)
+	for i := bestBlockHeight; i > bestBlockHeight-5; i-- {
+		exist := false
+		for _, pool := range poolData {
+			if pool.BlockHeight == i {
+				exist = true
+				result = append(result, pool)
+				break
+			}
+		}
+		if !exist {
+			result = append(result, &dbtypes.PoolDataItem{
+				BlockHeight: i,
+				PoolType:    "",
+			})
+		}
+	}
+	return result, nil
+}
+
 // AddressBalance attempts to retrieve balance information for a specific
 // address from cache, and if cache is stale or missing data for the address, a
 // DB query is used. A successful DB query will freshen the cache.
@@ -9394,6 +9421,16 @@ func (pgb *ChainDB) GetExplorerBlocks(start int, end int) []*exptypes.BlockBasic
 	return summaries
 }
 
+// GetExplorerBlockBasic return block basic information by height
+func (pgb *ChainDB) GetExplorerBlockBasic(height int) *exptypes.BlockBasic {
+	data := pgb.GetBlockVerbose(height, true)
+	block := new(exptypes.BlockBasic)
+	if data != nil {
+		block = makeExplorerBlockBasic(data, pgb.chainParams)
+	}
+	return block
+}
+
 // txWithTicketPrice is a way to perform getrawtransaction and if the
 // transaction is unconfirmed, getstakedifficulty, while the chain server's best
 // block remains unchanged. If the transaction is confirmed, the ticket price is
@@ -10645,4 +10682,94 @@ func (pgb *ChainDB) GetDecredBestBlock() error {
 	}
 	pgb.bestBlock = bestBlock
 	return nil
+}
+
+// Get average block size with formatted string
+func (pgb *ChainDB) GetAvgBlockFormattedSize() (string, error) {
+	var avgBlockSize int64
+	err := pgb.db.QueryRow(internal.SelectAvgBlockSize).Scan(&avgBlockSize)
+	if err != nil {
+		return "", err
+	}
+	return humanize.Bytes(uint64(avgBlockSize)), nil
+}
+
+// GetAvgTxFee return average tx fees
+func (pgb *ChainDB) GetAvgTxFee() (int64, error) {
+	var avgTxFee int64
+	err := pgb.db.QueryRow(internal.SelectAvgTxFee).Scan(&avgTxFee)
+	if err != nil {
+		return 0, err
+	}
+	return avgTxFee, nil
+}
+
+// GetBwDashData get total bison wallet vol (By USD). From dcrsnapcsv (in the future, save to DB)
+// return (total vol : int64, last 30 days vol : int64)
+func (pgb *ChainDB) GetBwDashData() (int64, int64, int64) {
+	dailyData := utils.ReadCsvFileFromUrl("https://raw.githubusercontent.com/bochinchero/dcrsnapcsv/main/data/stream/dex_decred_org_VolUSD.csv")
+	dailyData = dailyData[1:]
+	var volSum, last30days, vol24h float64
+	count := 0
+	for i := len(dailyData) - 1; i >= 0; i-- {
+		dailyItem := dailyData[i]
+		dailySum := utils.SumVolOfBwRow(dailyItem)
+		volSum += dailySum
+		if i == len(dailyData)-1 {
+			vol24h = dailySum
+		}
+		if count < 30 {
+			last30days += dailySum
+			count++
+		}
+	}
+	return int64(math.Round(volSum)), int64(math.Round(last30days)), int64(math.Round(vol24h))
+}
+
+// GetTicketsSummaryInfo return summary information of tickets vote
+func (pgb *ChainDB) GetTicketsSummaryInfo() (*dbtypes.TicketsSummaryInfo, error) {
+	bestBlockHeight := pgb.bestBlock.Height()
+	// get summary info
+	result := dbtypes.TicketsSummaryInfo{}
+	err := pgb.db.QueryRow(internal.SelectTicketSummaryInfo, bestBlockHeight).Scan(&result.MissedTickets, &result.Last1000BlocksMissed, &result.Last1000BlocksTicketFeeAvg)
+	if err != nil {
+		return nil, err
+	}
+	// calculator for ticket maturity
+	result.TicketMaturity = uint64(pgb.chainParams.TicketMaturity)
+	// avg block time
+	timePerBlock := pgb.chainParams.TargetTimePerBlock
+	// calculate ticket maturity duration (by seconds)
+	result.TicketMaturityDuration = uint64(timePerBlock.Seconds()) * result.TicketMaturity
+	// ticket expiration
+	result.TicketExpiration = uint64(pgb.chainParams.TicketExpiry)
+	// calculate to ticket expiration duration (by seconds)
+	result.TicketExpirationDuration = uint64(timePerBlock.Seconds()) * result.TicketExpiration
+	// Calculate Win probability on 1 block
+	result.WinProbability = float64(pgb.chainParams.TicketsPerBlock) / float64(pgb.chainParams.TicketPoolSize*pgb.chainParams.TicketsPerBlock)
+	// Calculate the expected block number to ensure 100% selection
+	threshold := 0.0001
+	blocksNeed := uint64(math.Round(math.Log(threshold) / math.Log(1-result.WinProbability)))
+	result.BlocksNeedToWin = blocksNeed
+	result.TimeToBlocksNeedToWin = uint64(timePerBlock.Seconds()) * result.BlocksNeedToWin
+	return &result, nil
+}
+
+// Get24hActiveAddressesCount return active addresses count in 24h
+func (pgb *ChainDB) Get24hActiveAddressesCount() int64 {
+	var activeAddr int64
+	pgb.db.QueryRow(internal.SelectCount24hUniqueAddress).Scan(&activeAddr)
+	return activeAddr
+}
+
+// Get24hStakingInfo return 24h staking info
+func (pgb *ChainDB) Get24hStakingInfo() (poolvalue, missed int64, err error) {
+	err = pgb.db.QueryRow(internal.SelectStakingSummaryIn24h).Scan(&poolvalue, &missed)
+	return
+}
+
+// Get24hTreasuryBalanceChange return 24h treasury balance change
+func (pgb *ChainDB) Get24hTreasuryBalanceChange() (treasuryBalanceChange int64, err error) {
+	err = pgb.db.QueryRow(internal.SelectTreasuryBalanceChangeIn24h).Scan(&treasuryBalanceChange)
+	return
 }

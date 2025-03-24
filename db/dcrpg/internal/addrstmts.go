@@ -53,6 +53,10 @@ const (
 	SelectAddressSummaryDataByYear = `SELECT DATE_TRUNC('year',time) as tx_year,SUM(spent_value) as spent_value,SUM(received_value) as received_value FROM address_summary
 	WHERE EXTRACT(YEAR FROM time AT TIME ZONE 'UTC') = $1 GROUP BY tx_year;`
 
+	SelectCount24hUniqueAddress = `SELECT COUNT(DISTINCT address) AS active_addresses
+										FROM addresses
+									WHERE block_time >= NOW() - INTERVAL '24 HOURS';`
+
 	//update spent and total value
 	UpdateAddressSummaryByTotalAndSpent = `UPDATE address_summary SET spent_value = $1, received_value = $2, saved = $3, debit_revert_index = $4, credit_revert_index = $5 WHERE id = $6`
 

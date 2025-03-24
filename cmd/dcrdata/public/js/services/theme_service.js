@@ -49,12 +49,18 @@ document.addEventListener('turbolinks:before-render', function (event) {
 
 export function toggleMenu () {
   const checkbox = menuToggle()
+  if (!checkbox) {
+    return
+  }
   checkbox.checked = !checkbox.checked
   checkbox.dispatchEvent(new window.Event('change'))
 }
 
 export function closeMenu () {
   const checkbox = menuToggle()
+  if (!checkbox) {
+    return
+  }
   if (!checkbox.checked) return
   checkbox.checked = false
   checkbox.dispatchEvent(new window.Event('change'))

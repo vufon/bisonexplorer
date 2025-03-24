@@ -40,6 +40,7 @@ import (
 	"github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mempool"
 	"github.com/decred/dcrdata/v8/mutilchain"
+	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	humanize "github.com/dustin/go-humanize"
@@ -183,6 +184,15 @@ type explorerDataSource interface {
 	GetMultichainSwapFullData(txid, swapType, chainType string) (*dbtypes.AtomicSwapFullData, string, error)
 	GetMutilchainVoutIndexsOfContract(contractTx, chainType string) ([]int, error)
 	GetMutilchainVinIndexsOfRedeem(spendTx, chainType string) ([]int, error)
+	GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error)
+	GetExplorerBlockBasic(height int) *types.BlockBasic
+	GetAvgBlockFormattedSize() (string, error)
+	GetBwDashData() (int64, int64, int64)
+	GetAvgTxFee() (int64, error)
+	GetTicketsSummaryInfo() (*dbtypes.TicketsSummaryInfo, error)
+	Get24hActiveAddressesCount() int64
+	Get24hStakingInfo() (poolvalue, missed int64, err error)
+	Get24hTreasuryBalanceChange() (treasuryBalanceChange int64, err error)
 }
 
 type PoliteiaBackend interface {
@@ -472,6 +482,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 				BlockTime:        exp.ChainParams.TargetTimePerBlock.Nanoseconds(),
 				MeanVotingBlocks: exp.MeanVotingBlocks,
 			},
+			TreasuryBalance: &dbtypes.TreasuryBalance{},
 			PoolInfo: types.TicketPoolInfo{
 				Target: uint32(exp.ChainParams.TicketPoolSize) * uint32(exp.ChainParams.TicketsPerBlock),
 			},
@@ -670,6 +681,47 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		treasuryBalance = &dbtypes.TreasuryBalance{}
 	}
 
+	totalSize := exp.dataSource.GetDecredBlockchainSize()
+	totalTransactions := exp.dataSource.GetDecredTotalTransactions()
+	posSubsPerVote := dcrutil.Amount(blockData.ExtraInfo.NextBlockSubsidy.PoS).ToCoin() /
+		float64(exp.ChainParams.TicketsPerBlock)
+	// get peer count
+	peerCount, _ := exp.dataSource.GetPeerCount()
+	// Get additional blockchain info
+	totalAddresses, totalOutputs, _ := exp.dataSource.GetBlockchainSummaryInfo()
+	// Get atomic swaps summary info
+	swapsTotalContract, swapsTotalAmount, _ := exp.dataSource.GetAtomicSwapSummary()
+	// Get atomic swaps refund contract count
+	refundCount, _ := exp.dataSource.CountRefundContract()
+	// Get last 5 pool info
+	poolResult, err := exp.dataSource.GetLast5PoolDataList()
+	if err != nil {
+		log.Errorf("PoolAPI: Get Pool info from Pool API failed: %v", err)
+	}
+	// Get vsp list
+	vspList, err := externalapi.GetVSPList()
+	if err != nil {
+		log.Errorf("VspAPI: Get vsp list failed: %v", err)
+	}
+	// Get average block size
+	formattedAvgBlockSize, err := exp.dataSource.GetAvgBlockFormattedSize()
+	if err != nil {
+		log.Errorf("AvgBlockSize: Get Average block size failed: %v", err)
+	}
+	// Get average tx fees
+	avgTxFee, err := exp.dataSource.GetAvgTxFee()
+	if err != nil {
+		log.Errorf("GetAvgTxFee: Get Average tx fees failed: %v", err)
+	}
+
+	// Get tickets summary
+	ticketSummaryInfo, err := exp.dataSource.GetTicketsSummaryInfo()
+	if err != nil {
+		log.Errorf("GetTicketsSummaryInfo: Get tickets summary info failed: %v", err)
+	}
+
+	// calculator total bison wallet vol
+	bwVol, bwLast30DaysVol, bw24hVol := exp.dataSource.GetBwDashData()
 	// Update pageData with block data and chain (home) info.
 	p := exp.pageData
 	p.Lock()
@@ -677,7 +729,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	// Store current block and blockchain data.
 	p.BlockInfo = newBlockData
 	p.BlockchainInfo = blockData.BlockchainInfo
-
+	p.HomeInfo.PeerCount = int64(peerCount)
 	// Update HomeInfo.
 	p.HomeInfo.HashRate = hashrate
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
@@ -696,10 +748,21 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.NBlockSubsidy.PoS = blockData.ExtraInfo.NextBlockSubsidy.PoS
 	p.HomeInfo.NBlockSubsidy.PoW = blockData.ExtraInfo.NextBlockSubsidy.PoW
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockSubsidy.Total
-	p.HomeInfo.TotalSize = exp.dataSource.GetDecredBlockchainSize()
-	p.HomeInfo.TotalTransactions = exp.dataSource.GetDecredTotalTransactions()
+	p.HomeInfo.TotalSize = totalSize
+	p.HomeInfo.TotalTransactions = totalTransactions
 	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(p.HomeInfo.TotalSize))
-
+	p.HomeInfo.TotalAddresses = totalAddresses
+	p.HomeInfo.TotalOutputs = totalOutputs
+	p.HomeInfo.SwapsTotalContract = swapsTotalContract
+	p.HomeInfo.SwapsTotalAmount = swapsTotalAmount
+	p.HomeInfo.RefundCount = refundCount
+	p.HomeInfo.PoolDataList = poolResult
+	p.HomeInfo.VSPList = vspList
+	p.HomeInfo.FormattedAvgBlockSize = formattedAvgBlockSize
+	p.HomeInfo.BisonWalletVol = bwVol
+	p.HomeInfo.BWLast30DaysVol = bwLast30DaysVol
+	p.HomeInfo.TxFeeAvg = avgTxFee
+	p.HomeInfo.TicketsSummary = ticketSummaryInfo
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {
@@ -714,21 +777,8 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		}
 	}
 
-	posSubsPerVote := dcrutil.Amount(blockData.ExtraInfo.NextBlockSubsidy.PoS).ToCoin() /
-		float64(exp.ChainParams.TicketsPerBlock)
 	p.HomeInfo.TicketReward = 100 * posSubsPerVote /
 		blockData.CurrentStakeDiff.CurrentStakeDifficulty
-	// get peer count
-	peerCount, err := exp.dataSource.GetPeerCount()
-	if err == nil {
-		p.HomeInfo.PeerCount = int64(peerCount)
-	}
-	// Get additional blockchain info
-	p.HomeInfo.TotalAddresses, p.HomeInfo.TotalOutputs, _ = exp.dataSource.GetBlockchainSummaryInfo()
-	// Get atomic swaps summary info
-	p.HomeInfo.SwapsTotalContract, p.HomeInfo.SwapsTotalAmount, _ = exp.dataSource.GetAtomicSwapSummary()
-	// Get atomic swaps refund contract count
-	p.HomeInfo.RefundCount, _ = exp.dataSource.CountRefundContract()
 	// The actual reward of a ticket needs to also take into consideration the
 	// ticket maturity (time from ticket purchase until its eligible to vote)
 	// and coinbase maturity (time after vote until funds distributed to ticket
@@ -822,9 +872,36 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		}
 		p.Unlock()
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEDCR)
+		// get active addr num count
+		activeAddr := exp.dataSource.Get24hActiveAddressesCount()
+		poolvalue24hBefore, misses, err := exp.dataSource.Get24hStakingInfo()
+		if err != nil {
+			log.Errorf("Get24hStakingInfo failed: %v", err)
+		}
+		treasuryBalance24hChange, err := exp.dataSource.Get24hTreasuryBalanceChange()
+		if err != nil {
+			log.Errorf("Get24hTreasuryBalanceChange failed: %v", err)
+		}
 		p.Lock()
 		if err24h == nil {
 			p.HomeInfo.Block24hInfo = summary24h
+			p.HomeInfo.Block24hInfo.ActiveAddresses = activeAddr
+			p.HomeInfo.Block24hInfo.TotalPowReward = p.HomeInfo.Block24hInfo.Blocks * p.HomeInfo.NBlockSubsidy.PoW
+			p.HomeInfo.Block24hInfo.DCRSupply = p.HomeInfo.Block24hInfo.TotalPowReward * 100
+			currentPoolValue, err := dcrutil.NewAmount(p.HomeInfo.PoolInfo.Value)
+			if err == nil {
+				p.HomeInfo.Block24hInfo.StakedDCR = int64(currentPoolValue) - poolvalue24hBefore
+			}
+			p.HomeInfo.Block24hInfo.Missed = misses
+			p.HomeInfo.Block24hInfo.PosReward = p.HomeInfo.Block24hInfo.TotalPowReward * 89
+			p.HomeInfo.Block24hInfo.Voted = p.HomeInfo.Block24hInfo.Blocks * 5
+			p.HomeInfo.Block24hInfo.TreasuryBalanceChange = treasuryBalance24hChange
+			p.HomeInfo.Block24hInfo.BisonWalletVol = bw24hVol
+			stakeDiffAmount, err := dcrutil.NewAmount(p.HomeInfo.StakeDiff)
+			if err != nil {
+				log.Errorf("Convert to amount failed: %v", err)
+			}
+			p.HomeInfo.Block24hInfo.NumTickets = int64(math.Abs(math.Round(float64(p.HomeInfo.Block24hInfo.StakedDCR) / float64(stakeDiffAmount))))
 		} else {
 			log.Errorf("Sync DCR 24h Metrics Failed: %v", err24h)
 		}
