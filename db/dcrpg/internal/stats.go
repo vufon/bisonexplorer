@@ -70,4 +70,22 @@ const (
 		WHERE height BETWEEN $1 AND $2
 			AND is_mainchain
 	;`
+
+	SelectStakingSummaryIn24h = `WITH filtered_blocks AS (
+    SELECT height
+    FROM blocks
+    WHERE time >= NOW() - INTERVAL '24 hours')
+	SELECT 
+    	s.pool_val,
+    	COALESCE(m.miss_count, 0) AS miss_count
+	FROM stats s
+	JOIN (
+    	SELECT MIN(height) AS min_height
+    	FROM filtered_blocks
+	) fb ON s.height = fb.min_height
+	LEFT JOIN (
+    	SELECT COUNT(*) AS miss_count
+    	FROM misses
+    	WHERE height IN (SELECT height FROM filtered_blocks)
+	) m ON TRUE;`
 )

@@ -187,10 +187,12 @@ type explorerDataSource interface {
 	GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error)
 	GetExplorerBlockBasic(height int) *types.BlockBasic
 	GetAvgBlockFormattedSize() (string, error)
-	GetBwDashData() (int64, int64)
+	GetBwDashData() (int64, int64, int64)
 	GetAvgTxFee() (int64, error)
 	GetTicketsSummaryInfo() (*dbtypes.TicketsSummaryInfo, error)
 	Get24hActiveAddressesCount() int64
+	Get24hStakingInfo() (poolvalue, missed int64, err error)
+	Get24hTreasuryBalanceChange() (treasuryBalanceChange int64, err error)
 }
 
 type PoliteiaBackend interface {
@@ -719,7 +721,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	}
 
 	// calculator total bison wallet vol
-	bwVol, bwLast30DaysVol := exp.dataSource.GetBwDashData()
+	bwVol, bwLast30DaysVol, bw24hVol := exp.dataSource.GetBwDashData()
 	// Update pageData with block data and chain (home) info.
 	p := exp.pageData
 	p.Lock()
@@ -872,12 +874,34 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEDCR)
 		// get active addr num count
 		activeAddr := exp.dataSource.Get24hActiveAddressesCount()
+		poolvalue24hBefore, misses, err := exp.dataSource.Get24hStakingInfo()
+		if err != nil {
+			log.Errorf("Get24hStakingInfo failed: %v", err)
+		}
+		treasuryBalance24hChange, err := exp.dataSource.Get24hTreasuryBalanceChange()
+		if err != nil {
+			log.Errorf("Get24hTreasuryBalanceChange failed: %v", err)
+		}
 		p.Lock()
 		if err24h == nil {
 			p.HomeInfo.Block24hInfo = summary24h
 			p.HomeInfo.Block24hInfo.ActiveAddresses = activeAddr
 			p.HomeInfo.Block24hInfo.TotalPowReward = p.HomeInfo.Block24hInfo.Blocks * p.HomeInfo.NBlockSubsidy.PoW
-			p.HomeInfo.Block24hInfo.DCRSupply = p.HomeInfo.Block24hInfo.Blocks * p.HomeInfo.NBlockSubsidy.PoW * 100
+			p.HomeInfo.Block24hInfo.DCRSupply = p.HomeInfo.Block24hInfo.TotalPowReward * 100
+			currentPoolValue, err := dcrutil.NewAmount(p.HomeInfo.PoolInfo.Value)
+			if err == nil {
+				p.HomeInfo.Block24hInfo.StakedDCR = int64(currentPoolValue) - poolvalue24hBefore
+			}
+			p.HomeInfo.Block24hInfo.Missed = misses
+			p.HomeInfo.Block24hInfo.PosReward = p.HomeInfo.Block24hInfo.TotalPowReward * 89
+			p.HomeInfo.Block24hInfo.Voted = p.HomeInfo.Block24hInfo.Blocks * 5
+			p.HomeInfo.Block24hInfo.TreasuryBalanceChange = treasuryBalance24hChange
+			p.HomeInfo.Block24hInfo.BisonWalletVol = bw24hVol
+			stakeDiffAmount, err := dcrutil.NewAmount(p.HomeInfo.StakeDiff)
+			if err != nil {
+				log.Errorf("Convert to amount failed: %v", err)
+			}
+			p.HomeInfo.Block24hInfo.NumTickets = int64(math.Abs(math.Round(float64(p.HomeInfo.Block24hInfo.StakedDCR) / float64(stakeDiffAmount))))
 		} else {
 			log.Errorf("Sync DCR 24h Metrics Failed: %v", err24h)
 		}

@@ -811,7 +811,6 @@
       max-width: 98%;
       max-height: 100%;
       margin: 0 2%;
-      min-height: 0;
       width: auto;
     }
   }
@@ -924,7 +923,8 @@
   border-top-right-radius: 10px;
 }
 
-.link-to-subpage:hover {
+.link-to-subpage:hover,
+.new-home-card-header:hover {
   background-color: #d7e5f0;
 }
 
@@ -994,7 +994,8 @@ body.darkBG.homepage-body {
     background-color: white;
   }
 
-  .link-to-subpage:hover {
+  .link-to-subpage:hover,
+  .new-home-card-header:hover {
     background-color: #636161;
   }
 

@@ -10706,20 +10706,24 @@ func (pgb *ChainDB) GetAvgTxFee() (int64, error) {
 
 // GetBwDashData get total bison wallet vol (By USD). From dcrsnapcsv (in the future, save to DB)
 // return (total vol : int64, last 30 days vol : int64)
-func (pgb *ChainDB) GetBwDashData() (int64, int64) {
+func (pgb *ChainDB) GetBwDashData() (int64, int64, int64) {
 	dailyData := utils.ReadCsvFileFromUrl("https://raw.githubusercontent.com/bochinchero/dcrsnapcsv/main/data/stream/dex_decred_org_VolUSD.csv")
 	dailyData = dailyData[1:]
-	var volSum, last30days float64
+	var volSum, last30days, vol24h float64
 	count := 0
-	for _, dailyItem := range dailyData {
+	for i := len(dailyData) - 1; i >= 0; i-- {
+		dailyItem := dailyData[i]
 		dailySum := utils.SumVolOfBwRow(dailyItem)
 		volSum += dailySum
+		if i == len(dailyData)-1 {
+			vol24h = dailySum
+		}
 		if count < 30 {
 			last30days += dailySum
 			count++
 		}
 	}
-	return int64(math.Round(volSum)), int64(math.Round(last30days))
+	return int64(math.Round(volSum)), int64(math.Round(last30days)), int64(math.Round(vol24h))
 }
 
 // GetTicketsSummaryInfo return summary information of tickets vote
@@ -10756,4 +10760,16 @@ func (pgb *ChainDB) Get24hActiveAddressesCount() int64 {
 	var activeAddr int64
 	pgb.db.QueryRow(internal.SelectCount24hUniqueAddress).Scan(&activeAddr)
 	return activeAddr
+}
+
+// Get24hStakingInfo return 24h staking info
+func (pgb *ChainDB) Get24hStakingInfo() (poolvalue, missed int64, err error) {
+	err = pgb.db.QueryRow(internal.SelectStakingSummaryIn24h).Scan(&poolvalue, &missed)
+	return
+}
+
+// Get24hTreasuryBalanceChange return 24h treasury balance change
+func (pgb *ChainDB) Get24hTreasuryBalanceChange() (treasuryBalanceChange int64, err error) {
+	err = pgb.db.QueryRow(internal.SelectTreasuryBalanceChangeIn24h).Scan(&treasuryBalanceChange)
+	return
 }

@@ -182,19 +182,21 @@ func (exp *ExplorerUI) timeoutErrorPage(w http.ResponseWriter, err error, debugS
 
 // For the exchange rates on the homepage
 type homeConversions struct {
-	ExchangeRate    *exchanges.Conversion
-	StakeDiff       *exchanges.Conversion
-	CoinSupply      *exchanges.Conversion
-	PowSplit        *exchanges.Conversion
-	TreasurySplit   *exchanges.Conversion
-	TreasuryBalance *exchanges.Conversion
-	Sent24h         *exchanges.Conversion
-	Fees24h         *exchanges.Conversion
-	SwapsAmount24h  *exchanges.Conversion
-	MempoolSpending *exchanges.Conversion
-	MempoolFees     *exchanges.Conversion
-	PowReward24h    *exchanges.Conversion
-	Supply24h       *exchanges.Conversion
+	ExchangeRate      *exchanges.Conversion
+	StakeDiff         *exchanges.Conversion
+	CoinSupply        *exchanges.Conversion
+	PowSplit          *exchanges.Conversion
+	TreasurySplit     *exchanges.Conversion
+	TreasuryBalance   *exchanges.Conversion
+	Sent24h           *exchanges.Conversion
+	Fees24h           *exchanges.Conversion
+	SwapsAmount24h    *exchanges.Conversion
+	MempoolSpending   *exchanges.Conversion
+	MempoolFees       *exchanges.Conversion
+	PowReward24h      *exchanges.Conversion
+	PosReward24h      *exchanges.Conversion
+	Supply24h         *exchanges.Conversion
+	Treasury24hChange *exchanges.Conversion
 }
 
 // For the exchange rates on the homepage
@@ -398,13 +400,15 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + balance).ToCoin()),
 			MempoolSpending: xcBot.Conversion(inv.LikelyMineable.Total),
 			MempoolFees:     xcBot.Conversion(mempoolInfo.Fees),
-			PowReward24h:    xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.TotalPowReward).ToCoin()),
-			Supply24h:       xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.DCRSupply).ToCoin()),
 		}
 		if homeInfo.Block24hInfo != nil {
 			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())
 			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Fees24h).ToCoin())
 			conversions.SwapsAmount24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.AtomicSwapAmount).ToCoin())
+			conversions.PowReward24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.TotalPowReward).ToCoin())
+			conversions.Supply24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.DCRSupply).ToCoin())
+			conversions.PosReward24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.PosReward).ToCoin())
+			conversions.Treasury24hChange = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.TreasuryBalanceChange).ToCoin())
 		}
 	}
 

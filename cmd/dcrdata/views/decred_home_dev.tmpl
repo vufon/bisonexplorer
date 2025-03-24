@@ -292,21 +292,22 @@
    data-charts-block-time="{{.ChainParams.TargetTimePerBlock.Seconds}}">
    <div class="hp-explore-wrap homepage-page">
       <div class="container px-0 py-2">
-         <section class="h-100 px-3 py-2">
-            <h5 class="explore-card__header__text__name">Blockchain Information</h5>
-            <div class="row mt-2">
+         <section class="h-100">
+            <div class="row">
                <div class="col-24 col-md-12 col-lg-8 p-2">
                   <div class="new-home-card-container">
+                     <a href='/blocks' data-turbolinks="false" class="link-to-subpage">
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
                            loading="lazy"></span>
-                        <p class="ms-2 mb-0 fw-600 fs-17">Lastest Blocks</p>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Blocks</p>
                      </div>
+                     </a>
                      {{with .BestBlock -}}
                      <div class="row justify-content-between px-3 py-2">
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
-                              <span class="new-network-stats-title">Height</span>
+                              <span class="new-network-stats-title">Lastest Blocks</span>
                               <span class="new-network-stats-content d-inline-block">
                                  <a class="fs-22" data-turbolinks="false" href="/block/{{.Hash}}"
                                     data-homepage-target="blockHeight">{{.Height}}</a>
@@ -362,11 +363,13 @@
                </div>
                <div class="col-24 col-md-12 col-lg-16 p-2">
                   <div class="new-home-card-container">
+                     <a href='/supply' data-turbolinks="false" class="link-to-subpage">
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="dcricon-tree explore-card__header__logo" alt="distribution of decred"
                            loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">Distribution</p>
                      </div>
+                     </a>
                      {{with .Info -}}
                      <div class="row justify-content-between px-3 py-2">
                         <div class="col-24 col-sm-12">
@@ -597,16 +600,17 @@
    </div>
    <div class="hp-explore-wrap homepage-page">
       <div class="container px-0 py-2">
-         <section class="h-100 px-3 py-2">
-            <h5 class="explore-card__header__text__name">Mempool Space</h5>
-            <div class="row mt-2">
+         <section class="h-100">
+            <div class="row">
                <div class="col-24 col-lg-8 p-2">
                   <div class="new-home-card-container">
+                     <a href='/mempool' data-turbolinks="false" class="link-to-subpage">
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="homeicon-mempool explore-card__header__logo" alt="Mempool route"
                            loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">Mempool</p>
                      </div>
+                    </a>
                      <div class="row justify-content-between px-3 py-2">
                         <div class="col-24 mb-3">
                            <div>
@@ -840,9 +844,14 @@
                               </span>
                            </div>
                         </div>
+                        {{if gt (len .TrimmedMempool.TSpends) 0}}
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
-                              <span class="new-network-stats-title">Treasury Spending</span>
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false" href="/treasury">
+                                 Treasury Spending
+                                 </a>
+                              </span>
                               <span class="new-network-stats-content d-inline-block pt-1">
                                  <span>
                                     {{threeSigFigs .TrimmedMempool.TSpendTotal}}
@@ -854,6 +863,7 @@
                               </span>
                            </div>
                         </div>
+                        {{end}}
                      </div>
                   </div>
                </div>
@@ -1088,7 +1098,7 @@
                         <td class="ps-2 py-2 text-end">
                            <p class="fs-16">
                               {{if $conv -}}
-                              $<span>{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>
+                              <span>{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>
                               {{- end}}</span>
                            </p>
                         </td>
@@ -1113,16 +1123,12 @@
                   </tbody>
                </table>
                <div class="d-flex justify-content-between">
-                  <p class="mb-0 fs-13">Low</p>
-                  <p class="mb-0 fs-13">High</p>
+                  <p class="mb-0 fs-13">Low ({{printf "%.2f" $botState.LowPrice}})</p>
+                  <p class="mb-0 fs-13">High ({{printf "%.2f" $botState.HighPrice}})</p>
                </div>
                <div class="fs22 text-center pb-3">
                   <div class="range-price-bar" id="priceBar" data-low="{{$botState.LowPrice}}"
                      data-high="{{$botState.HighPrice}}" data-price="{{$botState.Price}}">
-                     <div class="d-flex justify-content-between">
-                        <span class="fs-13 mt-2">{{printf "%.2f" $botState.LowPrice}}</span>
-                        <span class="fs-13 mt-2">{{printf "%.2f" $botState.HighPrice}}</span>
-                     </div>
                      <div class="range-marker" id="currentMarker"></div>
                      <div class="range-label fs-13" id="currentLabel">{{printf "%.2f" $botState.Price}}</div>
                   </div>
@@ -1309,10 +1315,9 @@
    </div>
    <div class="hp-explore-wrap homepage-page row mx-0">
       <div class="px-0 py-2">
-         <section class="h-100 px-3 py-2">
-            <h5 class="explore-card__header__text__name">Staking And Voting</h5>
+         <section class="h-100 px-3">
             {{with .Info -}}
-            <div class="row mt-2">
+            <div class="row">
                <div class="col-24 col-lg-14 p-2">
                   <div class="new-home-card-container">
                      <a href='/ticketpool' data-turbolinks="false" class="link-to-subpage">
@@ -1522,7 +1527,7 @@
                                  <span>{{normalWithPrecFloat (x100 .WinProbability) 4}}</span>
                                  <span class="new-info-line-2-sub">%/1 block</span>
                               </span>
-                              <span class="stats-subinfo">est {{intComma .BlocksNeedToWin}} blocks ~ {{secondsToShortDurationString (int64 .TimeToBlocksNeedToWin)}} to win</span>
+                              <span class="stats-subinfo">est {{intComma .BlocksNeedToWin}} blocks ~ {{secondsToShortDurationString (int64 .TimeToBlocksNeedToWin)}} to win 100%</span>
                            </div>
                         </div>
                         {{end}}
@@ -1588,20 +1593,19 @@
    </div>
    <div class="hp-explore-wrap homepage-page">
       <div class="container px-0 py-2">
-         <section class="h-100 px-3 py-2">
-            <h5 class="explore-card__header__text__name">24h Metrics</h5>
+         <section class="h-100">
             {{if .Info.Block24hInfo}}
             {{with .Info.Block24hInfo}}
-            <div class="row mt-2">
-               <div class="col-24 col-sm-16 p-2">
+            <div class="row">
+               <div class="col-24 col-sm-12 p-2">
                   <div class="new-home-card-container">
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
                            loading="lazy"></span>
-                        <p class="ms-2 mb-0 fw-600 fs-17">Chain Summary</p>
+                        <p class="ms-2 mb-0 fw-600 fs-17">24h Chain Summary</p>
                      </div>
                      <div class="row px-3 py-2">
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Mined Blocks</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
@@ -1609,7 +1613,7 @@
                               </span>
                            </div>
                         </div>
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Transactions</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
@@ -1617,7 +1621,7 @@
                               </span>
                            </div>
                         </div>
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Sent</span>
                               <div class="new-network-stats-content d-inline-block">
@@ -1632,7 +1636,7 @@
                               {{end}}
                            </div>
                         </div>
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Fees</span>
                            <div class="new-network-stats-content d-inline-block">
@@ -1647,7 +1651,7 @@
                            {{end}}
                            </div>
                         </div>
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Outputs</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
@@ -1655,7 +1659,7 @@
                               </span>
                            </div>
                         </div>
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Active Addresses</span>
                            <div class="new-network-stats-content d-inline-block pt-1">
@@ -1663,7 +1667,7 @@
                            </div>
                         </div>
                         </div>
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total PoW Reward</span>
                            <div class="new-network-stats-content d-inline-block">
@@ -1678,10 +1682,11 @@
                            {{end}}
                         </div>
                         </div>
-                        <div class="col-12 col-md-8">
+                        <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">DCR Supply</span>
                               <span class="new-network-stats-content d-inline-block">
+                                 <span class="fs15">+</span>
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .DCRSupply) 2
                                  true)}}
                               </span>
@@ -1693,26 +1698,67 @@
                            {{end}}
                            </div>
                         </div>
+                        <div class="col-12 col-md-12">
+                           <div class="new-network-stats-block pb-2">
+                              <span class="new-network-stats-title">Treasury Balance Change</span>
+                              <span class="new-network-stats-content d-inline-block">
+                                 {{if gt .TreasuryBalanceChange 0}}
+                                 <span class="dcricon-arrow-up text-green"></span>
+                                 {{else}}
+                                 <span class="dcricon-arrow-down text-danger"></span>
+                                 {{end}}
+                                 <span class="{{if gt .TreasuryBalanceChange 0}}c-green-2{{else}}c-red{{end}}">
+                                    {{template "decimalParts" (float64AsDecimalParts (toAbsValue (toFloat64Amount .TreasuryBalanceChange)) 2
+                                    true)}}
+                                 </span>
+                              </span>
+                              <span class="new-info-line-2-sub">DCR</span>
+                              {{if $conv -}}
+                              <span class="stats-subinfo">
+                                 {{if gt .TreasuryBalanceChange 0}}
+                                 <span class="dcricon-arrow-up text-green"></span>
+                                 {{else}}
+                                 <span class="dcricon-arrow-down text-danger"></span>
+                                 {{end}}
+                                 <span class="{{if gt .TreasuryBalanceChange 0}}c-green-2{{else}}c-red{{end}}">{{threeSigFigs (toAbsValue $conv.Treasury24hChange.Value)}}</span>
+                                 {{$conv.Treasury24hChange.Index}}</span>
+                              {{end}}
+                           </div>
+                        </div>
                      </div>
                   </div>
                </div>
-               <div class="col-24 col-sm-8 p-2">
+               <div class="col-24 col-sm-12 p-2">
                   <div class="new-home-card-container">
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
                            loading="lazy"></span>
-                        <p class="ms-2 mb-0 fw-600 fs-17">Staking</p>
+                        <p class="ms-2 mb-0 fw-600 fs-17">24h Staking</p>
                      </div>
                      <div class="row justify-content-between px-3 py-2">
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Staked DCR</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 2,550
+                                 {{if gt .StakedDCR 0}}
+                                 <span class="dcricon-arrow-up text-green"></span>
+                                 {{else}}
+                                 <span class="dcricon-arrow-down text-danger"></span>
+                                 {{end}}
+                                 <span class="{{if gt .StakedDCR 0}}c-green-2{{else}}c-red{{end}}">
+                                    {{template "decimalParts" (float64AsDecimalParts (toAbsValue (toFloat64Amount .StakedDCR)) 2
+                                    true)}}
+                                 </span>
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
                               <span class="stats-subinfo">
-                                 ~ 2 tickets
+                                 {{if gt .StakedDCR 0}}
+                                 <span class="dcricon-arrow-up text-green"></span>
+                                 {{else}}
+                                 <span class="dcricon-arrow-down text-danger"></span>
+                                 {{end}}
+                                 <span class="{{if gt .StakedDCR 0}}c-green-2{{else}}c-red{{end}}">{{.NumTickets}}</span>
+                                 tickets
                               </span>
                            </div>
                         </div>
@@ -1720,32 +1766,33 @@
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">PoS Rewards</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 25
+                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .PosReward) 2
+                                 true)}}
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
+                              {{if $conv -}}
                               <span class="stats-subinfo">
-                                 ~ $250 USD (today)
-                              </span>
+                                 {{threeSigFigs $conv.PosReward24h.Value}}
+                                 {{$conv.PosReward24h.Index}}</span>
+                              {{end}}
                            </div>
                         </div>
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Voted</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 125
+                                 {{int64Comma .Voted}}
                               </span>
-                              <span class="new-info-line-2-sub">DCR</span>
-                              <span class="stats-subinfo">
-                                 ~ $1370 USD rewards
-                              </span>
+                              <span class="new-info-line-2-sub">votes</span>
                            </div>
                         </div>
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Missed</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 125 votes
+                                 {{int64Comma .Missed}}
                               </span>
+                              <span class="new-info-line-2-sub">votes</span>
                            </div>
                         </div>
                      </div>
@@ -1754,7 +1801,7 @@
                      <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                         <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
                            loading="lazy"></span>
-                        <p class="ms-2 mb-0 fw-600 fs-17">Atomic Swaps</p>
+                        <p class="ms-2 mb-0 fw-600 fs-17">24h Atomic Swaps</p>
                      </div>
                      <div class="row justify-content-between px-3 py-2">
                         <div class="col-12">
@@ -1786,8 +1833,9 @@
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Bison Wallet Vol</span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 N/A
+                                 {{int64Comma .BisonWalletVol}}
                               </span>
+                              <span class="new-info-line-2-sub">USD</span>
                            </div>
                         </div>
                      </div>
@@ -1800,26 +1848,26 @@
       </div>
    </div>
    <div class="hp-explore-wrap homepage-page">
-      <div class="container px-0 py-2">
+      <div style="width: 100%; height: 100%;">
          <section class="h-100 px-3 py-2">
-            <div class="row mt-2">
+            <div class="row">
                <div class="col-24 p-2">
                   <div class="new-home-card-container">
                      <a href="/charts" data-turbolinks="false" class="link-to-subpage">
                         <div class="row new-home-card-header mx-0">
-                           <div class="col-xs-24 col-md-8 col-lg-7 col-xl-5 py-2 px-3 d-flex ai-center">
+                           <div class="col-xs-24 col-md-8 col-lg-7 col-xl-4 py-2 px-3 d-flex ai-center">
                               <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
                               loading="lazy"></span>
                               <p class="ms-2 mb-0 fw-600 fs-17">Chain Charts</p>
                            </div>
-                           <div class="col-xs-24 col-md-16 col-lg-17 col-xl-19 d-flex justify-content-center ai-center">
+                           <div class="col-xs-24 col-md-16 col-lg-17 col-xl-20 d-flex justify-content-center ai-center">
                               <span class="fs-22 fw-600" data-charts-target="chartTitleName"></span>
                            </div>
                         </div>
                     </a>
                      <div class="px-3 py-2">
                         <div class="row">
-                           <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-5 align-center">
+                           <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-4 align-center">
                               <div class="chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
                                  <div class="chart-control-label">CHART</div>
                                  <div class="chart-control">
@@ -1983,7 +2031,7 @@
                               </div>
                            </div>
                            <div
-                              class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-19 border-1-grey home-chart-wrapper pe-0"
+                              class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-20 border-1-grey home-chart-wrapper pe-0"
                               data-charts-target="chartWrapper">
                               <div class="d-flex w-100 position-relative">
                                  <div class="chart-name-label d-flex align-items-center">
@@ -2269,7 +2317,7 @@
 
    .range-label {
       position: absolute;
-      top: 23px;
+      top: 15px;
       font-size: 14px;
       color: #333;
       transform: translateX(-50%);
