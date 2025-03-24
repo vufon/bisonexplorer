@@ -44,8 +44,8 @@
 }
 
 .home-thumbnail-bar img {
-  width: 50px;
-  height: 50px;
+  width: 35px;
+  height: 35px;
   object-fit: cover;
   border-radius: 8px;
   opacity: 0.5;
@@ -54,5 +54,7 @@
 
 .home-thumbnail-bar img.active {
   opacity: 1;
-  border: 2px solid #fff;
+  border: 2px solid #000;
+  width: 40px;
+  height: 40px;
 }
