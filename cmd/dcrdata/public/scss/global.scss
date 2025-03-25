@@ -2218,8 +2218,17 @@ body.darkBG {
     background-color: transparent !important;
   }
 
+  .new-home-card-header {
+    color: white;
+    background-color: #3f3f3f;
+  }
+
   .link-to-subpage {
     background-color: #3f3f3f;
+
+    .new-home-card-header:hover {
+      background-color: #636161;
+    }
   }
 
   .explore-card__header,
