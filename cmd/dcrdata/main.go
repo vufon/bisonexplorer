@@ -902,7 +902,7 @@ func _main(ctx context.Context) error {
 	}
 
 	webMux.With(explore.SyncStatusPageIntercept).Group(func(r chi.Router) {
-		r.Get("/", explore.DecredHome)
+		r.Get("/", explore.GetHomeDev)
 		r.Get("/visualblocks", explore.VisualBlocks)
 	})
 	webMux.Get("/ws", explore.RootWebsocket)
