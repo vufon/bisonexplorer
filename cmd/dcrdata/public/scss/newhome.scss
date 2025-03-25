@@ -184,10 +184,6 @@
     gap: 5px;
   }
 
-  .submenu-list__wrapper {
-    margin-top: 30px;
-  }
-
   .submenu-list__item {
     width: 100%;
     padding: 0;
@@ -201,6 +197,16 @@
 
   .submenu-list__title {
     display: none;
+  }
+
+  .home-menu-dropdown {
+    padding: 10px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .two-column {
+    width: 300px;
   }
 }
 

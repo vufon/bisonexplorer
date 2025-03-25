@@ -15,12 +15,12 @@
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Decred Explorer by bisonexplorer.com"}}
 {{ template "new_home_navbar" . }}
-<div class="d-flex justify-content-between ai-end new-home-header container py-2 px-0" id="newHomeMenu">
-   <div class="d-flex">
-      <img id="pageBarIcon" src="/images/blockchain-icon.svg" width="25" height="25">
-      <span id="pageBarTitle" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
+<div class="d-sm-flex justify-content-between ai-end new-home-header container py-2 px-0" id="newHomeMenu">
+   <div class="d-none d-sm-flex mb-sm-0">
+      <img id="pageBarIconTop" src="/images/blockchain-icon.svg" width="25" height="25">
+      <span id="pageBarTitleTop" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
-   <div class="button-group-navigation d-flex ai-end">
+   <div class="button-group-navigation d-flex justify-content-center justify-content-sm-end ai-end">
       {{if .Conversions}}
 			<p class="me-2 mb-0 d-none d-md-flex ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span data-homepage-target="exchangeRate">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
 		{{end}}
@@ -38,7 +38,7 @@
                         </div>
                         <a href="/blocks" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Blocks</span>
-                           <span class="submenu-list__item-subtile">Latest block information</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Latest block information</span>
                         </a>
                      </div>
                   </li>
@@ -50,7 +50,7 @@
                         </div>
                         <a href="/mempool" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Mempool</span>
-                           <span class="submenu-list__item-subtile">List of pending transactions</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">List of pending transactions</span>
                         </a>
                      </div>
                   </li>
@@ -62,7 +62,7 @@
                         </div>
                         <a href="treasury" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Treasury</span>
-                           <span class="submenu-list__item-subtile">Treasury transactions</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Treasury transactions</span>
                         </a>
                      </div>
                   </li>
@@ -74,7 +74,7 @@
                         </div>
                         <a href="/proposals" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Funding Proposals</span>
-                           <span class="submenu-list__item-subtile">Proposal list for funding</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Proposal list for funding</span>
                         </a>
                      </div>
                   </li>
@@ -86,7 +86,7 @@
                         </div>
                         <a href="/agendas" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Upgrade Agendas</span>
-                           <span class="submenu-list__item-subtile">Voting programs for upgrades</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Voting programs for upgrades</span>
                         </a>
                      </div>
                   </li>
@@ -108,7 +108,7 @@
                         </div>
                         <a href="/charts" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Chain Charts</span>
-                           <span class="submenu-list__item-subtile">Charts from chain data</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Charts from chain data</span>
                         </a>
                      </div>
                   </li>
@@ -120,7 +120,7 @@
                         </div>
                         <a href="/market" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Market</span>
-                           <span class="submenu-list__item-subtile">Information from the market</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Information from the market</span>
                         </a>
                      </div>
                   </li>
@@ -132,7 +132,7 @@
                         </div>
                         <a href="/ticketpool" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Ticket Pool</span>
-                           <span class="submenu-list__item-subtile">Long-term Ticket Pool state</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Long-term Ticket Pool state</span>
                         </a>
                      </div>
                   </li>
@@ -144,7 +144,7 @@
                         </div>
                         <a href="/bwdash" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Bison Wallet Dashboard</span>
-                           <span class="submenu-list__item-subtile">Summary info for Bison Wallet</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Summary info for Bison Wallet</span>
                         </a>
                      </div>
                   </li>
@@ -167,7 +167,7 @@
                            </div>
                            <a href="/chain" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Other Blockchains</span>
-                              <span class="submenu-list__item-subtile">All supported blockchains</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">All supported blockchains</span>
                            </a>
                         </div>
                      </li>
@@ -179,7 +179,7 @@
                            </div>
                            <a href="/finance-report" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Financial Reports</span>
-                              <span class="submenu-list__item-subtile">Treasury/Proposals financial reports</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Treasury/Proposals financial reports</span>
                            </a>
                         </div>
                      </li>
@@ -191,7 +191,7 @@
                            </div>
                            <a href="/stakingcalc" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Staking Reward Calculator</span>
-                              <span class="submenu-list__item-subtile">Estimated staking reward</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Estimated staking reward</span>
                            </a>
                         </div>
                      </li>
@@ -203,7 +203,7 @@
                            </div>
                            <a href="/supply" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Supply</span>
-                              <span class="submenu-list__item-subtile">Distribution information</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Distribution information</span>
                            </a>
                         </div>
                      </li>
@@ -215,7 +215,7 @@
                            </div>
                            <a href="/attack-cost" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Attack Cost</span>
-                              <span class="submenu-list__item-subtile">Attack Cost Calculator</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Attack Cost Calculator</span>
                            </a>
                         </div>
                      </li>
@@ -227,7 +227,7 @@
                            </div>
                            <a href="/parameters" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Parameters</span>
-                              <span class="submenu-list__item-subtile">Blockchain Parameters</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Blockchain Parameters</span>
                            </a>
                         </div>
                      </li>
@@ -243,7 +243,7 @@
                            </div>
                            <a href="/decodetx" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Decode/Broadcast Tx</span>
-                              <span class="submenu-list__item-subtile">Broadcast Transactions</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Broadcast Transactions</span>
                            </a>
                         </div>
                      </li>
@@ -255,7 +255,7 @@
                            </div>
                            <a href="/verify-message" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Verify Message</span>
-                              <span class="submenu-list__item-subtile">Verify signed address</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Verify signed address</span>
                            </a>
                         </div>
                      </li>
@@ -267,7 +267,7 @@
                            </div>
                            <a href="/whatsnew" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Whats New</span>
-                              <span class="submenu-list__item-subtile">Changes on Bison Explorer</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Changes on Bison Explorer</span>
                            </a>
                         </div>
                      </li>
@@ -314,6 +314,10 @@
             </div>
          </div>
       </li>
+   </div>
+   <div class="d-flex d-sm-none justify-content-center mt-2 mb-sm-0">
+      <img id="pageBarIconBottom" src="/images/blockchain-icon.svg" width="25" height="25">
+      <span id="pageBarTitleBottom" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
 </div>
 <div class="main-container new-homepage homepage-class homepage-content" id="newHomeContent"
@@ -929,7 +933,7 @@
                                  href="https://github.com/decred/dcps/blob/master/dcp-0011/dcp-0011.mediawiki">Blake3</a>
                            </p>
                         </div>
-                        <div class="col-24 col-lg-8">
+                        <div class="col-12 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
                                  <a class="link-hover-underline" data-turbolinks="false"
@@ -944,7 +948,7 @@
                               </span>
                            </div>
                         </div>
-                        <div class="col-24 col-lg-8">
+                        <div class="col-12 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
                                  <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=hashrate">
@@ -963,7 +967,7 @@
                               </span>
                            </div>
                         </div>
-                        <div class="col-24 col-lg-8">
+                        <div class="col-12 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
                                  PoW Reward
@@ -980,6 +984,18 @@
                                  {{$conv.PowSplit.TwoDecimals}} {{$conv.PowSplit.Index}}
                               </span>
                               {{end}}
+                           </div>
+                        </div>
+                        <div class="col-12 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Tx Fee Avg
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                    .TxFeeAvg) 8 true 2)}}</span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
                            </div>
                         </div>
                         <div class="col-24 col-lg-8">
@@ -1005,18 +1021,6 @@
                                        .Params.RewardWindowSize .Params.BlockTime}}</span>
                                  </div>
                               </div>
-                           </div>
-                        </div>
-                        <div class="col-24 col-lg-8">
-                           <div class="new-network-stats-block">
-                              <span class="new-network-stats-title">
-                                 Tx Fee Avg
-                              </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span>{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                    .TxFeeAvg) 8 true 2)}}</span>
-                                 <span class="new-info-line-2-sub">DCR</span>
-                              </span>
                            </div>
                         </div>
                         {{if .PoolDataList}}
@@ -2230,22 +2234,30 @@
       }
       thumbs.forEach(thumb => thumb.classList.remove('active'));
       thumbs[index].classList.add('active');
-      document.getElementById('pageBarTitle').textContent = getPageTitleName(index)
-      document.getElementById('pageBarIcon').src = getPageTitleIcon(index)
+      const title = getPageTitleName(index)
+      const icon = getPageTitleIcon(index)
+      document.getElementById('pageBarTitleTop').textContent = title
+      document.getElementById('pageBarTitleBottom').textContent = title
+      document.getElementById('pageBarIconTop').src = icon
+      document.getElementById('pageBarIconBottom').src = icon
    });
 
    document.querySelectorAll('.menu-list-item').forEach(menuItem => {
       menuItem.addEventListener('mouseenter', function () {
-          let submenu = this.querySelector('.home-menu-dropdown');
-          if (!submenu) return;
-          let rect = submenu.getBoundingClientRect();
-          let windowWidth = window.innerWidth;
-          if (rect.right > windowWidth) {
-              submenu.style.left = 'auto';
-              submenu.style.right = '0';
-          }
+         setMenuDropdownPos(this)
       });
   });
+
+  function setMenuDropdownPos(e) {
+   let submenu = e.querySelector('.home-menu-dropdown');
+   if (!submenu) return;
+   let rect = submenu.getBoundingClientRect();
+   let windowWidth = window.innerWidth;
+   if (rect.right > windowWidth) {
+       submenu.style.left = 'auto';
+       submenu.style.right = '0';
+   }
+  }
 
    function getPageTitleName(index) {
       switch (index) {

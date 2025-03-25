@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.3fdc38a22cadcc6a.css" rel="stylesheet">
+	<link href="/dist/css/style.747566f4d12a11a7.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -306,82 +306,64 @@ data-menu-homepage="{{.IsHomepage}}">
 	data-homepage-vote-status="{{.VotesStatus}}"
     data-homepage-proposal-count="{{.ProposalCountMap}}"
     data-homepage-dev="true">
-	<header class="top-nav align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
-		<div class="container d-flex justify-content-between align-items-center my-1">
-		   <div id="topBarLeft" class="d-flex ai-center">
-			  <a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
-			  <select
-				 data-scroll-target="coinSelect"
-				 data-action="change->scroll#changeCoin"
-				 class="vodiapicker">
-				 <option name="dcr" value="dcr" class="test" data-thumbnail="/images/dcr-icon.png">Decred (DCR)</option>
-				 {{if eq .NetName "Mainnet"}}  
-				 <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">Bitcoin (BTC)</option>
-				 <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">Litecoin (LTC)</option>
-				 {{end}}
-			  </select>
-			  <div class="chain-select-area">
-				 <button class="chain-selected-btn" value="dcr">
-					<li><img src="" alt=""><span></span></li>
-				 </button>
-				 <div id="chainSelectList" class="selection-area" style="display: none;">
-					<ul id="selectUl" class="chain-select-list">
-					   <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred (DCR)</span></li>
-					   {{if eq .NetName "Mainnet"}}
-					   <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin (BTC)</span></li>
-					   <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin (LTC)</span></li>
-					   {{end}}
-					</ul>
-				 </div>
-			  </div>
+	<header class="top-nav d-flex align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
+		<div class="container d-flex align-items-center my-1">
+		   <div class="row w-100">
+				<div class="col-6 col-lg-7 d-flex ai-center">
+					<div id="topBarLeft" class="d-flex ai-center">
+						<a class="no-underline d-block home-link dcrdata-logo" href="/"></a>
+						<select
+						   data-scroll-target="coinSelect"
+						   data-action="change->scroll#changeCoin"
+						   class="vodiapicker">
+						   <option name="dcr" value="dcr" class="test" data-thumbnail="/images/dcr-icon.png">Decred (DCR)</option>
+						   {{if eq .NetName "Mainnet"}}  
+						   <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">Bitcoin (BTC)</option>
+						   <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">Litecoin (LTC)</option>
+						   {{end}}
+						</select>
+						<div class="chain-select-area">
+						   <button class="chain-selected-btn" value="dcr">
+							  <li><img src="" alt=""><span></span></li>
+						   </button>
+						   <div id="chainSelectList" class="selection-area" style="display: none;">
+							  <ul id="selectUl" class="chain-select-list">
+								 <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred (DCR)</span></li>
+								 {{if eq .NetName "Mainnet"}}
+								 <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin (BTC)</span></li>
+								 <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin (LTC)</span></li>
+								 {{end}}
+							  </ul>
+						   </div>
+						</div>
+					 </div>
+				</div>
+				<div class="col-16 col-lg-10 justify-content-center d-flex ai-center">
+					<form
+					class="search-form"
+					role="search"
+					id="search-form"
+					action="/search"
+					data-controller="search"
+					data-action="submit->search#execute"
+					>
+					<input
+					   tabindex="0"
+					   type="text"
+					   name="search"
+					   id="search"
+					   class="top-search mousetrap"
+					   placeholder="Search for blocks, addresses, transactions or proposal tokens"
+					   spellcheck="false"
+					   autocomplete="off"
+					   />
+					<button class="search-bttn" type="submit"><span class="dcricon-search search-box-icon"></span></button>
+				 </form>
+				</div>
+				<div class="col-2 col-lg-7 d-flex justify-content-end ai-center px-0" data-controller="common">
+					<span id="sun-icon" class="dcricon-sun-fill no-underline fs-22 cursor-pointer zoom-1-1" data-action="click->common#onSunClick"></span>
+				</div>
 		   </div>
-		   <form
-			  class="search-form"
-			  role="search"
-			  id="search-form"
-			  action="/search"
-			  data-controller="search"
-			  data-action="submit->search#execute"
-			  >
-			  <input
-				 tabindex="0"
-				 type="text"
-				 name="search"
-				 id="search"
-				 class="top-search mousetrap"
-				 placeholder="Search for blocks, addresses, transactions or proposal tokens"
-				 spellcheck="false"
-				 autocomplete="off"
-				 />
-			  <button class="search-bttn" type="submit"><span class="dcricon-search search-box-icon"></span></button>
-		   </form>
-		   <nav id="hamburger-menu"
-			  data-controller="menu" 
-			  data-turbolinks-permanent
-			  data-menu-homepage="{{.IsHomepage}}">
-			  <div id="menu-toggle" class="px-0">
-				 <div data-menu-target="homeMenu">
-					<input type="checkbox" id="home-menu-input" data-menu-target="homeToggle" data-action="change->menu#homeToggle"/>
-					<span class="patty d-none"></span>
-					<span class="patty d-none"></span>
-					<span class="patty short d-none"></span>
-					<div id="menu" class="d-flex justify-content-end ai-center">
-					   <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
-						  <input type="hidden" name="darkmode" value="darkmode">
-						  <input type="hidden" name="requestURI" value="{{.RequestURI}}">
-						  <button type="submit" data-action="click->menu#onSunClick"
-							 class="menu-submit text-start w-100 p-0"
-							 data-keynav-skip>
-							 <div class="menu-item">
-								<span id="sun-icon" class="dcricon-sun-fill no-underline pe-2 fs-22"></span>
-							 </div>
-						  </button>
-					   </form>
-					</div>
-				 </div>
-				 <div class="d-none" data-menu-target="commonMenu"></div>
-			  </div>
-		   </nav>
 		</div>
 		<hr class="style-two m-0" id="menuDivider">
 	 </header>
@@ -456,7 +438,7 @@ data-menu-homepage="{{.IsHomepage}}">
 				   <form action="/set" method="post" data-menu-target="form" class="col-5 menu-form zoom-1-1 ps-0">
 					  <input type="hidden" name="darkmode" value="darkmode">
 					  <input type="hidden" name="requestURI" value="{{.RequestURI}}">
-					  <button type="submit" data-action="click->menu#onSunClick"
+					  <button type="submit" 
 						 class="menu-submit text-start w-100 p-0"
 						 data-keynav-skip>
 						 <div class="menu-item">
@@ -603,7 +585,7 @@ data-menu-homepage="{{.IsHomepage}}">
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.b96b3692fe7063f7.bundle.js"
+	src="/dist/js/app.63c230119b8d57eb.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
