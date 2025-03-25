@@ -15,9 +15,9 @@
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Decred Explorer by bisonexplorer.com"}}
 {{ template "new_home_navbar" . }}
-<div class="d-sm-flex justify-content-between ai-end new-home-header container py-2 px-0" id="newHomeMenu">
+<div class="d-sm-flex justify-content-between ai-end new-home-header container py-2 px-2 px-lg-0" id="newHomeMenu">
    <div class="d-none d-sm-flex mb-sm-0">
-      <img id="pageBarIconTop" src="/images/blockchain-icon.svg" width="25" height="25">
+      <img id="pageBarIconTop" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
       <span id="pageBarTitleTop" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
    <div class="button-group-navigation d-flex justify-content-center justify-content-sm-end ai-end">
@@ -326,7 +326,7 @@
       </li>
    </div>
    <div class="d-flex d-sm-none justify-content-center mt-2 mb-sm-0">
-      <img id="pageBarIconBottom" src="/images/blockchain-icon.svg" width="25" height="25">
+      <img id="pageBarIconBottom" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
       <span id="pageBarTitleBottom" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
 </div>
@@ -1132,6 +1132,7 @@
             <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white new-home-card-container">
                <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
                      class="me-2">Market Information</div>
+               <span class="fs24 d-none" data-market-target="price"></span>
                <table class="w-100 mx-0">
                   <tbody>
                      <tr>
@@ -1214,27 +1215,24 @@
                         <td></td>
                      </tr>
                      {{range $botState.VolumeOrderedExchanges}}
-                     <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
-                        data-token="{{.Token}}">
-                        <td class="py-2 fs18 fw-bold">
-                           <div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}
-                        </td>
+                     <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
+                        <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}</td>
                         <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                           {{threeSigFigs .State.BaseVolume}}
+                            {{threeSigFigs .State.BaseVolume}}
                         </td>
                         <td class="ps-3 fs16 py-2 text-end" data-type="price">
-                           {{threeSigFigs .State.Price}}
+                            {{threeSigFigs .State.Price}}
                         </td>
                         <td class="fs16 px-2" data-type="arrow">
-                           {{if eq .State.Change 0.0}}
-                           <span></span>
-                           {{else if gt .State.Change 0.0}}
-                           <span class="dcricon-arrow-up text-green"></span>
-                           {{else}}
-                           <span class="dcricon-arrow-down text-danger"></span>
-                           {{end}}
+                          {{if eq .State.Change 0.0}}
+                              <span></span>
+                          {{else if gt .State.Change 0.0}}
+                              <span class="dcricon-arrow-up text-green"></span>
+                          {{else}}
+                              <span class="dcricon-arrow-down text-danger"></span>
+                          {{end}}
                         </td>
-                     </tr>
+                    </tr>
                      {{end}}
                      <tr class="fs sum-row hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
                         data-token="aggregated">
@@ -1262,8 +1260,8 @@
             </div>
          </div>
          {{- /* RIGHT COLUMN */ -}}
-         <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 px-3 my-4 new-home-card-container">
-            <div class="col me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative">
+         <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 px-3 my-4 bg-white new-home-card-container">
+            <div class="col me-md-2 flex-grow-1 d-flex flex-column position-relative">
                <div class="loader-v2 loading" data-market-target="chartLoader"></div>
                {{- /* CHART ONTROLS */ -}}
                <div

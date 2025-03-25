@@ -1199,6 +1199,7 @@ export default class extends Controller {
     const colors = []
     const timeArray = []
     const timeDataMap = new Map()
+    xcColors[0] = chartStroke
     let index = 0
     for (const [key, value] of responseMap) {
       labels.push(key.charAt(0).toUpperCase() + key.slice(1))
@@ -1359,6 +1360,7 @@ export default class extends Controller {
     const timeArray = []
     const timeDataMap = new Map()
     let index = 0
+    xcColors[0] = chartStroke
     for (const [key, value] of responseMap) {
       labels.push(key.charAt(0).toUpperCase() + key.slice(1))
       colors.push(xcColors[index])

@@ -970,6 +970,10 @@ body.darkBG.homepage-body {
   .link-to-subpage {
     background-color: #3f3f3f;
 
+    .new-home-card-header {
+      color: white;
+    }
+
     .new-home-card-header:hover {
       background-color: #636161;
     }
@@ -991,7 +995,7 @@ body.darkBG.homepage-body {
   }
 
   .stats-subinfo {
-    color: rgb(228 226 226);
+    color: rgb(243 243 243);
   }
 
   .explore-card-wrap {
