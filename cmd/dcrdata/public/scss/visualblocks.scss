@@ -351,3 +351,13 @@ body.darkBG {
 .homepage-blocks-row {
   height: 125px;
 }
+
+body.darkBG {
+  .block {
+    background: rgb(31 65 73 / 68%);;
+  }
+
+  .block-rows .block-rewards .paint {
+    background: linear-gradient(to right, #4ebf54 0%, #2bc57c 100%);
+  }
+}

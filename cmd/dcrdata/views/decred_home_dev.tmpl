@@ -15,15 +15,16 @@
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Decred Explorer by bisonexplorer.com"}}
 {{ template "new_home_navbar" . }}
-<div class="d-flex justify-content-between ai-end new-home-header container py-2 px-0" id="newHomeMenu">
-   <div class="d-flex">
-      <img id="pageBarIcon" src="/images/blockchain-icon.svg" width="25" height="25">
-      <span id="pageBarTitle" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
+<div class="d-sm-flex justify-content-between ai-end new-home-header container py-2 px-2 px-lg-0" id="newHomeMenu">
+   <div class="d-none d-sm-flex mb-sm-0">
+      <img id="pageBarIconTop" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
+      <span id="pageBarTitleTop" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
-   <div class="button-group-navigation d-flex ai-end">
+   <div class="button-group-navigation d-flex justify-content-center justify-content-sm-end ai-end">
       {{if .Conversions}}
-			<p class="me-2 mb-0 d-none d-md-flex ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span data-homepage-target="exchangeRate">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
-		{{end}}
+      <p class="me-2 mb-0 d-none d-md-flex ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span
+               data-homepage-target="exchangeRate">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
+      {{end}}
       <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
             <img src="/images/info-icon.svg" width="20" height="20" class="home-menu-icon" alt="blockchain info">
             <span>Information</span></a>
@@ -38,7 +39,7 @@
                         </div>
                         <a href="/blocks" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Blocks</span>
-                           <span class="submenu-list__item-subtile">Latest block information</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Latest block information</span>
                         </a>
                      </div>
                   </li>
@@ -50,7 +51,8 @@
                         </div>
                         <a href="/mempool" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Mempool</span>
-                           <span class="submenu-list__item-subtile">List of pending transactions</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">List of pending
+                              transactions</span>
                         </a>
                      </div>
                   </li>
@@ -62,7 +64,7 @@
                         </div>
                         <a href="treasury" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Treasury</span>
-                           <span class="submenu-list__item-subtile">Treasury transactions</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Treasury transactions</span>
                         </a>
                      </div>
                   </li>
@@ -74,7 +76,7 @@
                         </div>
                         <a href="/proposals" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Funding Proposals</span>
-                           <span class="submenu-list__item-subtile">Proposal list for funding</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Proposal list for funding</span>
                         </a>
                      </div>
                   </li>
@@ -86,7 +88,8 @@
                         </div>
                         <a href="/agendas" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Upgrade Agendas</span>
-                           <span class="submenu-list__item-subtile">Voting programs for upgrades</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Voting programs for
+                              upgrades</span>
                         </a>
                      </div>
                   </li>
@@ -108,7 +111,7 @@
                         </div>
                         <a href="/charts" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Chain Charts</span>
-                           <span class="submenu-list__item-subtile">Charts from chain data</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Charts from chain data</span>
                         </a>
                      </div>
                   </li>
@@ -120,7 +123,7 @@
                         </div>
                         <a href="/market" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Market</span>
-                           <span class="submenu-list__item-subtile">Information from the market</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Information from the market</span>
                         </a>
                      </div>
                   </li>
@@ -132,7 +135,7 @@
                         </div>
                         <a href="/ticketpool" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Ticket Pool</span>
-                           <span class="submenu-list__item-subtile">Long-term Ticket Pool state</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Long-term Ticket Pool state</span>
                         </a>
                      </div>
                   </li>
@@ -144,7 +147,8 @@
                         </div>
                         <a href="/bwdash" class="submenu-list__item-link">
                            <span class="submenu-list__item-title">Bison Wallet Dashboard</span>
-                           <span class="submenu-list__item-subtile">Summary info for Bison Wallet</span>
+                           <span class="submenu-list__item-subtile d-none d-md-block">Summary info for Bison
+                              Wallet</span>
                         </a>
                      </div>
                   </li>
@@ -167,7 +171,8 @@
                            </div>
                            <a href="/chain" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Other Blockchains</span>
-                              <span class="submenu-list__item-subtile">All supported blockchains</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">All supported
+                                 blockchains</span>
                            </a>
                         </div>
                      </li>
@@ -179,7 +184,8 @@
                            </div>
                            <a href="/finance-report" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Financial Reports</span>
-                              <span class="submenu-list__item-subtile">Treasury/Proposals financial reports</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Treasury/Proposals financial
+                                 reports</span>
                            </a>
                         </div>
                      </li>
@@ -191,7 +197,7 @@
                            </div>
                            <a href="/stakingcalc" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Staking Reward Calculator</span>
-                              <span class="submenu-list__item-subtile">Estimated staking reward</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Estimated staking reward</span>
                            </a>
                         </div>
                      </li>
@@ -203,7 +209,7 @@
                            </div>
                            <a href="/supply" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Supply</span>
-                              <span class="submenu-list__item-subtile">Distribution information</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Distribution information</span>
                            </a>
                         </div>
                      </li>
@@ -215,7 +221,7 @@
                            </div>
                            <a href="/attack-cost" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Attack Cost</span>
-                              <span class="submenu-list__item-subtile">Attack Cost Calculator</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Attack Cost Calculator</span>
                            </a>
                         </div>
                      </li>
@@ -227,7 +233,7 @@
                            </div>
                            <a href="/parameters" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Parameters</span>
-                              <span class="submenu-list__item-subtile">Blockchain Parameters</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Blockchain Parameters</span>
                            </a>
                         </div>
                      </li>
@@ -243,7 +249,7 @@
                            </div>
                            <a href="/decodetx" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Decode/Broadcast Tx</span>
-                              <span class="submenu-list__item-subtile">Broadcast Transactions</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Broadcast Transactions</span>
                            </a>
                         </div>
                      </li>
@@ -255,7 +261,7 @@
                            </div>
                            <a href="/verify-message" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Verify Message</span>
-                              <span class="submenu-list__item-subtile">Verify signed address</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Verify signed address</span>
                            </a>
                         </div>
                      </li>
@@ -267,7 +273,8 @@
                            </div>
                            <a href="/whatsnew" class="submenu-list__item-link">
                               <span class="submenu-list__item-title">Whats New</span>
-                              <span class="submenu-list__item-subtile">Changes on Bison Explorer</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Changes on Bison
+                                 Explorer</span>
                            </a>
                         </div>
                      </li>
@@ -277,8 +284,10 @@
                               <img src="/images/testnet-icon.svg" width="25" height="25" class="home-menu-icon"
                                  alt="Switch to testnet/mainnet">
                            </div>
-                           <a href='{{- if eq .NetName "Mainnet"}}{{.Links.Testnet}}{{else}}{{.Links.Mainnet}}{{end}}' class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">{{- if eq .NetName "Mainnet"}}Switch To Testnet{{else}}Switch To Mainnet{{end}}</span>
+                           <a href='{{- if eq .NetName "Mainnet"}}{{.Links.Testnet}}{{else}}{{.Links.Mainnet}}{{end}}'
+                              class="submenu-list__item-link">
+                              <span class="submenu-list__item-title">{{- if eq .NetName "Mainnet"}}Switch To
+                                 Testnet{{else}}Switch To Mainnet{{end}}</span>
                            </a>
                         </div>
                      </li>
@@ -288,7 +297,8 @@
                               <img src="/images/api-icon.svg" width="25" height="25" class="home-menu-icon"
                                  alt="json api docs">
                            </div>
-                           <a href="{{.Links.APIDocs}}" data-keynav-skip rel="noopener noreferrer" target="_blank" class="submenu-list__item-link">
+                           <a href="{{.Links.APIDocs}}" data-keynav-skip rel="noopener noreferrer" target="_blank"
+                              class="submenu-list__item-link">
                               <span class="submenu-list__item-title">JSON API Docs</span>
                            </a>
                         </div>
@@ -299,12 +309,12 @@
                               <img src="/images/hotkey-icon.svg" width="25" height="25" class="home-menu-icon"
                                  alt="hotkeys">
                            </div>
-                           <a data-keynav-skip rel="noopener noreferrer" id="keynav-toggle" data-turbolinks="false" class="submenu-list__item-link">
+                           <a data-keynav-skip rel="noopener noreferrer" id="keynav-toggle" data-turbolinks="false"
+                              class="submenu-list__item-link">
                               <span class="submenu-list__item-title text">Enable Hot Keys</span>
                               <span class="submenu-list__item-subtile">
-                                 <span class="keys-hint">(<span
-                                    class="arrows">
-                                    &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
+                                 <span class="keys-hint">(<span class="arrows">
+                                       &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
                               </span>
                            </a>
                         </div>
@@ -314,6 +324,10 @@
             </div>
          </div>
       </li>
+   </div>
+   <div class="d-flex d-sm-none justify-content-center mt-2 mb-sm-0">
+      <img id="pageBarIconBottom" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
+      <span id="pageBarTitleBottom" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
 </div>
 <div class="main-container new-homepage homepage-class homepage-content" id="newHomeContent"
@@ -929,7 +943,7 @@
                                  href="https://github.com/decred/dcps/blob/master/dcp-0011/dcp-0011.mediawiki">Blake3</a>
                            </p>
                         </div>
-                        <div class="col-24 col-lg-8">
+                        <div class="col-12 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
                                  <a class="link-hover-underline" data-turbolinks="false"
@@ -944,7 +958,7 @@
                               </span>
                            </div>
                         </div>
-                        <div class="col-24 col-lg-8">
+                        <div class="col-12 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
                                  <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=hashrate">
@@ -963,7 +977,7 @@
                               </span>
                            </div>
                         </div>
-                        <div class="col-24 col-lg-8">
+                        <div class="col-12 col-lg-8">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
                                  PoW Reward
@@ -980,6 +994,18 @@
                                  {{$conv.PowSplit.TwoDecimals}} {{$conv.PowSplit.Index}}
                               </span>
                               {{end}}
+                           </div>
+                        </div>
+                        <div class="col-12 col-lg-8">
+                           <div class="new-network-stats-block">
+                              <span class="new-network-stats-title">
+                                 Tx Fee Avg
+                              </span>
+                              <span class="new-network-stats-content d-inline-block pt-1">
+                                 <span>{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                    .TxFeeAvg) 8 true 2)}}</span>
+                                 <span class="new-info-line-2-sub">DCR</span>
+                              </span>
                            </div>
                         </div>
                         <div class="col-24 col-lg-8">
@@ -1007,22 +1033,17 @@
                               </div>
                            </div>
                         </div>
-                        <div class="col-24 col-lg-8">
-                           <div class="new-network-stats-block">
-                              <span class="new-network-stats-title">
-                                 Tx Fee Avg
-                              </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span>{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                    .TxFeeAvg) 8 true 2)}}</span>
-                                 <span class="new-info-line-2-sub">DCR</span>
-                              </span>
-                           </div>
-                        </div>
                         {{if .PoolDataList}}
+                        <p class="fw-bold fs18 mb-0 ms-2">Last Blocks Pools
+                           <span class="position-relative ms-1 fw-400 fs-13"
+                              data-tooltip='Blocks mined by individuals will not be displayed here.'>
+                              <span class="dcricon-info fs13 cursor-pointer">
+                              </span>
+                           </span>
+                        </p>
                         <div class="col-24">
-                           <div class="br-8 b--def bgc-plain-bright pb-10">
-                              <div class="btable-table-wrap maxh-none">
+                           <div class="br-8 b--def bgc-plain-bright">
+                              <div class="btable-table-wrap maxh-none mt-2">
                                  <table class="btable-table w-100">
                                     <thead>
                                        <tr class="bg-none">
@@ -1041,7 +1062,7 @@
                                           </td>
                                           <td class="d-flex justify-content-center ai-center">
                                              {{if .PoolType}}
-                                             {{if eq .PoolType "threepool"}}
+                                             {{if eq .PoolType "miningandco"}}
                                              <div class="tooltip1 me-1">
                                                 <img src="/images/CA_24.webp" width="24" height="24" alt="CA">
                                              </div>
@@ -1049,7 +1070,7 @@
                                                 miningandco.com
                                              </a>
                                              {{end}}
-                                             {{if eq .PoolType "miningandco"}}
+                                             {{if eq .PoolType "e4pool"}}
                                              <div class="tooltip1 me-1">
                                                 <img src="/images/RU_24.webp" width="24" height="24" alt="CA">
                                              </div>
@@ -1057,7 +1078,7 @@
                                                 e4pool.com
                                              </a>
                                              {{end}}
-                                             {{if eq .PoolType "e4pool"}}
+                                             {{if eq .PoolType "threepool"}}
                                              <div class="tooltip1 me-1">
                                                 <img src="/images/BR_24.webp" width="24" height="24" alt="CA">
                                              </div>
@@ -1111,6 +1132,7 @@
             <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white new-home-card-container">
                <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
                      class="me-2">Market Information</div>
+               <span class="fs24 d-none" data-market-target="price"></span>
                <table class="w-100 mx-0">
                   <tbody>
                      <tr>
@@ -1193,27 +1215,24 @@
                         <td></td>
                      </tr>
                      {{range $botState.VolumeOrderedExchanges}}
-                     <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
-                        data-token="{{.Token}}">
-                        <td class="py-2 fs18 fw-bold">
-                           <div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}
-                        </td>
+                     <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
+                        <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}</td>
                         <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                           {{threeSigFigs .State.BaseVolume}}
+                            {{threeSigFigs .State.BaseVolume}}
                         </td>
                         <td class="ps-3 fs16 py-2 text-end" data-type="price">
-                           {{threeSigFigs .State.Price}}
+                            {{threeSigFigs .State.Price}}
                         </td>
                         <td class="fs16 px-2" data-type="arrow">
-                           {{if eq .State.Change 0.0}}
-                           <span></span>
-                           {{else if gt .State.Change 0.0}}
-                           <span class="dcricon-arrow-up text-green"></span>
-                           {{else}}
-                           <span class="dcricon-arrow-down text-danger"></span>
-                           {{end}}
+                          {{if eq .State.Change 0.0}}
+                              <span></span>
+                          {{else if gt .State.Change 0.0}}
+                              <span class="dcricon-arrow-up text-green"></span>
+                          {{else}}
+                              <span class="dcricon-arrow-down text-danger"></span>
+                          {{end}}
                         </td>
-                     </tr>
+                    </tr>
                      {{end}}
                      <tr class="fs sum-row hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
                         data-token="aggregated">
@@ -1241,8 +1260,8 @@
             </div>
          </div>
          {{- /* RIGHT COLUMN */ -}}
-         <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 px-3 my-4 new-home-card-container">
-            <div class="col me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative">
+         <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 px-3 my-4 bg-white new-home-card-container">
+            <div class="col me-md-2 flex-grow-1 d-flex flex-column position-relative">
                <div class="loader-v2 loading" data-market-target="chartLoader"></div>
                {{- /* CHART ONTROLS */ -}}
                <div
@@ -1616,8 +1635,8 @@
                      </div>
                      <div class="row justify-content-between px-3 py-2">
                         <div class="col-24">
-                           <div class="br-8 b--def bgc-plain-bright pb-10">
-                              <div class="btable-table-wrap maxh-none">
+                           <div class="br-8 b--def bgc-plain-bright">
+                              <div class="btable-table-wrap maxh-none mt-2">
                                  <table class="btable-table w-100">
                                     <thead>
                                        <tr class="bg-none">
@@ -1633,7 +1652,8 @@
                                        {{range .VSPList}}
                                        <tr>
                                           <td class="text-start">
-                                             <a data-turbolinks="false" target="_blank" href="https://{{.VSPLink}}">{{.VSPLink}}</a>
+                                             <a data-turbolinks="false" target="_blank"
+                                                href="https://{{.VSPLink}}">{{.VSPLink}}</a>
                                           </td>
                                           <td class="text-center">
                                              {{.Voting}}
@@ -2178,18 +2198,18 @@
    </div>
 </div>
 <div class="home-thumbnail-bar" id="homeThumbnail">
-      <img src="/images/blockchain-icon.svg" class="mx-1 mx-md-3 new-home-thumb active cursor-pointer" data-index="0"
-         onclick="setPageIndex(this)">
-      <img src="/images/mining-icon.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="1"
-         onclick="setPageIndex(this)">
-      <img src="/images/market-icon.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="2"
-         onclick="setPageIndex(this)">
-      <img src="/images/ticket.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="3"
-         onclick="setPageIndex(this)">
-      <img src="/images/hour-24.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="4"
-         onclick="setPageIndex(this)">
-      <img src="/images/chain-chart.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="5"
-         onclick="setPageIndex(this)">
+   <img src="/images/blockchain-icon.svg" class="mx-1 mx-md-3 new-home-thumb active cursor-pointer" data-index="0"
+      onclick="setPageIndex(this)">
+   <img src="/images/mining-icon.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="1"
+      onclick="setPageIndex(this)">
+   <img src="/images/market-icon.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="2"
+      onclick="setPageIndex(this)">
+   <img src="/images/ticket.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="3"
+      onclick="setPageIndex(this)">
+   <img src="/images/hour-24.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="4"
+      onclick="setPageIndex(this)">
+   <img src="/images/chain-chart.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="5"
+      onclick="setPageIndex(this)">
 </div>
 {{ template "footer" . }}
 </body>
@@ -2218,7 +2238,7 @@
          const cHeight = pageContent.offsetHeight
          contentHeights.push(cHeight > viewHeight ? cHeight : viewHeight)
       })
-      const scrollTop = content.scrollTop
+      const scrollTop = content.scrollTop + 5
       let currentHeight = 0
       let index = 0
       while (currentHeight < scrollTop) {
@@ -2230,22 +2250,30 @@
       }
       thumbs.forEach(thumb => thumb.classList.remove('active'));
       thumbs[index].classList.add('active');
-      document.getElementById('pageBarTitle').textContent = getPageTitleName(index)
-      document.getElementById('pageBarIcon').src = getPageTitleIcon(index)
+      const title = getPageTitleName(index)
+      const icon = getPageTitleIcon(index)
+      document.getElementById('pageBarTitleTop').textContent = title
+      document.getElementById('pageBarTitleBottom').textContent = title
+      document.getElementById('pageBarIconTop').src = icon
+      document.getElementById('pageBarIconBottom').src = icon
    });
 
    document.querySelectorAll('.menu-list-item').forEach(menuItem => {
       menuItem.addEventListener('mouseenter', function () {
-          let submenu = this.querySelector('.home-menu-dropdown');
-          if (!submenu) return;
-          let rect = submenu.getBoundingClientRect();
-          let windowWidth = window.innerWidth;
-          if (rect.right > windowWidth) {
-              submenu.style.left = 'auto';
-              submenu.style.right = '0';
-          }
+         setMenuDropdownPos(this)
       });
-  });
+   });
+
+   function setMenuDropdownPos(e) {
+      let submenu = e.querySelector('.home-menu-dropdown');
+      if (!submenu) return;
+      let rect = submenu.getBoundingClientRect();
+      let windowWidth = window.innerWidth;
+      if (rect.right > windowWidth) {
+         submenu.style.left = 'auto';
+         submenu.style.right = '0';
+      }
+   }
 
    function getPageTitleName(index) {
       switch (index) {
@@ -2303,11 +2331,15 @@
 
    function setPageIndex(e) {
       const index = Number(e.getAttribute('data-index'))
-      const snapPages = document.querySelectorAll('.homepage-page');
-      if (index > snapPages.length - 1) {
+      if (index > contentHeights.length - 1) {
          return
       }
-      snapPages[index].scrollIntoView({ behavior: "smooth" })
+      let toScroll = 0
+      for (let i = 0; i < index; i++) {
+         toScroll += contentHeights[i]
+      }
+      // scroll to view
+      document.getElementById('newHomeContent').scrollTo({ top: toScroll, behavior: "smooth" })
    }
    updateMarketPriceRange();
 </script>

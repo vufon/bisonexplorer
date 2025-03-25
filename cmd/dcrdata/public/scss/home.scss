@@ -925,10 +925,13 @@
   background-color: #eaf0f5;
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
+
+  .new-home-card-header:hover {
+    background-color: #d7e5f0;
+  }
 }
 
-.link-to-subpage:hover,
-.link-to-subpage.new-home-card-header:hover {
+.link-to-subpage:hover {
   background-color: #d7e5f0;
 }
 
@@ -966,6 +969,14 @@ body.darkBG.homepage-body {
 
   .link-to-subpage {
     background-color: #3f3f3f;
+
+    .new-home-card-header {
+      color: white;
+    }
+
+    .new-home-card-header:hover {
+      background-color: #636161;
+    }
   }
 
   .bg-for-header {
@@ -984,7 +995,7 @@ body.darkBG.homepage-body {
   }
 
   .stats-subinfo {
-    color: rgb(228 226 226);
+    color: rgb(243 243 243);
   }
 
   .explore-card-wrap {
@@ -998,8 +1009,7 @@ body.darkBG.homepage-body {
     background-color: white;
   }
 
-  .link-to-subpage:hover,
-  .link-to-subpage.new-home-card-header:hover {
+  .link-to-subpage:hover {
     background-color: #636161;
   }
 
@@ -1204,12 +1214,6 @@ body.darkBG .day-night-icon {
 
 .searchbar__arrow:hover {
   background: var(--g-linear-blue);
-}
-
-@media (max-width: 768px) {
-  .hp-explore-wrap {
-    padding: 30px 5px;
-  }
 }
 
 .cards-wrap--big > * {

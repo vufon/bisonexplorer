@@ -3811,30 +3811,9 @@ func (pgb *ChainDB) DevBalance() (*dbtypes.AddressBalance, error) {
 }
 
 // GetLast5PoolDataList return last 5 block pool info
-func (pgb *ChainDB) GetLast5PoolDataList() ([]*dbtypes.PoolDataItem, error) {
-	bestBlockHeight := pgb.bestBlock.Height()
-	poolData, err := externalapi.GetLastBlocksPool(bestBlockHeight)
-	if err != nil {
-		return nil, err
-	}
-	result := make([]*dbtypes.PoolDataItem, 0)
-	for i := bestBlockHeight; i > bestBlockHeight-5; i-- {
-		exist := false
-		for _, pool := range poolData {
-			if pool.BlockHeight == i {
-				exist = true
-				result = append(result, pool)
-				break
-			}
-		}
-		if !exist {
-			result = append(result, &dbtypes.PoolDataItem{
-				BlockHeight: i,
-				PoolType:    "",
-			})
-		}
-	}
-	return result, nil
+func (pgb *ChainDB) GetLast5PoolDataList() (last5PoolData []*dbtypes.PoolDataItem, err error) {
+	last5PoolData, err = externalapi.GetLastBlocksPool()
+	return
 }
 
 // AddressBalance attempts to retrieve balance information for a specific

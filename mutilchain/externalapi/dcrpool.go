@@ -3,6 +3,7 @@ package externalapi
 import (
 	"log"
 	"net/http"
+	"sort"
 
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 )
@@ -21,7 +22,7 @@ type PoolResponse struct {
 	Data []*dbtypes.PoolDataItem `json:"data"`
 }
 
-func GetPoolData(poolURL string) ([]*dbtypes.PoolDataItem, error) {
+func GetPoolData(poolURL, poolType string) ([]*dbtypes.PoolDataItem, error) {
 	query := map[string]string{
 		"pageSize":   "5",
 		"pageNumber": "1",
@@ -35,74 +36,38 @@ func GetPoolData(poolURL string) ([]*dbtypes.PoolDataItem, error) {
 	if err := SkipTLSHttpRequest(req, &responseData); err != nil {
 		return nil, err
 	}
+	for index, data := range responseData.Data {
+		data.PoolType = poolType
+		responseData.Data[index] = data
+	}
 	return responseData.Data, nil
 }
 
-func GetLastBlocksPool(bestBlockHeight int64) ([]*dbtypes.PoolDataItem, error) {
+func GetLastBlocksPool() ([]*dbtypes.PoolDataItem, error) {
 	log.Printf("Start handler get pool info API")
-	result := make([]*dbtypes.PoolDataItem, 0)
-	count := 0
-	// get from threepool
-	threepoolRes, err := GetPoolData(threePoolURL)
+	// get 5 pool blocks from threepool
+	threepoolRes, err := GetPoolData(threePoolURL, THREEPOOL)
 	if err != nil {
 		return nil, err
 	}
-	completed := false
-	for _, pool := range threepoolRes {
-		if count == 5 {
-			completed = true
-			break
-		}
-		if pool.BlockHeight <= bestBlockHeight && pool.BlockHeight > bestBlockHeight-5 {
-			count++
-			pool.PoolType = THREEPOOL
-			result = append(result, pool)
-		}
-	}
-	if completed {
-		log.Printf("Finished handler get pool info API")
-		return result, nil
-	}
-
-	// get from e4pool
-	e4poolRes, err := GetPoolData(e4poolURL)
+	// get 5 pool blocks from e4pool
+	e4poolRes, err := GetPoolData(e4poolURL, E4POOL)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, pool := range e4poolRes {
-		if count == 5 {
-			completed = true
-			break
-		}
-		if pool.BlockHeight <= bestBlockHeight && pool.BlockHeight > bestBlockHeight-5 {
-			count++
-			pool.PoolType = E4POOL
-			result = append(result, pool)
-		}
-	}
-	if completed {
-		log.Printf("Finished handler get pool info API")
-		return result, nil
-	}
-
-	// Get from miningandco
-	miningandcoRes, err := GetPoolData(miningandcoURL)
+	threepoolRes = append(threepoolRes, e4poolRes...)
+	// get 5 pool blocks from miningandco
+	miningandcoRes, err := GetPoolData(miningandcoURL, MININGANDCO)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, pool := range miningandcoRes {
-		if count == 5 {
-			completed = true
-			break
-		}
-		if pool.BlockHeight <= bestBlockHeight && pool.BlockHeight > bestBlockHeight-5 {
-			count++
-			pool.PoolType = MININGANDCO
-			result = append(result, pool)
-		}
+	threepoolRes = append(threepoolRes, miningandcoRes...)
+	sort.Slice(threepoolRes, func(i, j int) bool {
+		return threepoolRes[i].BlockHeight > threepoolRes[j].BlockHeight
+	})
+	if len(threepoolRes) < 5 {
+		return threepoolRes, nil
 	}
 	log.Printf("Finished handler get pool info API")
-	return result, nil
+	return threepoolRes[:5], nil
 }

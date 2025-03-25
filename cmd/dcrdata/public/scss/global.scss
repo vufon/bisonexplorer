@@ -2222,7 +2222,9 @@ body.darkBG {
     background-color: #3f3f3f;
   }
 
-  .explore-card__header {
+  .explore-card__header,
+  .new-network-stats-title,
+  .new-network-stats-content {
     color: white;
   }
 }

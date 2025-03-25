@@ -5,7 +5,7 @@
 <!DOCTYPE html>
 <html lang="en">
 {{ template "html-head" headData .CommonPageData (printf "%s Explorer by bisonexplorer.com" (chainName $ChainType))}}
-{{ template "navbar" . }}
+{{ template "mutilchain_navbar" . }}
 <div class="main-container homepage-class" data-controller="time chainhome"
    data-chainhome-chain-type="{{$ChainType}}"
    {{- if $conv -}}
