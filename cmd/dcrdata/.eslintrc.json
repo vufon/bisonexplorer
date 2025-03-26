@@ -12,6 +12,7 @@
         "no-implied-eval": "error",
         "no-var": "error",
         "array-callback-return": "off",
-        "object-shorthand": ["error", "consistent"]
+        "object-shorthand": ["error", "consistent"],
+        "no-tabs": "off"
     }
 }

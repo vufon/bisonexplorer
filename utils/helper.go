@@ -201,3 +201,11 @@ func GetSwapTypeFound(swapType string) string {
 	}
 	return ""
 }
+
+func DateTimeWithoutTimeZone(timeInt int64) string {
+	if timeInt == 0 {
+		return "N/A"
+	}
+	dateTime := time.Unix(int64(timeInt), 0).UTC()
+	return dateTime.Format("2006-01-02 15:04:05")
+}

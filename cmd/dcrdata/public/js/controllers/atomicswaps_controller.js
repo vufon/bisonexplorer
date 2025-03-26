@@ -120,6 +120,7 @@ export default class extends Controller {
   async connect () {
     ctrl = this
     ctrl.retrievedData = {}
+    ctrl.swapsData = null
     ctrl.ajaxing = false
     ctrl.requestedChart = false
     ctrl.zoomCallback = ctrl._zoomCallback.bind(ctrl)
@@ -139,13 +140,18 @@ export default class extends Controller {
     ctrl.settings.pair = ctrl.settings.pair && ctrl.settings.pair !== '' ? ctrl.settings.pair : 'all'
     ctrl.settings.status = ctrl.settings.status && ctrl.settings.status !== '' ? ctrl.settings.status : 'all'
     ctrl.settings.mode = ctrl.settings.mode && ctrl.settings.mode !== '' ? ctrl.settings.mode : 'simple'
+    document.getElementById('viewListToggle').checked = ctrl.settings.mode !== 'simple'
     this.pairTarget.value = ctrl.settings.pair
     this.statusTarget.value = ctrl.settings.status
-    // Parse stimulus data
-    const cdata = ctrl.data
+    if (!ctrl.settings.start || ctrl.settings.start === '') {
+      ctrl.settings.start = 0
+    }
+    if (!ctrl.settings.n || ctrl.settings.n === '') {
+      ctrl.settings.n = 20
+    }
     ctrl.paginationParams = {
-      offset: parseInt(cdata.get('offset')),
-      count: parseInt(cdata.get('txnCount'))
+      offset: ctrl.settings.start,
+      count: ctrl.settings.n
     }
 
     // init for chart
@@ -179,6 +185,9 @@ export default class extends Controller {
 
     ctrl.initializeChart()
     ctrl.drawGraph()
+    // fetch table data
+    this.fetchTable(ctrl.paginationParams.count, ctrl.paginationParams.offset)
+    this.resetPageSizeOptions()
   }
 
   disconnect () {
@@ -202,6 +211,246 @@ export default class extends Controller {
     if (e.keyCode === 13) {
       this.searchAtomicSwapContract()
     }
+  }
+
+  createDataTableView () {
+    if (this.swapsData === null) {
+      return ''
+    }
+    let resHtml = `<div class="btable-table-wrap maxh-none mt-2">
+      <table class="btable-table w-100 table-responsive-sm">
+		  <thead>
+		  <tr class="bg-none">
+				<th class="text-start fw-bold">Pair/Currency</th>
+				<th class="text-center fw-bold">Txid</th>
+				<th class="text-start fw-bold">Height</th>
+				<th class="text-start fw-bold">Value</th>
+				<th class="d-none d-sm-table-cell text-end fw-bold">Create/Lock Time (UTC)</th>
+			</tr>
+		</thead>
+		<tbody class="bgc-white">`
+    this.swapsData.forEach((swap) => {
+      const hasTargetToken = swap.targetToken !== ''
+      resHtml += `<tr class="swap-group-header">
+				<td class="text-start" colspan="2">
+					<div class="d-flex ai-center">
+					${hasTargetToken
+? `<div class="p-relative d-flex ai-center pair-icons">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20"> 
+							<img src="/images/${swap.targetToken}-icon.png" width="20" height="20" class="second-pair">
+						  </div>`
+: '<img src="/images/synchronize.png" width="20" height="20" class="me-1">'}
+						<p class="fw-bold">${hasTargetToken ? 'DCR/' + swap.targetToken.toUpperCase() : 'Verifying'}</p>
+						<span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span>
+					</div>
+				</td>
+				<td class="text-center"></td>
+				<td class="text-start d-flex fw-bold">
+          ${humanize.toAmountFloatDisplay(swap.source.totalAmount, -1, 'DCR')}
+					${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}
+				</td>
+				<td class="text-end"></td>
+			</tr>`
+      swap.source.contracts.forEach((contract) => {
+        resHtml += `<tr>
+				<td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contract</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">${humanize.hashElide(contract.txid, '/tx/' + contract.txid)}</div>
+				</td>
+				<td class="text-start">
+					<a href="/decred/block/${contract.height}">${contract.height}</a>
+				</td>
+				<td class="text-start">
+          ${humanize.toAmountFloatDisplay(contract.value, -1, 'DCR')}
+				</td>
+				<td class="text-end">
+          ${contract.timeDisp}
+				</td>
+			</tr>`
+      })
+      swap.source.results.forEach((result) => {
+        resHtml += `<tr>
+				<td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">${humanize.hashElide(result.txid, '/tx/' + result.txid)}</div>
+				</td>
+				<td class="text-start">
+					<a href="/decred/block/${result.height}">${result.height}</a>
+				</td>
+				<td class="text-start">
+          ${humanize.toAmountFloatDisplay(result.value, -1, 'DCR')}
+				</td>
+				<td class="text-end">
+          ${result.timeDisp}
+				</td>
+			</tr>`
+      })
+      if (hasTargetToken) {
+        swap.target.contracts.forEach((contract) => {
+          resHtml += `<tr>
+				  <td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/${swap.targetToken}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contract</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">${humanize.hashElide(contract.txid, '/' + swap.targetToken + '/tx/' + contract.txid)}</div>
+				</td>
+				<td class="text-start">
+					<a href="/${swap.targetToken}/block/${contract.height}">${contract.height}</a>
+				</td>
+				<td class="text-start">
+					 ${humanize.toAmountFloatDisplay(contract.value, -1, swap.targetToken.toUpperCase())}
+				</td>
+				<td class="text-end">
+          ${contract.timeDisp}
+				</td>
+			</tr>`
+        })
+        swap.target.results.forEach((result) => {
+          resHtml += `<tr>
+				<td class="text-start">
+					<div class="d-flex ai-center ms-3 ms-lg-4">
+						<div class="d-flex ai-center">
+							<img src="/images/${swap.targetToken}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
+						</div>
+					</div>
+				</td>
+				<td class="text-center">
+					<div class="clipboard">${humanize.hashElide(result.txid, '/' + swap.targetToken + '/tx/' + result.txid)}</div>
+				</td>
+				<td class="text-start">
+					<a href="/${swap.targetToken}/block/${result.height}">${result.height}</a>
+				</td>
+				<td class="text-start">
+          ${humanize.toAmountFloatDisplay(result.value, -1, swap.targetToken.toUpperCase())}
+				</td>
+				<td class="text-end">
+          ${result.timeDisp}
+				</td>
+			</tr>`
+        })
+      }
+    })
+    resHtml += '</tbody></table></div>'
+    return resHtml
+  }
+
+  createGridDataView () {
+    if (this.swapsData === null) {
+      return ''
+    }
+    let resHtml = `<div class="btable-table-wrap maxh-none mt-0">
+                <table class="btable-table atomic-table w-100 table-responsive-sm">
+	              <tbody class="bgc-white">`
+    this.swapsData.forEach((swap) => {
+      resHtml += `<tr><td>
+				<div class="pb-1 border-2-bottom-grey">
+				<div class="d-flex ai-center fw-600 fs15">
+					<div class="d-flex ai-center">`
+      const hasTargetToken = swap.targetToken !== ''
+      resHtml += `${!hasTargetToken
+? '<img src="/images/synchronize.png" width="20" height="20" class="me-1">'
+: `<div class="p-relative d-flex ai-center pair-icons">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20"> 
+							<img src="/images/${swap.targetToken}-icon.png" width="20" height="20" class="second-pair">
+						  </div>`}<p>${hasTargetToken ? 'DCR/' + swap.targetToken.toUpperCase() : 'Verifying'}</p></div>`
+      resHtml += `<div class="d-flex ai-center ms-3">Amount:&nbsp;${humanize.toAmountFloatDisplay(swap.source.totalAmount, -1, 'DCR')}
+                ${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}</div>
+                <span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span>
+                </div></div><div class="row mt-3">
+					      <div class="col-24 col-md-12 mb-3">
+						    <div class="d-flex ai-center">
+							  <img src="/images/dcr-icon-notran.png" width="20" height="20">
+							  <div class="ms-2"><span class="fw-600">Contract</span></div>
+						    </div>`
+      swap.source.contracts.forEach((contract) => {
+        resHtml += `<div class="row mt-1">
+							<div class="col-24">
+							  <div class="clipboard">${humanize.hashElide(contract.txid, '/tx/' + contract.txid)}</div>
+							</div>
+							<p class="col-12 ps-2">Block Height: <a href="/decred/block/${contract.height}">${contract.height}</a></p>
+							<p class="col-12 ps-2">Value: ${humanize.toAmountFloatDisplay(contract.value, -1, 'DCR')}</p>
+							<p class="col-12 ps-2">Fees: ${humanize.toAmountFloatDisplay(contract.fees, -1, 'DCR')}</p>
+							<p class="col-12 ps-2"><span class="fw-bold">Created: </span>${contract.timeDisp}</p>
+						  </div>`
+      })
+      resHtml += `</div>
+					<div class="col-24 col-md-12 mb-3">
+						<div class="d-flex ai-center">
+							<img src="/images/dcr-icon-notran.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
+						</div>`
+      swap.source.results.forEach((result) => {
+        resHtml += `<div class="row mt-1">
+                    <div class="col-24">
+                      <div class="clipboard">${humanize.hashElide(result.txid, '/tx/' + result.txid)}</div>
+                    </div>
+                    <p class="col-12 ps-2">Block Height: <a href="/decred/block/${result.height}">${result.height}</a></p>
+                    <p class="col-12 ps-2">Value: ${humanize.toAmountFloatDisplay(result.value, -1, 'DCR')}</p>
+                    <p class="col-12 ps-2"><span class="fw-bold">Locked: </span>${result.timeDisp}</p>
+                    </div>`
+      })
+      resHtml += '</div></div>'
+      if (hasTargetToken) {
+        resHtml += `<div class="row">
+					  <div class="col-24 col-md-12 mb-1">
+						<div class="d-flex ai-center">
+							<img src="/images/${swap.targetToken}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">Contracts</span></div>
+						</div>`
+
+        swap.target.contracts.forEach((contract) => {
+          resHtml += `<div class="row mt-1">
+                    <div class="col-24">
+                      <div class="clipboard">${humanize.hashElide(contract.txid, '/' + swap.targetToken + '/tx/' + contract.txid)}</div>
+                    </div>
+                    <p class="col-12 ps-2">Block Height: <a href="/${swap.targetToken}/block/${contract.height}">${contract.height}</a></p>
+                    <p class="col-12 ps-2">Value: ${humanize.toAmountFloatDisplay(contract.value, -1, swap.targetToken.toUpperCase())}</p>
+                    <p class="col-12 ps-2">Fees: ${humanize.toAmountFloatDisplay(contract.fees, -1, swap.targetToken.toUpperCase())}</p>
+                    <p class="col-12 ps-2"><span class="fw-bold">Created: </span>${contract.timeDisp}</p>
+                    </div>`
+        })
+        resHtml += `</div>
+					  <div class="col-24 col-md-12 mb-1">
+						<div class="d-flex ai-center">
+							<img src="/images/${swap.targetToken}-icon.png" width="20" height="20">
+							<div class="ms-2"><span class="fw-600">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
+						</div>`
+        swap.target.results.forEach((result) => {
+          resHtml += `<div class="row mt-1">
+                        <div class="col-24">
+                          <div class="clipboard">${humanize.hashElide(result.txid, '/' + swap.targetToken + '/tx/' + result.txid)}</div>
+                        </div>
+                        <p class="col-12 ps-2">Block Height: <a href="/${swap.targetToken}/block/${result.height}">${result.height}</a></p>
+                        <p class="col-12 ps-2">Value: ${humanize.toAmountFloatDisplay(result.value, -1, swap.targetToken.toUpperCase())}</p>
+                        <p class="col-12 ps-2"><span class="fw-bold">Locked: </span>${result.timeDisp}</p>
+                        </div>`
+        })
+        resHtml += '</div></div>'
+      }
+      resHtml += '</td></tr>'
+    })
+    resHtml += '</tbody></table></div>'
+    return resHtml
   }
 
   searchAtomicSwapContract () {
@@ -277,7 +526,7 @@ export default class extends Controller {
     ctrl.settings.mode = ctrl.settings.mode === 'full' ? 'simple' : 'full'
     document.getElementById('viewListToggle').checked = ctrl.settings.mode === 'full'
     ctrl.query.replace(ctrl.settings)
-    this.fetchTable(this.pageSize, this.paginationParams.offset)
+    ctrl.tableTarget.innerHTML = ctrl.settings.mode === 'full' ? this.createGridDataView() : this.createDataTableView()
   }
 
   async fetchGraphData (chart, bin) {
@@ -640,14 +889,15 @@ export default class extends Controller {
     ctrl.listLoaderTarget.classList.add('loading')
     const requestCount = count > 20 ? count : 20
     const tableResponse = await requestJSON(ctrl.makeTableUrl(requestCount, offset))
+    this.swapsData = tableResponse.swaps_list
     ctrl.tableTarget.innerHTML = dompurify.sanitize(tableResponse.html)
     const settings = ctrl.settings
-    settings.n = count
+    settings.n = requestCount
     settings.start = offset
     ctrl.paginationParams.count = tableResponse.tx_count
     ctrl.query.replace(settings)
     ctrl.paginationParams.offset = offset
-    ctrl.paginationParams.pagesize = count
+    ctrl.paginationParams.pagesize = requestCount
     ctrl.paginationParams.currentcount = Number(tableResponse.current_count)
     ctrl.setPageability()
     ctrl.tablePaginationParams = tableResponse.pages
@@ -724,7 +974,7 @@ export default class extends Controller {
     let rangeEnd = Number(params.offset) + Number(count)
     if (rangeEnd > rowMax) rangeEnd = rowMax
     ctrl.rangeTarget.innerHTML = 'showing ' + (Number(params.offset) + 1).toLocaleString() + ' &ndash; ' +
-      rangeEnd.toLocaleString() + ' of ' + rowMax.toLocaleString() + ' transaction' + suffix
+      rangeEnd.toLocaleString() + ' of ' + rowMax.toLocaleString() + ' contract' + suffix
   }
 
   setTablePaginationLinks () {

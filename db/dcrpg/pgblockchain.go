@@ -3230,6 +3230,7 @@ func (pgb *ChainDB) GetSwapFullDataByContractTx(contractTx, groupTx string) (spe
 		if err != nil {
 			return
 		}
+		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
 	err = rows.Err()
@@ -3254,6 +3255,7 @@ func (pgb *ChainDB) GetLTCSwapFullDataByContractTx(contractTx, groupTx string) (
 		if err != nil {
 			return
 		}
+		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
 	err = rows.Err()
@@ -3278,6 +3280,7 @@ func (pgb *ChainDB) GetBTCSwapFullDataByContractTx(contractTx, groupTx string) (
 		if err != nil {
 			return
 		}
+		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
 	err = rows.Err()
@@ -3324,6 +3327,7 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 		if err != nil {
 			return nil, err
 		}
+		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
 		// get spends of contract
 		spendDatas, err := pgb.GetSwapFullDataByContractTx(contractData.Txid, groupTx)
 		if err != nil {
@@ -3379,11 +3383,7 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 }
 
 // GetAtomicSwapList fetches filtered atomic swap list.
-func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey string) (swaps []*dbtypes.AtomicSwapFullData, allCount, allFilterCount, totalAmount, oldestContract int64, err error) {
-	allCount, totalAmount, oldestContract, err = pgb.GetAtomicSwapSummary()
-	if err != nil {
-		return
-	}
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey string) (swaps []*dbtypes.AtomicSwapFullData, allFilterCount int64, err error) {
 	// get count all atomic swaps with filter pair, status
 	if searchKey != "" {
 		err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithSearchFilter(pair, status), searchKey).Scan(&allFilterCount)
@@ -3520,6 +3520,7 @@ func (pgb *ChainDB) GetBTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapF
 		}
 		contractData.Fees = int64(contractFees)
 		contractData.Time = targetBlockHeader.Time
+		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
 		targetData.TotalAmount += contractData.Value
 		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
@@ -3642,6 +3643,7 @@ func (pgb *ChainDB) GetLTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapF
 		}
 		contractData.Fees = int64(contractFees)
 		contractData.Time = targetBlockHeader.Time
+		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
 		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
 	err = rows.Err()

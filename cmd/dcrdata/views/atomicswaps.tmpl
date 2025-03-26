@@ -3,8 +3,7 @@
 <html lang="en">
 {{template "html-head" headData .CommonPageData "Decred Atomic Swap Transactions"}}
 {{template "navbar" . }}
-<div class="container mt-2" data-controller="atomicswaps time" data-atomicswaps-offset="{{.Offset}}"
-  data-atomicswaps-txn-count="{{.TxCount}}">
+<div class="container mt-2" data-controller="atomicswaps time">
   <div class="container mt-2">
     <nav class="breadcrumbs mt-0">
       <a href="/" class="breadcrumbs__item no-underline ps-2">
@@ -106,23 +105,17 @@
     <div class="position-relative" data-atomicswaps-target="listbox">
       <div class="align-items-center">
         <div class="me-auto mb-0 h4 d-flex ai-center">Atomic Swap Transactions
-          <nav aria-label="address transactions navigation" data-limit="{{.Limit}}"
-            class="my-1 ms-2{{if ge (len .SwapsList) .TxCount}} d-hide{{end}}" data-atomicswaps-target="pagebuttons">
+          <nav aria-label="address transactions navigation"
+            class="my-1 ms-2" data-atomicswaps-target="pagebuttons">
             <ul class="pagination mb-0 pagination-sm">
-              <li class="page-item {{if eq .Offset 0}}disabled{{end}}" data-atomicswaps-target="pageminus">
+              <li class="page-item" data-atomicswaps-target="pageminus">
                 <a class="page-link"
-                  href="/decred/atomic-swaps?n={{.Limit}}&start={{if gt (subtract .Offset .Limit) 0}}{{subtract .Offset .Limit}}{{else}}0{{end}}
-                        {{if .Pair}}&pair={{.Pair}}{{end}}{{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
-                        {{if .ListMode}}&mode={{.ListMode}}{{end}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#prevPage">Previous</a>
               </li>
-              <li class="page-item {{if lt (subtract .TxCount .Offset) (add .Limit 1)}}disabled{{end}}"
+              <li class="page-item"
                 data-atomicswaps-target="pageplus">
                 <a class="page-link"
-                  href="/decred/atomic-swaps?n={{.Limit}}&start={{add .Offset .Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
-                        {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
-                        {{if .ListMode}}&mode={{.ListMode}}{{end}}"
                   data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#nextPage">Next</a>
               </li>
@@ -160,11 +153,7 @@
         </div>
         <div class="d-flex flex-wrap-reverse align-items-center transactions-filter-area py-1">
           <div data-atomicswaps-target="paginationheader">
-            <span class="fs12 nowrap text-end" data-atomicswaps-target="range">
-              showing {{intComma (add .Offset 1)}} &mdash; {{intComma (add .Offset (int64 (len .SwapsList)))}} of
-              <span data-atomicswaps-target="txnCount" data-txn-count="{{.TxCount}}">{{intComma .TxCount}}</span>
-              contracts
-            </span>
+            <span class="fs12 nowrap text-end" data-atomicswaps-target="range"></span>
             <span class="separator mx-2 h-20px block-banner-separator"></span>
           </div>
           <div class="d-flex align-items-center justify-content-between">
@@ -174,28 +163,13 @@
                 <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
                 <select name="pagesize" id="pagesize" data-atomicswaps-target="pagesize"
                   data-action="change->atomicswaps#changePageSize"
-                  class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt .TxCount 20}}disabled{{end}}"
-                  {{- if lt .TxCount 20}} disabled{{end}}>
-                  {{- $Txlen := len .SwapsList}}
-                  <option {{if eq $Txlen 20}}selected {{end}}value="20" {{if lt .TxCount 20}} disabled{{end}}>20
-                  </option>
-                  <option {{if eq $Txlen 40}}selected {{end}}value="40" {{if lt .TxCount 40}} disabled{{end}}>40
-                  </option>
-                  <option {{if eq $Txlen 80}}selected {{end}}value="80" {{if lt .TxCount 80}} disabled{{end}}>80
-                  </option>
-                  {{- if lt .TxCount 160}}
-                  <option {{if eq $Txlen .TxCount}}selected {{end}}value="{{.TxCount}}" {{if le .TxCount 160}}
-                    disabled{{end}}>{{.TxCount}}</option>
-                  {{- else}}
-                  <option {{if ge $Txlen 160}}selected {{end}}value="160">160</option>
-                  {{- end}}
+                  class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
                 </select>
               </div>
             </div>
           </div>
         </div>
       </div>
-
       <div class="position-relative">
         <div class="loader-v2" data-atomicswaps-target="listLoader"></div>
         <div class='br-8 b--def bgc-plain-bright pb-10'>
@@ -207,61 +181,10 @@
               <span class="legacy-slider round"></span>
               </label>
            </div>
-           <div class="pe-3 mt-2" data-atomicswaps-target="topTablePagination">
-            {{if ne .Offset 0}}
-            <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
-              data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
-                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
-                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
-            {{end}}
-            {{range $.Pages}}
-            {{if eq .Link ""}}
-            <span>{{.Str}}</span>
-            {{else}}
-            <a class="fs18 pager pagination-number{{if .Active}} active{{end}}"
-              data-action="click->atomicswaps#pageNumberLink" href="{{.Link}}">{{.Str}}</a>
-            {{end}}
-            {{end}}
-            {{if gt (subtract .TxCount .Offset) .Limit}}
-            <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
-              data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
-                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
-                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
-            {{end}}
+           <div class="pe-3 mt-2" data-atomicswaps-target="topTablePagination"></div>
           </div>
-          </div>
-          <div class="position-relative" data-atomicswaps-target="table">
-            {{if eq $.ListMode "full"}}
-              {{template "atomicSwapsTable" .}}
-            {{else}}
-              {{template "atomicSwapsSimpleTable" .}}
-            {{end}}
-          </div>
+          <div class="position-relative" data-atomicswaps-target="table"></div>
           <div class="text-end pe-3" data-atomicswaps-target="tablePagination">
-            {{if ne .Offset 0}}
-            <a class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20"
-              data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{subtract .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
-                  {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
-                  {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
-            {{end}}
-            {{range $.Pages}}
-            {{if eq .Link ""}}
-            <span>{{.Str}}</span>
-            {{else}}
-            <a class="fs18 pager pagination-number{{if .Active}} active{{end}}"
-              data-action="click->atomicswaps#pageNumberLink" href="{{.Link}}">{{.Str}}</a>
-            {{end}}
-            {{end}}
-            {{if gt (subtract .TxCount .Offset) .Limit}}
-            <a class="d-inline-block dcricon-arrow-right m-1 fs20 pagination-number pagination-narrow"
-              data-action="click->atomicswaps#pageNumberLink"
-              href="/atomic-swaps?start={{add .Offset .Limit}}&n={{.Limit}}{{if .Pair}}&pair={{.Pair}}{{end}}
-                    {{if .Status}}&status={{.Status}}{{end}}{{if .SearchKey}}&search={{.SearchKey}}{{end}}
-                    {{if .ListMode}}&mode={{.ListMode}}{{end}}"></a>
-            {{end}}
           </div>
         </div>
       </div>

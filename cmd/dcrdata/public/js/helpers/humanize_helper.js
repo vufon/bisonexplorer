@@ -58,13 +58,13 @@ const humanize = {
 
     if (!isNaN(lgDecimals) && lgDecimals > 0) {
       htmlString += `<span class="int">${int}.${decimalVals.substring(0, lgDecimals)}</span>` +
-      `<span class="decimal">${decimalVals.substring(lgDecimals, decimalVals.length)}</span>` +
-      `<span class="decimal trailing-zeroes">${trailingZeros}</span>`
+        `<span class="decimal">${decimalVals.substring(lgDecimals, decimalVals.length)}</span>` +
+        `<span class="decimal trailing-zeroes">${trailingZeros}</span>`
     } else if (precision !== 0) {
       htmlString += `<span class="int">${int}</span>` +
-      '<span class="decimal dot">.</span>' +
-      `<span class="decimal">${decimalVals}</span>` +
-      `<span class="decimal trailing-zeroes">${trailingZeros}</span>`
+        '<span class="decimal dot">.</span>' +
+        `<span class="decimal">${decimalVals}</span>` +
+        `<span class="decimal trailing-zeroes">${trailingZeros}</span>`
     } else {
       htmlString += `<span class="int">${int}</span>`
     }
@@ -103,6 +103,10 @@ const humanize = {
   },
   subsidyToString: function (x, y = 1) {
     return (x / 100000000 / y) + ' DCR'
+  },
+  toAmountFloatDisplay: function (x, y, tail) {
+    const floatAmount = x / 100000000
+    return (y < 0 ? floatAmount : floatAmount.toFixed(y)) + ' ' + tail
   },
   bytes: function (s) { // from go-humanize
     const sizes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB']
