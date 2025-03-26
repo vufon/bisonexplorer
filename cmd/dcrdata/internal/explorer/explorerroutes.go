@@ -2608,7 +2608,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 	if listMode == "" {
 		listMode = "simple"
 	}
-	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
+	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, oldestContract, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2644,6 +2644,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		SearchKey          string
 		TxCount            int64
 		AllCountSummary    int64
+		OldestContract     int64
 		RefundCount        int64
 		TotalTradingAmount int64
 		SimpleListMode     bool
@@ -2662,6 +2663,7 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		AllCountSummary:    allCount,
 		SimpleListMode:     false,
 		ListMode:           listMode,
+		OldestContract:     oldestContract,
 		Pages:              calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	})
 
@@ -3172,7 +3174,7 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	status := strings.TrimSpace(r.URL.Query().Get("status"))
 	searchKey := strings.TrimSpace(r.URL.Query().Get("search"))
 	listMode := strings.TrimSpace(r.URL.Query().Get("mode"))
-	atomicSwapTxs, allCount, allFilterCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
+	atomicSwapTxs, allCount, allFilterCount, _, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {

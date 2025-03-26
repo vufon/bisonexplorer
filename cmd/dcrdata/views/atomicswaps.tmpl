@@ -11,7 +11,7 @@
         <span class="homeicon-tags me-1"></span>
         <span class="link-underline">Homepage</span>
       </a>
-      <span class="breadcrumbs__item is-active">Atomic Swap Transactions</span>
+      <span class="breadcrumbs__item is-active">Atomic Swaps</span>
     </nav>
     <div class="fullscreen d-none" data-atomicswaps-target="fullscreen" data-action="click->atomicswaps#exitFullscreen">
       <div class="secondary-card d-inline-block w-100 h-100 p-4" data-atomicswaps-target="bigchart"></div>
@@ -27,6 +27,11 @@
               {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .TotalTradingAmount) 2 true)}}
               <span class="text-secondary fs14">DCR</span>
             </div>
+            <br>
+            <span class="text-secondary fs14 lh1rem">
+              from ~<span data-type="age" data-time-target="age"
+                                 data-age="{{.OldestContract}}"></span> ago
+            </span>
           </div>
           <div class="d-inline-block text-start pe-2 pb-3">
             <span class="text-secondary fs13">Total Contracts</span>
@@ -40,8 +45,7 @@
           </div>
         </div>
         <div class="position-relative d-flex justify-content-between align-items-start flex-wrap">
-          <span>You can also refer to the <a href="/decred/bwdash">Bison Wallet Dashboard</a> to track market data of
-            atomic swaps.</span>
+          <span>You can create atomic swaps on the <a target="_blank" href="https://dex.decred.org">DCRDEX</a> decentralized exchange.</span>
         </div>
       </div>
       <div class="col-24 mt-2 mt-xl-0 col-xl-13 common-card secondary-card p-2">

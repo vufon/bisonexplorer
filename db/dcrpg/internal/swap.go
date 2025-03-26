@@ -76,10 +76,12 @@ const (
 	%s 
  	GROUP BY group_tx) AS ctx;`
 
-	SelectDecredMinTime         = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
-	CountAtomicSwapsRow         = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps GROUP BY group_tx) AS ctx;`
-	CountRefundAtomicSwapsRow   = `SELECT COUNT(*) FROM swaps WHERE is_refund`
-	SelectTotalTradingAmount    = `SELECT SUM(value) FROM swaps`
+	SelectDecredMinTime       = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
+	CountAtomicSwapsRow       = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps GROUP BY group_tx) AS ctx;`
+	CountRefundAtomicSwapsRow = `SELECT COUNT(*) FROM swaps WHERE is_refund`
+	SelectTotalTradingAmount  = `SELECT SUM(value) FROM swaps`
+	SelectOldestContractTime  = `SELECT MIN(contract_time) FROM swaps;`
+
 	SelectExistSwapBySecretHash = `SELECT group_tx FROM swaps WHERE secret_hash = $1 LIMIT 1`
 	Select24hSwapSummary        = `SELECT SUM(value), 
 		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,

@@ -95,7 +95,7 @@ type explorerDataSource interface {
 	TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error)
 	TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error)
 	TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error)
-	GetAtomicSwapList(n, offset int64, pair, status, searchKey string) ([]*dbtypes.AtomicSwapFullData, int64, int64, int64, error)
+	GetAtomicSwapList(n, offset int64, pair, status, searchKey string) ([]*dbtypes.AtomicSwapFullData, int64, int64, int64, int64, error)
 	CountRefundContract() (int64, error)
 	AddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error)
 	MutilchainAddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *dbtypes.AddressBalance, error)
@@ -177,7 +177,7 @@ type explorerDataSource interface {
 	GetMutilchainMempoolTxTime(txid string, chainType string) int64
 	GetPeerCount() (int, error)
 	GetBlockchainSummaryInfo() (addrCount, outputs int64, err error)
-	GetAtomicSwapSummary() (txCount, amount int64, err error)
+	GetAtomicSwapSummary() (txCount, amount, oldestContract int64, err error)
 	GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error)
 	GetSwapType(txid string) string
 	GetMultichainSwapType(txid, chainType string) (string, error)
@@ -690,7 +690,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	// Get additional blockchain info
 	totalAddresses, totalOutputs, _ := exp.dataSource.GetBlockchainSummaryInfo()
 	// Get atomic swaps summary info
-	swapsTotalContract, swapsTotalAmount, _ := exp.dataSource.GetAtomicSwapSummary()
+	swapsTotalContract, swapsTotalAmount, _, _ := exp.dataSource.GetAtomicSwapSummary()
 	// Get atomic swaps refund contract count
 	refundCount, _ := exp.dataSource.CountRefundContract()
 	// Get last 5 pool info

@@ -3379,8 +3379,8 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 }
 
 // GetAtomicSwapList fetches filtered atomic swap list.
-func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey string) (swaps []*dbtypes.AtomicSwapFullData, allCount, allFilterCount int64, totalAmount int64, err error) {
-	allCount, totalAmount, err = pgb.GetAtomicSwapSummary()
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey string) (swaps []*dbtypes.AtomicSwapFullData, allCount, allFilterCount, totalAmount, oldestContract int64, err error) {
+	allCount, totalAmount, oldestContract, err = pgb.GetAtomicSwapSummary()
 	if err != nil {
 		return
 	}
@@ -3429,7 +3429,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 	return
 }
 
-func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount int64, err error) {
+func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount, oldestContract int64, err error) {
 	// get count all atomic swaps
 	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&txCount)
 	if err != nil {
@@ -3437,6 +3437,11 @@ func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount int64, err error) {
 	}
 	// get total trading amount
 	err = pgb.db.QueryRow(internal.SelectTotalTradingAmount).Scan(&amount)
+	if err != nil {
+		return
+	}
+	// get oldest contract time on swaps txs
+	err = pgb.db.QueryRow(internal.SelectOldestContractTime).Scan(&oldestContract)
 	return
 }
 
