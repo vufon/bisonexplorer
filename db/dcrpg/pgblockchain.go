@@ -3199,14 +3199,6 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 	return priceMap
 }
 
-// GetAtomicSwapsContractTxsQuery return query for get atomic swap contract tx list
-func (pgb *ChainDB) GetAtomicSwapsContractTxsQuery(pair, status, searchKey string) string {
-	if searchKey != "" {
-		return internal.MakeSelectAtomicSwapsContractTxsWithSearchFilter(pair, status)
-	}
-	return internal.MakeSelectAtomicSwapsContractTxsWithFilter(pair, status)
-}
-
 // GetAtomicSwapsContractGroupQuery return query for get atomic swap contract tx list
 func (pgb *ChainDB) GetAtomicSwapsContractGroupQuery(pair, status, searchKey string) string {
 	if searchKey != "" {
@@ -3391,6 +3383,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 		err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithFilter(pair, status)).Scan(&allFilterCount)
 	}
 	if err != nil {
+		log.Errorf("Get count atomic swaps faled: %v", err)
 		return
 	}
 	var rows *sql.Rows
@@ -3402,6 +3395,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 	}
 
 	if err != nil {
+		log.Errorf("Get atomic swaps list faled: %v", err)
 		return
 	}
 

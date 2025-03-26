@@ -3080,7 +3080,7 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		if int64(val) > MaxTreasuryRows {
-			log.Warnf("AtomicSwapsPage: requested up to %d txs rows, "+
+			log.Warnf("AtomicSwapsTable: requested up to %d txs rows, "+
 				"limiting to %d", limitN, MaxTreasuryRows)
 			limitN = MaxTreasuryRows
 		} else {
