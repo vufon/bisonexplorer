@@ -838,18 +838,18 @@ func (psh *PubSubHub) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcw
 	// Retrieve block data for the passed block hash.
 	newBlockData := psh.sourceBase.GetBTCExplorerBlock(msgBlock.BlockHash().String())
 	// Use the latest block's blocktime to get the last 24hr timestamp.
-	day := 24 * time.Hour
+	// day := 24 * time.Hour
 	targetTimePerBlock := float64(psh.btcParams.TargetTimePerBlock)
 
 	// Hashrate change over last day
-	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
-	last24hrDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
-	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+	// timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	// last24hrDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	// last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
 
 	// Hashrate change over last month
-	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
-	lastMonthDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
-	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+	// timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	// lastMonthDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	// lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
 
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
@@ -886,8 +886,6 @@ func (psh *PubSubHub) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcw
 
 	// Update GeneralInfo, keeping constant parameters set in NewPubSubHub.
 	p.BTCGeneralInfo.HashRate = hashrate
-	p.BTCGeneralInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
-	p.BTCGeneralInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.BTCGeneralInfo.CoinSupply = coinSupply
 	p.BTCGeneralInfo.CoinValueSupply = coinValueSupply
 	p.BTCGeneralInfo.Difficulty = difficulty
@@ -919,18 +917,18 @@ func (psh *PubSubHub) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcw
 	// Retrieve block data for the passed block hash.
 	newBlockData := psh.sourceBase.GetLTCExplorerBlock(msgBlock.BlockHash().String())
 	// Use the latest block's blocktime to get the last 24hr timestamp.
-	day := 24 * time.Hour
+	// day := 24 * time.Hour
 	targetTimePerBlock := float64(psh.ltcParams.TargetTimePerBlock)
 
 	// Hashrate change over last day
-	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
-	last24hrDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
-	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+	// timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	// last24hrDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	// last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
 
 	// Hashrate change over last month
-	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
-	lastMonthDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
-	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+	// timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	// lastMonthDifficulty := psh.sourceBase.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	// lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
 
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
@@ -967,8 +965,8 @@ func (psh *PubSubHub) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcw
 
 	// Update GeneralInfo, keeping constant parameters set in NewPubSubHub.
 	p.LTCGeneralInfo.HashRate = hashrate
-	p.LTCGeneralInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
-	p.LTCGeneralInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	// p.LTCGeneralInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	// p.LTCGeneralInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.LTCGeneralInfo.CoinSupply = coinSupply
 	p.LTCGeneralInfo.CoinValueSupply = coinValueSupply
 	p.LTCGeneralInfo.Difficulty = difficulty

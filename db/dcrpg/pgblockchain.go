@@ -1198,17 +1198,18 @@ func (pgb *ChainDB) RegisterMutilchainCharts(charts *cache.MutilchainChartData) 
 		Appender: appendMutilchainChartBlocks,
 	})
 
-	charts.AddUpdater(cache.ChartMutilchainUpdater{
-		Tag:      "coin supply",
-		Fetcher:  pgb.mutilchainCoinSupply,
-		Appender: appendMutilchainCoinSupply,
-	})
+	// TODO, uncomment in the future
+	// charts.AddUpdater(cache.ChartMutilchainUpdater{
+	// 	Tag:      "coin supply",
+	// 	Fetcher:  pgb.mutilchainCoinSupply,
+	// 	Appender: appendMutilchainCoinSupply,
+	// })
 
-	charts.AddUpdater(cache.ChartMutilchainUpdater{
-		Tag:      "fees",
-		Fetcher:  pgb.mutilchainBlockFees,
-		Appender: appendMutilchainBlockFees,
-	})
+	// charts.AddUpdater(cache.ChartMutilchainUpdater{
+	// 	Tag:      "fees",
+	// 	Fetcher:  pgb.mutilchainBlockFees,
+	// 	Appender: appendMutilchainBlockFees,
+	// })
 }
 
 // TransactionBlocks retrieves the blocks in which the specified transaction
@@ -5689,16 +5690,17 @@ func (pgb *ChainDB) chartBlocks(charts *cache.ChartData) (*sql.Rows, func(), err
 }
 
 func (pgb *ChainDB) chartMutilchainBlocks(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
-	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
-	rows, err := retrieveMutilchainChartBlocks(ctx, pgb.db, charts, charts.ChainType)
-	if err != nil {
-		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
-	}
-	lastBlockHeight, blockErr := pgb.GetMutilchainHeight(charts.ChainType)
-	if blockErr == nil {
-		charts.LastBlockHeight = lastBlockHeight
-	}
-	return rows, cancel, nil
+	// TODO when handler sync all blockchain data to DB, uncomment
+	_, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	// rows, err := retrieveMutilchainChartBlocks(ctx, pgb.db, charts, charts.ChainType)
+	// if err != nil {
+	// 	return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
+	// }
+	// lastBlockHeight, blockErr := pgb.GetMutilchainHeight(charts.ChainType)
+	// if blockErr == nil {
+	// 	charts.LastBlockHeight = lastBlockHeight
+	// }
+	return nil, cancel, nil
 }
 
 // coinSupply fetches the coin supply chart data from retrieveCoinSupply.
@@ -5716,14 +5718,15 @@ func (pgb *ChainDB) coinSupply(charts *cache.ChartData) (*sql.Rows, func(), erro
 }
 
 func (pgb *ChainDB) mutilchainCoinSupply(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
-	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	// TODO when handler sync all blockchain data to DB, uncomment
+	_, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 
-	rows, err := retrieveMutilchainCoinSupply(ctx, pgb.db, charts)
-	if err != nil {
-		return nil, cancel, fmt.Errorf("coinSupply: %w", pgb.replaceCancelError(err))
-	}
+	// rows, err := retrieveMutilchainCoinSupply(ctx, pgb.db, charts)
+	// if err != nil {
+	// 	return nil, cancel, fmt.Errorf("coinSupply: %w", pgb.replaceCancelError(err))
+	// }
 
-	return rows, cancel, nil
+	return nil, cancel, nil
 }
 
 // txPerDay fetches the tx-per-day chart data from retrieveTxPerDay.
@@ -5755,13 +5758,14 @@ func (pgb *ChainDB) blockFees(charts *cache.ChartData) (*sql.Rows, func(), error
 }
 
 func (pgb *ChainDB) mutilchainBlockFees(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
-	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	// TODO when handler sync all blockchain data to DB, uncomment
+	_, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
 
-	rows, err := retrieveMutilchainBlockFees(ctx, pgb.db, charts)
-	if err != nil {
-		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
-	}
-	return rows, cancel, nil
+	// rows, err := retrieveMutilchainBlockFees(ctx, pgb.db, charts)
+	// if err != nil {
+	// 	return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
+	// }
+	return nil, cancel, nil
 }
 
 // appendAnonymitySet sets or updates a series of per-block privacy

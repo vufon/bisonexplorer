@@ -797,45 +797,24 @@ func MutilchainDifficultyChart(charts *MutilchainChartData, bin binLevel, axis a
 func MutilchainHashRateChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
 	// Pow Difficulty only has window level bin, so all others are ignored.
 	seed := binAxisSeed(bin, axis)
-	switch bin {
-	case BlockBin:
-		seed[offsetKey] = HashrateAvgLength
-		switch axis {
-		case HeightAxis:
+	switch axis {
+	case HeightAxis:
+		return encode(lengtherMap{
+			heightKey: charts.Days.Height[1:],
+			rateKey:   charts.Blocks.Hashrate,
+		}, seed)
+	default:
+		if charts.UseAPI {
 			return encode(lengtherMap{
-				rateKey: charts.Blocks.Hashrate,
-			}, seed)
-		default:
-			return encode(lengtherMap{
-				timeKey: charts.Blocks.Time,
-				rateKey: charts.Blocks.Hashrate,
-			}, seed)
-		}
-	case DayBin:
-		if len(charts.Days.Time) < 2 {
-			return nil, fmt.Errorf("Not enough days to calculate hashrate")
-		}
-		seed[offsetKey] = 1
-		switch axis {
-		case HeightAxis:
-			return encode(lengtherMap{
-				heightKey: charts.Days.Height[1:],
-				rateKey:   charts.Blocks.Hashrate,
-			}, seed)
-		default:
-			if charts.UseAPI {
-				return encode(lengtherMap{
-					timeKey: charts.APIHashrate.Time,
-					rateKey: charts.APIHashrate.Hashrate,
-				}, seed)
-			}
-			return encode(lengtherMap{
-				timeKey: charts.Blocks.Time,
-				rateKey: charts.Blocks.Hashrate,
+				timeKey: charts.APIHashrate.Time,
+				rateKey: charts.APIHashrate.Hashrate,
 			}, seed)
 		}
+		return encode(lengtherMap{
+			timeKey: charts.Blocks.Time,
+			rateKey: charts.Blocks.Hashrate,
+		}, seed)
 	}
-	return nil, InvalidBinErr
 }
 
 func MutilchainTxCountChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {

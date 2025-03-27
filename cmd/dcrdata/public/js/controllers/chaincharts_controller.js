@@ -530,10 +530,10 @@ export default class extends Controller {
       this.settings.axis !== this.selectedAxis()) {
       let url = `/api/chainchart/${this.chainType}/` + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
-        this.binSelectorTarget.classList.add('d-hide')
+        // this.binSelectorTarget.classList.add('d-hide')
         this.settings.bin = 'window'
       } else {
-        this.binSelectorTarget.classList.remove('d-hide')
+        // this.binSelectorTarget.classList.remove('d-hide')
         this.settings.bin = this.selectedBin()
         this.binSizeTargets.forEach(el => {
           if (el.dataset.option !== 'window') return
