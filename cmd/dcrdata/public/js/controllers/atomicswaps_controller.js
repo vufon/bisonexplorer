@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus'
+import globalEventBus from '../services/event_bus_service'
 import dompurify from 'dompurify'
 import TurboQuery from '../helpers/turbolinks_helper'
 import { requestJSON } from '../helpers/http'
@@ -114,7 +115,7 @@ export default class extends Controller {
       'range', 'pagebuttons', 'listLoader', 'tablePagination', 'paginationheader', 'pair',
       'status', 'topTablePagination', 'fullscreen', 'bigchart', 'littlechart', 'chartbox', 'chartLoader',
       'options', 'zoom', 'interval', 'flow', 'expando', 'noconfirms', 'chart', 'redeemRadio', 'refundRadio',
-      'searchBox', 'searchInput', 'searchBtn', 'clearSearchBtn']
+      'searchBox', 'searchInput', 'searchBtn', 'clearSearchBtn', 'totalAmount', 'totalContracts', 'redeemCount', 'refundCount']
   }
 
   async connect () {
@@ -188,6 +189,12 @@ export default class extends Controller {
     // fetch table data
     this.fetchTable(ctrl.paginationParams.count, ctrl.paginationParams.offset)
     this.resetPageSizeOptions()
+    this.processDecredBlock = this._processDecredBlock.bind(this)
+    globalEventBus.on('BLOCK_RECEIVED', this.processDecredBlock)
+    this.processBtcBlock = this._processBtcBlock.bind(this)
+    globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBtcBlock)
+    this.processLtcBlock = this._processLtcBlock.bind(this)
+    globalEventBus.on('LTC_BLOCK_RECEIVED', this.processLtcBlock)
   }
 
   disconnect () {
@@ -195,6 +202,65 @@ export default class extends Controller {
       this.graph.destroy()
     }
     this.retrievedData = {}
+    globalEventBus.off('BLOCK_RECEIVED', this.processDecredBlock)
+    globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBtcBlock)
+    globalEventBus.off('LTC_BLOCK_RECEIVED', this.processLtcBlock)
+  }
+
+  _processDecredBlock (blockData) {
+    this.updateAtomicSwapsFromSocket(blockData.block.GroupSwaps, blockData.extra.swapsTotalAmount,
+      blockData.extra.swapsTotalContract, blockData.extra.refundCount)
+  }
+
+  _processBtcBlock (blockData) {
+    this.updateAtomicSwapsFromSocket(blockData.block.GroupSwaps, blockData.extra.swapsTotalAmount,
+      blockData.extra.swapsTotalContract, blockData.extra.refundCount)
+  }
+
+  _processLtcBlock (blockData) {
+    this.updateAtomicSwapsFromSocket(blockData.block.GroupSwaps, blockData.extra.swapsTotalAmount,
+      blockData.extra.swapsTotalContract, blockData.extra.refundCount)
+  }
+
+  updateAtomicSwapsFromSocket (swapList, totalAmount, totalContracts, refundCount) {
+    if (!swapList || swapList.length === 0) {
+      return
+    }
+    this.totalAmountTarget.textContent = humanize.decimalParts(humanize.toAmountFloat(totalAmount), true, 2)
+    this.totalContractsTarget.textContent = humanize.decimalParts(parseFloat(totalContracts), true, 0)
+    this.refundCountTarget.textContent = humanize.decimalParts(parseFloat(refundCount), true, 0)
+    this.redeemCountTarget.textContent = humanize.decimalParts(parseFloat(totalContracts - refundCount), true, 0)
+    const insertedGroupTx = []
+    if (ctrl.swapsData === null) {
+      ctrl.swapsData = swapList.length > ctrl.paginationParams.pagesize ? swapList.slice(0, ctrl.paginationParams.pagesize) : swapList
+    } else {
+      const newSwaps = []
+      for (let i = 0; i < swapList.length; i++) {
+        if (i === ctrl.paginationParams.pagesize) {
+          break
+        }
+        if (insertedGroupTx.includes(swapList[i].groupTx)) {
+          continue
+        }
+        newSwaps.push(swapList[i])
+        insertedGroupTx.push(swapList[i].groupTx)
+      }
+      if (newSwaps.length < ctrl.paginationParams.pagesize) {
+        for (let i = 0; i < swapList.length; i++) {
+          const swap = swapList[i]
+          if (newSwaps.length === ctrl.paginationParams.pagesize) {
+            break
+          }
+          if (insertedGroupTx.includes(swap.groupTx)) {
+            continue
+          }
+          newSwaps.push(swap)
+          insertedGroupTx.push(swap.groupTx)
+        }
+      }
+      ctrl.swapsData = newSwaps
+    }
+    this.handlerUpdateTable()
   }
 
   // Request the initial chart data, grabbing the Dygraph script if necessary.
@@ -904,6 +970,18 @@ export default class extends Controller {
     ctrl.setPageability()
     ctrl.tablePaginationParams = tableResponse.pages
     ctrl.setTablePaginationLinks()
+    ctrl.listLoaderTarget.classList.remove('loading')
+  }
+
+  handlerUpdateTable () {
+    if (ctrl.swapsData === null) {
+      return
+    }
+    ctrl.listLoaderTarget.classList.add('loading')
+    // ctrl.paginationParams.count = txCount
+    ctrl.paginationParams.currentcount = ctrl.swapsData.length
+    ctrl.setPageability()
+    ctrl.tableTarget.innerHTML = ctrl.settings.mode === 'full' ? this.createGridDataView() : this.createDataTableView()
     ctrl.listLoaderTarget.classList.remove('loading')
   }
 

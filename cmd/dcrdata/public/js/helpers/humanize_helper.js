@@ -108,6 +108,9 @@ const humanize = {
     const floatAmount = x / 100000000
     return (y < 0 ? floatAmount : floatAmount.toFixed(y)) + ' ' + tail
   },
+  toAmountFloat: function (x) {
+    return parseFloat(x / 100000000)
+  },
   bytes: function (s) { // from go-humanize
     const sizes = ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB']
     if (s < 10) {

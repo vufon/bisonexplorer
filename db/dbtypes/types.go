@@ -1893,6 +1893,7 @@ func UncompactMergedRows(merged []*AddressRowMerged) []*AddressRow {
 type AtomicSwapFullData struct {
 	IsRefund    bool                    `json:"isRefund"`
 	TargetToken string                  `json:"targetToken"`
+	GroupTx     string                  `json:"groupTx"`
 	Source      *AtomicSwapForTokenData `json:"source"`
 	Target      *AtomicSwapForTokenData `json:"target"`
 }

@@ -134,6 +134,7 @@ const (
 		 FROM swaps WHERE spend_tx = $1 GROUP BY group_tx ORDER BY contime DESC) AS ctx;`
 	SelectTargetTokenOfContract                     = `SELECT target_token, group_tx FROM swaps WHERE contract_tx = $1 LIMIT 1;`
 	SelectGroupTxBySpendTx                          = `SELECT target_token, group_tx FROM swaps WHERE spend_tx = $1 LIMIT 1;`
+	SelectGroupTxsFromTxs                           = `SELECT group_tx, MAX(target_token) as target FROM swaps WHERE contract_tx = ANY($1) OR spend_tx = ANY($1) GROUP BY group_tx ORDER BY MAX(contract_time) DESC;`
 	SelectDecredContractTxsFromMultichainSpendTx    = `SELECT decred_contract_tx FROM %s_swaps WHERE spend_tx = $1 AND decred_contract_tx <> '' AND decred_contract_tx IS NOT NULL GROUP BY decred_contract_tx LIMIT 1;`
 	SelectDecredContractTxsFromMultichainContractTx = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = $1 AND decred_contract_tx <> '' AND decred_contract_tx IS NOT NULL GROUP BY decred_contract_tx LIMIT 1;`
 	CheckSwapIsRefund                               = `SELECT is_refund FROM swaps WHERE group_tx = $1 LIMIT 1;`
@@ -146,6 +147,7 @@ const (
 	) AND (decred_contract_tx = '' OR decred_contract_tx IS NULL);`
 	// Update decred group tx on multichain swap table
 	UpdateMultichainRelatedDecredGroupTx = `UPDATE %s_swaps SET decred_contract_tx = $1 WHERE secret_hash = $2`
+	SelectMultichainGroupTxsFromTxs      = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = ANY($1) OR spend_tx = ANY($1) GROUP BY decred_contract_tx ORDER BY MAX(lock_time) DESC;`
 )
 
 func MakeSelectAtomicSwapsContractGroupWithFilter(pair, status string) string {

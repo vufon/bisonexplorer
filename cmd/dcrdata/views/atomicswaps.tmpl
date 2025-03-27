@@ -23,7 +23,7 @@
             <span class="text-secondary fs13">Total Trading Amount</span>
             <br>
             <div class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
-              {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .TotalTradingAmount) 2 true)}}
+              <span data-atomicswaps-target="totalAmount">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .TotalTradingAmount) 2 true)}}</span>
               <span class="text-secondary fs14">DCR</span>
             </div>
             <br>
@@ -36,11 +36,11 @@
             <span class="text-secondary fs13">Total Contracts</span>
             <br>
             <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
-              <span class="fs18">{{intComma .AllCountSummary}}</span> <span class="text-secondary fs14">contracts</span>
+              <span class="fs18" data-atomicswaps-target="totalContracts">{{intComma .AllCountSummary}}</span> <span class="text-secondary fs14">contracts</span>
             </span>
             <br>
-            <span class="text-secondary fs14 lh1rem">{{intComma (subtract .AllCountSummary .RefundCount)}} redemptions,
-              {{intComma .RefundCount}} refunds</span>
+            <span class="text-secondary fs14 lh1rem"><span data-atomicswaps-target="redeemCount">{{intComma (subtract .AllCountSummary .RefundCount)}}</span> redemptions,
+            <span data-atomicswaps-target="refundCount">{{intComma .RefundCount}}</span> refunds</span>
           </div>
         </div>
         <div class="position-relative d-flex justify-content-between align-items-start flex-wrap">
