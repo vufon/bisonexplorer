@@ -400,7 +400,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.fcc6ca0fceaa8b1a.bundle.js"
+	src="/dist/js/app.68b2f25181da0402.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -790,6 +790,11 @@
 					{{end}}
 					</div>
 				</div>
+				{{if $hasTargetToken}}
+				<div class="mt-2 fst-italic"><span class="fw-bold">Rate:</span> {{normalWithPrecFloat (divideFloat (toFloat64Amount .Target.TotalAmount) (toFloat64Amount .Source.TotalAmount)) 7}} {{toUpperCase .TargetToken}}/DCR, 
+					<span data-type="age" data-time-target="age" data-age="{{.Time}}">{{timeDurationShortString .Time}}</span> ago
+				</div>
+				{{end}}
 				</div>
 				<div class="row mt-3">
 					<div class="col-24 col-md-12 mb-3">
@@ -897,8 +902,8 @@
 			<tr class="bg-none">
 				<th class="text-start fw-bold">Pair/Currency</th>
 				<th class="text-center fw-bold">Txid</th>
-				<th class="text-start fw-bold">Height</th>
 				<th class="text-start fw-bold">Value</th>
+				<th class="text-start fw-bold">Height</th>
 				<th class="text-end fw-bold">Time (UTC)</th>
 			</tr>
 		</thead>
@@ -922,12 +927,17 @@
 						<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Redemption{{end}}</span>
 					</div>
 				</td>
-				<td class="text-center"></td>
 				<td class="text-start fw-bold" colspan="2">
-					{{normalWithPrecFloat (toFloat64Amount .Source.TotalAmount) -1}}&nbsp;DCR
-					{{if $hasTargetToken}}&nbsp;({{normalWithPrecFloat (toFloat64Amount .Target.TotalAmount) -1}}&nbsp;{{toUpperCase .TargetToken}})
-					{{end}}
+					<div>
+						{{normalWithPrecFloat (toFloat64Amount .Source.TotalAmount) -1}}&nbsp;DCR
+						{{if $hasTargetToken}}&nbsp;({{normalWithPrecFloat (toFloat64Amount .Target.TotalAmount) -1}}&nbsp;{{toUpperCase .TargetToken}})
+						{{end}}
+						{{if $hasTargetToken}}
+						<div class="mt-2 fst-italic"><span class="fw-bold">Rate:</span> <span class="fw-400">{{normalWithPrecFloat (divideFloat (toFloat64Amount .Target.TotalAmount) (toFloat64Amount .Source.TotalAmount)) 7}} {{toUpperCase .TargetToken}}/DCR</span></div>
+						{{end}}
+					</div>
 				</td>
+				<td class="text-end"><span data-type="age" data-time-target="age" data-age="{{.Time}}">{{timeDurationShortString .Time}}</span> ago</td>
 			</tr>
 			<!-- End first row is group info -->
 			<!-- Begin Source contracts -->
@@ -945,10 +955,10 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
 				</td>
 				<td class="text-start">
-					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
+					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-end">
 					{{dateTimeWithoutTimeZone .Time}}
@@ -971,10 +981,10 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/tx/%s" .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
 				</td>
 				<td class="text-start">
-					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} DCR
+					<a href="/decred/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-end">
 					{{dateTimeWithoutTimeZone .Time}}
@@ -999,10 +1009,10 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
 				</td>
 				<td class="text-start">
-					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
+					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-end">
 					{{dateTimeWithoutTimeZone .Time}}
@@ -1025,10 +1035,10 @@
 					<div class="clipboard">{{template "hashElide" (hashlink .Txid (printf "/%s/tx/%s" $targetToken  .Txid))}}</div>
 				</td>
 				<td class="text-start">
-					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
+					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
 				</td>
 				<td class="text-start">
-					{{normalWithPrecFloat (toFloat64Amount .Value) -1}} {{toUpperCase $targetToken}}
+					<a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a>
 				</td>
 				<td class="text-end">
 					{{dateTimeWithoutTimeZone .Time}}

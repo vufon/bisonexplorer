@@ -174,6 +174,12 @@ const humanize = {
     }
     return pad(Math.floor(seconds)) + 's'
   },
+  // from time (sec) to duration miliseconds
+  timeToDuration: function (time) {
+    const timestampMs = time * 1000
+    const now = Date.now()
+    return now - timestampMs
+  },
   timeDuration: function (duration, keepOnly) {
     const seconds = duration / 1000
     let interval = Math.floor(seconds / 31536000)

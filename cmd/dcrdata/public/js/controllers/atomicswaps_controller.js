@@ -290,8 +290,8 @@ export default class extends Controller {
 		  <tr class="bg-none">
 				<th class="text-start fw-bold">Pair/Currency</th>
 				<th class="text-center fw-bold">Txid</th>
+        <th class="text-start fw-bold">Value</th>
 				<th class="text-start fw-bold">Height</th>
-				<th class="text-start fw-bold">Value</th>
 				<th class="text-end fw-bold">Time (UTC)</th>
 			</tr>
 		</thead>
@@ -311,11 +311,12 @@ export default class extends Controller {
 						<span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span>
 					</div>
 				</td>
-				<td class="text-center"></td>
 				<td class="text-start fw-bold" colspan="2">
           ${humanize.toAmountFloatDisplay(swap.source.totalAmount, -1, 'DCR')}
 					${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}
+          ${hasTargetToken ? `<div class="mt-2 fst-italic"><span class="fw-bold">Rate:</span> <span class="fw-400">${humanize.decimalParts(humanize.toAmountFloat(swap.target.totalAmount) / humanize.toAmountFloat(swap.source.totalAmount), true, 7)} ${swap.targetToken.toUpperCase()}/DCR</span></div>` : ''}
 				</td>
+        <td class="text-end"><span data-type="age" data-time-target="age" data-age="${swap.time}">${humanize.timeDuration(humanize.timeToDuration(swap.time))}</span> ago</td>
 			</tr>`
       swap.source.contracts.forEach((contract) => {
         resHtml += `<tr>
@@ -330,11 +331,11 @@ export default class extends Controller {
 				<td class="text-center">
 					<div class="clipboard">${humanize.hashElide(contract.txid, '/tx/' + contract.txid)}</div>
 				</td>
-				<td class="text-start">
-					<a href="/decred/block/${contract.height}">${contract.height}</a>
+        <td class="text-start">
+          ${humanize.toAmountFloatDisplay(contract.value, -1, 'DCR')}
 				</td>
 				<td class="text-start">
-          ${humanize.toAmountFloatDisplay(contract.value, -1, 'DCR')}
+					<a href="/decred/block/${contract.height}">${contract.height}</a>
 				</td>
 				<td class="text-end">
           ${contract.timeDisp}
@@ -354,11 +355,11 @@ export default class extends Controller {
 				<td class="text-center">
 					<div class="clipboard">${humanize.hashElide(result.txid, '/tx/' + result.txid)}</div>
 				</td>
-				<td class="text-start">
-					<a href="/decred/block/${result.height}">${result.height}</a>
+        <td class="text-start">
+          ${humanize.toAmountFloatDisplay(result.value, -1, 'DCR')}
 				</td>
 				<td class="text-start">
-          ${humanize.toAmountFloatDisplay(result.value, -1, 'DCR')}
+					<a href="/decred/block/${result.height}">${result.height}</a>
 				</td>
 				<td class="text-end">
           ${result.timeDisp}
@@ -379,11 +380,11 @@ export default class extends Controller {
 				<td class="text-center">
 					<div class="clipboard">${humanize.hashElide(contract.txid, '/' + swap.targetToken + '/tx/' + contract.txid)}</div>
 				</td>
-				<td class="text-start">
-					<a href="/${swap.targetToken}/block/${contract.height}">${contract.height}</a>
+        <td class="text-start">
+					 ${humanize.toAmountFloatDisplay(contract.value, -1, swap.targetToken.toUpperCase())}
 				</td>
 				<td class="text-start">
-					 ${humanize.toAmountFloatDisplay(contract.value, -1, swap.targetToken.toUpperCase())}
+					<a href="/${swap.targetToken}/block/${contract.height}">${contract.height}</a>
 				</td>
 				<td class="text-end">
           ${contract.timeDisp}
@@ -403,11 +404,11 @@ export default class extends Controller {
 				<td class="text-center">
 					<div class="clipboard">${humanize.hashElide(result.txid, '/' + swap.targetToken + '/tx/' + result.txid)}</div>
 				</td>
-				<td class="text-start">
-					<a href="/${swap.targetToken}/block/${result.height}">${result.height}</a>
+        <td class="text-start">
+          ${humanize.toAmountFloatDisplay(result.value, -1, swap.targetToken.toUpperCase())}
 				</td>
 				<td class="text-start">
-          ${humanize.toAmountFloatDisplay(result.value, -1, swap.targetToken.toUpperCase())}
+					<a href="/${swap.targetToken}/block/${result.height}">${result.height}</a>
 				</td>
 				<td class="text-end">
           ${result.timeDisp}
@@ -442,7 +443,9 @@ export default class extends Controller {
       resHtml += `<div class="d-flex ai-center ms-0 ms-md-3">Amount:&nbsp;${humanize.toAmountFloatDisplay(swap.source.totalAmount, -1, 'DCR')}
                 ${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}
                 <span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
-                </div></div><div class="row mt-3">
+                </div>
+                ${hasTargetToken ? `<div class="mt-2 fst-italic"><span class="fw-bold">Rate:</span> ${humanize.decimalParts(humanize.toAmountFloat(swap.target.totalAmount) / humanize.toAmountFloat(swap.source.totalAmount), true, 7)} ${swap.targetToken.toUpperCase()}/DCR, <span data-type="age" data-time-target="age" data-age="${swap.time}">${humanize.timeDuration(humanize.timeToDuration(swap.time))}</span> ago</div>` : ''}
+                </div><div class="row mt-3">
 					      <div class="col-24 col-md-12 mb-3">
 						    <div class="d-flex ai-center">
 							  <img src="/images/dcr-icon-notran.png" width="20" height="20">

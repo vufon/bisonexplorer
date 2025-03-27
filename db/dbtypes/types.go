@@ -1894,6 +1894,7 @@ type AtomicSwapFullData struct {
 	IsRefund    bool                    `json:"isRefund"`
 	TargetToken string                  `json:"targetToken"`
 	GroupTx     string                  `json:"groupTx"`
+	Time        int64                   `json:"time"`
 	Source      *AtomicSwapForTokenData `json:"source"`
 	Target      *AtomicSwapForTokenData `json:"target"`
 }

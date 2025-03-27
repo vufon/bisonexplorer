@@ -3397,6 +3397,7 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 		cSwapData.Source.TotalAmount += contractData.Value
 		cSwapData.Source.Contracts = append(cSwapData.Source.Contracts, &contractData)
 	}
+	cSwapData.Time = cSwapData.Source.Contracts[0].Time
 	err = rows.Err()
 	if err != nil {
 		return nil, err
@@ -3678,6 +3679,7 @@ func (pgb *ChainDB) GetLTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapF
 		contractData.Fees = int64(contractFees)
 		contractData.Time = contractTxRaw.Time
 		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
+		targetData.TotalAmount += contractData.Value
 		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
 	err = rows.Err()

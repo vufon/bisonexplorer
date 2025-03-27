@@ -426,6 +426,13 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			_, secondsEastOfUTC := time.Now().Zone()
 			return secondsEastOfUTC
 		},
+		"timeDurationShortString": func(timeInt int64) string {
+			// to time
+			input := time.Unix(timeInt, 0)
+			now := time.Now()
+			duration := now.Sub(input)
+			return formattedDuration(duration, shortPeriods)
+		},
 		"percentage": func(a, b int64) float64 {
 			return (float64(a) / float64(b)) * 100
 		},
