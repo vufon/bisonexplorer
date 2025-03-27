@@ -27,13 +27,13 @@ const (
 	CreateAtomicSwapTable = CreateAtomicSwapTableV0
 
 	InsertContractSpend = `INSERT INTO swaps (contract_tx, contract_time, contract_vout, spend_tx, spend_vin, spend_height,
-		p2sh_addr, value, secret_hash, secret, lock_time, is_refund, group_tx)
+		p2sh_addr, value, secret_hash, secret, lock_time, is_refund, group_tx, target_token)
 	VALUES ($1, $2, $3, $4, $5,
-		$6, $7, $8, $9, $10, $11, $12, $13) 
+		$6, $7, $8, $9, $10, $11, $12, $13, $14) 
 	ON CONFLICT (spend_tx, spend_vin)
 		DO UPDATE SET spend_height = $6;`
 
-	UpdateTargetToken = `UPDATE swaps SET target_token = $1 WHERE contract_tx = $2;`
+	UpdateTargetToken = `UPDATE swaps SET target_token = $1 WHERE group_tx = $2;`
 
 	IndexSwapsOnHeightV0 = `CREATE INDEX idx_swaps_height ON swaps (spend_height);`
 	IndexSwapsOnHeight   = IndexSwapsOnHeightV0
@@ -72,8 +72,14 @@ const (
 	SelectTotalTradingAmount  = `SELECT SUM(value) FROM swaps`
 	SelectOldestContractTime  = `SELECT MIN(contract_time) FROM swaps;`
 
-	SelectExistSwapBySecretHash = `SELECT group_tx FROM swaps WHERE secret_hash = $1 LIMIT 1`
-	Select24hSwapSummary        = `SELECT SUM(value), 
+	SelectExistSwapBySecretHash          = `SELECT group_tx FROM swaps WHERE secret_hash = $1 LIMIT 1`
+	SelectMultichainSwapTypeBySecretHash = `SELECT 
+    	CASE 
+        	WHEN EXISTS (SELECT 1 FROM btc_swaps WHERE secret_hash = $1) THEN 'btc'
+        	WHEN EXISTS (SELECT 1 FROM ltc_swaps WHERE secret_hash = $1) THEN 'ltc'
+        	ELSE ''
+    	END AS found;`
+	Select24hSwapSummary = `SELECT SUM(value), 
 		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,
 		COUNT(*) FILTER (WHERE is_refund = TRUE) AS refund_count
 		FROM swaps 
@@ -128,9 +134,18 @@ const (
 		 FROM swaps WHERE spend_tx = $1 GROUP BY group_tx ORDER BY contime DESC) AS ctx;`
 	SelectTargetTokenOfContract                     = `SELECT target_token, group_tx FROM swaps WHERE contract_tx = $1 LIMIT 1;`
 	SelectGroupTxBySpendTx                          = `SELECT target_token, group_tx FROM swaps WHERE spend_tx = $1 LIMIT 1;`
-	SelectDecredContractTxsFromMultichainSpendTx    = `SELECT decred_contract_tx FROM %s_swaps WHERE spend_tx = $1 GROUP BY decred_contract_tx LIMIT 1;`
-	SelectDecredContractTxsFromMultichainContractTx = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = $1 GROUP BY decred_contract_tx LIMIT 1;`
+	SelectDecredContractTxsFromMultichainSpendTx    = `SELECT decred_contract_tx FROM %s_swaps WHERE spend_tx = $1 AND decred_contract_tx <> '' AND decred_contract_tx IS NOT NULL GROUP BY decred_contract_tx LIMIT 1;`
+	SelectDecredContractTxsFromMultichainContractTx = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = $1 AND decred_contract_tx <> '' AND decred_contract_tx IS NOT NULL GROUP BY decred_contract_tx LIMIT 1;`
 	CheckSwapIsRefund                               = `SELECT is_refund FROM swaps WHERE group_tx = $1 LIMIT 1;`
+	// Delete multichain swap backup data 24 hours earlier than current
+	Delete24hSwapData = `DELETE FROM %s_swaps
+		WHERE spend_height IN (
+    	SELECT height 
+    	FROM btcblocks 
+    	WHERE to_timestamp(time) < NOW() - INTERVAL '24 hours' 
+	) AND (decred_contract_tx = '' OR decred_contract_tx IS NULL);`
+	// Update decred group tx on multichain swap table
+	UpdateMultichainRelatedDecredGroupTx = `UPDATE %s_swaps SET decred_contract_tx = $1 WHERE secret_hash = $2`
 )
 
 func MakeSelectAtomicSwapsContractGroupWithFilter(pair, status string) string {

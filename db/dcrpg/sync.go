@@ -1213,6 +1213,11 @@ func (pgb *ChainDB) SyncBTCAtomicSwapData(height int64) error {
 	if err != nil {
 		return err
 	}
+	// delete 24h before dump data from BTC swaps table
+	_, err = DeleteDumpMultichainSwapData(pgb.db, mutilchain.TYPEBTC)
+	if err != nil {
+		return err
+	}
 	// Check all regular tree txns except coinbase.
 	for _, tx := range msgBlock.Transactions[1:] {
 		swapRes, err := btctxhelper.MsgTxAtomicSwapsInfo(tx, nil, pgb.btcChainParams)
@@ -1265,6 +1270,11 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 	}
 
 	msgBlock, err := pgb.LtcClient.GetBlock(blockhash)
+	if err != nil {
+		return err
+	}
+	// delete 24h before dump data from LTC swaps table
+	_, err = DeleteDumpMultichainSwapData(pgb.db, mutilchain.TYPELTC)
 	if err != nil {
 		return err
 	}

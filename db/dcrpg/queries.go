@@ -3627,6 +3627,13 @@ func retrieveTotalAgendaVotesCount(ctx context.Context, db *sql.DB, agendaID str
 
 // --- atomic swap tables
 func InsertSwap(db SqlExecQueryer, ctx context.Context, bg BlockGetter, spendHeight int64, swapInfo *txhelpers.AtomicSwapData, isRefund bool) error {
+	// check swap secred hash exist on multichain swap table
+	// return: if exist on multichain swap table: return btc/ltc..., else return '' for targetToken
+	var targetToken string
+	err := db.QueryRow(internal.SelectMultichainSwapTypeBySecretHash, swapInfo.SecretHash[:]).Scan(&targetToken)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
 	var secret interface{} // only nil interface stores a NULL, not even nil slice
 	if len(swapInfo.Secret) > 0 {
 		secret = swapInfo.Secret
@@ -3648,7 +3655,19 @@ func InsertSwap(db SqlExecQueryer, ctx context.Context, bg BlockGetter, spendHei
 	_, err = db.Exec(internal.InsertContractSpend, swapInfo.ContractTx.String(), rawContract.Time, swapInfo.ContractVout,
 		swapInfo.SpendTx.String(), swapInfo.SpendVin, spendHeight,
 		swapInfo.ContractAddress, swapInfo.Value,
-		swapInfo.SecretHash[:], secret, swapInfo.Locktime, isRefund, groupTx)
+		swapInfo.SecretHash[:], secret, swapInfo.Locktime, isRefund, groupTx, targetToken)
+	if err != nil {
+		log.Errorf("Insert swaps info failed. %v", err)
+		return err
+	}
+	// update on multichain swaps if exist targetToken
+	if targetToken != "" {
+		_, err = db.Exec(fmt.Sprintf(internal.UpdateMultichainRelatedDecredGroupTx, targetToken), groupTx, swapInfo.SecretHash[:])
+		if err != nil {
+			log.Errorf("Update group tx for %s swaps failed. %v", targetToken, err)
+			return err
+		}
+	}
 	return err
 }
 
@@ -3679,10 +3698,15 @@ func InsertBtcSwap(db *sql.DB, spendHeight int64, swapInfo *txhelpers.Multichain
 	// check secret hash on decred swaps. And get dcr contract tx
 	var dcrContractTx string
 	err := db.QueryRow(internal.SelectExistSwapBySecretHash, swapInfo.SecretHash[:]).Scan(&dcrContractTx)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
+		log.Infof("BTC: Check dcrContract tx with secret hash failed: %v", err)
 		return err
 	}
-	log.Infof("Matched with Decred swap contract tx: %s", dcrContractTx)
+	if err == sql.ErrNoRows {
+		dcrContractTx = ""
+	} else {
+		log.Infof("Matched with Decred swap contract tx: %s", dcrContractTx)
+	}
 	var secret interface{} // only nil interface stores a NULL, not even nil slice
 	if len(swapInfo.Secret) > 0 {
 		secret = swapInfo.Secret
@@ -3694,12 +3718,14 @@ func InsertBtcSwap(db *sql.DB, spendHeight int64, swapInfo *txhelpers.Multichain
 	if err != nil {
 		return err
 	}
-	// update target token on decred swap
-	_, err = db.Exec(internal.UpdateTargetToken, mutilchain.TYPEBTC, dcrContractTx)
-	if err != nil {
-		return err
+	// update target token on decred swap if match with secrethash
+	if dcrContractTx != "" {
+		_, err = db.Exec(internal.UpdateTargetToken, mutilchain.TYPEBTC, dcrContractTx)
+		if err != nil {
+			return err
+		}
+		log.Infof("Inserted Btc Swap match with Decred swap. Decred contract tx: %s, Bitcoin contract tx: %s", dcrContractTx, swapInfo.ContractTx)
 	}
-	log.Infof("Inserted Btc Swap match with Decred swap. Decred contract tx: %s, Bitcoin contract tx: %s", dcrContractTx, swapInfo.ContractTx)
 	return nil
 }
 
@@ -3708,10 +3734,15 @@ func InsertLtcSwap(db *sql.DB, spendHeight int64, swapInfo *txhelpers.Multichain
 	// check secret hash on decred swaps. And get dcr contract tx
 	var dcrContractTx string
 	err := db.QueryRow(internal.SelectExistSwapBySecretHash, swapInfo.SecretHash[:]).Scan(&dcrContractTx)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
+		log.Infof("LTC: Check dcrContract tx with secret hash failed: %v", err)
 		return err
 	}
-	log.Infof("LTC: Matched with Decred swap contract tx: %s", dcrContractTx)
+	if err == sql.ErrNoRows {
+		dcrContractTx = ""
+	} else {
+		log.Infof("LTC: Matched with Decred swap contract tx: %s", dcrContractTx)
+	}
 	var secret interface{} // only nil interface stores a NULL, not even nil slice
 	if len(swapInfo.Secret) > 0 {
 		secret = swapInfo.Secret
@@ -3724,11 +3755,13 @@ func InsertLtcSwap(db *sql.DB, spendHeight int64, swapInfo *txhelpers.Multichain
 		return err
 	}
 	// update target token on decred swap
-	_, err = db.Exec(internal.UpdateTargetToken, mutilchain.TYPELTC, dcrContractTx)
-	if err != nil {
-		return err
+	if dcrContractTx != "" {
+		_, err = db.Exec(internal.UpdateTargetToken, mutilchain.TYPELTC, dcrContractTx)
+		if err != nil {
+			return err
+		}
+		log.Infof("Inserted Ltc Swap match with Decred swap. Decred contract tx: %s, Litecoin contract tx: %s", dcrContractTx, swapInfo.ContractTx)
 	}
-	log.Infof("Inserted Ltc Swap match with Decred swap. Decred contract tx: %s, Litecoin contract tx: %s", dcrContractTx, swapInfo.ContractTx)
 	return nil
 }
 
@@ -5839,4 +5872,10 @@ func RetrieveMutilchainDiff(ctx context.Context, db *sql.DB, timestamp int64, ch
 	var diff float64
 	err := db.QueryRowContext(ctx, mutilchainquery.MakeSelectDiffByTime(chainType), timestamp).Scan(&diff)
 	return diff, err
+}
+
+// DeleteDumpMultichainSwapData delete multichain dump swap data before 24h before
+func DeleteDumpMultichainSwapData(db *sql.DB, chainType string) (int64, error) {
+	execErrPrefix := fmt.Sprintf("failed to delete %s swap dump data: ", chainType)
+	return sqlExec(db, fmt.Sprintf(internal.Delete24hSwapData, chainType), execErrPrefix)
 }
