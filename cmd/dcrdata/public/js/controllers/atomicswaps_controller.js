@@ -406,7 +406,8 @@ export default class extends Controller {
                     </div>
                     <p class="col-12 ps-2">Block Height: <a href="/decred/block/${result.height}">${result.height}</a></p>
                     <p class="col-12 ps-2">Value: ${humanize.toAmountFloatDisplay(result.value, -1, 'DCR')}</p>
-                    <p class="col-12 ps-2"><span class="fw-bold">Locked: </span>${result.timeDisp}</p>
+                    <p class="col-12 ps-2"><span class="fw-bold">Locked Time: </span>${result.lockTimeDisp}</p>
+                    <p class="col-12 ps-2"><span class="fw-bold">${swap.isRefund ? 'Refunded' : 'Redeemed'} At: </span>${result.timeDisp}</p>
                     </div>`
       })
       resHtml += '</div></div>'
@@ -442,7 +443,8 @@ export default class extends Controller {
                         </div>
                         <p class="col-12 ps-2">Block Height: <a href="/${swap.targetToken}/block/${result.height}">${result.height}</a></p>
                         <p class="col-12 ps-2">Value: ${humanize.toAmountFloatDisplay(result.value, -1, swap.targetToken.toUpperCase())}</p>
-                        <p class="col-12 ps-2"><span class="fw-bold">Locked: </span>${result.timeDisp}</p>
+                        <p class="col-12 ps-2"><span class="fw-bold">Locked Time: </span>${result.lockTimeDisp}</p>
+                        <p class="col-12 ps-2"><span class="fw-bold">${swap.isRefund ? 'Refunded' : 'Redeemed'} At: </span>${result.timeDisp}</p>
                         </div>`
         })
         resHtml += '</div></div>'

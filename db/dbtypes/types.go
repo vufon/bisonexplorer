@@ -1904,14 +1904,16 @@ type AtomicSwapForTokenData struct {
 }
 
 type AtomicSwapTxData struct {
-	Txid     string `json:"txid"`
-	Fees     int64  `json:"fees"`
-	Time     int64  `json:"time"`
-	TimeDisp string `json:"timeDisp"`
-	Height   int64  `json:"height"`
-	Value    int64  `json:"value"`
-	Vin      int64  `json:"vin"`
-	Vout     int64  `json:"vout"`
+	Txid         string `json:"txid"`
+	Fees         int64  `json:"fees"`
+	Time         int64  `json:"time"`
+	LockTime     int64  `json:"lockTime"`
+	TimeDisp     string `json:"timeDisp"`
+	LockTimeDisp string `json:"lockTimeDisp"`
+	Height       int64  `json:"height"`
+	Value        int64  `json:"value"`
+	Vin          int64  `json:"vin"`
+	Vout         int64  `json:"vout"`
 }
 
 type AtomicSwapContractData struct {

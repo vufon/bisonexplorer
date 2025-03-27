@@ -400,7 +400,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.9b761de08a022a35.bundle.js"
+	src="/dist/js/app.afc9e1f709beadb7.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -787,7 +787,7 @@
 					{{end}}
 					</div>
 					{{if eq $.SimpleListMode false}}
-					<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
+					<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Redemption{{end}}</span>
 					{{end}}
 				</div>
 				</div>
@@ -829,7 +829,8 @@
 							</div>
 							<p class="col-12 ps-2">Block Height: <a href="/decred/block/{{.Height}}">{{.Height}}</a></p>
 							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} DCR</p>
-							<p class="col-12 ps-2"><span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone .Time}}</p>
+							<p class="col-12 ps-2"><span class="fw-bold">Locked Time: </span>{{dateTimeWithoutTimeZone .LockTime}}</p>
+							<p class="col-12 ps-2"><span class="fw-bold">{{if $isRefund}}Refunded{{else}}Redeemed{{end}} At: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
 						{{end}}
 					</div>
@@ -874,7 +875,8 @@
 							</div>
 							<p class="col-12 ps-2">Block Height: <a href="/{{$targetToken}}/block/{{.Height}}">{{.Height}}</a></p>
 							<p class="col-12 ps-2">Value: {{normalFloat (toFloat64Amount .Value)}} {{toUpperCase $targetToken}}</p>
-							<p class="col-12 ps-2"><span class="fw-bold">Locked: </span>{{dateTimeWithoutTimeZone .Time}}</p>
+							<p class="col-12 ps-2"><span class="fw-bold">Locked Time: </span>{{dateTimeWithoutTimeZone .LockTime}}</p>
+							<p class="col-12 ps-2"><span class="fw-bold">{{if $isRefund}}Refunded{{else}}Redeemed{{end}} At: </span>{{dateTimeWithoutTimeZone .Time}}</p>
 						</div>
 						{{end}}
 					</div>
@@ -917,7 +919,7 @@
 						  <img src="/images/synchronize.png" width="20" height="20" class="me-1"> 
 						{{end}}
 						<p class="fw-bold">{{if $hasTargetToken}}DCR/{{toUpperCase .TargetToken}}{{else}}Verifying{{end}}</p>
-						<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Completed{{end}}</span>
+						<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Redemption{{end}}</span>
 					</div>
 				</td>
 				<td class="text-center"></td>

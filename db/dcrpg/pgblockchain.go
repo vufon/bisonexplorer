@@ -3218,10 +3218,23 @@ func (pgb *ChainDB) GetSwapFullDataByContractTx(contractTx, groupTx string) (spe
 	defer rows.Close()
 	for rows.Next() {
 		var spendData dbtypes.AtomicSwapTxData
-		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.LockTime)
 		if err != nil {
 			return
 		}
+		spendData.LockTimeDisp = utils.DateTimeWithoutTimeZone(spendData.LockTime)
+		// get spend tx time
+		var spendHash *chainhash.Hash
+		spendHash, err = chainhash.NewHashFromStr(spendData.Txid)
+		if err != nil {
+			return
+		}
+		var txRaw *chainjson.TxRawResult
+		txRaw, err = pgb.Client.GetRawTransactionVerbose(pgb.ctx, spendHash)
+		if err != nil {
+			return
+		}
+		spendData.Time = txRaw.Time
 		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
@@ -3243,10 +3256,23 @@ func (pgb *ChainDB) GetLTCSwapFullDataByContractTx(contractTx, groupTx string) (
 	defer rows.Close()
 	for rows.Next() {
 		var spendData dbtypes.AtomicSwapTxData
-		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.LockTime)
 		if err != nil {
 			return
 		}
+		spendData.LockTimeDisp = utils.DateTimeWithoutTimeZone(spendData.LockTime)
+		// get spend tx time
+		var txHash *ltc_chainhash.Hash
+		txHash, err = ltc_chainhash.NewHashFromStr(spendData.Txid)
+		if err != nil {
+			return
+		}
+		var txRaw *ltcjson.TxRawResult
+		txRaw, err = pgb.LtcClient.GetRawTransactionVerbose(txHash)
+		if err != nil {
+			return
+		}
+		spendData.Time = txRaw.Time
 		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
@@ -3268,10 +3294,23 @@ func (pgb *ChainDB) GetBTCSwapFullDataByContractTx(contractTx, groupTx string) (
 	defer rows.Close()
 	for rows.Next() {
 		var spendData dbtypes.AtomicSwapTxData
-		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.LockTime)
 		if err != nil {
 			return
 		}
+		spendData.LockTimeDisp = utils.DateTimeWithoutTimeZone(spendData.LockTime)
+		// get spend tx time
+		var txHash *btc_chainhash.Hash
+		txHash, err = btc_chainhash.NewHashFromStr(spendData.Txid)
+		if err != nil {
+			return
+		}
+		var txRaw *btcjson.TxRawResult
+		txRaw, err = pgb.BtcClient.GetRawTransactionVerbose(txHash)
+		if err != nil {
+			return
+		}
+		spendData.Time = txRaw.Time
 		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
@@ -3513,7 +3552,7 @@ func (pgb *ChainDB) GetBTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapF
 			return nil, err
 		}
 		contractData.Fees = int64(contractFees)
-		contractData.Time = targetBlockHeader.Time
+		contractData.Time = contractTxRaw.Time
 		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
 		targetData.TotalAmount += contractData.Value
 		targetData.Contracts = append(targetData.Contracts, &contractData)
@@ -3636,7 +3675,7 @@ func (pgb *ChainDB) GetLTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapF
 			return nil, err
 		}
 		contractData.Fees = int64(contractFees)
-		contractData.Time = targetBlockHeader.Time
+		contractData.Time = contractTxRaw.Time
 		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
 		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
