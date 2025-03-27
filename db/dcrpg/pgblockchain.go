@@ -3199,14 +3199,6 @@ func (pgb *ChainDB) GetCurrencyPriceMapByPeriod(from time.Time, to time.Time, is
 	return priceMap
 }
 
-// GetAtomicSwapsContractTxsQuery return query for get atomic swap contract tx list
-func (pgb *ChainDB) GetAtomicSwapsContractTxsQuery(pair, status, searchKey string) string {
-	if searchKey != "" {
-		return internal.MakeSelectAtomicSwapsContractTxsWithSearchFilter(pair, status)
-	}
-	return internal.MakeSelectAtomicSwapsContractTxsWithFilter(pair, status)
-}
-
 // GetAtomicSwapsContractGroupQuery return query for get atomic swap contract tx list
 func (pgb *ChainDB) GetAtomicSwapsContractGroupQuery(pair, status, searchKey string) string {
 	if searchKey != "" {
@@ -3226,10 +3218,24 @@ func (pgb *ChainDB) GetSwapFullDataByContractTx(contractTx, groupTx string) (spe
 	defer rows.Close()
 	for rows.Next() {
 		var spendData dbtypes.AtomicSwapTxData
-		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.LockTime)
 		if err != nil {
 			return
 		}
+		spendData.LockTimeDisp = utils.DateTimeWithoutTimeZone(spendData.LockTime)
+		// get spend tx time
+		var spendHash *chainhash.Hash
+		spendHash, err = chainhash.NewHashFromStr(spendData.Txid)
+		if err != nil {
+			return
+		}
+		var txRaw *chainjson.TxRawResult
+		txRaw, err = pgb.Client.GetRawTransactionVerbose(pgb.ctx, spendHash)
+		if err != nil {
+			return
+		}
+		spendData.Time = txRaw.Time
+		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
 	err = rows.Err()
@@ -3250,10 +3256,24 @@ func (pgb *ChainDB) GetLTCSwapFullDataByContractTx(contractTx, groupTx string) (
 	defer rows.Close()
 	for rows.Next() {
 		var spendData dbtypes.AtomicSwapTxData
-		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.LockTime)
 		if err != nil {
 			return
 		}
+		spendData.LockTimeDisp = utils.DateTimeWithoutTimeZone(spendData.LockTime)
+		// get spend tx time
+		var txHash *ltc_chainhash.Hash
+		txHash, err = ltc_chainhash.NewHashFromStr(spendData.Txid)
+		if err != nil {
+			return
+		}
+		var txRaw *ltcjson.TxRawResult
+		txRaw, err = pgb.LtcClient.GetRawTransactionVerbose(txHash)
+		if err != nil {
+			return
+		}
+		spendData.Time = txRaw.Time
+		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
 	err = rows.Err()
@@ -3274,10 +3294,24 @@ func (pgb *ChainDB) GetBTCSwapFullDataByContractTx(contractTx, groupTx string) (
 	defer rows.Close()
 	for rows.Next() {
 		var spendData dbtypes.AtomicSwapTxData
-		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.Time)
+		err = rows.Scan(&spendData.Txid, &spendData.Vin, &spendData.Height, &spendData.Value, &spendData.LockTime)
 		if err != nil {
 			return
 		}
+		spendData.LockTimeDisp = utils.DateTimeWithoutTimeZone(spendData.LockTime)
+		// get spend tx time
+		var txHash *btc_chainhash.Hash
+		txHash, err = btc_chainhash.NewHashFromStr(spendData.Txid)
+		if err != nil {
+			return
+		}
+		var txRaw *btcjson.TxRawResult
+		txRaw, err = pgb.BtcClient.GetRawTransactionVerbose(txHash)
+		if err != nil {
+			return
+		}
+		spendData.Time = txRaw.Time
+		spendData.TimeDisp = utils.DateTimeWithoutTimeZone(spendData.Time)
 		spends = append(spends, &spendData)
 	}
 	err = rows.Err()
@@ -3307,6 +3341,7 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 	cSwapData := &dbtypes.AtomicSwapFullData{
 		TargetToken: targetTokenString,
 		IsRefund:    isRefund,
+		GroupTx:     groupTx,
 		Source: &dbtypes.AtomicSwapForTokenData{
 			Contracts: make([]*dbtypes.AtomicSwapTxData, 0),
 			Results:   make([]*dbtypes.AtomicSwapTxData, 0),
@@ -3324,6 +3359,7 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 		if err != nil {
 			return nil, err
 		}
+		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
 		// get spends of contract
 		spendDatas, err := pgb.GetSwapFullDataByContractTx(contractData.Txid, groupTx)
 		if err != nil {
@@ -3361,6 +3397,7 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 		cSwapData.Source.TotalAmount += contractData.Value
 		cSwapData.Source.Contracts = append(cSwapData.Source.Contracts, &contractData)
 	}
+	cSwapData.Time = cSwapData.Source.Contracts[0].Time
 	err = rows.Err()
 	if err != nil {
 		return nil, err
@@ -3379,11 +3416,7 @@ func (pgb *ChainDB) GetContractSwapDataByGroup(groupTx, targetTokenString string
 }
 
 // GetAtomicSwapList fetches filtered atomic swap list.
-func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey string) (swaps []*dbtypes.AtomicSwapFullData, allCount, allFilterCount int64, totalAmount int64, err error) {
-	allCount, totalAmount, err = pgb.GetAtomicSwapSummary()
-	if err != nil {
-		return
-	}
+func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey string) (swaps []*dbtypes.AtomicSwapFullData, allFilterCount int64, err error) {
 	// get count all atomic swaps with filter pair, status
 	if searchKey != "" {
 		err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithSearchFilter(pair, status), searchKey).Scan(&allFilterCount)
@@ -3391,6 +3424,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 		err = pgb.db.QueryRow(internal.MakeCountAtomicSwapsRowWithFilter(pair, status)).Scan(&allFilterCount)
 	}
 	if err != nil {
+		log.Errorf("Get count atomic swaps faled: %v", err)
 		return
 	}
 	var rows *sql.Rows
@@ -3402,6 +3436,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 	}
 
 	if err != nil {
+		log.Errorf("Get atomic swaps list faled: %v", err)
 		return
 	}
 
@@ -3429,7 +3464,7 @@ func (pgb *ChainDB) GetAtomicSwapList(n, offset int64, pair, status, searchKey s
 	return
 }
 
-func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount int64, err error) {
+func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount, oldestContract int64, err error) {
 	// get count all atomic swaps
 	err = pgb.db.QueryRow(internal.CountAtomicSwapsRow).Scan(&txCount)
 	if err != nil {
@@ -3437,6 +3472,11 @@ func (pgb *ChainDB) GetAtomicSwapSummary() (txCount, amount int64, err error) {
 	}
 	// get total trading amount
 	err = pgb.db.QueryRow(internal.SelectTotalTradingAmount).Scan(&amount)
+	if err != nil {
+		return
+	}
+	// get oldest contract time on swaps txs
+	err = pgb.db.QueryRow(internal.SelectOldestContractTime).Scan(&oldestContract)
 	return
 }
 
@@ -3514,7 +3554,8 @@ func (pgb *ChainDB) GetBTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapF
 			return nil, err
 		}
 		contractData.Fees = int64(contractFees)
-		contractData.Time = targetBlockHeader.Time
+		contractData.Time = contractTxRaw.Time
+		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
 		targetData.TotalAmount += contractData.Value
 		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
@@ -3636,7 +3677,9 @@ func (pgb *ChainDB) GetLTCAtomicSwapTarget(groupTx string) (*dbtypes.AtomicSwapF
 			return nil, err
 		}
 		contractData.Fees = int64(contractFees)
-		contractData.Time = targetBlockHeader.Time
+		contractData.Time = contractTxRaw.Time
+		contractData.TimeDisp = utils.DateTimeWithoutTimeZone(contractData.Time)
+		targetData.TotalAmount += contractData.Value
 		targetData.Contracts = append(targetData.Contracts, &contractData)
 	}
 	err = rows.Err()
@@ -8881,6 +8924,7 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 	var totalMixed int64
 
 	txs := make([]*exptypes.TrimmedTxInfo, 0, block.Transactions)
+	txIds := make([]string, 0)
 	for i := range data.RawTx {
 		tx := &data.RawTx[i]
 		msgTx, err := txhelpers.MsgTxFromHex(tx.Hex)
@@ -8901,10 +8945,12 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 			exptx.SwapsTypeDisplay = utils.GetSwapTypeDisplay(exptx.SwapsType)
 		}
 		txs = append(txs, exptx)
+		txIds = append(txIds, exptx.TxID)
 		totalMixed += int64(exptx.MixCount) * exptx.MixDenom
 	}
 
 	block.Tx = txs
+	block.Txids = txIds
 	block.Treasury = treasury
 	block.Votes = votes
 	block.Revs = revocations
@@ -8960,7 +9006,75 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.lastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
 	pgb.lastExplorerBlock.Unlock()
 
+	// get block swap group data
+	swapsData, err := pgb.GetBlockSwapGroupFullData(txIds)
+	if err != nil {
+		log.Errorf("Get swaps full data for block txs failed: %v", err)
+		block.GroupSwaps = make([]*dbtypes.AtomicSwapFullData, 0)
+	} else {
+		block.GroupSwaps = swapsData
+	}
+
 	return block
+}
+
+// GetBlockSwapGroupFullData return group swaps list from block txs
+func (pgb *ChainDB) GetBlockSwapGroupFullData(blockTxs []string) ([]*dbtypes.AtomicSwapFullData, error) {
+	result := make([]*dbtypes.SimpleGroupInfo, 0)
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectGroupTxsFromTxs, pq.Array(blockTxs))
+	if err != nil {
+		log.Errorf("Get group txs from block txs failed: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var groupTx string
+		var targetToken sql.NullString
+		err = rows.Scan(&groupTx, &targetToken)
+		if err != nil {
+			return nil, err
+		}
+		targetTokenString := ""
+		if targetToken.Valid {
+			targetTokenString = targetToken.String
+		}
+		result = append(result, &dbtypes.SimpleGroupInfo{
+			ContractTx:  groupTx,
+			TargetToken: targetTokenString,
+		})
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return pgb.GetSwapDataByContractTxs(result)
+}
+
+// GetBlockSwapGroupFullData return group swaps list from block txs
+func (pgb *ChainDB) GetMultichainBlockSwapGroupFullData(blockTxs []string, chainType string) ([]*dbtypes.AtomicSwapFullData, error) {
+	result := make([]*dbtypes.SimpleGroupInfo, 0)
+	rows, err := pgb.db.QueryContext(pgb.ctx, fmt.Sprintf(internal.SelectMultichainGroupTxsFromTxs, chainType), pq.Array(blockTxs))
+	if err != nil {
+		log.Errorf("Get group txs from block txs failed: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var groupTx string
+		err = rows.Scan(&groupTx)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, &dbtypes.SimpleGroupInfo{
+			ContractTx:  groupTx,
+			TargetToken: chainType,
+		})
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return pgb.GetSwapDataByContractTxs(result)
 }
 
 func (pgb *ChainDB) GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error) {
@@ -9195,7 +9309,7 @@ func (pgb *ChainDB) GetSwapType(txid string) string {
 	return utils.REDEMPTION_TYPE
 }
 
-// GetExplorerBlock gets a *exptypes.Blockinfo for the specified block.
+// GetLTCExplorerBlock gets a *exptypes.Blockinfo for the specified ltc block.
 func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.ltcLastExplorerBlock.Lock()
 	if pgb.ltcLastExplorerBlock.hash == hash {
@@ -9225,6 +9339,7 @@ func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	}
 
 	txs := make([]*exptypes.TrimmedTxInfo, 0, block.Transactions)
+	txids := make([]string, 0)
 	for i := range data.RawTx {
 		tx := &data.RawTx[i]
 		msgTx, err := txhelpers.MsgLTCTxFromHex(tx.Hex, int32(tx.Version))
@@ -9235,8 +9350,10 @@ func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 
 		exptx := trimmedLTCTxInfoFromMsgTx(tx, msgTx, pgb.ltcChainParams) // maybe pass tree
 		txs = append(txs, exptx)
+		txids = append(txids, exptx.TxID)
 	}
 	block.Tx = txs
+	block.Txids = txids
 	sortTx := func(txs []*exptypes.TrimmedTxInfo) {
 		sort.Slice(txs, func(i, j int) bool {
 			return txs[i].Total > txs[j].Total
@@ -9262,21 +9379,30 @@ func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.ltcLastExplorerBlock.blockInfo = block
 	pgb.ltcLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
 	pgb.ltcLastExplorerBlock.Unlock()
+	swapsData, err := pgb.GetMultichainBlockSwapGroupFullData(block.Txids, mutilchain.TYPELTC)
+	if err != nil {
+		log.Errorf("%s: Get swaps full data for block txs failed: %v", mutilchain.TYPELTC, err)
+		block.GroupSwaps = make([]*dbtypes.AtomicSwapFullData, 0)
+	} else {
+		block.GroupSwaps = swapsData
+	}
 	return block
 }
 
 func (pgb *ChainDB) GetMutilchainExplorerBlock(hash, chainType string) *exptypes.BlockInfo {
+	var blockInfo *exptypes.BlockInfo
 	switch chainType {
 	case mutilchain.TYPEBTC:
-		return pgb.GetBTCExplorerBlock(hash)
+		blockInfo = pgb.GetBTCExplorerBlock(hash)
 	case mutilchain.TYPELTC:
-		return pgb.GetLTCExplorerBlock(hash)
+		blockInfo = pgb.GetLTCExplorerBlock(hash)
 	default:
-		return pgb.GetExplorerBlock(hash)
+		return &exptypes.BlockInfo{}
 	}
+	return blockInfo
 }
 
-// GetExplorerBlock gets a *exptypes.Blockinfo for the specified block.
+// GetBTCExplorerBlock gets a *exptypes.Blockinfo for the specified btc block.
 func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.btcLastExplorerBlock.Lock()
 	if pgb.btcLastExplorerBlock.hash == hash {
@@ -9306,6 +9432,7 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	}
 
 	txs := make([]*exptypes.TrimmedTxInfo, 0, block.Transactions)
+	txIds := make([]string, 0)
 	for i := range data.RawTx {
 		tx := &data.RawTx[i]
 		msgTx, err := txhelpers.MsgBTCTxFromHex(tx.Hex, int32(tx.Version))
@@ -9316,8 +9443,10 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 
 		exptx := trimmedBTCTxInfoFromMsgTx(tx, msgTx, pgb.btcChainParams) // maybe pass tree
 		txs = append(txs, exptx)
+		txIds = append(txIds, exptx.TxID)
 	}
 	block.Tx = txs
+	block.Txids = txIds
 	sortTx := func(txs []*exptypes.TrimmedTxInfo) {
 		sort.Slice(txs, func(i, j int) bool {
 			return txs[i].Total > txs[j].Total
@@ -9343,6 +9472,13 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.btcLastExplorerBlock.blockInfo = block
 	pgb.btcLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
 	pgb.btcLastExplorerBlock.Unlock()
+	swapsData, err := pgb.GetMultichainBlockSwapGroupFullData(block.Txids, mutilchain.TYPEBTC)
+	if err != nil {
+		log.Errorf("%s: Get swaps full data for block txs failed: %v", mutilchain.TYPEBTC, err)
+		block.GroupSwaps = make([]*dbtypes.AtomicSwapFullData, 0)
+	} else {
+		block.GroupSwaps = swapsData
+	}
 	return block
 }
 

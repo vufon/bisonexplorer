@@ -528,7 +528,7 @@
 			{{- if eq .Coinbase false}}
 				<tr>
 					<td class="break-word">
-						<span><a class="hash" href="/tx/{{.TxID}}">{{.TxID}}</a>{{if .SwapsType}}<span class="common-label py-1 px-2 text-white ms-2 {{.SwapsType}}-bg fs13">{{.SwapsTypeDisplay}}</span>{{end}}</span>
+						<span><a class="hash" href="/tx/{{.TxID}}">{{.TxID}}</a>{{if .SwapsType}}<span class="common-label py-1 px-2 text-white ms-2 {{.SwapsType}}-bg fs13"><span class="d-none d-sm-block">{{.SwapsTypeDisplay}}</span><span class="d-sm-none">Contract</span></span>{{end}}</span>
 					</td>
 					<td class="mono fs15 text-end">
 						{{- template "decimalParts" (float64AsDecimalParts .Total 8 false) -}}

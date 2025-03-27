@@ -27,39 +27,29 @@ const (
 	CreateAtomicSwapTable = CreateAtomicSwapTableV0
 
 	InsertContractSpend = `INSERT INTO swaps (contract_tx, contract_time, contract_vout, spend_tx, spend_vin, spend_height,
-		p2sh_addr, value, secret_hash, secret, lock_time, is_refund, group_tx)
+		p2sh_addr, value, secret_hash, secret, lock_time, is_refund, group_tx, target_token)
 	VALUES ($1, $2, $3, $4, $5,
-		$6, $7, $8, $9, $10, $11, $12, $13) 
+		$6, $7, $8, $9, $10, $11, $12, $13, $14) 
 	ON CONFLICT (spend_tx, spend_vin)
 		DO UPDATE SET spend_height = $6;`
 
-	UpdateTargetToken = `UPDATE swaps SET target_token = $1 WHERE contract_tx = $2;`
+	UpdateTargetToken = `UPDATE swaps SET target_token = $1 WHERE group_tx = $2;`
 
 	IndexSwapsOnHeightV0 = `CREATE INDEX idx_swaps_height ON swaps (spend_height);`
 	IndexSwapsOnHeight   = IndexSwapsOnHeightV0
 	DeindexSwapsOnHeight = `DROP INDEX idx_swaps_height;`
 
-	SelectAtomicSwapsContractGroupWithFilter = `SELECT group_tx, (ARRAY_AGG(target_token))[1] AS target, (ARRAY_AGG(is_refund))[1] AS refund FROM swaps %s 
-		GROUP BY group_tx ORDER BY MAX(contract_time) DESC 
+	SelectAtomicSwapsContractGroupWithFilter = `SELECT gr1.group_tx, gr1.target, gr1.refund FROM (SELECT group_tx, MAX(target_token) AS target, (ARRAY_AGG(is_refund))[1] AS refund FROM swaps %s 
+		GROUP BY group_tx ORDER BY MAX(contract_time) DESC) AS gr1 %s
 		LIMIT $1 OFFSET $2;`
 
-	SelectAtomicSwapsContractTxsWithFilter = `SELECT contract_tx, (ARRAY_AGG(target_token))[1] AS target FROM swaps %s
-		GROUP BY contract_tx ORDER BY MAX(contract_time) DESC
-		LIMIT $1 OFFSET $2;`
+	SelectMultichainSwapInfoRows = `SELECT * FROM %s_swaps WHERE contract_tx = $1 OR spend_tx = $1 ORDER BY lock_time DESC;`
 
-	SelectMultichainSwapInfoRows                 = `SELECT * FROM %s_swaps WHERE contract_tx = $1 OR spend_tx = $1 ORDER BY lock_time DESC;`
-	SelectAtomicSwapsContractTxsWithSearchFilter = `SELECT contract_tx, (ARRAY_AGG(target_token))[1] AS target FROM swaps WHERE (contract_tx = $1 OR spend_tx = $1 
+	SelectAtomicSwapsContractGroupWithSearchFilter = `SELECT gr1.group_tx, gr1.target, gr1.refund FROM (SELECT group_tx, MAX(target_token) AS target, (ARRAY_AGG(is_refund))[1] AS refund FROM swaps WHERE (contract_tx = $1 OR spend_tx = $1 
 		OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
 		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1))
 		 %s 
- 		GROUP BY contract_tx ORDER BY MAX(contract_time) DESC
-		LIMIT $2 OFFSET $3;`
-
-	SelectAtomicSwapsContractGroupWithSearchFilter = `SELECT group_tx, (ARRAY_AGG(target_token))[1] AS target, (ARRAY_AGG(is_refund))[1] AS refund FROM swaps WHERE (contract_tx = $1 OR spend_tx = $1 
-		OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
-		OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1))
-		 %s 
- 		GROUP BY group_tx ORDER BY MAX(contract_time) DESC
+ 		GROUP BY group_tx ORDER BY MAX(contract_time) DESC) AS gr1 %s
 		LIMIT $2 OFFSET $3;`
 
 	SelectAtomicSpendsByContractTx = `SELECT spend_tx, spend_vin, spend_height, value, lock_time FROM swaps WHERE contract_tx = $1 AND group_tx = $2 ORDER BY lock_time;`
@@ -68,20 +58,28 @@ const (
 		WHERE group_tx = $1 ORDER BY contract_time,lock_time DESC) AS ctx GROUP BY ctx.contract_tx;`
 
 	SelectSwapGroupTx                   = `SELECT group_tx FROM swaps WHERE contract_tx = $1 OR spend_tx = $2 LIMIT 1`
-	CountAtomicSwapsRowWithFilter       = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps %s GROUP BY group_tx) AS ctx;`
-	CountAtomicSwapsRowWithSearchFilter = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps 
+	CountAtomicSwapsRowWithFilter       = `SELECT COUNT(1) FROM (SELECT group_tx, MAX(target_token) AS target FROM swaps %s GROUP BY group_tx) AS gr1 %s;`
+	CountAtomicSwapsRowWithSearchFilter = `SELECT COUNT(1) FROM (SELECT group_tx, MAX(target_token) AS target FROM swaps 
 	WHERE (contract_tx = $1 OR spend_tx = $1 
 	OR contract_tx IN (SELECT decred_contract_tx FROM btc_swaps WHERE contract_tx = $1 OR spend_tx = $1)
 	OR contract_tx IN (SELECT decred_contract_tx FROM ltc_swaps WHERE contract_tx = $1 OR spend_tx = $1))
 	%s 
- 	GROUP BY group_tx) AS ctx;`
+ 	GROUP BY group_tx) AS gr1 %s;`
 
-	SelectDecredMinTime         = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
-	CountAtomicSwapsRow         = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps GROUP BY group_tx) AS ctx;`
-	CountRefundAtomicSwapsRow   = `SELECT COUNT(*) FROM swaps WHERE is_refund`
-	SelectTotalTradingAmount    = `SELECT SUM(value) FROM swaps`
-	SelectExistSwapBySecretHash = `SELECT group_tx FROM swaps WHERE secret_hash = $1 LIMIT 1`
-	Select24hSwapSummary        = `SELECT SUM(value), 
+	SelectDecredMinTime       = `SELECT COALESCE(MIN(lock_time), 0) AS min_time FROM swaps`
+	CountAtomicSwapsRow       = `SELECT COUNT(1) FROM (SELECT group_tx FROM swaps GROUP BY group_tx) AS ctx;`
+	CountRefundAtomicSwapsRow = `SELECT COUNT(*) FROM (SELECT group_tx FROM swaps WHERE is_refund GROUP BY group_tx) AS ctx;`
+	SelectTotalTradingAmount  = `SELECT SUM(value) FROM swaps`
+	SelectOldestContractTime  = `SELECT MIN(contract_time) FROM swaps;`
+
+	SelectExistSwapBySecretHash          = `SELECT group_tx FROM swaps WHERE secret_hash = $1 LIMIT 1`
+	SelectMultichainSwapTypeBySecretHash = `SELECT 
+    	CASE 
+        	WHEN EXISTS (SELECT 1 FROM btc_swaps WHERE secret_hash = $1) THEN 'btc'
+        	WHEN EXISTS (SELECT 1 FROM ltc_swaps WHERE secret_hash = $1) THEN 'ltc'
+        	ELSE ''
+    	END AS found;`
+	Select24hSwapSummary = `SELECT SUM(value), 
 		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,
 		COUNT(*) FILTER (WHERE is_refund = TRUE) AS refund_count
 		FROM swaps 
@@ -136,21 +134,24 @@ const (
 		 FROM swaps WHERE spend_tx = $1 GROUP BY group_tx ORDER BY contime DESC) AS ctx;`
 	SelectTargetTokenOfContract                     = `SELECT target_token, group_tx FROM swaps WHERE contract_tx = $1 LIMIT 1;`
 	SelectGroupTxBySpendTx                          = `SELECT target_token, group_tx FROM swaps WHERE spend_tx = $1 LIMIT 1;`
-	SelectDecredContractTxsFromMultichainSpendTx    = `SELECT decred_contract_tx FROM %s_swaps WHERE spend_tx = $1 GROUP BY decred_contract_tx LIMIT 1;`
-	SelectDecredContractTxsFromMultichainContractTx = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = $1 GROUP BY decred_contract_tx LIMIT 1;`
+	SelectGroupTxsFromTxs                           = `SELECT group_tx, MAX(target_token) as target FROM swaps WHERE contract_tx = ANY($1) OR spend_tx = ANY($1) GROUP BY group_tx ORDER BY MAX(contract_time) DESC;`
+	SelectDecredContractTxsFromMultichainSpendTx    = `SELECT decred_contract_tx FROM %s_swaps WHERE spend_tx = $1 AND decred_contract_tx <> '' AND decred_contract_tx IS NOT NULL GROUP BY decred_contract_tx LIMIT 1;`
+	SelectDecredContractTxsFromMultichainContractTx = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = $1 AND decred_contract_tx <> '' AND decred_contract_tx IS NOT NULL GROUP BY decred_contract_tx LIMIT 1;`
 	CheckSwapIsRefund                               = `SELECT is_refund FROM swaps WHERE group_tx = $1 LIMIT 1;`
+	// Delete multichain swap backup data 24 hours earlier than current
+	Delete24hSwapData = `DELETE FROM %s_swaps
+		WHERE spend_height IN (
+    	SELECT height 
+    	FROM btcblocks 
+    	WHERE to_timestamp(time) < NOW() - INTERVAL '24 hours' 
+	) AND (decred_contract_tx = '' OR decred_contract_tx IS NULL);`
+	// Update decred group tx on multichain swap table
+	UpdateMultichainRelatedDecredGroupTx = `UPDATE %s_swaps SET decred_contract_tx = $1 WHERE secret_hash = $2`
+	SelectMultichainGroupTxsFromTxs      = `SELECT decred_contract_tx FROM %s_swaps WHERE contract_tx = ANY($1) OR spend_tx = ANY($1) GROUP BY decred_contract_tx ORDER BY MAX(lock_time) DESC;`
 )
-
-func MakeSelectAtomicSwapsContractTxsWithFilter(pair, status string) string {
-	return MakeSelectWithFilter(SelectAtomicSwapsContractTxsWithFilter, pair, status, false)
-}
 
 func MakeSelectAtomicSwapsContractGroupWithFilter(pair, status string) string {
 	return MakeSelectWithFilter(SelectAtomicSwapsContractGroupWithFilter, pair, status, false)
-}
-
-func MakeSelectAtomicSwapsContractTxsWithSearchFilter(pair, status string) string {
-	return MakeSelectWithFilter(SelectAtomicSwapsContractTxsWithSearchFilter, pair, status, true)
 }
 
 func MakeSelectAtomicSwapsContractGroupWithSearchFilter(pair, status string) string {
@@ -167,8 +168,11 @@ func MakeCountAtomicSwapsRowWithSearchFilter(pair, status string) string {
 
 func MakeSelectWithFilter(input, pair, status string, withoutWhere bool) string {
 	queries := make([]string, 0)
-	if pair != "" && pair != "all" {
-		queries = append(queries, fmt.Sprintf("target_token = '%s'", pair))
+	pairCond := ""
+	if pair == "unknown" {
+		pairCond = "WHERE gr1.target IS NULL OR gr1.target = ''"
+	} else if pair != "" && pair != "all" {
+		pairCond = fmt.Sprintf("WHERE gr1.target = '%s'", pair)
 	}
 	if status != "" && status != "all" {
 		switch status {
@@ -179,16 +183,17 @@ func MakeSelectWithFilter(input, pair, status string, withoutWhere bool) string 
 		default:
 		}
 	}
-	if len(queries) == 0 {
-		return fmt.Sprintf(input, "")
+	query := ""
+	if len(queries) > 0 {
+		var cond string
+		if !withoutWhere {
+			cond = "WHERE "
+		} else {
+			cond = " AND "
+		}
+		query = cond + strings.Join(queries, " AND ")
 	}
-	var cond string
-	if !withoutWhere {
-		cond = "WHERE "
-	} else {
-		cond = " AND "
-	}
-	return fmt.Sprintf(input, cond+strings.Join(queries, " AND "))
+	return fmt.Sprintf(input, query, pairCond)
 }
 
 func MakeSelectSwapsAmount(group string) string {

@@ -517,6 +517,7 @@ type BlockInfo struct {
 	Revs                  []*TrimmedTxInfo
 	Votes                 []*TrimmedTxInfo
 	Misses                []string
+	Txids                 []string
 	Nonce                 uint32
 	VoteBits              uint16
 	FinalState            string
@@ -538,6 +539,7 @@ type BlockInfo struct {
 	BlockReward           int64
 	StakeValidationHeight int64
 	Subsidy               *chainjson.GetBlockSubsidyResult
+	GroupSwaps            []*dbtypes.AtomicSwapFullData
 }
 
 // Conversion is a representation of some amount of DCR in another index.

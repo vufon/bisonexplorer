@@ -95,7 +95,7 @@ type explorerDataSource interface {
 	TreasuryBalanceWithPeriod(year int64, month int64) (*dbtypes.TreasuryBalance, error)
 	TreasuryTxns(n, offset int64, txType stake.TxType) ([]*dbtypes.TreasuryTx, error)
 	TreasuryTxnsWithPeriod(n, offset int64, txType stake.TxType, year int64, month int64) ([]*dbtypes.TreasuryTx, error)
-	GetAtomicSwapList(n, offset int64, pair, status, searchKey string) ([]*dbtypes.AtomicSwapFullData, int64, int64, int64, error)
+	GetAtomicSwapList(n, offset int64, pair, status, searchKey string) ([]*dbtypes.AtomicSwapFullData, int64, error)
 	CountRefundContract() (int64, error)
 	AddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, year int64, month int64) ([]*dbtypes.AddressRow, *dbtypes.AddressBalance, error)
 	MutilchainAddressHistory(address string, N, offset int64, txnType dbtypes.AddrTxnViewType, chainType string) ([]*dbtypes.MutilchainAddressRow, *dbtypes.AddressBalance, error)
@@ -177,7 +177,7 @@ type explorerDataSource interface {
 	GetMutilchainMempoolTxTime(txid string, chainType string) int64
 	GetPeerCount() (int, error)
 	GetBlockchainSummaryInfo() (addrCount, outputs int64, err error)
-	GetAtomicSwapSummary() (txCount, amount int64, err error)
+	GetAtomicSwapSummary() (txCount, amount, oldestContract int64, err error)
 	GetSwapFullData(txid, swapType string) ([]*dbtypes.AtomicSwapFullData, error)
 	GetSwapType(txid string) string
 	GetMultichainSwapType(txid, chainType string) (string, error)
@@ -690,7 +690,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	// Get additional blockchain info
 	totalAddresses, totalOutputs, _ := exp.dataSource.GetBlockchainSummaryInfo()
 	// Get atomic swaps summary info
-	swapsTotalContract, swapsTotalAmount, _ := exp.dataSource.GetAtomicSwapSummary()
+	swapsTotalContract, swapsTotalAmount, _, _ := exp.dataSource.GetAtomicSwapSummary()
 	// Get atomic swaps refund contract count
 	refundCount, _ := exp.dataSource.CountRefundContract()
 	// Get last 5 pool info
@@ -967,9 +967,25 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 		coinSupply = int64(coinSupplyAmount)
 	}
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+	hasSwapData := len(newBlockData.GroupSwaps) > 0
+	var swapsTotalContract, swapsTotalAmount, refundCount int64
+	if hasSwapData {
+		// Get atomic swaps summary info
+		swapsTotalContract, swapsTotalAmount, _, _ = exp.dataSource.GetAtomicSwapSummary()
+		// Get atomic swaps refund contract count
+		refundCount, _ = exp.dataSource.CountRefundContract()
+	}
 	//TODO: Open later
 	//totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPEBTC)
 	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPEBTC)
+	err = exp.dataSource.SyncLast20BTCBlocks(blockData.Header.Height)
+	if err != nil {
+		log.Error(err)
+	} else {
+		log.Infof("Sync last 25 BTC Blocks successfully")
+	}
+	//get and set 25 last block
+	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEBTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 
 	// Update pageData with block data and chain (home) info.
 	p := exp.BtcPageData
@@ -995,14 +1011,11 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.BtcChainParams.SubsidyReductionInterval)
-	err = exp.dataSource.SyncLast20BTCBlocks(blockData.Header.Height)
-	if err != nil {
-		log.Error(err)
-	} else {
-		log.Infof("Sync last 25 BTC Blocks successfully")
+	if hasSwapData {
+		p.HomeInfo.SwapsTotalContract = swapsTotalContract
+		p.HomeInfo.SwapsTotalAmount = swapsTotalAmount
+		p.HomeInfo.RefundCount = refundCount
 	}
-	//get and set 25 last block
-	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEBTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 	p.BlockDetails = blocks
 	p.Unlock()
 	go func() {
@@ -1076,9 +1089,23 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		coinSupply = int64(coinSupplyAmount)
 	}
 	hashrate := dbtypes.CalculateHashRate(difficulty, targetTimePerBlock)
+	hasSwapData := len(newBlockData.GroupSwaps) > 0
+	var swapsTotalContract, swapsTotalAmount, refundCount int64
+	if hasSwapData {
+		// Get atomic swaps summary info
+		swapsTotalContract, swapsTotalAmount, _, _ = exp.dataSource.GetAtomicSwapSummary()
+		// Get atomic swaps refund contract count
+		refundCount, _ = exp.dataSource.CountRefundContract()
+	}
 	//TODO: Open later
 	//totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPELTC)
 	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPELTC)
+	err = exp.dataSource.SyncLast20LTCBlocks(blockData.Header.Height)
+	if err != nil {
+		log.Error(err)
+	}
+	//get and set 25 last block
+	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPELTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 
 	// Update pageData with block data and chain (home) info.
 	p := exp.LtcPageData
@@ -1104,12 +1131,11 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
-	err = exp.dataSource.SyncLast20LTCBlocks(blockData.Header.Height)
-	if err != nil {
-		log.Error(err)
+	if hasSwapData {
+		p.HomeInfo.SwapsTotalContract = swapsTotalContract
+		p.HomeInfo.SwapsTotalAmount = swapsTotalAmount
+		p.HomeInfo.RefundCount = refundCount
 	}
-	//get and set 25 last block
-	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPELTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 	p.BlockDetails = blocks
 	p.Unlock()
 	go func() {

@@ -1891,26 +1891,31 @@ func UncompactMergedRows(merged []*AddressRowMerged) []*AddressRow {
 // Source: From Token (DCR)
 // Target: Target Token (LTC/BTC/...)
 type AtomicSwapFullData struct {
-	IsRefund    bool
-	TargetToken string
-	Source      *AtomicSwapForTokenData
-	Target      *AtomicSwapForTokenData
+	IsRefund    bool                    `json:"isRefund"`
+	TargetToken string                  `json:"targetToken"`
+	GroupTx     string                  `json:"groupTx"`
+	Time        int64                   `json:"time"`
+	Source      *AtomicSwapForTokenData `json:"source"`
+	Target      *AtomicSwapForTokenData `json:"target"`
 }
 
 type AtomicSwapForTokenData struct {
-	TotalAmount int64
-	Contracts   []*AtomicSwapTxData
-	Results     []*AtomicSwapTxData
+	TotalAmount int64               `json:"totalAmount"`
+	Contracts   []*AtomicSwapTxData `json:"contracts"`
+	Results     []*AtomicSwapTxData `json:"results"`
 }
 
 type AtomicSwapTxData struct {
-	Txid   string
-	Fees   int64
-	Time   int64
-	Height int64
-	Value  int64
-	Vin    int64
-	Vout   int64
+	Txid         string `json:"txid"`
+	Fees         int64  `json:"fees"`
+	Time         int64  `json:"time"`
+	LockTime     int64  `json:"lockTime"`
+	TimeDisp     string `json:"timeDisp"`
+	LockTimeDisp string `json:"lockTimeDisp"`
+	Height       int64  `json:"height"`
+	Value        int64  `json:"value"`
+	Vin          int64  `json:"vin"`
+	Vout         int64  `json:"vout"`
 }
 
 type AtomicSwapContractData struct {

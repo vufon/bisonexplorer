@@ -2572,43 +2572,7 @@ type TreasuryInfo struct {
 }
 
 func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
-	// rows per page
-	limitN := defaultAddressRows
-	if nParam := r.URL.Query().Get("n"); nParam != "" {
-		val, err := strconv.ParseUint(nParam, 10, 64)
-		if err != nil {
-			exp.StatusPage(w, defaultErrorCode, "invalid n value", "", ExpStatusError)
-			return
-		}
-		if int64(val) > MaxTreasuryRows {
-			log.Warnf("AtomicSwapsPage: requested up to %d txs rows, "+
-				"limiting to %d", limitN, MaxTreasuryRows)
-			limitN = MaxTreasuryRows
-		} else {
-			limitN = int64(val)
-		}
-	}
-
-	// Number of txns to skip (OFFSET in database query). For UX reasons, the
-	// "start" URL query parameter is used.
-	var offset int64
-	if startParam := r.URL.Query().Get("start"); startParam != "" {
-		val, err := strconv.ParseUint(startParam, 0, 64)
-		if err != nil {
-			exp.StatusPage(w, defaultErrorCode, "invalid start value", "", ExpStatusError)
-			return
-		}
-		offset = int64(val)
-	}
-	// get pair param
-	pair := strings.TrimSpace(r.URL.Query().Get("pair"))
-	status := strings.TrimSpace(r.URL.Query().Get("status"))
-	searchKey := strings.TrimSpace(r.URL.Query().Get("search"))
-	listMode := strings.TrimSpace(r.URL.Query().Get("mode"))
-	if listMode == "" {
-		listMode = "simple"
-	}
-	atomicSwapTxs, allCount, allFilterCount, totalTradingAmount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
+	allCount, totalTradingAmount, oldestContract, err := exp.dataSource.GetAtomicSwapSummary()
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -2620,49 +2584,18 @@ func (exp *ExplorerUI) AtomicSwapsPage(w http.ResponseWriter, r *http.Request) {
 		exp.StatusPage(w, defaultErrorCode, err.Error(), "", ExpStatusError)
 		return
 	}
-	linkTemplate := fmt.Sprintf("/atomic-swaps?start=%%d&n=%d", limitN)
-	if pair != "" {
-		linkTemplate += "&pair=" + pair
-	}
-	if status != "" {
-		linkTemplate += "&status=" + status
-	}
-	if searchKey != "" {
-		linkTemplate += "&search=" + searchKey
-	}
-	if listMode != "" {
-		linkTemplate += "&mode=" + listMode
-	}
 	str, err := exp.templates.exec("atomicswaps", struct {
 		*CommonPageData
-		SwapsList          []*dbtypes.AtomicSwapFullData
-		Pages              []pageNumber
-		Offset             int64
-		Limit              int64
-		Pair               string
-		Status             string
-		SearchKey          string
-		TxCount            int64
 		AllCountSummary    int64
+		OldestContract     int64
 		RefundCount        int64
 		TotalTradingAmount int64
-		SimpleListMode     bool
-		ListMode           string
 	}{
 		CommonPageData:     exp.commonData(r),
-		SwapsList:          atomicSwapTxs,
-		Offset:             offset,
-		Limit:              limitN,
-		TxCount:            allFilterCount,
 		TotalTradingAmount: totalTradingAmount,
 		RefundCount:        refundCount,
-		Pair:               pair,
-		SearchKey:          searchKey,
-		Status:             status,
 		AllCountSummary:    allCount,
-		SimpleListMode:     false,
-		ListMode:           listMode,
-		Pages:              calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
+		OldestContract:     oldestContract,
 	})
 
 	if err != nil {
@@ -3147,7 +3080,7 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 		if int64(val) > MaxTreasuryRows {
-			log.Warnf("AtomicSwapsPage: requested up to %d txs rows, "+
+			log.Warnf("AtomicSwapsTable: requested up to %d txs rows, "+
 				"limiting to %d", limitN, MaxTreasuryRows)
 			limitN = MaxTreasuryRows
 		} else {
@@ -3172,7 +3105,7 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 	status := strings.TrimSpace(r.URL.Query().Get("status"))
 	searchKey := strings.TrimSpace(r.URL.Query().Get("search"))
 	listMode := strings.TrimSpace(r.URL.Query().Get("mode"))
-	atomicSwapTxs, allCount, allFilterCount, _, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
+	atomicSwapTxs, allFilterCount, err := exp.dataSource.GetAtomicSwapList(limitN, offset, pair, status, searchKey)
 	if exp.timeoutErrorPage(w, err, "AtomicSwaps") {
 		return
 	} else if err != nil {
@@ -3194,16 +3127,16 @@ func (exp *ExplorerUI) AtomicSwapsTable(w http.ResponseWriter, r *http.Request) 
 		linkTemplate += "&mode=" + listMode
 	}
 	response := struct {
-		TxCount         int64        `json:"tx_count"`
-		HTML            string       `json:"html"`
-		AllCountSummary int64        `json:"all_count"`
-		CurrentCount    int          `json:"current_count"`
-		Pages           []pageNumber `json:"pages"`
+		TxCount      int64                         `json:"tx_count"`
+		HTML         string                        `json:"html"`
+		CurrentCount int                           `json:"current_count"`
+		SwapsList    []*dbtypes.AtomicSwapFullData `json:"swaps_list"`
+		Pages        []pageNumber                  `json:"pages"`
 	}{
-		TxCount:         allFilterCount,
-		AllCountSummary: allCount,
-		CurrentCount:    len(atomicSwapTxs),
-		Pages:           calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
+		TxCount:      allFilterCount,
+		CurrentCount: len(atomicSwapTxs),
+		SwapsList:    atomicSwapTxs,
+		Pages:        calcPages(int(allFilterCount), int(limitN), int(offset), linkTemplate),
 	}
 
 	response.HTML, err = exp.templates.exec("atomicswaps_table", struct {
