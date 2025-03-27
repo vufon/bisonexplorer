@@ -4253,33 +4253,34 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 }
 
 func appendMutilchainChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) error {
-	defer closeRows(rows)
+	// TODO when handler sync all blockchain data to DB, uncomment
+	// defer closeRows(rows)
 
-	var count, size, height uint64
-	var difficulty float64
-	var rowCount int32
-	var time uint64
-	blocks := charts.Blocks
-	for rows.Next() {
-		rowCount++
-		// Get the chainwork.
-		err := rows.Scan(&height, &size, &time, &count, &difficulty)
-		if err != nil {
-			return err
-		}
-		blocks.Height = append(blocks.Height, height)
-		blocks.TxCount = append(blocks.TxCount, count)
-		blocks.Time = append(blocks.Time, time)
-		blocks.BlockSize = append(blocks.BlockSize, size)
-		blocks.Difficulty = append(blocks.Difficulty, difficulty)
-		hashrateEst := dbtypes.CalculateHashRate(difficulty, charts.TimePerBlocks)
-		blocks.Hashrate = append(blocks.Hashrate, hashrateEst)
-	}
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
-	}
+	// var count, size, height uint64
+	// var difficulty float64
+	// var rowCount int32
+	// var time uint64
+	// blocks := charts.Blocks
+	// for rows.Next() {
+	// 	rowCount++
+	// 	// Get the chainwork.
+	// 	err := rows.Scan(&height, &size, &time, &count, &difficulty)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	blocks.Height = append(blocks.Height, height)
+	// 	blocks.TxCount = append(blocks.TxCount, count)
+	// 	blocks.Time = append(blocks.Time, time)
+	// 	blocks.BlockSize = append(blocks.BlockSize, size)
+	// 	blocks.Difficulty = append(blocks.Difficulty, difficulty)
+	// 	hashrateEst := dbtypes.CalculateHashRate(difficulty, charts.TimePerBlocks)
+	// 	blocks.Hashrate = append(blocks.Hashrate, hashrateEst)
+	// }
+	// if err := rows.Err(); err != nil {
+	// 	return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
+	// }
 	//if lastest db height less than lastblock height, use external api to display chart
-	if !charts.UseSyncDB || height < uint64(charts.LastBlockHeight) {
+	if !charts.UseSyncDB {
 		charts.UseAPI = true
 		//handler api data for charts
 		apiErr := HandlerMutilchainAPIDataForCharts(charts)

@@ -929,18 +929,18 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	newBlockData := exp.dataSource.GetBTCExplorerBlock(msgBlock.BlockHash().String())
 
 	// Use the latest block's blocktime to get the last 24hr timestamp.
-	day := 24 * time.Hour
+	// day := 24 * time.Hour
 	targetTimePerBlock := float64(exp.BtcChainParams.TargetTimePerBlock)
 
-	// Hashrate change over last day
-	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
-	last24hrDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
-	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+	// // Hashrate change over last day
+	// timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	// last24hrDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	// last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
 
-	// Hashrate change over last month
-	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
-	lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
-	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+	// // Hashrate change over last month
+	// timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	// lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPEBTC)
+	// lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
 
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
@@ -997,8 +997,8 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 
 	// Update HomeInfo.
 	p.HomeInfo.HashRate = hashrate
-	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
-	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	// p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	// p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.HomeInfo.CoinSupply = coinSupply
 	p.HomeInfo.CoinValueSupply = coinValueSupply
 	p.HomeInfo.Difficulty = difficulty
@@ -1051,18 +1051,18 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	// Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetLTCExplorerBlock(msgBlock.BlockHash().String())
 	// Use the latest block's blocktime to get the last 24hr timestamp.
-	day := 24 * time.Hour
+	// day := 24 * time.Hour
 	targetTimePerBlock := float64(exp.LtcChainParams.TargetTimePerBlock)
 
 	// Hashrate change over last day
-	timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
-	last24hrDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
-	last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
+	// timestamp := newBlockData.BlockTime.T.Add(-day).Unix()
+	// last24hrDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	// last24HrHashRate := dbtypes.CalculateHashRate(last24hrDifficulty, targetTimePerBlock)
 
 	// Hashrate change over last month
-	timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
-	lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
-	lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
+	// timestamp = newBlockData.BlockTime.T.Add(-30 * day).Unix()
+	// lastMonthDifficulty := exp.dataSource.MutilchainDifficulty(timestamp, mutilchain.TYPELTC)
+	// lastMonthHashRate := dbtypes.CalculateHashRate(lastMonthDifficulty, targetTimePerBlock)
 
 	totalTransactionCount := int64(0)
 	chainSize := int64(0)
@@ -1117,8 +1117,8 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 
 	// Update HomeInfo.
 	p.HomeInfo.HashRate = hashrate
-	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
-	p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	// p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	// p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
 	p.HomeInfo.CoinSupply = coinSupply
 	p.HomeInfo.CoinValueSupply = coinValueSupply
 	p.HomeInfo.Difficulty = difficulty

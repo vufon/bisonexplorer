@@ -2099,9 +2099,62 @@ hr.style-six {
   padding-left: 15px;
 }
 
+.abstain-color {
+  background-color: #e2b027;
+}
+
+.no-color {
+  background-color: #f36e6e;
+}
+
+.yes-color {
+  background-color: #0c644e;
+}
+
+.contract-bg {
+  background-color: #4f69a6;
+}
+
+.redemption-bg {
+  background-color: #407737;
+}
+
+.success-bg {
+  background-color: #c4e7be;
+}
+
+.refund-bg {
+  background-color: #a961a9;
+}
+
+.refund-brighter-bg {
+  background-color: #f1c8f1;
+}
+
+.second-pair {
+  position: absolute;
+  left: 15px;
+}
+
+.pair-icons {
+  margin-right: 20px;
+}
+
+.swap-group-header {
+  background: #d4e4ed;
+}
+
+.success-border {
+  border: 1px solid #8cd18d;
+}
+
+.refund-border {
+  border: 1px solid #df8ddf;
+}
+
 body.darkBG {
   .bgc-white {
-    background-color: #535353;
+    background-color: #3c3a3a;
 
     a {
       text-decoration: underline !important;
@@ -2241,6 +2294,24 @@ body.darkBG {
   .new-network-stats-title,
   .new-network-stats-content {
     color: white;
+  }
+
+  .refund-brighter-bg {
+    background-color: #893989;
+  }
+
+  .success-bg {
+    background-color: #19610c;
+  }
+
+  .highlight-box {
+    background: #1e4057;
+  }
+
+  .chart-select-option {
+    option {
+      color: white;
+    }
   }
 }
 
@@ -2633,57 +2704,4 @@ body.darkBG {
 .small-dot {
   width: 10px;
   height: 10px;
-}
-
-.abstain-color {
-  background-color: #e2b027;
-}
-
-.no-color {
-  background-color: #f36e6e;
-}
-
-.yes-color {
-  background-color: #0c644e;
-}
-
-.contract-bg {
-  background-color: #4f69a6;
-}
-
-.redemption-bg {
-  background-color: #407737;
-}
-
-.success-bg {
-  background-color: #c4e7be;
-}
-
-.refund-bg {
-  background-color: #a961a9;
-}
-
-.refund-brighter-bg {
-  background-color: #f1c8f1;
-}
-
-.second-pair {
-  position: absolute;
-  left: 15px;
-}
-
-.pair-icons {
-  margin-right: 20px;
-}
-
-.swap-group-header {
-  background: #d4e4ed;
-}
-
-.success-border {
-  border: 1px solid #8cd18d;
-}
-
-.refund-border {
-  border: 1px solid #df8ddf;
 }
