@@ -61,6 +61,12 @@ body {
   }
 }
 
+@media (min-width: 1100px) {
+  .atomic-search-input {
+    width: 270px !important;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;

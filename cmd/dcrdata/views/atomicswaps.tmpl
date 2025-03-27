@@ -124,49 +124,53 @@
         </div>
       </div>
       <div class="d-md-flex ai-center justify-content-between my-2">
-        <div class="d-flex ai-center">
-          <label class="mb-0 ms-2 me-1" for="pair">Pair</label>
-          <select name="pair" data-atomicswaps-target="pair" data-action="change->atomicswaps#changePair"
-            class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
-            <option selected value="all">All</option>
-            <option value="btc">DCR/BTC</option>
-            <option value="ltc">DCR/LTC</option>
-            <option value="unknown">Verifying</option>
-          </select>
-          <label class="mb-0 ms-2 me-1" for="status">Status</label>
-          <select name="status" data-atomicswaps-target="status" data-action="change->atomicswaps#changeStatus"
-            class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
-            <option selected value="all">All</option>
-            <option value="redemption">Redemption</option>
-            <option value="refund">Refund</option>
-          </select>
-          <label class="mb-0 ms-2 me-1">Search</label>
-          <div data-atomicswaps-target="searchBox" class="report-search-box px-1 ps-2">
-            <input tabindex="0" type="text" name="search" class="report-search-input mousetrap"
-              placeholder="Search by txhash" spellcheck="false" autocomplete="off"
-              data-atomicswaps-target="searchInput"
-              data-action="keyup->atomicswaps#searchInputKeypress input->atomicswaps#onTypeChange" />
-            <button class="report-search" data-atomicswaps-target="searchBtn"
-              data-action="click->atomicswaps#searchAtomicSwapContract"><i class="dcricon-search"></i></button>
-            <button class="report-search d-none" data-atomicswaps-target="clearSearchBtn"
-              data-action="click->atomicswaps#clearSearch"><i class="dcricon-closenb"></i></button>
+        <div class="d-md-flex ai-center">
+          <div class="d-flex ai-center mb-2 mb-md-0">
+            <label class="mb-0 ms-0 ms-md-2 me-1" for="pair">Pair</label>
+            <select name="pair" data-atomicswaps-target="pair" data-action="change->atomicswaps#changePair"
+              class="form-control-sm me-md-2 border-plain border-radius-8">
+              <option selected value="all">All</option>
+              <option value="btc">DCR/BTC</option>
+              <option value="ltc">DCR/LTC</option>
+              <option value="unknown">Verifying</option>
+            </select>
+            <label class="mb-0 ms-2 me-1" for="status">Status</label>
+            <select name="status" data-atomicswaps-target="status" data-action="change->atomicswaps#changeStatus"
+              class="form-control-sm me-md-2 border-plain border-radius-8">
+              <option selected value="all">All</option>
+              <option value="redemption">Redemption</option>
+              <option value="refund">Refund</option>
+            </select>
+          </div>
+          <div class="d-flex ai-center">
+            <label class="mb-0 ms-2 d-none d-md-block me-1">Search</label>
+            <div data-atomicswaps-target="searchBox" class="report-search-box px-1 ps-2 w-100">
+              <div class="d-flex w-100">
+                <input tabindex="0" type="text" name="search" class="report-search-input atomic-search-input mousetrap w-100"
+                placeholder="Search by txhash" spellcheck="false" autocomplete="off"
+                data-atomicswaps-target="searchInput"
+                data-action="keyup->atomicswaps#searchInputKeypress input->atomicswaps#onTypeChange" />
+              <button class="report-search text-end" data-atomicswaps-target="searchBtn"
+                data-action="click->atomicswaps#searchAtomicSwapContract"><i class="dcricon-search"></i></button>
+              <button class="report-search d-none" data-atomicswaps-target="clearSearchBtn"
+                data-action="click->atomicswaps#clearSearch"><i class="dcricon-closenb"></i></button>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="d-flex flex-wrap-reverse align-items-center transactions-filter-area py-1">
+        <div class="d-flex flex-wrap-reverse align-items-center justify-content-start justify-content-md-end py-1">
           <div data-atomicswaps-target="paginationheader">
             <span class="fs12 nowrap text-end" data-atomicswaps-target="range"></span>
-            <span class="separator mx-2 h-20px block-banner-separator"></span>
+            <span class="separator mx-2 h-20px"></span>
           </div>
           <div class="d-flex align-items-center justify-content-between">
             <span></span>
-            <div class="d-flex flex-row">
-              <div class="d-inline-block text-end">
+            <div class="d-flex flex-row justify-content-end ai-center ms-2 ms-md-0">
                 <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
                 <select name="pagesize" id="pagesize" data-atomicswaps-target="pagesize"
                   data-action="change->atomicswaps#changePageSize"
-                  class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8">
+                  class="form-control-sm mb-2 me-md-2 mb-md-0 border-plain border-radius-8">
                 </select>
-              </div>
             </div>
           </div>
         </div>
@@ -175,17 +179,17 @@
         <div class="loader-v2" data-atomicswaps-target="listLoader"></div>
         <div class='br-8 b--def bgc-plain-bright pb-10'>
           <div class="d-md-flex justify-content-md-between ai-center">
-            <div class="d-flex ai-center ms-4">
-              <span class="me-3 me-md-2 fw-bold" style="position:sticky;left:10px;">Full Mode</span>
+            <div class="d-flex ai-center ms-1 ms-md-4 mt-2">
+              <span class="me-3 me-md-2 fw-bold" style="position:sticky;left:10px;">Grid Mode</span>
               <label class="switch mt-2" style="position:sticky;left:60px;">
               <input type="checkbox" id="viewListToggle" data-action="change->atomicswaps#changeViewMode">
               <span class="legacy-slider round"></span>
               </label>
            </div>
-           <div class="pe-3 mt-2" data-atomicswaps-target="topTablePagination"></div>
+           <div class="pe-3 mt-2 ms-1 ms-md-0" data-atomicswaps-target="topTablePagination"></div>
           </div>
           <div class="position-relative" data-atomicswaps-target="table"></div>
-          <div class="text-end pe-3" data-atomicswaps-target="tablePagination">
+          <div class="text-md-end ms-1 ms-md-0 pe-3" data-atomicswaps-target="tablePagination">
           </div>
         </div>
       </div>

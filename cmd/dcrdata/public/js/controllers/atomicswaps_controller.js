@@ -140,7 +140,7 @@ export default class extends Controller {
     ctrl.state = Object.assign({}, ctrl.settings)
     ctrl.settings.pair = ctrl.settings.pair && ctrl.settings.pair !== '' ? ctrl.settings.pair : 'all'
     ctrl.settings.status = ctrl.settings.status && ctrl.settings.status !== '' ? ctrl.settings.status : 'all'
-    ctrl.settings.mode = ctrl.settings.mode && ctrl.settings.mode !== '' ? ctrl.settings.mode : 'simple'
+    ctrl.settings.mode = ctrl.settings.mode && ctrl.settings.mode !== '' ? ctrl.settings.mode : 'full'
     document.getElementById('viewListToggle').checked = ctrl.settings.mode !== 'simple'
     this.pairTarget.value = ctrl.settings.pair
     this.statusTarget.value = ctrl.settings.status
@@ -152,7 +152,8 @@ export default class extends Controller {
     }
     ctrl.paginationParams = {
       offset: ctrl.settings.start,
-      count: ctrl.settings.n
+      count: 0,
+      pagesize: ctrl.settings.n
     }
 
     // init for chart
@@ -187,7 +188,7 @@ export default class extends Controller {
     ctrl.initializeChart()
     ctrl.drawGraph()
     // fetch table data
-    this.fetchTable(ctrl.paginationParams.count, ctrl.paginationParams.offset)
+    await this.fetchTable(ctrl.paginationParams.count, ctrl.paginationParams.offset)
     this.resetPageSizeOptions()
     this.processDecredBlock = this._processDecredBlock.bind(this)
     globalEventBus.on('BLOCK_RECEIVED', this.processDecredBlock)
@@ -291,7 +292,7 @@ export default class extends Controller {
 				<th class="text-center fw-bold">Txid</th>
 				<th class="text-start fw-bold">Height</th>
 				<th class="text-start fw-bold">Value</th>
-				<th class="d-none d-sm-table-cell text-end fw-bold">Create/Lock Time (UTC)</th>
+				<th class="text-end fw-bold">Time (UTC)</th>
 			</tr>
 		</thead>
 		<tbody class="bgc-white">`
@@ -311,11 +312,10 @@ export default class extends Controller {
 					</div>
 				</td>
 				<td class="text-center"></td>
-				<td class="text-start d-flex fw-bold">
+				<td class="text-start fw-bold" colspan="2">
           ${humanize.toAmountFloatDisplay(swap.source.totalAmount, -1, 'DCR')}
 					${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}
 				</td>
-				<td class="text-end"></td>
 			</tr>`
       swap.source.contracts.forEach((contract) => {
         resHtml += `<tr>
@@ -430,7 +430,7 @@ export default class extends Controller {
     this.swapsData.forEach((swap) => {
       resHtml += `<tr><td>
 				<div class="pb-1 border-2-bottom-grey">
-				<div class="d-flex ai-center fw-600 fs15">
+				<div class="d-md-flex ai-center fw-600 fs15">
 					<div class="d-flex ai-center">`
       const hasTargetToken = swap.targetToken !== ''
       resHtml += `${!hasTargetToken
@@ -439,9 +439,9 @@ export default class extends Controller {
 							<img src="/images/dcr-icon-notran.png" width="20" height="20"> 
 							<img src="/images/${swap.targetToken}-icon.png" width="20" height="20" class="second-pair">
 						  </div>`}<p>${hasTargetToken ? 'DCR/' + swap.targetToken.toUpperCase() : 'Verifying'}</p></div>`
-      resHtml += `<div class="d-flex ai-center ms-3">Amount:&nbsp;${humanize.toAmountFloatDisplay(swap.source.totalAmount, -1, 'DCR')}
-                ${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}</div>
-                <span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span>
+      resHtml += `<div class="d-flex ai-center ms-0 ms-md-3">Amount:&nbsp;${humanize.toAmountFloatDisplay(swap.source.totalAmount, -1, 'DCR')}
+                ${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}
+                <span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
                 </div></div><div class="row mt-3">
 					      <div class="col-24 col-md-12 mb-3">
 						    <div class="d-flex ai-center">
@@ -991,16 +991,16 @@ export default class extends Controller {
     const rowMax = params.count
     const dispCount = params.currentcount
     let pageSizeOptions = ''
-    if (rowMax > 20) {
+    if (rowMax >= 20) {
       this.pagesizeTarget.classList.remove('disabled')
       this.pagesizeTarget.disabled = false
     } else {
       this.pagesizeTarget.classList.add('disabled')
       this.pagesizeTarget.disabled = true
     }
-    pageSizeOptions += `<option ${dispCount === 20 ? 'selected' : ''} value="20" ${dispCount <= 20 ? 'disabled' : ''}>20</option>`
-    pageSizeOptions += `<option ${dispCount === 40 ? 'selected' : ''} value="40" ${dispCount <= 40 ? 'disabled' : ''}>40</option>`
-    pageSizeOptions += `<option ${dispCount === 80 ? 'selected' : ''} value="80" ${dispCount <= 80 ? 'disabled' : ''}>80</option>`
+    pageSizeOptions += `<option ${dispCount === 20 ? 'selected' : ''} value="20" ${rowMax < 20 ? 'disabled' : ''}>20</option>`
+    pageSizeOptions += `<option ${dispCount === 40 ? 'selected' : ''} value="40" ${rowMax < 40 ? 'disabled' : ''}>40</option>`
+    pageSizeOptions += `<option ${dispCount === 80 ? 'selected' : ''} value="80" ${rowMax < 80 ? 'disabled' : ''}>80</option>`
     if (rowMax <= 160) {
       pageSizeOptions += `<option ${dispCount === rowMax ? 'selected' : ''} value="${rowMax}" ${rowMax <= 160 ? 'disabled' : ''}>${rowMax}</option>`
     } else {

@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.c505f9a277a16c57.css" rel="stylesheet">
+	<link href="/dist/css/style.0b564203115dec37.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -400,7 +400,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.01281647f1563574.bundle.js"
+	src="/dist/js/app.fcc6ca0fceaa8b1a.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
@@ -766,7 +766,7 @@
 				{{$isRefund := .IsRefund}}
 				{{$hasTargetToken := (ne .TargetToken "")}}
 				<div class="pb-1 border-2-bottom-grey">
-				<div class="d-flex ai-center fw-600 fs15">
+				<div class="d-md-flex ai-center fw-600 fs15">
 					{{if eq $.SimpleListMode false}}
 					<div class="d-flex ai-center">
 						{{if $hasTargetToken}}
@@ -780,15 +780,15 @@
 						<p>{{if $hasTargetToken}}DCR/{{toUpperCase .TargetToken}}{{else}}Verifying{{end}}</p>
 					</div>
 					{{end}}
-					<div class="d-flex ai-center {{if eq $.SimpleListMode false}}ms-3{{end}}">Amount:&nbsp;<div>{{normalWithPrecFloat (toFloat64Amount .Source.TotalAmount) -1}}</div>&nbsp;DCR
+					<div class="d-flex ai-center {{if eq $.SimpleListMode false}}ms-0 ms-md-3{{end}}">Amount:&nbsp;<div>{{normalWithPrecFloat (toFloat64Amount .Source.TotalAmount) -1}}</div>&nbsp;DCR
 					{{if $hasTargetToken}}
 					&nbsp;(
 					<div>{{normalWithPrecFloat (toFloat64Amount .Target.TotalAmount) -1}}</div>&nbsp;{{toUpperCase .TargetToken}})
 					{{end}}
-					</div>
 					{{if eq $.SimpleListMode false}}
 					<span class="common-label py-1 px-2 ms-2 {{if .IsRefund}}refund-brighter-bg refund-border{{else}}success-bg success-border{{end}} fw-400 fs13">{{if .IsRefund}}Refund{{else}}Redemption{{end}}</span>
 					{{end}}
+					</div>
 				</div>
 				</div>
 				<div class="row mt-3">
@@ -899,7 +899,7 @@
 				<th class="text-center fw-bold">Txid</th>
 				<th class="text-start fw-bold">Height</th>
 				<th class="text-start fw-bold">Value</th>
-				<th class="d-none d-sm-table-cell text-end fw-bold">Create/Lock Time (UTC)</th>
+				<th class="text-end fw-bold">Time (UTC)</th>
 			</tr>
 		</thead>
 		<tbody class="bgc-white">
@@ -923,12 +923,11 @@
 					</div>
 				</td>
 				<td class="text-center"></td>
-				<td class="text-start d-flex fw-bold">
+				<td class="text-start fw-bold" colspan="2">
 					{{normalWithPrecFloat (toFloat64Amount .Source.TotalAmount) -1}}&nbsp;DCR
 					{{if $hasTargetToken}}&nbsp;({{normalWithPrecFloat (toFloat64Amount .Target.TotalAmount) -1}}&nbsp;{{toUpperCase .TargetToken}})
 					{{end}}
 				</td>
-				<td class="text-end"></td>
 			</tr>
 			<!-- End first row is group info -->
 			<!-- Begin Source contracts -->
