@@ -23,28 +23,31 @@
             <span class="text-secondary fs13">Total Trading Amount</span>
             <br>
             <div class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
-              <span data-atomicswaps-target="totalAmount">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .TotalTradingAmount) 2 true)}}</span>
+              <span data-atomicswaps-target="totalAmount">{{template "decimalParts" (float64AsDecimalParts
+                (toFloat64Amount .TotalTradingAmount) 2 true)}}</span>
               <span class="text-secondary fs14">DCR</span>
             </div>
             <br>
             <span class="text-secondary fs14 lh1rem">
-              from ~<span data-type="age" data-time-target="age"
-                                 data-age="{{.OldestContract}}"></span> ago
+              from ~<span data-type="age" data-time-target="age" data-age="{{.OldestContract}}"></span> ago
             </span>
           </div>
           <div class="d-inline-block text-start pe-2 pb-3">
             <span class="text-secondary fs13">Total Contracts</span>
             <br>
             <span class="lh1rem d-inline-block pt-1 fs18 fs14-decimal fw-bold">
-              <span class="fs18" data-atomicswaps-target="totalContracts">{{intComma .AllCountSummary}}</span> <span class="text-secondary fs14">contracts</span>
+              <span class="fs18" data-atomicswaps-target="totalContracts">{{intComma .AllCountSummary}}</span> <span
+                class="text-secondary fs14">contracts</span>
             </span>
             <br>
-            <span class="text-secondary fs14 lh1rem"><span data-atomicswaps-target="redeemCount">{{intComma (subtract .AllCountSummary .RefundCount)}}</span> redemptions,
-            <span data-atomicswaps-target="refundCount">{{intComma .RefundCount}}</span> refunds</span>
+            <span class="text-secondary fs14 lh1rem"><span data-atomicswaps-target="redeemCount">{{intComma (subtract
+                .AllCountSummary .RefundCount)}}</span> redemptions,
+              <span data-atomicswaps-target="refundCount">{{intComma .RefundCount}}</span> refunds</span>
           </div>
         </div>
         <div class="position-relative d-flex justify-content-between align-items-start flex-wrap">
-          <span>You can create atomic swaps on the <a target="_blank" href="https://dex.decred.org">DCRDEX</a> decentralized exchange.</span>
+          <span>You can create atomic swaps on the <a target="_blank" href="https://dex.decred.org">DCRDEX</a>
+            decentralized exchange.</span>
         </div>
       </div>
       <div class="col-24 mt-2 mt-xl-0 col-xl-13 common-card secondary-card p-2">
@@ -105,18 +108,14 @@
     <div class="position-relative" data-atomicswaps-target="listbox">
       <div class="align-items-center">
         <div class="me-auto mb-0 h4 d-flex ai-center">Atomic Swap Transactions
-          <nav aria-label="address transactions navigation"
-            class="my-1 ms-2" data-atomicswaps-target="pagebuttons">
+          <nav aria-label="address transactions navigation" class="my-1 ms-2" data-atomicswaps-target="pagebuttons">
             <ul class="pagination mb-0 pagination-sm">
               <li class="page-item" data-atomicswaps-target="pageminus">
-                <a class="page-link cursor-pointer"
-                  data-turbolinks="false" data-atomicswaps-target="paginator"
+                <a class="page-link cursor-pointer" data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#prevPage">Previous</a>
               </li>
-              <li class="page-item"
-                data-atomicswaps-target="pageplus">
-                <a class="page-link cursor-pointer"
-                  data-turbolinks="false" data-atomicswaps-target="paginator"
+              <li class="page-item" data-atomicswaps-target="pageplus">
+                <a class="page-link cursor-pointer" data-turbolinks="false" data-atomicswaps-target="paginator"
                   data-action="atomicswaps#nextPage">Next</a>
               </li>
             </ul>
@@ -146,14 +145,14 @@
             <label class="mb-0 ms-2 d-none d-md-block me-1">Search</label>
             <div data-atomicswaps-target="searchBox" class="report-search-box px-1 ps-2 w-100">
               <div class="d-flex w-100">
-                <input tabindex="0" type="text" name="search" class="report-search-input atomic-search-input mousetrap w-100"
-                placeholder="Search by txhash" spellcheck="false" autocomplete="off"
-                data-atomicswaps-target="searchInput"
-                data-action="keyup->atomicswaps#searchInputKeypress input->atomicswaps#onTypeChange" />
-              <button class="report-search text-end" data-atomicswaps-target="searchBtn"
-                data-action="click->atomicswaps#searchAtomicSwapContract"><i class="dcricon-search"></i></button>
-              <button class="report-search d-none" data-atomicswaps-target="clearSearchBtn"
-                data-action="click->atomicswaps#clearSearch"><i class="dcricon-closenb"></i></button>
+                <input tabindex="0" type="text" name="search"
+                  class="report-search-input atomic-search-input mousetrap w-100" placeholder="Search by txhash"
+                  spellcheck="false" autocomplete="off" data-atomicswaps-target="searchInput"
+                  data-action="keyup->atomicswaps#searchInputKeypress input->atomicswaps#onTypeChange" />
+                <button class="report-search text-end" data-atomicswaps-target="searchBtn"
+                  data-action="click->atomicswaps#searchAtomicSwapContract"><i class="dcricon-search"></i></button>
+                <button class="report-search d-none" data-atomicswaps-target="clearSearchBtn"
+                  data-action="click->atomicswaps#clearSearch"><i class="dcricon-closenb"></i></button>
               </div>
             </div>
           </div>
@@ -166,11 +165,11 @@
           <div class="d-flex align-items-center justify-content-between">
             <span></span>
             <div class="d-flex flex-row justify-content-end ai-center ms-2 ms-md-0">
-                <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
-                <select name="pagesize" id="pagesize" data-atomicswaps-target="pagesize"
-                  data-action="change->atomicswaps#changePageSize"
-                  class="form-control-sm mb-2 me-md-2 mb-md-0 border-plain border-radius-8">
-                </select>
+              <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
+              <select name="pagesize" id="pagesize" data-atomicswaps-target="pagesize"
+                data-action="change->atomicswaps#changePageSize"
+                class="form-control-sm mb-2 me-md-2 mb-md-0 border-plain border-radius-8">
+              </select>
             </div>
           </div>
         </div>
@@ -182,11 +181,11 @@
             <div class="d-flex ai-center ms-1 ms-md-4 mt-2">
               <span class="me-3 me-md-2 fw-bold" style="position:sticky;left:10px;">Grid Mode</span>
               <label class="switch mt-2" style="position:sticky;left:60px;">
-              <input type="checkbox" id="viewListToggle" data-action="change->atomicswaps#changeViewMode">
-              <span class="legacy-slider round"></span>
+                <input type="checkbox" id="viewListToggle" data-action="change->atomicswaps#changeViewMode">
+                <span class="legacy-slider round"></span>
               </label>
-           </div>
-           <div class="pe-3 mt-2 ms-1 ms-md-0" data-atomicswaps-target="topTablePagination"></div>
+            </div>
+            <div class="pe-3 mt-2 ms-1 ms-md-0" data-atomicswaps-target="topTablePagination"></div>
           </div>
           <div class="position-relative" data-atomicswaps-target="table"></div>
           <div class="text-md-end ms-1 ms-md-0 pe-3" data-atomicswaps-target="tablePagination">
@@ -195,6 +194,7 @@
       </div>
     </div>
   </div>
+</div>
   {{template "footer" . }}
   </body>
 
