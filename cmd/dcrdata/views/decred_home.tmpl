@@ -514,13 +514,13 @@
                                  </span>
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span class="fs15-decimal">
+                                 <span class="fs15-decimal" data-homepage-target="tspentAmount">
                                     {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                     .TreasuryBalance.Spent) 2 true 2)}}
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
-                              <span class="stats-subinfo">
+                              <span class="stats-subinfo" data-homepage-target="tspentCount">
                                  {{.TreasuryBalance.SpendCount}} spends
                               </span>
                            </div>
@@ -546,7 +546,7 @@
                                  </a>
                               </span>
                               <div class="new-network-stats-content d-inline-block pt-1">
-                                 <span>{{.PeerCount}}</span>
+                                 <span data-homepage-target="onlineNodes">{{.PeerCount}}</span>
                               </div>
                            </div>
                         </div>
@@ -557,7 +557,7 @@
                                     Blockchain Size
                                  </a>
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="blockchainSize">
                                  {{.FormattedSize}}
                               </span>
                            </div>
@@ -580,7 +580,7 @@
                                     Average Block Size
                                  </a>
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="avgBlockSize">
                                  {{.FormattedAvgBlockSize}}
                               </span>
                            </div>
@@ -592,7 +592,7 @@
                                     Total Transactions
                                  </a>
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalTxs">
                                  {{int64Comma .TotalTransactions}}
                               </span>
                            </div>
@@ -602,7 +602,7 @@
                               <span class="new-network-stats-title">
                                  Total Addresses
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalAddresses">
                                  {{int64Comma .TotalAddresses}}
                               </span>
                            </div>
@@ -612,7 +612,7 @@
                               <span class="new-network-stats-title">
                                  Total Outputs
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalOutputs">
                                  {{int64Comma .TotalOutputs}}
                               </span>
                            </div>
@@ -620,7 +620,7 @@
                         <div class="col-12 col-sm-8 col-md-6">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">Swaps Trading Amount</span>
-                              <div class="new-network-stats-content d-inline-block pt-1">
+                              <div class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalSwapsAmount">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                  .SwapsTotalAmount) 2 true)}}
                               </div>
@@ -634,10 +634,10 @@
                                     Swaps Contracts
                                  </a></span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span>{{intComma .SwapsTotalContract}}</span>
+                                 <span data-homepage-target="totalContracts">{{intComma .SwapsTotalContract}}</span>
                                  <span class="stats-subinfo">
-                                    {{intComma (subtract .SwapsTotalContract .RefundCount)}} redemptions,
-                                    {{intComma .RefundCount}} refunds
+                                    <span data-homepage-target="redeemCount">{{intComma (subtract .SwapsTotalContract .RefundCount)}}</span> redemptions,
+                                    <span data-homepage-target="refundCount">{{intComma .RefundCount}}</span> refunds
                                  </span>
                               </span>
                            </div>
@@ -647,7 +647,7 @@
                               <span class="new-network-stats-title">
                                  <a class="link-hover-underline" href="/decred/bwdash">Bison Wallet Vol</a></span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span>{{intComma .BisonWalletVol}}</span>
+                                 <span data-homepage-target="bwTotalVol">{{intComma .BisonWalletVol}}</span>
                               </span>
                               <span class="new-info-line-2-sub">USD</span>
                               <span class="position-relative ms-1 fw-400" data-tooltip='All time trading volume'>
@@ -655,7 +655,7 @@
                                  </span>
                               </span>
                               <span class="stats-subinfo">
-                                 ${{intComma .BWLast30DaysVol}} USD (last 30 days)
+                                 $<span data-homepage-target="last30DayBwVol">{{intComma .BWLast30DaysVol}}</span> USD (last 30 days)
                               </span>
                            </div>
                         </div>

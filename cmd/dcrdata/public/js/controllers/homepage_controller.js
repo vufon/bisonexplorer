@@ -187,7 +187,9 @@ export default class extends Controller {
       'mpRevTotal', 'mpRevCount', 'voteTally', 'blockVotes', 'blockHeight', 'blockSize',
       'blockTotal', 'consensusMsg', 'powConverted', 'convertedDev',
       'convertedSupply', 'convertedDevSub', 'exchangeRate', 'convertedStake',
-      'mixedPct', 'searchKey', 'memBlock', 'tooltip', 'avgBlockTime'
+      'mixedPct', 'searchKey', 'memBlock', 'tooltip', 'avgBlockTime', 'tspentAmount', 'tspentCount',
+      'onlineNodes', 'blockchainSize', 'avgBlockSize', 'totalTxs', 'totalAddresses', 'totalOutputs',
+      'totalSwapsAmount', 'totalContracts', 'redeemCount', 'refundCount', 'bwTotalVol', 'last30DayBwVol'
     ]
   }
 
@@ -346,6 +348,8 @@ export default class extends Controller {
     this.bsubsidyPowTarget.innerHTML = humanize.decimalParts(ex.subsidy.pow / 100000000, false, 8, 2)
     this.bsubsidyPosTarget.innerHTML = humanize.decimalParts((ex.subsidy.pos / 500000000), false, 8, 2) // 5 votes per block (usually)
     this.bsubsidyDevTarget.innerHTML = humanize.decimalParts(ex.subsidy.dev / 100000000, false, 8, 2)
+    this.tspentAmountTarget.innerHTML = humanize.decimalParts(ex.treasury_bal.spent / 100000000, true, 2, 0)
+    this.tspentCountTarget.innerHTML = humanize.decimalParts(ex.treasury_bal.spend_count, true, 0) + ' spends'
     this.coinSupplyTarget.innerHTML = humanize.decimalParts(ex.coin_supply / 100000000, true, 0)
     this.mixedPctTarget.innerHTML = ex.mixed_percent.toFixed(0)
     this.blocksdiffTarget.innerHTML = humanize.decimalParts(ex.sdiff, false, 8, 2)
@@ -377,7 +381,18 @@ export default class extends Controller {
     this.blockHeightTarget.href = `/block/${block.hash}`
     this.blockSizeTarget.textContent = humanize.bytes(block.size)
     this.blockTotalTarget.textContent = humanize.threeSigFigs(block.total)
-
+    this.onlineNodesTarget.innerHTML = humanize.decimalParts(ex.peerCount, true, 0)
+    this.blockchainSizeTarget.textContent = ex.formatted_size
+    this.avgBlockSizeTarget.textContent = ex.formattedAvgBlockSize
+    this.totalTxsTarget.innerHTML = humanize.decimalParts(ex.total_transactions, true, 0)
+    this.totalAddressesTarget.innerHTML = humanize.decimalParts(ex.total_addresses, true, 0)
+    this.totalOutputsTarget.innerHTML = humanize.decimalParts(ex.total_outputs, true, 0)
+    this.totalSwapsAmountTarget.innerHTML = humanize.decimalParts(ex.swapsTotalAmount / 100000000, true, 2, 0)
+    this.totalContractsTarget.innerHTML = humanize.decimalParts(ex.swapsTotalContract, true, 0)
+    this.redeemCountTarget.innerHTML = humanize.decimalParts(ex.swapsTotalContract - ex.refundCount, true, 0)
+    this.refundCountTarget.innerHTML = humanize.decimalParts(ex.refundCount, true, 0)
+    this.bwTotalVolTarget.innerHTML = humanize.decimalParts(ex.bisonWalletVol, true, 0)
+    this.last30DayBwVolTarget.innerHTML = humanize.decimalParts(ex.bwLast30DaysVol, true, 0)
     if (ex.exchange_rate) {
       const xcRate = ex.exchange_rate.value
       const btcIndex = ex.exchange_rate.index
