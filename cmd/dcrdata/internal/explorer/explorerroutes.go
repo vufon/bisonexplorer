@@ -197,6 +197,7 @@ type homeConversions struct {
 	PosReward24h      *exchanges.Conversion
 	Supply24h         *exchanges.Conversion
 	Treasury24hChange *exchanges.Conversion
+	TxFeeAvg          *exchanges.Conversion
 }
 
 // For the exchange rates on the homepage
@@ -281,6 +282,7 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + balance).ToCoin()),
 			MempoolSpending: xcBot.Conversion(inv.LikelyMineable.Total),
 			MempoolFees:     xcBot.Conversion(mempoolInfo.Fees),
+			TxFeeAvg:        xcBot.Conversion(dcrutil.Amount(homeInfo.TxFeeAvg).ToCoin()),
 		}
 		if homeInfo.Block24hInfo != nil {
 			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())

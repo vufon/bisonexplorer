@@ -26,13 +26,14 @@ function txList (mempool) {
   return l
 }
 
-function makeTx (txid, txType, total, voteInfo, size) {
+function makeTx (txid, txType, total, voteInfo, size, fees) {
   return {
     txid: txid,
     type: txType,
     total: total,
     voteInfo: voteInfo, // null for all but votes
-    size: size
+    size: size,
+    fees: fees
   }
 }
 
@@ -42,7 +43,7 @@ function ticketSpent (vote) {
 }
 
 function reduceTx (tx) {
-  return makeTx(tx.txid, tx.Type, tx.total, tx.vote_info, tx.size)
+  return makeTx(tx.txid, tx.Type, tx.total, tx.vote_info, tx.size, tx.fees)
 }
 
 export default class Mempool {
@@ -60,7 +61,7 @@ export default class Mempool {
   initType (txType, total, count, avgSize) {
     const fauxVal = count === 0 ? 0 : total / count
     for (let i = 0; i < count; i++) {
-      this.mempool.push(makeTx('', txType, fauxVal, null, avgSize))
+      this.mempool.push(makeTx('', txType, fauxVal, null, avgSize, 0))
     }
   }
 
@@ -75,7 +76,7 @@ export default class Mempool {
             validity: i < affirmed
           },
           ticket_spent: i
-        }, avgSize))
+        }, avgSize, 0))
       }
     })
   }
@@ -162,6 +163,13 @@ export default class Mempool {
       d.size += tx.size
       return d
     }, { regular: 0, ticket: 0, vote: 0, rev: 0, total: 0, size: 0 })
+  }
+
+  fees () {
+    return this.mempool.reduce((d, tx) => {
+      d.fees += tx.fees
+      return d
+    }, { fees: 0 })
   }
 
   voteSpans (tallys) {

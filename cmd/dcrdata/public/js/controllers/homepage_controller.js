@@ -189,13 +189,22 @@ export default class extends Controller {
       'convertedSupply', 'convertedDevSub', 'exchangeRate', 'convertedStake',
       'mixedPct', 'searchKey', 'memBlock', 'tooltip', 'avgBlockTime', 'tspentAmount', 'tspentCount',
       'onlineNodes', 'blockchainSize', 'avgBlockSize', 'totalTxs', 'totalAddresses', 'totalOutputs',
-      'totalSwapsAmount', 'totalContracts', 'redeemCount', 'refundCount', 'bwTotalVol', 'last30DayBwVol'
+      'totalSwapsAmount', 'totalContracts', 'redeemCount', 'refundCount', 'bwTotalVol', 'last30DayBwVol',
+      'convertedMemSent', 'mempoolSize', 'mempoolFees', 'convertedMempoolFees', 'feeAvg', 'txfeeConverted',
+      'poolsTable', 'rewardReduceRemain'
     ]
   }
 
   connect () {
     this.query = new TurboQuery()
+    // get default exchange rate
+    this.exchangeRate = Number(this.data.get('exchangeRate'))
+    this.exchangeIndex = this.data.get('exchangeIndex')
     this.ticketsPerBlock = parseInt(this.mpVoteCountTarget.dataset.ticketsPerBlock)
+    this.mempoolTotalSent = Number(this.mempoolTarget.dataset.memsent)
+    this.mempoolFees = Number(this.mempoolFeesTarget.dataset.memfees)
+    this.powReward = Number(this.bsubsidyPowTarget.dataset.powreward)
+    this.txFeeAvg = Number(this.feeAvgTarget.dataset.feeavg)
     const mempoolData = this.mempoolTarget.dataset
     ws.send('getmempooltxs', mempoolData.id)
     this.mempool = new Mempool(mempoolData, this.voteTallyTargets)
@@ -227,10 +236,43 @@ export default class extends Controller {
 
     this.processBlock = this._processBlock.bind(this)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
+    this.processXcUpdate = this._processXcUpdate.bind(this)
+    globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
     this.setupTooltips()
     const isDev = this.data.get('dev')
     if (isDev && isDev !== '') {
       this.setAvgBlockTime()
+    }
+  }
+
+  _processXcUpdate (update) {
+    const xc = update.updater
+    const cType = xc.chain_type
+    if (cType && cType !== 'dcr') {
+      return
+    }
+    const newPrice = update.price
+    if (Number(newPrice) > 0) {
+      this.exchangeRate = newPrice
+      this.syncExchangeAllPrice()
+    }
+  }
+
+  syncExchangeAllPrice () {
+    if (this.mempoolTotalSent > 0 && this.hasConvertedMemSentTarget) {
+      this.convertedMemSentTarget.textContent = `${humanize.threeSigFigs(this.mempoolTotalSent * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.mempoolFees > 0 && this.hasConvertedMempoolFeesTarget) {
+      this.convertedMempoolFeesTarget.textContent = `${humanize.threeSigFigs(this.mempoolFees * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.hasExchangeRateTarget) {
+      this.exchangeRateTarget.textContent = humanize.twoDecimals(this.exchangeRate)
+    }
+    if (this.powReward > 0 && this.hasPowConvertedTarget) {
+      this.powConvertedTarget.textContent = `${humanize.twoDecimals(this.powReward / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.txFeeAvg > 0 && this.hasTxfeeConverted) {
+      this.txfeeConvertedTarget.textContent = `${(this.txFeeAvg / 1e8 * this.exchangeRate).toFixed(5)} ${this.exchangeIndex}`
     }
   }
 
@@ -290,11 +332,13 @@ export default class extends Controller {
     ws.deregisterEvtHandlers('getmempooltxsResp')
     ws.deregisterEvtHandlers('getmempooltrimmedResp')
     globalEventBus.off('BLOCK_RECEIVED', this.processBlock)
+    globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
   }
 
   setMempoolFigures () {
     const totals = this.mempool.totals()
     const counts = this.mempool.counts()
+    const fees = this.mempool.fees()
     this.mpRegTotalTarget.textContent = humanize.threeSigFigs(totals.regular)
     this.mpRegCountTarget.textContent = counts.regular
 
@@ -311,6 +355,18 @@ export default class extends Controller {
     this.mpRevCountTarget.textContent = counts.rev
 
     this.mempoolTarget.textContent = humanize.threeSigFigs(totals.total)
+    this.mempoolFeesTarget.innerHTML = humanize.decimalParts(fees.fees, false, 8)
+
+    if (this.exchangeRate > 0 && totals.total > 0) {
+      this.convertedMemSentTarget.textContent = `${humanize.threeSigFigs(totals.total * this.exchangeRate)} ${this.exchangeIndex}`
+      this.mempoolTotalSent = totals.total
+    }
+    if (this.exchangeRate > 0 && fees.fees > 0) {
+      this.convertedMempoolFeesTarget.textContent = `${humanize.threeSigFigs(fees.fees * this.exchangeRate)} ${this.exchangeIndex}`
+      this.mempoolFees = fees.fees
+    }
+    // set size
+    this.mempoolSizeTarget.textContent = humanize.bytes(totals.size)
     this.setVotes()
   }
 
@@ -342,6 +398,48 @@ export default class extends Controller {
     }
   }
 
+  getPoolProviderInnerHtml (poolType) {
+    if (!poolType || poolType === '') {
+      return '<p>N/A</p>'
+    }
+    const poolName = poolType === 'miningandco' ? 'miningandco.com' : poolType === 'e4pool' ? 'e4pool.com' : 'threepool.tech'
+    const poolLink = poolType === 'miningandco' ? 'decred.miningandco.com' : poolType === 'e4pool' ? 'dcr.e4pool.com' : 'dcr.threepool.tech'
+    const code = poolType === 'miningandco' ? 'CA' : poolType === 'e4pool' ? 'RU' : 'BR'
+    return `<div class="tooltip1 me-1">
+      <img src="/images/${code}_24.webp" width="24" height="24" alt="${code}" />
+    </div>
+    <a href="https://${poolLink}" target="_blank">
+      ${poolName}
+    </a>`
+  }
+
+  updateLastBlocksPools (blocksPools) {
+    if (!blocksPools || blocksPools.length === 0) {
+      return
+    }
+    let poolHtml = ''
+    const _this = this
+    blocksPools.forEach((pool) => {
+      poolHtml += `<tr>
+        <td class="text-start">
+        <a data-turbolinks="false" href="/block/${pool.blockheight}"
+        >${pool.blockheight}</a
+    >
+    </td>
+    <td class="d-flex justify-content-center ai-center">
+      ${_this.getPoolProviderInnerHtml(pool.poolType)}
+    </td>
+    <td class="text-center">
+      ${pool.poolType !== '' ? pool.miner : 'N/A'}  
+    </td>
+    <td class="text-center">
+      ${pool.poolType !== '' ? pool.minedby : 'N/A'}  
+    </td>
+  </tr>`
+    })
+    this.poolsTableTarget.innerHTML = poolHtml
+  }
+
   _processBlock (blockData) {
     const ex = blockData.extra
     this.difficultyTarget.innerHTML = humanize.decimalParts(ex.difficulty, true, 0)
@@ -362,9 +460,15 @@ export default class extends Controller {
     this.targetPctTarget.textContent = parseFloat(ex.pool_info.percent_target - 100).toFixed(2)
     this.rewardIdxTarget.textContent = ex.reward_idx
     this.powBarTarget.style.width = `${(ex.reward_idx / ex.params.reward_window_size) * 100}%`
+    const blockRewardReduceDuration = (ex.params.window_size - ex.window_idx) * ex.params.target_block_time
+    this.rewardReduceRemainTarget.textContent = humanize.timeDuration(blockRewardReduceDuration) + ' remaining'
     this.poolValueTarget.innerHTML = humanize.decimalParts(ex.pool_info.value, true, 0)
     this.ticketRewardTarget.innerHTML = `${ex.reward.toFixed(2)}%`
     this.poolSizePctTarget.textContent = parseFloat(ex.pool_info.percent).toFixed(2)
+    this.feeAvgTarget.innerHTML = humanize.decimalParts(ex.txFeeAvg / 100000000, false, 8)
+    this.txFeeAvg = ex.txFeeAvg
+    this.powReward = ex.subsidy.pow
+    this.updateLastBlocksPools(ex.poolDataList)
     const treasuryTotal = ex.dev_fund + ex.treasury_bal.balance
     this.devFundTarget.innerHTML = humanize.decimalParts(treasuryTotal / 100000000, true, 0)
     if (ex.hash_rate > 0.001 && ex.hash_rate < 1) {
@@ -407,9 +511,6 @@ export default class extends Controller {
       }
       if (this.hasConvertedDevSubTarget) {
         this.convertedDevSubTarget.textContent = `${humanize.twoDecimals(ex.subsidy.dev / 1e8 * xcRate)} ${btcIndex}`
-      }
-      if (this.hasExchangeRateTarget) {
-        this.exchangeRateTarget.textContent = humanize.twoDecimals(xcRate)
       }
       if (this.hasConvertedStakeTarget) {
         this.convertedStakeTarget.textContent = `${humanize.twoDecimals(ex.sdiff * xcRate)} ${btcIndex}`

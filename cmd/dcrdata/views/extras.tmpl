@@ -171,7 +171,9 @@
 <body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} new-homepage-body" data-controller="scroll homepage"
 	data-homepage-vote-status="{{.VotesStatus}}"
     data-homepage-proposal-count="{{.ProposalCountMap}}"
-    data-homepage-dev="true">
+    data-homepage-dev="true"
+	{{if .Conversions}} data-homepage-exchange-rate="{{.Conversions.ExchangeRate.Value}}" 
+	data-homepage-exchange-index="{{.Conversions.ExchangeRate.Index}}"{{end}}>
 	<header class="top-nav d-flex align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
 		<div class="container d-flex align-items-center px-0 my-1">
 		   <div class="row w-100">
@@ -401,7 +403,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.6a8605f2a83812a5.bundle.js"
+	src="/dist/js/app.7c9f280d53b726a7.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

@@ -174,7 +174,7 @@ const humanize = {
     }
     return pad(Math.floor(seconds)) + 's'
   },
-  // from time (sec) to duration miliseconds
+  // from time (sec) to duration miliseconds with now
   timeToDuration: function (time) {
     const timestampMs = time * 1000
     const now = Date.now()
