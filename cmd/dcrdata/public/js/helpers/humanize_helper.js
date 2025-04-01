@@ -180,54 +180,49 @@ const humanize = {
     const now = Date.now()
     return now - timestampMs
   },
-  timeDuration: function (duration, keepOnly) {
-    const seconds = duration / 1000
-    let interval = Math.floor(seconds / 31536000)
-    if (interval >= 1) {
-      const extra = Math.floor((seconds - interval * 31536000) / 2628000)
-      let result = interval + 'y'
-      if (extra > 0 && keepOnly !== 'years') {
-        result = result + ' ' + parseInt(extra) + 'mo'
-      }
-      return result
+  timeDuration: function (duration) {
+    let seconds = parseInt(duration / 1000)
+    let result = ''
+    // calculate years
+    if (seconds > 31536000) {
+      const years = Math.floor(seconds / 31536000)
+      seconds %= 31536000
+      result += years + 'y '
     }
-    interval = Math.floor(seconds / 2628000)
-    if (interval >= 1) {
-      const extra = Math.floor((seconds - interval * 2628000) / 86400)
-      let result = interval + 'mo'
-      if (extra > 0 && keepOnly !== 'months') {
-        result = result + ' ' + parseInt(extra) + 'd'
-      }
-      return result
+    // calculate months (est)
+    if (seconds > 2628000) {
+      const months = Math.floor(seconds / 2628000)
+      seconds %= 2628000
+      result += months + 'mo '
     }
-    interval = Math.floor(seconds / 86400)
-    if (interval >= 1) {
-      const extra = Math.floor((seconds - interval * 86400) / 3600)
-      let result = interval + 'd'
-      if (extra > 0 && keepOnly !== 'days') {
-        result = result + ' ' + parseInt(extra) + 'h'
-      }
-      return result
+    // calculate weeks
+    if (seconds > 604799) {
+      const weeks = Math.floor(seconds / 604799)
+      seconds %= 604799
+      result += weeks + 'w '
     }
-    interval = Math.floor(seconds / 3600)
-    if (interval >= 1) {
-      const extra = Math.floor((seconds - interval * 3600) / 60)
-      let result = interval + 'h'
-      if (extra > 0) {
-        result = result + ' ' + parseInt(extra) + 'm'
-      }
-      return result
+    // calculate days
+    if (seconds > 86399) {
+      const days = Math.floor(seconds / 86399)
+      seconds %= 86399
+      result += days + 'd '
     }
-    interval = Math.floor(seconds / 60)
-    if (interval >= 1) {
-      const extra = seconds - interval * 60
-      let result = parseInt(interval) + 'm'
-      if (extra > 0) {
-        result = result + ' ' + parseInt(extra) + 's'
-      }
-      return result
+    // calculate hours
+    if (seconds > 3599) {
+      const hours = Math.floor(seconds / 3599)
+      seconds %= 3599
+      result += hours + 'h '
     }
-    return parseInt(Math.floor(seconds)) + 's'
+    // calculate minutes
+    if (seconds > 59) {
+      const minutes = Math.floor(seconds / 59)
+      seconds %= 59
+      result += minutes + 'm '
+    }
+    if (seconds > 0) {
+      result += seconds + 's'
+    }
+    return result.trim()
   },
   date: function (stamp, withTimezone, hideHisForMidnight) {
     const d = new Date(stamp)

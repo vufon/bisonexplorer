@@ -460,7 +460,7 @@ export default class extends Controller {
     this.targetPctTarget.textContent = parseFloat(ex.pool_info.percent_target - 100).toFixed(2)
     this.rewardIdxTarget.textContent = ex.reward_idx
     this.powBarTarget.style.width = `${(ex.reward_idx / ex.params.reward_window_size) * 100}%`
-    const blockRewardReduceDuration = (ex.params.window_size - ex.window_idx) * ex.params.target_block_time
+    const blockRewardReduceDuration = (ex.params.reward_window_size - ex.reward_idx) * ex.params.target_block_time / 1e6
     this.rewardReduceRemainTarget.textContent = humanize.timeDuration(blockRewardReduceDuration) + ' remaining'
     this.poolValueTarget.innerHTML = humanize.decimalParts(ex.pool_info.value, true, 0)
     this.ticketRewardTarget.innerHTML = `${ex.reward.toFixed(2)}%`

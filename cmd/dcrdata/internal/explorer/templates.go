@@ -494,26 +494,43 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 			}
 			allsecs := int(time.Duration(x).Seconds())
 			str := ""
+			// calculate years
+			if allsecs > 31536000 {
+				years := allsecs / 31536000
+				allsecs %= 31536000
+				str += fmt.Sprintf("%dy ", years)
+			}
+			// calculate months (Est)
+			if allsecs > 2628000 {
+				months := allsecs / 2628000
+				allsecs %= 2628000
+				str += fmt.Sprintf("%dmo ", months)
+			}
+			// calculate weeks
 			if allsecs > 604799 {
 				weeks := allsecs / 604800
 				allsecs %= 604800
 				str += fmt.Sprintf("%dw ", weeks)
 			}
+			// calculate day
 			if allsecs > 86399 {
 				days := allsecs / 86400
 				allsecs %= 86400
 				str += fmt.Sprintf("%dd ", days)
 			}
+			// calculate hours
 			if allsecs > 3599 {
 				hours := allsecs / 3600
 				allsecs %= 3600
 				str += fmt.Sprintf("%dh ", hours)
 			}
+			// calculate minutes
 			if allsecs > 59 {
 				mins := allsecs / 60
 				allsecs %= 60
 				str += fmt.Sprintf("%dm ", mins)
 			}
+			// calculate seconds
 			if allsecs > 0 {
 				str += fmt.Sprintf("%ds ", allsecs)
 			}
