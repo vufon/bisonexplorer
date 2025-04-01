@@ -793,11 +793,10 @@
 					{{end}}
 					</div>
 				</div>
-				{{if $hasTargetToken}}
-				<div class="mt-2 fst-italic"><span class="fw-bold">Rate:</span> {{normalWithPrecFloat (divideFloat (toFloat64Amount .Target.TotalAmount) (toFloat64Amount .Source.TotalAmount)) 7}} {{toUpperCase .TargetToken}}/DCR, 
+				<div class="mt-2 fst-italic">
+					{{if $hasTargetToken}}<span class="fw-bold">Rate:</span> {{normalWithPrecFloat (divideFloat (toFloat64Amount .Target.TotalAmount) (toFloat64Amount .Source.TotalAmount)) 7}} {{toUpperCase .TargetToken}}/DCR, {{end}}
 					<span data-type="age" data-time-target="age" data-age="{{.Time}}">{{timeDurationShortString .Time}}</span> ago
 				</div>
-				{{end}}
 				</div>
 				<div class="row mt-3">
 					<div class="col-24 col-md-12 mb-3">

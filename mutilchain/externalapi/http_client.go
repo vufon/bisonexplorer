@@ -12,10 +12,15 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	agents "github.com/monperrus/crawler-user-agents"
-	crawlerdetect "github.com/x-way/crawlerdetect"
 )
+
+type AgentTemp struct {
+	Agent    string
+	Ip       string
+	GetCount int
+	Duration uint64
+	LastTime uint64
+}
 
 type HttpClient struct {
 	httpClient *http.Client
@@ -32,6 +37,8 @@ type ReqConfig struct {
 
 const defaultHttpClientTimeout = 30 * time.Second
 
+var TempAgent = make([]*AgentTemp, 0)
+
 // newClient configures and returns a new client
 func newClient() (c *HttpClient) {
 	// Initialize context use to cancel all pending requests when shutdown request is made.
@@ -47,15 +54,26 @@ func newClient() (c *HttpClient) {
 	}
 }
 
-func IsCrawlerUserAgent(userAgent string) bool {
-	if strings.Contains(userAgent, "facebookexternalhit") {
-		return true
+func GetIP(r *http.Request) string {
+	// Check header X-Forwarded-For
+	forwarded := r.Header.Get("X-Forwarded-For")
+	if forwarded != "" {
+		ips := strings.Split(forwarded, ",")
+		return strings.TrimSpace(ips[0]) // Lấy IP đầu tiên trong danh sách
 	}
-	//check isCrawler
-	if crawlerdetect.IsCrawler(userAgent) {
-		return true
+
+	// Check header X-Real-IP
+	realIP := r.Header.Get("X-Real-IP")
+	if realIP != "" {
+		return realIP
 	}
-	return agents.IsCrawler(userAgent)
+
+	// If has not header proxy, get from RemoteAddr
+	ip := r.RemoteAddr
+	if strings.Contains(ip, ":") {
+		ip = strings.Split(ip, ":")[0]
+	}
+	return ip
 }
 
 func (c *HttpClient) getRequestBody(method string, body interface{}) ([]byte, error) {

@@ -45,6 +45,8 @@ import (
 	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/go-chi/chi/v5"
 	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
+	agents "github.com/monperrus/crawler-user-agents"
+	"github.com/x-way/crawlerdetect"
 
 	m "github.com/decred/dcrdata/cmd/dcrdata/internal/middleware"
 )
@@ -151,6 +153,8 @@ type DataSource interface {
 	GetMultichainTransactionHex(txid, chainType string) string
 	GetMultichainTransactionVerbose(txid, chainType string) (any, error)
 	GetMultichainSwapInfoData(txid, chainType string) (swapsInfo *txhelpers.TxAtomicSwaps, err error)
+	InsertToBlackList(agent, ip, note string) error
+	CheckOnBlackList(agent, ip string) (bool, error)
 }
 
 // dcrdata application context used by all route handlers
@@ -3101,7 +3105,7 @@ func (c *appContext) getStakeDiffRange(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) addressTotals(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -3324,7 +3328,7 @@ func (c *appContext) getSwapsAmountChartData(w http.ResponseWriter, r *http.Requ
 }
 
 func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -3377,7 +3381,7 @@ func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Reques
 }
 
 func (c *appContext) getAddressTxAmountFlowData(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -3563,7 +3567,7 @@ func (c *appContext) getExchangeData(w http.ResponseWriter, r *http.Request) {
 
 // route: chainchart/market/{token}/candlestick/{bin}
 func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	chainType := chi.URLParam(r, "chaintype")
@@ -3618,7 +3622,7 @@ func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request)
 }
 
 func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	chainType := chi.URLParam(r, "chaintype")
@@ -3670,7 +3674,7 @@ func (c *appContext) getDepthChart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) getAddressTransactions(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -3706,7 +3710,7 @@ func (c *appContext) getAddressTransactions(w http.ResponseWriter, r *http.Reque
 }
 
 func (c *appContext) getMutilchainAddressTransactions(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -3790,7 +3794,7 @@ func (c *appContext) broadcastTx(w http.ResponseWriter, r *http.Request) {
 // getAddressTransactionsRaw handles the various /address/{addr}/.../raw API
 // endpoints.
 func (c *appContext) getAddressTransactionsRaw(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
@@ -4031,4 +4035,79 @@ func (c *appContext) getBlockHashCtx(r *http.Request) (string, error) {
 		}
 	}
 	return hash, nil
+}
+
+// IsCrawlerUserAgent return if is crawler user agent
+func (c *appContext) IsCrawlerUserAgent(userAgent, ip string) bool {
+	if strings.Contains(userAgent, "facebookexternalhit") {
+		return true
+	}
+	//check isCrawler
+	if crawlerdetect.IsCrawler(userAgent) {
+		return true
+	}
+	isCrawler := agents.IsCrawler(userAgent)
+	if isCrawler {
+		return true
+	}
+	// check if is on black list
+	inBlackList, err := c.DataSource.CheckOnBlackList(userAgent, ip)
+	if err != nil || inBlackList {
+		return true
+	}
+	now := uint64(time.Now().Unix())
+	// remove all agent has duration >= 15s
+	remainList := make([]*externalapi.AgentTemp, 0)
+	for _, agent := range externalapi.TempAgent {
+		// check duration with last time
+		duration := now - agent.LastTime
+		if duration >= 15 {
+			continue
+		}
+		remainList = append(remainList, agent)
+	}
+	externalapi.TempAgent = remainList
+	// count on temp agents
+	// check exist on TempAgent
+	var handlerAgent *externalapi.AgentTemp
+	var existIndex int
+	for index, agent := range externalapi.TempAgent {
+		if agent.Agent == userAgent && agent.Ip == ip {
+			handlerAgent = agent
+			existIndex = index
+			break
+		}
+	}
+	// if not exist on temp list
+	if handlerAgent == nil {
+		externalapi.TempAgent = append(externalapi.TempAgent, &externalapi.AgentTemp{
+			Agent:    userAgent,
+			Ip:       ip,
+			GetCount: 1,
+			Duration: 0,
+			LastTime: now,
+		})
+		return false
+	}
+	// if exist on temp list
+	handlerAgent.GetCount++
+	handlerAgent.Duration += now - handlerAgent.LastTime
+	handlerAgent.LastTime = now
+	externalapi.TempAgent[existIndex] = handlerAgent
+	// if access count is 8 times in about 10s, add to black list
+	if handlerAgent.GetCount >= 7 {
+		// remove from temp agents
+		externalapi.TempAgent = append(externalapi.TempAgent[:existIndex], externalapi.TempAgent[existIndex+1:]...)
+		if handlerAgent.Duration < 15 {
+			// add to blacklist
+			err := c.DataSource.InsertToBlackList(userAgent, ip, "Too many visits in a short period of time")
+			if err != nil {
+				log.Errorf("Add agent to black list failed: %s, ip: %s", userAgent, ip)
+				return true
+			}
+			log.Warnf("Added agent: %s, ip: %s  to black list", userAgent, ip)
+			return true
+		}
+	}
+	return false
 }

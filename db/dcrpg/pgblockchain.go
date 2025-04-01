@@ -10892,3 +10892,16 @@ func (pgb *ChainDB) Get24hTreasuryBalanceChange() (treasuryBalanceChange int64, 
 	err = pgb.db.QueryRow(internal.SelectTreasuryBalanceChangeIn24h).Scan(&treasuryBalanceChange)
 	return
 }
+
+// InsertToBlackList insert to black list
+func (pgb *ChainDB) InsertToBlackList(agent, ip, note string) error {
+	_, err := pgb.db.Exec(internal.UpsertBlackList, agent, ip, note)
+	return err
+}
+
+// CheckOnBlackList return true if exist on black list
+func (pgb *ChainDB) CheckOnBlackList(agent, ip string) (bool, error) {
+	var onBlacklist bool
+	err := pgb.db.QueryRow(internal.CheckExistOnBlackList, agent, ip).Scan(&onBlacklist)
+	return onBlacklist, err
+}

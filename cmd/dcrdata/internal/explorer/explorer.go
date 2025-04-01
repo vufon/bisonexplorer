@@ -193,6 +193,8 @@ type explorerDataSource interface {
 	Get24hActiveAddressesCount() int64
 	Get24hStakingInfo() (poolvalue, missed int64, err error)
 	Get24hTreasuryBalanceChange() (treasuryBalanceChange int64, err error)
+	InsertToBlackList(agent, ip, note string) error
+	CheckOnBlackList(agent, ip string) (bool, error)
 }
 
 type PoliteiaBackend interface {

@@ -42,6 +42,7 @@ var createTableStatements = [][2]string{
 	{"monthly_price", internal.CreateMonthlyPriceTable},
 	{"blocks24h", internal.Create24hBlocksTable},
 	{"tspend_votes", internal.CreateTSpendVotesTable},
+	{"black_list", internal.CreateBlackListTable},
 }
 
 func GetCreateDBTables() [][2]string {

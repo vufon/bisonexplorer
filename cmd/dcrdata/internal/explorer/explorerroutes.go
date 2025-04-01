@@ -47,6 +47,8 @@ import (
 	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
 	"github.com/ltcsuite/ltcd/ltcutil"
 	ltctxscript "github.com/ltcsuite/ltcd/txscript"
+	agents "github.com/monperrus/crawler-user-agents"
+	"github.com/x-way/crawlerdetect"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -2627,7 +2629,7 @@ func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 
 // AddressPage is the page handler for the "/address" path.
 func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	// AddressPageData is the data structure passed to the HTML template
@@ -2750,7 +2752,7 @@ func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 // AddressPage is the page handler for the "/address" path.
 func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
 	// AddressPageData is the data structure passed to the HTML template
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	type AddressPageData struct {
@@ -2833,7 +2835,7 @@ func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 
 // AddressTable is the page handler for the "/addresstable" path.
 func (exp *ExplorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	// Grab the URL query parameters
@@ -2896,7 +2898,7 @@ func (exp *ExplorerUI) MutilchainAddressTable(w http.ResponseWriter, r *http.Req
 
 // AddressTable is the page handler for the "/addresstable" path.
 func (exp *ExplorerUI) AddressTable(w http.ResponseWriter, r *http.Request) {
-	if externalapi.IsCrawlerUserAgent(r.UserAgent()) {
+	if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
 		return
 	}
 	// Grab the URL query parameters
@@ -4948,4 +4950,79 @@ func (exp *ExplorerUI) VerifyMessageHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	displayPage("", true)
+}
+
+// IsCrawlerUserAgent return if is crawler user agent
+func (exp *ExplorerUI) IsCrawlerUserAgent(userAgent, ip string) bool {
+	if strings.Contains(userAgent, "facebookexternalhit") {
+		return true
+	}
+	//check isCrawler
+	if crawlerdetect.IsCrawler(userAgent) {
+		return true
+	}
+	isCrawler := agents.IsCrawler(userAgent)
+	if isCrawler {
+		return true
+	}
+	// check if is on black list
+	inBlackList, err := exp.dataSource.CheckOnBlackList(userAgent, ip)
+	if err != nil || inBlackList {
+		return true
+	}
+	now := uint64(time.Now().Unix())
+	// remove all agent has duration >= 15s
+	remainList := make([]*externalapi.AgentTemp, 0)
+	for _, agent := range externalapi.TempAgent {
+		// check duration with last time
+		duration := now - agent.LastTime
+		if duration >= 15 {
+			continue
+		}
+		remainList = append(remainList, agent)
+	}
+	externalapi.TempAgent = remainList
+	// count on temp agents
+	// check exist on TempAgent
+	var handlerAgent *externalapi.AgentTemp
+	var existIndex int
+	for index, agent := range externalapi.TempAgent {
+		if agent.Agent == userAgent && agent.Ip == ip {
+			handlerAgent = agent
+			existIndex = index
+			break
+		}
+	}
+	// if not exist on temp list
+	if handlerAgent == nil {
+		externalapi.TempAgent = append(externalapi.TempAgent, &externalapi.AgentTemp{
+			Agent:    userAgent,
+			Ip:       ip,
+			GetCount: 1,
+			Duration: 0,
+			LastTime: now,
+		})
+		return false
+	}
+	// if exist on temp list
+	handlerAgent.GetCount++
+	handlerAgent.Duration += now - handlerAgent.LastTime
+	handlerAgent.LastTime = now
+	externalapi.TempAgent[existIndex] = handlerAgent
+	// if access count is 8 times in about 10s, add to black list
+	if handlerAgent.GetCount >= 7 {
+		// remove from temp agents
+		externalapi.TempAgent = append(externalapi.TempAgent[:existIndex], externalapi.TempAgent[existIndex+1:]...)
+		if handlerAgent.Duration < 15 {
+			// add to blacklist
+			err := exp.dataSource.InsertToBlackList(userAgent, ip, "Too many visits in a short period of time")
+			if err != nil {
+				log.Errorf("Add agent to black list failed: %s, ip: %s", userAgent, ip)
+				return true
+			}
+			log.Warnf("Added agent: %s, ip: %s  to black list", userAgent, ip)
+			return true
+		}
+	}
+	return false
 }

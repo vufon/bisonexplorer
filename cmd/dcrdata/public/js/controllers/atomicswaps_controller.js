@@ -227,10 +227,10 @@ export default class extends Controller {
     if (!swapList || swapList.length === 0) {
       return
     }
-    this.totalAmountTarget.textContent = humanize.decimalParts(humanize.toAmountFloat(totalAmount), true, 2)
-    this.totalContractsTarget.textContent = humanize.decimalParts(parseFloat(totalContracts), true, 0)
-    this.refundCountTarget.textContent = humanize.decimalParts(parseFloat(refundCount), true, 0)
-    this.redeemCountTarget.textContent = humanize.decimalParts(parseFloat(totalContracts - refundCount), true, 0)
+    this.totalAmountTarget.innerHTML = humanize.decimalParts(humanize.toAmountFloat(totalAmount), true, 2)
+    this.totalContractsTarget.innerHTML = humanize.decimalParts(parseFloat(totalContracts), true, 0)
+    this.refundCountTarget.innerHTML = humanize.decimalParts(parseFloat(refundCount), true, 0)
+    this.redeemCountTarget.innerHTML = humanize.decimalParts(parseFloat(totalContracts - refundCount), true, 0)
     const insertedGroupTx = []
     if (ctrl.swapsData === null) {
       ctrl.swapsData = swapList.length > ctrl.paginationParams.pagesize ? swapList.slice(0, ctrl.paginationParams.pagesize) : swapList
@@ -247,8 +247,8 @@ export default class extends Controller {
         insertedGroupTx.push(swapList[i].groupTx)
       }
       if (newSwaps.length < ctrl.paginationParams.pagesize) {
-        for (let i = 0; i < swapList.length; i++) {
-          const swap = swapList[i]
+        for (let i = 0; i < ctrl.swapsData.length; i++) {
+          const swap = ctrl.swapsData[i]
           if (newSwaps.length === ctrl.paginationParams.pagesize) {
             break
           }
@@ -444,7 +444,10 @@ export default class extends Controller {
                 ${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}
                 <span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
                 </div>
-                ${hasTargetToken ? `<div class="mt-2 fst-italic"><span class="fw-bold">Rate:</span> ${humanize.decimalParts(humanize.toAmountFloat(swap.target.totalAmount) / humanize.toAmountFloat(swap.source.totalAmount), true, 7)} ${swap.targetToken.toUpperCase()}/DCR, <span data-type="age" data-time-target="age" data-age="${swap.time}">${humanize.timeDuration(humanize.timeToDuration(swap.time))}</span> ago</div>` : ''}
+                <div class="mt-2 fst-italic">
+                  ${hasTargetToken ? `<span class="fw-bold">Rate:</span> ${humanize.decimalParts(humanize.toAmountFloat(swap.target.totalAmount) / humanize.toAmountFloat(swap.source.totalAmount), true, 7)} ${swap.targetToken.toUpperCase()}/DCR, ` : ''}
+                  <span data-type="age" data-time-target="age" data-age="${swap.time}">${humanize.timeDuration(humanize.timeToDuration(swap.time))}</span> ago
+                </div>
                 </div><div class="row mt-3">
 					      <div class="col-24 col-md-12 mb-3">
 						    <div class="d-flex ai-center">
