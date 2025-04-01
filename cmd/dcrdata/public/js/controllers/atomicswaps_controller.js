@@ -444,7 +444,10 @@ export default class extends Controller {
                 ${hasTargetToken ? `&nbsp;(${humanize.toAmountFloatDisplay(swap.target.totalAmount, -1, swap.targetToken.toUpperCase())})` : ''}
                 <span class="common-label py-1 px-2 ms-2 ${swap.isRefund ? 'refund-brighter-bg refund-border' : 'success-bg success-border'} fw-400 fs13">${swap.isRefund ? 'Refund' : 'Redemption'}</span></div>
                 </div>
-                ${hasTargetToken ? `<div class="mt-2 fst-italic"><span class="fw-bold">Rate:</span> ${humanize.decimalParts(humanize.toAmountFloat(swap.target.totalAmount) / humanize.toAmountFloat(swap.source.totalAmount), true, 7)} ${swap.targetToken.toUpperCase()}/DCR, <span data-type="age" data-time-target="age" data-age="${swap.time}">${humanize.timeDuration(humanize.timeToDuration(swap.time))}</span> ago</div>` : ''}
+                <div class="mt-2 fst-italic">
+                  ${hasTargetToken ? `<span class="fw-bold">Rate:</span> ${humanize.decimalParts(humanize.toAmountFloat(swap.target.totalAmount) / humanize.toAmountFloat(swap.source.totalAmount), true, 7)} ${swap.targetToken.toUpperCase()}/DCR, ` : ''}
+                  <span data-type="age" data-time-target="age" data-age="${swap.time}">${humanize.timeDuration(humanize.timeToDuration(swap.time))}</span> ago
+                </div>
                 </div><div class="row mt-3">
 					      <div class="col-24 col-md-12 mb-3">
 						    <div class="d-flex ai-center">
