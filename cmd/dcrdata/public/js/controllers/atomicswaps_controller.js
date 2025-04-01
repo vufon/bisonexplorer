@@ -227,10 +227,10 @@ export default class extends Controller {
     if (!swapList || swapList.length === 0) {
       return
     }
-    this.totalAmountTarget.textContent = humanize.decimalParts(humanize.toAmountFloat(totalAmount), true, 2)
-    this.totalContractsTarget.textContent = humanize.decimalParts(parseFloat(totalContracts), true, 0)
-    this.refundCountTarget.textContent = humanize.decimalParts(parseFloat(refundCount), true, 0)
-    this.redeemCountTarget.textContent = humanize.decimalParts(parseFloat(totalContracts - refundCount), true, 0)
+    this.totalAmountTarget.innerHTML = humanize.decimalParts(humanize.toAmountFloat(totalAmount), true, 2)
+    this.totalContractsTarget.innerHTML = humanize.decimalParts(parseFloat(totalContracts), true, 0)
+    this.refundCountTarget.innerHTML = humanize.decimalParts(parseFloat(refundCount), true, 0)
+    this.redeemCountTarget.innerHTML = humanize.decimalParts(parseFloat(totalContracts - refundCount), true, 0)
     const insertedGroupTx = []
     if (ctrl.swapsData === null) {
       ctrl.swapsData = swapList.length > ctrl.paginationParams.pagesize ? swapList.slice(0, ctrl.paginationParams.pagesize) : swapList
@@ -247,8 +247,8 @@ export default class extends Controller {
         insertedGroupTx.push(swapList[i].groupTx)
       }
       if (newSwaps.length < ctrl.paginationParams.pagesize) {
-        for (let i = 0; i < swapList.length; i++) {
-          const swap = swapList[i]
+        for (let i = 0; i < ctrl.swapsData.length; i++) {
+          const swap = ctrl.swapsData[i]
           if (newSwaps.length === ctrl.paginationParams.pagesize) {
             break
           }
