@@ -1394,14 +1394,19 @@ func (exp *ExplorerUI) watchExchanges() {
 				Volume:    updater.BaseVolume,
 				Change:    updater.Change,
 			},
-			IsFiatIndex:  isFiat,
-			BtcIndex:     exp.xcBot.BtcIndex,
-			Price:        xcState.GetMutilchainPrice(chainType),
-			BtcPrice:     xcState.BtcPrice,
-			Volume:       xcState.GetMutilchainVolumn(chainType),
-			DCRBTCPrice:  xcState.DCRBTCPrice,
-			DCRBTCVolume: xcState.DCRBTCVolume,
+			IsFiatIndex:     isFiat,
+			BtcIndex:        exp.xcBot.BtcIndex,
+			Price:           xcState.GetMutilchainPrice(chainType),
+			BtcPrice:        xcState.BtcPrice,
+			Volume:          xcState.GetMutilchainVolumn(chainType),
+			DCRBTCPrice:     xcState.DCRBTCPrice,
+			DCRBTCVolume:    xcState.DCRBTCVolume,
+			DCRUSD24hChange: xcState.DCRUSD24hChange,
+			DCRBTC24hChange: xcState.DCRBTC24hChange,
+			LowPrice:        xcState.LowPrice,
+			HighPrice:       xcState.HighPrice,
 		}
+		update.USDVolume = update.Price * update.Volume
 		select {
 		case exp.WsHub.xcChan <- update:
 		default:

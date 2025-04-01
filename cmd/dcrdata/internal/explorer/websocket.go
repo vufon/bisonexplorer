@@ -398,12 +398,17 @@ type WebsocketMiniExchange struct {
 // WebsocketExchangeUpdate is an update to the exchange state to send over the
 // websocket.
 type WebsocketExchangeUpdate struct {
-	Updater      WebsocketMiniExchange `json:"updater"`
-	IsFiatIndex  bool                  `json:"fiat"`
-	BtcIndex     string                `json:"index"`
-	Price        float64               `json:"price"`
-	BtcPrice     float64               `json:"btc_price"`
-	Volume       float64               `json:"volume"`
-	DCRBTCPrice  float64               `json:"dcr_btc_price"`
-	DCRBTCVolume float64               `json:"dcr_btc_volume"`
+	Updater         WebsocketMiniExchange `json:"updater"`
+	IsFiatIndex     bool                  `json:"fiat"`
+	BtcIndex        string                `json:"index"`
+	Price           float64               `json:"price"`
+	BtcPrice        float64               `json:"btc_price"`
+	Volume          float64               `json:"volume"`
+	USDVolume       float64               `json:"usd_volume"`
+	DCRBTCPrice     float64               `json:"dcr_btc_price"`
+	DCRBTCVolume    float64               `json:"dcr_btc_volume"`
+	DCRUSD24hChange float64               `json:"dcr_usd_24h_change"`
+	DCRBTC24hChange float64               `json:"dcr_btc_24h_change"`
+	LowPrice        float64               `json:"low_price"`
+	HighPrice       float64               `json:"high_price"`
 }

@@ -180,46 +180,49 @@ const humanize = {
     const now = Date.now()
     return now - timestampMs
   },
-  timeDuration: function (duration) {
+  timeDuration: function (duration, endSymbol) {
+    const symbolStrength = ['year', 'month', 'week', 'day', 'hour', 'minute', 'second']
+    let strength = endSymbol ? symbolStrength.indexOf(endSymbol) : 7
+    strength = strength < 0 ? 7 : strength
     let seconds = parseInt(duration / 1000)
     let result = ''
     // calculate years
-    if (seconds > 31536000) {
+    if (seconds > 31536000 && strength >= 0) {
       const years = Math.floor(seconds / 31536000)
       seconds %= 31536000
       result += years + 'y '
     }
     // calculate months (est)
-    if (seconds > 2628000) {
+    if (seconds > 2628000 && strength >= 1) {
       const months = Math.floor(seconds / 2628000)
       seconds %= 2628000
       result += months + 'mo '
     }
     // calculate weeks
-    if (seconds > 604799) {
+    if (seconds > 604799 && strength >= 2) {
       const weeks = Math.floor(seconds / 604799)
       seconds %= 604799
       result += weeks + 'w '
     }
     // calculate days
-    if (seconds > 86399) {
+    if (seconds > 86399 && strength >= 3) {
       const days = Math.floor(seconds / 86399)
       seconds %= 86399
       result += days + 'd '
     }
     // calculate hours
-    if (seconds > 3599) {
+    if (seconds > 3599 && strength >= 4) {
       const hours = Math.floor(seconds / 3599)
       seconds %= 3599
       result += hours + 'h '
     }
     // calculate minutes
-    if (seconds > 59) {
+    if (seconds > 59 && strength >= 5) {
       const minutes = Math.floor(seconds / 59)
       seconds %= 59
       result += minutes + 'm '
     }
-    if (seconds > 0) {
+    if (seconds > 0 && strength >= 6) {
       result += seconds + 's'
     }
     return result.trim()

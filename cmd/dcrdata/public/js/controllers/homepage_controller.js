@@ -191,7 +191,7 @@ export default class extends Controller {
       'onlineNodes', 'blockchainSize', 'avgBlockSize', 'totalTxs', 'totalAddresses', 'totalOutputs',
       'totalSwapsAmount', 'totalContracts', 'redeemCount', 'refundCount', 'bwTotalVol', 'last30DayBwVol',
       'convertedMemSent', 'mempoolSize', 'mempoolFees', 'convertedMempoolFees', 'feeAvg', 'txfeeConverted',
-      'poolsTable', 'rewardReduceRemain'
+      'poolsTable', 'rewardReduceRemain', 'marketCap'
     ]
   }
 
@@ -461,7 +461,7 @@ export default class extends Controller {
     this.rewardIdxTarget.textContent = ex.reward_idx
     this.powBarTarget.style.width = `${(ex.reward_idx / ex.params.reward_window_size) * 100}%`
     const blockRewardReduceDuration = (ex.params.reward_window_size - ex.reward_idx) * ex.params.target_block_time / 1e6
-    this.rewardReduceRemainTarget.textContent = humanize.timeDuration(blockRewardReduceDuration) + ' remaining'
+    this.rewardReduceRemainTarget.textContent = humanize.timeDuration(blockRewardReduceDuration, 'minute') + ' remaining'
     this.poolValueTarget.innerHTML = humanize.decimalParts(ex.pool_info.value, true, 0)
     this.ticketRewardTarget.innerHTML = `${ex.reward.toFixed(2)}%`
     this.poolSizePctTarget.textContent = parseFloat(ex.pool_info.percent).toFixed(2)
@@ -514,6 +514,9 @@ export default class extends Controller {
       }
       if (this.hasConvertedStakeTarget) {
         this.convertedStakeTarget.textContent = `${humanize.twoDecimals(ex.sdiff * xcRate)} ${btcIndex}`
+      }
+      if (this.hasMarketCap) {
+        this.hasMarketCapTarget.textContent = `${humanize.threeSigFigs(ex.coin_supply / 1e8 * xcRate)} ${btcIndex}`
       }
     }
   }

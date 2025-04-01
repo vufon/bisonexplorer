@@ -581,7 +581,10 @@ export default class extends Controller {
     return ['chartSelect', 'exchanges', 'bin', 'chart', 'legend', 'conversion',
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
-      'aggStack', 'zoom', 'pairSelect', 'exchangeBtnArea', 'fiatLabel']
+      'aggStack', 'zoom', 'pairSelect', 'exchangeBtnArea', 'fiatLabel',
+      'usdChange', 'btcPrice', 'btcChange', 'dcrVol', 'usdVol',
+      'volCapRate', 'lowPrice', 'highPrice', 'priceBar', 'priceBarMarker',
+      'priceBarLabel']
   }
 
   async connect () {
@@ -688,6 +691,19 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+    // TODO: handler all pages
+    if (this.isHomepage) {
+      this.updateMarketPriceBar()
+    }
+  }
+
+  updateMarketPriceBar () {
+    const currentPrice = Number(this.priceBarTarget.dataset.price)
+    const lowPrice = Number(this.priceBarTarget.dataset.low)
+    const highPrice = Number(this.priceBarTarget.dataset.high)
+    const percent = ((currentPrice - lowPrice) / (highPrice - lowPrice)) * 100
+    this.priceBarMarkerTarget.style.left = `${percent}%`
+    this.priceBarLabelTarget.style.left = `${percent}%`
   }
 
   handlerRadiusForBtnGroup (btnGroup) {
@@ -1789,6 +1805,38 @@ export default class extends Controller {
     // Update the big displayed value and the aggregated row
     // const fmtPrice = settings.pair === 'btc' ? update.dcr_btc_price.toFixed(6) : update.price.toFixed(2)
     this.priceTarget.textContent = update.price.toFixed(2)
+    // TODO: handler on all page
+    if (this.isHomepage) {
+      // handler dcr/usd price change
+      const usdChangeHtml = update.dcr_usd_24h_change === 0
+        ? '<span></span>'
+        : `<span class="dcricon-arrow-${update.dcr_usd_24h_change > 0 ? 'up text-green' : 'down text-danger'}">
+      ${Math.abs(100 * update.dcr_usd_24h_change / update.price).toFixed(2)}%</span>`
+      this.usdChangeTarget.innerHTML = usdChangeHtml
+      this.btcPriceTarget.textContent = update.dcr_btc_price.toFixed(6)
+      // handler dcr/btc price change
+      const btcChangeHtml = update.dcr_btc_24h_change === 0
+        ? '<span></span>'
+        : `<span class="dcricon-arrow-${update.dcr_btc_24h_change > 0 ? 'up text-green' : 'down text-danger'}">
+    ${Math.abs(100 * update.dcr_btc_24h_change / update.dcr_btc_price).toFixed(2)}%</span>`
+      this.btcChangeTarget.innerHTML = btcChangeHtml
+      // display dcr volume
+      this.dcrVolTarget.textContent = humanize.threeSigFigs(update.volume)
+      // display usd volume
+      this.usdVolTarget.textContent = humanize.threeSigFigs(Math.round(update.volume * update.price))
+      // display vol/cap rate (%)
+      this.volCapRateTarget.textContent = (100 * update.volume / Number(this.volCapRateTarget.dataset.coinall)).toFixed(2)
+      // display low/high price
+      this.lowPriceTarget.textContent = update.low_price.toFixed(2)
+      this.highPriceTarget.textContent = update.high_price.toFixed(2)
+      // display on price bar label
+      this.priceBarLabelTarget.textContent = update.price.toFixed(2)
+      // TODO: directly handle
+      this.priceBarTarget.dataset.low = update.low_price
+      this.priceBarTarget.dataset.high = update.high_price
+      this.priceBarTarget.dataset.price = update.price
+      this.updateMarketPriceBar()
+    }
     const aggRow = this.getExchangeRow(aggregatedKey)
     btcPrice = update.btc_price
     this.dcrBtcPrice = update.dcr_btc_price

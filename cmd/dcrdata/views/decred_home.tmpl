@@ -1149,14 +1149,14 @@
             <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white new-home-card-container">
                <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
                      class="me-2">Market Information</div>
-               <span class="fs24 d-none" data-market-target="price"></span>
                <table class="w-100 mx-0">
                   <tbody>
                      <tr>
                         <td class="py-2 fs-16 fw-bold">Price</td>
                         <td class="ps-2 py-2 text-end">
                            <p class="fs-16">
-                              ${{printf "%.2f" $botState.Price}} USD</span>
+                              $<span data-market-target="price">{{printf "%.2f" $botState.Price}}</span> USD
+                              <span data-market-target="usdChange">
                               {{if eq $botState.DCRUSD24hChange 0.0}}
                               <span></span>
                               {{else if gt $botState.DCRUSD24hChange 0.0}}
@@ -1166,8 +1166,11 @@
                               <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
                                  (toAbsValue $botState.DCRUSD24hChange) $botState.Price))}}%</span>
                               {{end}}
+                           </span>
                            </p>
-                           <p class="fs-14">{{printf "%.6f" $botState.DCRBTCPrice}} BTC</span>
+                           <p class="fs-14">
+                              <span data-market-target="btcPrice">{{printf "%.6f" $botState.DCRBTCPrice}}</span> BTC
+                              <span data-market-target="btcChange">
                               {{if eq $botState.DCRBTC24hChange 0.0}}
                               <span></span>
                               {{else if gt $botState.DCRBTC24hChange 0.0}}
@@ -1177,6 +1180,7 @@
                               <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
                                  (toAbsValue $botState.DCRBTC24hChange) $botState.DCRBTCPrice))}}%</span>
                               {{end}}
+                           </span>
                            </p>
                         </td>
                      </tr>
@@ -1184,9 +1188,11 @@
                         <td class="py-2 fs-16 fw-bold">Market Cap</td>
                         <td class="ps-2 py-2 text-end">
                            <p class="fs-16">
-                              {{if $conv -}}
-                              <span>{{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>
-                              {{- end}}</span>
+                              <span data-homepage-target="marketCap">
+                                 {{if $conv -}}
+                                    {{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}
+                                 {{- end}}
+                              </span>
                            </p>
                         </td>
                      </tr>
@@ -1194,30 +1200,30 @@
                         <td class="py-2 fs-16 fw-bold">Volume (24h)</td>
                         <td class="ps-2 py-2 text-end">
                            <p class="fs-16">
-                              {{threeSigFigs $botState.Volume}} DCR <span class="fs15">(~
-                                 ${{threeSigFigs
-                                 (floatMultiply $botState.Volume $botState.Price)}})</span>
+                              <span data-market-target="dcrVol">{{threeSigFigs $botState.Volume}}</span> DCR <span class="fs15">(~
+                                 $<span  data-market-target="usdVol">{{threeSigFigs
+                                 (floatMultiply $botState.Volume $botState.Price)}}</span>)</span>
                            </p>
                         </td>
                      </tr>
                      <tr>
                         <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
                         <td class="ps-2 py-2 text-end">
-                           <p><span class="fs-16">{{printf "%.2f" (x100 (divideFloat
+                           <p><span class="fs-16" data-coinall="{{$.Info.CoinValueSupply}}" data-market-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
                                  $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
                         </td>
                      </tr>
                   </tbody>
                </table>
                <div class="d-flex justify-content-between mb-1">
-                  <p class="mb-0 fs-13">Low ({{printf "%.2f" $botState.LowPrice}})</p>
-                  <p class="mb-0 fs-13">High ({{printf "%.2f" $botState.HighPrice}})</p>
+                  <p class="mb-0 fs-13">Low (<span data-market-target="lowPrice">{{printf "%.2f" $botState.LowPrice}}</span>)</p>
+                  <p class="mb-0 fs-13">High (<span data-market-target="highPrice">{{printf "%.2f" $botState.HighPrice}}</span>)</p>
                </div>
                <div class="fs22 text-center pb-3">
-                  <div class="range-price-bar" id="priceBar" data-low="{{$botState.LowPrice}}"
+                  <div class="range-price-bar" id="priceBar" data-market-target="priceBar" data-low="{{$botState.LowPrice}}"
                      data-high="{{$botState.HighPrice}}" data-price="{{$botState.Price}}">
-                     <div class="range-marker" id="currentMarker"></div>
-                     <div class="range-label fs-13" id="currentLabel">{{printf "%.2f" $botState.Price}}</div>
+                     <div class="range-marker" id="currentMarker" data-market-target="priceBarMarker"></div>
+                     <div class="range-label fs-13" id="currentLabel"  data-market-target="priceBarLabel">{{printf "%.2f" $botState.Price}}</div>
                   </div>
                </div>
             </div>
@@ -2328,24 +2334,6 @@
       return ''
    }
 
-   async function updateMarketPriceRange() {
-      try {
-         let bar = document.getElementById("priceBar");
-         let marker = document.getElementById("currentMarker");
-         let label = document.getElementById("currentLabel");
-         const currentPrice = Number(bar.getAttribute("data-price"));
-         const lowPrice = Number(bar.getAttribute("data-low"));
-         const highPrice = Number(bar.getAttribute("data-high"));
-
-         let percent = ((currentPrice - lowPrice) / (highPrice - lowPrice)) * 100;
-         marker.style.left = `${percent}%`;
-         label.style.left = `${percent}%`;
-         label.innerHTML = `${currentPrice.toFixed(2)}`;
-      } catch (error) {
-         console.error("Error when get price:", error);
-      }
-   }
-
    function setPageIndex(e) {
       const index = Number(e.getAttribute('data-index'))
       if (index > contentHeights.length - 1) {
@@ -2358,7 +2346,6 @@
       // scroll to view
       document.getElementById('newHomeContent').scrollTo({ top: toScroll, behavior: "smooth" })
    }
-   updateMarketPriceRange();
 </script>
 
 </html>
