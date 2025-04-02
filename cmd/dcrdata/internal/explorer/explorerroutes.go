@@ -234,14 +234,6 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	// Safely retrieve the current inventory pointer.
 	inv := exp.MempoolInventory()
 	mempoolInfo := inv.Trim()
-	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
-	inv.RLock()
-	exp.pageData.RLock()
-	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
-	//get ticket pool size
-	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
-	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
-
 	//get vote statuses of proposals
 	votesStatus := map[string]string{
 		strconv.Itoa(int(ticketvotev1.VoteStatusUnauthorized)): "Unauthorized",
@@ -265,8 +257,17 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		voteStatusJsonStr = string(voteStatusJson)
 	}
+	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
+	inv.RLock()
+	exp.pageData.RLock()
+	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
+	//get ticket pool size
+	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
+	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
 	// Get fiat conversions if available
 	homeInfo := exp.pageData.HomeInfo
+	summaryInfo := exp.pageData.SummaryInfo
+	summary24h := exp.pageData.Block24hInfo
 	treasuryBalance := homeInfo.TreasuryBalance
 	balance := int64(0)
 	if treasuryBalance != nil {
@@ -286,17 +287,16 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 			MempoolFees:     xcBot.Conversion(mempoolInfo.Fees),
 			TxFeeAvg:        xcBot.Conversion(dcrutil.Amount(homeInfo.TxFeeAvg).ToCoin()),
 		}
-		if homeInfo.Block24hInfo != nil {
-			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())
-			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Fees24h).ToCoin())
-			conversions.SwapsAmount24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.AtomicSwapAmount).ToCoin())
-			conversions.PowReward24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.TotalPowReward).ToCoin())
-			conversions.Supply24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.DCRSupply).ToCoin())
-			conversions.PosReward24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.PosReward).ToCoin())
-			conversions.Treasury24hChange = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.TreasuryBalanceChange).ToCoin())
+		if summary24h != nil {
+			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(summary24h.Sent24h).ToCoin())
+			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(summary24h.Fees24h).ToCoin())
+			conversions.SwapsAmount24h = xcBot.Conversion(dcrutil.Amount(summary24h.AtomicSwapAmount).ToCoin())
+			conversions.PowReward24h = xcBot.Conversion(dcrutil.Amount(summary24h.TotalPowReward).ToCoin())
+			conversions.Supply24h = xcBot.Conversion(dcrutil.Amount(summary24h.DCRSupply).ToCoin())
+			conversions.PosReward24h = xcBot.Conversion(dcrutil.Amount(summary24h.PosReward).ToCoin())
+			conversions.Treasury24hChange = xcBot.Conversion(dcrutil.Amount(summary24h.TreasuryBalanceChange).ToCoin())
 		}
 	}
-
 	exp.pageData.RUnlock()
 	inv.RUnlock()
 
@@ -314,6 +314,8 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	str, err := exp.templates.exec("decred_home", struct {
 		*CommonPageData
 		Info             *types.HomeInfo
+		SummaryInfo      *types.SummaryInfo
+		Block24hInfo     *dbtypes.Block24hInfo
 		Mempool          *types.MempoolInfo
 		TrimmedMempool   *types.TrimmedMempoolInfo
 		BestBlock        *types.BlockBasic
@@ -331,6 +333,8 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 	}{
 		CommonPageData:   commonData,
 		Info:             homeInfo,
+		SummaryInfo:      summaryInfo,
+		Block24hInfo:     summary24h,
 		Mempool:          inv,
 		TrimmedMempool:   mempoolInfo,
 		BestBlock:        bestBlock,

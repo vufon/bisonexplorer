@@ -56,6 +56,22 @@ async function createWebSocket (loc) {
     globalEventBus.publish('BLOCK_RECEIVED', newBlock)
   }
 
+  const updateSummaryData = function (event) {
+    const summary = JSON.parse(event)
+    if (window.loggingDebug) {
+      console.log('Decred summary received:', summary)
+    }
+    globalEventBus.publish('SUMMARY_RECEIVED', summary)
+  }
+
+  const update24hData = function (event) {
+    const summary24h = JSON.parse(event)
+    if (window.loggingDebug) {
+      console.log('Decred summary 24h received:', summary24h)
+    }
+    globalEventBus.publish('SUMMARY_24H_RECEIVED', summary24h)
+  }
+
   const updateLtcBlockData = function (event) {
     const newBlock = JSON.parse(event)
     if (window.loggingDebug) {
@@ -95,6 +111,8 @@ async function createWebSocket (loc) {
   ws.registerEvtHandler('newbtcblock', updateBtcBlockData)
   ws.registerEvtHandler('newltcmempool', updateLtcMempoolData)
   ws.registerEvtHandler('newbtcmempool', updateBtcMempoolData)
+  ws.registerEvtHandler('summaryinfo', updateSummaryData)
+  ws.registerEvtHandler('summary24h', update24hData)
   ws.registerEvtHandler('exchange', e => {
     globalEventBus.publish('EXCHANGE_UPDATE', JSON.parse(e))
   })

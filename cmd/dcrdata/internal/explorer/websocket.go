@@ -42,6 +42,8 @@ var (
 	sigNewTxs           = pstypes.SigNewTxs
 	sigAddressTx        = pstypes.SigAddressTx
 	sigSyncStatus       = pstypes.SigSyncStatus
+	sigSummaryInfo      = pstypes.SigSummaryInfo
+	sigSummary24h       = pstypes.SigSummary24h
 )
 
 // WebSocketMessage represents the JSON object used to send and received typed
@@ -238,6 +240,16 @@ func (wsh *WebsocketHub) run() {
 				// Do not log when explorer update status is active.
 				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
 					log.Infof("Signaling new BTC block to %d websocket clients.", clientsCount)
+				}
+			case sigSummaryInfo:
+				// Do not log when explorer update status is active.
+				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling new Decred summary info to %d websocket clients.", clientsCount)
+				}
+			case sigSummary24h:
+				// Do not log when explorer update status is active.
+				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling new Decred 24h summary info to %d websocket clients.", clientsCount)
 				}
 			case sigPingAndUserCount:
 				log.Tracef("Signaling ping/user count to %d websocket clients.", clientsCount)

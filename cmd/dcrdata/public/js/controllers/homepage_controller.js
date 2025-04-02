@@ -236,6 +236,10 @@ export default class extends Controller {
 
     this.processBlock = this._processBlock.bind(this)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
+    this.processSummaryInfo = this._processSummary.bind(this)
+    globalEventBus.on('SUMMARY_RECEIVED', this.processSummaryInfo)
+    this.processSummary24hInfo = this._process24hInfo.bind(this)
+    globalEventBus.on('SUMMARY_24H_RECEIVED', this.processSummary24hInfo)
     this.processXcUpdate = this._processXcUpdate.bind(this)
     globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
     this.setupTooltips()
@@ -332,6 +336,8 @@ export default class extends Controller {
     ws.deregisterEvtHandlers('getmempooltxsResp')
     ws.deregisterEvtHandlers('getmempooltrimmedResp')
     globalEventBus.off('BLOCK_RECEIVED', this.processBlock)
+    globalEventBus.off('SUMMARY_RECEIVED', this.processSummaryInfo)
+    globalEventBus.off('SUMMARY_24H_RECEIVED', this.processSummary24hInfo)
     globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
   }
 
@@ -440,6 +446,24 @@ export default class extends Controller {
     this.poolsTableTarget.innerHTML = poolHtml
   }
 
+  _processSummary (data) {
+    const summary = data.summary_info
+    this.onlineNodesTarget.innerHTML = humanize.decimalParts(summary.peerCount, true, 0)
+    this.totalTxsTarget.innerHTML = humanize.decimalParts(summary.total_transactions, true, 0)
+    this.totalAddressesTarget.innerHTML = humanize.decimalParts(summary.total_addresses, true, 0)
+    this.totalOutputsTarget.innerHTML = humanize.decimalParts(summary.total_outputs, true, 0)
+    this.totalSwapsAmountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalAmount / 100000000, true, 2, 0)
+    this.totalContractsTarget.innerHTML = humanize.decimalParts(summary.swapsTotalContract, true, 0)
+    this.redeemCountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalContract - summary.refundCount, true, 0)
+    this.refundCountTarget.innerHTML = humanize.decimalParts(summary.refundCount, true, 0)
+    this.bwTotalVolTarget.innerHTML = humanize.decimalParts(summary.bisonWalletVol, true, 0)
+    this.last30DayBwVolTarget.innerHTML = humanize.decimalParts(summary.bwLast30DaysVol, true, 0)
+    this.updateLastBlocksPools(summary.poolDataList)
+  }
+
+  _process24hInfo (data) {
+  }
+
   _processBlock (blockData) {
     const ex = blockData.extra
     this.difficultyTarget.innerHTML = humanize.decimalParts(ex.difficulty, true, 0)
@@ -468,7 +492,6 @@ export default class extends Controller {
     this.feeAvgTarget.innerHTML = humanize.decimalParts(ex.txFeeAvg / 100000000, false, 8)
     this.txFeeAvg = ex.txFeeAvg
     this.powReward = ex.subsidy.pow
-    this.updateLastBlocksPools(ex.poolDataList)
     const treasuryTotal = ex.dev_fund + ex.treasury_bal.balance
     this.devFundTarget.innerHTML = humanize.decimalParts(treasuryTotal / 100000000, true, 0)
     if (ex.hash_rate > 0.001 && ex.hash_rate < 1) {
@@ -485,18 +508,8 @@ export default class extends Controller {
     this.blockHeightTarget.href = `/block/${block.hash}`
     this.blockSizeTarget.textContent = humanize.bytes(block.size)
     this.blockTotalTarget.textContent = humanize.threeSigFigs(block.total)
-    this.onlineNodesTarget.innerHTML = humanize.decimalParts(ex.peerCount, true, 0)
     this.blockchainSizeTarget.textContent = ex.formatted_size
     this.avgBlockSizeTarget.textContent = ex.formattedAvgBlockSize
-    this.totalTxsTarget.innerHTML = humanize.decimalParts(ex.total_transactions, true, 0)
-    this.totalAddressesTarget.innerHTML = humanize.decimalParts(ex.total_addresses, true, 0)
-    this.totalOutputsTarget.innerHTML = humanize.decimalParts(ex.total_outputs, true, 0)
-    this.totalSwapsAmountTarget.innerHTML = humanize.decimalParts(ex.swapsTotalAmount / 100000000, true, 2, 0)
-    this.totalContractsTarget.innerHTML = humanize.decimalParts(ex.swapsTotalContract, true, 0)
-    this.redeemCountTarget.innerHTML = humanize.decimalParts(ex.swapsTotalContract - ex.refundCount, true, 0)
-    this.refundCountTarget.innerHTML = humanize.decimalParts(ex.refundCount, true, 0)
-    this.bwTotalVolTarget.innerHTML = humanize.decimalParts(ex.bisonWalletVol, true, 0)
-    this.last30DayBwVolTarget.innerHTML = humanize.decimalParts(ex.bwLast30DaysVol, true, 0)
     if (ex.exchange_rate) {
       const xcRate = ex.exchange_rate.value
       const btcIndex = ex.exchange_rate.index

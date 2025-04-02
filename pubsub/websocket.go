@@ -48,6 +48,8 @@ var (
 	sigAddressTx        = pstypes.SigAddressTx
 	sigSyncStatus       = pstypes.SigSyncStatus
 	sigByeNow           = pstypes.SigByeNow
+	sigSummaryInfo      = pstypes.SigSummaryInfo
+	sigSummary24h       = pstypes.SigSummary24h
 )
 
 type txList struct {
@@ -447,6 +449,16 @@ func (wsh *WebsocketHub) Run() {
 				// Do not log when explorer update status is active.
 				if !wsh.Ready() {
 					log.Infof("Signaling new BTC block to %d websocket clients.", clientsCount)
+				}
+			case sigSummaryInfo:
+				// Do not log when explorer update status is active.
+				if !wsh.Ready() {
+					log.Infof("Signaling decred summary info to %d websocket clients.", clientsCount)
+				}
+			case sigSummary24h:
+				// Do not log when explorer update status is active.
+				if !wsh.Ready() {
+					log.Infof("Signaling 24h decred summary to %d websocket clients.", clientsCount)
 				}
 			case sigPingAndUserCount:
 				log.Tracef("Signaling ping/user count to %d websocket clients.", clientsCount)

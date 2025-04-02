@@ -84,6 +84,8 @@ type State struct {
 	GeneralInfo    *exptypes.HomeInfo
 	LTCGeneralInfo *exptypes.HomeInfo
 	BTCGeneralInfo *exptypes.HomeInfo
+	SummaryInfo    *exptypes.SummaryInfo
+	Block24hInfo   *dbtypes.Block24hInfo
 	// BlockInfo contains details on the most recent block. It is updated when
 	// Store provides new block details.
 	BlockInfo    *exptypes.BlockInfo
@@ -506,6 +508,36 @@ loop:
 			}
 
 			pushMsg.Message = buff.Bytes()
+		case sigSummaryInfo:
+			psh.State.mtx.RLock()
+			if psh.State.SummaryInfo == nil {
+				psh.State.mtx.RUnlock()
+				break // from switch to send empty message
+			}
+			err := enc.Encode(exptypes.WebsocketSummary{
+				SummaryInfo: psh.State.SummaryInfo,
+			})
+			psh.State.mtx.RUnlock()
+			if err != nil {
+				log.Warnf("Encode(WebsocketSummary) failed: %v", err)
+			}
+
+			pushMsg.Message = buff.Bytes()
+		case sigSummary24h:
+			psh.State.mtx.RLock()
+			if psh.State.Block24hInfo == nil {
+				psh.State.mtx.RUnlock()
+				break // from switch to send empty message
+			}
+			err := enc.Encode(exptypes.WebsocketSummary{
+				Summary24h: psh.State.Block24hInfo,
+			})
+			psh.State.mtx.RUnlock()
+			if err != nil {
+				log.Warnf("Encode(WebsocketSummary) failed: %v", err)
+			}
+
+			pushMsg.Message = buff.Bytes()
 		case sigNewLTCBlock:
 			psh.State.mtx.RLock()
 			if psh.State.LTCBlockInfo == nil {
@@ -796,7 +828,7 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 					},
 				}:
 				case <-time.After(time.Second * 10):
-					log.Errorf("sigNewBlock send failed: Timeout waiting for WebsocketHub.")
+					log.Errorf("sigAddressTx send failed: Timeout waiting for WebsocketHub.")
 				}
 			}()
 		}

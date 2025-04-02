@@ -278,6 +278,28 @@ func (exp *ExplorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 					} else {
 						log.Errorf("json.Encode(WebsocketBlock) failed: %v", err)
 					}
+				case sigSummaryInfo:
+					exp.pageData.RLock()
+					err := enc.Encode(types.WebsocketSummary{
+						SummaryInfo: exp.pageData.SummaryInfo,
+					})
+					exp.pageData.RUnlock()
+					if err == nil {
+						webData.Message = buff.String()
+					} else {
+						log.Errorf("json.Encode(WebsocketSummary) failed: %v", err)
+					}
+				case sigSummary24h:
+					exp.pageData.RLock()
+					err := enc.Encode(types.WebsocketSummary{
+						Summary24h: exp.pageData.Block24hInfo,
+					})
+					exp.pageData.RUnlock()
+					if err == nil {
+						webData.Message = buff.String()
+					} else {
+						log.Errorf("json.Encode(WebsocketSummary) failed: %v", err)
+					}
 				case sigNewLTCBlock:
 					exp.LtcPageData.RLock()
 					err := enc.Encode(types.WebsocketBlock{

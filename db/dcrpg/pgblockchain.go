@@ -9010,15 +9010,6 @@ func (pgb *ChainDB) GetExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.lastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
 	pgb.lastExplorerBlock.Unlock()
 
-	// get block swap group data
-	swapsData, err := pgb.GetBlockSwapGroupFullData(txIds)
-	if err != nil {
-		log.Errorf("Get swaps full data for block txs failed: %v", err)
-		block.GroupSwaps = make([]*dbtypes.AtomicSwapFullData, 0)
-	} else {
-		block.GroupSwaps = swapsData
-	}
-
 	return block
 }
 
