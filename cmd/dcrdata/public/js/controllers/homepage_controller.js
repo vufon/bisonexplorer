@@ -191,7 +191,8 @@ export default class extends Controller {
       'onlineNodes', 'blockchainSize', 'avgBlockSize', 'totalTxs', 'totalAddresses', 'totalOutputs',
       'totalSwapsAmount', 'totalContracts', 'redeemCount', 'refundCount', 'bwTotalVol', 'last30DayBwVol',
       'convertedMemSent', 'mempoolSize', 'mempoolFees', 'convertedMempoolFees', 'feeAvg', 'txfeeConverted',
-      'poolsTable', 'rewardReduceRemain', 'marketCap', 'lastBlockTime'
+      'poolsTable', 'rewardReduceRemain', 'marketCap', 'lastBlockTime', 'missedTickets', 'last1000BlocksMissed',
+      'ticketFee', 'vspTable'
     ]
   }
 
@@ -459,6 +460,37 @@ export default class extends Controller {
     this.bwTotalVolTarget.innerHTML = humanize.decimalParts(summary.bisonWalletVol, true, 0)
     this.last30DayBwVolTarget.innerHTML = humanize.decimalParts(summary.bwLast30DaysVol, true, 0)
     this.updateLastBlocksPools(summary.poolDataList)
+    this.missedTicketsTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.missedTickets, true, 0)
+    this.last1000BlocksMissedTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksMissed, true, 0)
+    this.ticketFeeTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksTicketFeeAvg, false, 8)
+    this.vspTableTarget.innerHTML = this.getVspTable(summary.vspList)
+  }
+
+  getVspTable (vspList) {
+    if (!vspList || vspList.length <= 0) {
+      return ''
+    }
+    let result = ''
+    vspList.forEach((vsp) => {
+      result += `<tr>
+   <td class="text-start">
+      <a data-turbolinks="false" target="_blank" href="https://${vsp.vspLink}">${vsp.vspLink}</a>
+   </td>
+   <td class="text-center">
+      ${vsp.voting}
+   </td>
+   <td class="text-center">
+    ${vsp.voted}
+   </td>
+   <td class="text-center">
+    ${vsp.missed}
+   </td>
+   <td class="text-center">
+    ${vsp.feepercentage}%
+   </td>
+  </tr>`
+    })
+    return result
   }
 
   _process24hInfo (data) {

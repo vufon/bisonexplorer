@@ -1050,7 +1050,6 @@
                               </div>
                            </div>
                         </div>
-                        {{if $.SummaryInfo.PoolDataList}}
                         <p class="fw-bold fs18 mb-0 ms-2">Last Blocks Pools
                            <span class="position-relative ms-1 fw-400 fs-13"
                               data-tooltip='Blocks mined by individuals will not be displayed here.'>
@@ -1071,6 +1070,7 @@
                                        </tr>
                                     </thead>
                                     <tbody class="bgc-white" data-homepage-target="poolsTable">
+                                       {{if $.SummaryInfo.PoolDataList}}
                                        {{range $.SummaryInfo.PoolDataList}}
                                        <tr>
                                           <td class="text-start">
@@ -1123,12 +1123,12 @@
                                           </td>
                                        </tr>
                                        {{end}}
+                                       {{end}}
                                     </tbody>
                                  </table>
                               </div>
                            </div>
                         </div>
-                        {{end}}
                      </div>
                      {{end}}
                   </div>
@@ -1563,11 +1563,11 @@
                                     </span>
                                  </span>
                               </span>
-                              <span class="new-network-stats-content d-inline-block">
+                              <span data-homepage-target="missedTickets" class="new-network-stats-content d-inline-block">
                                  {{intComma .MissedTickets}}
                               </span>
                               <span class="stats-subinfo">
-                                 {{intComma .Last1000BlocksMissed}} misses / last 1000 blocks
+                                 <span data-homepage-target="last1000BlocksMissed">{{intComma .Last1000BlocksMissed}}</span> misses / last 1000 blocks
                               </span>
                            </div>
                         </div>
@@ -1577,7 +1577,7 @@
                                  Ticket Fee
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span>
+                                 <span data-homepage-target="ticketFee">
                                     {{template "decimalParts" (float64AsDecimalParts .Last1000BlocksTicketFeeAvg 8 true
                                     2)}}
                                  </span>
@@ -1670,7 +1670,7 @@
                                           <th class="text-center">Fees</th>
                                        </tr>
                                     </thead>
-                                    <tbody class="bgc-white">
+                                    <tbody class="bgc-white" data-homepage-target="vspTable">
                                        {{if $.SummaryInfo.VSPList}}
                                        {{range $.SummaryInfo.VSPList}}
                                        <tr>
