@@ -192,7 +192,10 @@ export default class extends Controller {
       'totalSwapsAmount', 'totalContracts', 'redeemCount', 'refundCount', 'bwTotalVol', 'last30DayBwVol',
       'convertedMemSent', 'mempoolSize', 'mempoolFees', 'convertedMempoolFees', 'feeAvg', 'txfeeConverted',
       'poolsTable', 'rewardReduceRemain', 'marketCap', 'lastBlockTime', 'missedTickets', 'last1000BlocksMissed',
-      'ticketFee', 'vspTable'
+      'ticketFee', 'vspTable', 'mined24hBlocks', 'txs24hCount', 'sent24h', 'sent24hUsd', 'fees24h', 'fees24hUsd',
+      'vout24h', 'activeAddr24h', 'powReward24h', 'powReward24hUsd', 'supply24h', 'supply24hUsd', 'treasuryBal24h',
+      'treasuryBal24hUsd', 'staked24h', 'tickets24h', 'posReward24h', 'posReward24hUsd', 'voted24h', 'missed24h',
+      'swapAmount24h', 'swapAmount24hUsd', 'swapCount24h', 'swapPartCount24h', 'bwVol24h'
     ]
   }
 
@@ -493,7 +496,62 @@ export default class extends Controller {
     return result
   }
 
+  // process for 24h info socket
   _process24hInfo (data) {
+    const summary24h = data.summary_24h
+    this.mined24hBlocksTarget.innerHTML = humanize.decimalParts(summary24h.blocks, true, 0)
+    this.txs24hCountTarget.innerHTML = humanize.decimalParts(summary24h.numTx24h, true, 0)
+    this.sent24hTarget.innerHTML = humanize.decimalParts(summary24h.sent24h / 1e8, true, 2)
+    this.fees24hTarget.innerHTML = humanize.decimalParts(summary24h.fees24h / 1e8, true, 2)
+    this.vout24hTarget.innerHTML = humanize.decimalParts(summary24h.numVout24h, true, 0)
+    this.activeAddr24hTarget.innerHTML = humanize.decimalParts(summary24h.activeAddresses, true, 0)
+    this.powReward24hTarget.innerHTML = humanize.decimalParts(summary24h.totalPowReward / 1e8, true, 2)
+    this.supply24hTarget.innerHTML = humanize.decimalParts(summary24h.dcrSupply / 1e8, true, 2)
+    this.treasuryBal24hTarget.innerHTML = `<span class="dcricon-arrow-${summary24h.treasuryBalanceChange > 0 ? 'up text-green' : 'down text-danger'}"></span>
+        <span class="${summary24h.treasuryBalanceChange > 0 ? 'c-green-2' : 'c-red'}">${humanize.decimalParts(Math.abs(summary24h.treasuryBalanceChange) / 1e8, true, 2)}
+        </span>`
+    this.staked24hTarget.innerHTML = `<span class="dcricon-arrow-${summary24h.stakedDCR > 0 ? 'up text-green' : 'down text-danger'}"></span>
+        <span class="${summary24h.stakedDCR > 0 ? 'c-green-2' : 'c-red'}">${humanize.decimalParts(Math.abs(summary24h.stakedDCR) / 1e8, true, 2)}
+        </span>`
+    this.tickets24hTarget.innerHTML =
+        `<span class="dcricon-arrow-${summary24h.stakedDCR > 0 ? 'up text-green' : 'down text-danger'}"></span>
+        <span class="${summary24h.stakedDCR > 0 ? 'c-green-2' : 'c-red'}">
+        ${humanize.decimalParts(summary24h.numTickets, true, 0)}</span>`
+    this.posReward24hTarget.innerHTML = humanize.decimalParts(summary24h.posReward / 1e8, true, 2)
+    this.voted24hTarget.innerHTML = humanize.decimalParts(summary24h.voted, true, 0)
+    this.missed24hTarget.innerHTML = humanize.decimalParts(summary24h.missed, true, 0)
+    this.swapAmount24hTarget.innerHTML = humanize.decimalParts(summary24h.atomicSwapAmount / 1e8, true, 0)
+    this.swapCount24hTarget.innerHTML = humanize.decimalParts(summary24h.swapRedeemCount + summary24h.swapRefundCount, true, 0)
+    this.swapPartCount24hTarget.innerHTML = `${humanize.decimalParts(summary24h.swapRedeemCount, true, 0)} redemptions
+    , ${humanize.decimalParts(summary24h.swapRefundCount, true, 0)} refunds`
+    this.bwVol24hTarget.innerHTML = humanize.decimalParts(summary24h.bisonWalletVol, true, 0)
+    if (this.exchangeRate <= 0) {
+      return
+    }
+    if (this.hasSent24hUsdTarget) {
+      this.sent24hUsdTarget.textContent = `${humanize.threeSigFigs(summary24h.sent24h / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.hasFees24hUsdTarget) {
+      this.fees24hUsdTarget.textContent = `${humanize.threeSigFigs(summary24h.fees24h / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.hasPowReward24hUsdTarget) {
+      this.powReward24hUsdTarget.textContent = `${humanize.threeSigFigs(summary24h.totalPowReward / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.hasSupply24hUsdTarget) {
+      this.supply24hUsdTarget.textContent = `${humanize.threeSigFigs(summary24h.dcrSupply / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.hasPosReward24hUsdTarget) {
+      this.posReward24hUsdTarget.textContent = `${humanize.threeSigFigs(summary24h.posReward / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.hasSwapAmount24hUsdTarget) {
+      this.swapAmount24hUsdTarget.textContent = `${humanize.threeSigFigs(summary24h.atomicSwapAmount / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
+    }
+    if (this.hasTreasuryBal24hUsdTarget) {
+      this.treasuryBal24hUsdTarget.innerHTML =
+      `<span class="dcricon-arrow-${summary24h.treasuryBalanceChange > 0 ? 'up text-green' : 'down text-danger'}"></span>
+      <span class="${summary24h.treasuryBalanceChange > 0 ? 'c-green-2' : 'c-red'}">
+      ${humanize.threeSigFigs(summary24h.treasuryBalanceChange / 1e8 * this.exchangeRate)}</span> ${this.exchangeIndex}`
+    }
   }
 
   _processBlock (blockData) {

@@ -1723,7 +1723,7 @@
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Mined Blocks</span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="mined24hBlocks">
                                  {{int64Comma .Blocks}}
                               </span>
                            </div>
@@ -1731,7 +1731,7 @@
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Transactions</span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="txs24hCount">
                                  {{int64Comma .NumTx24h}}
                               </span>
                            </div>
@@ -1739,28 +1739,28 @@
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Sent</span>
-                              <div class="new-network-stats-content d-inline-block">
+                              <div class="new-network-stats-content d-inline-block" data-homepage-target="sent24h">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Sent24h) 2
                                  true)}}
                               </div>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
                               <span class="stats-subinfo">
-                                 {{threeSigFigs $conv.Sent24h.Value}}
-                                 {{$conv.Sent24h.Index}} (today)</span>
+                                 <span data-homepage-target="sent24hUsd">{{threeSigFigs $conv.Sent24h.Value}}
+                                 {{$conv.Sent24h.Index}}</span> (today)</span>
                               {{end}}
                            </div>
                         </div>
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Fees</span>
-                              <div class="new-network-stats-content d-inline-block">
+                              <div class="new-network-stats-content d-inline-block" data-homepage-target="fees24h">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Fees24h) 2
                                  true)}}
                               </div>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
-                              <span class="stats-subinfo">
+                              <span data-homepage-target="fees24hUsd" class="stats-subinfo">
                                  {{threeSigFigs $conv.Fees24h.Value}}
                                  {{$conv.Fees24h.Index}}</span>
                               {{end}}
@@ -1769,7 +1769,7 @@
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Outputs</span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="vout24h">
                                  {{int64Comma .NumVout24h}}
                               </span>
                            </div>
@@ -1783,7 +1783,7 @@
                                     </span>
                                  </span>
                               </span>
-                              <div class="new-network-stats-content d-inline-block pt-1">
+                              <div class="new-network-stats-content d-inline-block pt-1" data-homepage-target="activeAddr24h">
                                  {{int64Comma .ActiveAddresses}}
                               </div>
                            </div>
@@ -1797,13 +1797,13 @@
                                     </span>
                                  </span>
                               </span>
-                              <div class="new-network-stats-content d-inline-block">
+                              <div class="new-network-stats-content d-inline-block" data-homepage-target="powReward24h">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .TotalPowReward) 2
                                  true)}}
                               </div>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
-                              <span class="stats-subinfo">
+                              <span class="stats-subinfo" data-homepage-target="powReward24hUsd">
                                  {{threeSigFigs $conv.PowReward24h.Value}}
                                  {{$conv.PowReward24h.Index}}</span>
                               {{end}}
@@ -1814,12 +1814,12 @@
                               <span class="new-network-stats-title">DCR Supply</span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span class="fs15">+</span>
-                                 {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .DCRSupply) 2
-                                 true)}}
+                                 <span data-homepage-target="supply24h">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .DCRSupply) 2
+                                 true)}}</span>
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
-                              <span class="stats-subinfo">
+                              <span class="stats-subinfo" data-homepage-target="supply24hUsd">
                                  {{threeSigFigs $conv.Supply24h.Value}}
                                  {{$conv.Supply24h.Index}}</span>
                               {{end}}
@@ -1834,7 +1834,7 @@
                                     </span>
                                  </span>
                               </span>
-                              <span class="new-network-stats-content d-inline-block">
+                              <span class="new-network-stats-content d-inline-block" data-homepage-target="treasuryBal24h">
                                  {{if gt .TreasuryBalanceChange 0}}
                                  <span class="dcricon-arrow-up text-green"></span>
                                  {{else}}
@@ -1848,7 +1848,7 @@
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
-                              <span class="stats-subinfo">
+                              <span class="stats-subinfo" data-homepage-target="treasuryBal24hUsd">
                                  {{if gt .TreasuryBalanceChange 0}}
                                  <span class="dcricon-arrow-up text-green"></span>
                                  {{else}}
@@ -1875,7 +1875,7 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Staked DCR</span>
-                              <span class="new-network-stats-content d-inline-block">
+                              <span class="new-network-stats-content d-inline-block" data-homepage-target="staked24h">
                                  {{if gt .StakedDCR 0}}
                                  <span class="dcricon-arrow-up text-green"></span>
                                  {{else}}
@@ -1888,7 +1888,7 @@
                                  </span>
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
-                              <span class="stats-subinfo">
+                              <span class="stats-subinfo" data-homepage-target="tickets24h">
                                  {{if gt .StakedDCR 0}}
                                  <span class="dcricon-arrow-up text-green"></span>
                                  {{else}}
@@ -1903,13 +1903,13 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">PoS Rewards</span>
-                              <span class="new-network-stats-content d-inline-block">
+                              <span class="new-network-stats-content d-inline-block" data-homepage-target="posReward24h">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .PosReward) 2
                                  true)}}
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
-                              <span class="stats-subinfo">
+                              <span class="stats-subinfo" data-homepage-target="posReward24hUsd">
                                  {{threeSigFigs $conv.PosReward24h.Value}}
                                  {{$conv.PosReward24h.Index}}</span>
                               {{end}}
@@ -1918,7 +1918,7 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Voted</span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="voted24h">
                                  {{int64Comma .Voted}}
                               </span>
                               <span class="new-info-line-2-sub">votes</span>
@@ -1927,7 +1927,7 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Missed</span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="missed24h">
                                  {{int64Comma .Missed}}
                               </span>
                               <span class="new-info-line-2-sub">votes</span>
@@ -1945,13 +1945,13 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Swaps Amount</span>
-                              <div class="new-network-stats-content d-inline-block">
+                              <div class="new-network-stats-content d-inline-block" data-homepage-target="swapAmount24h">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                  .AtomicSwapAmount) 2 true)}}
                               </div>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
-                              <span class="stats-subinfo">
+                              <span class="stats-subinfo" data-homepage-target="swapAmount24hUsd">
                                  {{threeSigFigs $conv.SwapsAmount24h.Value}}
                                  {{$conv.SwapsAmount24h.Index}}</span>
                               {{end}}
@@ -1960,17 +1960,17 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Swaps Tx Count</span>
-                              <span class="new-network-stats-content d-inline-block">
+                              <span class="new-network-stats-content d-inline-block" data-homepage-target="swapCount24h">
                                  {{int64Comma (add .SwapRedeemCount .SwapRefundCount)}}
                               </span>
-                              <span class="stats-subinfo">{{int64Comma .SwapRedeemCount}} redemptions,
+                              <span class="stats-subinfo" data-homepage-target="swapPartCount24h">{{int64Comma .SwapRedeemCount}} redemptions,
                                  {{int64Comma .SwapRefundCount}} refunds</span>
                            </div>
                         </div>
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Bison Wallet Vol</span>
-                              <span class="new-network-stats-content d-inline-block pt-1">
+                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="bwVol24h">
                                  {{int64Comma .BisonWalletVol}}
                               </span>
                               <span class="new-info-line-2-sub">USD</span>
