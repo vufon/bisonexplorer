@@ -191,7 +191,7 @@ export default class extends Controller {
       'onlineNodes', 'blockchainSize', 'avgBlockSize', 'totalTxs', 'totalAddresses', 'totalOutputs',
       'totalSwapsAmount', 'totalContracts', 'redeemCount', 'refundCount', 'bwTotalVol', 'last30DayBwVol',
       'convertedMemSent', 'mempoolSize', 'mempoolFees', 'convertedMempoolFees', 'feeAvg', 'txfeeConverted',
-      'poolsTable', 'rewardReduceRemain', 'marketCap'
+      'poolsTable', 'rewardReduceRemain', 'marketCap', 'lastBlockTime'
     ]
   }
 
@@ -510,6 +510,8 @@ export default class extends Controller {
     this.blockTotalTarget.textContent = humanize.threeSigFigs(block.total)
     this.blockchainSizeTarget.textContent = ex.formatted_size
     this.avgBlockSizeTarget.textContent = ex.formattedAvgBlockSize
+    this.lastBlockTimeTarget.textContent = humanize.timeSince(block.blocktime_unix)
+    this.lastBlockTimeTarget.dataset.age = block.blocktime_unix
     if (ex.exchange_rate) {
       const xcRate = ex.exchange_rate.value
       const btcIndex = ex.exchange_rate.index
