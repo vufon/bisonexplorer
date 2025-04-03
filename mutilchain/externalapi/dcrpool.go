@@ -48,20 +48,18 @@ func GetLastBlocksPool() ([]*dbtypes.PoolDataItem, error) {
 	// get 5 pool blocks from threepool
 	threepoolRes, err := GetPoolData(threePoolURL, THREEPOOL)
 	if err != nil {
-		return nil, err
+		threepoolRes = make([]*dbtypes.PoolDataItem, 0)
 	}
 	// get 5 pool blocks from e4pool
 	e4poolRes, err := GetPoolData(e4poolURL, E4POOL)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		threepoolRes = append(threepoolRes, e4poolRes...)
 	}
-	threepoolRes = append(threepoolRes, e4poolRes...)
 	// get 5 pool blocks from miningandco
 	miningandcoRes, err := GetPoolData(miningandcoURL, MININGANDCO)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		threepoolRes = append(threepoolRes, miningandcoRes...)
 	}
-	threepoolRes = append(threepoolRes, miningandcoRes...)
 	sort.Slice(threepoolRes, func(i, j int) bool {
 		return threepoolRes[i].BlockHeight > threepoolRes[j].BlockHeight
 	})

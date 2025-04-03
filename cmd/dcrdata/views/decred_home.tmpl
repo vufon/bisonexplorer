@@ -16,11 +16,11 @@
 {{ template "html-head" headData .CommonPageData "Decred Explorer by bisonexplorer.com"}}
 {{ template "new_home_navbar" . }}
 <div class="d-sm-flex justify-content-between ai-end new-home-header container py-2 px-2 px-lg-0" id="newHomeMenu">
-   <div class="d-none d-sm-flex mb-sm-0">
+   <div class="d-none d-md-flex mb-sm-0">
       <img id="pageBarIconTop" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
       <span id="pageBarTitleTop" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
-   <div class="button-group-navigation d-flex justify-content-center justify-content-sm-end ai-end">
+   <div class="button-group-navigation d-flex justify-content-center justify-content-md-end ai-end">
       {{if .Conversions}}
       <p class="me-2 mb-0 d-none d-md-flex ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span
                data-homepage-target="exchangeRate">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
@@ -337,9 +337,17 @@
          </div>
       </li>
    </div>
-   <div class="d-flex d-sm-none justify-content-center mt-2 mb-sm-0">
-      <img id="pageBarIconBottom" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
-      <span id="pageBarTitleBottom" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
+   <div class="d-flex d-md-none justify-content-between mt-2 mb-sm-0">
+      <div class="d-flex ai-center">
+         <img id="pageBarIconBottom" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
+         <span id="pageBarTitleBottom" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
+      </div>
+      <div class="d-flex ai-center">
+         {{if .Conversions}}
+         <p class="me-2 my-0 ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span
+                  data-homepage-target="exchangeRateBottom">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
+         {{end}}
+      </div>
    </div>
 </div>
 <div class="main-container new-homepage homepage-class homepage-content" data-homepage-target="homeContent"
@@ -823,11 +831,11 @@
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title h-50 pt-3">
                                  <span data-homepage-target="mpRegCount"
-                                    class="fs-16 fw-600 mempool-data-value">{{.Mempool.NumRegular}}</span>
+                                    class="fs-20 fw-600 mempool-data-value">{{.Mempool.NumRegular}}</span>
                                  <span class="fs-15 fw-400 mempool-label-value"> regular</span>
                               </span>
                               <span class="new-network-stats-content d-inline-block mt-2">
-                                 <span class="fs-16 fw-600 mempool-data-value"
+                                 <span class="fs-18 fw-600 mempool-data-value"
                                     data-homepage-target="mpRegTotal">{{threeSigFigs
                                     .Mempool.LikelyMineable.RegularTotal}}</span>
                                  <span class="fs-15 fw-400 mempool-label-value">DCR</span>
@@ -838,11 +846,11 @@
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title h-50 pt-3">
                                  <span data-homepage-target="mpTicketCount"
-                                    class="fs-16 fw-600 mempool-data-value">{{.Mempool.NumTickets}}</span>
+                                    class="fs-20 fw-600 mempool-data-value">{{.Mempool.NumTickets}}</span>
                                  <span class="fs-15 fw-400 mempool-label-value"> tickets</span>
                               </span>
                               <span class="new-network-stats-content d-inline-block mt-2">
-                                 <span class="fs-16 fw-600 mempool-data-value"
+                                 <span class="fs-18 fw-600 mempool-data-value"
                                     data-homepage-target="mpTicketTotal">{{threeSigFigs
                                     .Mempool.LikelyMineable.TicketTotal}}</span>
                                  <span class="fs-15 fw-400 mempool-label-value">DCR</span>
@@ -853,11 +861,11 @@
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title h-50 pt-3">
                                  <span data-homepage-target="mpRevCount"
-                                    class="fs-16 fw-600 lh1rem mempool-data-value">{{.Mempool.NumRevokes}}</span>
+                                    class="fs-20 fw-600 lh1rem mempool-data-value">{{.Mempool.NumRevokes}}</span>
                                  <span class="fs-15 fw-400 mempool-label-value"> revokes</span>
                               </span>
                               <span class="new-network-stats-content d-inline-block mt-2">
-                                 <span class="fs-16 fw-600 mempool-data-value"
+                                 <span class="fs-18 fw-600 mempool-data-value"
                                     data-homepage-target="mpRevTotal">{{threeSigFigs
                                     .Mempool.LikelyMineable.RevokeTotal}}</span>
                                  <span class="fs-15 fw-400 mempool-label-value">DCR</span>
@@ -867,7 +875,7 @@
                         <div class="col-12 col-xl-6">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title h-50 pt-3">
-                                 <span data-homepage-target="mpVoteCount" class="fs-16 fw-600 mempool-data-value lh1rem"
+                                 <span data-homepage-target="mpVoteCount" class="fs-20 fw-600 mempool-data-value lh1rem"
                                     data-tickets-per-block="{{.Mempool.VotingInfo.MaxVotesPerBlock}}">
                                     {{$afterFirst := false -}}
                                     {{- range $hash, $tally := .Mempool.VotingInfo.VoteTallys -}}
@@ -882,7 +890,7 @@
                                  <span class="fs-15 fw-400 mempool-label-value"> votes</span>
                               </span>
                               <span class="new-network-stats-content d-inline-block mt-2">
-                                 <span class="fs-16 fw-600 mempool-data-value"
+                                 <span class="fs-18 fw-600 mempool-data-value"
                                     data-homepage-target="mpVoteTotal">{{threeSigFigs
                                     .Mempool.LikelyMineable.VoteTotal}}</span>
                                  <span class="fs-15 fw-400 mempool-label-value">DCR</span>
@@ -1316,15 +1324,15 @@
             </div>
          </div>
          {{- /* RIGHT COLUMN */ -}}
-         <div class="flex-grow-0 flex-lg-grow-1 col-24 col-lg px-2 my-4 bg-white">
+         <div class="flex-grow-0 flex-lg-grow-1 col-24 col-lg px-2 px-md-3 my-4 bg-white">
             <div
-               class="h-100 me-md-2 flex-grow-1 d-flex flex-column position-relative px-0 px-md-2 new-home-card-container">
+               class="h-100 me-md-2 flex-grow-1 d-flex flex-column position-relative px-0 px-md-3 new-home-card-container">
                <div class="loader-v2 loading" data-market-target="chartLoader"></div>
                {{- /* CHART ONTROLS */ -}}
                <div
-                  class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap pt-2 px-1 px-lg-3 mb-2">
+                  class="d-flex flex-shrink-1 align-items-top justify-content-md-around justify-content-lg-center flex-wrap pt-2 px-1 px-lg-3 mb-2">
                   {{- /* PAIR SELECTION */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap my-2 mx-2 mx-lg-4">
                      <label>Pair</label>
                      <select class="chart-box d-inline-flex" data-market-target="pairSelect"
                         data-action="change->market#changePair">
@@ -1332,26 +1340,8 @@
                         <option value="btc">DCR/BTC</option>
                      </select>
                   </div>
-                  {{- /* EXCHANGE SELECTION */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="exchanges"
-                     data-action="click->market#changeExchange">
-                     <label>Exchange</label>
-                     <div class="btn-group" data-market-target="exchangeBtnArea">
-                        {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
-                        {{if ne $exchange.Token "dcrdex"}}
-                        <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}}
-                           data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"
-                           {{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
-                           class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName
-                           $exchange.Token}}</button>
-                        {{end}}
-                        {{end}}
-                        <button name="aggregated" data-market-target="aggOption" data-depth="1"
-                           class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
-                     </div>
-                  </div>
                   {{- /* CHART TYPE SELECTION */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap my-2 mx-4 mx-md-2 mx-lg-4">
                      <label>Chart</label>
                      <select class="chart-box d-inline-flex" data-market-target="chartSelect"
                         data-action="change->market#changeGraph">
@@ -1368,19 +1358,22 @@
                         </option>
                      </select>
                   </div>
-                  {{- /* BIN SIZE SELECTIONS */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="bin"
-                     data-action="click->market#changeBin">
-                     <label class="text-nowrap">Bin Size</label>
-                     <div class="btn-group">
-                        <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
-                        <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
-                        <button name="1h" class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
-                        <button name="4h" class="active tab-button home-chart-toggle-btn white c-txt-main">4
-                           Hours</button>
-                        <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
-                        <button name="1w" class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
-                        <button name="1mo" class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
+                  {{- /* EXCHANGE SELECTION */ -}}
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap mt-3 mb-2 my-md-2 mx-2 mx-lg-4" data-market-target="exchanges"
+                     data-action="click->market#changeExchange">
+                     <label>Exchange</label>
+                     <div class="btn-group exchange-group" data-market-target="exchangeBtnArea">
+                        {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
+                        {{if ne $exchange.Token "dcrdex"}}
+                        <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}}
+                           data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"
+                           {{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
+                           class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName
+                           $exchange.Token}}</button>
+                        {{end}}
+                        {{end}}
+                        <button name="aggregated" data-market-target="aggOption" data-depth="1"
+                           class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
                      </div>
                   </div>
                   {{- /* DISPLAY CURRENCY */ -}}
@@ -1406,9 +1399,24 @@
                      <button name="40">40%</button>
                      <button name="95">95%</button>
                   </div>
+                  {{- /* BIN SIZE SELECTIONS */ -}}
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4" data-market-target="bin"
+                     data-action="click->market#changeBin">
+                     <label class="text-nowrap d-none d-md-block">Bin Size</label>
+                     <div class="btn-group">
+                        <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
+                        <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
+                        <button name="1h" class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
+                        <button name="4h" class="active tab-button home-chart-toggle-btn white c-txt-main">4
+                           Hours</button>
+                        <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
+                        <button name="1w" class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
+                        <button name="1mo" class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
+                     </div>
+                  </div>
                   {{- /* OTHER CHART OPTIONS */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="actions">
-                     <label>Actions</label>
+                  <div class="btn-set bg-white d-inline-flex ai-center flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4" data-market-target="actions">
+                     <label class="d-none d-md-block">Actions</label>
                      <button><a data-market-target="link" href="" target="_blank"
                            rel="noopener noreferrer"></a></button>
                   </div>

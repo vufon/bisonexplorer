@@ -719,3 +719,15 @@ body.darkBG {
 .tp-outputs-align {
   width: inherit;
 }
+
+.btn-group.exchange-group {
+  display: inline-block;
+  font-size: 0;
+}
+
+@media (max-width: 768px) {
+  .market-mobile-set {
+    border-top: none;
+    padding-top: 0;
+  }
+}

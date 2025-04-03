@@ -73,3 +73,10 @@
   margin-top: -8px;
   font-weight: 400;
 }
+
+@media (max-width: 768px) {
+  .tab-button {
+    padding: 0 7px;
+    font-size: 13px;
+  }
+}

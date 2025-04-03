@@ -244,7 +244,7 @@ export default class extends Controller {
       'vout24h', 'activeAddr24h', 'powReward24h', 'powReward24hUsd', 'supply24h', 'supply24hUsd', 'treasuryBal24h',
       'treasuryBal24hUsd', 'staked24h', 'tickets24h', 'posReward24h', 'posReward24hUsd', 'voted24h', 'missed24h',
       'swapAmount24h', 'swapAmount24hUsd', 'swapCount24h', 'swapPartCount24h', 'bwVol24h', 'homeContent',
-      'homeThumbs'
+      'homeThumbs', 'exchangeRateBottom'
     ]
   }
 
@@ -418,6 +418,9 @@ export default class extends Controller {
     }
     if (this.hasExchangeRateTarget) {
       this.exchangeRateTarget.textContent = humanize.twoDecimals(this.exchangeRate)
+    }
+    if (this.hasExchangeRateBottomTarget) {
+      this.exchangeRateBottomTarget.textContent = humanize.twoDecimals(this.exchangeRate)
     }
     if (this.powReward > 0 && this.hasPowConvertedTarget) {
       this.powConvertedTarget.textContent = `${humanize.twoDecimals(this.powReward / 1e8 * this.exchangeRate)} ${this.exchangeIndex}`
