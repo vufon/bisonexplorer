@@ -32,6 +32,28 @@ let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
 let yFormatter, legendEntry, legendMarker, legendElement
 let rangeOption = ''
+const yAxisLabelWidth = {
+  y1: {
+    'ticket-price': 40,
+    'ticket-pool-size': 40,
+    'ticket-pool-value': 30,
+    'stake-participation': 30,
+    'privacy-participation': 40,
+    'missed-votes': 30,
+    'block-size': 35,
+    'blockchain-size': 30,
+    'tx-count': 45,
+    'duration-btw-blocks': 40,
+    'pow-difficulty': 40,
+    chainwork: 35,
+    hashrate: 40,
+    'coin-supply': 30,
+    fees: 35
+  },
+  y2: {
+    'ticket-price': 45
+  }
+}
 
 function usesWindowUnits (chart) {
   return windowScales.indexOf(chart) > -1
@@ -60,6 +82,10 @@ function useRange (chart) {
 function intComma (amount) {
   if (!amount) return ''
   return amount.toLocaleString(undefined, { maximumFractionDigits: 0 })
+}
+
+function isMobile () {
+  return window.innerWidth <= 768
 }
 
 function axesToRestoreYRange (chartName, origYRange, newYRange) {
@@ -559,7 +585,7 @@ export default class extends Controller {
 
   drawInitialGraph () {
     const options = {
-      axes: { y: { axisLabelWidth: 70 }, y2: { axisLabelWidth: 65 } },
+      axes: { y: { axisLabelWidth: 50 }, y2: { axisLabelWidth: 55 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
       digitsAfterDecimal: 8,
       showRangeSelector: true,
@@ -587,6 +613,10 @@ export default class extends Controller {
     this.chartSelectTarget.value = this.settings.chart
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
+    // default on mobile is year, on other is all
+    if (humanize.isEmpty(this.settings.zoom) && isMobile()) {
+      this.settings.zoom = 'year'
+    }
     if (this.settings.zoom) this.setZoom(this.settings.zoom)
     this.setBin(this.settings.bin ? this.settings.bin : 'day')
     this.setRange(this.settings.range ? this.settings.range : 'after')
@@ -633,7 +663,8 @@ export default class extends Controller {
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, windowSize * 20 * 8],
-          axisLabelFormatter: (y) => Math.round(y)
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['ticket-price'] : yAxisLabelWidth.y2['ticket-price'] + 10
         }
         yFormatter = customYFormatter(y => y.toFixed(8) + ' DCR')
         break
@@ -779,7 +810,9 @@ export default class extends Controller {
           'Missed Votes per Window', true, false))
         break
     }
-
+    gOptions.axes.y = {
+      axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 5
+    }
     const baseURL = `${this.query.url.protocol}//${this.query.url.host}`
     this.rawDataURLTarget.textContent = `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
 
@@ -949,6 +982,33 @@ export default class extends Controller {
   }
 
   _drawCallback (graph, first) {
+    // update position of y1, y2 label
+    if (isMobile()) {
+      // get axes
+      const axes = graph.getOption('axes')
+      if (axes) {
+        const y1label = this.chartsViewTarget.querySelector('.dygraph-label.dygraph-ylabel')
+        const y2label = this.chartsViewTarget.querySelector('.dygraph-label.dygraph-y2label')
+        if (y1label) {
+          const yAxis = axes.y
+          if (yAxis) {
+            const yLabelWidth = yAxis.axisLabelWidth
+            if (yLabelWidth) {
+              y1label.style.top = (Number(yLabelWidth) + 5) + 'px'
+            }
+          }
+        }
+        if (y2label) {
+          const y2Axis = axes.y2
+          if (y2Axis) {
+            const y2LabelWidth = y2Axis.axisLabelWidth
+            if (y2LabelWidth) {
+              y2label.style.top = (Number(y2LabelWidth) + 5) + 'px'
+            }
+          }
+        }
+      }
+    }
     if (first) return
     const [start, end] = this.chartsView.xAxisRange()
     if (start === end) return

@@ -718,10 +718,6 @@
   }
 
   @media (max-width: 768px) {
-    .chart-name-label {
-      display: block !important;
-    }
-
     .chart-title-name {
       display: none;
     }
@@ -827,10 +823,6 @@
 
     .dygraph-axis-label {
       font-size: 12px;
-    }
-
-    .dygraph-ylabel {
-      font-size: 13px;
     }
 
     .chart-name-content {
@@ -1074,6 +1066,20 @@ body.darkBG .day-night-icon {
     margin-left: 10px;
     margin-right: 10px;
     max-width: unset;
+  }
+
+  .chartview {
+    .dygraph-label.dygraph-ylabel {
+      position: absolute;
+      right: 5px;
+      font-size: 13px;
+    }
+
+    .dygraph-label.dygraph-y2label {
+      position: absolute;
+      left: 5px;
+      font-size: 13px;
+    }
   }
 }
 

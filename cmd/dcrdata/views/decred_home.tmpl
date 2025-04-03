@@ -342,8 +342,8 @@
       <span id="pageBarTitleBottom" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
 </div>
-<div class="main-container new-homepage homepage-class homepage-content" data-homepage-target="homeContent" id="newHomeContent"
-   data-controller="charts time" data-charts-tps="{{.TargetPoolSize}}"
+<div class="main-container new-homepage homepage-class homepage-content" data-homepage-target="homeContent"
+   id="newHomeContent" data-controller="charts time" data-charts-tps="{{.TargetPoolSize}}"
    data-charts-svh="{{.ChainParams.StakeValidationHeight}}" data-charts-pos="{{.ChainParams.StakeRewardProportion}}"
    data-charts-premine="{{.Premine}}" data-charts-bs="{{.ChainParams.BaseSubsidy}}"
    data-charts-sri="{{.ChainParams.SubsidyReductionInterval}}" data-charts-mul-subsidy="{{.ChainParams.MulSubsidy}}"
@@ -363,7 +363,7 @@
                         </div>
                      </a>
                      {{with .BestBlock -}}
-                     <div class="row justify-content-between px-3 py-2">
+                     <div class="row justify-content-between px-2 px-md-3 py-2">
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Latest Blocks</span>
@@ -371,8 +371,8 @@
                                  <a class="fs-22" data-turbolinks="false" href="/block/{{.Hash}}"
                                     data-homepage-target="blockHeight">{{.Height}}</a>
                               </span>
-                              <span class="stats-subinfo fs-15i" data-homepage-target="lastBlockTime" data-type="age" data-time-target="age"
-                                 data-age="{{.BlockTime.UNIX}}"></span>
+                              <span class="stats-subinfo fs-15i" data-homepage-target="lastBlockTime" data-type="age"
+                                 data-time-target="age" data-age="{{.BlockTime.UNIX}}"></span>
                            </div>
                         </div>
                         <div class="col-12">
@@ -430,7 +430,7 @@
                         </div>
                      </a>
                      {{with .Info -}}
-                     <div class="row justify-content-between px-3 py-2">
+                     <div class="row justify-content-between px-2 px-md-3 py-2">
                         <div class="col-24 col-sm-12">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
@@ -537,7 +537,7 @@
                            loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">Blockchain Summary</p>
                      </div>
-                     <div class="row px-3 py-2">
+                     <div class="row px-2 px-md-3 py-2">
                         <div class="col-12 col-sm-8 col-md-6 col-lg-4">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
@@ -553,11 +553,13 @@
                         <div class="col-12 col-sm-8 col-md-6 col-lg-4">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=blockchain-size">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/charts?chart=blockchain-size">
                                     Blockchain Size
                                  </a>
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="blockchainSize">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="blockchainSize">
                                  {{.FormattedSize}}
                               </span>
                            </div>
@@ -565,7 +567,8 @@
                         <div class="col-12 col-sm-8 col-md-6 col-lg-4">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=duration-btw-blocks">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/charts?chart=duration-btw-blocks">
                                     Average Block Time
                                  </a>
                               </span>
@@ -576,11 +579,13 @@
                         <div class="col-12 col-sm-8 col-md-6 col-lg-4">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 <a class="link-hover-underline" data-turbolinks="false" href="/charts?chart=block-size">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/charts?chart=block-size">
                                     Average Block Size
                                  </a>
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="avgBlockSize">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="avgBlockSize">
                                  {{.FormattedAvgBlockSize}}
                               </span>
                            </div>
@@ -592,7 +597,8 @@
                                     Total Transactions
                                  </a>
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalTxs">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="totalTxs">
                                  {{int64Comma $.SummaryInfo.TotalTransactions}}
                               </span>
                            </div>
@@ -602,7 +608,8 @@
                               <span class="new-network-stats-title">
                                  Total Addresses
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalAddresses">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="totalAddresses">
                                  {{int64Comma $.SummaryInfo.TotalAddresses}}
                               </span>
                            </div>
@@ -612,7 +619,8 @@
                               <span class="new-network-stats-title">
                                  Total Outputs
                               </span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalOutputs">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="totalOutputs">
                                  {{int64Comma $.SummaryInfo.TotalOutputs}}
                               </span>
                            </div>
@@ -620,7 +628,8 @@
                         <div class="col-12 col-sm-8 col-md-6">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">Swaps Trading Amount</span>
-                              <div class="new-network-stats-content d-inline-block pt-1" data-homepage-target="totalSwapsAmount">
+                              <div class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="totalSwapsAmount">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                  $.SummaryInfo.SwapsTotalAmount) 2 true)}}
                               </div>
@@ -634,10 +643,13 @@
                                     Swaps Contracts
                                  </a></span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span data-homepage-target="totalContracts">{{intComma $.SummaryInfo.SwapsTotalContract}}</span>
+                                 <span data-homepage-target="totalContracts">{{intComma
+                                    $.SummaryInfo.SwapsTotalContract}}</span>
                                  <span class="stats-subinfo">
-                                    <span data-homepage-target="redeemCount">{{intComma (subtract $.SummaryInfo.SwapsTotalContract $.SummaryInfo.RefundCount)}}</span> redemptions,
-                                    <span data-homepage-target="refundCount">{{intComma $.SummaryInfo.RefundCount}}</span> refunds
+                                    <span data-homepage-target="redeemCount">{{intComma (subtract
+                                       $.SummaryInfo.SwapsTotalContract $.SummaryInfo.RefundCount)}}</span> redemptions,
+                                    <span data-homepage-target="refundCount">{{intComma
+                                       $.SummaryInfo.RefundCount}}</span> refunds
                                  </span>
                               </span>
                            </div>
@@ -645,9 +657,11 @@
                         <div class="col-12 col-sm-8 col-md-6">
                            <div class="new-network-stats-block">
                               <span class="new-network-stats-title">
-                                 <a class="link-hover-underline" data-turbolinks="false" href="/decred/bwdash">Bison Wallet Vol</a></span>
+                                 <a class="link-hover-underline" data-turbolinks="false" href="/decred/bwdash">Bison
+                                    Wallet Vol</a></span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span data-homepage-target="bwTotalVol">{{intComma $.SummaryInfo.BisonWalletVol}}</span>
+                                 <span data-homepage-target="bwTotalVol">{{intComma
+                                    $.SummaryInfo.BisonWalletVol}}</span>
                               </span>
                               <span class="new-info-line-2-sub">USD</span>
                               <span class="position-relative ms-1 fw-400" data-tooltip='All time trading volume'>
@@ -655,7 +669,8 @@
                                  </span>
                               </span>
                               <span class="stats-subinfo">
-                                 $<span data-homepage-target="last30DayBwVol">{{intComma $.SummaryInfo.BWLast30DaysVol}}</span> USD (last 30 days)
+                                 $<span data-homepage-target="last30DayBwVol">{{intComma
+                                    $.SummaryInfo.BWLast30DaysVol}}</span> USD (last 30 days)
                               </span>
                            </div>
                         </div>
@@ -680,7 +695,7 @@
                            <p class="ms-2 mb-0 fw-600 fs-17">Mempool</p>
                         </div>
                      </a>
-                     <div class="row justify-content-between px-3 py-2">
+                     <div class="row justify-content-between px-2 px-md-3 py-2">
                         <div class="col-24 mb-3">
                            <div>
                               {{with .TrimmedMempool -}}
@@ -724,7 +739,8 @@
                                           data-homepage-target="tooltip"
                                           title='{"object": "Vote", "voteValid": "{{$vote.VoteValid}}"}'
                                           class="{{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index $VoteLength}}right-vs-block-data{{end}}">
-                                          <a class="block-element-link" data-turbolinks="false" href="/tx/{{$vote.TxID}}"></a>
+                                          <a class="block-element-link" data-turbolinks="false"
+                                             href="/tx/{{$vote.TxID}}"></a>
                                        </span>
                                        {{end}}
                                        {{if lt (len .Votes) 5}}
@@ -747,7 +763,8 @@
                                           class="block-ticket {{if eq $index 0}}left-vs-block-data{{end}} {{if and (eq $index (subtract (toint64 $ticketsCount) 1)) (eq $revCount 0)}}right-vs-block-data{{end}}"
                                           data-homepage-target="tooltip"
                                           title='{"object": "Ticket", "total": "{{$ticket.Total}}", "vout": "{{$ticket.VoutCount}}", "vin": "{{$ticket.VinCount}}"}'>
-                                          <a class="block-element-link" data-turbolinks="false" href="/tx/{{$ticket.TxID}}"></a>
+                                          <a class="block-element-link" data-turbolinks="false"
+                                             href="/tx/{{$ticket.TxID}}"></a>
                                        </span>
                                        {{end}}
                                        {{if gt $ticketsCount 50}}
@@ -764,7 +781,8 @@
                                           class="block-rev {{if and (eq $ticketsCount 0) (eq $index 0)}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $revCount) 1)}}right-vs-block-data{{end}}"
                                           data-homepage-target="tooltip"
                                           title='{"object": "Revocation", "total": "{{$rev.Total}}", "vout": "{{$rev.VoutCount}}", "vin": "{{$rev.VinCount}}"}'>
-                                          <a class="block-element-link" data-turbolinks="false" href="/tx/{{$rev.TxID}}"></a>
+                                          <a class="block-element-link" data-turbolinks="false"
+                                             href="/tx/{{$rev.TxID}}"></a>
                                        </span>
                                        {{end}}
                                        {{$ticketsRevsCount := intAdd $ticketsCount (len .Revocations)}}
@@ -782,14 +800,16 @@
                                           class="block-tx {{if eq $index 0}}left-vs-block-data{{end}} {{if eq $index (subtract (toint64 $txCount) 1)}}right-vs-block-data{{end}}"
                                           style="flex-grow: {{$tx.Total}}" data-homepage-target="tooltip"
                                           title='{"object": "Transaction", "total": "{{$tx.Total}}", "vout": "{{$tx.VoutCount}}", "vin": "{{$tx.VinCount}}"}'>
-                                          <a class="block-element-link" data-turbolinks="false" href="/tx/{{$tx.TxID}}"></a>
+                                          <a class="block-element-link" data-turbolinks="false"
+                                             href="/tx/{{$tx.TxID}}"></a>
                                        </span>
                                        {{end}}
                                        {{if gt $txCount 50}}
                                        <!-- show total number of tickets -->
                                        <span class="block-ticket" style="flex-grow: 10; flex-basis: 50px;"
                                           title="Total of {{$txCount}} transactions">
-                                          <a class="block-element-link" data-turbolinks="false" href="#">+ {{intSubtract $txCount
+                                          <a class="block-element-link" data-turbolinks="false" href="#">+ {{intSubtract
+                                             $txCount
                                              30}}</a>
                                        </span>
                                        {{end}}
@@ -873,7 +893,8 @@
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Sent</span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span data-homepage-target="mempool" data-memsent="{{.Mempool.LikelyMineable.Total}}" {{template "mempoolDump" .Mempool}}>
+                                 <span data-homepage-target="mempool" data-memsent="{{.Mempool.LikelyMineable.Total}}"
+                                    {{template "mempoolDump" .Mempool}}>
                                     {{threeSigFigs .Mempool.LikelyMineable.Total}}
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
@@ -949,7 +970,7 @@
                         <p class="ms-2 mb-0 fw-600 fs-17">Mining</p>
                      </div>
                      {{with .Info -}}
-                     <div class="row px-3 py-2">
+                     <div class="row px-2 px-md-3 py-2">
                         <div class="col-24">
                            <p>PoW hash algorithm: <a target="_blank" class="subdata-card fs-18"
                                  href="https://github.com/decred/dcps/blob/master/dcp-0011/dcp-0011.mediawiki">Blake3</a>
@@ -995,7 +1016,8 @@
                                  PoW Reward
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span data-homepage-target="bsubsidyPow" data-powreward="{{.NBlockSubsidy.PoW}}" class="fs15-decimal">
+                                 <span data-homepage-target="bsubsidyPow" data-powreward="{{.NBlockSubsidy.PoW}}"
+                                    class="fs15-decimal">
                                     {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                     .NBlockSubsidy.PoW) 8 true 2)}}
                                  </span>
@@ -1014,7 +1036,8 @@
                                  Tx Fee Avg
                               </span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span data-homepage-target="feeAvg" data-feeavg="{{.TxFeeAvg}}">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
+                                 <span data-homepage-target="feeAvg" data-feeavg="{{.TxFeeAvg}}">{{template
+                                    "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                     .TxFeeAvg) 8 true 2)}}</span>
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
@@ -1044,7 +1067,8 @@
                                           </span>
                                        </div>
                                     </div>
-                                    <span class="stats-subinfo fw-400 mt-1" data-homepage-target="rewardReduceRemain">{{remaining .IdxInRewardWindow
+                                    <span class="stats-subinfo fw-400 mt-1"
+                                       data-homepage-target="rewardReduceRemain">{{remaining .IdxInRewardWindow
                                        .Params.RewardWindowSize .Params.BlockTime}}</span>
                                  </div>
                               </div>
@@ -1146,7 +1170,7 @@
          {{- /* LEFT COLUMN */ -}}
          <div class="col-24 col-lg-auto p-0">
             {{- /* PRICE */ -}}
-            <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white new-home-card-container">
+            <div class="mx-2 my-4 my-md-3 p-3 p-lg-4 bg-white new-home-card-container">
                <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
                      class="me-2">Market Information</div>
                <table class="w-100 mx-0">
@@ -1157,30 +1181,30 @@
                            <p class="fs-16">
                               $<span data-market-target="price">{{printf "%.2f" $botState.Price}}</span> USD
                               <span data-market-target="usdChange">
-                              {{if eq $botState.DCRUSD24hChange 0.0}}
-                              <span></span>
-                              {{else if gt $botState.DCRUSD24hChange 0.0}}
-                              <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat
-                                 $botState.DCRUSD24hChange $botState.Price))}}%</span>
-                              {{else}}
-                              <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
-                                 (toAbsValue $botState.DCRUSD24hChange) $botState.Price))}}%</span>
-                              {{end}}
-                           </span>
+                                 {{if eq $botState.DCRUSD24hChange 0.0}}
+                                 <span></span>
+                                 {{else if gt $botState.DCRUSD24hChange 0.0}}
+                                 <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat
+                                    $botState.DCRUSD24hChange $botState.Price))}}%</span>
+                                 {{else}}
+                                 <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
+                                    (toAbsValue $botState.DCRUSD24hChange) $botState.Price))}}%</span>
+                                 {{end}}
+                              </span>
                            </p>
                            <p class="fs-14">
                               <span data-market-target="btcPrice">{{printf "%.6f" $botState.DCRBTCPrice}}</span> BTC
                               <span data-market-target="btcChange">
-                              {{if eq $botState.DCRBTC24hChange 0.0}}
-                              <span></span>
-                              {{else if gt $botState.DCRBTC24hChange 0.0}}
-                              <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat
-                                 $botState.DCRBTC24hChange $botState.DCRBTCPrice))}}%</span>
-                              {{else}}
-                              <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
-                                 (toAbsValue $botState.DCRBTC24hChange) $botState.DCRBTCPrice))}}%</span>
-                              {{end}}
-                           </span>
+                                 {{if eq $botState.DCRBTC24hChange 0.0}}
+                                 <span></span>
+                                 {{else if gt $botState.DCRBTC24hChange 0.0}}
+                                 <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100 (divideFloat
+                                    $botState.DCRBTC24hChange $botState.DCRBTCPrice))}}%</span>
+                                 {{else}}
+                                 <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100 (divideFloat
+                                    (toAbsValue $botState.DCRBTC24hChange) $botState.DCRBTCPrice))}}%</span>
+                                 {{end}}
+                              </span>
                            </p>
                         </td>
                      </tr>
@@ -1190,7 +1214,7 @@
                            <p class="fs-16">
                               <span data-homepage-target="marketCap">
                                  {{if $conv -}}
-                                    {{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}
+                                 {{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}
                                  {{- end}}
                               </span>
                            </p>
@@ -1200,35 +1224,41 @@
                         <td class="py-2 fs-16 fw-bold">Volume (24h)</td>
                         <td class="ps-2 py-2 text-end">
                            <p class="fs-16">
-                              <span data-market-target="dcrVol">{{threeSigFigs $botState.Volume}}</span> DCR <span class="fs15">(~
-                                 $<span  data-market-target="usdVol">{{threeSigFigs
-                                 (floatMultiply $botState.Volume $botState.Price)}}</span>)</span>
+                              <span data-market-target="dcrVol">{{threeSigFigs $botState.Volume}}</span> DCR <span
+                                 class="fs15">(~
+                                 $<span data-market-target="usdVol">{{threeSigFigs
+                                    (floatMultiply $botState.Volume $botState.Price)}}</span>)</span>
                            </p>
                         </td>
                      </tr>
                      <tr>
                         <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
                         <td class="ps-2 py-2 text-end">
-                           <p><span class="fs-16" data-coinall="{{$.Info.CoinValueSupply}}" data-market-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
+                           <p><span class="fs-16" data-coinall="{{$.Info.CoinValueSupply}}"
+                                 data-market-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
                                  $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
                         </td>
                      </tr>
                   </tbody>
                </table>
                <div class="d-flex justify-content-between mb-1">
-                  <p class="mb-0 fs-13">Low (<span data-market-target="lowPrice">{{printf "%.2f" $botState.LowPrice}}</span>)</p>
-                  <p class="mb-0 fs-13">High (<span data-market-target="highPrice">{{printf "%.2f" $botState.HighPrice}}</span>)</p>
+                  <p class="mb-0 fs-13">Low (<span data-market-target="lowPrice">{{printf "%.2f"
+                        $botState.LowPrice}}</span>)</p>
+                  <p class="mb-0 fs-13">High (<span data-market-target="highPrice">{{printf "%.2f"
+                        $botState.HighPrice}}</span>)</p>
                </div>
                <div class="fs22 text-center pb-3">
-                  <div class="range-price-bar" id="priceBar" data-market-target="priceBar" data-low="{{$botState.LowPrice}}"
-                     data-high="{{$botState.HighPrice}}" data-price="{{$botState.Price}}">
+                  <div class="range-price-bar" id="priceBar" data-market-target="priceBar"
+                     data-low="{{$botState.LowPrice}}" data-high="{{$botState.HighPrice}}"
+                     data-price="{{$botState.Price}}">
                      <div class="range-marker" id="currentMarker" data-market-target="priceBarMarker"></div>
-                     <div class="range-label fs-13" id="currentLabel"  data-market-target="priceBarLabel">{{printf "%.2f" $botState.Price}}</div>
+                     <div class="range-label fs-13" id="currentLabel" data-market-target="priceBarLabel">{{printf "%.2f"
+                        $botState.Price}}</div>
                   </div>
                </div>
             </div>
             {{- /* DCR/BTC MARKETS */ -}}
-            <div class="ms-4 me-2 my-4 p-2 p-lg-4 bg-white new-home-card-container">
+            <div class="mx-2 my-4 my-md-3 p-2 p-lg-3 bg-white new-home-card-container">
                <table class="mx-auto mx-lg-3">
                   <tbody>
                      <tr class="fs14 lh1rem">
@@ -1238,24 +1268,27 @@
                         <td></td>
                      </tr>
                      {{range $botState.VolumeOrderedExchanges}}
-                     <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
-                        <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}</td>
+                     <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
+                        data-token="{{.Token}}">
+                        <td class="py-2 fs18 fw-bold">
+                           <div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}
+                        </td>
                         <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                            {{threeSigFigs .State.BaseVolume}}
+                           {{threeSigFigs .State.BaseVolume}}
                         </td>
                         <td class="ps-3 fs16 py-2 text-end" data-type="price">
-                            {{threeSigFigs .State.Price}}
+                           {{threeSigFigs .State.Price}}
                         </td>
                         <td class="fs16 px-2" data-type="arrow">
-                          {{if eq .State.Change 0.0}}
-                              <span></span>
-                          {{else if gt .State.Change 0.0}}
-                              <span class="dcricon-arrow-up text-green"></span>
-                          {{else}}
-                              <span class="dcricon-arrow-down text-danger"></span>
-                          {{end}}
+                           {{if eq .State.Change 0.0}}
+                           <span></span>
+                           {{else if gt .State.Change 0.0}}
+                           <span class="dcricon-arrow-up text-green"></span>
+                           {{else}}
+                           <span class="dcricon-arrow-down text-danger"></span>
+                           {{end}}
                         </td>
-                    </tr>
+                     </tr>
                      {{end}}
                      <tr class="fs sum-row hover-row" data-market-target="xcRow" data-action="click->market#setExchange"
                         data-token="aggregated">
@@ -1283,8 +1316,8 @@
             </div>
          </div>
          {{- /* RIGHT COLUMN */ -}}
-         <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 px-2 my-4 bg-white new-home-card-container">
-            <div class="col me-md-2 flex-grow-1 d-flex flex-column position-relative px-0 px-md-2">
+         <div class="flex-grow-0 flex-lg-grow-1 col-24 col-lg px-2 my-4 bg-white">
+            <div class="me-md-2 flex-grow-1 d-flex flex-column position-relative px-0 px-md-2 new-home-card-container">
                <div class="loader-v2 loading" data-market-target="chartLoader"></div>
                {{- /* CHART ONTROLS */ -}}
                <div
@@ -1405,7 +1438,7 @@
    </div>
    <div class="hp-explore-wrap homepage-page row mx-0">
       <div class="px-0 snap-page-content">
-         <section class="h-100 px-3 py-2">
+         <section class="h-100 py-2">
             {{with .Info -}}
             <div class="row">
                <div class="col-24 col-lg-14 p-2">
@@ -1417,7 +1450,7 @@
                            <p class="ms-2 mb-0 fw-600 fs-17">Ticket Pool</p>
                         </div>
                      </a>
-                     <div class="row px-3 py-2">
+                     <div class="row px-2 px-md-3 py-2">
                         <div class="col-12 col-md-8">
                            <div class="new-network-stats-block large-new-stats-block">
                               <span class="new-network-stats-title">
@@ -1563,11 +1596,13 @@
                                     </span>
                                  </span>
                               </span>
-                              <span data-homepage-target="missedTickets" class="new-network-stats-content d-inline-block">
+                              <span data-homepage-target="missedTickets"
+                                 class="new-network-stats-content d-inline-block">
                                  {{intComma .MissedTickets}}
                               </span>
                               <span class="stats-subinfo">
-                                 <span data-homepage-target="last1000BlocksMissed">{{intComma .Last1000BlocksMissed}}</span> misses / last 1000 blocks
+                                 <span data-homepage-target="last1000BlocksMissed">{{intComma
+                                    .Last1000BlocksMissed}}</span> misses / last 1000 blocks
                               </span>
                            </div>
                         </div>
@@ -1656,7 +1691,7 @@
                            loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">Voting Service Providers</p>
                      </div>
-                     <div class="row justify-content-between px-3 py-2">
+                     <div class="row justify-content-between px-2 px-md-3 py-2">
                         <div class="col-24">
                            <div class="br-8 b--def bgc-plain-bright">
                               <div class="btable-table-wrap maxh-none mt-2">
@@ -1675,8 +1710,7 @@
                                        {{range $.SummaryInfo.VSPList}}
                                        <tr>
                                           <td class="text-start">
-                                             <a target="_blank"
-                                                href="https://{{.VSPLink}}">{{.VSPLink}}</a>
+                                             <a target="_blank" href="https://{{.VSPLink}}">{{.VSPLink}}</a>
                                           </td>
                                           <td class="text-center">
                                              {{.Voting}}
@@ -1719,11 +1753,12 @@
                            loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">24h Chain Summary</p>
                      </div>
-                     <div class="row px-3 py-2">
+                     <div class="row px-2 px-md-3 py-2">
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Mined Blocks</span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="mined24hBlocks">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="mined24hBlocks">
                                  {{int64Comma .Blocks}}
                               </span>
                            </div>
@@ -1731,7 +1766,8 @@
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Transactions</span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="txs24hCount">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="txs24hCount">
                                  {{int64Comma .NumTx24h}}
                               </span>
                            </div>
@@ -1747,7 +1783,7 @@
                               {{if $conv -}}
                               <span class="stats-subinfo">
                                  <span data-homepage-target="sent24hUsd">{{threeSigFigs $conv.Sent24h.Value}}
-                                 {{$conv.Sent24h.Index}}</span> (today)</span>
+                                    {{$conv.Sent24h.Index}}</span> (today)</span>
                               {{end}}
                            </div>
                         </div>
@@ -1769,7 +1805,8 @@
                         <div class="col-12 col-md-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Total Outputs</span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="vout24h">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="vout24h">
                                  {{int64Comma .NumVout24h}}
                               </span>
                            </div>
@@ -1783,7 +1820,8 @@
                                     </span>
                                  </span>
                               </span>
-                              <div class="new-network-stats-content d-inline-block pt-1" data-homepage-target="activeAddr24h">
+                              <div class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="activeAddr24h">
                                  {{int64Comma .ActiveAddresses}}
                               </div>
                            </div>
@@ -1814,8 +1852,9 @@
                               <span class="new-network-stats-title">DCR Supply</span>
                               <span class="new-network-stats-content d-inline-block">
                                  <span class="fs15">+</span>
-                                 <span data-homepage-target="supply24h">{{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .DCRSupply) 2
-                                 true)}}</span>
+                                 <span data-homepage-target="supply24h">{{template "decimalParts" (float64AsDecimalParts
+                                    (toFloat64Amount .DCRSupply) 2
+                                    true)}}</span>
                               </span>
                               <span class="new-info-line-2-sub">DCR</span>
                               {{if $conv -}}
@@ -1834,7 +1873,8 @@
                                     </span>
                                  </span>
                               </span>
-                              <span class="new-network-stats-content d-inline-block" data-homepage-target="treasuryBal24h">
+                              <span class="new-network-stats-content d-inline-block"
+                                 data-homepage-target="treasuryBal24h">
                                  {{if gt .TreasuryBalanceChange 0}}
                                  <span class="dcricon-arrow-up text-green"></span>
                                  {{else}}
@@ -1871,7 +1911,7 @@
                            loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">24h Staking</p>
                      </div>
-                     <div class="row justify-content-between px-3 py-2">
+                     <div class="row justify-content-between px-2 px-md-3 py-2">
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Staked DCR</span>
@@ -1903,7 +1943,8 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">PoS Rewards</span>
-                              <span class="new-network-stats-content d-inline-block" data-homepage-target="posReward24h">
+                              <span class="new-network-stats-content d-inline-block"
+                                 data-homepage-target="posReward24h">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .PosReward) 2
                                  true)}}
                               </span>
@@ -1918,7 +1959,8 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Voted</span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="voted24h">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="voted24h">
                                  {{int64Comma .Voted}}
                               </span>
                               <span class="new-info-line-2-sub">votes</span>
@@ -1927,7 +1969,8 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Missed</span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="missed24h">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="missed24h">
                                  {{int64Comma .Missed}}
                               </span>
                               <span class="new-info-line-2-sub">votes</span>
@@ -1941,11 +1984,12 @@
                            loading="lazy"></span>
                         <p class="ms-2 mb-0 fw-600 fs-17">24h Atomic Swaps</p>
                      </div>
-                     <div class="row justify-content-between px-3 py-2">
+                     <div class="row justify-content-between px-2 px-md-3 py-2">
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Swaps Amount</span>
-                              <div class="new-network-stats-content d-inline-block" data-homepage-target="swapAmount24h">
+                              <div class="new-network-stats-content d-inline-block"
+                                 data-homepage-target="swapAmount24h">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
                                  .AtomicSwapAmount) 2 true)}}
                               </div>
@@ -1960,17 +2004,20 @@
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Swaps Tx Count</span>
-                              <span class="new-network-stats-content d-inline-block" data-homepage-target="swapCount24h">
+                              <span class="new-network-stats-content d-inline-block"
+                                 data-homepage-target="swapCount24h">
                                  {{int64Comma (add .SwapRedeemCount .SwapRefundCount)}}
                               </span>
-                              <span class="stats-subinfo" data-homepage-target="swapPartCount24h">{{int64Comma .SwapRedeemCount}} redemptions,
+                              <span class="stats-subinfo" data-homepage-target="swapPartCount24h">{{int64Comma
+                                 .SwapRedeemCount}} redemptions,
                                  {{int64Comma .SwapRefundCount}} refunds</span>
                            </div>
                         </div>
                         <div class="col-12">
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Bison Wallet Vol</span>
-                              <span class="new-network-stats-content d-inline-block pt-1" data-homepage-target="bwVol24h">
+                              <span class="new-network-stats-content d-inline-block pt-1"
+                                 data-homepage-target="bwVol24h">
                                  {{int64Comma .BisonWalletVol}}
                               </span>
                               <span class="new-info-line-2-sub">USD</span>
@@ -1987,227 +2034,223 @@
    </div>
    <div class="hp-explore-wrap homepage-page">
       <div style="width: 100%; height: 100%;" class="snap-page-content">
-         <section class="h-100 px-3 py-2">
-            <div class="row">
-               <div class="col-24 p-2">
-                  <div class="new-home-card-container">
-                     <a href="/charts" data-turbolinks="false" class="link-to-subpage">
-                        <div class="row new-home-card-header mx-0">
-                           <div class="col-xs-24 col-md-8 col-lg-7 col-xl-4 py-2 px-3 d-flex ai-center">
-                              <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
-                                 loading="lazy"></span>
-                              <p class="ms-2 mb-0 fw-600 fs-17">Chain Charts</p>
-                           </div>
-                           <div class="col-xs-24 col-md-16 col-lg-17 col-xl-20 d-flex justify-content-center ai-center">
-                              <span class="fs-22 fw-600" data-charts-target="chartTitleName"></span>
+         <section class="h-100 px-2 px-md-3 py-2">
+            <div class="new-home-card-container">
+               <a href="/charts" data-turbolinks="false" class="link-to-subpage">
+                  <div class="row new-home-card-header mx-0">
+                     <div class="col-24 col-md-8 col-lg-7 col-xl-4 py-2 px-3 d-flex ai-center">
+                        <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Chain Charts</p>
+                     </div>
+                     <div class="col-xs-24 col-md-16 col-lg-17 col-xl-20 d-none d-md-flex justify-content-center ai-center">
+                        <span class="fs-22 fw-600" data-charts-target="chartTitleName"></span>
+                     </div>
+                  </div>
+               </a>
+               <div class="px-2 px-md-3 py-2">
+                  <div class="row">
+                     <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-4 align-center">
+                        <div class="chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
+                           <div class="chart-control-label">CHART</div>
+                           <div class="chart-control">
+                              <select id="selectBox" class="form-control chart-form-control"
+                                 data-charts-target="chartSelect" data-action="charts#selectChart">
+                                 <optgroup label="Staking">
+                                    <option value="ticket-price">Ticket Price</option>
+                                    <option value="ticket-pool-size">Ticket Pool Size</option>
+                                    <option value="ticket-pool-value">Ticket Pool Value</option>
+                                    <option value="stake-participation">Stake Participation</option>
+                                    <option value="privacy-participation">Privacy Participation</option>
+                                    <option value="missed-votes">Missed Votes</option>
+                                 </optgroup>
+                                 <optgroup label="Chain">
+                                    <option value="block-size">Block Size</option>
+                                    <option value="blockchain-size">Blockchain Size</option>
+                                    <option value="tx-count">Transaction Count</option>
+                                    <option value="duration-btw-blocks">Duration Between Blocks</option>
+                                 </optgroup>
+                                 <optgroup label="Mining">
+                                    <option value="pow-difficulty">PoW Difficulty</option>
+                                    <option value="chainwork">Total Work</option>
+                                    <option value="hashrate">Hashrate</option>
+                                 </optgroup>
+                                 <optgroup label="Distribution">
+                                    <option value="coin-supply">Coin Supply</option>
+                                    <option value="fees">Fees</option>
+                                 </optgroup>
+                              </select>
                            </div>
                         </div>
-                     </a>
-                     <div class="px-3 py-2">
-                        <div class="row">
-                           <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-4 align-center">
-                              <div class="chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
-                                 <div class="chart-control-label">CHART</div>
-                                 <div class="chart-control">
-                                    <select id="selectBox" class="form-control chart-form-control"
-                                       data-charts-target="chartSelect" data-action="charts#selectChart">
-                                       <optgroup label="Staking">
-                                          <option value="ticket-price">Ticket Price</option>
-                                          <option value="ticket-pool-size">Ticket Pool Size</option>
-                                          <option value="ticket-pool-value">Ticket Pool Value</option>
-                                          <option value="stake-participation">Stake Participation</option>
-                                          <option value="privacy-participation">Privacy Participation</option>
-                                          <option value="missed-votes">Missed Votes</option>
-                                       </optgroup>
-                                       <optgroup label="Chain">
-                                          <option value="block-size">Block Size</option>
-                                          <option value="blockchain-size">Blockchain Size</option>
-                                          <option value="tx-count">Transaction Count</option>
-                                          <option value="duration-btw-blocks">Duration Between Blocks</option>
-                                       </optgroup>
-                                       <optgroup label="Mining">
-                                          <option value="pow-difficulty">PoW Difficulty</option>
-                                          <option value="chainwork">Total Work</option>
-                                          <option value="hashrate">Hashrate</option>
-                                       </optgroup>
-                                       <optgroup label="Distribution">
-                                          <option value="coin-supply">Coin Supply</option>
-                                          <option value="fees">Fees</option>
-                                       </optgroup>
-                                    </select>
-                                 </div>
-                              </div>
-                              <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                 data-charts-target="rangeSelector">
-                                 <div class="chart-control-label">Blake3 Milestone</div>
-                                 <div class="chart-control chart-filter-selection ps-2">
-                                    <ul class="nav nav-pills">
-                                       <li class="nav-item nav-link active" data-charts-target="rangeOption"
-                                          data-action="click->charts#setRange" data-option="all">
-                                          All
-                                       </li>
-                                       <li class="nav-item nav-link active" data-charts-target="rangeOption"
-                                          data-action="click->charts#setRange" data-option="before">
-                                          Before
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="rangeOption"
-                                          data-action="click->charts#setRange" data-option="after">
-                                          After
-                                       </li>
-                                    </ul>
-                                 </div>
-                              </div>
-                              <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                 data-charts-target="zoomSelector">
-                                 <div class="chart-control-label">ZOOM</div>
-                                 <div class="chart-control chart-filter-selection ps-2">
-                                    <ul class="nav nav-pills">
-                                       <li class="nav-item nav-link active" data-charts-target="zoomOption"
-                                          data-action="click->charts#setZoom" data-option="all">
-                                          All
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                          data-action="click->charts#setZoom" data-option="year">
-                                          Year
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                          data-action="click->charts#setZoom" data-option="month">
-                                          Month
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                          data-action="click->charts#setZoom" data-option="week">
-                                          Week
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="zoomOption"
-                                          data-action="click->charts#setZoom" data-option="day">
-                                          Day
-                                       </li>
-                                    </ul>
-                                 </div>
-                              </div>
-                              <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                 data-charts-target="binSelector">
-                                 <div class="chart-control-label">BIN</div>
-                                 <div class="chart-control chart-filter-selection ps-2">
-                                    <ul class="nav nav-pills">
-                                       <li class="nav-item nav-link active" data-charts-target="binSize"
-                                          data-action="click->charts#setBin" data-option="day">
-                                          Day
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="binSize"
-                                          data-action="click->charts#setBin" data-option="block">
-                                          Blocks
-                                       </li>
-                                    </ul>
-                                 </div>
-                              </div>
-                              <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                 data-charts-target="scaleSelector">
-                                 <div class="chart-control-label">SCALE</div>
-                                 <div class="chart-control chart-filter-selection ps-2">
-                                    <ul class="nav nav-pills">
-                                       <li class="nav-item nav-link active" data-charts-target="scaleType"
-                                          data-action="click->charts#setScale" data-option="linear">
-                                          Linear
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="scaleType"
-                                          data-action="click->charts#setScale" data-option="log">
-                                          Log
-                                       </li>
-                                    </ul>
-                                 </div>
-                              </div>
-                              <div class="chart-control-wrapper chart-filter-tools mb-1" data-charts-target="vSelector">
-                                 <div class="chart-control-label">VISIBILITY</div>
-                                 <div class="chart-control chart-filter-selection ps-2">
-                                    <ul class="nav nav-pills">
-                                       <li class="nav-item" data-charts-target="vSelectorItem"
-                                          data-charts="ticket-price">
-                                          <label class="customcheck ms-2 d-inline-flex">Price
-                                             <input type="checkbox" checked="checked"
-                                                data-action="click->charts#setVisibility"
-                                                data-charts-target="ticketsPrice">
-                                             <span class="checkmark tickets-price"></span>
-                                          </label>
-                                       </li>
-                                       <li class="nav-item" data-charts-target="vSelectorItem"
-                                          data-charts="ticket-price">
-                                          <label class="customcheck mx-2 d-inline-flex">Tickets Bought
-                                             <input type="checkbox" data-action="click->charts#setVisibility"
-                                                data-charts-target="ticketsPurchase">
-                                             <span class="checkmark tickets-bought"></span>
-                                          </label>
-                                       </li>
-                                       <li class="nav-item">
-                                          <label class="customcheck mx-2 d-inline-flex"
-                                             data-charts-target="vSelectorItem" data-charts="coin-supply">Mixed
-                                             Coins
-                                             <input type="checkbox" data-action="click->charts#setVisibility"
-                                                data-charts-target="anonymitySet">
-                                             <span class="checkmark total-mixed"></span>
-                                          </label>
-                                       </li>
-                                    </ul>
-                                 </div>
-                              </div>
-                              <div class="chart-control-wrapper chart-filter-tools mb-1"
-                                 data-charts-target="modeSelector">
-                                 <div class="chart-control-label">MODE</div>
-                                 <div class="chart-control chart-filter-selection ps-2">
-                                    <ul class="nav nav-pills">
-                                       <li class="nav-item nav-link active" data-charts-target="modeOption"
-                                          data-action="click->charts#setMode" data-option="smooth">
-                                          Smooth
-                                       </li>
-                                       <li class="nav-item nav-link" data-charts-target="modeOption"
-                                          data-action="click->charts#setMode" data-option="stepped">
-                                          Stepped
-                                       </li>
-                                    </ul>
-                                 </div>
+                        <div class="chart-control-wrapper chart-filter-tools mb-1"
+                           data-charts-target="rangeSelector">
+                           <div class="chart-control-label">Blake3 Milestone</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                    data-action="click->charts#setRange" data-option="all">
+                                    All
+                                 </li>
+                                 <li class="nav-item nav-link active" data-charts-target="rangeOption"
+                                    data-action="click->charts#setRange" data-option="before">
+                                    Before
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="rangeOption"
+                                    data-action="click->charts#setRange" data-option="after">
+                                    After
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="chart-control-wrapper chart-filter-tools mb-1"
+                           data-charts-target="zoomSelector">
+                           <div class="chart-control-label">ZOOM</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-charts-target="zoomOption"
+                                    data-action="click->charts#setZoom" data-option="all">
+                                    All
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                    data-action="click->charts#setZoom" data-option="year">
+                                    Year
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                    data-action="click->charts#setZoom" data-option="month">
+                                    Month
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                    data-action="click->charts#setZoom" data-option="week">
+                                    Week
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="zoomOption"
+                                    data-action="click->charts#setZoom" data-option="day">
+                                    Day
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="chart-control-wrapper chart-filter-tools mb-1"
+                           data-charts-target="binSelector">
+                           <div class="chart-control-label">BIN</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-charts-target="binSize"
+                                    data-action="click->charts#setBin" data-option="day">
+                                    Day
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="binSize"
+                                    data-action="click->charts#setBin" data-option="block">
+                                    Blocks
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="chart-control-wrapper chart-filter-tools mb-1"
+                           data-charts-target="scaleSelector">
+                           <div class="chart-control-label">SCALE</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-charts-target="scaleType"
+                                    data-action="click->charts#setScale" data-option="linear">
+                                    Linear
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="scaleType"
+                                    data-action="click->charts#setScale" data-option="log">
+                                    Log
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="chart-control-wrapper chart-filter-tools mb-1" data-charts-target="vSelector">
+                           <div class="chart-control-label">VISIBILITY</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item" data-charts-target="vSelectorItem"
+                                    data-charts="ticket-price">
+                                    <label class="customcheck ms-2 d-inline-flex">Price
+                                       <input type="checkbox" checked="checked"
+                                          data-action="click->charts#setVisibility"
+                                          data-charts-target="ticketsPrice">
+                                       <span class="checkmark tickets-price"></span>
+                                    </label>
+                                 </li>
+                                 <li class="nav-item" data-charts-target="vSelectorItem"
+                                    data-charts="ticket-price">
+                                    <label class="customcheck mx-2 d-inline-flex">Tickets Bought
+                                       <input type="checkbox" data-action="click->charts#setVisibility"
+                                          data-charts-target="ticketsPurchase">
+                                       <span class="checkmark tickets-bought"></span>
+                                    </label>
+                                 </li>
+                                 <li class="nav-item">
+                                    <label class="customcheck mx-2 d-inline-flex"
+                                       data-charts-target="vSelectorItem" data-charts="coin-supply">Mixed
+                                       Coins
+                                       <input type="checkbox" data-action="click->charts#setVisibility"
+                                          data-charts-target="anonymitySet">
+                                       <span class="checkmark total-mixed"></span>
+                                    </label>
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="chart-control-wrapper chart-filter-tools mb-1"
+                           data-charts-target="modeSelector">
+                           <div class="chart-control-label">MODE</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-charts-target="modeOption"
+                                    data-action="click->charts#setMode" data-option="smooth">
+                                    Smooth
+                                 </li>
+                                 <li class="nav-item nav-link" data-charts-target="modeOption"
+                                    data-action="click->charts#setMode" data-option="stepped">
+                                    Stepped
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                     </div>
+                     <div
+                        class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-20 border-1-grey home-chart-wrapper pe-0"
+                        data-charts-target="chartWrapper">
+                        <div class="d-flex w-100 position-relative">
+                           <div class="chart-name-label align-items-center d-none d-md-flex">
+                              <div class="homeicon-chartbar fs-20"></div>
+                              <span class="chart-name-content" data-charts-target="chartName"></span>
+                           </div>
+                           <div class="chartview" data-charts-target="chartsView">
+                           </div>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
+                           <div class="row">
+                              <div class="col-4 column-center chart-control chart-control-wrapper">
+                                 <ul class="nav nav-pills">
+                                    <li class="nav-item nav-link active" data-charts-target="axisOption"
+                                       data-action="click->charts#setAxis" data-option="time">
+                                       Time
+                                    </li>
+                                    <li class="nav-item nav-link" data-charts-target="axisOption"
+                                       data-action="click->charts#setAxis" data-option="height">
+                                       Blocks
+                                    </li>
+                                 </ul>
                               </div>
                            </div>
-                           <div
-                              class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-20 border-1-grey home-chart-wrapper pe-0"
-                              data-charts-target="chartWrapper">
-                              <div class="d-flex w-100 position-relative">
-                                 <div class="chart-name-label d-flex align-items-center">
-                                    <div class="homeicon-chartbar fs-20"></div>
-                                    <span class="chart-name-content" data-charts-target="chartName"></span>
-                                 </div>
-                                 <div class="chartview" data-charts-target="chartsView">
-                                 </div>
+                        </div>
+                        <span class="d-none" data-charts-target="rawDataURL"></span>
+                        <div class="spinner-wrapper">
+                           <div class="spinner-centerer d-flex align-items-center justify-content-center">
+                              <div class="spinner">
+                                 <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
                               </div>
-                              <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
-                                 <div class="row">
-                                    <div class="col-4 column-center chart-control chart-control-wrapper">
-                                       <ul class="nav nav-pills">
-                                          <li class="nav-item nav-link active" data-charts-target="axisOption"
-                                             data-action="click->charts#setAxis" data-option="time">
-                                             Time
-                                          </li>
-                                          <li class="nav-item nav-link" data-charts-target="axisOption"
-                                             data-action="click->charts#setAxis" data-option="height">
-                                             Blocks
-                                          </li>
-                                       </ul>
-                                    </div>
-                                 </div>
-                              </div>
-                              <span class="d-none" data-charts-target="rawDataURL"></span>
-                              <div class="spinner-wrapper">
-                                 <div class="spinner-centerer d-flex align-items-center justify-content-center">
-                                    <div class="spinner">
-                                       <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-                                    </div>
-                                 </div>
-                              </div>
-                              <div class="d-flex justify-content-center legend-wrapper">
-                                 <div class="legend d-flex align-items-center" data-charts-target="labels">
-                                    <div class="pe-3" data-charts-target="legendEntry">
-                                       <div class="dygraph-legend-line" data-charts-target="legendMarker">
-                                       </div>
-                                    </div>
+                           </div>
+                        </div>
+                        <div class="d-flex justify-content-center legend-wrapper">
+                           <div class="legend d-flex align-items-center" data-charts-target="labels">
+                              <div class="pe-3" data-charts-target="legendEntry">
+                                 <div class="dygraph-legend-line" data-charts-target="legendMarker">
                                  </div>
                               </div>
                            </div>
@@ -2236,5 +2279,6 @@
 </div>
 {{ template "footer" . }}
 </body>
+
 </html>
 {{- end}}
