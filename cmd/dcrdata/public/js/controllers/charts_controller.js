@@ -664,7 +664,7 @@ export default class extends Controller {
         gOptions.axes.y2 = {
           valueRange: [0, windowSize * 20 * 8],
           axisLabelFormatter: (y) => Math.round(y),
-          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['ticket-price'] : yAxisLabelWidth.y2['ticket-price'] + 10
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['ticket-price'] : yAxisLabelWidth.y2['ticket-price'] + 15
         }
         yFormatter = customYFormatter(y => y.toFixed(8) + ' DCR')
         break
@@ -811,7 +811,7 @@ export default class extends Controller {
         break
     }
     gOptions.axes.y = {
-      axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 5
+      axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 15
     }
     const baseURL = `${this.query.url.protocol}//${this.query.url.host}`
     this.rawDataURLTarget.textContent = `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
@@ -829,39 +829,39 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
-      this.scaleSelectorTarget.classList.add('d-hide')
-      this.vSelectorTarget.classList.remove('d-hide')
+      this.hideMultiTargets(this.scaleSelectorTargets)
+      this.showMultiTargets(this.vSelectorTargets)
     } else {
-      this.scaleSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.scaleSelectorTargets)
     }
     if (isModeEnabled(selection)) {
-      this.modeSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.modeSelectorTargets)
     } else {
-      this.modeSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.modeSelectorTargets)
     }
     if (hasMultipleVisibility(selection)) {
-      this.vSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.vSelectorTargets)
       this.updateVSelector(selection)
     } else {
-      this.vSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.vSelectorTargets)
     }
     if (useRange(selection)) {
       this.settings.range = this.selectedRange()
       rangeOption = this.settings.range
-      this.rangeSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.rangeSelectorTargets)
     } else {
       this.settings.range = ''
       rangeOption = ''
-      this.rangeSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.rangeSelectorTargets)
     }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
       this.settings.axis !== this.selectedAxis() || this.settings.range !== this.selectedRange()) {
       let url = '/api/chart/' + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
-        this.binSelectorTarget.classList.add('d-hide')
+        this.hideMultiTargets(this.binSelectorTargets)
         this.settings.bin = 'window'
       } else {
-        this.binSelectorTarget.classList.remove('d-hide')
+        this.showMultiTargets(this.binSelectorTargets)
         this.settings.bin = this.selectedBin()
         this.binSizeTargets.forEach(el => {
           if (el.dataset.option !== 'window') return
@@ -1099,6 +1099,9 @@ export default class extends Controller {
     const that = this
     let showWrapper = false
     this.vSelectorItemTargets.forEach(el => {
+      if ((isMobile() && !el.classList.contains('mobile-mode')) || (!isMobile() && el.classList.contains('mobile-mode'))) {
+        return
+      }
       let show = el.dataset.charts.indexOf(chart) > -1
       if (el.dataset.bin && el.dataset.bin.indexOf(that.selectedBin()) === -1) {
         show = false
@@ -1111,9 +1114,9 @@ export default class extends Controller {
       }
     })
     if (showWrapper) {
-      this.vSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.vSelectorTargets)
     } else {
-      this.vSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.vSelectorTargets)
     }
     this.setVisibilityFromSettings()
   }
@@ -1195,5 +1198,22 @@ export default class extends Controller {
       if (el.classList.contains('active')) key = el.dataset.option
     })
     return key
+  }
+
+  hideMultiTargets (opts) {
+    opts.forEach((opt) => {
+      opt.classList.add('d-hide')
+    })
+  }
+
+  showMultiTargets (opts) {
+    opts.forEach((opt) => {
+      if ((isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))) {
+        opt.classList.add('d-hide')
+      } else {
+        opt.classList.remove('d-hide')
+        opt.classList.remove('d-none')
+      }
+    })
   }
 }
