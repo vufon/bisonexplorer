@@ -45,12 +45,44 @@ const exchangeLinks = {
 
 const btcPairUses = ['btc_binance', 'btc_coinex', 'dcrdex', 'aggregated']
 
+const yAxisLabelWidth = {
+  usdt: {
+    depth: 40,
+    orders: 50,
+    candlestick: 30,
+    history: 30,
+    volume: 40
+  },
+  btc: {
+    depth: 40,
+    orders: 40,
+    candlestick: 60,
+    history: 60,
+    volume: 40
+  }
+}
+
+function isMobile () {
+  return window.innerWidth <= 768
+}
+
 function useBTCPair (exchange) {
   return btcPairUses.indexOf(exchange) > -1
 }
 
 function useUSDPair (exchange) {
   return btcPairUses.indexOf(exchange) < 0 || exchange === 'aggregated'
+}
+
+function getAxisWidth (pair, chart) {
+  if (!pair || pair === '' || !yAxisLabelWidth[pair] || !yAxisLabelWidth[pair][chart]) {
+    return 50
+  }
+  return yAxisLabelWidth[pair][chart]
+}
+
+function getYAxisLabel (label) {
+  return isMobile() ? '' : label
 }
 
 const printNames = {
@@ -112,15 +144,15 @@ function clearCache (k) {
   delete responseCache[k]
 }
 
-const lightStroke = '#333'
+const lightStroke = '#5587a4'
 const darkStroke = '#ddd'
 let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
-const gridColor = '#7774'
+const gridColor = '#a5b7cf'
 const binList = ['5m', '30m', '1h', '4h', '1d', 'week', '1mo']
 let settings = {}
-const xcColors = [chartStroke, '#ed6d47', '#41be53', '#3087d8', '#dece12']
+const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12']
 
 let colorNumerator = 0
 let colorDenominator = 1
@@ -176,7 +208,8 @@ const commonChartOpts = {
   ylabel: ' ',
   pointSize: 6,
   showRangeSelector: true,
-  rangeSelectorPlotFillColor: '#C4CBD2',
+  rangeSelectorPlotFillColor: '#b5d2ed',
+  foregroundStrokeColor: '#1e5180',
   rangeSelectorAlpha: 0.4,
   rangeSelectorHeight: 40
 }
@@ -656,7 +689,7 @@ export default class extends Controller {
     if (settings.chart == null) {
       settings.chart = depth
     }
-    if (settings.pair == null) {
+    if (settings.pair == null || !settings.pair) {
       settings.pair = 'usdt'
     }
     this.pairSelectTarget.value = settings.pair
@@ -895,6 +928,12 @@ export default class extends Controller {
     } else {
       this.ageTarget.classList.add('d-hide')
     }
+    // clear canvas before update
+    const canvas = this.chartTarget.querySelector('canvas')
+    if (canvas) {
+      const context = canvas.getContext('2d')
+      context.clearRect(0, 0, canvas.width, canvas.height)
+    }
     this.graph.updateOptions(chartResetOpts, true)
     if (settings.chart === 'history') {
       this.graph.updateOptions(this.processors.xchistory(xcResponseMap))
@@ -944,7 +983,7 @@ export default class extends Controller {
       file: data,
       labels: ['time', 'open', 'close', 'high', 'low'],
       xlabel: 'Time',
-      ylabel: 'Price (USD)',
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       plotter: candlestickPlotter,
       axes: {
         x: {
@@ -952,7 +991,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1047,7 +1087,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: 'Price (USD)',
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1056,7 +1096,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 2
@@ -1076,7 +1117,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'price'],
       xlabel: 'Time',
-      ylabel: 'Price (USD)',
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1085,7 +1126,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 3
@@ -1180,7 +1222,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: `Volume (DCR / ${prettyDurations[settings.bin]})`,
+      ylabel: getYAxisLabel(`Volume (DCR / ${prettyDurations[settings.bin]})`),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1189,7 +1231,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 2
@@ -1206,7 +1249,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'volume'],
       xlabel: 'Time',
-      ylabel: `Volume (DCR / ${prettyDurations[settings.bin]})`,
+      ylabel: getYAxisLabel(`Volume (DCR / ${prettyDurations[settings.bin]})`),
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1215,7 +1258,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 3
@@ -1233,7 +1277,7 @@ export default class extends Controller {
       fillGraph: true,
       colors: ['#ed6d47', '#41be53'],
       xlabel: 'Price (USD)',
-      ylabel: 'Volume (DCR)',
+      ylabel: getYAxisLabel('Volume (DCR)'),
       tokens: null,
       stats: data.stats,
       plotter: depthPlotter, // Don't use Dygraph.linePlotter here. fillGraph won't work.
@@ -1245,7 +1289,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1273,7 +1318,7 @@ export default class extends Controller {
       file: data.pts,
       colors: colors,
       xlabel: 'Price (USD)',
-      ylabel: 'Volume (DCR)',
+      ylabel: getYAxisLabel('Volume (DCR)'),
       plotter: depthPlotter,
       fillGraph: aggStacking,
       stackedGraph: aggStacking,
@@ -1288,7 +1333,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1301,7 +1347,7 @@ export default class extends Controller {
       file: data.pts,
       colors: ['#f93f39cc', '#1acc84cc'],
       xlabel: 'Price (USD)',
-      ylabel: 'Volume (DCR)',
+      ylabel: getYAxisLabel('Volume (DCR)'),
       plotter: orderPlotter,
       axes: {
         x: {
@@ -1309,7 +1355,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       stats: data.stats,
