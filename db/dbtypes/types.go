@@ -2176,16 +2176,16 @@ type BlockDataBasic struct {
 }
 
 type TicketsSummaryInfo struct {
-	MissedTickets              uint64
-	Last1000BlocksMissed       uint64
-	Last1000BlocksTicketFeeAvg float64
-	TicketMaturity             uint64
-	TicketMaturityDuration     uint64
-	TicketExpiration           uint64
-	TicketExpirationDuration   uint64
-	WinProbability             float64
-	BlocksNeedToWin            uint64
-	TimeToBlocksNeedToWin      uint64
+	MissedTickets              uint64  `json:"missedTickets,omitempty"`
+	Last1000BlocksMissed       uint64  `json:"last1000BlocksMissed,omitempty"`
+	Last1000BlocksTicketFeeAvg float64 `json:"last1000BlocksTicketFeeAvg,omitempty"`
+	TicketMaturity             uint64  `json:"ticketMaturity,omitempty"`
+	TicketMaturityDuration     uint64  `json:"ticketMaturityDuration,omitempty"`
+	TicketExpiration           uint64  `json:"ticketExpiration,omitempty"`
+	TicketExpirationDuration   uint64  `json:"ticketExpirationDuration,omitempty"`
+	WinProbability             float64 `json:"winProbability,omitempty"`
+	BlocksNeedToWin            uint64  `json:"blocksNeedToWin,omitempty"`
+	TimeToBlocksNeedToWin      uint64  `json:"timeToBlocksNeedToWin,omitempty"`
 }
 
 // BlockStatus describes a block's status in the block chain.

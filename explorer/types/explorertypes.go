@@ -548,6 +548,22 @@ type Conversion struct {
 	Index string  `json:"index"`
 }
 
+type SummaryInfo struct {
+	PeerCount          int64                         `json:"peerCount"`
+	TotalTransactions  int64                         `json:"total_transactions"`
+	TotalAddresses     int64                         `json:"total_addresses"`
+	TotalOutputs       int64                         `json:"total_outputs"`
+	SwapsTotalAmount   int64                         `json:"swapsTotalAmount"`
+	SwapsTotalContract int64                         `json:"swapsTotalContract"`
+	RefundCount        int64                         `json:"refundCount"`
+	PoolDataList       []*dbtypes.PoolDataItem       `json:"poolDataList"`
+	VSPList            []externalapi.VSPResponse     `json:"vspList"`
+	BisonWalletVol     int64                         `json:"bisonWalletVol"`
+	BWLast30DaysVol    int64                         `json:"bwLast30DaysVol"`
+	TicketsSummary     *dbtypes.TicketsSummaryInfo   `json:"ticketsSummary"`
+	GroupSwaps         []*dbtypes.AtomicSwapFullData `json:"groupSwaps"`
+}
+
 // HomeInfo represents data used for the home page
 type HomeInfo struct {
 	CoinSupply            int64                       `json:"coin_supply"`
@@ -1092,6 +1108,11 @@ type WebsocketBlock struct {
 	Block  *BlockInfo   `json:"block"`
 	Blocks []*BlockInfo `json:"blocks"`
 	Extra  *HomeInfo    `json:"extra"`
+}
+
+type WebsocketSummary struct {
+	SummaryInfo *SummaryInfo          `json:"summary_info"`
+	Summary24h  *dbtypes.Block24hInfo `json:"summary_24h"`
 }
 
 // BlockID provides basic identifying information about a block.

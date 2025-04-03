@@ -22,6 +22,12 @@
   height: 100vh;
 }
 
+@media (max-width: 767px) {
+  .homepage-content {
+    scroll-snap-type: none;
+  }
+}
+
 .homepage-page {
   display: flex;
   align-items: start;
@@ -41,6 +47,7 @@
   padding: 10px;
   gap: 10px;
   justify-content: center;
+  z-index: 100;
 }
 
 .home-thumbnail-bar img {

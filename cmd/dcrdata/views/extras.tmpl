@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.a8ac183caca165e9.css" rel="stylesheet">
+	<link href="/dist/css/style.15d3516bb1c4acc2.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -171,7 +171,9 @@
 <body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} new-homepage-body" data-controller="scroll homepage"
 	data-homepage-vote-status="{{.VotesStatus}}"
     data-homepage-proposal-count="{{.ProposalCountMap}}"
-    data-homepage-dev="true">
+    data-homepage-dev="true"
+	{{if .Conversions}} data-homepage-exchange-rate="{{.Conversions.ExchangeRate.Value}}" 
+	data-homepage-exchange-index="{{.Conversions.ExchangeRate.Index}}"{{end}}>
 	<header class="top-nav d-flex align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
 		<div class="container d-flex align-items-center px-0 my-1">
 		   <div class="row w-100">
@@ -401,7 +403,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.766ab859b59647a0.bundle.js"
+	src="/dist/js/app.77ef63ff98c2f497.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

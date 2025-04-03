@@ -199,6 +199,7 @@ type homeConversions struct {
 	PosReward24h      *exchanges.Conversion
 	Supply24h         *exchanges.Conversion
 	Treasury24hChange *exchanges.Conversion
+	TxFeeAvg          *exchanges.Conversion
 }
 
 // For the exchange rates on the homepage
@@ -243,133 +244,6 @@ func (exp *ExplorerUI) DecredHome(w http.ResponseWriter, r *http.Request) {
 		strconv.Itoa(int(ticketvotev1.VoteStatusRejected)):     "Rejected",
 		strconv.Itoa(int(ticketvotev1.VoteStatusIneligible)):   "Ineligible",
 	}
-	var proposalCountMap = exp.proposals.CountProposals(votesStatus)
-	var proposalCountJsonStr = ""
-	var voteStatusJsonStr = ""
-	proposalCountJson, err := json.Marshal(proposalCountMap)
-	if err == nil {
-		proposalCountJsonStr = string(proposalCountJson)
-	}
-	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
-	inv.RLock()
-	exp.pageData.RLock()
-	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
-	//get ticket pool size
-	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
-	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
-	voteStatusJson, err := json.Marshal(votesStatus)
-	if err == nil {
-		voteStatusJsonStr = string(voteStatusJson)
-	}
-
-	// Get fiat conversions if available
-	homeInfo := exp.pageData.HomeInfo
-	var conversions *homeConversions
-	xcBot := exp.xcBot
-	if xcBot != nil {
-		conversions = &homeConversions{
-			ExchangeRate:    xcBot.Conversion(1.0),
-			StakeDiff:       xcBot.Conversion(homeInfo.StakeDiff),
-			CoinSupply:      xcBot.Conversion(dcrutil.Amount(homeInfo.CoinSupply).ToCoin()),
-			PowSplit:        xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.PoW).ToCoin()),
-			TreasurySplit:   xcBot.Conversion(dcrutil.Amount(homeInfo.NBlockSubsidy.Dev).ToCoin()),
-			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + homeInfo.TreasuryBalance.Balance).ToCoin()),
-		}
-		if homeInfo.Block24hInfo != nil {
-			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())
-			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Fees24h).ToCoin())
-		}
-	}
-	exp.pageData.RUnlock()
-	inv.RUnlock()
-
-	var commonData = exp.commonData(r)
-	commonData.IsHomepage = true
-
-	var marketCap *dbtypes.MarketCapData
-	for _, capData := range exp.CoinCapDataList {
-		if capData.Symbol == dbtypes.ChainSymbolMap[mutilchain.TYPEDCR] {
-			marketCap = capData
-			break
-		}
-	}
-	str, err := exp.templates.exec("decred_home", struct {
-		*CommonPageData
-		Info             *types.HomeInfo
-		Mempool          *types.MempoolInfo
-		TrimmedMempool   *types.TrimmedMempoolInfo
-		BestBlock        *types.BlockBasic
-		BlockTally       []int
-		Consensus        int
-		Conversions      *homeConversions
-		PercentChange    float64
-		Premine          int64
-		TargetPoolSize   uint32
-		XcState          *exchanges.ExchangeBotState
-		VotingSummary    *agendas.VoteSummary
-		ProposalCountMap string
-		VotesStatus      string
-		MarketCap        *dbtypes.MarketCapData
-	}{
-		CommonPageData:   commonData,
-		Info:             homeInfo,
-		Mempool:          inv,
-		TrimmedMempool:   mempoolInfo,
-		BestBlock:        bestBlock,
-		BlockTally:       tallys,
-		Consensus:        consensus,
-		Conversions:      conversions,
-		PercentChange:    homeInfo.PoolInfo.PercentTarget - 100,
-		Premine:          exp.premine,
-		TargetPoolSize:   tpSize,
-		XcState:          exp.getExchangeState(),
-		VotingSummary:    exp.voteTracker.Summary(),
-		ProposalCountMap: proposalCountJsonStr,
-		VotesStatus:      voteStatusJsonStr,
-		MarketCap:        marketCap,
-	})
-
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str)
-}
-
-// Home is the page handler for the "/homedev" path. TODO: remove dev homepage
-func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
-	height, err := exp.dataSource.GetHeight()
-	if err != nil {
-		log.Errorf("GetHeight failed: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
-			ExpStatusError)
-		return
-	}
-	bestBlock := exp.dataSource.GetExplorerBlockBasic(int(height))
-	// Safely retrieve the current inventory pointer.
-	inv := exp.MempoolInventory()
-	mempoolInfo := inv.Trim()
-	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
-	inv.RLock()
-	exp.pageData.RLock()
-	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
-	//get ticket pool size
-	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
-	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
-
-	//get vote statuses of proposals
-	votesStatus := map[string]string{
-		strconv.Itoa(int(ticketvotev1.VoteStatusUnauthorized)): "Unauthorized",
-		strconv.Itoa(int(ticketvotev1.VoteStatusAuthorized)):   "Authorized",
-		strconv.Itoa(int(ticketvotev1.VoteStatusStarted)):      "Started",
-		strconv.Itoa(int(ticketvotev1.VoteStatusFinished)):     "Finished",
-		strconv.Itoa(int(ticketvotev1.VoteStatusApproved)):     "Approved",
-		strconv.Itoa(int(ticketvotev1.VoteStatusRejected)):     "Rejected",
-		strconv.Itoa(int(ticketvotev1.VoteStatusIneligible)):   "Ineligible",
-	}
 
 	var proposalCountMap = exp.proposals.CountProposals(votesStatus)
 	var proposalCountJsonStr = ""
@@ -383,8 +257,17 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		voteStatusJsonStr = string(voteStatusJson)
 	}
+	// Lock the shared inventory struct from change (e.g. in MempoolMonitor).
+	inv.RLock()
+	exp.pageData.RLock()
+	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
+	//get ticket pool size
+	tpSize := exp.pageData.HomeInfo.PoolInfo.Target
+	tallys, consensus := inv.VotingInfo.BlockStatus(bestBlock.Hash)
 	// Get fiat conversions if available
 	homeInfo := exp.pageData.HomeInfo
+	summaryInfo := exp.pageData.SummaryInfo
+	summary24h := exp.pageData.Block24hInfo
 	treasuryBalance := homeInfo.TreasuryBalance
 	balance := int64(0)
 	if treasuryBalance != nil {
@@ -402,18 +285,18 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 			TreasuryBalance: xcBot.Conversion(dcrutil.Amount(homeInfo.DevFund + balance).ToCoin()),
 			MempoolSpending: xcBot.Conversion(inv.LikelyMineable.Total),
 			MempoolFees:     xcBot.Conversion(mempoolInfo.Fees),
+			TxFeeAvg:        xcBot.Conversion(dcrutil.Amount(homeInfo.TxFeeAvg).ToCoin()),
 		}
-		if homeInfo.Block24hInfo != nil {
-			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Sent24h).ToCoin())
-			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.Fees24h).ToCoin())
-			conversions.SwapsAmount24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.AtomicSwapAmount).ToCoin())
-			conversions.PowReward24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.TotalPowReward).ToCoin())
-			conversions.Supply24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.DCRSupply).ToCoin())
-			conversions.PosReward24h = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.PosReward).ToCoin())
-			conversions.Treasury24hChange = xcBot.Conversion(dcrutil.Amount(homeInfo.Block24hInfo.TreasuryBalanceChange).ToCoin())
+		if summary24h != nil {
+			conversions.Sent24h = xcBot.Conversion(dcrutil.Amount(summary24h.Sent24h).ToCoin())
+			conversions.Fees24h = xcBot.Conversion(dcrutil.Amount(summary24h.Fees24h).ToCoin())
+			conversions.SwapsAmount24h = xcBot.Conversion(dcrutil.Amount(summary24h.AtomicSwapAmount).ToCoin())
+			conversions.PowReward24h = xcBot.Conversion(dcrutil.Amount(summary24h.TotalPowReward).ToCoin())
+			conversions.Supply24h = xcBot.Conversion(dcrutil.Amount(summary24h.DCRSupply).ToCoin())
+			conversions.PosReward24h = xcBot.Conversion(dcrutil.Amount(summary24h.PosReward).ToCoin())
+			conversions.Treasury24hChange = xcBot.Conversion(dcrutil.Amount(summary24h.TreasuryBalanceChange).ToCoin())
 		}
 	}
-
 	exp.pageData.RUnlock()
 	inv.RUnlock()
 
@@ -428,9 +311,11 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	str, err := exp.templates.exec("decred_home_dev", struct {
+	str, err := exp.templates.exec("decred_home", struct {
 		*CommonPageData
 		Info             *types.HomeInfo
+		SummaryInfo      *types.SummaryInfo
+		Block24hInfo     *dbtypes.Block24hInfo
 		Mempool          *types.MempoolInfo
 		TrimmedMempool   *types.TrimmedMempoolInfo
 		BestBlock        *types.BlockBasic
@@ -448,6 +333,8 @@ func (exp *ExplorerUI) GetHomeDev(w http.ResponseWriter, r *http.Request) {
 	}{
 		CommonPageData:   commonData,
 		Info:             homeInfo,
+		SummaryInfo:      summaryInfo,
+		Block24hInfo:     summary24h,
 		Mempool:          inv,
 		TrimmedMempool:   mempoolInfo,
 		BestBlock:        bestBlock,

@@ -190,8 +190,9 @@ export default class extends Controller {
     // fetch table data
     await this.fetchTable(ctrl.paginationParams.count, ctrl.paginationParams.offset)
     this.resetPageSizeOptions()
-    this.processDecredBlock = this._processDecredBlock.bind(this)
-    globalEventBus.on('BLOCK_RECEIVED', this.processDecredBlock)
+    // get socket atomic summary infos and new updated swap list
+    this.processDecredBlock = this._processDecredSummaryInfo.bind(this)
+    globalEventBus.on('SUMMARY_RECEIVED', this.processDecredBlock)
     this.processBtcBlock = this._processBtcBlock.bind(this)
     globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBtcBlock)
     this.processLtcBlock = this._processLtcBlock.bind(this)
@@ -203,14 +204,15 @@ export default class extends Controller {
       this.graph.destroy()
     }
     this.retrievedData = {}
-    globalEventBus.off('BLOCK_RECEIVED', this.processDecredBlock)
+    globalEventBus.off('SUMMARY_RECEIVED', this.processDecredBlock)
     globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBtcBlock)
     globalEventBus.off('LTC_BLOCK_RECEIVED', this.processLtcBlock)
   }
 
-  _processDecredBlock (blockData) {
-    this.updateAtomicSwapsFromSocket(blockData.block.GroupSwaps, blockData.extra.swapsTotalAmount,
-      blockData.extra.swapsTotalContract, blockData.extra.refundCount)
+  _processDecredSummaryInfo (data) {
+    const summaryData = data.summary_info
+    this.updateAtomicSwapsFromSocket(summaryData.GroupSwaps, summaryData.swapsTotalAmount,
+      summaryData.swapsTotalContract, summaryData.refundCount)
   }
 
   _processBtcBlock (blockData) {

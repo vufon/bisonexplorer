@@ -902,7 +902,7 @@ func _main(ctx context.Context) error {
 	}
 
 	webMux.With(explore.SyncStatusPageIntercept).Group(func(r chi.Router) {
-		r.Get("/", explore.GetHomeDev)
+		r.Get("/", explore.DecredHome)
 		r.Get("/visualblocks", explore.VisualBlocks)
 	})
 	webMux.Get("/ws", explore.RootWebsocket)
@@ -1095,8 +1095,6 @@ func _main(ctx context.Context) error {
 		r.Get("/finance-report/detail", mainRedirect("/decred/finance-report/detail"))
 		r.Get("/supply", mainRedirect("/decred/supply"))
 		r.Get("/atomic-swaps", mainRedirect("/decred/atomic-swaps"))
-		// TODO: For homepage improving development. Delete after
-		r.Get("/homedev", explore.GetHomeDev)
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.
 		r.With(explorer.MenuFormParser).Post("/set", explore.DecredHome)

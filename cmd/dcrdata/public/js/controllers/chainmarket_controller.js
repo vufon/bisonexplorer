@@ -92,15 +92,15 @@ function clearCache (k) {
   delete responseCache[k]
 }
 
-const lightStroke = '#333'
+const lightStroke = '#5587a4'
 const darkStroke = '#ddd'
 let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
-const gridColor = '#7774'
+const gridColor = '#a5b7cf'
 const binList = ['5m', '30m', '1h', '4h', '1d', 'week', '1mo']
 let settings = {}
-const xcColors = [chartStroke, '#ed6d47', '#41be53', '#3087d8', '#dece12']
+const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12']
 
 let colorNumerator = 0
 let colorDenominator = 1
@@ -148,6 +148,29 @@ function getHue (token) {
   return exchangeHues[token]
 }
 
+const yAxisLabelWidth = {
+  depth: 40,
+  orders: 50,
+  candlestick: 40,
+  history: 40,
+  volume: 40
+}
+
+function isMobile () {
+  return window.innerWidth <= 768
+}
+
+function getAxisWidth (chart) {
+  if (!chart || chart === '' || !yAxisLabelWidth[chart]) {
+    return 50
+  }
+  return yAxisLabelWidth[chart]
+}
+
+function getYAxisLabel (label) {
+  return isMobile() ? '' : label
+}
+
 // Generate the constant hues so dynamically assigned hues won't use them.
 Object.keys(exchangeHues).forEach(generateHue)
 
@@ -165,7 +188,8 @@ const commonChartOpts = {
   ylabel: ' ',
   pointSize: 6,
   showRangeSelector: true,
-  rangeSelectorPlotFillColor: '#C4CBD2',
+  rangeSelectorPlotFillColor: '#b5d2ed',
+  foregroundStrokeColor: '#1e5180',
   rangeSelectorAlpha: 0.4,
   rangeSelectorHeight: 40
 }
@@ -598,15 +622,15 @@ export default class extends Controller {
           hasBinance = true
           settings.xc = button.name
           settings.xcs = button.name
-          settings.bin = '1mo'
-        }
-        if (!hasBinance) {
-          const defaultOption = _this.exchangesButtons[0]
-          settings.xc = defaultOption.name
-          settings.xcs = defaultOption.name
-          settings.bin = '1d'
+          settings.bin = isMobile() ? '1d' : '1mo'
         }
       })
+      if (!hasBinance) {
+        const defaultOption = _this.exchangesButtons[0]
+        settings.xc = defaultOption.name
+        settings.xcs = defaultOption.name
+        settings.bin = '1d'
+      }
     }
     this.initMutilchainExchangeStates()
     this.processors = {
@@ -895,6 +919,15 @@ export default class extends Controller {
       if (!context.isPanning) return
       Dygraph.movePan(event, g, context)
     }
+    model.touchstart = (event, g, context) => {
+      console.log('TODO: touch start')
+    }
+    model.touchmove = (event, g, context) => {
+      console.log('TODO: touch move')
+    }
+    model.touchend = (event, g, context) => {
+      console.log('TODO: touch end')
+    }
     commonChartOpts.interactionModel = model
 
     this.graph = new Dygraph(this.chartTarget, [[0, 0], [0, 1]], commonChartOpts)
@@ -1084,7 +1117,7 @@ export default class extends Controller {
           if (hasCache(xcUrl)) {
             xcResponse = responseCache[xcUrl]
           } else {
-          // response = await axios.get(url)
+            // response = await axios.get(url)
             xcResponse = await requestJSON(xcUrl)
             responseCache[xcUrl] = xcResponse
           }
@@ -1117,6 +1150,12 @@ export default class extends Controller {
       this.ageTarget.classList.remove('d-hide')
     } else {
       this.ageTarget.classList.add('d-hide')
+    }
+    // clear canvas before update
+    const canvas = this.chartTarget.querySelector('canvas')
+    if (canvas) {
+      const context = canvas.getContext('2d')
+      context.clearRect(0, 0, canvas.width, canvas.height)
     }
     this.graph.updateOptions(chartResetOpts, true)
     if (settings.chart === 'history') {
@@ -1180,7 +1219,7 @@ export default class extends Controller {
       file: data,
       labels: ['time', 'open', 'close', 'high', 'low'],
       xlabel: 'Time',
-      ylabel: 'Price (USD)',
+      ylabel: getYAxisLabel('Price (USD)'),
       plotter: candlestickPlotter,
       axes: {
         x: {
@@ -1188,7 +1227,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       }
     }
@@ -1283,7 +1323,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: 'Price (USD)',
+      ylabel: getYAxisLabel('Price (USD)'),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1292,7 +1332,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
       strokeWidth: 2
@@ -1312,7 +1353,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'price'],
       xlabel: 'Time',
-      ylabel: 'Price (USD)',
+      ylabel: getYAxisLabel('Price (USD)'),
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1321,7 +1362,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
       strokeWidth: 3
@@ -1338,7 +1380,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'volume'],
       xlabel: 'Time',
-      ylabel: 'Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`,
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`),
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1347,7 +1389,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
       strokeWidth: 3
@@ -1442,7 +1485,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: 'Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`,
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1451,7 +1494,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
       strokeWidth: 2
@@ -1469,7 +1513,7 @@ export default class extends Controller {
       fillGraph: true,
       colors: ['#ed6d47', '#41be53'],
       xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
-      ylabel: 'Volume (' + globalChainType.toUpperCase() + ')',
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ')'),
       tokens: null,
       stats: data.stats,
       plotter: depthPlotter, // Don't use Dygraph.linePlotter here. fillGraph won't work.
@@ -1481,7 +1525,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       }
     }
@@ -1509,7 +1554,7 @@ export default class extends Controller {
       file: data.pts,
       colors: colors,
       xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
-      ylabel: 'Volume (' + globalChainType.toUpperCase() + ')',
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ')'),
       plotter: depthPlotter,
       fillGraph: aggStacking,
       stackedGraph: aggStacking,
@@ -1524,7 +1569,8 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       }
     }
@@ -1537,7 +1583,7 @@ export default class extends Controller {
       file: data.pts,
       colors: ['#f93f39cc', '#1acc84cc'],
       xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
-      ylabel: 'Volume (' + globalChainType.toUpperCase() + ')',
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ')'),
       plotter: orderPlotter,
       axes: {
         x: {
@@ -1545,9 +1591,11 @@ export default class extends Controller {
         },
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
+      zoomCallback: this.zoomCallback,
       stats: data.stats,
       strokeWidth: 0,
       drawPoints: true,

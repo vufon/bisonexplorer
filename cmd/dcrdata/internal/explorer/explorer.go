@@ -195,6 +195,7 @@ type explorerDataSource interface {
 	Get24hTreasuryBalanceChange() (treasuryBalanceChange int64, err error)
 	InsertToBlackList(agent, ip, note string) error
 	CheckOnBlackList(agent, ip string) (bool, error)
+	GetBlockSwapGroupFullData(blockTxs []string) ([]*dbtypes.AtomicSwapFullData, error)
 }
 
 type PoliteiaBackend interface {
@@ -292,6 +293,8 @@ type pageData struct {
 	BlockInfo      *types.BlockInfo
 	BlockchainInfo *chainjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
+	SummaryInfo    *types.SummaryInfo
+	Block24hInfo   *dbtypes.Block24hInfo
 	Syncing24h     bool
 }
 
@@ -489,6 +492,8 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 				Target: uint32(exp.ChainParams.TicketPoolSize) * uint32(exp.ChainParams.TicketsPerBlock),
 			},
 		},
+		SummaryInfo:  &types.SummaryInfo{},
+		Block24hInfo: &dbtypes.Block24hInfo{},
 	}
 
 	exp.BtcPageData = &BtcPageData{
@@ -525,7 +530,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
 		"chain_addresstable", "supply", "marketlist", "chain_parameters",
-		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table", "decred_home_dev"}
+		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -684,27 +689,7 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	}
 
 	totalSize := exp.dataSource.GetDecredBlockchainSize()
-	totalTransactions := exp.dataSource.GetDecredTotalTransactions()
-	posSubsPerVote := dcrutil.Amount(blockData.ExtraInfo.NextBlockSubsidy.PoS).ToCoin() /
-		float64(exp.ChainParams.TicketsPerBlock)
-	// get peer count
-	peerCount, _ := exp.dataSource.GetPeerCount()
-	// Get additional blockchain info
-	totalAddresses, totalOutputs, _ := exp.dataSource.GetBlockchainSummaryInfo()
-	// Get atomic swaps summary info
-	swapsTotalContract, swapsTotalAmount, _, _ := exp.dataSource.GetAtomicSwapSummary()
-	// Get atomic swaps refund contract count
-	refundCount, _ := exp.dataSource.CountRefundContract()
-	// Get last 5 pool info
-	poolResult, err := exp.dataSource.GetLast5PoolDataList()
-	if err != nil {
-		log.Errorf("PoolAPI: Get Pool info from Pool API failed: %v", err)
-	}
-	// Get vsp list
-	vspList, err := externalapi.GetVSPList()
-	if err != nil {
-		log.Errorf("VspAPI: Get vsp list failed: %v", err)
-	}
+
 	// Get average block size
 	formattedAvgBlockSize, err := exp.dataSource.GetAvgBlockFormattedSize()
 	if err != nil {
@@ -716,14 +701,9 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 		log.Errorf("GetAvgTxFee: Get Average tx fees failed: %v", err)
 	}
 
-	// Get tickets summary
-	ticketSummaryInfo, err := exp.dataSource.GetTicketsSummaryInfo()
-	if err != nil {
-		log.Errorf("GetTicketsSummaryInfo: Get tickets summary info failed: %v", err)
-	}
+	posSubsPerVote := dcrutil.Amount(blockData.ExtraInfo.NextBlockSubsidy.PoS).ToCoin() /
+		float64(exp.ChainParams.TicketsPerBlock)
 
-	// calculator total bison wallet vol
-	bwVol, bwLast30DaysVol, bw24hVol := exp.dataSource.GetBwDashData()
 	// Update pageData with block data and chain (home) info.
 	p := exp.pageData
 	p.Lock()
@@ -731,7 +711,6 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	// Store current block and blockchain data.
 	p.BlockInfo = newBlockData
 	p.BlockchainInfo = blockData.BlockchainInfo
-	p.HomeInfo.PeerCount = int64(peerCount)
 	// Update HomeInfo.
 	p.HomeInfo.HashRate = hashrate
 	p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
@@ -751,20 +730,9 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 	p.HomeInfo.NBlockSubsidy.PoW = blockData.ExtraInfo.NextBlockSubsidy.PoW
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockSubsidy.Total
 	p.HomeInfo.TotalSize = totalSize
-	p.HomeInfo.TotalTransactions = totalTransactions
 	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(p.HomeInfo.TotalSize))
-	p.HomeInfo.TotalAddresses = totalAddresses
-	p.HomeInfo.TotalOutputs = totalOutputs
-	p.HomeInfo.SwapsTotalContract = swapsTotalContract
-	p.HomeInfo.SwapsTotalAmount = swapsTotalAmount
-	p.HomeInfo.RefundCount = refundCount
-	p.HomeInfo.PoolDataList = poolResult
-	p.HomeInfo.VSPList = vspList
 	p.HomeInfo.FormattedAvgBlockSize = formattedAvgBlockSize
-	p.HomeInfo.BisonWalletVol = bwVol
-	p.HomeInfo.BWLast30DaysVol = bwLast30DaysVol
 	p.HomeInfo.TxFeeAvg = avgTxFee
-	p.HomeInfo.TicketsSummary = ticketSummaryInfo
 	// If BlockData contains non-nil PoolInfo, copy values.
 	p.HomeInfo.PoolInfo = types.TicketPoolInfo{}
 	if blockData.PoolInfo != nil {
@@ -816,6 +784,127 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 
 	log.Debugf("Got new block %d for the explorer.", newBlockData.Height)
 
+	// handler summary info and send to socket
+	go func() {
+		// handler summary info
+		totalTransactions := exp.dataSource.GetDecredTotalTransactions()
+		// get peer count
+		peerCount, _ := exp.dataSource.GetPeerCount()
+		// Get additional blockchain info
+		totalAddresses, totalOutputs, _ := exp.dataSource.GetBlockchainSummaryInfo()
+		// Get atomic swaps summary info
+		swapsTotalContract, swapsTotalAmount, _, _ := exp.dataSource.GetAtomicSwapSummary()
+		// Get atomic swaps refund contract count
+		refundCount, _ := exp.dataSource.CountRefundContract()
+		// Get last 5 pool info
+		poolResult, err := exp.dataSource.GetLast5PoolDataList()
+		if err != nil {
+			log.Errorf("PoolAPI: Get Pool info from Pool API failed: %v", err)
+		}
+		// Get vsp list
+		vspList, err := externalapi.GetVSPList()
+		if err != nil {
+			log.Errorf("VspAPI: Get vsp list failed: %v", err)
+		}
+		// Get tickets summary
+		ticketSummaryInfo, err := exp.dataSource.GetTicketsSummaryInfo()
+		if err != nil {
+			log.Errorf("GetTicketsSummaryInfo: Get tickets summary info failed: %v", err)
+		}
+		// Get swaps list for blocks
+		swaps, err := exp.dataSource.GetBlockSwapGroupFullData(newBlockData.Txids)
+		if err != nil {
+			log.Errorf("Get swaps full data for block txs failed: %v", err)
+			swaps = make([]*dbtypes.AtomicSwapFullData, 0)
+		}
+		// calculator total bison wallet vol
+		bwVol, bwLast30DaysVol, _ := exp.dataSource.GetBwDashData()
+		p.Lock()
+		p.SummaryInfo.PeerCount = int64(peerCount)
+		p.SummaryInfo.TotalTransactions = totalTransactions
+		p.SummaryInfo.TotalAddresses = totalAddresses
+		p.SummaryInfo.TotalOutputs = totalOutputs
+		p.SummaryInfo.SwapsTotalContract = swapsTotalContract
+		p.SummaryInfo.SwapsTotalAmount = swapsTotalAmount
+		p.SummaryInfo.RefundCount = refundCount
+		p.SummaryInfo.PoolDataList = poolResult
+		p.SummaryInfo.VSPList = vspList
+		p.SummaryInfo.BisonWalletVol = bwVol
+		p.SummaryInfo.BWLast30DaysVol = bwLast30DaysVol
+		p.SummaryInfo.TicketsSummary = ticketSummaryInfo
+		p.SummaryInfo.GroupSwaps = swaps
+		p.Unlock()
+		select {
+		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigSummaryInfo}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigSummaryInfo send failed: Timeout waiting for WebsocketHub.")
+		}
+		log.Debugf("Update new Decred summary infos for the pubsubhub.")
+	}()
+
+	// handler summary 24h info and send to socket
+	go func(height int64) {
+		//Get 24h metrics summary info
+		p.Lock()
+		//if syncing, ignore
+		if p.Syncing24h {
+			p.Unlock()
+			return
+		}
+		p.Unlock()
+		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEDCR)
+		// get active addr num count
+		activeAddr := exp.dataSource.Get24hActiveAddressesCount()
+		poolvalue24hBefore, misses, err := exp.dataSource.Get24hStakingInfo()
+		if err != nil {
+			log.Errorf("Get24hStakingInfo failed: %v", err)
+			return
+		}
+		treasuryBalance24hChange, err := exp.dataSource.Get24hTreasuryBalanceChange()
+		if err != nil {
+			log.Errorf("Get24hTreasuryBalanceChange failed: %v", err)
+			return
+		}
+		// get bw vol 24h
+		_, _, bw24hVol := exp.dataSource.GetBwDashData()
+		p.Lock()
+		if err24h == nil {
+			p.Block24hInfo = summary24h
+			p.Block24hInfo.ActiveAddresses = activeAddr
+			p.Block24hInfo.TotalPowReward = p.Block24hInfo.Blocks * p.HomeInfo.NBlockSubsidy.PoW
+			p.Block24hInfo.DCRSupply = p.Block24hInfo.TotalPowReward * 100
+			currentPoolValue, err := dcrutil.NewAmount(p.HomeInfo.PoolInfo.Value)
+			if err == nil {
+				p.Block24hInfo.StakedDCR = int64(currentPoolValue) - poolvalue24hBefore
+			}
+			p.Block24hInfo.Missed = misses
+			p.Block24hInfo.PosReward = p.Block24hInfo.TotalPowReward * 89
+			p.Block24hInfo.Voted = p.Block24hInfo.Blocks * 5
+			p.Block24hInfo.TreasuryBalanceChange = treasuryBalance24hChange
+			p.Block24hInfo.BisonWalletVol = bw24hVol
+			stakeDiffAmount, err := dcrutil.NewAmount(p.HomeInfo.StakeDiff)
+			if err != nil {
+				p.Unlock()
+				log.Errorf("Convert to amount failed: %v", err)
+				return
+			}
+			p.Block24hInfo.NumTickets = int64(math.Abs(math.Round(float64(p.Block24hInfo.StakedDCR) / float64(stakeDiffAmount))))
+		} else {
+			p.Unlock()
+			log.Errorf("Sync DCR 24h Metrics Failed: %v", err24h)
+			return
+		}
+		p.Syncing24h = false
+		p.Unlock()
+
+		select {
+		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigSummary24h}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigSummary24h send failed: Timeout waiting for WebsocketHub.")
+		}
+		log.Debugf("Update new Decred summary 24h infos for the pubsubhub.")
+	}(int64(blockData.Header.Height))
+
 	// Do not run remaining updates when blockchain sync is running.
 	if exp.AreDBsSyncing() {
 		return nil
@@ -864,52 +953,6 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 			}
 		}()
 	}
-
-	go func(height int64) {
-		//Get 24h metrics summary info
-		p.Lock()
-		//if syncing, ignore
-		if p.Syncing24h {
-			return
-		}
-		p.Unlock()
-		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEDCR)
-		// get active addr num count
-		activeAddr := exp.dataSource.Get24hActiveAddressesCount()
-		poolvalue24hBefore, misses, err := exp.dataSource.Get24hStakingInfo()
-		if err != nil {
-			log.Errorf("Get24hStakingInfo failed: %v", err)
-		}
-		treasuryBalance24hChange, err := exp.dataSource.Get24hTreasuryBalanceChange()
-		if err != nil {
-			log.Errorf("Get24hTreasuryBalanceChange failed: %v", err)
-		}
-		p.Lock()
-		if err24h == nil {
-			p.HomeInfo.Block24hInfo = summary24h
-			p.HomeInfo.Block24hInfo.ActiveAddresses = activeAddr
-			p.HomeInfo.Block24hInfo.TotalPowReward = p.HomeInfo.Block24hInfo.Blocks * p.HomeInfo.NBlockSubsidy.PoW
-			p.HomeInfo.Block24hInfo.DCRSupply = p.HomeInfo.Block24hInfo.TotalPowReward * 100
-			currentPoolValue, err := dcrutil.NewAmount(p.HomeInfo.PoolInfo.Value)
-			if err == nil {
-				p.HomeInfo.Block24hInfo.StakedDCR = int64(currentPoolValue) - poolvalue24hBefore
-			}
-			p.HomeInfo.Block24hInfo.Missed = misses
-			p.HomeInfo.Block24hInfo.PosReward = p.HomeInfo.Block24hInfo.TotalPowReward * 89
-			p.HomeInfo.Block24hInfo.Voted = p.HomeInfo.Block24hInfo.Blocks * 5
-			p.HomeInfo.Block24hInfo.TreasuryBalanceChange = treasuryBalance24hChange
-			p.HomeInfo.Block24hInfo.BisonWalletVol = bw24hVol
-			stakeDiffAmount, err := dcrutil.NewAmount(p.HomeInfo.StakeDiff)
-			if err != nil {
-				log.Errorf("Convert to amount failed: %v", err)
-			}
-			p.HomeInfo.Block24hInfo.NumTickets = int64(math.Abs(math.Round(float64(p.HomeInfo.Block24hInfo.StakedDCR) / float64(stakeDiffAmount))))
-		} else {
-			log.Errorf("Sync DCR 24h Metrics Failed: %v", err24h)
-		}
-		p.Syncing24h = false
-		p.Unlock()
-	}(int64(blockData.Header.Height))
 
 	//run sync address summary data
 	go func() {
@@ -1033,6 +1076,7 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 		p.Lock()
 		//if syncing, ignore
 		if p.Syncing24h {
+			p.Unlock()
 			return
 		}
 		p.Unlock()
@@ -1152,6 +1196,7 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		p.Lock()
 		//if syncing, ignore
 		if p.Syncing24h {
+			p.Unlock()
 			return
 		}
 		p.Unlock()
@@ -1396,14 +1441,19 @@ func (exp *ExplorerUI) watchExchanges() {
 				Volume:    updater.BaseVolume,
 				Change:    updater.Change,
 			},
-			IsFiatIndex:  isFiat,
-			BtcIndex:     exp.xcBot.BtcIndex,
-			Price:        xcState.GetMutilchainPrice(chainType),
-			BtcPrice:     xcState.BtcPrice,
-			Volume:       xcState.GetMutilchainVolumn(chainType),
-			DCRBTCPrice:  xcState.DCRBTCPrice,
-			DCRBTCVolume: xcState.DCRBTCVolume,
+			IsFiatIndex:     isFiat,
+			BtcIndex:        exp.xcBot.BtcIndex,
+			Price:           xcState.GetMutilchainPrice(chainType),
+			BtcPrice:        xcState.BtcPrice,
+			Volume:          xcState.GetMutilchainVolumn(chainType),
+			DCRBTCPrice:     xcState.DCRBTCPrice,
+			DCRBTCVolume:    xcState.DCRBTCVolume,
+			DCRUSD24hChange: xcState.DCRUSD24hChange,
+			DCRBTC24hChange: xcState.DCRBTC24hChange,
+			LowPrice:        xcState.LowPrice,
+			HighPrice:       xcState.HighPrice,
 		}
+		update.USDVolume = update.Price * update.Volume
 		select {
 		case exp.WsHub.xcChan <- update:
 		default:

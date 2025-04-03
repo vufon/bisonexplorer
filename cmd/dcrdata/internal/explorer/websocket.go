@@ -42,6 +42,8 @@ var (
 	sigNewTxs           = pstypes.SigNewTxs
 	sigAddressTx        = pstypes.SigAddressTx
 	sigSyncStatus       = pstypes.SigSyncStatus
+	sigSummaryInfo      = pstypes.SigSummaryInfo
+	sigSummary24h       = pstypes.SigSummary24h
 )
 
 // WebSocketMessage represents the JSON object used to send and received typed
@@ -239,6 +241,16 @@ func (wsh *WebsocketHub) run() {
 				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
 					log.Infof("Signaling new BTC block to %d websocket clients.", clientsCount)
 				}
+			case sigSummaryInfo:
+				// Do not log when explorer update status is active.
+				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling new Decred summary info to %d websocket clients.", clientsCount)
+				}
+			case sigSummary24h:
+				// Do not log when explorer update status is active.
+				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling new Decred 24h summary info to %d websocket clients.", clientsCount)
+				}
 			case sigPingAndUserCount:
 				log.Tracef("Signaling ping/user count to %d websocket clients.", clientsCount)
 			case sigMempoolUpdate:
@@ -398,12 +410,17 @@ type WebsocketMiniExchange struct {
 // WebsocketExchangeUpdate is an update to the exchange state to send over the
 // websocket.
 type WebsocketExchangeUpdate struct {
-	Updater      WebsocketMiniExchange `json:"updater"`
-	IsFiatIndex  bool                  `json:"fiat"`
-	BtcIndex     string                `json:"index"`
-	Price        float64               `json:"price"`
-	BtcPrice     float64               `json:"btc_price"`
-	Volume       float64               `json:"volume"`
-	DCRBTCPrice  float64               `json:"dcr_btc_price"`
-	DCRBTCVolume float64               `json:"dcr_btc_volume"`
+	Updater         WebsocketMiniExchange `json:"updater"`
+	IsFiatIndex     bool                  `json:"fiat"`
+	BtcIndex        string                `json:"index"`
+	Price           float64               `json:"price"`
+	BtcPrice        float64               `json:"btc_price"`
+	Volume          float64               `json:"volume"`
+	USDVolume       float64               `json:"usd_volume"`
+	DCRBTCPrice     float64               `json:"dcr_btc_price"`
+	DCRBTCVolume    float64               `json:"dcr_btc_volume"`
+	DCRUSD24hChange float64               `json:"dcr_usd_24h_change"`
+	DCRBTC24hChange float64               `json:"dcr_btc_24h_change"`
+	LowPrice        float64               `json:"low_price"`
+	HighPrice       float64               `json:"high_price"`
 }

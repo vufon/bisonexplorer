@@ -109,6 +109,8 @@ const (
 	SigSyncStatus
 	SigByeNow
 	SigUnknown
+	SigSummaryInfo
+	SigSummary24h
 )
 
 var Subscriptions = map[string]HubSignal{
@@ -120,6 +122,8 @@ var Subscriptions = map[string]HubSignal{
 	"newtxs":         SigNewTxs,
 	"address":        SigAddressTx,
 	"blockchainSync": SigSyncStatus,
+	"summaryinfo":    SigSummaryInfo,
+	"summary24h":     SigSummary24h,
 }
 
 // Event type field for an event.
@@ -141,6 +145,8 @@ var eventIDs = map[HubSignal]string{
 	SigSyncStatus:       "blockchainSync",
 	SigByeNow:           "bye",
 	SigUnknown:          "unknown",
+	SigSummaryInfo:      "summaryinfo",
+	SigSummary24h:       "summary24h",
 }
 
 func ValidateSubscription(event string) (sub HubSignal, msg interface{}, valid bool) {

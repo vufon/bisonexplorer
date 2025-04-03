@@ -32,6 +32,28 @@ let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
 let yFormatter, legendEntry, legendMarker, legendElement
 let rangeOption = ''
+const yAxisLabelWidth = {
+  y1: {
+    'ticket-price': 30,
+    'ticket-pool-size': 30,
+    'ticket-pool-value': 30,
+    'stake-participation': 30,
+    'privacy-participation': 40,
+    'missed-votes': 30,
+    'block-size': 35,
+    'blockchain-size': 30,
+    'tx-count': 45,
+    'duration-btw-blocks': 40,
+    'pow-difficulty': 40,
+    chainwork: 35,
+    hashrate: 40,
+    'coin-supply': 30,
+    fees: 35
+  },
+  y2: {
+    'ticket-price': 45
+  }
+}
 
 function usesWindowUnits (chart) {
   return windowScales.indexOf(chart) > -1
@@ -60,6 +82,10 @@ function useRange (chart) {
 function intComma (amount) {
   if (!amount) return ''
   return amount.toLocaleString(undefined, { maximumFractionDigits: 0 })
+}
+
+function isMobile () {
+  return window.innerWidth <= 768
 }
 
 function axesToRestoreYRange (chartName, origYRange, newYRange) {
@@ -559,7 +585,7 @@ export default class extends Controller {
 
   drawInitialGraph () {
     const options = {
-      axes: { y: { axisLabelWidth: 70 }, y2: { axisLabelWidth: 65 } },
+      axes: { y: { axisLabelWidth: 50 }, y2: { axisLabelWidth: 55 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
       digitsAfterDecimal: 8,
       showRangeSelector: true,
@@ -584,9 +610,13 @@ export default class extends Controller {
       [[1, 1, 5], [2, 5, 11]],
       options
     )
-    this.chartSelectTarget.value = this.settings.chart
+    this.setSelectedChart(this.settings.chart)
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
+    // default on mobile is year, on other is all
+    if (humanize.isEmpty(this.settings.zoom) && isMobile()) {
+      this.settings.zoom = 'year'
+    }
     if (this.settings.zoom) this.setZoom(this.settings.zoom)
     this.setBin(this.settings.bin ? this.settings.bin : 'day')
     this.setRange(this.settings.range ? this.settings.range : 'after')
@@ -629,11 +659,12 @@ export default class extends Controller {
           'Price (DCR)', true, false))
         gOptions.y2label = 'Tickets Bought'
         gOptions.series = { 'Tickets Bought': { axis: 'y2' } }
-        this.visibility = [this.ticketsPriceTarget.checked, this.ticketsPurchaseTarget.checked]
+        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, windowSize * 20 * 8],
-          axisLabelFormatter: (y) => Math.round(y)
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['ticket-price'] : yAxisLabelWidth.y2['ticket-price'] + 15
         }
         yFormatter = customYFormatter(y => y.toFixed(8) + ' DCR')
         break
@@ -702,7 +733,7 @@ export default class extends Controller {
         gOptions.y2label = 'Inflation Limit'
         gOptions.y3label = 'Mix Rate'
         gOptions.series = { 'Inflation Limit': { axis: 'y2' }, 'Mix Rate': { axis: 'y3' } }
-        this.visibility = [true, true, this.anonymitySetTarget.checked]
+        this.visibility = [true, true, this.getTargetsChecked(this.anonymitySetTargets)]
         gOptions.visibility = this.visibility
         gOptions.series = {
           'Inflation Limit': {
@@ -720,7 +751,7 @@ export default class extends Controller {
           let change = 0
           if (i < d.inflation.length) {
             const supply = data.series[0].y
-            if (this.anonymitySetTarget.checked) {
+            if (this.getTargetsChecked(this.anonymitySetTargets)) {
               const mixed = data.series[2].y
               const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
               div.appendChild(legendEntry(`${legendMarker()} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
@@ -779,7 +810,9 @@ export default class extends Controller {
           'Missed Votes per Window', true, false))
         break
     }
-
+    gOptions.axes.y = {
+      axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 15
+    }
     const baseURL = `${this.query.url.protocol}//${this.query.url.host}`
     this.rawDataURLTarget.textContent = `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
 
@@ -790,47 +823,52 @@ export default class extends Controller {
   }
 
   async selectChart () {
-    const selection = this.settings.chart = this.chartSelectTarget.value
-    this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
+    const selectChart = this.getSelectedChart()
+    const selection = this.settings.chart = selectChart
+    this.chartNameTarget.textContent = this.getChartName(selectChart)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
-      this.scaleSelectorTarget.classList.add('d-hide')
-      this.vSelectorTarget.classList.remove('d-hide')
+      this.hideMultiTargets(this.scaleSelectorTargets)
+      this.showMultiTargets(this.vSelectorTargets)
     } else {
-      this.scaleSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.scaleSelectorTargets)
     }
     if (isModeEnabled(selection)) {
-      this.modeSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.modeSelectorTargets)
     } else {
-      this.modeSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.modeSelectorTargets)
     }
     if (hasMultipleVisibility(selection)) {
-      this.vSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.vSelectorTargets)
       this.updateVSelector(selection)
     } else {
-      this.vSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.vSelectorTargets)
     }
     if (useRange(selection)) {
       this.settings.range = this.selectedRange()
       rangeOption = this.settings.range
-      this.rangeSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.rangeSelectorTargets)
     } else {
       this.settings.range = ''
       rangeOption = ''
-      this.rangeSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.rangeSelectorTargets)
     }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
       this.settings.axis !== this.selectedAxis() || this.settings.range !== this.selectedRange()) {
       let url = '/api/chart/' + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
-        this.binSelectorTarget.classList.add('d-hide')
+        this.hideMultiTargets(this.binSelectorTargets)
         this.settings.bin = 'window'
       } else {
-        this.binSelectorTarget.classList.remove('d-hide')
+        this.showMultiTargets(this.binSelectorTargets)
         this.settings.bin = this.selectedBin()
+        const _this = this
         this.binSizeTargets.forEach(el => {
+          if (_this.exitCond(el)) {
+            return
+          }
           if (el.dataset.option !== 'window') return
           if (usesHybridUnits(selection)) {
             el.classList.remove('d-hide')
@@ -949,6 +987,33 @@ export default class extends Controller {
   }
 
   _drawCallback (graph, first) {
+    // update position of y1, y2 label
+    if (isMobile()) {
+      // get axes
+      const axes = graph.getOption('axes')
+      if (axes) {
+        const y1label = this.chartsViewTarget.querySelector('.dygraph-label.dygraph-ylabel')
+        const y2label = this.chartsViewTarget.querySelector('.dygraph-label.dygraph-y2label')
+        if (y1label) {
+          const yAxis = axes.y
+          if (yAxis) {
+            const yLabelWidth = yAxis.axisLabelWidth
+            if (yLabelWidth) {
+              y1label.style.top = (Number(yLabelWidth) + 5) + 'px'
+            }
+          }
+        }
+        if (y2label) {
+          const y2Axis = axes.y2
+          if (y2Axis) {
+            const y2LabelWidth = y2Axis.axisLabelWidth
+            if (y2LabelWidth) {
+              y2label.style.top = (Number(y2LabelWidth) + 5) + 'px'
+            }
+          }
+        }
+      }
+    }
     if (first) return
     const [start, end] = this.chartsView.xAxisRange()
     if (start === end) return
@@ -1034,11 +1099,14 @@ export default class extends Controller {
 
   updateVSelector (chart) {
     if (!chart) {
-      chart = this.chartSelectTarget.value
+      chart = this.getSelectedChart()
     }
     const that = this
     let showWrapper = false
     this.vSelectorItemTargets.forEach(el => {
+      if (that.exitCond(el)) {
+        return
+      }
       let show = el.dataset.charts.indexOf(chart) > -1
       if (el.dataset.bin && el.dataset.bin.indexOf(that.selectedBin()) === -1) {
         show = false
@@ -1051,33 +1119,34 @@ export default class extends Controller {
       }
     })
     if (showWrapper) {
-      this.vSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.vSelectorTargets)
     } else {
-      this.vSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.vSelectorTargets)
     }
     this.setVisibilityFromSettings()
   }
 
   setVisibilityFromSettings () {
-    switch (this.chartSelectTarget.value) {
+    const selectChart = this.getSelectedChart()
+    switch (selectChart) {
       case 'ticket-price':
         if (this.visibility.length !== 2) {
-          this.visibility = [true, this.ticketsPurchaseTarget.checked]
+          this.visibility = [true, this.getTargetsChecked(this.ticketsPurchaseTargets)]
         }
-        this.ticketsPriceTarget.checked = this.visibility[0]
-        this.ticketsPurchaseTarget.checked = this.visibility[1]
+        this.setTargetsChecked(this.ticketsPriceTargets, this.visibility[0])
+        this.setTargetsChecked(this.ticketsPurchaseTargets, this.visibility[1])
         break
       case 'coin-supply':
         if (this.visibility.length !== 3) {
-          this.visibility = [true, true, this.anonymitySetTarget.checked]
+          this.visibility = [true, true, this.getTargetsChecked(this.anonymitySetTargets)]
         }
-        this.anonymitySetTarget.checked = this.visibility[2]
+        this.setTargetsChecked(this.anonymitySetTargets, this.visibility[2])
         break
       case 'privacy-participation':
         if (this.visibility.length !== 2) {
-          this.visibility = [true, this.anonymitySetTarget.checked]
+          this.visibility = [true, this.getTargetsChecked(this.anonymitySetTargets)]
         }
-        this.anonymitySetTarget.checked = this.visibility[1]
+        this.setTargetsChecked(this.anonymitySetTargets, this.visibility[1])
         break
       default:
         return
@@ -1089,19 +1158,24 @@ export default class extends Controller {
   }
 
   setVisibility (e) {
-    switch (this.chartSelectTarget.value) {
+    const selectChart = this.getSelectedChart()
+    switch (selectChart) {
       case 'ticket-price':
-        if (!this.ticketsPriceTarget.checked && !this.ticketsPurchaseTarget.checked) {
+      {
+        const ticketPriceChecked = this.getTargetsChecked(this.ticketsPriceTargets)
+        const ticketPurchaseChecked = this.getTargetsChecked(this.ticketsPurchaseTargets)
+        if (!ticketPriceChecked && !ticketPurchaseChecked) {
           e.currentTarget.checked = true
           return
         }
-        this.visibility = [this.ticketsPriceTarget.checked, this.ticketsPurchaseTarget.checked]
+        this.visibility = [ticketPriceChecked, ticketPurchaseChecked]
         break
+      }
       case 'coin-supply':
-        this.visibility = [true, true, this.anonymitySetTarget.checked]
+        this.visibility = [true, true, this.getTargetsChecked(this.anonymitySetTargets)]
         break
       case 'privacy-participation':
-        this.visibility = [true, this.anonymitySetTarget.checked]
+        this.visibility = [true, this.getTargetsChecked(this.anonymitySetTargets)]
         break
       default:
         return
@@ -1114,7 +1188,11 @@ export default class extends Controller {
   }
 
   setActiveOptionBtn (opt, optTargets) {
+    const _this = this
     optTargets.forEach(li => {
+      if (_this.exitCond(li)) {
+        return
+      }
       if (li.dataset.option === opt) {
         li.classList.add('active')
       } else {
@@ -1126,14 +1204,89 @@ export default class extends Controller {
   selectedZoom () { return this.selectedOption(this.zoomOptionTargets) }
   selectedBin () { return this.selectedOption(this.binSizeTargets) }
   selectedScale () { return this.selectedOption(this.scaleTypeTargets) }
-  selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
+  selectedAxis () { return this.selectedNormalOption(this.axisOptionTargets) }
   selectedRange () { return this.selectedOption(this.rangeOptionTargets) }
 
   selectedOption (optTargets) {
+    let key = false
+    const _this = this
+    optTargets.forEach((el) => {
+      if (_this.exitCond(el)) return
+      if (el.classList.contains('active')) key = el.dataset.option
+    })
+    return key
+  }
+
+  selectedNormalOption (optTargets) {
     let key = false
     optTargets.forEach((el) => {
       if (el.classList.contains('active')) key = el.dataset.option
     })
     return key
+  }
+
+  hideMultiTargets (opts) {
+    opts.forEach((opt) => {
+      opt.classList.add('d-hide')
+    })
+  }
+
+  exitCond (opt) {
+    return (isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))
+  }
+
+  showMultiTargets (opts) {
+    opts.forEach((opt) => {
+      if ((isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))) {
+        opt.classList.add('d-hide')
+      } else {
+        opt.classList.remove('d-hide')
+        opt.classList.remove('d-none')
+      }
+    })
+  }
+
+  getSelectedChart () {
+    let selected = 'ticket-price'
+    const _this = this
+    this.chartSelectTargets.forEach((chart) => {
+      if (_this.exitCond(chart)) {
+        return
+      }
+      selected = chart.value
+    })
+    return selected
+  }
+
+  setSelectedChart (select) {
+    const _this = this
+    this.chartSelectTargets.forEach((chart) => {
+      if (_this.exitCond(chart)) {
+        return
+      }
+      chart.value = select
+    })
+  }
+
+  getTargetsChecked (targets) {
+    const _this = this
+    let checked = false
+    targets.forEach((target) => {
+      if (_this.exitCond(target)) {
+        return
+      }
+      checked = target.checked
+    })
+    return checked
+  }
+
+  setTargetsChecked (targets, checked) {
+    const _this = this
+    targets.forEach((target) => {
+      if (_this.exitCond(target)) {
+        return
+      }
+      target.checked = checked
+    })
   }
 }
