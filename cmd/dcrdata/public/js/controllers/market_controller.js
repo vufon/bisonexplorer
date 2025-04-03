@@ -640,15 +640,16 @@ export default class extends Controller {
           hasBinance = true
           settings.xc = button.name
           settings.xcs = button.name
-          settings.bin = '1mo'
-        }
-        if (!hasBinance) {
-          const defaultOption = _this.exchangesButtons[0]
-          settings.xc = defaultOption.name
-          settings.xcs = defaultOption.name
-          settings.bin = '1d'
+          // in mobile view mode, default bin is 1d
+          settings.bin = isMobile() ? '1d' : '1mo'
         }
       })
+      if (!hasBinance) {
+        const defaultOption = _this.exchangesButtons[0]
+        settings.xc = defaultOption.name
+        settings.xcs = defaultOption.name
+        settings.bin = '1d'
+      }
     }
     this.processors = {
       orders: this.processOrders,
@@ -666,7 +667,7 @@ export default class extends Controller {
     this.binButtons = this.binTarget.querySelectorAll('button')
     this.lastUrl = null
     this.zoomButtons = this.zoomTarget.querySelectorAll('button')
-    this.zoomCallback = this._zoomCallback.bind(this)
+    this.depthZoomCallback = this._depthZoomCallback.bind(this)
     availableCandlesticks = {}
     availableDepths = []
     this.exchangeOptions = []
@@ -827,6 +828,15 @@ export default class extends Controller {
       if (!context.isPanning) return
       Dygraph.movePan(event, g, context)
     }
+    model.touchstart = (event, g, context) => {
+      console.log('TODO: touch start')
+    }
+    model.touchmove = (event, g, context) => {
+      console.log('TODO: touch move')
+    }
+    model.touchend = (event, g, context) => {
+      console.log('TODO: touch end')
+    }
     commonChartOpts.interactionModel = model
 
     this.graph = new Dygraph(this.chartTarget, [[0, 0], [0, 1]], commonChartOpts)
@@ -894,7 +904,7 @@ export default class extends Controller {
           if (hasCache(xcUrl)) {
             xcResponse = responseCache[xcUrl]
           } else {
-          // response = await axios.get(url)
+            // response = await axios.get(url)
             xcResponse = await requestJSON(xcUrl)
             responseCache[xcUrl] = xcResponse
           }
@@ -1281,7 +1291,7 @@ export default class extends Controller {
       tokens: null,
       stats: data.stats,
       plotter: depthPlotter, // Don't use Dygraph.linePlotter here. fillGraph won't work.
-      zoomCallback: this.zoomCallback,
+      zoomCallback: this.depthZoomCallback,
       axes: {
         x: {
           axisLabelFormatter: convertedThreeSigFigs,
@@ -1325,7 +1335,7 @@ export default class extends Controller {
       tokens: tokens,
       stats: data.stats,
       dupes: data.dupes,
-      zoomCallback: this.zoomCallback,
+      zoomCallback: this.depthZoomCallback,
       axes: {
         x: {
           axisLabelFormatter: convertedThreeSigFigs,
@@ -1359,6 +1369,7 @@ export default class extends Controller {
           axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
+      zoomCallback: this.depthZoomCallback,
       stats: data.stats,
       strokeWidth: 0,
       drawPoints: true,
@@ -1819,7 +1830,7 @@ export default class extends Controller {
     this.graph.updateOptions({ dateWindow: orderZoom })
   }
 
-  _zoomCallback (start, end) {
+  _depthZoomCallback (start, end) {
     orderZoom = [start, end]
     this.zoomButtons.forEach(b => b.classList.remove('btn-selected'))
   }
@@ -1895,8 +1906,8 @@ export default class extends Controller {
     // Auto-update the chart if it makes sense.
     if (settings.xc !== aggregatedKey && settings.xc !== xc.token) return
     if (settings.xc === aggregatedKey &&
-        hasCache(this.lastUrl) &&
-        responseCache[this.lastUrl].tokens.indexOf(update.updater) === -1) return
+      hasCache(this.lastUrl) &&
+      responseCache[this.lastUrl].tokens.indexOf(update.updater) === -1) return
     if (usesOrderbook(settings.chart)) {
       clearCache(this.lastUrl)
       this.refreshChart()

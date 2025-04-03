@@ -622,15 +622,15 @@ export default class extends Controller {
           hasBinance = true
           settings.xc = button.name
           settings.xcs = button.name
-          settings.bin = '1mo'
-        }
-        if (!hasBinance) {
-          const defaultOption = _this.exchangesButtons[0]
-          settings.xc = defaultOption.name
-          settings.xcs = defaultOption.name
-          settings.bin = '1d'
+          settings.bin = isMobile() ? '1d' : '1mo'
         }
       })
+      if (!hasBinance) {
+        const defaultOption = _this.exchangesButtons[0]
+        settings.xc = defaultOption.name
+        settings.xcs = defaultOption.name
+        settings.bin = '1d'
+      }
     }
     this.initMutilchainExchangeStates()
     this.processors = {
@@ -918,6 +918,15 @@ export default class extends Controller {
     model.mousemove = (event, g, context) => {
       if (!context.isPanning) return
       Dygraph.movePan(event, g, context)
+    }
+    model.touchstart = (event, g, context) => {
+      console.log('TODO: touch start')
+    }
+    model.touchmove = (event, g, context) => {
+      console.log('TODO: touch move')
+    }
+    model.touchend = (event, g, context) => {
+      console.log('TODO: touch end')
     }
     commonChartOpts.interactionModel = model
 
@@ -1586,6 +1595,7 @@ export default class extends Controller {
           axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
+      zoomCallback: this.zoomCallback,
       stats: data.stats,
       strokeWidth: 0,
       drawPoints: true,
