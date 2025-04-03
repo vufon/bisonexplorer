@@ -18,6 +18,9 @@ function hashParts (hash) {
 }
 
 const humanize = {
+  isEmpty: function (val) {
+    return !val || val == null || val === ''
+  },
   commaWithDecimal: function (val, decimal) {
     if (isNaN(val) || val === 0) return '0'
     if (isNaN(decimal)) decimal = 2

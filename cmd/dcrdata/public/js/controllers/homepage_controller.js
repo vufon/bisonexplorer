@@ -8,6 +8,54 @@ import TurboQuery from '../helpers/turbolinks_helper'
 import { requestJSON } from '../helpers/http'
 
 const conversionRate = 100000000
+const pages = ['blockchain', 'mining', 'market', 'ticket', '24h', 'charts']
+
+function getPageTitleName (index) {
+  switch (index) {
+    case 0:
+      return 'Blockchain Summary'
+    case 1:
+      return 'Mempool And Mining'
+    case 2:
+      return 'Market Charts'
+    case 3:
+      return 'Staking And Voting'
+    case 4:
+      return '24h Metrics'
+    case 5:
+      return 'Chain Charts'
+  }
+  return ''
+}
+
+function getPageTitleIcon (index) {
+  switch (index) {
+    case 0:
+      return '/images/blockchain-icon.svg'
+    case 1:
+      return '/images/mining-icon.svg'
+    case 2:
+      return '/images/market-icon.svg'
+    case 3:
+      return '/images/ticket.svg'
+    case 4:
+      return '/images/hour-24.svg'
+    case 5:
+      return '/images/chain-chart.svg'
+  }
+  return ''
+}
+
+function setMenuDropdownPos (e) {
+  const submenu = e.querySelector('.home-menu-dropdown')
+  if (!submenu) return
+  const rect = submenu.getBoundingClientRect()
+  const windowWidth = window.innerWidth
+  if (rect.right > windowWidth) {
+    submenu.style.left = 'auto'
+    submenu.style.right = '0'
+  }
+}
 
 function makeMempoolBlock (block) {
   let fees = 0
@@ -195,12 +243,78 @@ export default class extends Controller {
       'ticketFee', 'vspTable', 'mined24hBlocks', 'txs24hCount', 'sent24h', 'sent24hUsd', 'fees24h', 'fees24hUsd',
       'vout24h', 'activeAddr24h', 'powReward24h', 'powReward24hUsd', 'supply24h', 'supply24hUsd', 'treasuryBal24h',
       'treasuryBal24hUsd', 'staked24h', 'tickets24h', 'posReward24h', 'posReward24hUsd', 'voted24h', 'missed24h',
-      'swapAmount24h', 'swapAmount24hUsd', 'swapCount24h', 'swapPartCount24h', 'bwVol24h'
+      'swapAmount24h', 'swapAmount24hUsd', 'swapCount24h', 'swapPartCount24h', 'bwVol24h', 'homeContent',
+      'homeThumbs'
     ]
   }
 
   connect () {
     this.query = new TurboQuery()
+    this.settings = TurboQuery.nullTemplate(['page'])
+    this.pageIndex = 0
+    if (humanize.isEmpty(this.settings.page)) {
+      const params = new URLSearchParams(window.location.search)
+      if (!humanize.isEmpty(params.get('page'))) {
+        this.settings.page = params.get('page')
+      }
+    }
+    if (!humanize.isEmpty(this.settings.page)) {
+      this.pageIndex = pages.indexOf(this.settings.page)
+      if (this.pageIndex < 0) {
+        this.pageIndex = 0
+      }
+    }
+    this.content = document.getElementById('newHomeContent')
+    this.thumbs = document.querySelectorAll('.new-home-thumb')
+    this.snapPageContents = document.querySelectorAll('.snap-page-content')
+    this.navBarHeight = document.getElementById('navBar').offsetHeight
+    this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+    this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+    this.viewHeight = window.innerHeight - this.navBarHeight - this.newHomeMenuHeight - this.homeThumbnailHeight - 2
+    this.contentHeights = []
+    const _this = this
+    this.updateContentHeight()
+    window.addEventListener('resize', function () {
+      _this.navBarHeight = document.getElementById('navBar').offsetHeight
+      _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+      _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+      _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
+    })
+    this.content.addEventListener('scroll', () => {
+      _this.updateContentHeight()
+      const scrollTop = _this.content.scrollTop + 5
+      let currentHeight = 0
+      let index = 0
+      while (currentHeight < scrollTop) {
+        if (scrollTop < currentHeight + _this.contentHeights[index]) {
+          break
+        }
+        currentHeight += _this.contentHeights[index]
+        index++
+      }
+      _this.thumbs.forEach(thumb => thumb.classList.remove('active'))
+      _this.thumbs[index].classList.add('active')
+      const title = getPageTitleName(index)
+      const icon = getPageTitleIcon(index)
+      document.getElementById('pageBarTitleTop').textContent = title
+      document.getElementById('pageBarTitleBottom').textContent = title
+      document.getElementById('pageBarIconTop').src = icon
+      document.getElementById('pageBarIconBottom').src = icon
+      if (index !== _this.pageIndex) {
+        _this.pageIndex = index
+        _this.settings.page = pages[index]
+        _this.query.replace(_this.settings)
+      }
+    })
+
+    document.querySelectorAll('.menu-list-item').forEach(menuItem => {
+      menuItem.addEventListener('mouseenter', function () {
+        setMenuDropdownPos(this)
+      })
+    })
+    if (this.pageIndex > 0) {
+      this.moveToPageByIndex(this.pageIndex)
+    }
     // get default exchange rate
     this.exchangeRate = Number(this.data.get('exchangeRate'))
     this.exchangeIndex = this.data.get('exchangeIndex')
@@ -251,6 +365,35 @@ export default class extends Controller {
     if (isDev && isDev !== '') {
       this.setAvgBlockTime()
     }
+  }
+
+  moveToPageByIndex (index) {
+    let toScroll = 0
+    for (let i = 0; i < index; i++) {
+      toScroll += this.contentHeights[i]
+    }
+    // scroll to view
+    document.getElementById('newHomeContent').scrollTo({ top: toScroll, behavior: 'smooth' })
+  }
+
+  setPageIndex (e) {
+    const index = Number(e.target.dataset.index)
+    if (index > this.contentHeights.length - 1) {
+      return
+    }
+    this.pageIndex = index
+    this.settings.page = pages[index]
+    this.query.replace(this.settings)
+    this.moveToPageByIndex(index)
+  }
+
+  updateContentHeight () {
+    const _this = this
+    this.contentHeights = []
+    this.snapPageContents.forEach((pageContent) => {
+      const cHeight = pageContent.offsetHeight
+      _this.contentHeights.push(cHeight > _this.viewHeight ? cHeight : _this.viewHeight)
+    })
   }
 
   _processXcUpdate (update) {
@@ -314,7 +457,7 @@ export default class extends Controller {
         }
 
         tooltipElement.title = newContent
-      } catch (error) {}
+      } catch (error) { }
     })
 
     import(/* webpackChunkName: "tippy" */ '../vendor/tippy.all').then(module => {
@@ -463,10 +606,12 @@ export default class extends Controller {
     this.bwTotalVolTarget.innerHTML = humanize.decimalParts(summary.bisonWalletVol, true, 0)
     this.last30DayBwVolTarget.innerHTML = humanize.decimalParts(summary.bwLast30DaysVol, true, 0)
     this.updateLastBlocksPools(summary.poolDataList)
-    this.missedTicketsTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.missedTickets, true, 0)
-    this.last1000BlocksMissedTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksMissed, true, 0)
-    this.ticketFeeTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksTicketFeeAvg, false, 8)
-    this.vspTableTarget.innerHTML = this.getVspTable(summary.vspList)
+    if (this.hasMissedTicketsTarget) {
+      this.missedTicketsTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.missedTickets, true, 0)
+      this.last1000BlocksMissedTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksMissed, true, 0)
+      this.ticketFeeTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksTicketFeeAvg, false, 8)
+      this.vspTableTarget.innerHTML = this.getVspTable(summary.vspList)
+    }
   }
 
   getVspTable (vspList) {
@@ -514,7 +659,7 @@ export default class extends Controller {
         <span class="${summary24h.stakedDCR > 0 ? 'c-green-2' : 'c-red'}">${humanize.decimalParts(Math.abs(summary24h.stakedDCR) / 1e8, true, 2)}
         </span>`
     this.tickets24hTarget.innerHTML =
-        `<span class="dcricon-arrow-${summary24h.stakedDCR > 0 ? 'up text-green' : 'down text-danger'}"></span>
+      `<span class="dcricon-arrow-${summary24h.stakedDCR > 0 ? 'up text-green' : 'down text-danger'}"></span>
         <span class="${summary24h.stakedDCR > 0 ? 'c-green-2' : 'c-red'}">
         ${humanize.decimalParts(summary24h.numTickets, true, 0)}</span>`
     this.posReward24hTarget.innerHTML = humanize.decimalParts(summary24h.posReward / 1e8, true, 2)
@@ -548,7 +693,7 @@ export default class extends Controller {
     }
     if (this.hasTreasuryBal24hUsdTarget) {
       this.treasuryBal24hUsdTarget.innerHTML =
-      `<span class="dcricon-arrow-${summary24h.treasuryBalanceChange > 0 ? 'up text-green' : 'down text-danger'}"></span>
+        `<span class="dcricon-arrow-${summary24h.treasuryBalanceChange > 0 ? 'up text-green' : 'down text-danger'}"></span>
       <span class="${summary24h.treasuryBalanceChange > 0 ? 'c-green-2' : 'c-red'}">
       ${humanize.threeSigFigs(summary24h.treasuryBalanceChange / 1e8 * this.exchangeRate)}</span> ${this.exchangeIndex}`
     }
