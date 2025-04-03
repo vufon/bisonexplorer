@@ -2056,7 +2056,7 @@
                         <div class="d-flex d-md-none flex-shrink-1 align-items-top flex-wrap">
                            <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                               <label>Chart</label>
-                              <select class="chart-box d-inline-flex" data-charts-target="chartSelect"
+                              <select class="chart-box d-inline-flex mobile-mode" data-charts-target="chartSelect"
                                  data-action="charts#selectChart">
                                  <optgroup label="Staking">
                                     <option value="ticket-price">Ticket Price</option>
@@ -2087,17 +2087,17 @@
                               <label>Blake3 Milestone</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item nav-link mobile-nav-link active"
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
                                        data-charts-target="rangeOption" data-action="click->charts#setRange"
                                        data-option="all">
                                        All
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link active"
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
                                        data-charts-target="rangeOption" data-action="click->charts#setRange"
                                        data-option="before">
                                        Before
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link" data-charts-target="rangeOption"
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="rangeOption"
                                        data-action="click->charts#setRange" data-option="after">
                                        After
                                     </li>
@@ -2108,11 +2108,11 @@
                               <label>BIN</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item nav-link mobile-nav-link active" data-charts-target="binSize"
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="binSize"
                                        data-action="click->charts#setBin" data-option="day">
                                        Day
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link" data-charts-target="binSize"
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="binSize"
                                        data-action="click->charts#setBin" data-option="block">
                                        Blocks
                                     </li>
@@ -2123,11 +2123,11 @@
                               <label>SCALE</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item nav-link mobile-nav-link active" data-charts-target="scaleType"
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="scaleType"
                                        data-action="click->charts#setScale" data-option="linear">
                                        Linear
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link" data-charts-target="scaleType"
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="scaleType"
                                        data-action="click->charts#setScale" data-option="log">
                                        Log
                                     </li>
@@ -2140,14 +2140,14 @@
                                  <ul class="nav nav-pills">
                                     <li class="nav-item mobile-mode" data-charts-target="vSelectorItem" data-charts="ticket-price">
                                        <label class="customcheck ms-2 d-inline-flex">Price
-                                          <input type="checkbox" checked="checked"
+                                          <input type="checkbox" checked="checked" class="mobile-mode"
                                              data-action="click->charts#setVisibility" data-charts-target="ticketsPrice">
                                           <span class="checkmark tickets-price"></span>
                                        </label>
                                     </li>
                                     <li class="nav-item mobile-mode" data-charts-target="vSelectorItem" data-charts="ticket-price">
                                        <label class="customcheck mx-2 d-inline-flex">Tickets Bought
-                                          <input type="checkbox" data-action="click->charts#setVisibility"
+                                          <input type="checkbox" class="mobile-mode" data-action="click->charts#setVisibility"
                                              data-charts-target="ticketsPurchase">
                                           <span class="checkmark tickets-bought"></span>
                                        </label>
@@ -2156,7 +2156,7 @@
                                        <label class="customcheck mx-2 d-inline-flex mobile-mode" data-charts-target="vSelectorItem"
                                           data-charts="coin-supply">Mixed
                                           Coins
-                                          <input type="checkbox" data-action="click->charts#setVisibility"
+                                          <input type="checkbox" class="mobile-mode" data-action="click->charts#setVisibility"
                                              data-charts-target="anonymitySet">
                                           <span class="checkmark total-mixed"></span>
                                        </label>
@@ -2168,11 +2168,11 @@
                               <label>MODE</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item nav-link mobile-nav-link active" data-charts-target="modeOption"
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="modeOption"
                                        data-action="click->charts#setMode" data-option="smooth">
                                        Smooth
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link" data-charts-target="modeOption"
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="modeOption"
                                        data-action="click->charts#setMode" data-option="stepped">
                                        Stepped
                                     </li>
@@ -2342,25 +2342,25 @@
                      <div
                         class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-20 border-1-grey home-chart-wrapper pe-0"
                         data-charts-target="chartWrapper">
-                        <div class="d-flex d-md-none my-2 pe-2">
+                        <div class="d-flex d-md-none my-2 ps-3">
                            <ul class="nav nav-pills">
-                              <li class="nav-item nav-link mobile-nav-link active" data-charts-target="zoomOption"
+                              <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="zoomOption"
                                  data-action="click->charts#setZoom" data-option="all">
                                  All
                               </li>
-                              <li class="nav-item nav-link mobile-nav-link" data-charts-target="zoomOption"
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="zoomOption"
                                  data-action="click->charts#setZoom" data-option="year">
                                  Year
                               </li>
-                              <li class="nav-item nav-link mobile-nav-link" data-charts-target="zoomOption"
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="zoomOption"
                                  data-action="click->charts#setZoom" data-option="month">
                                  Month
                               </li>
-                              <li class="nav-item nav-link mobile-nav-link" data-charts-target="zoomOption"
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="zoomOption"
                                  data-action="click->charts#setZoom" data-option="week">
                                  Week
                               </li>
-                              <li class="nav-item nav-link mobile-nav-link" data-charts-target="zoomOption"
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="zoomOption"
                                  data-action="click->charts#setZoom" data-option="day">
                                  Day
                               </li>

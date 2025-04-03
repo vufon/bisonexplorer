@@ -610,7 +610,7 @@ export default class extends Controller {
       [[1, 1, 5], [2, 5, 11]],
       options
     )
-    this.chartSelectTarget.value = this.settings.chart
+    this.setSelectedChart(this.settings.chart)
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
     // default on mobile is year, on other is all
@@ -659,7 +659,7 @@ export default class extends Controller {
           'Price (DCR)', true, false))
         gOptions.y2label = 'Tickets Bought'
         gOptions.series = { 'Tickets Bought': { axis: 'y2' } }
-        this.visibility = [this.ticketsPriceTarget.checked, this.ticketsPurchaseTarget.checked]
+        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, windowSize * 20 * 8],
@@ -733,7 +733,7 @@ export default class extends Controller {
         gOptions.y2label = 'Inflation Limit'
         gOptions.y3label = 'Mix Rate'
         gOptions.series = { 'Inflation Limit': { axis: 'y2' }, 'Mix Rate': { axis: 'y3' } }
-        this.visibility = [true, true, this.anonymitySetTarget.checked]
+        this.visibility = [true, true, this.getTargetsChecked(this.anonymitySetTargets)]
         gOptions.visibility = this.visibility
         gOptions.series = {
           'Inflation Limit': {
@@ -751,7 +751,7 @@ export default class extends Controller {
           let change = 0
           if (i < d.inflation.length) {
             const supply = data.series[0].y
-            if (this.anonymitySetTarget.checked) {
+            if (this.getTargetsChecked(this.anonymitySetTargets)) {
               const mixed = data.series[2].y
               const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
               div.appendChild(legendEntry(`${legendMarker()} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
@@ -823,8 +823,9 @@ export default class extends Controller {
   }
 
   async selectChart () {
-    const selection = this.settings.chart = this.chartSelectTarget.value
-    this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
+    const selectChart = this.getSelectedChart()
+    const selection = this.settings.chart = selectChart
+    this.chartNameTarget.textContent = this.getChartName(selectChart)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
@@ -863,7 +864,11 @@ export default class extends Controller {
       } else {
         this.showMultiTargets(this.binSelectorTargets)
         this.settings.bin = this.selectedBin()
+        const _this = this
         this.binSizeTargets.forEach(el => {
+          if (_this.exitCond(el)) {
+            return
+          }
           if (el.dataset.option !== 'window') return
           if (usesHybridUnits(selection)) {
             el.classList.remove('d-hide')
@@ -1094,12 +1099,12 @@ export default class extends Controller {
 
   updateVSelector (chart) {
     if (!chart) {
-      chart = this.chartSelectTarget.value
+      chart = this.getSelectedChart()
     }
     const that = this
     let showWrapper = false
     this.vSelectorItemTargets.forEach(el => {
-      if ((isMobile() && !el.classList.contains('mobile-mode')) || (!isMobile() && el.classList.contains('mobile-mode'))) {
+      if (that.exitCond(el)) {
         return
       }
       let show = el.dataset.charts.indexOf(chart) > -1
@@ -1122,25 +1127,26 @@ export default class extends Controller {
   }
 
   setVisibilityFromSettings () {
-    switch (this.chartSelectTarget.value) {
+    const selectChart = this.getSelectedChart()
+    switch (selectChart) {
       case 'ticket-price':
         if (this.visibility.length !== 2) {
-          this.visibility = [true, this.ticketsPurchaseTarget.checked]
+          this.visibility = [true, this.getTargetsChecked(this.ticketsPurchaseTargets)]
         }
-        this.ticketsPriceTarget.checked = this.visibility[0]
-        this.ticketsPurchaseTarget.checked = this.visibility[1]
+        this.setTargetsChecked(this.ticketsPriceTargets, this.visibility[0])
+        this.setTargetsChecked(this.ticketsPurchaseTargets, this.visibility[1])
         break
       case 'coin-supply':
         if (this.visibility.length !== 3) {
-          this.visibility = [true, true, this.anonymitySetTarget.checked]
+          this.visibility = [true, true, this.getTargetsChecked(this.anonymitySetTargets)]
         }
-        this.anonymitySetTarget.checked = this.visibility[2]
+        this.setTargetsChecked(this.anonymitySetTargets, this.visibility[2])
         break
       case 'privacy-participation':
         if (this.visibility.length !== 2) {
-          this.visibility = [true, this.anonymitySetTarget.checked]
+          this.visibility = [true, this.getTargetsChecked(this.anonymitySetTargets)]
         }
-        this.anonymitySetTarget.checked = this.visibility[1]
+        this.setTargetsChecked(this.anonymitySetTargets, this.visibility[1])
         break
       default:
         return
@@ -1152,19 +1158,24 @@ export default class extends Controller {
   }
 
   setVisibility (e) {
-    switch (this.chartSelectTarget.value) {
+    const selectChart = this.getSelectedChart()
+    switch (selectChart) {
       case 'ticket-price':
-        if (!this.ticketsPriceTarget.checked && !this.ticketsPurchaseTarget.checked) {
+      {
+        const ticketPriceChecked = this.getTargetsChecked(this.ticketsPriceTargets)
+        const ticketPurchaseChecked = this.getTargetsChecked(this.ticketsPurchaseTargets)
+        if (!ticketPriceChecked && !ticketPurchaseChecked) {
           e.currentTarget.checked = true
           return
         }
-        this.visibility = [this.ticketsPriceTarget.checked, this.ticketsPurchaseTarget.checked]
+        this.visibility = [ticketPriceChecked, ticketPurchaseChecked]
         break
+      }
       case 'coin-supply':
-        this.visibility = [true, true, this.anonymitySetTarget.checked]
+        this.visibility = [true, true, this.getTargetsChecked(this.anonymitySetTargets)]
         break
       case 'privacy-participation':
-        this.visibility = [true, this.anonymitySetTarget.checked]
+        this.visibility = [true, this.getTargetsChecked(this.anonymitySetTargets)]
         break
       default:
         return
@@ -1177,7 +1188,11 @@ export default class extends Controller {
   }
 
   setActiveOptionBtn (opt, optTargets) {
+    const _this = this
     optTargets.forEach(li => {
+      if (_this.exitCond(li)) {
+        return
+      }
       if (li.dataset.option === opt) {
         li.classList.add('active')
       } else {
@@ -1189,10 +1204,20 @@ export default class extends Controller {
   selectedZoom () { return this.selectedOption(this.zoomOptionTargets) }
   selectedBin () { return this.selectedOption(this.binSizeTargets) }
   selectedScale () { return this.selectedOption(this.scaleTypeTargets) }
-  selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
+  selectedAxis () { return this.selectedNormalOption(this.axisOptionTargets) }
   selectedRange () { return this.selectedOption(this.rangeOptionTargets) }
 
   selectedOption (optTargets) {
+    let key = false
+    const _this = this
+    optTargets.forEach((el) => {
+      if (_this.exitCond(el)) return
+      if (el.classList.contains('active')) key = el.dataset.option
+    })
+    return key
+  }
+
+  selectedNormalOption (optTargets) {
     let key = false
     optTargets.forEach((el) => {
       if (el.classList.contains('active')) key = el.dataset.option
@@ -1206,6 +1231,10 @@ export default class extends Controller {
     })
   }
 
+  exitCond (opt) {
+    return (isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))
+  }
+
   showMultiTargets (opts) {
     opts.forEach((opt) => {
       if ((isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))) {
@@ -1214,6 +1243,50 @@ export default class extends Controller {
         opt.classList.remove('d-hide')
         opt.classList.remove('d-none')
       }
+    })
+  }
+
+  getSelectedChart () {
+    let selected = 'ticket-price'
+    const _this = this
+    this.chartSelectTargets.forEach((chart) => {
+      if (_this.exitCond(chart)) {
+        return
+      }
+      selected = chart.value
+    })
+    return selected
+  }
+
+  setSelectedChart (select) {
+    const _this = this
+    this.chartSelectTargets.forEach((chart) => {
+      if (_this.exitCond(chart)) {
+        return
+      }
+      chart.value = select
+    })
+  }
+
+  getTargetsChecked (targets) {
+    const _this = this
+    let checked = false
+    targets.forEach((target) => {
+      if (_this.exitCond(target)) {
+        return
+      }
+      checked = target.checked
+    })
+    return checked
+  }
+
+  setTargetsChecked (targets, checked) {
+    const _this = this
+    targets.forEach((target) => {
+      if (_this.exitCond(target)) {
+        return
+      }
+      target.checked = checked
     })
   }
 }
