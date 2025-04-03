@@ -34,8 +34,8 @@ let yFormatter, legendEntry, legendMarker, legendElement
 let rangeOption = ''
 const yAxisLabelWidth = {
   y1: {
-    'ticket-price': 40,
-    'ticket-pool-size': 40,
+    'ticket-price': 30,
+    'ticket-pool-size': 30,
     'ticket-pool-value': 30,
     'stake-participation': 30,
     'privacy-participation': 40,
