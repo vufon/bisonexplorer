@@ -15,95 +15,108 @@
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Decred Explorer by bisonexplorer.com"}}
 {{ template "new_home_navbar" . }}
-<div class="d-sm-flex justify-content-between ai-end new-home-header container py-2 px-2 px-lg-0" id="newHomeMenu">
+<div class="d-flex justify-content-between ai-end new-home-header container py-2 px-2 px-lg-0" id="newHomeMenu">
    <div class="d-none d-md-flex mb-sm-0">
       <img id="pageBarIconTop" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
       <span id="pageBarTitleTop" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
    </div>
-   <div class="button-group-navigation d-flex justify-content-center justify-content-md-end ai-end">
+   <div class="button-group-navigation d-flex justify-content-md-end ai-end">
       {{if .Conversions}}
       <p class="me-2 mb-0 d-none d-md-flex ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span
                data-homepage-target="exchangeRate">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
       {{end}}
       <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
             <img src="/images/info-icon.svg" width="20" height="20" class="home-menu-icon" alt="blockchain info">
-            <span>Information</span></a>
+            <span class="d-none d-md-inline-block">Information</span></a>
          <div class="home-menu-dropdown">
             <div class="submenu-list__wrapper one-column">
                <ul class="submenu-list">
                   <li class="submenu-list__item has-submenu active">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/blocks.svg" width="25" height="25" class="home-menu-icon"
-                              alt="blocks information">
+                     <a href="/blocks" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/blocks.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="blocks information">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Blocks</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Latest block information</span>
+                           </div>
                         </div>
-                        <a href="/blocks" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Blocks</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Latest block information</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/mempool.svg" width="25" height="25" class="home-menu-icon"
-                              alt="mempool information">
+                     <a href="/mempool" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/mempool.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="mempool information">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Mempool</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">List of pending
+                                 transactions</span>
+                           </div>
                         </div>
-                        <a href="/mempool" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Mempool</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">List of pending
-                              transactions</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/treasury.svg" width="25" height="25" class="home-menu-icon"
-                              alt="treasury information">
+                     <a href="/treasury" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/treasury.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="treasury information">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Treasury</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Treasury transactions</span>
+                           </div>
                         </div>
-                        <a href="treasury" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Treasury</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Treasury transactions</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/proposals.svg" width="25" height="25" class="home-menu-icon"
-                              alt="proposals information">
+                     <a href="/proposals" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/proposals.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="proposals information">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Funding Proposals</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Proposal list for
+                                 funding</span>
+                           </div>
                         </div>
-                        <a href="/proposals" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Funding Proposals</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Proposal list for funding</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/agendas.svg" width="25" height="25" class="home-menu-icon"
-                              alt="agendas consensus change">
+                     <a href="/agendas" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/agendas.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="agendas consensus change">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Upgrade Agendas</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Voting programs for
+                                 upgrades</span>
+                           </div>
                         </div>
-                        <a href="/agendas" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Upgrade Agendas</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Voting programs for
-                              upgrades</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/swaps-icon.svg" width="25" height="25" class="home-menu-icon"
-                              alt="decred atomic swaps">
+                     <a href="/atomic-swaps" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/swaps-icon.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="decred atomic swaps">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Atomic Swaps</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">List of atomic swaps</span>
+                           </div>
                         </div>
-                        <a href="/atomic-swaps" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Atomic Swaps</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">List of atomic swaps</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                </ul>
             </div>
@@ -111,58 +124,68 @@
       </li>
       <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
             <img src="/images/chart-icon.svg" width="20" height="20" class="home-menu-icon" alt="decred chart">
-            <span>Graphics</span></a>
+            <span class="d-none d-md-inline-block">Graphics</span></a>
          <div class="home-menu-dropdown">
             <div class="submenu-list__wrapper one-column">
                <ul class="submenu-list">
                   <li class="submenu-list__item has-submenu active">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/chain-chart.svg" width="25" height="25" class="home-menu-icon"
-                              alt="chain charts">
+                     <a href="/charts" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/chain-chart.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="chain charts">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Chain Charts</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Charts from chain data</span>
+                           </div>
                         </div>
-                        <a href="/charts" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Chain Charts</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Charts from chain data</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/market.svg" width="25" height="25" class="home-menu-icon"
-                              alt="market charts">
+                     <a href="/market" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/market.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="market charts">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Market</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Information from the
+                                 market</span>
+                           </div>
                         </div>
-                        <a href="/market" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Market</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Information from the market</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/ticket.svg" width="25" height="25" class="home-menu-icon"
-                              alt="ticket pool">
+                     <a href="/ticketpool" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/ticket.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="ticket pool">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Ticket Pool</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Long-term Ticket Pool
+                                 state</span>
+                           </div>
                         </div>
-                        <a href="/ticketpool" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Ticket Pool</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Long-term Ticket Pool state</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                   <li class="submenu-list__item has-submenu">
-                     <div class="submenu-list__item-wrapper">
-                        <div class="submenu-list__item-icon">
-                           <img src="/images/bison-wallet.svg" width="25" height="25" class="home-menu-icon"
-                              alt="bison wallet">
+                     <a href="/bwdash" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/bison-wallet.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="bison wallet">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Bison Wallet Dashboard</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Summary info for Bison
+                                 Wallet</span>
+                           </div>
                         </div>
-                        <a href="/bwdash" data-turbolinks="false" class="submenu-list__item-link">
-                           <span class="submenu-list__item-title">Bison Wallet Dashboard</span>
-                           <span class="submenu-list__item-subtile d-none d-md-block">Summary info for Bison
-                              Wallet</span>
-                        </a>
-                     </div>
+                     </a>
                   </li>
                </ul>
             </div>
@@ -170,166 +193,194 @@
       </li>
       <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
             <img src="/images/tools-icon.svg" width="20" height="20" class="home-menu-icon" alt="decred tools">
-            <span>Tools</span></a>
+            <span class="d-none d-md-inline-block">Tools</span></a>
          <div class="home-menu-dropdown">
             <div class="submenu-list__wrapper two-column row">
                <div class="col-24 col-md-12">
                   <ul class="submenu-list">
                      <li class="submenu-list__item has-submenu active">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/other.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="other blockchains">
+                        <a href="/chain" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/other.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="other blockchains">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Other Blockchains</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">All supported
+                                    blockchains</span>
+                              </div>
                            </div>
-                           <a href="/chain" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Other Blockchains</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">All supported
-                                 blockchains</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/financial-report.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="financial report">
+                        <a href="/finance-report" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/financial-report.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="financial report">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Financial Reports</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Treasury/Proposals financial
+                                    reports</span>
+                              </div>
                            </div>
-                           <a href="/finance-report" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Financial Reports</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Treasury/Proposals financial
-                                 reports</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/calculator.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="staking reward calculator">
+                        <a href="/stakingcalc" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/calculator.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="staking reward calculator">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Staking Reward Calculator</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Estimated staking
+                                    reward</span>
+                              </div>
                            </div>
-                           <a href="/stakingcalc" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Staking Reward Calculator</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Estimated staking reward</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/supply.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="supply page">
+                        <a href="/supply" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/supply.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="supply page">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Supply</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Distribution
+                                    information</span>
+                              </div>
                            </div>
-                           <a href="/supply" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Supply</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Distribution information</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/attack-cost.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="attack cost">
+                        <a href="/attack-cost" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/attack-cost.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="attack cost">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Attack Cost</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Attack Cost
+                                    Calculator</span>
+                              </div>
                            </div>
-                           <a href="/attack-cost" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Attack Cost</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Attack Cost Calculator</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu active">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/parameter.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="parameters">
+                        <a href="/parameters" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/parameter.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="parameters">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Parameters</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Blockchain Parameters</span>
+                              </div>
                            </div>
-                           <a href="/parameters" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Parameters</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Blockchain Parameters</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                   </ul>
                </div>
                <div class="col-24 col-md-12">
                   <ul class="submenu-list">
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/broadcast.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="broadcast/decode">
+                        <a href="/decodetx" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/broadcast.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="broadcast/decode">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Decode/Broadcast Tx</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Broadcast
+                                    Transactions</span>
+                              </div>
                            </div>
-                           <a href="/decodetx" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Decode/Broadcast Tx</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Broadcast Transactions</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/verify-message.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="verify message">
+                        <a href="/verify-message" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/verify-message.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="verify message">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Verify Message</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Verify signed address</span>
+                              </div>
                            </div>
-                           <a href="/verify-message" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Verify Message</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Verify signed address</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/whats-new.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="whats new">
+                        <a href="/whatsnew" data-turbolinks="false" class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/whats-new.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="whats new">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">Whats New</span>
+                                 <span class="submenu-list__item-subtile d-none d-md-block">Changes on Bison
+                                    Explorer</span>
+                              </div>
                            </div>
-                           <a href="/whatsnew" data-turbolinks="false" class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">Whats New</span>
-                              <span class="submenu-list__item-subtile d-none d-md-block">Changes on Bison
-                                 Explorer</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/testnet-icon.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="Switch to testnet/mainnet">
+                        <a href='{{- if eq .NetName "Mainnet"}}{{.Links.Testnet}}{{else}}{{.Links.Mainnet}}{{end}}'
+                           class="submenu-list__item-link w-100" data-turbolinks="false">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/testnet-icon.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="Switch to testnet/mainnet">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">{{- if eq .NetName "Mainnet"}}Switch To
+                                    Testnet{{else}}Switch To Mainnet{{end}}</span>
+                              </div>
                            </div>
-                           <a href='{{- if eq .NetName "Mainnet"}}{{.Links.Testnet}}{{else}}{{.Links.Mainnet}}{{end}}'
-                              class="submenu-list__item-link" data-turbolinks="false">
-                              <span class="submenu-list__item-title">{{- if eq .NetName "Mainnet"}}Switch To
-                                 Testnet{{else}}Switch To Mainnet{{end}}</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/api-icon.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="json api docs">
+                        <a href="{{.Links.APIDocs}}" data-keynav-skip rel="noopener noreferrer" target="_blank"
+                           class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/api-icon.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="json api docs">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title">JSON API Docs</span>
+                              </div>
                            </div>
-                           <a href="{{.Links.APIDocs}}" data-keynav-skip rel="noopener noreferrer" target="_blank"
-                              class="submenu-list__item-link">
-                              <span class="submenu-list__item-title">JSON API Docs</span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                      <li class="submenu-list__item has-submenu">
-                        <div class="submenu-list__item-wrapper">
-                           <div class="submenu-list__item-icon">
-                              <img src="/images/hotkey-icon.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="hotkeys">
+                        <a data-keynav-skip rel="noopener noreferrer" id="keynav-toggle" data-turbolinks="false"
+                           class="submenu-list__item-link w-100">
+                           <div class="submenu-list__item-wrapper">
+                              <div class="submenu-list__item-icon">
+                                 <img src="/images/hotkey-icon.svg" width="25" height="25" class="home-menu-icon"
+                                    alt="hotkeys">
+                              </div>
+                              <div>
+                                 <span class="submenu-list__item-title text">Enable Hot Keys</span>
+                                 <span class="submenu-list__item-subtile">
+                                    <span class="keys-hint">(<span class="arrows">
+                                          &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
+                                 </span>
+                              </div>
                            </div>
-                           <a data-keynav-skip rel="noopener noreferrer" id="keynav-toggle" data-turbolinks="false"
-                              class="submenu-list__item-link">
-                              <span class="submenu-list__item-title text">Enable Hot Keys</span>
-                              <span class="submenu-list__item-subtile">
-                                 <span class="keys-hint">(<span class="arrows">
-                                       &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
-                              </span>
-                           </a>
-                        </div>
+                        </a>
                      </li>
                   </ul>
                </div>
@@ -337,17 +388,11 @@
          </div>
       </li>
    </div>
-   <div class="d-flex d-md-none justify-content-between mt-2 mb-sm-0">
-      <div class="d-flex ai-center">
-         <img id="pageBarIconBottom" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
-         <span id="pageBarTitleBottom" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
-      </div>
-      <div class="d-flex ai-center">
-         {{if .Conversions}}
-         <p class="me-2 my-0 ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span
-                  data-homepage-target="exchangeRateBottom">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
-         {{end}}
-      </div>
+   <div class="d-flex d-md-none ai-center">
+      {{if .Conversions}}
+      <p class="me-2 my-0 ai-center">1 DCR = <span class="fs-18 ms-1 fw-bold top-price-color">$<span
+               data-homepage-target="exchangeRateBottom">{{.Conversions.ExchangeRate.TwoDecimals}}</span></span></p>
+      {{end}}
    </div>
 </div>
 <div class="main-container new-homepage homepage-class homepage-content" data-homepage-target="homeContent"
@@ -1359,8 +1404,8 @@
                      </select>
                   </div>
                   {{- /* EXCHANGE SELECTION */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mt-3 mb-2 my-md-2 mx-2 mx-lg-4" data-market-target="exchanges"
-                     data-action="click->market#changeExchange">
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap mt-3 mb-2 my-md-2 mx-2 mx-lg-4"
+                     data-market-target="exchanges" data-action="click->market#changeExchange">
                      <label>Exchange</label>
                      <div class="btn-group exchange-group" data-market-target="exchangeBtnArea">
                         {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
@@ -1400,8 +1445,8 @@
                      <button name="95">95%</button>
                   </div>
                   {{- /* BIN SIZE SELECTIONS */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4" data-market-target="bin"
-                     data-action="click->market#changeBin">
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4"
+                     data-market-target="bin" data-action="click->market#changeBin">
                      <label class="text-nowrap d-none d-md-block">Bin Size</label>
                      <div class="btn-group">
                         <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
@@ -1415,7 +1460,8 @@
                      </div>
                   </div>
                   {{- /* OTHER CHART OPTIONS */ -}}
-                  <div class="btn-set bg-white d-inline-flex ai-center flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4" data-market-target="actions">
+                  <div class="btn-set bg-white d-inline-flex ai-center flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4"
+                     data-market-target="actions">
                      <label class="d-none d-md-block">Actions</label>
                      <button><a data-market-target="link" href="" target="_blank"
                            rel="noopener noreferrer"></a></button>
@@ -2091,7 +2137,8 @@
                                  </optgroup>
                               </select>
                            </div>
-                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode" data-charts-target="rangeSelector">
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-charts-target="rangeSelector">
                               <label>Blake3 Milestone</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
@@ -2105,66 +2152,79 @@
                                        data-option="before">
                                        Before
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="rangeOption"
-                                       data-action="click->charts#setRange" data-option="after">
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                       data-charts-target="rangeOption" data-action="click->charts#setRange"
+                                       data-option="after">
                                        After
                                     </li>
                                  </ul>
                               </div>
                            </div>
-                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode" data-charts-target="binSelector">
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-charts-target="binSelector">
                               <label>BIN</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="binSize"
-                                       data-action="click->charts#setBin" data-option="day">
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                       data-charts-target="binSize" data-action="click->charts#setBin"
+                                       data-option="day">
                                        Day
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="binSize"
-                                       data-action="click->charts#setBin" data-option="block">
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                       data-charts-target="binSize" data-action="click->charts#setBin"
+                                       data-option="block">
                                        Blocks
                                     </li>
                                  </ul>
                               </div>
                            </div>
-                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode" data-charts-target="scaleSelector">
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-charts-target="scaleSelector">
                               <label>SCALE</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="scaleType"
-                                       data-action="click->charts#setScale" data-option="linear">
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                       data-charts-target="scaleType" data-action="click->charts#setScale"
+                                       data-option="linear">
                                        Linear
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="scaleType"
-                                       data-action="click->charts#setScale" data-option="log">
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                       data-charts-target="scaleType" data-action="click->charts#setScale"
+                                       data-option="log">
                                        Log
                                     </li>
                                  </ul>
                               </div>
                            </div>
-                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode" data-charts-target="vSelector">
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-charts-target="vSelector">
                               <label>VISIBILITY</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem" data-charts="ticket-price">
+                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem"
+                                       data-charts="ticket-price">
                                        <label class="customcheck ms-2 d-inline-flex">Price
                                           <input type="checkbox" checked="checked" class="mobile-mode"
-                                             data-action="click->charts#setVisibility" data-charts-target="ticketsPrice">
+                                             data-action="click->charts#setVisibility"
+                                             data-charts-target="ticketsPrice">
                                           <span class="checkmark tickets-price"></span>
                                        </label>
                                     </li>
-                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem" data-charts="ticket-price">
+                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem"
+                                       data-charts="ticket-price">
                                        <label class="customcheck mx-2 d-inline-flex">Tickets Bought
-                                          <input type="checkbox" class="mobile-mode" data-action="click->charts#setVisibility"
+                                          <input type="checkbox" class="mobile-mode"
+                                             data-action="click->charts#setVisibility"
                                              data-charts-target="ticketsPurchase">
                                           <span class="checkmark tickets-bought"></span>
                                        </label>
                                     </li>
                                     <li class="nav-item">
-                                       <label class="customcheck mx-2 d-inline-flex mobile-mode" data-charts-target="vSelectorItem"
-                                          data-charts="coin-supply">Mixed
+                                       <label class="customcheck mx-2 d-inline-flex mobile-mode"
+                                          data-charts-target="vSelectorItem" data-charts="coin-supply">Mixed
                                           Coins
-                                          <input type="checkbox" class="mobile-mode" data-action="click->charts#setVisibility"
+                                          <input type="checkbox" class="mobile-mode"
+                                             data-action="click->charts#setVisibility"
                                              data-charts-target="anonymitySet">
                                           <span class="checkmark total-mixed"></span>
                                        </label>
@@ -2172,23 +2232,27 @@
                                  </ul>
                               </div>
                            </div>
-                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode" data-charts-target="modeSelector">
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-charts-target="modeSelector">
                               <label>MODE</label>
                               <div class="btn-group">
                                  <ul class="nav nav-pills">
-                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="modeOption"
-                                       data-action="click->charts#setMode" data-option="smooth">
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                       data-charts-target="modeOption" data-action="click->charts#setMode"
+                                       data-option="smooth">
                                        Smooth
                                     </li>
-                                    <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="modeOption"
-                                       data-action="click->charts#setMode" data-option="stepped">
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                       data-charts-target="modeOption" data-action="click->charts#setMode"
+                                       data-option="stepped">
                                        Stepped
                                     </li>
                                  </ul>
                               </div>
                            </div>
                         </div>
-                        <div class="d-none d-md-block chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
+                        <div
+                           class="d-none d-md-block chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
                            <div class="chart-control-label">CHART</div>
                            <div class="chart-control">
                               <select id="selectBox" class="form-control chart-form-control"
@@ -2352,8 +2416,8 @@
                         data-charts-target="chartWrapper">
                         <div class="d-flex d-md-none my-2 ps-3">
                            <ul class="nav nav-pills">
-                              <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-charts-target="zoomOption"
-                                 data-action="click->charts#setZoom" data-option="all">
+                              <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                 data-charts-target="zoomOption" data-action="click->charts#setZoom" data-option="all">
                                  All
                               </li>
                               <li class="nav-item nav-link mobile-nav-link mobile-mode" data-charts-target="zoomOption"

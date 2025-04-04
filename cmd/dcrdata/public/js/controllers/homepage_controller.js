@@ -52,8 +52,8 @@ function setMenuDropdownPos (e) {
   const rect = submenu.getBoundingClientRect()
   const windowWidth = window.innerWidth
   if (rect.right > windowWidth) {
-    submenu.style.left = 'auto'
-    submenu.style.right = '0'
+    submenu.style.left = '-' + (rect.right - windowWidth - 5) + 'px'
+    submenu.style.right = 'auto'
   }
 }
 
@@ -297,9 +297,7 @@ export default class extends Controller {
       const title = getPageTitleName(index)
       const icon = getPageTitleIcon(index)
       document.getElementById('pageBarTitleTop').textContent = title
-      document.getElementById('pageBarTitleBottom').textContent = title
       document.getElementById('pageBarIconTop').src = icon
-      document.getElementById('pageBarIconBottom').src = icon
       if (index !== _this.pageIndex) {
         _this.pageIndex = index
         _this.settings.page = pages[index]
@@ -312,6 +310,34 @@ export default class extends Controller {
         setMenuDropdownPos(this)
       })
     })
+
+    const dropdowns = document.querySelectorAll('.menu-list-item')
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (isTouchDevice) {
+      dropdowns.forEach(dropdown => {
+        const btn = dropdown.querySelector('.home-menu-wrapper')
+        const menu = dropdown.querySelector('.home-menu-dropdown')
+        btn.addEventListener('touchstart', function (e) {
+          e.preventDefault()
+          menu.classList.toggle('show')
+          dropdowns.forEach(otherDropdown => {
+            if (otherDropdown !== dropdown) {
+              otherDropdown.querySelector('.home-menu-dropdown').classList.remove('show')
+            }
+          })
+        })
+      })
+
+      document.addEventListener('touchstart', function (e) {
+        dropdowns.forEach(dropdown => {
+          const menu = dropdown.querySelector('.home-menu-dropdown')
+          if (!dropdown.contains(e.target)) {
+            menu.classList.remove('show')
+          }
+        })
+      })
+    }
+
     if (this.pageIndex > 0) {
       this.moveToPageByIndex(this.pageIndex)
     }

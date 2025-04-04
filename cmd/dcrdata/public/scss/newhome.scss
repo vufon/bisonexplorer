@@ -100,7 +100,13 @@ body.darkBG {
   margin: 10px 0;
 }
 
-.menu-list-item:hover .home-menu-dropdown {
+@media (hover: hover) and (pointer: fine) {
+  .menu-list-item:hover .home-menu-dropdown {
+    display: block;
+  }
+}
+
+.menu-list-item .home-menu-dropdown.show {
   display: block;
 }
 
@@ -237,12 +243,17 @@ body.darkBG {
 }
 
 @media screen and (max-width: 768px) {
-  .two-column {
-    width: 300px;
+  .two-column,
+  .one-column {
+    width: 230px;
   }
 
   .new-home-header {
     background-color: #f0f8ff;
+  }
+
+  .home-menu-wrapper {
+    padding: 3px 8px;
   }
 
   body.darkBG {
