@@ -537,7 +537,7 @@ export default class extends Controller {
     this.mpRevCountTarget.textContent = counts.rev
 
     this.mempoolTarget.textContent = humanize.threeSigFigs(totals.total)
-    this.mempoolFeesTarget.innerHTML = humanize.decimalParts(fees.fees, false, 8)
+    this.mempoolFeesTarget.innerHTML = humanize.decimalParts(fees.fees, false, 8, 5)
 
     if (this.exchangeRate > 0 && totals.total > 0) {
       this.convertedMemSentTarget.textContent = `${humanize.threeSigFigs(totals.total * this.exchangeRate)} ${this.exchangeIndex}`
@@ -628,7 +628,7 @@ export default class extends Controller {
     this.totalTxsTarget.innerHTML = humanize.decimalParts(summary.total_transactions, true, 0)
     this.totalAddressesTarget.innerHTML = humanize.decimalParts(summary.total_addresses, true, 0)
     this.totalOutputsTarget.innerHTML = humanize.decimalParts(summary.total_outputs, true, 0)
-    this.totalSwapsAmountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalAmount / 100000000, true, 2, 0)
+    this.totalSwapsAmountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalAmount / 100000000, true, 0)
     this.totalContractsTarget.innerHTML = humanize.decimalParts(summary.swapsTotalContract, true, 0)
     this.redeemCountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalContract - summary.refundCount, true, 0)
     this.refundCountTarget.innerHTML = humanize.decimalParts(summary.refundCount, true, 0)
@@ -638,7 +638,7 @@ export default class extends Controller {
     if (this.hasMissedTicketsTarget) {
       this.missedTicketsTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.missedTickets, true, 0)
       this.last1000BlocksMissedTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksMissed, true, 0)
-      this.ticketFeeTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksTicketFeeAvg, false, 8)
+      this.ticketFeeTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksTicketFeeAvg, false, 8, 5)
       this.vspTableTarget.innerHTML = this.getVspTable(summary.vspList)
     }
   }
@@ -753,7 +753,7 @@ export default class extends Controller {
     this.poolValueTarget.innerHTML = humanize.decimalParts(ex.pool_info.value, true, 0)
     this.ticketRewardTarget.innerHTML = `${ex.reward.toFixed(2)}%`
     this.poolSizePctTarget.textContent = parseFloat(ex.pool_info.percent).toFixed(2)
-    this.feeAvgTarget.innerHTML = humanize.decimalParts(ex.txFeeAvg / 100000000, false, 8)
+    this.feeAvgTarget.innerHTML = humanize.decimalParts(ex.txFeeAvg / 100000000, false, 8, 4)
     this.txFeeAvg = ex.txFeeAvg
     this.powReward = ex.subsidy.pow
     const treasuryTotal = ex.dev_fund + ex.treasury_bal.balance

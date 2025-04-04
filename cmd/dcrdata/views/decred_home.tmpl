@@ -684,7 +684,7 @@
                               <div class="new-network-stats-content d-inline-block pt-1"
                                  data-homepage-target="totalSwapsAmount">
                                  {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                 $.SummaryInfo.SwapsTotalAmount) 2 true)}}
+                                 $.SummaryInfo.SwapsTotalAmount) 0 true)}}
                               </div>
                               <span class="new-info-line-2-sub">DCR</span>
                            </div>
@@ -974,8 +974,8 @@
                            <div class="new-network-stats-block pb-2">
                               <span class="new-network-stats-title">Mempool Fees</span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span data-homepage-target="mempoolFees" data-memfees="{{.TrimmedMempool.Fees}}">
-                                    {{template "decimalParts" (float64AsDecimalParts .TrimmedMempool.Fees 8 true 2)}}
+                                 <span data-homepage-target="mempoolFees" class="fs15-decimal" data-memfees="{{.TrimmedMempool.Fees}}">
+                                    {{template "decimalParts" (float64AsDecimalParts .TrimmedMempool.Fees 8 true 5)}}
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
                                  {{if $conv -}}
@@ -1089,9 +1089,9 @@
                                  Tx Fee Avg
                               </span>
                               <span class="new-network-stats-content d-inline-block pt-1">
-                                 <span data-homepage-target="feeAvg" data-feeavg="{{.TxFeeAvg}}">{{template
+                                 <span data-homepage-target="feeAvg" class="fs15-decimal" data-feeavg="{{.TxFeeAvg}}">{{template
                                     "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                    .TxFeeAvg) 8 true 2)}}</span>
+                                    .TxFeeAvg) 8 true 4)}}</span>
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
                               {{if $conv -}}
@@ -1404,7 +1404,7 @@
                      </select>
                   </div>
                   {{- /* EXCHANGE SELECTION */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mt-3 mb-2 my-md-2 mx-2 mx-lg-4"
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap mt-2 mb-2 my-md-2 mx-2 mx-lg-4"
                      data-market-target="exchanges" data-action="click->market#changeExchange">
                      <label>Exchange</label>
                      <div class="btn-group exchange-group" data-market-target="exchangeBtnArea">
@@ -1436,7 +1436,7 @@
                      <button data-action="click->market#setStacking" name="off">Off</button>
                   </div>
                   {{- /* ZOOM */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-market-target="zoom"
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap my-2 mx-2 mx-lg-4" data-market-target="zoom"
                      data-action="click->market#setZoom">
                      <label>Zoom +/-</label>
                      <button class="btn-selected" name="10">10%</button>
@@ -1445,9 +1445,9 @@
                      <button name="95">95%</button>
                   </div>
                   {{- /* BIN SIZE SELECTIONS */ -}}
-                  <div class="btn-set bg-white d-inline-flex flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4"
+                  <div class="btn-set bg-white d-inline-flex flex-nowrap my-2 mx-2 mx-lg-4"
                      data-market-target="bin" data-action="click->market#changeBin">
-                     <label class="text-nowrap d-none d-md-block">Bin Size</label>
+                     <label class="text-nowrap">Bin Size</label>
                      <div class="btn-group">
                         <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
                         <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
@@ -1460,9 +1460,9 @@
                      </div>
                   </div>
                   {{- /* OTHER CHART OPTIONS */ -}}
-                  <div class="btn-set bg-white d-inline-flex ai-center flex-nowrap market-mobile-set my-2 mx-2 mx-lg-4"
+                  <div class="btn-set bg-white d-inline-flex ai-center flex-nowrap my-2 mx-2 mx-lg-4"
                      data-market-target="actions">
-                     <label class="d-none d-md-block">Actions</label>
+                     <label>Actions</label>
                      <button><a data-market-target="link" href="" target="_blank"
                            rel="noopener noreferrer"></a></button>
                   </div>
@@ -1667,9 +1667,9 @@
                                  Ticket Fee
                               </span>
                               <span class="new-network-stats-content d-inline-block">
-                                 <span data-homepage-target="ticketFee">
+                                 <span data-homepage-target="ticketFee" class="fs15-decimal">
                                     {{template "decimalParts" (float64AsDecimalParts .Last1000BlocksTicketFeeAvg 8 true
-                                    2)}}
+                                    5)}}
                                  </span>
                                  <span class="new-info-line-2-sub">DCR</span>
                               </span>
