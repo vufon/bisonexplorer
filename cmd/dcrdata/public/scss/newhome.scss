@@ -90,9 +90,15 @@ body.darkBG {
 }
 
 .new-home-card-container {
+  display: flex;
+  flex-direction: column;
   box-shadow: rgb(170 169 169 / 20%) 0 2px 8px 0 !important;
   border: 1px solid #cee3e3;
   border-radius: 10px;
+}
+
+.new-home-card-content {
+  flex: 1;
 }
 
 .menu-list-item {
@@ -299,4 +305,20 @@ body.darkBG {
 
 .top-price-color {
   color: #26a796;
+}
+
+.flex-column-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-card-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-1 {
+  flex: 1;
 }
