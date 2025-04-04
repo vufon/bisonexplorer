@@ -267,21 +267,27 @@ export default class extends Controller {
     this.content = document.getElementById('newHomeContent')
     this.thumbs = document.querySelectorAll('.new-home-thumb')
     this.snapPageContents = document.querySelectorAll('.snap-page-content')
-    this.navBarHeight = document.getElementById('navBar').offsetHeight
-    this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
-    this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
-    this.viewHeight = window.innerHeight - this.navBarHeight - this.newHomeMenuHeight - this.homeThumbnailHeight - 2
+    this.navBarHeight = this.newHomeMenuHeight = this.homeThumbnailHeight = this.viewHeight = 0
     this.contentHeights = []
     const _this = this
-    this.updateContentHeight()
+    window.addEventListener('load', () => {
+      _this.navBarHeight = document.getElementById('navBar').offsetHeight
+      _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+      _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+      _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
+      _this.updateContentHeight()
+      if (_this.pageIndex > 0) {
+        _this.moveToPageByIndex(_this.pageIndex)
+      }
+    })
     window.addEventListener('resize', function () {
       _this.navBarHeight = document.getElementById('navBar').offsetHeight
       _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
       _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
       _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
+      _this.updateContentHeight()
     })
     this.content.addEventListener('scroll', () => {
-      _this.updateContentHeight()
       const scrollTop = _this.content.scrollTop + 5
       let currentHeight = 0
       let index = 0
@@ -338,9 +344,6 @@ export default class extends Controller {
       })
     }
 
-    if (this.pageIndex > 0) {
-      this.moveToPageByIndex(this.pageIndex)
-    }
     // get default exchange rate
     this.exchangeRate = Number(this.data.get('exchangeRate'))
     this.exchangeIndex = this.data.get('exchangeIndex')
@@ -419,6 +422,13 @@ export default class extends Controller {
     this.snapPageContents.forEach((pageContent) => {
       const cHeight = pageContent.offsetHeight
       _this.contentHeights.push(cHeight > _this.viewHeight ? cHeight : _this.viewHeight)
+      const section = pageContent.querySelector('section')
+      if (cHeight < _this.viewHeight && section) {
+        section.style.height = _this.viewHeight + 'px'
+        section.classList.remove('h-100')
+      } else {
+        section.classList.add('h-100')
+      }
     })
   }
 
