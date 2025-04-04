@@ -244,6 +244,12 @@ body.darkBG {
   .new-home-header {
     background-color: #f0f8ff;
   }
+
+  body.darkBG {
+    .new-home-header {
+      background-color: #2b465e;
+    }
+  }
 }
 
 .range-price-bar {
