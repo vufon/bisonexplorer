@@ -248,27 +248,6 @@ body.darkBG {
   }
 }
 
-@media screen and (max-width: 768px) {
-  .two-column,
-  .one-column {
-    width: 230px;
-  }
-
-  .new-home-header {
-    background-color: #f0f8ff;
-  }
-
-  .home-menu-wrapper {
-    padding: 3px 8px;
-  }
-
-  body.darkBG {
-    .new-home-header {
-      background-color: #2b465e;
-    }
-  }
-}
-
 .range-price-bar {
   position: relative;
   height: 10px;
@@ -294,7 +273,7 @@ body.darkBG {
   transform: translateX(-50%);
 }
 
-.new-home-thumb {
+.thumb-img {
   filter: invert(1) brightness(1000%);
 }
 
@@ -321,4 +300,76 @@ body.darkBG {
 
 .flex-1 {
   flex: 1;
+}
+
+.image-container {
+  position: relative;
+  display: inline-block;
+}
+
+.home-tooltip {
+  position: absolute;
+  background-color: #315760;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 5px;
+  visibility: hidden;
+  opacity: 0;
+  border: 1px solid #7baa93;
+  box-shadow: 0 2px 8px 0 hsl(0deg 1% 66% / 20%);
+}
+
+.image-container.active .home-tooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+.home-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #7baa93 transparent transparent;
+}
+
+@media screen and (max-width: 768px) {
+  .two-column,
+  .one-column {
+    width: 230px;
+  }
+
+  .new-home-header {
+    background-color: #f0f8ff;
+  }
+
+  .home-menu-wrapper {
+    padding: 3px 8px;
+  }
+
+  .image-container.active .home-tooltip {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  .card-content-box {
+    padding: 0.2rem;
+  }
+
+  .chain-chart-section {
+    padding-bottom: 60px !important;
+  }
+
+  body.darkBG {
+    .new-home-header {
+      background-color: #2b465e;
+    }
+  }
 }

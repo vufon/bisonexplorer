@@ -406,7 +406,7 @@ export default class extends Controller {
   }
 
   setPageIndex (e) {
-    const index = Number(e.target.dataset.index)
+    const index = Number(e.currentTarget.dataset.index)
     if (index > this.contentHeights.length - 1) {
       return
     }

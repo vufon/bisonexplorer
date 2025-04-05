@@ -1376,14 +1376,14 @@
                <div class="row px-2 px-md-3 py-2 new-home-card-content">
                   {{- if $botState -}}
                   <!-- market chart start -->
-                  <div class="row w-100 align-items-top h-100" data-controller="market"
+                  <div class="row w-100 align-items-top h-100 px-0 px-md-2" data-controller="market"
                      data-market-dcrbtcprice="{{$botState.DCRBTCPrice}}"
                      data-market-dcrbtcvolume="{{$botState.DCRBTCVolume}}" data-market-price="{{$botState.Price}}"
                      data-market-volume="{{$botState.Volume}}">
                      {{- /* LEFT COLUMN */ -}}
                      <div class="col-24 col-lg-auto p-0 flex-column-card">
                         {{- /* PRICE */ -}}
-                        <div class="mx-2 my-4 my-md-3 p-3 p-lg-4 bg-white new-home-card-container flex-1">
+                        <div class="mx-0 mx-md-2 my-2 my-md-3 p-3 p-lg-4 bg-white new-home-card-container flex-1">
                            <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
                                  class="me-2">Market Information</div>
                            <table class="w-100 mx-0">
@@ -1482,7 +1482,7 @@
                            </div>
                         </div>
                         {{- /* DCR/BTC MARKETS */ -}}
-                        <div class="mx-2 my-4 my-md-3 p-2 p-lg-3 bg-white new-home-card-container flex-1">
+                        <div class="mx-0 mx-md-2 my-2 my-md-3 p-2 p-lg-3 bg-white new-home-card-container flex-1">
                            <div class="h-100 d-flex ai-center">
                               <table class="mx-auto mx-lg-3">
                                  <tbody>
@@ -1544,9 +1544,9 @@
                      </div>
                      {{- /* RIGHT COLUMN */ -}}
                      <div
-                        class="flex-grow-0 flex-lg-grow-1 col-24 col-lg px-2 px-md-3 my-3 bg-white market-right-column">
+                        class="flex-grow-0 flex-lg-grow-1 col-24 col-lg px-0 px-md-3 my-2 my-md-3 market-right-column">
                         <div
-                           class="me-md-2 flex-grow-1 d-flex flex-column position-relative h-100 px-0 px-md-3 new-home-card-container">
+                           class="me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative h-100 px-0 px-md-3 new-home-card-container">
                            <div class="loader-v2 loading" data-market-target="chartLoader"></div>
                            {{- /* CHART ONTROLS */ -}}
                            <div
@@ -1697,7 +1697,7 @@
                         </div>
                      </a>
                      <div class="px-2 px-md-3 py-2 new-home-card-content">
-                        <div class="flex-column-card">
+                        <div class="flex-column-card h-100">
                            <div class="row flex-1">
                               <div class="col-12 col-md-8 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
@@ -2416,7 +2416,7 @@
    </div>
    <div class="hp-explore-wrap homepage-page ai-center">
       <div style="width: 100%; height: 100%;" class="snap-page-content">
-         <section class="h-100 px-2 px-md-3 py-2 py-md-3">
+         <section class="h-100 px-2 px-md-3 py-2 py-md-3 chain-chart-section">
             <div class="new-home-card-container h-100">
                <a href="/charts" data-turbolinks="false" class="link-to-subpage">
                   <div class="row new-home-card-header mx-0">
@@ -2814,18 +2814,36 @@
    </div>
 </div>
 <div class="home-thumbnail-bar" id="homeThumbnail" data-homepage-target="homeThumbs">
-   <img src="/images/blockchain-icon.svg" class="mx-1 mx-md-3 new-home-thumb active cursor-pointer" data-index="0"
-      data-action="click->homepage#setPageIndex">
-   <img src="/images/mining-icon.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="1"
-      data-action="click->homepage#setPageIndex">
-   <img src="/images/market-icon.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="2"
-      data-action="click->homepage#setPageIndex">
-   <img src="/images/ticket.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="3"
-      data-action="click->homepage#setPageIndex">
-   <img src="/images/hour-24.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="4"
-      data-action="click->homepage#setPageIndex">
-   <img src="/images/chain-chart.svg" class="mx-1 mx-md-3 new-home-thumb cursor-pointer" data-index="5"
-      data-action="click->homepage#setPageIndex">
+   <div class="image-container mx-1 mx-md-3 new-home-thumb active cursor-pointer position-relative" data-index="0"
+      data-action="click->homepage#setPageIndex" data-tooltip="Blockchain Summary">
+      <img src="/images/blockchain-icon.svg" class="thumb-img" alt="blockchain icon">
+      <span class="home-tooltip">Blockchain Summary</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="1"
+      data-action="click->homepage#setPageIndex" data-tooltip="Mempool And Mining">
+      <img src="/images/mining-icon.svg" class="thumb-img" alt="mining icon">
+      <span class="home-tooltip">Mempool And Mining</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="2"
+      data-action="click->homepage#setPageIndex" data-tooltip="Market">
+      <img src="/images/market-icon.svg" class="thumb-img" alt="market icon">
+      <span class="home-tooltip">Market</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="3"
+      data-action="click->homepage#setPageIndex" data-tooltip="Ticket And Voting">
+      <img src="/images/ticket.svg" class="thumb-img" alt="ticket icon">
+      <span class="home-tooltip">Ticket And Voting</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="4"
+      data-action="click->homepage#setPageIndex" data-tooltip="24h Metrics">
+      <img src="/images/hour-24.svg" class="thumb-img" alt="24h metric icon">
+      <span class="home-tooltip">24h Metrics</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="5"
+      data-action="click->homepage#setPageIndex" data-tooltip="Chain Charts">
+      <img src="/images/chain-chart.svg" class="thumb-img" alt="chain chart icon">
+      <span class="home-tooltip">Chain Charts</span>
+   </div>
 </div>
 {{ template "footer" . }}
 </body>

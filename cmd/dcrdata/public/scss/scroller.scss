@@ -22,12 +22,6 @@
   height: 100vh;
 }
 
-@media (max-width: 767px) {
-  .homepage-content {
-    scroll-snap-type: none;
-  }
-}
-
 .homepage-page {
   display: flex;
   justify-content: center;
@@ -40,7 +34,6 @@
   position: fixed;
   bottom: 0;
   width: 100%;
-  overflow-x: auto;
   white-space: nowrap;
   background: #314653;
   padding: 10px;
@@ -49,18 +42,44 @@
   z-index: 100;
 }
 
-.home-thumbnail-bar img {
+.home-thumbnail-bar .new-home-thumb {
   width: 35px;
   height: 35px;
   object-fit: cover;
   border-radius: 8px;
-  opacity: 0.5;
   transition: opacity 0.3s;
 }
 
-.home-thumbnail-bar img.active {
+.home-thumbnail-bar .thumb-img {
+  opacity: 0.5;
+}
+
+.home-thumbnail-bar .new-home-thumb img {
+  width: 35px;
+  height: 35px;
+}
+
+.home-thumbnail-bar .new-home-thumb.active {
   opacity: 1;
-  border: 2px solid #000;
+  border: 2px solid #fff;
   width: 40px;
   height: 40px;
+}
+
+.new-home-thumb.active[data-tooltip]:hover::after,
+.new-home-thumb.active[data-tooltip]:hover::before {
+  visibility: hidden;
+  opacity: 0;
+}
+
+@media (max-width: 768px) {
+  .homepage-content {
+    scroll-snap-type: none;
+  }
+
+  .new-home-thumb.active[data-tooltip]:hover::after,
+  .new-home-thumb.active[data-tooltip]:hover::before {
+    visibility: visible;
+    opacity: 1;
+  }
 }
