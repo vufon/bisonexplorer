@@ -52,8 +52,8 @@ function setMenuDropdownPos (e) {
   const rect = submenu.getBoundingClientRect()
   const windowWidth = window.innerWidth
   if (rect.right > windowWidth) {
-    submenu.style.left = 'auto'
-    submenu.style.right = '0'
+    submenu.style.left = '-' + (rect.right - windowWidth - 5) + 'px'
+    submenu.style.right = 'auto'
   }
 }
 
@@ -267,21 +267,27 @@ export default class extends Controller {
     this.content = document.getElementById('newHomeContent')
     this.thumbs = document.querySelectorAll('.new-home-thumb')
     this.snapPageContents = document.querySelectorAll('.snap-page-content')
-    this.navBarHeight = document.getElementById('navBar').offsetHeight
-    this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
-    this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
-    this.viewHeight = window.innerHeight - this.navBarHeight - this.newHomeMenuHeight - this.homeThumbnailHeight - 2
+    this.navBarHeight = this.newHomeMenuHeight = this.homeThumbnailHeight = this.viewHeight = 0
     this.contentHeights = []
     const _this = this
-    this.updateContentHeight()
+    window.addEventListener('load', () => {
+      _this.navBarHeight = document.getElementById('navBar').offsetHeight
+      _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+      _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+      _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
+      _this.updateContentHeight()
+      if (_this.pageIndex > 0) {
+        _this.moveToPageByIndex(_this.pageIndex)
+      }
+    })
     window.addEventListener('resize', function () {
       _this.navBarHeight = document.getElementById('navBar').offsetHeight
       _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
       _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
       _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
+      _this.updateContentHeight()
     })
     this.content.addEventListener('scroll', () => {
-      _this.updateContentHeight()
       const scrollTop = _this.content.scrollTop + 5
       let currentHeight = 0
       let index = 0
@@ -297,9 +303,7 @@ export default class extends Controller {
       const title = getPageTitleName(index)
       const icon = getPageTitleIcon(index)
       document.getElementById('pageBarTitleTop').textContent = title
-      document.getElementById('pageBarTitleBottom').textContent = title
       document.getElementById('pageBarIconTop').src = icon
-      document.getElementById('pageBarIconBottom').src = icon
       if (index !== _this.pageIndex) {
         _this.pageIndex = index
         _this.settings.page = pages[index]
@@ -312,9 +316,34 @@ export default class extends Controller {
         setMenuDropdownPos(this)
       })
     })
-    if (this.pageIndex > 0) {
-      this.moveToPageByIndex(this.pageIndex)
+
+    const dropdowns = document.querySelectorAll('.menu-list-item')
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (isTouchDevice) {
+      dropdowns.forEach(dropdown => {
+        const btn = dropdown.querySelector('.home-menu-wrapper')
+        const menu = dropdown.querySelector('.home-menu-dropdown')
+        btn.addEventListener('touchstart', function (e) {
+          e.preventDefault()
+          menu.classList.toggle('show')
+          dropdowns.forEach(otherDropdown => {
+            if (otherDropdown !== dropdown) {
+              otherDropdown.querySelector('.home-menu-dropdown').classList.remove('show')
+            }
+          })
+        })
+      })
+
+      document.addEventListener('touchstart', function (e) {
+        dropdowns.forEach(dropdown => {
+          const menu = dropdown.querySelector('.home-menu-dropdown')
+          if (!dropdown.contains(e.target)) {
+            menu.classList.remove('show')
+          }
+        })
+      })
     }
+
     // get default exchange rate
     this.exchangeRate = Number(this.data.get('exchangeRate'))
     this.exchangeIndex = this.data.get('exchangeIndex')
@@ -377,7 +406,7 @@ export default class extends Controller {
   }
 
   setPageIndex (e) {
-    const index = Number(e.target.dataset.index)
+    const index = Number(e.currentTarget.dataset.index)
     if (index > this.contentHeights.length - 1) {
       return
     }
@@ -393,6 +422,13 @@ export default class extends Controller {
     this.snapPageContents.forEach((pageContent) => {
       const cHeight = pageContent.offsetHeight
       _this.contentHeights.push(cHeight > _this.viewHeight ? cHeight : _this.viewHeight)
+      const section = pageContent.querySelector('section')
+      if (cHeight < _this.viewHeight && section) {
+        section.style.height = _this.viewHeight + 'px'
+        section.classList.remove('h-100')
+      } else {
+        section.classList.add('h-100')
+      }
     })
   }
 
@@ -511,7 +547,7 @@ export default class extends Controller {
     this.mpRevCountTarget.textContent = counts.rev
 
     this.mempoolTarget.textContent = humanize.threeSigFigs(totals.total)
-    this.mempoolFeesTarget.innerHTML = humanize.decimalParts(fees.fees, false, 8)
+    this.mempoolFeesTarget.innerHTML = humanize.decimalParts(fees.fees, false, 8, 5)
 
     if (this.exchangeRate > 0 && totals.total > 0) {
       this.convertedMemSentTarget.textContent = `${humanize.threeSigFigs(totals.total * this.exchangeRate)} ${this.exchangeIndex}`
@@ -602,7 +638,7 @@ export default class extends Controller {
     this.totalTxsTarget.innerHTML = humanize.decimalParts(summary.total_transactions, true, 0)
     this.totalAddressesTarget.innerHTML = humanize.decimalParts(summary.total_addresses, true, 0)
     this.totalOutputsTarget.innerHTML = humanize.decimalParts(summary.total_outputs, true, 0)
-    this.totalSwapsAmountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalAmount / 100000000, true, 2, 0)
+    this.totalSwapsAmountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalAmount / 100000000, true, 0)
     this.totalContractsTarget.innerHTML = humanize.decimalParts(summary.swapsTotalContract, true, 0)
     this.redeemCountTarget.innerHTML = humanize.decimalParts(summary.swapsTotalContract - summary.refundCount, true, 0)
     this.refundCountTarget.innerHTML = humanize.decimalParts(summary.refundCount, true, 0)
@@ -612,7 +648,7 @@ export default class extends Controller {
     if (this.hasMissedTicketsTarget) {
       this.missedTicketsTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.missedTickets, true, 0)
       this.last1000BlocksMissedTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksMissed, true, 0)
-      this.ticketFeeTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksTicketFeeAvg, false, 8)
+      this.ticketFeeTarget.innerHTML = humanize.decimalParts(summary.ticketsSummary.last1000BlocksTicketFeeAvg, false, 8, 5)
       this.vspTableTarget.innerHTML = this.getVspTable(summary.vspList)
     }
   }
@@ -727,7 +763,7 @@ export default class extends Controller {
     this.poolValueTarget.innerHTML = humanize.decimalParts(ex.pool_info.value, true, 0)
     this.ticketRewardTarget.innerHTML = `${ex.reward.toFixed(2)}%`
     this.poolSizePctTarget.textContent = parseFloat(ex.pool_info.percent).toFixed(2)
-    this.feeAvgTarget.innerHTML = humanize.decimalParts(ex.txFeeAvg / 100000000, false, 8)
+    this.feeAvgTarget.innerHTML = humanize.decimalParts(ex.txFeeAvg / 100000000, false, 8, 4)
     this.txFeeAvg = ex.txFeeAvg
     this.powReward = ex.subsidy.pow
     const treasuryTotal = ex.dev_fund + ex.treasury_bal.balance
