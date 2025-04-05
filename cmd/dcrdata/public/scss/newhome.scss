@@ -23,6 +23,11 @@
   padding: 15px;
 }
 
+.home-menu-dropdown.menu-default-right {
+  left: auto;
+  right: 0;
+}
+
 .submenu-list__item {
   display: flex;
   cursor: pointer;
@@ -329,6 +334,10 @@ body.darkBG {
   opacity: 1;
 }
 
+.image-container.active .thumb-img {
+  opacity: 1;
+}
+
 .home-tooltip::after {
   content: "";
   position: absolute;
@@ -354,9 +363,8 @@ body.darkBG {
     padding: 3px 8px;
   }
 
-  .image-container.active .home-tooltip {
-    visibility: hidden;
-    opacity: 0;
+  .home-tooltip {
+    padding: 2px 10px;
   }
 
   .card-content-box {
@@ -365,6 +373,11 @@ body.darkBG {
 
   .chain-chart-section {
     padding-bottom: 60px !important;
+  }
+
+  .home-menu-dropdown.menu-default-right {
+    right: auto;
+    left: 0;
   }
 
   body.darkBG {

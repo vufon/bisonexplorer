@@ -77,9 +77,15 @@
     scroll-snap-type: none;
   }
 
-  .new-home-thumb.active[data-tooltip]:hover::after,
-  .new-home-thumb.active[data-tooltip]:hover::before {
-    visibility: visible;
-    opacity: 1;
+  .new-home-thumb[data-tooltip]::before,
+  .new-home-thumb[data-tooltip]::after {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  [data-tooltip]:hover::before {
+    max-width: 90vw;
+    overflow-wrap: break-word;
+    white-space: normal;
   }
 }
