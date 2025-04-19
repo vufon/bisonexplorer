@@ -196,6 +196,7 @@ type explorerDataSource interface {
 	InsertToBlackList(agent, ip, note string) error
 	CheckOnBlackList(agent, ip string) (bool, error)
 	GetBlockSwapGroupFullData(blockTxs []string) ([]*dbtypes.AtomicSwapFullData, error)
+	GetLastMultichainPoolDataList(chainType string, startHeight int64) ([]*dbtypes.MultichainPoolDataItem, error)
 }
 
 type PoliteiaBackend interface {
@@ -530,7 +531,8 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
 		"chain_addresstable", "supply", "marketlist", "chain_parameters",
-		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table"}
+		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table",
+		"chain_home_dev"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -1031,7 +1033,13 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	}
 	//get and set 25 last block
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEBTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
-
+	// get last 5 block pools
+	last5BlockPools, err := exp.dataSource.GetLastMultichainPoolDataList(mutilchain.TYPEBTC, newBlockData.Height)
+	if err != nil {
+		log.Errorf("Get BTC last 10 block pools failed: ", err)
+	}
+	newBlockData.PoolDataList = last5BlockPools
+	log.Infof("Get last 10 BTC Blocks pool")
 	// Update pageData with block data and chain (home) info.
 	p := exp.BtcPageData
 	p.Lock()
@@ -1152,7 +1160,13 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	}
 	//get and set 25 last block
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPELTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
-
+	// get last 5 block pools
+	last5BlockPools, err := exp.dataSource.GetLastMultichainPoolDataList(mutilchain.TYPELTC, newBlockData.Height)
+	if err != nil {
+		log.Errorf("Get LTC last 10 block pools failed: ", err)
+	}
+	newBlockData.PoolDataList = last5BlockPools
+	log.Infof("Get last 10 LTC Blocks pool")
 	// Update pageData with block data and chain (home) info.
 	p := exp.LtcPageData
 	p.Lock()

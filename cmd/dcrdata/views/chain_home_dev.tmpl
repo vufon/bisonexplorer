@@ -1,0 +1,1444 @@
+{{define "chain_home_dev" -}}
+{{- $conv := .Conversions -}}
+{{$ChainType := .ChainType}}
+{{- $botState := .XcState -}}
+<!DOCTYPE html>
+<html lang="en">
+{{ template "html-head" headData .CommonPageData "Decred Explorer by bisonexplorer.com"}}
+{{ template "new_chainhome_navbar" . }}
+<div class="d-flex justify-content-between ai-end new-home-header container py-2 px-2 px-lg-0" id="newHomeMenu">
+   <div class="d-none d-md-flex mb-sm-0">
+      <img id="pageBarIconTop" class="page-bar-icon" src="/images/blockchain-icon.svg" width="25" height="25">
+      <span id="pageBarTitleTop" class="fs-18 fw-600 ms-2">Blockchain Summary</span>
+   </div>
+   <div class="button-group-navigation d-flex justify-content-md-end ai-end">
+      {{if $conv}}
+      <p class="me-2 mb-0 d-none d-md-flex ai-center">1 {{toUpperCase $ChainType}} = <span
+            class="fs-18 ms-1 fw-bold top-price-color">$<span data-chainhome-target="exchangeRate">{{commaWithDecimal
+               $conv.ExchangeRate.Value 2}}</span></span></p>
+      {{end}}
+      <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
+            <img src="/images/info-icon.svg" width="20" height="20" class="home-menu-icon" alt="blockchain info">
+            <span class="d-none d-md-inline-block">Information</span></a>
+         <div class="home-menu-dropdown">
+            <div class="submenu-list__wrapper one-column">
+               <ul class="submenu-list">
+                  <li class="submenu-list__item has-submenu active">
+                     <a href="/{{$ChainType}}/blocks" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/blocks.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="blocks information">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Blocks</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Latest block information</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <a href="/{{$ChainType}}/mempool" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/mempool.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="mempool information">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Mempool</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">List of pending
+                                 transactions</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+               </ul>
+            </div>
+         </div>
+      </li>
+      <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
+            <img src="/images/chart-icon.svg" width="20" height="20" class="home-menu-icon" alt="decred chart">
+            <span class="d-none d-md-inline-block">Graphics</span></a>
+         <div class="home-menu-dropdown">
+            <div class="submenu-list__wrapper one-column">
+               <ul class="submenu-list">
+                  <li class="submenu-list__item has-submenu active">
+                     <a href="/{{$ChainType}}/charts" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/chain-chart.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="chain charts">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Chain Charts</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Charts from chain data</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <a href="/{{$ChainType}}/market" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/market.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="market charts">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Market</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Information from the
+                                 market</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <a href="/{{$ChainType}}/visualblocks" data-turbolinks="false"
+                        class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/bison-wallet.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="bison wallet">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Visual Blocks</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Blocks visual simulation</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+               </ul>
+            </div>
+         </div>
+      </li>
+      <li class="menu-list-item"><a class="home-menu-wrapper mx-1">
+            <img src="/images/tools-icon.svg" width="20" height="20" class="home-menu-icon" alt="multichain tools">
+            <span class="d-none d-md-inline-block">Tools</span></a>
+         <div class="home-menu-dropdown">
+            <div class="submenu-list__wrapper one-column">
+               <ul class="submenu-list">
+                  <li class="submenu-list__item has-submenu active">
+                     <a href="/chain" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/other.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="other blockchains">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Other Blockchains</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">All supported
+                                 blockchains</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <a href="/{{$ChainType}}/supply" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/supply.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="supply page">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Supply</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Distribution
+                                 information</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+                  <li class="submenu-list__item has-submenu active">
+                     <a href="/{{$ChainType}}/parameters" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/parameter.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="parameters">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Parameters</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Blockchain Parameters</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <a href="/whatsnew" data-turbolinks="false" class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/whats-new.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="whats new">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title">Whats New</span>
+                              <span class="submenu-list__item-subtile d-none d-md-block">Changes on Bison
+                                 Explorer</span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+                  <li class="submenu-list__item has-submenu">
+                     <a data-keynav-skip rel="noopener noreferrer" id="keynav-toggle" data-turbolinks="false"
+                        class="submenu-list__item-link w-100">
+                        <div class="submenu-list__item-wrapper">
+                           <div class="submenu-list__item-icon">
+                              <img src="/images/hotkey-icon.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="hotkeys">
+                           </div>
+                           <div>
+                              <span class="submenu-list__item-title text">Enable Hot Keys</span>
+                              <span class="submenu-list__item-subtile">
+                                 <span class="keys-hint">(<span class="arrows">
+                                       &#8592;<br>&#8594;</span>&nbsp;&nbsp;enter&nbsp;&nbsp;\&nbsp;&nbsp;=&nbsp;&nbsp;)</span>
+                              </span>
+                           </div>
+                        </div>
+                     </a>
+                  </li>
+               </ul>
+            </div>
+         </div>
+      </li>
+   </div>
+   <div class="d-flex d-md-none ai-center">
+      {{if $conv}}
+      <p class="me-2 my-0 ai-center">1 {{toUpperCase $ChainType}} = <span
+            class="fs-18 ms-1 fw-bold top-price-color">$<span
+               data-chainhome-target="exchangeRateBottom">{{$conv.ExchangeRate.TwoDecimals}}</span></span></p>
+      {{end}}
+   </div>
+</div>
+<div class="main-container new-homepage homepage-class homepage-content" data-chainhome-target="homeContent"
+   id="newHomeContent" data-controller="time">
+   <div class="hp-explore-wrap homepage-page ai-center">
+      <div class="container px-0 snap-page-content">
+         <section class="h-100 py-2">
+            <div class="row h-100">
+               <div class="col-24 col-md-12 col-lg-8 p-2">
+                  <div class="new-home-card-container h-100">
+                     <a href='/blocks' data-turbolinks="false" class="link-to-subpage">
+                        <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                           <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
+                              loading="lazy"></span>
+                           <p class="ms-2 mb-0 fw-600 fs-17">Blocks</p>
+                        </div>
+                     </a>
+                     {{with .BestBlock -}}
+                     <div class="row new-home-card-content px-2 px-md-3 py-2">
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">Latest Block</span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <a class="fs-22" data-turbolinks="false" href="/{{$ChainType}}/block/{{.Hash}}"
+                                          data-chainhome-target="blockHeight">{{.Height}}</a>
+                                    </span>
+                                    <span class="stats-subinfo fs-15i" data-chainhome-target="lastBlockTime"
+                                       data-type="age" data-time-target="age" data-age="{{.BlockTimeUnix}}"></span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">Value</span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <span data-chainhome-target="blockTotal">
+                                          {{threeSigFigs .Total}}</span>
+                                       <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">Size</span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block pt-1"
+                                       data-chainhome-target="blockSize">{{.FormattedBytes}}</span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">Transactions</span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block pt-1"
+                                       data-chainhome-target="blockTxCount">{{int64Comma (toint64
+                                       .Transactions)}}</span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     {{end}}
+                  </div>
+               </div>
+               <div class="col-24 col-md-12 col-lg-16 p-2">
+                  <div class="new-home-card-container h-100">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="dcricon-tree explore-card__header__logo" alt="distribution of decred"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Blockchain Summary</p>
+                     </div>
+                     {{with .Info -}}
+                     <div class="row new-home-card-content px-2 px-md-3 py-2">
+                        <div class="col-12 col-sm-8 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/{{$ChainType}}/charts?chart=coin-supply">
+                                    Coin Supply
+                                 </a>
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <span data-chainhome-target="coinSupply">
+                                          {{template "decimalParts" (float64AsDecimalParts .CoinValueSupply 2 true)}}
+                                       </span>
+                                       <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                       <span class="stats-subinfo">
+                                          {{if $conv -}}
+                                          <span data-chainhome-target="convertedSupply">{{threeSigFigs
+                                             $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}</span>,
+                                          {{- end}}
+                                       </span>
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/{{$ChainType}}/charts?chart=blockchain-size">
+                                    Blockchain Size
+                                 </a>
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block"
+                                       data-chainhome-target="blockchainSize">
+                                       {{.FormattedSize}}
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 <a class="link-hover-underline" data-turbolinks="false"
+                                    href="/{{$ChainType}}/charts?chart=tx-count">
+                                    Total Transactions
+                                 </a>
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block"
+                                       data-chainhome-target="totalTransactions">
+                                       {{int64Comma .TotalTransactions}}
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 Total Addresses
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block"
+                                       data-chainhome-target="totalAddresses">
+                                       N/A
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 col-sm-8 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 Total Outputs
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block"
+                                       data-chainhome-target="totalOutputs">
+                                       N/A
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     {{end}}
+                  </div>
+               </div>
+               <div class="col-24 col-lg-12 p-2">
+                  <div class="new-home-card-container h-100">
+                     <a href='/{{$ChainType}}/mempool' data-turbolinks="false" class="link-to-subpage">
+                        <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                           <span class="homeicon-mempool explore-card__header__logo" alt="Mempool route"
+                              loading="lazy"></span>
+                           <p class="ms-2 mb-0 fw-600 fs-17">Mempool</p>
+                        </div>
+                     </a>
+                     {{with .MempoolInfo -}}
+                     <div class="justify-content-between new-home-card-content px-2 px-md-3 py-2 flex-column-card">
+                        <div class="row flex-1">
+                           <div class="col-12 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">
+                                    <a class="link-hover-underline" data-turbolinks="false"
+                                       href="/{{$ChainType}}/charts?chart=mempool-txs">
+                                       Transactions
+                                    </a>
+                                 </span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block pt-1">
+                                          <span data-chainhome-target="txCount">
+                                             {{int64Comma .TotalTransactions}}
+                                          </span>
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="col-12 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">
+                                    Processing Outputs
+                                 </span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block pt-1">
+                                          <span data-chainhome-target="txOutCount">
+                                             {{int64Comma .OutputsCount}}
+                                          </span>
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="col-12 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">Total Sent</span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block">
+                                          <span data-chainhome-target="totalSent">
+                                             {{template "decimalParts" (float64AsDecimalParts .TotalOut 3 true)}}
+                                          </span>
+                                          <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                          <span class="stats-subinfo">
+                                             {{if $conv -}}
+                                             <span data-chainhome-target="totalSentExchange">0 USD</span>,
+                                             {{- end}}
+                                          </span>
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="col-12 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">Total Fees</span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block">
+                                          <span data-chainhome-target="totalFee">
+                                             {{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}
+                                          </span>
+                                          <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                          <span class="stats-subinfo">
+                                             {{if $conv -}}
+                                             <span data-chainhome-target="totalFeesExchange">0 USD</span>,
+                                             {{- end}}
+                                          </span>
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="col-12 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">Fee Span</span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block pt-1">
+                                          <span data-chainhome-target="minFeeRate">{{template "decimalParts"
+                                             (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> -
+                                          <span data-chainhome-target="maxFeeRate">{{template "decimalParts"
+                                             (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
+                                          {{if eq $ChainType "ltc"}}lit{{else}}sat{{end}}/vB
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           <div class="col-12 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">
+                                    <a class="link-hover-underline" data-turbolinks="false"
+                                       href="/{{$ChainType}}/charts?chart=mempool-size">
+                                       Size
+                                    </a>
+                                 </span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span data-chainhome-target="totalSize"
+                                          class="new-network-stats-content d-inline-block">
+                                          {{.FormattedTotalSize}}
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     {{end}}
+                  </div>
+               </div>
+               <div class="col-24 col-lg-12 p-2">
+                  <div class="new-home-card-container h-100">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="homeicon-candle explore-card__header__logo" alt="distribution of decred"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">24h Metrics</p>
+                     </div>
+                     {{if .Info.Block24hInfo}}
+                     {{with .Info.Block24hInfo -}}
+                     <div class="row new-home-card-content px-2 px-md-3 py-2">
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 Mined Blocks
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <span data-chainhome-target="coinSupply">
+                                          {{int64Comma .Blocks}}
+                                       </span>
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 Transactions
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <span data-chainhome-target="numTx24h">
+                                          {{int64Comma .NumTx24h}}
+                                       </span>
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 Sent
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <span data-homepage-target="sent24h">
+                                          {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Sent24h) 2
+                                          true)}}
+                                       </span>
+                                       <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                    </span>
+                                    {{if $conv -}}
+                                    <span class="stats-subinfo">
+                                       {{threeSigFigs $conv.Sent24h.Value}}
+                                       {{$conv.Sent24h.Index}}
+                                    </span>
+                                    {{end}}
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 Fees
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <span data-homepage-target="fees24h">
+                                          {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Fees24h) 2
+                                          true)}}
+                                       </span>
+                                       <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                    </span>
+                                    {{if $conv -}}
+                                    <span class="stats-subinfo">
+                                       {{threeSigFigs $conv.Fees24h.Value}}
+                                       {{$conv.Fees24h.Index}}
+                                    </span>
+                                    {{end}}
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="col-12 card-content-box">
+                           <div class="new-network-stats-block flex-column-card">
+                              <span class="new-network-stats-title">
+                                 Outputs
+                              </span>
+                              <div class="flex-card-content">
+                                 <div>
+                                    <span class="new-network-stats-content d-inline-block">
+                                       <span data-chainhome-target="numVout24h">
+                                          {{int64Comma .NumVout24h}}
+                                       </span>
+                                    </span>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     {{end}}
+                     {{end}}
+                  </div>
+               </div>
+            </div>
+         </section>
+      </div>
+   </div>
+   <div class="hp-explore-wrap homepage-page ai-center">
+      <div class="container px-0 snap-page-content">
+         <section class="h-100 py-2">
+            <div class="row h-100">
+               <div class="col-24 p-2">
+                  <div class="new-home-card-container h-100">
+                     <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                        <span class="dcricon-pickaxe explore-card__header__logo" alt="Mining Card"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Mining</p>
+                     </div>
+                     {{with .Info -}}
+                     <div class="px-2 px-md-3 py-2 new-home-card-content">
+                        <div class="h-100 flex-column-card">
+                           <div class="row flex-1">
+                              <div class="col-24 col-md-9">
+                                 <p>PoW hash algorithm: <span class="subdata-card fw-600 fs-18">
+                                       {{if eq $ChainType "btc"}}SHA-256{{else}}Scrypt{{end}}</span></p>
+                                 <div class="row">
+                                    <div class="col-12 card-content-box">
+                                       <div class="new-network-stats-block flex-column-card">
+                                          <span class="new-network-stats-title">
+                                             <a class="link-hover-underline" data-turbolinks="false"
+                                                href="/{{$ChainType}}/charts?chart=pow-difficulty">
+                                                Difficulty</a>
+                                          </span>
+                                          <div class="flex-card-content">
+                                             <div>
+                                                <span class="new-network-stats-content d-inline-block pt-1"
+                                                   data-chainhome-target="difficulty">
+                                                   {{difficultyDisp .Difficulty}}
+                                                </span>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-12 card-content-box">
+                                       <div class="new-network-stats-block flex-column-card">
+                                          <span class="new-network-stats-title">
+                                             <a class="link-hover-underline" data-turbolinks="false"
+                                                href="/{{$ChainType}}/charts?chart=hashrate">
+                                                Hashrate
+                                             </a>
+                                          </span>
+                                          <div class="flex-card-content">
+                                             <div>
+                                                <span class="new-network-stats-content d-inline-block">
+                                                   <span data-chainhome-target="hashrate">
+                                                      {{template "decimalParts" (hashrateDecimalParts .HashRate 3 true
+                                                      3)}}
+                                                   </span>
+                                                   <span class="new-info-line-2-sub">{{hashratePostfix
+                                                      .HashRate}}</span>
+                                                </span>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-12 card-content-box">
+                                       <div class="new-network-stats-block flex-column-card">
+                                          <span class="new-network-stats-title">
+                                             PoW Reward
+                                          </span>
+                                          <div class="flex-card-content">
+                                             <div>
+                                                <span class="new-network-stats-content d-inline-block">
+                                                   <span data-chainhome-target="blockReward">
+                                                      {{toFloat64Amount .BlockReward}}
+                                                   </span>
+                                                   <span class="new-info-line-2-sub">DCR</span>
+                                                </span>
+                                                {{if $conv -}}
+                                                <span class="stats-subinfo" data-chain-target="powRewardConverted">
+                                                   0 USD
+                                                </span>
+                                                {{end}}
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-12 card-content-box">
+                                       <div class="new-network-stats-block flex-column-card">
+                                          <span class="new-network-stats-title">
+                                             Next Block Reward
+                                          </span>
+                                          <div class="flex-card-content">
+                                             <div>
+                                                <span class="new-network-stats-content d-inline-block">
+                                                   <span data-chainhome-target="nextBlockReward">
+                                                      {{toFloat64Amount .NBlockSubsidy.Total}}
+                                                   </span>
+                                                   <span class="new-info-line-2-sub">DCR</span>
+                                                </span>
+                                                {{if $conv -}}
+                                                <span class="stats-subinfo" data-chain-target="nextRewardConverted">
+                                                   0 USD
+                                                </span>
+                                                {{end}}
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-12 card-content-box">
+                                       <div class="new-network-stats-block flex-column-card">
+                                          <span class="new-network-stats-title">
+                                             Difficulty Change
+                                          </span>
+                                          <div class="flex-card-content">
+                                             <div>
+                                                <div class="new-network-stats-content d-inline-block">
+                                                   <span data-chainhome-target="diffChange"
+                                                      class="{{if gt .DifficultyChange 0.0}}c-green-2{{else}}c-red{{end}}">{{commaWithDecimal
+                                                      .DifficultyChange 2}}</span> %
+                                                   <span class="stats-subinfo">
+                                                      Previous: <span
+                                                         data-chainhome-target="prevRetarget">{{threeSigFigs
+                                                         .PreviousRetarget}}</span> %
+                                                   </span>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 card-content-box">
+                                       <div class="new-network-stats-block flex-column-card">
+                                          <span class="new-network-stats-title">
+                                             Next Reward Halving
+                                          </span>
+                                          <div class="flex-card-content">
+                                             <div class="w-100">
+                                                <div class="new-network-stats-content">
+                                                   <div class="row justify-content-center">
+                                                      <div class="progress progress-frame mt-1 p-0">
+                                                         <div class="progress-bar rounded"
+                                                            data-chainhome-target="powBar" role="progressbar"
+                                                            style="width: {{mutilchainRewardAdjustmentProgress .IdxInRewardWindow .SubsidyInterval}}%;"
+                                                            aria-valuenow="{{.IdxInRewardWindow}}" aria-valuemin="0"
+                                                            aria-valuemax="{{.Params.RewardWindowSize}}">
+                                                            <span id="powreward" class="nowrap ps-1">
+                                                               block <span
+                                                                  data-chainhome-target="rewardIdx">{{.IdxInRewardWindow}}</span>
+                                                               of {{.Params.RewardWindowSize}}
+                                                            </span>
+                                                         </div>
+                                                      </div>
+                                                      <span class="stats-subinfo fw-400 mt-1"
+                                                         data-chainhome-target="rewardReduceRemain">{{chainremaining
+                                                         .IdxInRewardWindow
+                                                         .Params.RewardWindowSize .Params.BlockTime}}</span>
+                                                   </div>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                    <div class="col-24 card-content-box">
+                                       <div class="new-network-stats-block flex-column-card">
+                                          <span class="new-network-stats-title">
+                                             Next Difficulty Change
+                                          </span>
+                                          <div class="flex-card-content">
+                                             <div>
+                                                <span class="new-network-stats-content d-inline-block">
+                                                   <span data-chainhome-target="remainingBlocks">
+                                                      {{int64Comma .RemainingBlocks}}
+                                                   </span>
+                                                </span>
+                                                <span class="stats-subinfo">
+                                                   In ~<span data-type="duration" class="jsonly"
+                                                      data-chainhome-target="timeRemaning" data-time-target="duration"
+                                                      data-duration="{{.TimeRemaining}}">0</span>
+                                                </span>
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                              <div class="col-24 col-md-15">
+                                 <p class="fw-bold fs18 mb-0 ms-2 mt-2">Last Blocks Pools
+                                    <span class="position-relative ms-1 fw-400 fs-13"
+                                       data-tooltip='Blocks mined by individuals will not be displayed here.'>
+                                       <span class="dcricon-info fs13 cursor-pointer">
+                                       </span>
+                                    </span>
+                                 </p>
+                                 <div class="mt-2 flex-1">
+                                    <div class="br-8 b--def bgc-plain-bright pb-2 pb-md-4">
+                                       <div class="btable-table-wrap maxh-none mt-2">
+                                          <table class="btable-table w-100">
+                                             <thead>
+                                                <tr class="bg-none">
+                                                   <th class="text-start">Block</th>
+                                                   <th class="text-center">Pool Name</th>
+                                                   <th class="text-center">Health</th>
+                                                   <th class="text-center">Reward</th>
+                                                </tr>
+                                             </thead>
+                                             <tbody class="bgc-white" data-chainhome-target="poolsTable">
+                                                {{if $.PoolDataList}}
+                                                {{range $.PoolDataList}}
+                                                <tr>
+                                                   <td class="text-start">
+                                                      <a data-turbolinks="false"
+                                                         href="/{{$ChainType}}/block/{{.BlockHeight}}">{{.BlockHeight}}</a>
+                                                   </td>
+                                                   <td class="d-flex justify-content-center ai-center">
+                                                      <div class="tooltip1 me-1">
+                                                         <img src="https://{{if eq $ChainType "btc"}}mempool.space{{else}}litecoinspace.org{{end}}/resources/mining-pools/{{.PoolSlug}}.svg" width="24" height="24" alt="pool icon">
+                                                      </div>
+                                                      <a href="{{.Link}}" target="_blank">
+                                                         {{.PoolName}}
+                                                      </a>
+                                                   </td>
+                                                   <td class="text-center">
+                                                      {{printf "%.2f" (x100 .Health)}}%
+                                                   </td>
+                                                   <td class="text-center">
+                                                      {{.Reward}} {{toUpperCase $ChainType}}
+                                                   </td>
+                                                </tr>
+                                                {{end}}
+                                                {{end}}
+                                             </tbody>
+                                          </table>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                     {{end}}
+                  </div>
+               </div>
+            </div>
+         </section>
+      </div>
+   </div>
+   <div class="hp-explore-wrap homepage-page ai-center">
+      <div class="w-100 px-0 snap-page-content market-snap-content">
+         <section class="h-100 py-2 px-2 px-md-3 d-flex ai-center">
+            <div class="new-home-card-container h-100 w-100">
+               <a href='/{{$ChainType}}/market' data-turbolinks="false" class="link-to-subpage">
+                  <div class="py-2 px-3 new-home-card-header d-flex ai-center">
+                     <span class="homeicon-market explore-card__header__logo" alt="bitcoin logo" loading="lazy"></span>
+                     <p class="ms-2 mb-0 fw-600 fs-17">Market</p>
+                  </div>
+               </a>
+               <div class="row px-2 px-md-3 py-2 new-home-card-content">
+                  {{- if $botState -}}
+                  <!-- market chart start -->
+                  <div class="row w-100 align-items-top h-100 px-0 px-md-2" data-controller="chainmarket"
+                     data-chainmarket-chain-type="{{$ChainType}}">
+                     {{- /* LEFT COLUMN */ -}}
+                     <div class="col-24 col-md-10 col-lg-8 col-xl-7 col-xxl-5 p-0 flex-column-card">
+                        {{- /* PRICE */ -}}
+                        <div class="mx-0 mx-md-2 my-2 my-md-3 p-3 p-lg-4 bg-white new-home-card-container flex-1">
+                           <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
+                                 class="me-2">Market Information</div>
+                           <table class="w-100 mx-0">
+                              <tbody>
+                                 <tr>
+                                    <td class="py-2 fs-16 fw-bold">Price</td>
+                                    <td class="ps-2 py-2 text-end">
+                                       <p class="fs-16">
+                                          $<span data-chainmarket-target="price">{{printf "%.2f"
+                                             $botState.Price}}</span>
+                                          USD
+                                       </p>
+                                    </td>
+                                 </tr>
+                                 <tr>
+                                    <td class="py-2 fs-16 fw-bold">Market Cap</td>
+                                    <td class="ps-2 py-2 text-end">
+                                       <p class="fs-16">
+                                          <span data-homepage-target="marketCap">
+                                             0
+                                          </span>
+                                       </p>
+                                    </td>
+                                 </tr>
+                                 <tr>
+                                    <td class="py-2 fs-16 fw-bold">Volume (24h)</td>
+                                    <td class="ps-2 py-2 text-end">
+                                       <p class="fs-16">
+                                          <span data-chainmarket-target="marketVol">2,233 BTC</span>
+                                          <span class="fs15">(~
+                                             $<span data-chainmarket-target="marketUSDVol">~$2B USD</span>)</span>
+                                       </p>
+                                    </td>
+                                 </tr>
+                                 <tr>
+                                    <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
+                                    <td class="ps-2 py-2 text-end">
+                                       <p><span class="fs-16" data-chainmarket-target="volCapRate">1.37</span>%</p>
+                                    </td>
+                                 </tr>
+                              </tbody>
+                           </table>
+                           <div class="d-flex justify-content-between mb-1">
+                              <p class="mb-0 fs-13">Low (<span data-chainmarket-target="lowPrice">85.999</span>)</p>
+                              <p class="mb-0 fs-13">High (<span data-chainmarket-target="highPrice">89.888</span>)</p>
+                           </div>
+                           <div class="fs22 text-center pb-3">
+                              <div class="range-price-bar" id="priceBar" data-chainmarket-target="priceBar"
+                                 data-low="85.999" data-high="89.888" data-price="86.999">
+                                 <div class="range-marker" id="currentMarker" data-chainmarket-target="priceBarMarker">
+                                 </div>
+                                 <div class="range-label fs-13" id="currentLabel"
+                                    data-chainmarket-target="priceBarLabel">
+                                    86.999</div>
+                              </div>
+                           </div>
+                        </div>
+                        {{- /* DCR/BTC MARKETS */ -}}
+                        <div class="mx-0 mx-md-2 my-2 my-md-3 p-2 p-lg-3 bg-white new-home-card-container flex-1">
+                           <div class="h-100 d-flex ai-center">
+                              <table class="mx-auto mx-lg-3">
+                                 <tbody>
+                                    <tr class="fs14 lh1rem">
+                                       <td></td>
+                                       <td class="text-end fw-bold">{{toUpperCase $ChainType}} Vol.</td>
+                                       <td class="text-end fw-bold ps-3" data-chainmarket-target="fiatLabel"></td>
+                                       <td></td>
+                                    </tr>
+                                    {{range $botState.VolumnOrdered}}
+                                    <tr class="fs hover-row" data-chainmarket-target="xcRow"
+                                       data-action="click->chainmarket#setExchange" data-token="{{.Token}}">
+                                       <td class="py-2 fs18 fw-bold">
+                                          <div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName
+                                          .Token}}
+                                       </td>
+                                       <td class="ps-2 fs16 py-2 text-end" data-type="volume">
+                                          {{threeSigFigs .State.Volume}}
+                                       </td>
+                                       <td class="ps-3 fs16 py-2 text-end" data-type="price">
+                                          {{threeSigFigs .State.Price}}
+                                       </td>
+                                       <td class="fs16 px-2" data-type="arrow">
+                                          {{if eq .State.Change 0.0}}
+                                          <span></span>
+                                          {{else if gt .State.Change 0.0}}
+                                          <span class="dcricon-arrow-up text-green"></span>
+                                          {{else}}
+                                          <span class="dcricon-arrow-down text-danger"></span>
+                                          {{end}}
+                                       </td>
+                                    </tr>
+                                    {{end}}
+                                    <tr class="fs sum-row hover-row" data-chainmarket-target="xcRow"
+                                       data-action="click->chainmarket#setExchange" data-token="aggregated">
+                                       <td class="py-2 fs18 fw-bold">
+                                          <div class="exchange-logo aggregated me-2"></div> Aggregate
+                                       </td>
+                                       <td class="ps-2 fs16 py-2 text-end" data-type="volume">
+                                          {{threeSigFigs $botState.Volume}}
+                                       </td>
+                                       <td class="ps-1 fs16 py-2 text-end" data-type="price">
+                                          {{threeSigFigs $botState.Price}}
+                                       </td>
+                                       <td class="fs16 px-2" data-type="arrow">
+                                          <span class="dcricon-arrow-up text-green"></span>
+                                       </td>
+                                    </tr>
+                                 </tbody>
+                              </table>
+                           </div>
+                        </div>
+                     </div>
+                     {{- /* RIGHT COLUMN */ -}}
+                     <div
+                        class="col-24 col-md-14 col-lg-16 col-xl-17 col-xxl-19 px-0 px-md-3 my-2 my-md-3 market-right-column">
+                        <div
+                           class="me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative h-100 px-0 px-md-3 new-home-card-container">
+                           <div class="loader-v2 loading" data-chainmarket-target="chartLoader"></div>
+                           {{- /* CHART ONTROLS */ -}}
+                           <div
+                              class="market-chart-header d-flex flex-shrink-1 align-items-top justify-content-md-around justify-content-lg-center flex-wrap pt-2 px-1 px-lg-3 mb-2">
+                              {{- /* PAIR SELECTION */ -}}
+                              <div class="d-hide btn-set bg-white d-inline-flex flex-nowrap my-2 mx-2 mx-lg-4">
+                                 <label>Pair</label>
+                                 <select class="chart-box d-inline-flex" data-chainmarket-target="pairSelect"
+                                    data-action="change->chainmarket#changePair">
+                                    <option value="usdt" selected>DCR/USDT</option>
+                                    <option value="btc">DCR/BTC</option>
+                                 </select>
+                              </div>
+                              {{- /* CHART TYPE SELECTION */ -}}
+                              <div class="btn-set bg-white d-inline-flex flex-nowrap my-2 mx-4 mx-md-2 mx-lg-4">
+                                 <label>Chart</label>
+                                 <select class="chart-box d-inline-flex" data-chainmarket-target="chartSelect"
+                                    data-action="change->chainmarket#changeGraph">
+                                    <option value="depth" data-chainmarket-target="depthOnly" selected>Depth Chart
+                                    </option>
+                                    <option value="orders" data-chainmarket-target="depthOnly">Order Book</option>
+                                    <option value="candlestick" data-chainmarket-target="sticksOnly">Candlesticks
+                                    </option>
+                                    <option value="history" data-chainmarket-target="sticksOnly">Market History</option>
+                                    <option value="volume" data-chainmarket-target="sticksOnly">Volume</option>
+                                 </select>
+                              </div>
+                              {{- /* EXCHANGE SELECTION */ -}}
+                              <div class="btn-set bg-white d-inline-flex flex-nowrap mt-2 mb-2 my-md-2 mx-2 mx-lg-4"
+                                 data-chainmarket-target="exchanges" data-action="click->chainmarket#changeExchange">
+                                 <label>Exchange</label>
+                                 <div class="btn-group exchange-group" data-chainmarket-target="exchangeBtnArea">
+                                    {{range $index, $exchange := $botState.VolumnOrdered}}
+                                    <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}}
+                                       data-exchangeindex="{{$index}}" data-sticks="1"
+                                       data-bins="{{$exchange.State.StickList}}" {{end}} {{if $exchange.State.HasDepth}}
+                                       data-depth="1" {{end}}
+                                       class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName
+                                       $exchange.Token}}</button>
+                                    {{end}}
+                                    <button name="aggregated" data-chainmarket-target="aggOption" data-depth="1"
+                                       class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
+                                 </div>
+                              </div>
+                              {{- /* DISPLAY CURRENCY */ -}}
+                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 d-hide"
+                                 data-chainmarket-target="conversion" data-factor="{{$botState.BtcPrice}}"
+                                 data-code="{{$botState.BtcIndex}}" data-action="click->chainmarket#setConversion">
+                                 <label>Index</label>
+                                 <button class="btn-selected" name="BTC">BTC</button>
+                                 <button name="fiat">{{$botState.BtcIndex}}</button>
+                              </div>
+                              {{- /* AGGREGATE DEPTH STACKING */ -}}
+                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                 data-chainmarket-target="aggStack">
+                                 <label>Stacking</label>
+                                 <button class="btn-selected" data-action="click->chainmarket#setStacking"
+                                    name="on">On</button>
+                                 <button data-action="click->chainmarket#setStacking" name="off">Off</button>
+                              </div>
+                              {{- /* ZOOM */ -}}
+                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                                 data-chainmarket-target="zoom" data-action="click->chainmarket#setZoom">
+                                 <label>Zoom +/-</label>
+                                 <button class="btn-selected" name="10">10%</button>
+                                 <button name="20">20%</button>
+                                 <button name="40">40%</button>
+                                 <button name="95">95%</button>
+                              </div>
+                              {{- /* BIN SIZE SELECTIONS */ -}}
+                              <div class="btn-set bg-white d-inline-flex flex-nowrap my-2 mx-2 mx-lg-4"
+                                 data-chainmarket-target="bin" data-action="click->chainmarket#changeBin">
+                                 <label class="text-nowrap">Bin Size</label>
+                                 <div class="btn-group">
+                                    <button name="5m"
+                                       class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
+                                    <button name="30m"
+                                       class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
+                                    <button name="1h"
+                                       class="active tab-button home-chart-toggle-btn white c-txt-main">Hour</button>
+                                    <button name="4h" class="active tab-button home-chart-toggle-btn white c-txt-main">4
+                                       Hours</button>
+                                    <button name="1d"
+                                       class="tab-button home-chart-toggle-btn white c-txt-main">Day</button>
+                                    <button name="1w"
+                                       class="tab-button home-chart-toggle-btn white c-txt-main">Week</button>
+                                    <button name="1mo"
+                                       class="tab-button home-chart-toggle-btn white c-txt-main">Month</button>
+                                 </div>
+                              </div>
+                              {{- /* OTHER CHART OPTIONS */ -}}
+                              <div class="btn-set bg-white d-inline-flex ai-center flex-nowrap my-2 mx-2 mx-lg-4"
+                                 data-chainmarket-target="actions">
+                                 <label>Actions</label>
+                                 <button><a data-chainmarket-target="link" href="" target="_blank"
+                                       rel="noopener noreferrer"></a></button>
+                              </div>
+                           </div>
+                           {{- /* CHART */ -}}
+                           <div class="flex-grow-1 ps-0 ps-md-3 mb-2 market-chart-box d-flex">
+                              <div class="d-flex w-100 position-relative market-chart">
+                                 <div class="market-chart-title d-flex align-items-center">
+                                    <div data-chainmarket-target="xcLogo"></div>
+                                    <div data-chainmarket-target="xcName"></div>
+                                 </div>
+                                 <div class="market-chart-legend" data-chainmarket-target="legend"></div>
+                                 <div class="w-100 h-100" data-chainmarket-target="chart">
+                                 </div>
+                              </div>
+                           </div>
+                           {{- /* TODO: Test this data controller (time & market) */ -}}
+                           <div class="text-center py-2 py-lg-0 text-lg-end px-4 fs13 d-hide"
+                              data-chainmarket-target="age">
+                              updated
+                              <span data-controller="time" data-time-target="age" data-chainmarket-target="ageSpan"
+                                 data-age="0"></span>
+                              ago
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                  <!-- market chart end -->
+                  {{- else -}} {{/* EXCHANGE MONITORING DISABLED */}}
+                  <h4 class="py-5 text-center">Exchange monitoring disabled</h4>
+                  {{- end -}}
+               </div>
+            </div>
+         </section>
+      </div>
+   </div>
+   <div class="hp-explore-wrap homepage-page ai-center" data-controller="chaincharts"
+      data-chaincharts-block-time="{{.TargetTimePerBlock}}" data-chaincharts-chain-type="{{.ChainType}}">
+      <div style="width: 100%; height: 100%;" class="snap-page-content">
+         <section class="h-100 px-2 px-md-3 py-2 py-md-3 chain-chart-section">
+            <div class="new-home-card-container h-100">
+               <a href="/{{$ChainType}}/charts" data-turbolinks="false" class="link-to-subpage">
+                  <div class="row new-home-card-header mx-0">
+                     <div class="col-24 col-md-8 col-lg-7 col-xl-4 py-2 px-3 d-flex ai-center">
+                        <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
+                           loading="lazy"></span>
+                        <p class="ms-2 mb-0 fw-600 fs-17">Chain Charts</p>
+                     </div>
+                     <div
+                        class="col-xs-24 col-md-16 col-lg-17 col-xl-20 d-none d-md-flex justify-content-center ai-center">
+                        <span class="fs-22 fw-600" data-chaincharts-target="chartTitleName"></span>
+                     </div>
+                  </div>
+               </a>
+               <div class="px-2 px-md-3 py-2 h-90 new-home-card-content">
+                  <div class="row py-2 h-100">
+                     <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-4 align-center px-0 pe-md-3">
+                        <div class="d-flex d-md-none flex-shrink-1 align-items-top flex-wrap">
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                              <label>Chart</label>
+                              <select id="selectBox" class="chart-box d-inline-flex mobile-mode"
+                                 data-chaincharts-target="chartSelect" data-action="chaincharts#selectChart">
+                                 <optgroup label="Chain">
+                                    <option value="block-size">Block Size</option>
+                                    <option value="blockchain-size">Blockchain Size</option>
+                                    <option value="tx-count">Transaction Count</option>
+                                    <option value="tx-per-block">TXs Per Blocks</option>
+                                    <option value="address-number">Active Addresses</option>
+                                 </optgroup>
+                                 <optgroup label="Mining">
+                                    <option value="pow-difficulty">Difficulty</option>
+                                    <option value="hashrate">Hashrate</option>
+                                    <option value="mined-blocks">Mined Blocks</option>
+                                    <option value="mempool-size">Mempool Size</option>
+                                    <option value="mempool-txs">Mempool TXs</option>
+                                 </optgroup>
+                                 <optgroup label="Distribution">
+                                    <option value="coin-supply">Coin Supply</option>
+                                    <option value="fees">Fees</option>
+                                 </optgroup>
+                              </select>
+                           </div>
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-chaincharts-target="binSelector">
+                              <label>BIN</label>
+                              <div class="btn-group">
+                                 <ul class="nav nav-pills">
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                       data-chaincharts-target="binSize" data-action="click->chaincharts#setBin"
+                                       data-option="day">
+                                       Day
+                                    </li>
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                       data-chaincharts-target="binSize" data-action="click->chaincharts#setBin"
+                                       data-option="block">
+                                       Blocks
+                                    </li>
+                                 </ul>
+                              </div>
+                           </div>
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-chaincharts-target="scaleSelector">
+                              <label>SCALE</label>
+                              <div class="btn-group">
+                                 <ul class="nav nav-pills">
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                       data-chaincharts-target="scaleType" data-action="click->chaincharts#setScale"
+                                       data-option="linear">
+                                       Linear
+                                    </li>
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                       data-chaincharts-target="scaleType" data-action="click->chaincharts#setScale"
+                                       data-option="log">
+                                       Log
+                                    </li>
+                                 </ul>
+                              </div>
+                           </div>
+                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                              data-chaincharts-target="modeSelector">
+                              <label>MODE</label>
+                              <div class="btn-group">
+                                 <ul class="nav nav-pills">
+                                    <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                       data-chaincharts-target="modeOption" data-action="click->chaincharts#setMode"
+                                       data-option="smooth">
+                                       Smooth
+                                    </li>
+                                    <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                       data-chaincharts-target="modeOption" data-action="click->chaincharts#setMode"
+                                       data-option="stepped">
+                                       Stepped
+                                    </li>
+                                 </ul>
+                              </div>
+                           </div>
+                        </div>
+                        <div
+                           class="d-none d-md-block chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
+                           <div class="chart-control-label">CHART</div>
+                           <div class="chart-control">
+                              <select id="selectBox" class="form-control chart-form-control"
+                                 data-charts-target="chartSelect" data-action="charts#selectChart">
+                                 <optgroup label="Chain">
+                                    <option value="block-size">Block Size</option>
+                                    <option value="blockchain-size">Blockchain Size</option>
+                                    <option value="tx-count">Transaction Count</option>
+                                    <option value="tx-per-block">TXs Per Blocks</option>
+                                    <option value="address-number">Active Addresses</option>
+                                 </optgroup>
+                                 <optgroup label="Mining">
+                                    <option value="pow-difficulty">Difficulty</option>
+                                    <option value="hashrate">Hashrate</option>
+                                    <option value="mined-blocks">Mined Blocks</option>
+                                    <option value="mempool-size">Mempool Size</option>
+                                    <option value="mempool-txs">Mempool TXs</option>
+                                 </optgroup>
+                                 <optgroup label="Distribution">
+                                    <option value="coin-supply">Coin Supply</option>
+                                    <option value="fees">Fees</option>
+                                 </optgroup>
+                              </select>
+                           </div>
+                        </div>
+                        <div class="chart-control-wrapper chart-filter-tools mb-1 d-none d-md-block"
+                           data-chaincharts-target="zoomSelector">
+                           <div class="chart-control-label">ZOOM</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-chaincharts-target="zoomOption"
+                                    data-action="click->chaincharts#setZoom" data-option="all">
+                                    All
+                                 </li>
+                                 <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                                    data-action="click->chaincharts#setZoom" data-option="year">
+                                    Year
+                                 </li>
+                                 <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                                    data-action="click->chaincharts#setZoom" data-option="month">
+                                    Month
+                                 </li>
+                                 <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                                    data-action="click->chaincharts#setZoom" data-option="week">
+                                    Week
+                                 </li>
+                                 <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                                    data-action="click->chaincharts#setZoom" data-option="day">
+                                    Day
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="d-none d-md-block chart-control-wrapper chart-filter-tools mb-1"
+                           data-chaincharts-target="binSelector">
+                           <div class="chart-control-label">BIN</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-chaincharts-target="binSize"
+                                    data-action="click->chaincharts#setBin" data-option="day">
+                                    Day
+                                 </li>
+                                 <li class="nav-item nav-link" data-chaincharts-target="binSize"
+                                    data-action="click->chaincharts#setBin" data-option="block">
+                                    Blocks
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="d-none d-md-block chart-control-wrapper chart-filter-tools mb-1"
+                           data-chaincharts-target="scaleSelector">
+                           <div class="chart-control-label">SCALE</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-chaincharts-target="scaleType"
+                                    data-action="click->chaincharts#setScale" data-option="linear">
+                                    Linear
+                                 </li>
+                                 <li class="nav-item nav-link" data-chaincharts-target="scaleType"
+                                    data-action="click->chaincharts#setScale" data-option="log">
+                                    Log
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                        <div class="d-none d-md-block chart-control-wrapper chart-filter-tools mb-1"
+                           data-chaincharts-target="modeSelector">
+                           <div class="chart-control-label">MODE</div>
+                           <div class="chart-control chart-filter-selection ps-2">
+                              <ul class="nav nav-pills">
+                                 <li class="nav-item nav-link active" data-chaincharts-target="modeOption"
+                                    data-action="click->chaincharts#setMode" data-option="smooth">
+                                    Smooth
+                                 </li>
+                                 <li class="nav-item nav-link" data-chaincharts-target="modeOption"
+                                    data-action="click->chaincharts#setMode" data-option="stepped">
+                                    Stepped
+                                 </li>
+                              </ul>
+                           </div>
+                        </div>
+                     </div>
+                     <div
+                        class="col-xs-24 col-sm-24 col-md-16 col-lg-17 col-xl-20 border-1-grey home-chart-wrapper pe-0 h-100"
+                        data-chaincharts-target="chartWrapper">
+                        <div class="d-flex d-md-none my-2 ps-3">
+                           <ul class="nav nav-pills">
+                              <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                 data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                                 data-option="all">
+                                 All
+                              </li>
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                 data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                                 data-option="year">
+                                 Year
+                              </li>
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                 data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                                 data-option="month">
+                                 Month
+                              </li>
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                 data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                                 data-option="week">
+                                 Week
+                              </li>
+                              <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                 data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                                 data-option="day">
+                                 Day
+                              </li>
+                           </ul>
+                        </div>
+                        <div class="d-flex w-100 position-relative">
+                           <div class="chart-name-label align-items-center d-none d-md-flex">
+                              <div class="homeicon-chartbar fs-20"></div>
+                              <span class="chart-name-content" data-chaincharts-target="chartName"></span>
+                           </div>
+                           <div class="chartview" data-chaincharts-target="chartsView">
+                           </div>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1">
+                           <div class="row">
+                              <div class="col-4 column-center chart-control chart-control-wrapper">
+                                 <ul class="nav nav-pills">
+                                    <li class="nav-item nav-link active" data-chaincharts-target="axisOption"
+                                       data-action="click->chaincharts#setAxis" data-option="time">
+                                       Time
+                                    </li>
+                                    <li class="nav-item nav-link" data-chaincharts-target="axisOption"
+                                       data-action="click->chaincharts#setAxis" data-option="height">
+                                       Blocks
+                                    </li>
+                                 </ul>
+                              </div>
+                           </div>
+                        </div>
+                        <span class="d-none" data-chaincharts-target="rawDataURL"></span>
+                        <div class="spinner-wrapper">
+                           <div class="spinner-centerer d-flex align-items-center justify-content-center">
+                              <div class="spinner">
+                                 <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                              </div>
+                           </div>
+                        </div>
+                        <div class="d-flex justify-content-center legend-wrapper">
+                           <div class="legend d-flex align-items-center" data-chaincharts-target="labels">
+                              <div class="pe-3" data-chaincharts-target="legendEntry">
+                                 <div class="dygraph-legend-line" data-chaincharts-target="legendMarker">
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </section>
+      </div>
+   </div>
+</div>
+<div class="home-thumbnail-bar" id="homeThumbnail" data-chainhome-target="homeThumbs">
+   <div class="image-container mx-1 mx-md-3 new-home-thumb active cursor-pointer position-relative" data-index="0"
+      data-action="click->chainhome#setPageIndex" data-tooltip="Blockchain Summary">
+      <img src="/images/blockchain-icon.svg" class="thumb-img" alt="blockchain icon">
+      <span class="home-tooltip">Blockchain Summary</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="1"
+      data-action="click->chainhome#setPageIndex" data-tooltip="Mining">
+      <img src="/images/mining-icon.svg" class="thumb-img" alt="mining icon">
+      <span class="home-tooltip">Mining</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="2"
+      data-action="click->chainhome#setPageIndex" data-tooltip="Market">
+      <img src="/images/market-icon.svg" class="thumb-img" alt="market icon">
+      <span class="home-tooltip">Market</span>
+   </div>
+   <div class="image-container mx-1 mx-md-3 new-home-thumb cursor-pointer position-relative" data-index="3"
+      data-action="click->chainhome#setPageIndex" data-tooltip="Chain Charts">
+      <img src="/images/chain-chart.svg" class="thumb-img" alt="chain chart icon">
+      <span class="home-tooltip">Chain Charts</span>
+   </div>
+</div>
+{{ template "footer" . }}
+</body>
+
+</html>
+{{- end}}

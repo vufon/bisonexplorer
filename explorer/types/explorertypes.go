@@ -540,6 +540,7 @@ type BlockInfo struct {
 	StakeValidationHeight int64
 	Subsidy               *chainjson.GetBlockSubsidyResult
 	GroupSwaps            []*dbtypes.AtomicSwapFullData
+	PoolDataList          []*dbtypes.MultichainPoolDataItem // last 5 block pools
 }
 
 // Conversion is a representation of some amount of DCR in another index.

@@ -3860,6 +3860,18 @@ func (pgb *ChainDB) GetLast5PoolDataList() (last5PoolData []*dbtypes.PoolDataIte
 	return
 }
 
+// GetLast5PoolDataList return last 5 block pool info
+func (pgb *ChainDB) GetLastMultichainPoolDataList(chainType string, startHeight int64) ([]*dbtypes.MultichainPoolDataItem, error) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return externalapi.GetBitcoinLastBlocksPool(startHeight)
+	case mutilchain.TYPELTC:
+		return externalapi.GetLitecoinLastBlocksPool(startHeight)
+	default:
+		return make([]*dbtypes.MultichainPoolDataItem, 0), nil
+	}
+}
+
 // AddressBalance attempts to retrieve balance information for a specific
 // address from cache, and if cache is stale or missing data for the address, a
 // DB query is used. A successful DB query will freshen the cache.

@@ -653,6 +653,130 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+func (exp *ExplorerUI) MutilchainHomeDev(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
+		return
+	}
+	height, err := exp.dataSource.GetMutilchainHeight(chainType)
+	if err != nil {
+		log.Errorf("GetMutilchainHeight failed: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "",
+			ExpStatusError)
+		return
+	}
+	var blocks []*types.BlockBasic
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		blocks = exp.dataSource.GetBTCExplorerBlocks(int(height), int(height)-8)
+	case mutilchain.TYPELTC:
+		blocks = exp.dataSource.GetLTCExplorerBlocks(int(height), int(height)-8)
+	default:
+		blocks = exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
+	}
+
+	var bestBlock *types.BlockBasic
+	if blocks == nil {
+		bestBlock = new(types.BlockBasic)
+	} else {
+		bestBlock = blocks[0]
+	}
+	var homeInfo *types.HomeInfo
+	var poolDataList []*dbtypes.MultichainPoolDataItem
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		exp.BtcPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.BtcPageData.HomeInfo
+		poolDataList = exp.BtcPageData.BlockInfo.PoolDataList
+		exp.BtcPageData.RUnlock()
+	case mutilchain.TYPELTC:
+		exp.LtcPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.LtcPageData.HomeInfo
+		poolDataList = exp.LtcPageData.BlockInfo.PoolDataList
+		exp.LtcPageData.RUnlock()
+	default:
+		exp.pageData.RLock()
+		homeInfo = exp.pageData.HomeInfo
+		exp.pageData.RUnlock()
+	}
+	var conversions *MutilchainHomeConversions
+	xcBot := exp.xcBot
+	if xcBot != nil {
+		conversions = &MutilchainHomeConversions{
+			ExchangeRate: xcBot.MutilchainConversion(1.0, chainType),
+			CoinSupply:   xcBot.MutilchainConversion(homeInfo.CoinValueSupply, chainType),
+		}
+
+		if homeInfo.Block24hInfo != nil {
+			conversions.Sent24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Sent24h).ToBTC(), chainType)
+			conversions.Fees24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Fees24h).ToBTC(), chainType)
+		}
+	}
+
+	allXcState := exp.getExchangeState()
+	xcState := exchanges.ExchangeBotStateContent{
+		BtcIndex:      allXcState.BtcIndex,
+		BtcPrice:      allXcState.BtcPrice,
+		Price:         allXcState.GetMutilchainPrice(chainType),
+		Volume:        allXcState.GetMutilchainVolumn(chainType),
+		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
+		FiatIndices:   allXcState.FiatIndices,
+		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+	}
+
+	var marketCap *dbtypes.MarketCapData
+
+	if exp.CoinCapDataList != nil {
+		for _, capData := range exp.CoinCapDataList {
+			if capData.Symbol == dbtypes.ChainSymbolMap[chainType] {
+				marketCap = capData
+				break
+			}
+		}
+	}
+
+	var commonData = exp.commonData(r)
+	commonData.IsHomepage = true
+	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
+	str, err := exp.templates.exec("chain_home_dev", struct {
+		*CommonPageData
+		Info               *types.HomeInfo
+		MempoolInfo        *types.MutilchainMempoolInfo
+		BestBlock          *types.BlockBasic
+		Blocks             []*types.BlockBasic
+		Conversions        *MutilchainHomeConversions
+		XcState            exchanges.ExchangeBotStateContent
+		PercentChange      float64
+		ChainType          string
+		TargetTimePerBlock float64
+		MarketCap          *dbtypes.MarketCapData
+		PoolDataList       []*dbtypes.MultichainPoolDataItem
+	}{
+		CommonPageData:     commonData,
+		MempoolInfo:        mempoolInfo,
+		Info:               homeInfo,
+		BestBlock:          bestBlock,
+		Blocks:             blocks,
+		ChainType:          chainType,
+		Conversions:        conversions,
+		XcState:            xcState,
+		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
+		MarketCap:          marketCap,
+		PoolDataList:       poolDataList,
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // SideChains is the page handler for the "/side" path.
 func (exp *ExplorerUI) SideChains(w http.ResponseWriter, r *http.Request) {
 	sideBlocks, err := exp.dataSource.SideChainBlocks()
