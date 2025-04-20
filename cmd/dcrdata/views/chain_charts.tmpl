@@ -18,7 +18,89 @@
             <span class="breadcrumbs__item is-active">Charts</span>
          </nav>
          <span class="d-none" data-chaincharts-target="chartTitleName"></span>
-         <div class="d-flex flex-wrap justify-content-center align-items-center chart-controls common-card p-2 mb-1 mt-1">
+         <div class="px-3">
+            <div class="d-flex d-md-none flex-shrink-1 align-items-top flex-wrap">
+               <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
+                  <label>Chart</label>
+                  <select id="selectBox" class="chart-box d-inline-flex mobile-mode"
+                     data-chaincharts-target="chartSelect" data-action="chaincharts#selectChart">
+                     <optgroup label="Chain">
+                        <option value="block-size">Block Size</option>
+                        <option value="blockchain-size">Blockchain Size</option>
+                        <option value="tx-count">Transaction Count</option>
+                        <option value="tx-per-block">TXs Per Blocks</option>
+                        <option value="address-number">Active Addresses</option>
+                     </optgroup>
+                     <optgroup label="Mining">
+                        <option value="pow-difficulty">Difficulty</option>
+                        <option value="hashrate">Hashrate</option>
+                        <option value="mined-blocks">Mined Blocks</option>
+                        <option value="mempool-size">Mempool Size</option>
+                        <option value="mempool-txs">Mempool TXs</option>
+                     </optgroup>
+                     <optgroup label="Distribution">
+                        <option value="coin-supply">Coin Supply</option>
+                        <option value="fees">Fees</option>
+                     </optgroup>
+                  </select>
+               </div>
+               <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                  data-chaincharts-target="binSelector">
+                  <label>BIN</label>
+                  <div class="btn-group">
+                     <ul class="nav nav-pills">
+                        <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                           data-chaincharts-target="binSize" data-action="click->chaincharts#setBin"
+                           data-option="day">
+                           Day
+                        </li>
+                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                           data-chaincharts-target="binSize" data-action="click->chaincharts#setBin"
+                           data-option="block">
+                           Blocks
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+               <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                  data-chaincharts-target="scaleSelector">
+                  <label>SCALE</label>
+                  <div class="btn-group">
+                     <ul class="nav nav-pills">
+                        <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                           data-chaincharts-target="scaleType" data-action="click->chaincharts#setScale"
+                           data-option="linear">
+                           Linear
+                        </li>
+                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                           data-chaincharts-target="scaleType" data-action="click->chaincharts#setScale"
+                           data-option="log">
+                           Log
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+               <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"
+                  data-chaincharts-target="modeSelector">
+                  <label>MODE</label>
+                  <div class="btn-group">
+                     <ul class="nav nav-pills">
+                        <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                           data-chaincharts-target="modeOption" data-action="click->chaincharts#setMode"
+                           data-option="smooth">
+                           Smooth
+                        </li>
+                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                           data-chaincharts-target="modeOption" data-action="click->chaincharts#setMode"
+                           data-option="stepped">
+                           Stepped
+                        </li>
+                     </ul>
+                  </div>
+               </div>
+            </div>
+            </div>
+            <div class="d-none d-md-flex flex-wrap justify-content-center align-items-center chart-controls common-card p-2 mb-1 mt-2">
             <div class="chart-control-wrapper me-2 mb-1">
                <div class="chart-control-label">CHART</div>
                <div class="chart-control">
@@ -147,6 +229,35 @@
       </div>
       <div class="d-flex justify-content-center">
       <div data-chaincharts-target="chartWrapper" class="d-block chart-wrapper common-card p-3 px-2 pb-5 mb-50">
+         <div class="d-flex d-md-none my-2 ps-3">
+            <ul class="nav nav-pills">
+               <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                  data-option="all">
+                  All
+               </li>
+               <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                  data-option="year">
+                  Year
+               </li>
+               <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                  data-option="month">
+                  Month
+               </li>
+               <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                  data-option="week">
+                  Week
+               </li>
+               <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
+                  data-option="day">
+                  Day
+               </li>
+            </ul>
+         </div>
          <span class="d-none" data-chaincharts-target="chartName"></span>
          <div
             class="chartview"

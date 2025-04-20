@@ -2,6 +2,48 @@ import { Controller } from '@hotwired/stimulus'
 import humanize from '../helpers/humanize_helper'
 import globalEventBus from '../services/event_bus_service'
 import mempoolJS from '../vendor/mempool'
+import TurboQuery from '../helpers/turbolinks_helper'
+
+const pages = ['blockchain', 'mining', 'market', 'charts']
+
+function getPageTitleName (index) {
+  switch (index) {
+    case 0:
+      return 'Blockchain Summary'
+    case 1:
+      return 'Mining'
+    case 2:
+      return 'Market Charts'
+    case 3:
+      return 'Chain Charts'
+  }
+  return ''
+}
+
+function getPageTitleIcon (index) {
+  switch (index) {
+    case 0:
+      return '/images/blockchain-icon.svg'
+    case 1:
+      return '/images/mining-icon.svg'
+    case 2:
+      return '/images/market-icon.svg'
+    case 3:
+      return '/images/chain-chart.svg'
+  }
+  return ''
+}
+
+function setMenuDropdownPos (e) {
+  const submenu = e.querySelector('.home-menu-dropdown')
+  if (!submenu) return
+  const rect = submenu.getBoundingClientRect()
+  const windowWidth = window.innerWidth
+  if (rect.right > windowWidth) {
+    submenu.style.left = '-' + (rect.right - windowWidth - 5) + 'px'
+    submenu.style.right = 'auto'
+  }
+}
 
 export default class extends Controller {
   static get targets () {
@@ -9,11 +51,105 @@ export default class extends Controller {
       'exchangeRate', 'totalTransactions', 'coinSupply', 'convertedSupply',
       'powBar', 'rewardIdx', 'txCount', 'txOutCount', 'totalSent', 'totalFee',
       'minFeeRate', 'maxFeeRate', 'totalSize', 'remainingBlocks', 'timeRemaning',
-      'diffChange', 'prevRetarget', 'blockTimeAvg']
+      'diffChange', 'prevRetarget', 'blockTimeAvg', 'homeContent', 'homeThumbs']
   }
 
   async connect () {
     this.chainType = this.data.get('chainType')
+    this.query = new TurboQuery()
+    this.settings = TurboQuery.nullTemplate(['page'])
+    this.pageIndex = 0
+    if (humanize.isEmpty(this.settings.page)) {
+      const params = new URLSearchParams(window.location.search)
+      if (!humanize.isEmpty(params.get('page'))) {
+        this.settings.page = params.get('page')
+      }
+    }
+    if (!humanize.isEmpty(this.settings.page)) {
+      this.pageIndex = pages.indexOf(this.settings.page)
+      if (this.pageIndex < 0) {
+        this.pageIndex = 0
+      }
+    }
+    this.content = document.getElementById('newHomeContent')
+    this.thumbs = document.querySelectorAll('.new-home-thumb')
+    this.snapPageContents = document.querySelectorAll('.snap-page-content')
+    this.navBarHeight = this.newHomeMenuHeight = this.homeThumbnailHeight = this.viewHeight = 0
+    this.contentHeights = []
+    const _this = this
+    window.addEventListener('load', () => {
+      _this.navBarHeight = document.getElementById('navBar').offsetHeight
+      _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+      _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+      _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
+      _this.updateContentHeight()
+      if (_this.pageIndex > 0) {
+        _this.moveToPageByIndex(_this.pageIndex)
+      }
+    })
+    window.addEventListener('resize', function () {
+      _this.navBarHeight = document.getElementById('navBar').offsetHeight
+      _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+      _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+      _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
+      _this.updateContentHeight()
+    })
+    this.content.addEventListener('scroll', () => {
+      const scrollTop = _this.content.scrollTop + 5
+      let currentHeight = 0
+      let index = 0
+      while (currentHeight < scrollTop) {
+        if (scrollTop < currentHeight + _this.contentHeights[index]) {
+          break
+        }
+        currentHeight += _this.contentHeights[index]
+        index++
+      }
+      _this.thumbs.forEach(thumb => thumb.classList.remove('active'))
+      _this.thumbs[index].classList.add('active')
+      const title = getPageTitleName(index)
+      const icon = getPageTitleIcon(index)
+      document.getElementById('pageBarTitleTop').textContent = title
+      document.getElementById('pageBarIconTop').src = icon
+      if (index !== _this.pageIndex) {
+        _this.pageIndex = index
+        _this.settings.page = pages[index]
+        _this.query.replace(_this.settings)
+      }
+    })
+
+    document.querySelectorAll('.menu-list-item').forEach(menuItem => {
+      menuItem.addEventListener('mouseenter', function () {
+        setMenuDropdownPos(this)
+      })
+    })
+
+    const dropdowns = document.querySelectorAll('.menu-list-item')
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (isTouchDevice) {
+      dropdowns.forEach(dropdown => {
+        const btn = dropdown.querySelector('.home-menu-wrapper')
+        const menu = dropdown.querySelector('.home-menu-dropdown')
+        btn.addEventListener('touchstart', function (e) {
+          e.preventDefault()
+          menu.classList.toggle('show')
+          dropdowns.forEach(otherDropdown => {
+            if (otherDropdown !== dropdown) {
+              otherDropdown.querySelector('.home-menu-dropdown').classList.remove('show')
+            }
+          })
+        })
+      })
+
+      document.addEventListener('touchstart', function (e) {
+        dropdowns.forEach(dropdown => {
+          const menu = dropdown.querySelector('.home-menu-dropdown')
+          if (!dropdown.contains(e.target)) {
+            menu.classList.remove('show')
+          }
+        })
+      })
+    }
     this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
     const rateStr = this.data.get('exchangeRate')
     this.exchangeRate = 0.0
@@ -37,6 +173,42 @@ export default class extends Controller {
       options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
     })
     this.mempoolSocketInit()
+  }
+
+  updateContentHeight () {
+    const _this = this
+    this.contentHeights = []
+    this.snapPageContents.forEach((pageContent) => {
+      const cHeight = pageContent.offsetHeight
+      _this.contentHeights.push(cHeight > _this.viewHeight ? cHeight : _this.viewHeight)
+      const section = pageContent.querySelector('section')
+      if (cHeight < _this.viewHeight && section) {
+        section.style.height = _this.viewHeight + 'px'
+        section.classList.remove('h-100')
+      } else {
+        section.classList.add('h-100')
+      }
+    })
+  }
+
+  moveToPageByIndex (index) {
+    let toScroll = 0
+    for (let i = 0; i < index; i++) {
+      toScroll += this.contentHeights[i]
+    }
+    // scroll to view
+    document.getElementById('newHomeContent').scrollTo({ top: toScroll, behavior: 'smooth' })
+  }
+
+  setPageIndex (e) {
+    const index = Number(e.currentTarget.dataset.index)
+    if (index > this.contentHeights.length - 1) {
+      return
+    }
+    this.pageIndex = index
+    this.settings.page = pages[index]
+    this.query.replace(this.settings)
+    this.moveToPageByIndex(index)
   }
 
   _processXcUpdate (update) {
