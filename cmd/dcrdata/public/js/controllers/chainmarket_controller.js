@@ -149,22 +149,31 @@ function getHue (token) {
 }
 
 const yAxisLabelWidth = {
-  depth: 40,
-  orders: 50,
-  candlestick: 40,
-  history: 40,
-  volume: 40
+  usdt: {
+    depth: 40,
+    orders: 50,
+    candlestick: 30,
+    history: 45,
+    volume: 40
+  },
+  btc: {
+    depth: 40,
+    orders: 40,
+    candlestick: 60,
+    history: 60,
+    volume: 40
+  }
 }
 
 function isMobile () {
   return window.innerWidth <= 768
 }
 
-function getAxisWidth (chart) {
-  if (!chart || chart === '' || !yAxisLabelWidth[chart]) {
+function getAxisWidth (pair, chart) {
+  if (!pair || pair === '' || !yAxisLabelWidth[pair] || !yAxisLabelWidth[pair][chart]) {
     return 50
   }
-  return yAxisLabelWidth[chart]
+  return yAxisLabelWidth[pair][chart]
 }
 
 function getYAxisLabel (label) {
@@ -672,7 +681,7 @@ export default class extends Controller {
     if (settings.chart == null) {
       settings.chart = depth
     }
-    if (settings.pair == null) {
+    if (settings.pair == null || !settings.pair) {
       settings.pair = 'usdt'
     }
     this.pairSelectTarget.value = settings.pair
@@ -1219,7 +1228,7 @@ export default class extends Controller {
       file: data,
       labels: ['time', 'open', 'close', 'high', 'low'],
       xlabel: 'Time',
-      ylabel: getYAxisLabel('Price (USD)'),
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       plotter: candlestickPlotter,
       axes: {
         x: {
@@ -1228,7 +1237,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1323,7 +1332,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: getYAxisLabel('Price (USD)'),
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1333,7 +1342,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 2
@@ -1353,7 +1362,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'price'],
       xlabel: 'Time',
-      ylabel: getYAxisLabel('Price (USD)'),
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1363,7 +1372,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 3
@@ -1390,7 +1399,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 3
@@ -1495,7 +1504,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 2
@@ -1526,7 +1535,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1570,7 +1579,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1592,7 +1601,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       zoomCallback: this.zoomCallback,

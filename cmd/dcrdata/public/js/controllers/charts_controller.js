@@ -524,7 +524,7 @@ export default class extends Controller {
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
     windowSize = parseInt(this.data.get('windowSize'))
     avgBlockTime = parseInt(this.data.get('blockTime')) * 1000
-    const supplyPage = this.data.get('supplyPage')
+    this.supplyPage = this.data.get('supplyPage')
     legendElement = this.labelsTarget
 
     // Prepare the legend element generators.
@@ -550,7 +550,7 @@ export default class extends Controller {
       this.query.update(this.settings)
     }
     this.settings.chart = this.settings.chart || 'ticket-price'
-    if (supplyPage === 'true') {
+    if (this.supplyPage === 'true') {
       this.settings.chart = 'coin-supply'
     }
     this.zoomCallback = this._zoomCallback.bind(this)
@@ -614,7 +614,7 @@ export default class extends Controller {
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
     // default on mobile is year, on other is all
-    if (humanize.isEmpty(this.settings.zoom) && isMobile()) {
+    if (humanize.isEmpty(this.settings.zoom) && isMobile() && this.supplyPage !== 'true') {
       this.settings.zoom = 'year'
     }
     if (this.settings.zoom) this.setZoom(this.settings.zoom)
@@ -1247,7 +1247,7 @@ export default class extends Controller {
   }
 
   getSelectedChart () {
-    let selected = 'ticket-price'
+    let selected = this.supplyPage ? 'coin-supply' : 'ticket-price'
     const _this = this
     this.chartSelectTargets.forEach((chart) => {
       if (_this.exitCond(chart)) {
