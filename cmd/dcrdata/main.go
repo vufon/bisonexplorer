@@ -1104,7 +1104,6 @@ func _main(ctx context.Context) error {
 		})
 		r.Route("/{chaintype}", func(rd chi.Router) {
 			rd.Get("/", explore.MutilchainHome)
-			rd.Get("/homedev", explore.MutilchainHomeDev)
 			rd.Get("/blocks", explore.MutilchainBlocks)
 			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.MutilchainBlockDetail)
 			rd.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.MutilchainTxPage)

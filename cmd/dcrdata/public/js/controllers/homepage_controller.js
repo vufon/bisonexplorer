@@ -270,23 +270,14 @@ export default class extends Controller {
     this.navBarHeight = this.newHomeMenuHeight = this.homeThumbnailHeight = this.viewHeight = 0
     this.contentHeights = []
     const _this = this
-    window.addEventListener('load', () => {
-      _this.navBarHeight = document.getElementById('navBar').offsetHeight
-      _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
-      _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
-      _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
-      _this.updateContentHeight()
-      if (_this.pageIndex > 0) {
-        _this.moveToPageByIndex(_this.pageIndex)
-      }
-    })
-    window.addEventListener('resize', function () {
-      _this.navBarHeight = document.getElementById('navBar').offsetHeight
-      _this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
-      _this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
-      _this.viewHeight = window.innerHeight - _this.navBarHeight - _this.newHomeMenuHeight - _this.homeThumbnailHeight - 2
-      _this.updateContentHeight()
-    })
+    this.loadEvent = this.handlerLoadEvent.bind(this)
+    if (document.readyState === 'complete') {
+      this.handlerLoadEvent()
+    } else {
+      window.addEventListener('load', this.loadEvent)
+    }
+    this.resizeEvent = this.handlerResizeEvent.bind(this)
+    window.addEventListener('resize', this.resizeEvent)
     this.content.addEventListener('scroll', () => {
       const scrollTop = _this.content.scrollTop + 5
       let currentHeight = 0
@@ -393,6 +384,25 @@ export default class extends Controller {
     const isDev = this.data.get('dev')
     if (isDev && isDev !== '') {
       this.setAvgBlockTime()
+    }
+  }
+
+  handlerResizeEvent () {
+    this.navBarHeight = document.getElementById('navBar').offsetHeight
+    this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+    this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+    this.viewHeight = window.innerHeight - this.navBarHeight - this.newHomeMenuHeight - this.homeThumbnailHeight - 2
+    this.updateContentHeight()
+  }
+
+  handlerLoadEvent () {
+    this.navBarHeight = document.getElementById('navBar').offsetHeight
+    this.newHomeMenuHeight = document.getElementById('newHomeMenu').offsetHeight
+    this.homeThumbnailHeight = document.getElementById('homeThumbnail').offsetHeight
+    this.viewHeight = window.innerHeight - this.navBarHeight - this.newHomeMenuHeight - this.homeThumbnailHeight - 2
+    this.updateContentHeight()
+    if (this.pageIndex > 0) {
+      this.moveToPageByIndex(this.pageIndex)
     }
   }
 
@@ -525,6 +535,8 @@ export default class extends Controller {
     globalEventBus.off('SUMMARY_RECEIVED', this.processSummaryInfo)
     globalEventBus.off('SUMMARY_24H_RECEIVED', this.processSummary24hInfo)
     globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
+    window.removeEventListener('resize', this.resizeEvent)
+    window.removeEventListener('load', this.loadEvent)
   }
 
   setMempoolFigures () {

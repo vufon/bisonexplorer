@@ -532,8 +532,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"home_report", "chain_home", "chain_blocks", "chain_block", "chain_tx",
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
 		"chain_addresstable", "supply", "marketlist", "chain_parameters",
-		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table",
-		"chain_home_dev"}
+		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {

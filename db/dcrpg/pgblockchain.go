@@ -8697,6 +8697,7 @@ func makeLTCExplorerBlockBasic(data *ltcjson.GetBlockVerboseTxResult) *exptypes.
 		Transactions:   numReg,
 		TxCount:        uint32(numReg),
 		BlockTime:      exptypes.NewTimeDefFromUNIX(data.Time),
+		BlockTimeUnix:  data.Time,
 		FormattedBytes: humanize.Bytes(uint64(data.Size)),
 		Total:          total,
 	}
