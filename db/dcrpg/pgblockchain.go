@@ -10908,3 +10908,7 @@ func (pgb *ChainDB) CheckOnBlackList(agent, ip string) (bool, error) {
 	err := pgb.db.QueryRow(internal.CheckExistOnBlackList, agent, ip).Scan(&onBlacklist)
 	return onBlacklist, err
 }
+
+func (pgb *ChainDB) GetMultichainStats(chainType string) (*externalapi.ChainStatsData, error) {
+	return externalapi.GetBlockchainStats(chainType)
+}

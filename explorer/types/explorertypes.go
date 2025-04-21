@@ -615,6 +615,9 @@ type HomeInfo struct {
 	BWLast30DaysVol       int64                       `json:"bwLast30DaysVol"`
 	TxFeeAvg              int64                       `json:"txFeeAvg"`
 	TicketsSummary        *dbtypes.TicketsSummaryInfo `json:"ticketsSummary"`
+	Nodes                 int64                       `json:"nodes"`
+	Volume24h             int64                       `json:"volume24h"`
+	TxFeeAvg24h           int64                       `json:"txFeeAvg24h"`
 }
 
 type MutilchainHomeInfo struct {

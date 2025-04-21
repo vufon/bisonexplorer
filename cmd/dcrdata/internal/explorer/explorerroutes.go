@@ -208,6 +208,11 @@ type MutilchainHomeConversions struct {
 	CoinSupply   *exchanges.Conversion
 	Sent24h      *exchanges.Conversion
 	Fees24h      *exchanges.Conversion
+	TxFeeAvg24h  *exchanges.Conversion
+	MempoolSent  *exchanges.Conversion
+	MempoolFees  *exchanges.Conversion
+	PoWReward    *exchanges.Conversion
+	NextReward   *exchanges.Conversion
 }
 
 type MutilchainHomeInfo struct {
@@ -707,6 +712,9 @@ func (exp *ExplorerUI) MutilchainHomeDev(w http.ResponseWriter, r *http.Request)
 		conversions = &MutilchainHomeConversions{
 			ExchangeRate: xcBot.MutilchainConversion(1.0, chainType),
 			CoinSupply:   xcBot.MutilchainConversion(homeInfo.CoinValueSupply, chainType),
+			TxFeeAvg24h:  xcBot.MutilchainConversion(btcutil.Amount(homeInfo.TxFeeAvg24h).ToBTC(), chainType),
+			PoWReward:    xcBot.MutilchainConversion(btcutil.Amount(homeInfo.BlockReward).ToBTC(), chainType),
+			NextReward:   xcBot.MutilchainConversion(btcutil.Amount(homeInfo.NBlockSubsidy.Total).ToBTC(), chainType),
 		}
 
 		if homeInfo.Block24hInfo != nil {
@@ -743,6 +751,10 @@ func (exp *ExplorerUI) MutilchainHomeDev(w http.ResponseWriter, r *http.Request)
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
+	if conversions != nil {
+		conversions.MempoolSent = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalOut).ToBTC(), chainType)
+		conversions.MempoolFees = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalFee).ToBTC(), chainType)
+	}
 	str, err := exp.templates.exec("chain_home_dev", struct {
 		*CommonPageData
 		Info               *types.HomeInfo
