@@ -241,7 +241,7 @@
 <body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} new-homepage-body" data-controller="scroll chainhome"
 	data-chainhome-chain-type="{{.ChainType}}"
 	{{if .Conversions}}
-   		data-chainhome-exchange-rate="{{.Conversions.ExchangeRate}}"
+   		data-chainhome-exchange-rate="{{.Conversions.ExchangeRate.Value}}"
    {{end}}>
 	<header class="top-nav d-flex align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
 		<div class="container d-flex align-items-center px-0 my-1">
@@ -472,7 +472,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.5f1fe46ab8b87725.bundle.js"
+	src="/dist/js/app.73ac8c52ddf8349d.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

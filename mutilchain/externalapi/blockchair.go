@@ -13,7 +13,8 @@ var chainMap = map[string]string{
 var blockchairChainStatsURL = "https://api.blockchair.com/%s/stats"
 
 type BlockchairChainStatsApiResponse struct {
-	Data ChainStatsData `json:"data"`
+	Data    ChainStatsData `json:"data"`
+	Context Context        `json:"context"`
 }
 
 type ChainStatsData struct {
@@ -61,6 +62,36 @@ type LargestTx struct {
 	ValueUSD float64 `json:"value_usd"`
 }
 
+type Context struct {
+	Code           int     `json:"code"`
+	Source         string  `json:"source"`
+	State          int64   `json:"state"`
+	MarketPriceUsd float64 `json:"market_price_usd"`
+	Cache          Cache   `json:"cache"`
+	API            APIInfo `json:"api"`
+	Servers        string  `json:"servers"`
+	Time           float64 `json:"time"`
+	RenderTime     float64 `json:"render_time"`
+	FullTime       float64 `json:"full_time"`
+	RequestCost    int     `json:"request_cost"`
+}
+
+type Cache struct {
+	Live     bool    `json:"live"`
+	Duration string  `json:"duration"`
+	Since    string  `json:"since"`
+	Until    string  `json:"until"`
+	Time     float64 `json:"time"`
+}
+
+type APIInfo struct {
+	Version         string `json:"version"`
+	LastMajorUpdate string `json:"last_major_update"`
+	NextMajorUpdate string `json:"next_major_update"`
+	Documentation   string `json:"documentation"`
+	Notice          string `json:"notice"`
+}
+
 func GetBlockchainStats(chainType string) (*ChainStatsData, error) {
 	chainName, exist := chainMap[chainType]
 	if !exist {
@@ -72,9 +103,9 @@ func GetBlockchainStats(chainType string) (*ChainStatsData, error) {
 		HttpUrl: url,
 		Payload: map[string]string{},
 	}
-	var responseData ChainStatsData
+	var responseData BlockchairChainStatsApiResponse
 	if err := HttpRequest(req, &responseData); err != nil {
 		return nil, err
 	}
-	return &responseData, nil
+	return &responseData.Data, nil
 }

@@ -1056,6 +1056,7 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 		volume24h = chainStats.Volume24h
 		nodes = chainStats.Nodes
 		avgTxFees24h = chainStats.AverageTransactionFee24h
+		fmt.Println("BTC: Get Multichain stats successfully")
 	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.BtcPageData
@@ -1204,6 +1205,7 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		volume24h = chainStats.Volume24h
 		nodes = chainStats.Nodes
 		avgTxFees24h = chainStats.AverageTransactionFee24h
+		fmt.Println("LTC: Get Multichain stats successfully")
 	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.LtcPageData

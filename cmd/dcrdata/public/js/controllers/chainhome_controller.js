@@ -51,7 +51,10 @@ export default class extends Controller {
       'exchangeRate', 'totalTransactions', 'coinSupply', 'convertedSupply',
       'powBar', 'rewardIdx', 'txCount', 'txOutCount', 'totalSent', 'totalFee',
       'minFeeRate', 'maxFeeRate', 'totalSize', 'remainingBlocks', 'timeRemaning',
-      'diffChange', 'prevRetarget', 'blockTimeAvg', 'homeContent', 'homeThumbs']
+      'diffChange', 'prevRetarget', 'blockTimeAvg', 'homeContent', 'homeThumbs',
+      'totalFeesExchange', 'totalSentExchange', 'convertedTxFeesAvg', 'powRewardConverted',
+      'nextRewardConverted', 'minedBlock', 'numTx24h', 'sent24h', 'fees24h', 'numVout24h',
+      'feeAvg24h', 'blockReward', 'nextBlockReward']
   }
 
   async connect () {
@@ -262,6 +265,8 @@ export default class extends Controller {
         _this.txCountTarget.innerHTML = humanize.decimalParts(res.mempoolInfo.size, true, 0)
         if (_this.chainType === 'btc') {
           _this.totalFeeTarget.innerHTML = humanize.decimalParts(res.mempoolInfo.total_fee, false, 8, 2)
+          const convertedFees = Number(_this.exchangeRate) * Number(res.mempoolInfo.total_fee)
+          _this.totalFeesExchangeTarget.innerHTML = humanize.threeSigFigs(convertedFees)
         }
       }
       if (res['mempool-blocks']) {
@@ -287,6 +292,8 @@ export default class extends Controller {
         })
         if (_this.chainType === 'ltc') {
           _this.totalFeeTarget.innerHTML = humanize.decimalParts(ltcTotalFee / 1e8, false, 8, 2)
+          const convertedFees = Number(_this.exchangeRate) * Number(ltcTotalFee)
+          _this.totalFeesExchangeTarget.innerHTML = humanize.threeSigFigs(convertedFees)
         }
         _this.minFeeRateTarget.innerHTML = humanize.decimalParts(minFeeRatevB, true, 0)
         _this.maxFeeRateTarget.innerHTML = humanize.decimalParts(maxFeeRatevB, true, 0)
@@ -296,6 +303,8 @@ export default class extends Controller {
         const extras = res.block.extras
         _this.txOutCountTarget.innerHTML = humanize.decimalParts(extras.totalOutputs, true, 0)
         _this.totalSentTarget.innerHTML = humanize.decimalParts(extras.totalOutputAmt / 1e8, false, 8, 2)
+        const convertedSent = Number(_this.exchangeRate) * Number(extras.totalOutputAmt / 1e8)
+        _this.totalSentExchangeTarget.innerHTML = humanize.threeSigFigs(convertedSent)
       }
       if (res.blocks) {
         let txOutCount = 0
@@ -307,6 +316,8 @@ export default class extends Controller {
         })
         _this.txOutCountTarget.innerHTML = humanize.decimalParts(txOutCount, true, 0)
         _this.totalSentTarget.innerHTML = humanize.decimalParts(totalSent / 1e8, false, 3, 2)
+        const convertedSent = Number(_this.exchangeRate) * Number(totalSent / 1e8)
+        _this.totalSentExchangeTarget.innerHTML = humanize.threeSigFigs(convertedSent)
       }
       if (res.da) {
         const diffChange = res.da.difficultyChange
