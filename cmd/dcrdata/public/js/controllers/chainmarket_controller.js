@@ -606,7 +606,8 @@ export default class extends Controller {
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
       'aggStack', 'zoom', 'chainTypeSelected', 'exchangeBtnArea', 'pairSelect',
-      'pairSelectorArea', 'fiatLabel']
+      'pairSelectorArea', 'fiatLabel', 'lowPrice', 'highPrice', 'priceBar',
+      'priceBarMarker', 'priceBarLabel']
   }
 
   async connect () {
@@ -713,6 +714,10 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+    // TODO: handler all pages
+    if (this.isHomepage) {
+      this.updateMarketPriceBar()
+    }
   }
 
   async initMutilchainExchangeStates () {
@@ -762,6 +767,15 @@ export default class extends Controller {
     this.setExchangeName()
     orderZoom = undefined
     this.fetchChart()
+  }
+
+  updateMarketPriceBar () {
+    const currentPrice = Number(this.priceBarTarget.dataset.price)
+    const lowPrice = Number(this.priceBarTarget.dataset.low)
+    const highPrice = Number(this.priceBarTarget.dataset.high)
+    const percent = ((currentPrice - lowPrice) / (highPrice - lowPrice)) * 100
+    this.priceBarMarkerTarget.style.left = `${percent}%`
+    this.priceBarLabelTarget.style.left = `${percent}%`
   }
 
   updateOptions () {

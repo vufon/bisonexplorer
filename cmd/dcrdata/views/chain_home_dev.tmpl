@@ -792,6 +792,7 @@
                                                    <span data-chainhome-target="remainingBlocks">
                                                       {{int64Comma .RemainingBlocks}}
                                                    </span>
+                                                   <span class="new-info-line-2-sub">DCR</span>
                                                 </span>
                                                 <span class="stats-subinfo">
                                                    In ~<span data-type="duration" class="jsonly"
@@ -885,7 +886,7 @@
                      <div class="col-24 col-md-10 col-lg-8 col-xl-7 col-xxl-5 p-0 flex-column-card">
                         {{- /* PRICE */ -}}
                         <div class="mx-0 mx-md-2 my-2 my-md-3 p-3 p-lg-4 bg-white new-home-card-container flex-1">
-                           <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
+                           <div class="fs22 text-center pb-2"><img src="/images/{{$ChainType}}-icon.png" width="25" height="25"
                                  class="me-2">Market Information</div>
                            <table class="w-100 mx-0">
                               <tbody>
@@ -893,9 +894,21 @@
                                     <td class="py-2 fs-16 fw-bold">Price</td>
                                     <td class="ps-2 py-2 text-end">
                                        <p class="fs-16">
-                                          $<span data-chainmarket-target="price">{{printf "%.2f"
-                                             $botState.Price}}</span>
+                                          $<span data-chainmarket-target="price">{{commaWithDecimal $botState.Price 2}}</span>
                                           USD
+                                          <span data-chainmarket-target="change24h">
+                                             {{if eq $botState.Change24h 0.0}}
+                                             <span></span>
+                                             {{else if gt $botState.Change24h 0.0}}
+                                             <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100
+                                                (divideFloat
+                                                $botState.Change24h $botState.Price))}}%</span>
+                                             {{else}}
+                                             <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100
+                                                (divideFloat
+                                                (toAbsValue $botState.Change24h) $botState.Price))}}%</span>
+                                             {{end}}
+                                          </span>
                                        </p>
                                     </td>
                                  </tr>
@@ -903,9 +916,11 @@
                                     <td class="py-2 fs-16 fw-bold">Market Cap</td>
                                     <td class="ps-2 py-2 text-end">
                                        <p class="fs-16">
-                                          <span data-homepage-target="marketCap">
-                                             0
+                                          {{if $conv}}
+                                          <span data-chainhome-target="marketCap">
+                                             {{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}
                                           </span>
+                                          {{end}}
                                        </p>
                                     </td>
                                  </tr>
@@ -913,32 +928,36 @@
                                     <td class="py-2 fs-16 fw-bold">Volume (24h)</td>
                                     <td class="ps-2 py-2 text-end">
                                        <p class="fs-16">
-                                          <span data-chainmarket-target="marketVol">2,233 BTC</span>
-                                          <span class="fs15">(~
-                                             $<span data-chainmarket-target="marketUSDVol">~$2B USD</span>)</span>
+                                          <span data-chainmarket-target="marketVol">
+                                             {{threeSigFigs $botState.Volume}}
+                                          </span> {{toUpperCase $ChainType}}
+                                          <span class="fs15">(~$<span data-chainmarket-target="marketUSDVol">{{threeSigFigs (floatMultiply $botState.Volume $botState.Price)}}</span>)</span>
                                        </p>
                                     </td>
                                  </tr>
                                  <tr>
                                     <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
                                     <td class="ps-2 py-2 text-end">
-                                       <p><span class="fs-16" data-chainmarket-target="volCapRate">1.37</span>%</p>
+                                       <p><span class="fs-16" data-coinall="{{$.Info.CoinValueSupply}}" data-chainmarket-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
+                                          $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
                                     </td>
                                  </tr>
                               </tbody>
                            </table>
                            <div class="d-flex justify-content-between mb-1">
-                              <p class="mb-0 fs-13">Low (<span data-chainmarket-target="lowPrice">85.999</span>)</p>
-                              <p class="mb-0 fs-13">High (<span data-chainmarket-target="highPrice">89.888</span>)</p>
+                              <p class="mb-0 fs-13">Low (<span data-chainmarket-target="lowPrice">{{printf "%.2f"
+                                 $botState.LowPrice}}</span>)</p>
+                              <p class="mb-0 fs-13">High (<span data-chainmarket-target="highPrice">{{printf "%.2f"
+                                 $botState.HighPrice}}</span>)</p>
                            </div>
                            <div class="fs22 text-center pb-3">
                               <div class="range-price-bar" id="priceBar" data-chainmarket-target="priceBar"
-                                 data-low="85.999" data-high="89.888" data-price="86.999">
+                                 data-low="{{$botState.LowPrice}}" data-high="{{$botState.HighPrice}}" data-price="{{$botState.Price}}">
                                  <div class="range-marker" id="currentMarker" data-chainmarket-target="priceBarMarker">
                                  </div>
                                  <div class="range-label fs-13" id="currentLabel"
                                     data-chainmarket-target="priceBarLabel">
-                                    86.999</div>
+                                    {{printf "%.2f" $botState.Price}}</div>
                               </div>
                            </div>
                         </div>

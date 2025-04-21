@@ -714,8 +714,8 @@ func (exp *ExplorerUI) MutilchainHomeDev(w http.ResponseWriter, r *http.Request)
 			conversions.Fees24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Fees24h).ToBTC(), chainType)
 		}
 	}
-
 	allXcState := exp.getExchangeState()
+	lowPrice, highPrice := allXcState.GetMutilchainLowHighPrice(chainType)
 	xcState := exchanges.ExchangeBotStateContent{
 		BtcIndex:      allXcState.BtcIndex,
 		BtcPrice:      allXcState.BtcPrice,
@@ -724,6 +724,9 @@ func (exp *ExplorerUI) MutilchainHomeDev(w http.ResponseWriter, r *http.Request)
 		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
 		FiatIndices:   allXcState.FiatIndices,
 		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+		Change24h:     allXcState.GetMutilchainPriceChange(chainType),
+		LowPrice:      lowPrice,
+		HighPrice:     highPrice,
 	}
 
 	var marketCap *dbtypes.MarketCapData
