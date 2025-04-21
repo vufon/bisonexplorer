@@ -140,7 +140,8 @@ type ExchangeBotState struct {
 	BtcUsd            map[string]*ExchangeState `json:"btc_usd_exchanges"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
-	FiatIndices map[string]*ExchangeState `json:"btc_indices"`
+	FiatIndices   map[string]*ExchangeState `json:"btc_indices"`
+	VolumnOrdered []*TokenedExchange
 }
 
 type ExchangeBotStateContent struct {
@@ -216,6 +217,9 @@ func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 		if xcList[i].Token == "binance" {
 			return true
 		}
+		if xcList[j].Token == "binance" {
+			return false
+		}
 		return xcList[i].State.Volume > xcList[j].State.Volume
 	})
 	return xcList
@@ -234,6 +238,9 @@ func (state *ExchangeBotState) MutilchainVolumeOrderedExchanges(chainType string
 	sort.Slice(xcList, func(i, j int) bool {
 		if xcList[i].Token == "binance" {
 			return true
+		}
+		if xcList[j].Token == "binance" {
+			return false
 		}
 		return xcList[i].State.Volume > xcList[j].State.Volume
 	})

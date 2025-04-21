@@ -4385,6 +4385,8 @@ func (exp *ExplorerUI) StatsPage(w http.ResponseWriter, r *http.Request) {
 
 // MarketPage is the page handler for the "/market" path.
 func (exp *ExplorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
+	xcState := exp.getExchangeState()
+	xcState.VolumnOrdered = xcState.VolumeOrderedExchanges()
 	str, err := exp.templates.exec("market", struct {
 		*CommonPageData
 		DepthMarkets []string
@@ -4392,7 +4394,7 @@ func (exp *ExplorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
 		XcState      *exchanges.ExchangeBotState
 	}{
 		CommonPageData: exp.commonData(r),
-		XcState:        exp.getExchangeState(),
+		XcState:        xcState,
 	})
 
 	if err != nil {

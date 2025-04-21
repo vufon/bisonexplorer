@@ -46,7 +46,7 @@
                       <td class="text-end fw-bold ps-3" data-market-target="fiatLabel"></td>
                       <td></td>
                     </tr>
-                    {{range $botState.VolumeOrderedExchanges}}
+                    {{range $botState.VolumnOrdered}}
                         <tr class="fs hover-row" data-market-target="xcRow" data-action="click->market#setExchange" data-token="{{.Token}}">
                             <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName .Token}}</td>
                             <td class="ps-2 fs16 py-2 text-end" data-type="volume">
@@ -74,7 +74,15 @@
                         <td class="ps-1 fs16 py-2 text-end" data-type="price">
                             {{threeSigFigs $botState.Price}}
                         </td>
-                        <td></td> {{- /* no arrow for aggregated data */ -}}
+                        <td class="fs16 px-2" data-type="arrow">
+                            {{if eq $botState.DCRUSD24hChange 0.0}}
+                            <span></span>
+                            {{else if gt $botState.DCRUSD24hChange 0.0}}
+                            <span class="dcricon-arrow-up text-green"></span>
+                            {{else}}
+                            <span class="dcricon-arrow-down text-danger"></span>
+                            {{end}}
+                         </td>
                     </tr>
                 </tbody>
             </table>
@@ -124,7 +132,7 @@
                 data-action="click->market#changeExchange">
                     <label>Exchange</label>
                     <div class="btn-group" data-market-target="exchangeBtnArea">
-                        {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
+                        {{range $index, $exchange := $botState.VolumnOrdered}}
                         <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
                            class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
                         {{end}}
