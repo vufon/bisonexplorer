@@ -43,6 +43,7 @@ const (
 	Gemini       = "gemini"
 	USDTPair     = "usdt"
 	BTCPair      = "btc"
+	Hotcoin      = "hotcoin"
 )
 
 // A few candlestick bin sizes.
@@ -173,6 +174,36 @@ var (
 		},
 	}
 
+	HotcoinURLs = URLs{
+		Price: "https://api.hotcoinfin.com/v1/market/ticker",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.hotcoinfin.com/v1/depth?symbol=dcr_usdt&step=7246060",
+		Candlesticks: map[candlestickKey]string{
+			fiveMinKey:  "https://api.hotcoinfin.com/v1/ticker?symbol=dcr_usdt&step=300",
+			halfHourKey: "https://api.hotcoinfin.com/v1/ticker?symbol=dcr_usdt&step=1800",
+			hourKey:     "https://api.hotcoinfin.com/v1/ticker?symbol=dcr_usdt&step=3600",
+			dayKey:      "https://api.hotcoinfin.com/v1/ticker?symbol=dcr_usdt&step=86400",
+			weekKey:     "https://api.hotcoinfin.com/v1/ticker?symbol=dcr_usdt&step=604800",
+			monthKey:    "https://api.hotcoinfin.com/v1/ticker?symbol=dcr_usdt&step=2592000",
+		},
+	}
+
+	HotcoinMutilchainURLs = URLs{
+		Price: "https://api.hotcoinfin.com/v1/market/ticker",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.hotcoinfin.com/v1/depth?symbol=%s_usdt&step=7246060",
+		Candlesticks: map[candlestickKey]string{
+			fiveMinKey:  "https://api.hotcoinfin.com/v1/ticker?symbol=%s_usdt&step=300",
+			halfHourKey: "https://api.hotcoinfin.com/v1/ticker?symbol=%s_usdt&step=1800",
+			hourKey:     "https://api.hotcoinfin.com/v1/ticker?symbol=%s_usdt&step=3600",
+			dayKey:      "https://api.hotcoinfin.com/v1/ticker?symbol=%s_usdt&step=86400",
+			weekKey:     "https://api.hotcoinfin.com/v1/ticker?symbol=%s_usdt&step=604800",
+			monthKey:    "https://api.hotcoinfin.com/v1/ticker?symbol=%s_usdt&step=2592000",
+		},
+	}
+
 	DragonExURLs = URLs{
 		Price: "https://openapi.dragonex.io/api/v1/market/real/?symbol_id=1520101",
 		// DragonEx depth chart has no parameters for configuring amount of data.
@@ -290,6 +321,7 @@ var BtcIndices = map[string]func(*http.Client, *BotChannels, string) (Exchange, 
 var DcrExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange, error){
 	Binance:   NewBinance,
 	Mexc:      NewMexc,
+	Hotcoin:   NewHotcoin,
 	Coinex:    NewCoinex,
 	BTCCoinex: NewBTCCoinex,
 	DragonEx:  NewDragonEx,
@@ -306,6 +338,7 @@ var DcrExchanges = map[string]func(*http.Client, *BotChannels, string) (Exchange
 
 var LTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (Exchange, error){
 	Binance:      MutilchainNewBinance,
+	Hotcoin:      MutilchainNewHotcoin,
 	Mexc:         MutilchainNewMexc,
 	DragonEx:     nil,
 	Huobi:        MutilchainNewHuobi,
@@ -319,6 +352,7 @@ var LTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (
 var BTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (Exchange, error){
 	Binance:      MutilchainNewBinance,
 	Mexc:         MutilchainNewMexc,
+	Hotcoin:      MutilchainNewHotcoin,
 	DragonEx:     nil,
 	Huobi:        MutilchainNewHuobi,
 	Poloniex:     MutilchainNewPoloniex,
@@ -633,6 +667,7 @@ type CommonExchange struct {
 	lastRequest  time.Time
 	requests     requests
 	channels     *BotChannels
+	mainCoin     string
 	wsMtx        sync.RWMutex
 	ws           websocketFeed
 	wsSync       struct {
@@ -1142,6 +1177,10 @@ type BinanceExchange struct {
 	*CommonExchange
 }
 
+type HotcoinExchange struct {
+	*CommonExchange
+}
+
 type MexcExchange struct {
 	*CommonExchange
 }
@@ -1186,6 +1225,34 @@ func MutilchainNewBinance(client *http.Client, channels *BotChannels, chainType 
 	return
 }
 
+func MutilchainNewHotcoin(client *http.Client, channels *BotChannels, chainType string, _ string) (hotcoin Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, HotcoinMutilchainURLs.Price, nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, fmt.Sprintf(HotcoinMutilchainURLs.Depth, chainType), nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range HotcoinMutilchainURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, fmt.Sprintf(url, chainType), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(Hotcoin, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
+	commonExchange.mainCoin = chainType
+	hotcoin = &HotcoinExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
 func MutilchainNewMexc(client *http.Client, channels *BotChannels, chainType string, apiUrl string) (mexc Exchange, err error) {
 	reqs := newRequests()
 	reqs.price, err = http.NewRequest(http.MethodGet, fmt.Sprintf(MexcMutilchainURLs.Price, apiUrl, strings.ToUpper(chainType)), nil)
@@ -1207,7 +1274,7 @@ func MutilchainNewMexc(client *http.Client, channels *BotChannels, chainType str
 
 	commonExchange := newCommonExchange(Mexc, client, reqs, channels)
 	commonExchange.Symbol = GetSymbolFromChainType(chainType)
-	mexc = &BinanceExchange{
+	mexc = &MexcExchange{
 		CommonExchange: commonExchange,
 	}
 	return
@@ -1345,7 +1412,35 @@ func NewMexc(client *http.Client, channels *BotChannels, apiURL string) (mexc Ex
 
 	commonExchange := newCommonExchange(Mexc, client, reqs, channels)
 	commonExchange.Symbol = DCRUSDSYMBOL
-	mexc = &BinanceExchange{
+	mexc = &MexcExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+func NewHotcoin(client *http.Client, channels *BotChannels, _ string) (hotcoin Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, HotcoinURLs.Price, nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, HotcoinURLs.Depth, nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range HotcoinURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(Hotcoin, client, reqs, channels)
+	commonExchange.Symbol = DCRUSDSYMBOL
+	commonExchange.mainCoin = "dcr"
+	hotcoin = &HotcoinExchange{
 		CommonExchange: commonExchange,
 	}
 	return
@@ -1538,6 +1633,23 @@ type MexcPriceResponse struct {
 	OpenTime           int64  `json:"openTime"`
 	CloseTime          int64  `json:"closeTime"`
 	Count              *int64 `json:"count"`
+}
+
+type HotcoinTickerResponse struct {
+	Ticker    []HotcoinTicker `json:"ticker"`
+	Status    string          `json:"status"`
+	Timestamp int64           `json:"timestamp"`
+}
+
+type HotcoinTicker struct {
+	Symbol string  `json:"symbol"`
+	High   float64 `json:"high"`
+	Vol    float64 `json:"vol"`
+	Last   float64 `json:"last"`
+	Low    float64 `json:"low"`
+	Buy    float64 `json:"buy"`
+	Sell   float64 `json:"sell"`
+	Change float64 `json:"change"`
 }
 
 type KucoinDepthResponse struct {
@@ -1740,6 +1852,79 @@ func (r KucoinCandlestickResponse) translate() Candlesticks {
 	return sticks
 }
 
+func (r HotcoinKlineResponse) translate() Candlesticks {
+	sticks := make(Candlesticks, 0, len(r.Data))
+	for _, rawStick := range r.Data {
+		if len(rawStick) < 6 {
+			log.Error("Unable to decode Binance candlestick response. Not enough elements.")
+			return Candlesticks{}
+		}
+		unixMsFlt, ok := rawStick[0].(string)
+		if !ok {
+			return badBinanceStickElement("start time", rawStick[0])
+		}
+		timeInt, err := strconv.ParseInt(unixMsFlt, 0, 64)
+		if err != nil {
+			return badBinanceStickElement("start time", rawStick[0])
+		}
+		startTime := time.Unix(timeInt/1e3, 0)
+
+		openStr, ok := rawStick[1].(string)
+		if !ok {
+			return badBinanceStickElement("open", rawStick[1])
+		}
+		open, err := strconv.ParseFloat(openStr, 64)
+		if err != nil {
+			return badBinanceStickElement("open float", err)
+		}
+
+		highStr, ok := rawStick[2].(string)
+		if !ok {
+			return badBinanceStickElement("high", rawStick[2])
+		}
+		high, err := strconv.ParseFloat(highStr, 64)
+		if err != nil {
+			return badBinanceStickElement("high float", err)
+		}
+
+		lowStr, ok := rawStick[3].(string)
+		if !ok {
+			return badBinanceStickElement("low", rawStick[3])
+		}
+		low, err := strconv.ParseFloat(lowStr, 64)
+		if err != nil {
+			return badBinanceStickElement("low float", err)
+		}
+
+		closeStr, ok := rawStick[4].(string)
+		if !ok {
+			return badBinanceStickElement("close", rawStick[4])
+		}
+		close, err := strconv.ParseFloat(closeStr, 64)
+		if err != nil {
+			return badBinanceStickElement("close float", err)
+		}
+
+		volumeStr, ok := rawStick[5].(string)
+		if !ok {
+			return badBinanceStickElement("volume", rawStick[5])
+		}
+		volume, err := strconv.ParseFloat(volumeStr, 64)
+		if err != nil {
+			return badBinanceStickElement("volume float", err)
+		}
+		sticks = append(sticks, Candlestick{
+			High:   high,
+			Low:    low,
+			Open:   open,
+			Close:  close,
+			Volume: volume,
+			Start:  startTime,
+		})
+	}
+	return sticks
+}
+
 func (r BinanceCandlestickResponse) translate() Candlesticks {
 	sticks := make(Candlesticks, 0, len(r))
 	for _, rawStick := range r {
@@ -1823,6 +2008,39 @@ type MexcDepthResponse struct {
 	Asks         [][2]string `json:"asks"`
 }
 
+type HotcoinFullResponse struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Time int64           `json:"time"`
+	Data HotcoinFullData `json:"data"`
+}
+
+type HotcoinFullData struct {
+	Period HotcoinPeriod `json:"period"`
+	Depth  HotcoinDepth  `json:"depth"`
+}
+
+type HotcoinPeriod struct {
+	Data       string `json:"data"`
+	MarketFrom string `json:"marketFrom"`
+	Type       int    `json:"type"`
+	CoinVol    string `json:"coinVol"`
+}
+
+type HotcoinDepth struct {
+	Date      int64      `json:"date"`
+	Asks      [][]string `json:"asks"`
+	Bids      [][]string `json:"bids"`
+	LastPrice float64    `json:"lastPrice"`
+}
+
+type HotcoinKlineResponse struct {
+	Code int             `json:"code"`
+	Msg  string          `json:"msg"`
+	Time int64           `json:"time"`
+	Data [][]interface{} `json:"data"`
+}
+
 func parseBinanceDepthPoints(pts [][2]string) ([]DepthPoint, error) {
 	outPts := make([]DepthPoint, 0, len(pts))
 	for _, pt := range pts {
@@ -1842,6 +2060,47 @@ func parseBinanceDepthPoints(pts [][2]string) ([]DepthPoint, error) {
 		})
 	}
 	return outPts, nil
+}
+
+func parseHotcoinDepthPoints(pts [][]string) ([]DepthPoint, error) {
+	outPts := make([]DepthPoint, 0, len(pts))
+	for _, pt := range pts {
+		price, err := strconv.ParseFloat(pt[0], 64)
+		if err != nil {
+			return outPts, fmt.Errorf("Unable to parse Binance depth point price: %v", err)
+		}
+
+		quantity, err := strconv.ParseFloat(pt[1], 64)
+		if err != nil {
+			return outPts, fmt.Errorf("Unable to parse Binance depth point quantity: %v", err)
+		}
+
+		outPts = append(outPts, DepthPoint{
+			Quantity: quantity,
+			Price:    price,
+		})
+	}
+	return outPts, nil
+}
+
+func (pts *HotcoinFullResponse) translate() *DepthData {
+	if pts == nil {
+		return nil
+	}
+	depth := new(DepthData)
+	depth.Time = time.Now().Unix()
+	var err error
+	depth.Asks, err = parseHotcoinDepthPoints(pts.Data.Depth.Asks)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	depth.Bids, err = parseHotcoinDepthPoints(pts.Data.Depth.Bids)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	return depth
 }
 
 func (r *BinanceDepthResponse) translate() *DepthData {
@@ -2178,6 +2437,70 @@ func (mexc *MexcExchange) Refresh() {
 			Volume:     quoteVolume,
 			Change:     priceChange,
 			Stamp:      priceResponse.CloseTime / 1000,
+		},
+		Candlesticks: candlesticks,
+		Depth:        depth,
+	})
+}
+
+func (hotcoin *HotcoinExchange) Refresh() {
+	hotcoin.LogRequest()
+	priceResponse := new(HotcoinTickerResponse)
+	err := hotcoin.fetch(hotcoin.requests.price, priceResponse)
+	if err != nil {
+		hotcoin.fail("Fetch price", err)
+		return
+	}
+	// get token data
+	var mainTicker HotcoinTicker
+	for _, ticker := range priceResponse.Ticker {
+		if ticker.Symbol == fmt.Sprintf("%s_usdt", hotcoin.mainCoin) {
+			mainTicker = ticker
+			break
+		}
+	}
+	if mainTicker.Symbol == "" {
+		hotcoin.fail("Not exist hotcoin data", fmt.Errorf("not exist hotcoin data"))
+		return
+	}
+	// Get the depth chart
+	depthResponse := new(HotcoinFullResponse)
+	err = hotcoin.fetch(hotcoin.requests.depth, depthResponse)
+	if err != nil {
+		log.Errorf("Error retrieving depth chart data from hotcoin: %v", err)
+	}
+	depth := depthResponse.translate()
+
+	// Grab the current state to check if candlesticks need updating
+	state := hotcoin.state()
+
+	candlesticks := map[candlestickKey]Candlesticks{}
+	for bin, req := range hotcoin.requests.candlesticks {
+		oldSticks, found := state.Candlesticks[bin]
+		if !found || oldSticks.needsUpdate(bin) {
+			log.Tracef("Signalling candlestick update for %s, bin size %s", hotcoin.token, bin)
+			response := new(HotcoinKlineResponse)
+			err := hotcoin.fetch(req, response)
+			if err != nil {
+				log.Errorf("Error retrieving candlestick data from hotcoin for bin size %s: %v", string(bin), err)
+				continue
+			}
+			sticks := response.translate()
+			if !found || sticks.time().After(oldSticks.time()) {
+				candlesticks[bin] = sticks
+			}
+		}
+	}
+	hotcoin.Update(&ExchangeState{
+		BaseState: BaseState{
+			Symbol:     hotcoin.Symbol,
+			Price:      mainTicker.Last,
+			Low:        mainTicker.Low,
+			High:       mainTicker.High,
+			BaseVolume: mainTicker.Vol,
+			Volume:     mainTicker.Vol * mainTicker.Last,
+			Change:     mainTicker.Change,
+			Stamp:      priceResponse.Timestamp,
 		},
 		Candlesticks: candlesticks,
 		Depth:        depth,
