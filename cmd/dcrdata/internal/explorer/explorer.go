@@ -196,6 +196,8 @@ type explorerDataSource interface {
 	InsertToBlackList(agent, ip, note string) error
 	CheckOnBlackList(agent, ip string) (bool, error)
 	GetBlockSwapGroupFullData(blockTxs []string) ([]*dbtypes.AtomicSwapFullData, error)
+	GetLastMultichainPoolDataList(chainType string, startHeight int64) ([]*dbtypes.MultichainPoolDataItem, error)
+	GetMultichainStats(chainType string) (*externalapi.ChainStatsData, error)
 }
 
 type PoliteiaBackend interface {
@@ -1031,7 +1033,30 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	}
 	//get and set 25 last block
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEBTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
-
+	// get last 5 block pools
+	last5BlockPools, err := exp.dataSource.GetLastMultichainPoolDataList(mutilchain.TYPEBTC, newBlockData.Height)
+	if err != nil {
+		log.Errorf("Get BTC last 10 block pools failed: ", err)
+	}
+	newBlockData.PoolDataList = last5BlockPools
+	log.Infof("Get last 10 BTC Blocks pool successfully")
+	// get multichain stats from blockchair
+	totalAddresses := int64(0)
+	totalOutputs := int64(0)
+	volume24h := int64(0)
+	nodes := int64(0)
+	avgTxFees24h := int64(0)
+	chainStats, err := exp.dataSource.GetMultichainStats(mutilchain.TYPEBTC)
+	if err != nil {
+		log.Warnf("BTC: Get multichain stats failed. %v", err)
+	} else {
+		totalAddresses = chainStats.HodlingAddresses
+		totalOutputs = chainStats.Outputs
+		volume24h = chainStats.Volume24h
+		nodes = chainStats.Nodes
+		avgTxFees24h = chainStats.AverageTransactionFee24h
+		fmt.Println("BTC: Get Multichain stats successfully")
+	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.BtcPageData
 	p.Lock()
@@ -1056,6 +1081,11 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.BtcChainParams.SubsidyReductionInterval)
+	p.HomeInfo.TotalAddresses = totalAddresses
+	p.HomeInfo.TotalOutputs = totalOutputs
+	p.HomeInfo.Nodes = nodes
+	p.HomeInfo.Volume24h = volume24h
+	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
 	if hasSwapData {
 		p.HomeInfo.SwapsTotalContract = swapsTotalContract
 		p.HomeInfo.SwapsTotalAmount = swapsTotalAmount
@@ -1152,7 +1182,30 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	}
 	//get and set 25 last block
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPELTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
-
+	// get last 5 block pools
+	last5BlockPools, err := exp.dataSource.GetLastMultichainPoolDataList(mutilchain.TYPELTC, newBlockData.Height)
+	if err != nil {
+		log.Errorf("Get LTC last 10 block pools failed: ", err)
+	}
+	newBlockData.PoolDataList = last5BlockPools
+	log.Infof("Get last 10 LTC Blocks pool successfully")
+	// get multichain stats from blockchair
+	totalAddresses := int64(0)
+	totalOutputs := int64(0)
+	volume24h := int64(0)
+	nodes := int64(0)
+	avgTxFees24h := int64(0)
+	chainStats, err := exp.dataSource.GetMultichainStats(mutilchain.TYPELTC)
+	if err != nil {
+		log.Warnf("LTC: Get multichain stats failed. %v", err)
+	} else {
+		totalAddresses = chainStats.HodlingAddresses
+		totalOutputs = chainStats.Outputs
+		volume24h = chainStats.Volume24h
+		nodes = chainStats.Nodes
+		avgTxFees24h = chainStats.AverageTransactionFee24h
+		fmt.Println("LTC: Get Multichain stats successfully")
+	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.LtcPageData
 	p.Lock()
@@ -1177,6 +1230,11 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = blockData.ExtraInfo.BlockReward
 	p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
+	p.HomeInfo.TotalAddresses = totalAddresses
+	p.HomeInfo.TotalOutputs = totalOutputs
+	p.HomeInfo.Nodes = nodes
+	p.HomeInfo.Volume24h = volume24h
+	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
 	if hasSwapData {
 		p.HomeInfo.SwapsTotalContract = swapsTotalContract
 		p.HomeInfo.SwapsTotalAmount = swapsTotalAmount

@@ -208,6 +208,11 @@ type MutilchainHomeConversions struct {
 	CoinSupply   *exchanges.Conversion
 	Sent24h      *exchanges.Conversion
 	Fees24h      *exchanges.Conversion
+	TxFeeAvg24h  *exchanges.Conversion
+	MempoolSent  *exchanges.Conversion
+	MempoolFees  *exchanges.Conversion
+	PoWReward    *exchanges.Conversion
+	NextReward   *exchanges.Conversion
 }
 
 type MutilchainHomeInfo struct {
@@ -563,16 +568,19 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		bestBlock = blocks[0]
 	}
 	var homeInfo *types.HomeInfo
+	var poolDataList []*dbtypes.MultichainPoolDataItem
 	switch chainType {
 	case mutilchain.TYPEBTC:
 		exp.BtcPageData.RLock()
 		// Get fiat conversions if available
 		homeInfo = exp.BtcPageData.HomeInfo
+		poolDataList = exp.BtcPageData.BlockInfo.PoolDataList
 		exp.BtcPageData.RUnlock()
 	case mutilchain.TYPELTC:
 		exp.LtcPageData.RLock()
 		// Get fiat conversions if available
 		homeInfo = exp.LtcPageData.HomeInfo
+		poolDataList = exp.LtcPageData.BlockInfo.PoolDataList
 		exp.LtcPageData.RUnlock()
 	default:
 		exp.pageData.RLock()
@@ -585,6 +593,9 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		conversions = &MutilchainHomeConversions{
 			ExchangeRate: xcBot.MutilchainConversion(1.0, chainType),
 			CoinSupply:   xcBot.MutilchainConversion(homeInfo.CoinValueSupply, chainType),
+			TxFeeAvg24h:  xcBot.MutilchainConversion(btcutil.Amount(homeInfo.TxFeeAvg24h).ToBTC(), chainType),
+			PoWReward:    xcBot.MutilchainConversion(btcutil.Amount(homeInfo.BlockReward).ToBTC(), chainType),
+			NextReward:   xcBot.MutilchainConversion(btcutil.Amount(homeInfo.NBlockSubsidy.Total).ToBTC(), chainType),
 		}
 
 		if homeInfo.Block24hInfo != nil {
@@ -592,8 +603,8 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 			conversions.Fees24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Fees24h).ToBTC(), chainType)
 		}
 	}
-
 	allXcState := exp.getExchangeState()
+	lowPrice, highPrice := allXcState.GetMutilchainLowHighPrice(chainType)
 	xcState := exchanges.ExchangeBotStateContent{
 		BtcIndex:      allXcState.BtcIndex,
 		BtcPrice:      allXcState.BtcPrice,
@@ -602,6 +613,9 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
 		FiatIndices:   allXcState.FiatIndices,
 		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+		Change24h:     allXcState.GetMutilchainPriceChange(chainType),
+		LowPrice:      lowPrice,
+		HighPrice:     highPrice,
 	}
 
 	var marketCap *dbtypes.MarketCapData
@@ -618,6 +632,10 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
+	if conversions != nil {
+		conversions.MempoolSent = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalOut).ToBTC(), chainType)
+		conversions.MempoolFees = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalFee).ToBTC(), chainType)
+	}
 	str, err := exp.templates.exec("chain_home", struct {
 		*CommonPageData
 		Info               *types.HomeInfo
@@ -630,6 +648,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		ChainType          string
 		TargetTimePerBlock float64
 		MarketCap          *dbtypes.MarketCapData
+		PoolDataList       []*dbtypes.MultichainPoolDataItem
 	}{
 		CommonPageData:     commonData,
 		MempoolInfo:        mempoolInfo,
@@ -641,6 +660,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		XcState:            xcState,
 		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
 		MarketCap:          marketCap,
+		PoolDataList:       poolDataList,
 	})
 
 	if err != nil {

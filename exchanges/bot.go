@@ -147,7 +147,10 @@ type ExchangeBotStateContent struct {
 	BtcIndex      string                    `json:"btc_index"`
 	BtcPrice      float64                   `json:"btc_fiat_price"`
 	Price         float64                   `json:"price"`
+	LowPrice      float64                   `json:"low_price"`
+	HighPrice     float64                   `json:"high_price"`
 	Volume        float64                   `json:"volume"`
+	Change24h     float64                   `json:"change_24h"`
 	ExchangeState map[string]*ExchangeState `json:"exchange_state"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
@@ -245,6 +248,28 @@ func (state *ExchangeBotState) GetMutilchainPrice(chainType string) float64 {
 		return state.LTCPrice
 	default:
 		return state.Price
+	}
+}
+
+func (state *ExchangeBotState) GetMutilchainLowHighPrice(chainType string) (float64, float64) {
+	switch chainType {
+	case TYPEBTC:
+		return state.BTCLowPrice, state.BTCHighPrice
+	case TYPELTC:
+		return state.LTCLowPrice, state.LTCHighPrice
+	default:
+		return state.LowPrice, state.HighPrice
+	}
+}
+
+func (state *ExchangeBotState) GetMutilchainPriceChange(chainType string) float64 {
+	switch chainType {
+	case TYPEBTC:
+		return state.BTCPriceChange
+	case TYPELTC:
+		return state.LTCPriceChange
+	default:
+		return state.DCRUSD24hChange
 	}
 }
 
@@ -986,8 +1011,8 @@ func (bot *ExchangeBot) cachedChartVersion(chartId string) int {
 	return cid
 }
 
-func (bot *ExchangeBot) processMutilchainState(states map[string]*ExchangeState, exchanges map[string]Exchange, volumeAveraged bool) (float64, float64, float64, float64) {
-	var priceAccumulator, volSum float64
+func (bot *ExchangeBot) processMutilchainState(states map[string]*ExchangeState, exchanges map[string]Exchange, volumeAveraged bool) (float64, float64, float64, float64, float64) {
+	var priceAccumulator, volSum, changeSum float64
 	var deletions []string
 	oldestValid := time.Now().Add(-bot.RequestExpiry)
 	lowPrice := math.MaxFloat64
@@ -1003,6 +1028,7 @@ func (bot *ExchangeBot) processMutilchainState(states map[string]*ExchangeState,
 		}
 		volSum += volume
 		priceAccumulator += volume * state.Price
+		changeSum += volume * state.Change
 		// compare with low price
 		if state.Low > 0 && state.Low < lowPrice {
 			lowPrice = state.Low
@@ -1016,9 +1042,9 @@ func (bot *ExchangeBot) processMutilchainState(states map[string]*ExchangeState,
 		delete(states, token)
 	}
 	if volSum == 0 {
-		return 0, 0, 0, 0
+		return 0, 0, 0, 0, 0
 	}
-	return priceAccumulator / volSum, volSum, lowPrice, highPrice
+	return priceAccumulator / volSum, changeSum / volSum, volSum, lowPrice, highPrice
 }
 
 // processState is a helper function to process a slice of ExchangeState into
@@ -1147,7 +1173,7 @@ func (bot *ExchangeBot) updateIndices(update *IndexUpdate) error {
 func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 	switch chainType {
 	case TYPELTC:
-		ltcPrice, ltcVolumn, ltcLow, ltcHigh := bot.processMutilchainState(bot.currentState.LtcUsd, bot.LTCExchanges, true)
+		ltcPrice, ltcChange, ltcVolumn, ltcLow, ltcHigh := bot.processMutilchainState(bot.currentState.LtcUsd, bot.LTCExchanges, true)
 		if ltcPrice == 0 {
 			bot.failed = true
 		} else {
@@ -1156,9 +1182,10 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 			bot.currentState.LTCVolume = ltcVolumn
 			bot.currentState.LTCLowPrice = ltcLow
 			bot.currentState.LTCHighPrice = ltcHigh
+			bot.currentState.LTCPriceChange = ltcChange
 		}
 	case TYPEBTC:
-		btcPrice, btcVolumn, btcLow, btcHigh := bot.processMutilchainState(bot.currentState.BtcUsd, bot.BTCExchanges, true)
+		btcPrice, btcChange, btcVolumn, btcLow, btcHigh := bot.processMutilchainState(bot.currentState.BtcUsd, bot.BTCExchanges, true)
 		if btcPrice == 0 {
 			bot.failed = true
 		} else {
@@ -1167,6 +1194,7 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 			bot.currentState.BTCVolume = btcVolumn
 			bot.currentState.BTCLowPrice = btcLow
 			bot.currentState.BTCHighPrice = btcHigh
+			bot.currentState.BTCPriceChange = btcChange
 		}
 	default:
 		dcrPrice, dcrChange, volume, lowPrice, highPrice := bot.processState(bot.currentState.DcrBtc, true)

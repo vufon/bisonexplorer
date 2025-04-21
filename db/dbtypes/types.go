@@ -2638,6 +2638,16 @@ type PoolDataItem struct {
 	PoolType    string `json:"poolType"`
 }
 
+type MultichainPoolDataItem struct {
+	BlockHeight   int64   `json:"blockheight"`
+	PoolName      string  `json:"poolName"`
+	PoolSlug      string  `json:"poolSlug"`
+	Link          string  `json:"link"`
+	Pool24hBlocks int     `json:"pool24hBlocks"`
+	Reward        float64 `json:"reward"`
+	Health        float64 `json:"health"`
+}
+
 type MarketCapData struct {
 	Symbol        string  `json:"symbol"`
 	SymbolDisplay string  `json:"symbolDisplay"`

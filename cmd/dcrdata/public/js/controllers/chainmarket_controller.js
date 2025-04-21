@@ -149,22 +149,31 @@ function getHue (token) {
 }
 
 const yAxisLabelWidth = {
-  depth: 40,
-  orders: 50,
-  candlestick: 40,
-  history: 40,
-  volume: 40
+  usdt: {
+    depth: 40,
+    orders: 50,
+    candlestick: 30,
+    history: 45,
+    volume: 40
+  },
+  btc: {
+    depth: 40,
+    orders: 40,
+    candlestick: 60,
+    history: 60,
+    volume: 40
+  }
 }
 
 function isMobile () {
   return window.innerWidth <= 768
 }
 
-function getAxisWidth (chart) {
-  if (!chart || chart === '' || !yAxisLabelWidth[chart]) {
+function getAxisWidth (pair, chart) {
+  if (!pair || pair === '' || !yAxisLabelWidth[pair] || !yAxisLabelWidth[pair][chart]) {
     return 50
   }
-  return yAxisLabelWidth[chart]
+  return yAxisLabelWidth[pair][chart]
 }
 
 function getYAxisLabel (label) {
@@ -597,7 +606,8 @@ export default class extends Controller {
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
       'aggStack', 'zoom', 'chainTypeSelected', 'exchangeBtnArea', 'pairSelect',
-      'pairSelectorArea', 'fiatLabel']
+      'pairSelectorArea', 'fiatLabel', 'lowPrice', 'highPrice', 'priceBar',
+      'priceBarMarker', 'priceBarLabel']
   }
 
   async connect () {
@@ -672,7 +682,7 @@ export default class extends Controller {
     if (settings.chart == null) {
       settings.chart = depth
     }
-    if (settings.pair == null) {
+    if (settings.pair == null || !settings.pair) {
       settings.pair = 'usdt'
     }
     this.pairSelectTarget.value = settings.pair
@@ -704,6 +714,10 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+    // TODO: handler all pages
+    if (this.isHomepage) {
+      this.updateMarketPriceBar()
+    }
   }
 
   async initMutilchainExchangeStates () {
@@ -753,6 +767,15 @@ export default class extends Controller {
     this.setExchangeName()
     orderZoom = undefined
     this.fetchChart()
+  }
+
+  updateMarketPriceBar () {
+    const currentPrice = Number(this.priceBarTarget.dataset.price)
+    const lowPrice = Number(this.priceBarTarget.dataset.low)
+    const highPrice = Number(this.priceBarTarget.dataset.high)
+    const percent = ((currentPrice - lowPrice) / (highPrice - lowPrice)) * 100
+    this.priceBarMarkerTarget.style.left = `${percent}%`
+    this.priceBarLabelTarget.style.left = `${percent}%`
   }
 
   updateOptions () {
@@ -1219,7 +1242,7 @@ export default class extends Controller {
       file: data,
       labels: ['time', 'open', 'close', 'high', 'low'],
       xlabel: 'Time',
-      ylabel: getYAxisLabel('Price (USD)'),
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       plotter: candlestickPlotter,
       axes: {
         x: {
@@ -1228,7 +1251,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1323,7 +1346,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: getYAxisLabel('Price (USD)'),
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1333,7 +1356,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 2
@@ -1353,7 +1376,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'price'],
       xlabel: 'Time',
-      ylabel: getYAxisLabel('Price (USD)'),
+      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1363,7 +1386,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 3
@@ -1390,7 +1413,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 3
@@ -1495,7 +1518,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       strokeWidth: 2
@@ -1526,7 +1549,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1570,7 +1593,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       }
     }
@@ -1592,7 +1615,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
         }
       },
       zoomCallback: this.zoomCallback,
@@ -2015,7 +2038,7 @@ export default class extends Controller {
       return
     }
     if (aggRow.price) {
-      aggRow.price.textContent = humanize.threeSigFigs(update.price / btcPrice)
+      aggRow.price.textContent = humanize.threeSigFigs(update.price)
     }
     if (aggRow.volume) {
       aggRow.volume.textContent = humanize.threeSigFigs(update.volume)

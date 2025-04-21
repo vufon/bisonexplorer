@@ -95,11 +95,11 @@
                            </div>
                         </div>
                         <div class="explore-card__values-content market-chart-content pb-2">
-                           <section class="ms-3">
+                           <section class="ms-0 ms-md-3">
                               {{- if $botState -}}
                               <div class="row border-1-grey chart-wrapper">
                                  <!-- market chart start -->
-                                 <div class="row w-100 align-items-top" data-controller="chainmarket">
+                                 <div class="row px-0 w-100 align-items-top" data-controller="chainmarket">
                                     {{- /* LEFT COLUMN */ -}}
                                     <div class="col-24 col-lg-auto p-0 d-none">
                                        {{- /* PRICE */ -}}
@@ -198,7 +198,7 @@
                                     </div>
                                     {{- /* RIGHT COLUMN */ -}}
                                     <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 p-0">
-                                       <div class="col me-2 flex-grow-1 d-flex flex-column bg-white position-relative">
+                                       <div class="col me-md-2 px-0 px-md-2 flex-grow-1 d-flex flex-column bg-white position-relative">
                                           <div class="loader-v2 loading" data-chainmarket-target="chartLoader"></div>
                                           {{- /* CHART ONTROLS */ -}}
                                           <div
@@ -323,7 +323,7 @@
                                              </div>
                                           </div>
                                           {{- /* CHART */ -}}
-                                          <div class="flex-grow-1 ps-3 mb-2 market-chart-box d-flex">
+                                          <div class="flex-grow-1 ps-0 ps-md-3 mb-2 market-chart-box d-flex">
                                              <div class="d-flex w-100 position-relative market-chart">
                                                 <div class="market-chart-title d-flex align-items-center">
                                                    <div data-chainmarket-target="xcLogo"></div>
@@ -391,7 +391,7 @@
                         <section>
                            <div class="row border-1-grey chart-wrapper">
                               <!-- market chart start -->
-                              <div class="row w-100 align-items-top">
+                              <div class="row w-100 align-items-top px-0">
                                  <div class="row flex-grow-0 flex-lg-grow-1 col-24 col-lg mx-0 p-0">
                                     <div class="col me-2 flex-grow-1 d-flex flex-column bg-white position-relative">
                                        <div
@@ -555,7 +555,7 @@
                                           </div>
                                        </div>
                                        {{- /* CHART */ -}}
-                                       <div class="ps-3 mb-2 market-chart-box" data-homecharts-target="chartWrapper">
+                                       <div class="ps-0 ps-md-3 mb-2 market-chart-box" data-homecharts-target="chartWrapper">
                                           <div class="d-flex w-100 position-relative">
                                              <div class="chart-name-label d-flex align-items-center">
                                                 <div class="homeicon-chartbar fs-20"></div>

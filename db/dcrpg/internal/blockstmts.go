@@ -35,7 +35,7 @@ const (
 		previous_hash TEXT,
 		chainwork TEXT,
 		winners TEXT[],
-		synced BOOLEAN DEFAULT false
+		synced BOOLEAN DEFAULT false,
 	);`
 
 	// Block inserts. is_valid refers to blocks that have been validated by

@@ -28,6 +28,26 @@ const hashrateUnits = ['Th/s', 'Ph/s', 'Eh/s']
 let premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, avgBlockTime
 let yFormatter, legendEntry, legendMarker, legendElement
+const yAxisLabelWidth = {
+  y1: {
+    'block-size': 45,
+    'blockchain-size': 50,
+    'tx-count': 45,
+    'tx-per-block': 50,
+    'address-number': 45,
+    'pow-difficulty': 40,
+    hashrate: 50,
+    'mined-blocks': 40,
+    'mempool-size': 40,
+    'mempool-txs': 50,
+    'coin-supply': 30,
+    fees: 50
+  }
+}
+
+function isMobile () {
+  return window.innerWidth <= 768
+}
 
 function usesWindowUnits (chart) {
   return windowScales.indexOf(chart) > -1
@@ -275,7 +295,7 @@ export default class extends Controller {
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
     avgBlockTime = parseInt(this.data.get('blockTime')) * 1000
     this.chainType = this.data.get('chainType')
-    const supplyPage = this.data.get('supplyPage')
+    this.supplyPage = this.data.get('supplyPage')
     globalChainType = this.chainType
     legendElement = this.labelsTarget
 
@@ -302,7 +322,7 @@ export default class extends Controller {
       this.query.update(this.settings)
     }
     this.settings.chart = this.settings.chart || 'block-size'
-    if (supplyPage === 'true') {
+    if (this.supplyPage === 'true') {
       this.settings.chart = 'coin-supply'
     }
     this.zoomCallback = this._zoomCallback.bind(this)
@@ -337,7 +357,7 @@ export default class extends Controller {
 
   drawInitialGraph () {
     const options = {
-      axes: { y: { axisLabelWidth: 70 }, y2: { axisLabelWidth: 65 } },
+      axes: { y: { axisLabelWidth: 50 }, y2: { axisLabelWidth: 55 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
       digitsAfterDecimal: 8,
       showRangeSelector: true,
@@ -362,10 +382,14 @@ export default class extends Controller {
       [[1, 1, 5], [2, 5, 11]],
       options
     )
-    this.chartSelectTarget.value = this.settings.chart
+    this.setSelectedChart(this.settings.chart)
 
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
+    // default on mobile is year, on other is all
+    if (humanize.isEmpty(this.settings.zoom) && isMobile() && this.supplyPage !== 'true') {
+      this.settings.zoom = 'year'
+    }
     if (this.settings.zoom) this.setZoom(this.settings.zoom)
     this.setBin(this.settings.bin ? this.settings.bin : 'day')
     this.setMode(this.settings.mode ? this.settings.mode : 'smooth')
@@ -409,7 +433,7 @@ export default class extends Controller {
       case 'tx-count': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Transactions'], false,
-          'Total Transactions', false, false))
+          'Total Transactions', true, false))
         break
       case 'tx-per-block': // tx per block graph
         d = zip2D(data, data.count)
@@ -424,7 +448,7 @@ export default class extends Controller {
       case 'mempool-txs': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mempool Transactions'], false,
-          'Mempool Transactions', false, false))
+          'Mempool Transactions', true, false))
         break
       case 'mempool-size': // blockchain size graph
         d = zip2D(data, data.size)
@@ -434,7 +458,7 @@ export default class extends Controller {
       case 'address-number': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Active Addresses'], false,
-          'Active Addresses', false, false))
+          'Active Addresses', true, false))
         break
       case 'pow-difficulty': // difficulty graph
         d = powDiffFunc(data)
@@ -499,7 +523,9 @@ export default class extends Controller {
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
         break
     }
-
+    gOptions.axes.y = {
+      axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 5
+    }
     const baseURL = `${this.query.url.protocol}//${this.query.url.host}`
     this.rawDataURLTarget.textContent = `${baseURL}/api/chainchart/${this.chainType}/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
 
@@ -510,20 +536,22 @@ export default class extends Controller {
   }
 
   async selectChart () {
-    const selection = this.settings.chart = this.chartSelectTarget.value
-    this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
+    const selectChart = this.getSelectedChart()
+    const selection = this.settings.chart = selectChart
+    this.chartNameTarget.textContent = this.getChartName(selectChart)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
-      this.scaleSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.scaleSelectorTargets)
+      this.showMultiTargets(this.vSelectorTargets)
     } else {
-      this.scaleSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.scaleSelectorTargets)
     }
     if (isModeEnabled(selection)) {
-      this.modeSelectorTarget.classList.remove('d-hide')
+      this.showMultiTargets(this.modeSelectorTargets)
     } else {
-      this.modeSelectorTarget.classList.add('d-hide')
+      this.hideMultiTargets(this.modeSelectorTargets)
     }
 
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
@@ -531,11 +559,17 @@ export default class extends Controller {
       let url = `/api/chainchart/${this.chainType}/` + selection
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         // this.binSelectorTarget.classList.add('d-hide')
+        this.hideMultiTargets(this.binSelectorTargets)
         this.settings.bin = 'window'
       } else {
         // this.binSelectorTarget.classList.remove('d-hide')
+        this.showMultiTargets(this.binSelectorTargets)
         this.settings.bin = this.selectedBin()
+        const _this = this
         this.binSizeTargets.forEach(el => {
+          if (_this.exitCond(el)) {
+            return
+          }
           if (el.dataset.option !== 'window') return
           if (usesHybridUnits(selection)) {
             el.classList.remove('d-hide')
@@ -648,6 +682,23 @@ export default class extends Controller {
   }
 
   _drawCallback (graph, first) {
+    // update position of y1, y2 label
+    if (isMobile()) {
+      // get axes
+      const axes = graph.getOption('axes')
+      if (axes) {
+        const y1label = this.chartsViewTarget.querySelector('.dygraph-label.dygraph-ylabel')
+        if (y1label) {
+          const yAxis = axes.y
+          if (yAxis) {
+            const yLabelWidth = yAxis.axisLabelWidth
+            if (yLabelWidth) {
+              y1label.style.top = (Number(yLabelWidth) + 5) + 'px'
+            }
+          }
+        }
+      }
+    }
     if (first) return
     const [start, end] = this.chartsView.xAxisRange()
     if (start === end) return
@@ -736,7 +787,11 @@ export default class extends Controller {
   }
 
   setActiveOptionBtn (opt, optTargets) {
+    const _this = this
     optTargets.forEach(li => {
+      if (_this.exitCond(li)) {
+        return
+      }
       if (li.dataset.option === opt) {
         li.classList.add('active')
       } else {
@@ -748,13 +803,88 @@ export default class extends Controller {
   selectedZoom () { return this.selectedOption(this.zoomOptionTargets) }
   selectedBin () { return this.selectedOption(this.binSizeTargets) }
   selectedScale () { return this.selectedOption(this.scaleTypeTargets) }
-  selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
+  selectedAxis () { return this.selectedNormalOption(this.axisOptionTargets) }
+
+  hideMultiTargets (opts) {
+    opts.forEach((opt) => {
+      opt.classList.add('d-hide')
+    })
+  }
+
+  showMultiTargets (opts) {
+    opts.forEach((opt) => {
+      if ((isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))) {
+        opt.classList.add('d-hide')
+      } else {
+        opt.classList.remove('d-hide')
+        opt.classList.remove('d-none')
+      }
+    })
+  }
 
   selectedOption (optTargets) {
+    let key = false
+    const _this = this
+    optTargets.forEach((el) => {
+      if (_this.exitCond(el)) return
+      if (el.classList.contains('active')) key = el.dataset.option
+    })
+    return key
+  }
+
+  selectedNormalOption (optTargets) {
     let key = false
     optTargets.forEach((el) => {
       if (el.classList.contains('active')) key = el.dataset.option
     })
     return key
+  }
+
+  exitCond (opt) {
+    return (isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))
+  }
+
+  getSelectedChart () {
+    let selected = 'block-size'
+    const _this = this
+    this.chartSelectTargets.forEach((chart) => {
+      if (_this.exitCond(chart)) {
+        return
+      }
+      selected = chart.value
+    })
+    return selected
+  }
+
+  setSelectedChart (select) {
+    const _this = this
+    this.chartSelectTargets.forEach((chart) => {
+      if (_this.exitCond(chart)) {
+        return
+      }
+      chart.value = select
+    })
+  }
+
+  getTargetsChecked (targets) {
+    const _this = this
+    let checked = false
+    targets.forEach((target) => {
+      if (_this.exitCond(target)) {
+        return
+      }
+      checked = target.checked
+    })
+    return checked
+  }
+
+  setTargetsChecked (targets, checked) {
+    const _this = this
+    targets.forEach((target) => {
+      if (_this.exitCond(target)) {
+        return
+      }
+      target.checked = checked
+    })
   }
 }

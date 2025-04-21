@@ -237,6 +237,75 @@
 	 </header>
 {{end}}
 
+{{define "new_chainhome_navbar"}}
+<body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} new-homepage-body" data-controller="scroll chainhome"
+	data-chainhome-chain-type="{{.ChainType}}"
+	{{if .Conversions}}
+   		data-chainhome-exchange-rate="{{.Conversions.ExchangeRate.Value}}"
+   {{end}}>
+	<header class="top-nav d-flex align-items-center" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
+		<div class="container d-flex align-items-center px-0 my-1">
+		   <div class="row w-100">
+				<div class="col-6 col-lg-7 d-flex ai-center">
+					<div id="topBarLeft" class="d-flex ai-center">
+						<a class="no-underline d-block home-link dcrdata-logo mt-2 mt-md-0" href="/"></a>
+						<select
+						   data-scroll-target="coinSelect"
+						   data-action="change->scroll#changeCoin"
+						   class="vodiapicker">
+						   <option name="dcr" value="dcr" class="test" data-thumbnail="/images/dcr-icon.png">Decred (DCR)</option>
+						   {{if eq .NetName "Mainnet"}}  
+						   <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">Bitcoin (BTC)</option>
+						   <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">Litecoin (LTC)</option>
+						   {{end}}
+						</select>
+						<div class="chain-select-area">
+						   <button class="chain-selected-btn" value="dcr">
+							  <li><img src="" alt=""><span></span></li>
+						   </button>
+						   <div id="chainSelectList" class="selection-area" style="display: none;">
+							  <ul id="selectUl" class="chain-select-list">
+								 <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred (DCR)</span></li>
+								 {{if eq .NetName "Mainnet"}}
+								 <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin (BTC)</span></li>
+								 <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin (LTC)</span></li>
+								 {{end}}
+							  </ul>
+						   </div>
+						</div>
+					 </div>
+				</div>
+				<div class="col-16 col-lg-10 justify-content-center d-flex ai-center">
+					<form
+					class="search-form"
+					role="search"
+					id="search-form"
+					action="/search"
+					data-controller="search"
+					data-action="submit->search#execute"
+					>
+					<input
+					   tabindex="0"
+					   type="text"
+					   name="search"
+					   id="search"
+					   class="top-search mousetrap"
+					   placeholder="Search for blocks, addresses, transactions or proposal tokens"
+					   spellcheck="false"
+					   autocomplete="off"
+					   />
+					<button class="search-bttn" type="submit"><span class="dcricon-search search-box-icon"></span></button>
+				 </form>
+				</div>
+				<div class="col-2 col-lg-7 d-flex justify-content-end ai-center ps-0 pe-2">
+					<span id="sun-icon" class="dcricon-sun-fill no-underline fs-22 cursor-pointer zoom-1-1" data-action="click->scroll#topSunClick"></span>
+				</div>
+		   </div>
+		</div>
+		<hr class="style-two m-0" id="menuDivider">
+	 </header>
+{{end}}
+
 {{define "navbar"}}
 <body class="pb-5 {{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} decred-sub-page {{if .IsHomepage}}homepage-body{{end}}" data-controller="scroll">
 	{{template "common_nav_bar" .}}
@@ -403,7 +472,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.898c3fb1143563f4.bundle.js"
+	src="/dist/js/app.0a74dd5a98925695.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

@@ -37,6 +37,37 @@ let ticketPoolSizeTarget, premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
 let yFormatter, legendEntry, legendMarker, legendElement
+const yAxisLabelWidth = {
+  y1: {
+    'ticket-price': 40,
+    'ticket-pool-size': 40,
+    'ticket-pool-value': 30,
+    'stake-participation': 30,
+    'privacy-participation': 40,
+    'missed-votes': 30,
+    'block-size': 45,
+    'blockchain-size': 50,
+    'tx-count': 45,
+    'duration-btw-blocks': 40,
+    'pow-difficulty': 40,
+    chainwork: 35,
+    hashrate: 50,
+    'coin-supply': 30,
+    fees: 50,
+    'tx-per-block': 50,
+    'address-number': 45,
+    'mined-blocks': 40,
+    'mempool-size': 40,
+    'mempool-txs': 50
+  },
+  y2: {
+    'ticket-price': 40
+  }
+}
+
+function isMobile () {
+  return window.innerWidth <= 768
+}
 
 function hashrateTimePlotter (e) {
   hashrateLegendPlotter(e, 1693612800000)
@@ -496,10 +527,11 @@ export default class extends Controller {
     this.limits = null
     this.lastZoom = null
     this.visibility = []
+    const _this = this
     this.setRange(this.settings.range ? this.settings.range : 'after')
     if (this.settings.visibility) {
       this.settings.visibility.split('-', -1).forEach(s => {
-        this.visibility.push(s === 'true')
+        _this.visibility.push(s === 'true')
       })
     }
     Dygraph = await getDefault(
@@ -559,7 +591,7 @@ export default class extends Controller {
 
   drawInitialGraph () {
     const options = {
-      axes: { y: { axisLabelWidth: 70 }, y2: { axisLabelWidth: 65 } },
+      axes: { y: { axisLabelWidth: 50 }, y2: { axisLabelWidth: 55 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
       digitsAfterDecimal: 8,
       showRangeSelector: true,
@@ -633,7 +665,8 @@ export default class extends Controller {
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, windowSize * 20 * 8],
-          axisLabelFormatter: (y) => Math.round(y)
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['ticket-price'] : yAxisLabelWidth.y2['ticket-price']
         }
         yFormatter = customYFormatter(y => y.toFixed(8) + ' DCR')
         break
@@ -792,7 +825,9 @@ export default class extends Controller {
         }
         break
     }
-
+    gOptions.axes.y = {
+      axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 10
+    }
     const baseURL = `${this.query.url.protocol}//${this.query.url.host}`
     this.rawDataURLTarget.textContent = this.chainType === 'dcr'
       ? `${baseURL}/api/chart/${chartName}?axis=${this.settings.axis}&bin=${this.settings.bin}`
@@ -838,6 +873,7 @@ export default class extends Controller {
     this.chainTypeSelectedTargets.forEach((cTypeTarget) => {
       cTypeTarget.classList.remove('active')
     })
+    const _this = this
     target.classList.add('active')
     let reinitChartType = false
     reinitChartType = this.chainType === 'dcr' || e.target.name === 'dcr'
@@ -876,7 +912,7 @@ export default class extends Controller {
       this.rangeSelectorTarget.classList.add('d-hide')
     }
     if (selectedType !== this.chainType || (selectedType === this.chainType && selectedChart !== this.settings.chart) ||
-    this.settings.bin !== this.selectedBin() || this.settings.axis !== this.selectedAxis()) {
+      this.settings.bin !== this.selectedBin() || this.settings.axis !== this.selectedAxis()) {
       let url = this.chainType === 'dcr' ? '/api/chart/' + this.settings.chart : `/api/chainchart/${this.chainType}/` + this.settings.chart
       if (usesWindowUnits(this.settings.chart) && !usesHybridUnits(this.settings.chart)) {
         this.binSelectorTarget.classList.add('d-hide')
@@ -887,13 +923,13 @@ export default class extends Controller {
           this.binSelectorTarget.classList.remove('d-hide')
           this.binButtons.forEach(btn => {
             if (btn.name !== 'window') return
-            if (usesHybridUnits(this.settings.chart)) {
+            if (usesHybridUnits(_this.settings.chart)) {
               btn.classList.remove('d-hide')
             } else {
               btn.classList.add('d-hide')
-              if (this.settings.bin === 'window') {
-                this.settings.bin = 'day'
-                this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+              if (_this.settings.bin === 'window') {
+                _this.settings.bin = 'day'
+                _this.setActiveToggleBtn(_this.settings.bin, _this.binButtons)
               }
             }
           })
@@ -921,8 +957,9 @@ export default class extends Controller {
   getSelectedChart () {
     let hasChart = false
     const chartOpts = this.chainType === 'dcr' ? decredChartOpts : mutilchainChartOpts
+    const _this = this
     chartOpts.forEach((opt) => {
-      if (this.settings.chart === opt) {
+      if (_this.settings.chart === opt) {
         hasChart = true
       }
     })
@@ -935,49 +972,49 @@ export default class extends Controller {
 
   getDecredChartOptsHtml () {
     return '<optgroup label="Staking">' +
-    '<option value="ticket-price">Ticket Price</option>' +
-    '<option value="ticket-pool-size">Ticket Pool Size</option>' +
-    '<option value="ticket-pool-value">Ticket Pool Value</option>' +
-    '<option value="stake-participation">Stake Participation</option>' +
-    '<option value="privacy-participation">Privacy Participation</option>' +
-    '<option value="missed-votes">Missed Votes</option>' +
-    '</optgroup>' +
-    '<optgroup label="Chain">' +
-    '<option value="block-size">Block Size</option>' +
-    '<option value="blockchain-size">Blockchain Size</option>' +
-    '<option value="tx-count">Transaction Count</option>' +
-    '<option value="duration-btw-blocks">Duration Between Blocks</option>' +
-    '</optgroup>' +
-    '<optgroup label="Mining">' +
-    '<option value="pow-difficulty">PoW Difficulty</option>' +
-    '<option value="chainwork">Total Work</option>' +
-    '<option value="hashrate">Hashrate</option>' +
-    '</optgroup>' +
-    '<optgroup label="Distribution">' +
-    '<option value="coin-supply">Coin Supply</option>' +
-    '<option value="fees">Fees</option>' +
-    '</optgroup>'
+      '<option value="ticket-price">Ticket Price</option>' +
+      '<option value="ticket-pool-size">Ticket Pool Size</option>' +
+      '<option value="ticket-pool-value">Ticket Pool Value</option>' +
+      '<option value="stake-participation">Stake Participation</option>' +
+      '<option value="privacy-participation">Privacy Participation</option>' +
+      '<option value="missed-votes">Missed Votes</option>' +
+      '</optgroup>' +
+      '<optgroup label="Chain">' +
+      '<option value="block-size">Block Size</option>' +
+      '<option value="blockchain-size">Blockchain Size</option>' +
+      '<option value="tx-count">Transaction Count</option>' +
+      '<option value="duration-btw-blocks">Duration Between Blocks</option>' +
+      '</optgroup>' +
+      '<optgroup label="Mining">' +
+      '<option value="pow-difficulty">PoW Difficulty</option>' +
+      '<option value="chainwork">Total Work</option>' +
+      '<option value="hashrate">Hashrate</option>' +
+      '</optgroup>' +
+      '<optgroup label="Distribution">' +
+      '<option value="coin-supply">Coin Supply</option>' +
+      '<option value="fees">Fees</option>' +
+      '</optgroup>'
   }
 
   getMutilchainChartOptsHtml () {
     return '<optgroup label="Chain">' +
-    '<option value="block-size">Block Size</option>' +
-    '<option value="blockchain-size">Blockchain Size</option>' +
-    '<option value="tx-count">Transaction Count</option>' +
-    '<option value="tx-per-block">TXs Per Blocks</option>' +
-    '<option value="address-number">Active Addresses</option>' +
-    '</optgroup>' +
-    '<optgroup label="Mining">' +
-    '<option value="pow-difficulty">Difficulty</option>' +
-    '<option value="hashrate">Hashrate</option>' +
-    '<option value="mined-blocks">Mined Blocks</option>' +
-    '<option value="mempool-size">Mempool Size</option>' +
-    '<option value="mempool-txs">Mempool TXs</option>' +
-    '</optgroup>' +
-    '<optgroup label="Distribution">' +
-    '<option value="coin-supply">Coin Supply</option>' +
-    '<option value="fees">Fees</option>' +
-    '</optgroup>'
+      '<option value="block-size">Block Size</option>' +
+      '<option value="blockchain-size">Blockchain Size</option>' +
+      '<option value="tx-count">Transaction Count</option>' +
+      '<option value="tx-per-block">TXs Per Blocks</option>' +
+      '<option value="address-number">Active Addresses</option>' +
+      '</optgroup>' +
+      '<optgroup label="Mining">' +
+      '<option value="pow-difficulty">Difficulty</option>' +
+      '<option value="hashrate">Hashrate</option>' +
+      '<option value="mined-blocks">Mined Blocks</option>' +
+      '<option value="mempool-size">Mempool Size</option>' +
+      '<option value="mempool-txs">Mempool TXs</option>' +
+      '</optgroup>' +
+      '<optgroup label="Distribution">' +
+      '<option value="coin-supply">Coin Supply</option>' +
+      '<option value="fees">Fees</option>' +
+      '</optgroup>'
   }
 
   async selectChart () {
@@ -1018,6 +1055,7 @@ export default class extends Controller {
         this.settings.bin = 'window'
       } else {
         this.settings.bin = this.selectedBin()
+        const _this = this
         if (this.chainType === 'dcr') {
           this.binSelectorTarget.classList.remove('d-hide')
           this.binButtons.forEach(btn => {
@@ -1026,9 +1064,9 @@ export default class extends Controller {
               btn.classList.remove('d-hide')
             } else {
               btn.classList.add('d-hide')
-              if (this.settings.bin === 'window') {
-                this.settings.bin = 'day'
-                this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+              if (_this.settings.bin === 'window') {
+                _this.settings.bin = 'day'
+                _this.setActiveToggleBtn(_this.settings.bin, _this.binButtons)
               }
             }
           })
@@ -1139,6 +1177,33 @@ export default class extends Controller {
   }
 
   _drawCallback (graph, first) {
+    // update position of y1, y2 label
+    if (isMobile()) {
+      // get axes
+      const axes = graph.getOption('axes')
+      if (axes) {
+        const y1label = this.chartsViewTarget.querySelector('.dygraph-label.dygraph-ylabel')
+        const y2label = this.chartsViewTarget.querySelector('.dygraph-label.dygraph-y2label')
+        if (y1label) {
+          const yAxis = axes.y
+          if (yAxis) {
+            const yLabelWidth = yAxis.axisLabelWidth
+            if (yLabelWidth) {
+              y1label.style.top = (Number(yLabelWidth) + 5) + 'px'
+            }
+          }
+        }
+        if (y2label) {
+          const y2Axis = axes.y2
+          if (y2Axis) {
+            const y2LabelWidth = y2Axis.axisLabelWidth
+            if (y2LabelWidth) {
+              y2label.style.top = (Number(y2LabelWidth) + 5) + 'px'
+            }
+          }
+        }
+      }
+    }
     if (first) return
     const [start, end] = this.chartsView.xAxisRange()
     if (start === end) return

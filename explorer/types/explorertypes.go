@@ -540,6 +540,7 @@ type BlockInfo struct {
 	StakeValidationHeight int64
 	Subsidy               *chainjson.GetBlockSubsidyResult
 	GroupSwaps            []*dbtypes.AtomicSwapFullData
+	PoolDataList          []*dbtypes.MultichainPoolDataItem // last 5 block pools
 }
 
 // Conversion is a representation of some amount of DCR in another index.
@@ -614,6 +615,9 @@ type HomeInfo struct {
 	BWLast30DaysVol       int64                       `json:"bwLast30DaysVol"`
 	TxFeeAvg              int64                       `json:"txFeeAvg"`
 	TicketsSummary        *dbtypes.TicketsSummaryInfo `json:"ticketsSummary"`
+	Nodes                 int64                       `json:"nodes"`
+	Volume24h             int64                       `json:"volume24h"`
+	TxFeeAvg24h           int64                       `json:"txFeeAvg24h"`
 }
 
 type MutilchainHomeInfo struct {
