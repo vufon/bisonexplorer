@@ -2038,7 +2038,7 @@ export default class extends Controller {
       return
     }
     if (aggRow.price) {
-      aggRow.price.textContent = humanize.threeSigFigs(update.price / btcPrice)
+      aggRow.price.textContent = humanize.threeSigFigs(update.price)
     }
     if (aggRow.volume) {
       aggRow.volume.textContent = humanize.threeSigFigs(update.volume)

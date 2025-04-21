@@ -54,7 +54,7 @@ export default class extends Controller {
       'diffChange', 'prevRetarget', 'blockTimeAvg', 'homeContent', 'homeThumbs',
       'totalFeesExchange', 'totalSentExchange', 'convertedTxFeesAvg', 'powRewardConverted',
       'nextRewardConverted', 'minedBlock', 'numTx24h', 'sent24h', 'fees24h', 'numVout24h',
-      'feeAvg24h', 'blockReward', 'nextBlockReward']
+      'feeAvg24h', 'blockReward', 'nextBlockReward', 'exchangeRateBottom']
   }
 
   async connect () {
@@ -221,7 +221,8 @@ export default class extends Controller {
       return
     }
     this.exchangeRate = xc.price
-    this.exchangeRateTarget.textContent = humanize.twoDecimals(xc.price)
+    this.exchangeRateTarget.innerHTML = humanize.decimalParts(xc.price, true, 2, 2)
+    this.exchangeRateBottomTarget.innerHTML = humanize.decimalParts(xc.price, true, 2, 2)
   }
 
   disconnect () {
