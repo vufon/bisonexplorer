@@ -734,9 +734,17 @@ export default class extends Controller {
     if (humanize.isEmpty(settings.xcs)) {
       settings.xcs = settings.xc
     }
+    if (settings.chart === candlestick) {
+      if (settings.xc === 'aggregated') {
+        settings.xc = this.getFirstExchangeButton(false)
+      }
+      settings.xcs = settings.xc
+    }
     this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
+    this.setActiveOptionBtn(settings.chart, this.chartTypeTargets)
+    this.setActiveOptionBtn(settings.dchart, this.depthChartTypeTargets)
     this.resize = this._resize.bind(this)
     window.addEventListener('resize', this.resize)
     this.tabVis = this._tabVis.bind(this)
@@ -854,15 +862,37 @@ export default class extends Controller {
     this.fetchDepthChart()
   }
 
-  setChart (e) {
+  async setChart (e) {
     const chart = e.target.dataset.option
+    if (chart === settings.chart) {
+      return
+    }
+    const oldChart = settings.chart
     settings.chart = chart
+    let reload = false
+    if (settings.chart === candlestick) {
+      if (settings.xc === 'aggregated') {
+        settings.xc = this.getFirstExchangeButton(false)
+      }
+      settings.xcs = settings.xc
+      reload = true
+      this.aggOptionTarget.classList.add('d-none')
+    } else if (oldChart === candlestick) {
+      this.aggOptionTarget.classList.remove('d-none')
+    }
     this.setActiveOptionBtn(chart, this.chartTypeTargets)
-    this.fetchChart()
+    this.setButtons()
+    await this.fetchChart()
+    if (reload) {
+      await this.fetchDepthChart()
+    }
   }
 
   setDepthChart (e) {
     const chart = e.target.dataset.option
+    if (chart === settings.dchart) {
+      return
+    }
     settings.dchart = chart
     this.setActiveOptionBtn(chart, this.depthChartTypeTargets)
     this.fetchDepthChart()
@@ -1769,6 +1799,9 @@ export default class extends Controller {
       settings.xcs = token
     }
     settings.xc = token
+    if (settings.chart === candlestick) {
+      settings.xcs = token
+    }
     if (settings.xc === 'aggregated') {
       const xcsList = []
       const isBTCPair = settings.pair === 'btc'
