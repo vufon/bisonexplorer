@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -1657,6 +1658,96 @@ func (bot *ExchangeBot) aggOrderbookHandler(isDcrUsdtPair bool) *aggregateOrderb
 		},
 		Expiration: oldestUpdate + int64(bot.RequestExpiry.Seconds()),
 	}
+}
+
+func (bot *ExchangeBot) aggOrderbookSubMarketHandler(tokenStr string) *aggregateOrderbook {
+	state := bot.State()
+	if state == nil {
+		return nil
+	}
+	bids := make(map[int64]agBookPt)
+	asks := make(map[int64]agBookPt)
+
+	oldestUpdate := time.Now().Unix()
+	var newestTime int64
+	tokenInputs := strings.Split(tokenStr, ",")
+	// First, grab the tokens for exchanges with depth data so that they can be
+	// counted and sorted alphabetically.
+	tokens := []string{}
+	for token, xcState := range state.DcrBtc {
+		if !xcState.HasDepth() || !slices.Contains(tokenInputs, token) {
+			continue
+		}
+		tokens = append(tokens, token)
+	}
+	numXc := len(tokens)
+	updateTimes := make([]int64, 0, numXc)
+	sort.Strings(tokens)
+	for i, token := range tokens {
+		xcState := state.DcrBtc[token]
+		depth := xcState.Depth
+		if depth.Time < oldestUpdate {
+			oldestUpdate = depth.Time
+		}
+		if depth.Time > newestTime {
+			newestTime = depth.Time
+		}
+		updateTimes = append(updateTimes, depth.Time)
+		mapifyDepthPoints(depth.Bids, bids, i, numXc)
+		mapifyDepthPoints(depth.Asks, asks, i, numXc)
+	}
+	return &aggregateOrderbook{
+		Tokens:      tokens,
+		BtcIndex:    bot.BtcIndex,
+		Price:       state.Price,
+		UpdateTimes: updateTimes,
+		Data: aggregateData{
+			Time: newestTime,
+			Bids: unmapAgOrders(bids, true),
+			Asks: unmapAgOrders(asks, false),
+		},
+		Expiration: oldestUpdate + int64(bot.RequestExpiry.Seconds()),
+	}
+}
+
+func (bot *ExchangeBot) QuickSubMarketDepth(tokens string) (chart []byte, err error) {
+	chartID := genCacheID(tokens, orderbookKey)
+	data, bestVersion, isGood := bot.fetchFromCache(chartID)
+	if isGood {
+		return data, nil
+	}
+
+	if tokens == aggregatedOrderbookKey {
+		agDepth := bot.aggOrderbookHandler(true)
+		if agDepth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(agDepth)
+	} else if tokens == aggregatedBTCOrderbookKey {
+		agDepth := bot.aggOrderbookHandler(false)
+		if agDepth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(agDepth)
+	} else {
+		listDepth := bot.aggOrderbookSubMarketHandler(tokens)
+		if listDepth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(listDepth)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("JSON encode error for %s depth chart", tokens)
+	}
+
+	vChart := &versionedChart{
+		chartID: chartID,
+		dataID:  bestVersion,
+		chart:   chart,
+	}
+
+	bot.versionedCharts[chartID] = vChart
+	return vChart.chart, nil
 }
 
 // QuickDepth returns the up-to-date depth chart data for the specified

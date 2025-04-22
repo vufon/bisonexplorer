@@ -34,7 +34,7 @@
           <table class="w-100 mx-0">
              <tbody>
                 <tr>
-                   <td class="py-2 fs-16 fw-bold">Price</td>
+                   <td class="py-2 fs-16 fw-bold text-start">Price</td>
                    <td class="ps-2 py-2 text-end">
                       <p class="fs-16">
                          $<span data-submarket-target="price">{{printf "%.2f" $botState.Price}}</span>
@@ -75,7 +75,7 @@
                    </td>
                 </tr>
                 <tr>
-                   <td class="py-2 fs-16 fw-bold">Market Cap</td>
+                   <td class="py-2 fs-16 fw-bold text-start">Market Cap</td>
                    <td class="ps-2 py-2 text-end">
                       <p class="fs-16">
                          <span data-submarket-target="marketCap">
@@ -87,7 +87,7 @@
                    </td>
                 </tr>
                 <tr>
-                   <td class="py-2 fs-16 fw-bold">Volume (24h)</td>
+                   <td class="py-2 fs-16 fw-bold text-start">Volume (24h)</td>
                    <td class="ps-2 py-2 text-end">
                       <p class="fs-16">
                          <span data-submarket-target="dcrVol">{{threeSigFigs $botState.Volume}}</span>
@@ -98,7 +98,7 @@
                    </td>
                 </tr>
                 <tr>
-                   <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
+                   <td class="py-2 fs-16 fw-bold text-start">Vol/Mkt Cap (24h)</td>
                    <td class="ps-2 py-2 text-end">
                       <p><span class="fs-16" data-coinall="{{$.CoinValueSupply}}"
                             data-submarket-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
@@ -185,7 +185,7 @@
         <div class="col ms-4 ms-lg-3 me-2 me-lg-3 mb-4 mt-1 flex-grow-1 d-flex flex-column bg-white px-2 py-2 pt-3 position-relative">
         <div class="loader-v2 loading" data-submarket-target="chartLoader"></div>
             {{- /* CHART ONTROLS */ -}}
-            <div class="d-flex flex-shrink-1 align-items-top flex-wrap mx-1 mx-lg-4 mb-2">
+            <div class="d-flex flex-shrink-1 align-items-top flex-wrap mx-1 mx-lg-4 mb-2 border-2-bottom-grey">
                 {{- /* PAIR SELECTION */ -}}
                 <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 my-2">
                     <label>Pair</label>
@@ -247,7 +247,7 @@
               <div class="d-flex w-100 position-relative market-chart">
                 <div class="w-100">
                     <div class="w-100 position-relative">
-                        <div class="market-chart-title">
+                        <div class="submarket-chart-title">
                             <ul class="nav nav-pills">
                                 <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-submarket-target="chartType"
                                    data-action="click->submarket#setChart" data-option="history">
@@ -262,27 +262,35 @@
                                    Volume
                                 </li>
                              </ul>
-                             <div
-                    class="btn-set bg-white d-inline-flex flex-nowrap m-0 btn-set-inchart"
-                    data-submarket-target="bin"
-                    data-action="click->submarket#changeBin"
-                >
-                  <div class="btn-group">
-                    <button name="5m" class="tab-button d-hide submarket-page-toggle-btn c-txt-main">5m</button>
-                    <button name="30m" class="tab-button d-hide submarket-page-toggle-btn c-txt-main">30m</button>
-                    <button name="1h" class="tab-button submarket-page-toggle-btn c-txt-main">Hour</button>
-                    <button name="4h" class="tab-button submarket-page-toggle-btn c-txt-main">4 Hours</button>
-                    <button name="1d" class="tab-button active submarket-page-toggle-btn c-txt-main">Day</button>
-                    <button name="1w" class="tab-button submarket-page-toggle-btn c-txt-main">Week</button>
-                    <button name="1mo" class="tab-button submarket-page-toggle-btn c-txt-main">Month</button>
-                 </div>
-                </div>
+                             <div class="nav nav-pills ms-3" data-submarket-target="bin" data-action="click->submarket#changeBin">
+                                <button class="nav-item nav-link mobile-nav-link active mobile-mode" name="5m">
+                                   5m
+                                </button>
+                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="30m">
+                                   30m
+                                </button>
+                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1h">
+                                   Hour
+                                </button>
+                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="4h">
+                                    4 Hours
+                                 </button>
+                                 <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1d">
+                                    Day
+                                 </button>
+                                 <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1w">
+                                    Week
+                                 </button>
+                                 <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1mo">
+                                    Month
+                                 </button>
+                             </div>
                         </div>
                         <div class="market-chart-legend" data-submarket-target="legend"></div>
-                        <div class="w-100 market-subchart" data-submarket-target="chart"></div>
+                        <div class="w-100 market-subchart mt-2" data-submarket-target="chart"></div>
                     </div>
                     <div class="w-100 position-relative">
-                        <div class="market-chart-title">
+                        <div class="submarket-chart-title">
                             <ul class="nav nav-pills">
                                 <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-submarket-target="depthChartType"
                                    data-action="click->submarket#setDepthChart" data-option="depth">
@@ -293,19 +301,24 @@
                                    Order Book
                                 </li>
                              </ul>
-                             <div
-                             class="btn-set bg-white d-inline-flex flex-nowrap m-0 btn-set-inchart"
-                             data-submarket-target="zoom"
-                             data-action="click->submarket#setZoom"
-                         >
-                           <button class="btn-selected" name="10">10%</button>
-                           <button name="20">20%</button>
-                           <button name="40">40%</button>
-                           <button name="95">95%</button>
-                         </div>
+                             <div class="nav nav-pills ms-3" data-submarket-target="zoom"
+                                data-action="click->submarket#setZoom">
+                                <button class="nav-item nav-link mobile-nav-link active mobile-mode" name="10">
+                                    10%
+                                </button>
+                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="20">
+                                    20%
+                                </button>
+                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="40">
+                                    40%
+                                </button>
+                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="95">
+                                    95%
+                                </button>
+                             </div>
                         </div>
                         <div class="market-chart-legend" data-submarket-target="depthLegend"></div>
-                        <div class="w-100 market-subchart" data-submarket-target="depthchart"></div>
+                        <div class="w-100 market-subchart mt-2" data-submarket-target="depthchart"></div>
                     </div>
                 </div>
               </div>

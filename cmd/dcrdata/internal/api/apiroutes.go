@@ -3653,6 +3653,27 @@ func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Requ
 }
 
 // route: /market/{token}/depth
+func (c *appContext) getDepthSubMarketChart(w http.ResponseWriter, r *http.Request) {
+	if c.xcBot == nil {
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	token := m.RetrieveExchangeTokenCtx(r)
+	if token == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	chart, err := c.xcBot.QuickSubMarketDepth(token)
+	if err != nil {
+		apiLog.Infof("QuickDepth error: %v", err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	writeJSONBytes(w, chart)
+}
+
+// route: /market/{token}/depth
 func (c *appContext) getDepthChart(w http.ResponseWriter, r *http.Request) {
 	if c.xcBot == nil {
 		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)

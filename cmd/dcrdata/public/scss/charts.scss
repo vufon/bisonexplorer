@@ -671,6 +671,11 @@ body.darkBG .customcheck input:checked ~ .total-mixed {
   border: 1px solid #7774;
 }
 
+.submarket-chart-title {
+  display: flex;
+  padding-left: 35px;
+}
+
 .proposal-chart-legend {
   display: none;
   position: absolute;
