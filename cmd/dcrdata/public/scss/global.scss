@@ -2714,3 +2714,16 @@ body.darkBG {
   width: 10px;
   height: 10px;
 }
+
+.market-subchart {
+  min-height: 500px;
+}
+
+.btn-set-inchart {
+  border-top: none !important;
+  padding-top: 0 !important;
+
+  button {
+    border: 1px solid #eaeaea;
+  }
+}

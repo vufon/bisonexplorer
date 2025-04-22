@@ -131,11 +131,19 @@ function usesCandlesticks (chart) {
 }
 
 let requestCounter = 0
+let depthRequestCounter = 0
 let responseCache = {}
+const depthResponseCache = {}
 
 function hasCache (k) {
   if (!responseCache[k]) return false
   const expiration = new Date(responseCache[k].expiration)
+  return expiration > new Date()
+}
+
+function hasDepthCache (k) {
+  if (!depthResponseCache[k]) return false
+  const expiration = new Date(depthResponseCache[k].expiration)
   return expiration > new Date()
 }
 
@@ -195,6 +203,26 @@ function getHue (token) {
 Object.keys(exchangeHues).forEach(generateHue)
 
 const commonChartOpts = {
+  gridLineColor: gridColor,
+  axisLineColor: 'transparent',
+  underlayCallback: (ctx, area, dygraph) => {
+    ctx.lineWidth = 1
+    ctx.strokeStyle = gridColor
+    ctx.strokeRect(area.x, area.y, area.w, area.h)
+  },
+  // these should be set to avoid Dygraph strangeness
+  labels: [' ', ' '], // To avoid an annoying console message,
+  xlabel: ' ',
+  ylabel: ' ',
+  pointSize: 6,
+  showRangeSelector: true,
+  rangeSelectorPlotFillColor: '#b5d2ed',
+  foregroundStrokeColor: '#1e5180',
+  rangeSelectorAlpha: 0.4,
+  rangeSelectorHeight: 40
+}
+
+const commonDepthChartOpts = {
   gridLineColor: gridColor,
   axisLineColor: 'transparent',
   underlayCallback: (ctx, area, dygraph) => {
@@ -597,7 +625,7 @@ function depthPlotter (e) {
   if (e.seriesIndex === e.allSeriesPoints.length - 1) depthLegendPlotter(e)
 }
 
-let stickZoom, orderZoom
+let stickZoom, orderZoom, depthOrderZoom
 let samePair
 function calcStickWindow (start, end, bin) {
   const halfBin = minuteMap[bin] / 2
@@ -611,46 +639,27 @@ function calcStickWindow (start, end, bin) {
 
 export default class extends Controller {
   static get targets () {
-    return ['chartSelect', 'exchanges', 'bin', 'chart', 'legend', 'conversion',
+    return ['exchanges', 'bin', 'chart', 'legend', 'conversion',
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
       'aggStack', 'zoom', 'pairSelect', 'exchangeBtnArea', 'fiatLabel',
       'usdChange', 'btcPrice', 'btcChange', 'dcrVol', 'usdVol',
       'volCapRate', 'lowPrice', 'highPrice', 'priceBar', 'priceBarMarker',
-      'priceBarLabel']
+      'priceBarLabel', 'depthchart', 'depthLegend', 'chartType', 'depthChartType',
+      'marketCap']
   }
 
   async connect () {
-    this.isHomepage = !window.location.href.includes('/market')
     this.query = new TurboQuery()
-    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs', 'pair'])
+    // chart: history chart
+    // dchart: depth chart
+    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs', 'pair', 'dchart'])
     this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
     this.dcrBtcPrice = this.data.get('dcrbtcprice')
     this.dcrBtcVolume = this.data.get('dcrbtcvolume')
     this.dcrUsdtPrice = this.data.get('price')
     this.dcrUsdtVolume = this.data.get('volume')
-    const _this = this
-    if (!this.isHomepage) {
-      this.query.update(settings)
-    } else {
-      settings.chart = 'history'
-      let hasBinance = false
-      this.exchangesButtons.forEach(button => {
-        if (button.name === 'binance') {
-          hasBinance = true
-          settings.xc = button.name
-          settings.xcs = button.name
-          // in mobile view mode, default bin is 1d
-          settings.bin = isMobile() ? '1d' : '1mo'
-        }
-      })
-      if (!hasBinance) {
-        const defaultOption = _this.exchangesButtons[0]
-        settings.xc = defaultOption.name
-        settings.xcs = defaultOption.name
-        settings.bin = '1d'
-      }
-    }
+    this.query.update(settings)
     this.processors = {
       orders: this.processOrders,
       candlestick: this.processCandlesticks,
@@ -661,6 +670,7 @@ export default class extends Controller {
       xcvolume: this.processXcsVolume
     }
     commonChartOpts.labelsDiv = this.legendTarget
+    commonDepthChartOpts.labelsDiv = this.depthLegendTarget
     this.converted = false
     btcPrice = parseFloat(this.conversionTarget.dataset.factor)
     fiatCode = this.conversionTarget.dataset.code
@@ -681,15 +691,32 @@ export default class extends Controller {
       if (option.dataset.depth) availableDepths.push(option.name)
     }
     availableDepths.push('btc_aggregated')
-    this.chartOptions = []
-    const opts = this.chartSelectTarget.options
-    for (let i = 0; i < opts.length; i++) {
-      this.chartOptions.push(opts[i])
+    if (humanize.isEmpty(settings.chart)) {
+      settings.chart = history
+    }
+    if (humanize.isEmpty(settings.xcs)) {
+      let hasBinance = false
+      this.exchangesButtons.forEach(button => {
+        if (button.name === 'binance') {
+          hasBinance = true
+          settings.xc = button.name
+          settings.xcs = button.name
+          // in mobile view mode, default bin is 1d
+          settings.bin = isMobile() ? '1d' : '1mo'
+        }
+      })
+      if (!hasBinance) {
+        const defaultOption = this.exchangesButtons[0]
+        settings.xc = defaultOption.name
+        settings.xcs = defaultOption.name
+        settings.bin = '1d'
+      }
     }
 
-    if (settings.chart == null) {
-      settings.chart = depth
+    if (humanize.isEmpty(settings.dchart)) {
+      settings.dchart = depth
     }
+
     if (settings.pair == null || !settings.pair) {
       settings.pair = 'usdt'
     }
@@ -723,12 +750,9 @@ export default class extends Controller {
     this.processXcUpdate = this._processXcUpdate.bind(this)
     globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
     if (darkEnabled()) chartStroke = darkStroke
-    this.setNameDisplay()
     this.fetchInitialData()
-    // TODO: handler all pages
-    if (this.isHomepage) {
-      this.updateMarketPriceBar()
-    }
+    this.fetchDepthInitialData()
+    this.updateMarketPriceBar()
   }
 
   updateMarketPriceBar () {
@@ -779,20 +803,73 @@ export default class extends Controller {
       orderPtSize = screenIsBig() ? 7 : 4
       this.graph.resize()
     }
-    this.setNameDisplay()
-  }
-
-  setNameDisplay () {
-    if (screenIsBig()) {
-      this.xcNameTarget.classList.remove('d-hide')
-    } else {
-      this.xcNameTarget.classList.add('d-hide')
-    }
   }
 
   _tabVis () {
     focused = !document[hidden]
     if (focused && refreshAvailable) this.refreshChart()
+  }
+
+  async fetchDepthInitialData () {
+    Dygraph = await getDefault(
+      import(/* webpackChunkName: "dygraphs" */ '../vendor/dygraphs.min.js')
+    )
+    const dummyGraph = new Dygraph(document.createElement('div'), [[0, 1]], { labels: ['', ''] })
+
+    // A little hack to start with the default interaction model. Updating the
+    // interactionModel with updateOptions later does not appear to work.
+    const model = dummyGraph.getOption('interactionModel')
+    model.mousedown = (event, g, context) => {
+      // End panning even if the mouseup event is not on the chart.
+      const mouseup = () => {
+        context.isPanning = false
+        document.removeEventListener('mouseup', mouseup)
+      }
+      document.addEventListener('mouseup', mouseup)
+      context.initializeMouseDown(event, g, context)
+      Dygraph.startPan(event, g, context)
+    }
+    model.mouseup = (event, g, context) => {
+      if (!context.isPanning) return
+      Dygraph.endPan(event, g, context)
+      context.isPanning = false // I think Dygraph is supposed to set this, but they don't.
+      const zoomCallback = g.getOption('zoomCallback')
+      if (zoomCallback) {
+        const range = g.xAxisRange()
+        zoomCallback(range[0], range[1], g.yAxisRanges())
+      }
+    }
+    model.mousemove = (event, g, context) => {
+      if (!context.isPanning) return
+      Dygraph.movePan(event, g, context)
+    }
+    model.touchstart = (event, g, context) => {
+      console.log('TODO: touch start')
+    }
+    model.touchmove = (event, g, context) => {
+      console.log('TODO: touch move')
+    }
+    model.touchend = (event, g, context) => {
+      console.log('TODO: touch end')
+    }
+    commonDepthChartOpts.interactionModel = model
+
+    this.depthGraph = new Dygraph(this.depthchartTarget, [[0, 0], [0, 1]], commonDepthChartOpts)
+    this.fetchDepthChart()
+  }
+
+  setChart (e) {
+    const chart = e.target.dataset.option
+    settings.chart = chart
+    this.setActiveOptionBtn(chart, this.chartTypeTargets)
+    this.fetchChart()
+  }
+
+  setDepthChart (e) {
+    const chart = e.target.dataset.option
+    settings.dchart = chart
+    this.setActiveOptionBtn(chart, this.depthChartTypeTargets)
+    this.fetchDepthChart()
   }
 
   async fetchInitialData () {
@@ -841,6 +918,60 @@ export default class extends Controller {
 
     this.graph = new Dygraph(this.chartTarget, [[0, 0], [0, 1]], commonChartOpts)
     this.fetchChart()
+  }
+
+  async fetchDepthChart (isRefresh) {
+    let url = null
+    depthRequestCounter++
+    const thisRequest = depthRequestCounter
+    let xc = settings.xc
+    if (xc === 'aggregated' && settings.pair === 'btc') {
+      xc = 'btc_' + xc
+    }
+    const chart = settings.dchart
+    const oldZoom = this.depthGraph.xAxisRange()
+    if (!validDepthExchange(xc)) {
+      console.warn('invalid depth exchange:', xc)
+      return
+    }
+    url = `/api/chart/market/${xc}/depth`
+    if (!url) {
+      console.warn('invalid chart:', chart)
+      return
+    }
+
+    this.chartLoaderTarget.classList.add('loading')
+    let response
+    if (hasDepthCache(url)) {
+      response = depthResponseCache[url]
+    } else {
+      // response = await axios.get(url)
+      response = await requestJSON(url)
+      depthResponseCache[url] = response
+      if (thisRequest !== depthRequestCounter) {
+        // new request was issued while waiting.
+        this.chartLoaderTarget.classList.remove('loading')
+        return
+      }
+    }
+    // Fiat conversion only available for order books for now.
+    this.ageSpanTarget.dataset.age = response.data.time
+    this.ageSpanTarget.textContent = humanize.timeSince(response.data.time)
+    this.ageTarget.classList.remove('d-hide')
+    // clear canvas before update
+    const canvas = this.depthchartTarget.querySelector('canvas')
+    if (canvas) {
+      const context = canvas.getContext('2d')
+      context.clearRect(0, 0, canvas.width, canvas.height)
+    }
+    this.depthGraph.updateOptions(chartResetOpts, true)
+    this.depthGraph.updateOptions(this.processors[chart](response))
+    this.query.replace(settings)
+    if (isRefresh) this.depthGraph.updateOptions({ dateWindow: oldZoom })
+    else this.resetDepthZoom()
+    this.chartLoaderTarget.classList.remove('loading')
+    // this.lastUrl = url
+    // refreshAvailable = false
   }
 
   async fetchChart (isRefresh) {
@@ -1409,7 +1540,6 @@ export default class extends Controller {
   }
 
   setButtons () {
-    this.chartSelectTarget.value = settings.chart
     let lastExchangeBtn = this.exchangesButtons[0]
     let lastExchangeIndex = 0
     this.exchangesButtons.forEach(exchangeBtn => {
@@ -1423,13 +1553,9 @@ export default class extends Controller {
     this.setActiveExchanges(xsList)
     if (usesOrderbook(settings.chart)) {
       this.binTarget.classList.add('d-hide')
-      this.zoomTarget.classList.remove('d-hide')
-      this.aggOptionTarget.classList.remove('d-hide')
       lastExchangeBtn.classList.remove('last-toggle-btn')
     } else {
       this.binTarget.classList.remove('d-hide')
-      this.zoomTarget.classList.add('d-hide')
-      this.aggOptionTarget.classList.add('d-hide')
       lastExchangeBtn.classList.add('last-toggle-btn')
       let bins
       if (settings.chart === 'history' || settings.chart === 'volume') {
@@ -1458,7 +1584,6 @@ export default class extends Controller {
       settings.stack = null
     }
     this.handlerRadiusForBtnGroup(this.exchangesButtons)
-    this.handlerRadiusForBtnGroup(this.binButtons)
   }
 
   getHistoryChartAvailableBins () {
@@ -1566,10 +1691,11 @@ export default class extends Controller {
         }
       } else {
         this.fiatLabelTarget.textContent = 'DCR/USDT'
-        if (useBTCPair(button.name)) {
-          button.classList.add('d-hide')
-        } else if (useUSDPair(button.name)) {
+        console.log('check name: ', button.name, ', ', useBTCPair())
+        if (useUSDPair(button.name)) {
           button.classList.remove('d-hide')
+        } else {
+          button.classList.add('d-hide')
         }
       }
     })
@@ -1594,6 +1720,16 @@ export default class extends Controller {
         }
       }
     }
+  }
+
+  setActiveOptionBtn (opt, optTargets) {
+    optTargets.forEach(li => {
+      if (li.dataset.option === opt) {
+        li.classList.add('active')
+      } else {
+        li.classList.remove('active')
+      }
+    })
   }
 
   getFirstExchangeButton (isBTCPair) {
@@ -1684,6 +1820,14 @@ export default class extends Controller {
     }
   }
 
+  resetDepthZoom () {
+    if (depthOrderZoom && samePair) this.graph.updateOptions({ dateWindow: depthOrderZoom })
+    else {
+      this.setDepthZoomPct(defaultZoomPct)
+      samePair = true
+    }
+  }
+
   refreshChart () {
     refreshAvailable = true
     if (!focused) {
@@ -1711,7 +1855,6 @@ export default class extends Controller {
 
   setExchangeName () {
     if (settings.chart === 'history' || settings.chart === 'volume') {
-      this.xcLogoTarget.classList.add('d-hide')
       this.actionsTarget.classList.add('d-hide')
       // exchange name
       const exchanges = []
@@ -1721,14 +1864,8 @@ export default class extends Controller {
           exchanges.push(ex.charAt(0).toUpperCase() + ex.slice(1))
         })
       }
-      this.xcNameTarget.textContent = exchanges.join(',')
-      this.xcNameTarget.classList.add('fs-17')
     } else {
-      this.xcNameTarget.classList.remove('fs-17')
-      this.xcLogoTarget.classList.remove('d-hide')
-      this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
       const prettyName = printName(settings.xc)
-      this.xcNameTarget.textContent = prettyName
       const href = exchangeLinks[settings.xc]
       if (href) {
         this.linkTarget.href = href
@@ -1807,11 +1944,11 @@ export default class extends Controller {
 
   setZoom (e) {
     const btn = e.target || e.srcElement
-    if (btn.nodeName !== 'BUTTON' || !this.graph) return
-    this.setZoomPct(parseInt(btn.name))
-    const stats = this.graph.getOption('stats')
+    if (btn.nodeName !== 'BUTTON' || !this.depthGraph) return
+    this.setDepthZoomPct(parseInt(btn.name))
+    const stats = this.depthGraph.getOption('stats')
     const spread = stats.midGap * parseFloat(btn.name) / 100
-    this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
+    this.depthGraph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
   }
 
   setZoomPct (pct) {
@@ -1830,6 +1967,22 @@ export default class extends Controller {
     this.graph.updateOptions({ dateWindow: orderZoom })
   }
 
+  setDepthZoomPct (pct) {
+    this.zoomButtons.forEach(b => {
+      if (parseInt(b.name) === pct) b.classList.add('btn-selected')
+      else b.classList.remove('btn-selected')
+    })
+    const stats = this.depthGraph.getOption('stats')
+    const spread = stats.midGap * pct / 100
+    let low = stats.midGap - spread
+    let high = stats.midGap + spread
+    const [min, max] = this.depthGraph.xAxisExtremes()
+    if (low < min) low = min
+    if (high > max) high = max
+    depthOrderZoom = [low, high]
+    this.depthGraph.updateOptions({ dateWindow: depthOrderZoom })
+  }
+
   _depthZoomCallback (start, end) {
     orderZoom = [start, end]
     this.zoomButtons.forEach(b => b.classList.remove('btn-selected'))
@@ -1841,13 +1994,7 @@ export default class extends Controller {
     if (cType && cType !== 'dcr') {
       return
     }
-    if (update.fiat) { // btc-fiat exchange update
-      this.xcIndexTargets.forEach(span => {
-        if (span.dataset.token === xc.token) {
-          span.textContent = humanize.commaWithDecimal(xc.price, 2)
-        }
-      })
-    } else { // dcr-btc exchange update
+    if (!update.fiat) { // dcr-btc exchange update
       const row = this.getExchangeRow(xc.token)
       row.volume.textContent = humanize.threeSigFigs(xc.volume)
       row.price.textContent = humanize.threeSigFigs(xc.price)
@@ -1859,6 +2006,8 @@ export default class extends Controller {
       } else {
         row.arrow.className = 'dcricon-arrow-down text-danger'
       }
+    } else {
+      return
     }
     // Update the big displayed value and the aggregated row
     // const fmtPrice = settings.pair === 'btc' ? update.dcr_btc_price.toFixed(6) : update.price.toFixed(2)

@@ -4387,14 +4387,30 @@ func (exp *ExplorerUI) StatsPage(w http.ResponseWriter, r *http.Request) {
 func (exp *ExplorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
 	xcState := exp.getExchangeState()
 	xcState.VolumnOrdered = xcState.VolumeOrderedExchanges()
+	var conversions *homeConversions
+	xcBot := exp.xcBot
+	var coinValueSupply float64
+	exp.pageData.RLock()
+	homeInfo := exp.pageData.HomeInfo
+	coinValueSupply = homeInfo.CoinValueSupply
+	if xcBot != nil {
+		conversions = &homeConversions{
+			CoinSupply: xcBot.Conversion(dcrutil.Amount(homeInfo.CoinSupply).ToCoin()),
+		}
+	}
+	exp.pageData.RUnlock()
 	str, err := exp.templates.exec("market", struct {
 		*CommonPageData
-		DepthMarkets []string
-		StickMarkets map[string]string
-		XcState      *exchanges.ExchangeBotState
+		DepthMarkets    []string
+		StickMarkets    map[string]string
+		XcState         *exchanges.ExchangeBotState
+		Conversions     *homeConversions
+		CoinValueSupply float64
 	}{
-		CommonPageData: exp.commonData(r),
-		XcState:        xcState,
+		CommonPageData:  exp.commonData(r),
+		XcState:         xcState,
+		Conversions:     conversions,
+		CoinValueSupply: coinValueSupply,
 	})
 
 	if err != nil {
