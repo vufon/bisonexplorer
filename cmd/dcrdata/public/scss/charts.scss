@@ -655,9 +655,9 @@ body.darkBG .customcheck input:checked ~ .total-mixed {
 
 .market-chart-legend {
   position: absolute;
-  top: 5px;
+  top: 32px;
   font-size: 14px;
-  right: 10px;
+  left: 40px;
   padding: 0.2em 1em;
 }
 
@@ -672,7 +672,6 @@ body.darkBG .customcheck input:checked ~ .total-mixed {
 }
 
 .submarket-chart-title {
-  display: flex;
   padding-left: 35px;
 }
 
@@ -733,5 +732,13 @@ body.darkBG {
   .market-mobile-set {
     border-top: none;
     padding-top: 0;
+  }
+
+  .submarket-chart-title {
+    padding-left: 5px;
+  }
+
+  .market-chart-legend {
+    top: 60px;
   }
 }

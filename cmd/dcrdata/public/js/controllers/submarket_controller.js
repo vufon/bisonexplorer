@@ -694,6 +694,7 @@ export default class extends Controller {
     if (humanize.isEmpty(settings.chart)) {
       settings.chart = history
     }
+
     if (settings.xc == null) {
       settings.xc = aggregatedKey
     }
@@ -1447,7 +1448,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.dchart)
         }
       }
     }
@@ -1491,7 +1492,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.dchart)
         }
       }
     }
@@ -1513,7 +1514,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.pair, settings.dchart)
         }
       },
       zoomCallback: this.depthZoomSubmarketCallback,
@@ -1647,6 +1648,33 @@ export default class extends Controller {
     this.fetchDepthChart()
   }
 
+  resetWithNewPair () {
+    settings.xc = aggregatedKey
+    if (settings.xc === aggregatedKey) {
+      const xcsList = []
+      const isBTCPair = settings.pair === 'btc'
+      this.exchangesButtons.forEach(exchangeBtn => {
+        if (exchangeBtn.name !== 'aggregated' && ((isBTCPair && useBTCPair(exchangeBtn.name)) || (!isBTCPair && useUSDPair(exchangeBtn.name)))) {
+          if (exchangeBtn.name === 'aggregated' && settings.pair === 'btc') {
+            exchangeBtn.name = 'btc_' + exchangeBtn.name
+          }
+          xcsList.push(exchangeBtn.name)
+        }
+      })
+      settings.xcs = xcsList.join(',')
+    }
+    settings.bin = anHour
+    if (humanize.isEmpty(settings.xcs)) {
+      settings.xcs = settings.xc
+    }
+    if (settings.chart === candlestick) {
+      if (settings.xc === 'aggregated') {
+        settings.xc = this.getFirstExchangeButton(settings.pair === 'btc')
+      }
+      settings.xcs = settings.xc
+    }
+  }
+
   reorderExchanges () {
     const isBTCPair = settings.pair === 'btc'
     const activeExchange = this.getSelectedExchanges()
@@ -1684,19 +1712,17 @@ export default class extends Controller {
   async changePair (e) {
     const target = e.target || e.srcElement
     settings.pair = target.value
+    this.resetWithNewPair()
     this.setAggRowData(settings.pair === 'btc')
     this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
     await this.fetchChart()
-    samePair = false
-    if (usesOrderbook(settings.chart)) {
-      samePair = true
-      this.setZoomPct(defaultZoomPct)
-      const stats = this.graph.getOption('stats')
-      const spread = stats.midGap * defaultZoomPct / 100
-      this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
-    }
+    await this.fetchDepthChart()
+    this.setDepthZoomPct(defaultZoomPct)
+    const stats = this.depthGraph.getOption('stats')
+    const spread = stats.midGap * defaultZoomPct / 100
+    this.depthGraph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
   }
 
   handlerExchangesDisplay () {

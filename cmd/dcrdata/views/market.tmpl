@@ -26,9 +26,9 @@
      </nav>
 </div>
     {{- /* LEFT COLUMN */ -}}
-    <div class="col-24 col-lg-auto m-3 market-common-card">
+    <div class="col-24 col-md-10 col-lg-8 col-xl-7 col-xxl-5 p-0">
         {{- /* PRICE */ -}}
-        <div class="ms-2 ms-sm-4 me-2 my-4 p-2 p-lg-4 market-common-card bg-white text-center">
+        <div class="ms-2 ms-sm-4 me-2 mb-3 mt-2 p-2 p-lg-4 market-common-card bg-white text-center">
             <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
                 class="me-2">Market Information</div>
           <table class="w-100 mx-0">
@@ -181,13 +181,13 @@
     </div>
 
     {{- /* RIGHT COLUMN */ -}}
-    <div class="ms-2 row flex-grow-0 m-3 col-24 col-lg mx-0 flex-lg-grow-1 market-common-card">
-        <div class="col ms-4 ms-lg-3 me-2 me-lg-3 mb-4 mt-1 flex-grow-1 d-flex flex-column bg-white px-2 py-2 pt-3 position-relative">
+    <div class="row flex-grow-0 col-24 col-md-14 col-lg-16 col-xl-17 col-xxl-19 px-2 flex-lg-grow-1">
+        <div class="col mb-4 mt-2 market-common-card flex-grow-1 d-flex flex-column bg-white px-3 py-2 pt-3 position-relative">
         <div class="loader-v2 loading" data-submarket-target="chartLoader"></div>
             {{- /* CHART ONTROLS */ -}}
-            <div class="d-flex flex-shrink-1 align-items-top flex-wrap mx-1 mx-lg-4 mb-2 border-2-bottom-grey">
+            <div class="d-flex flex-shrink-1 align-items-top flex-wrap mx-1 mx-lg-4 mb-3 border-2-bottom-grey">
                 {{- /* PAIR SELECTION */ -}}
-                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 my-2">
+                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 my-3">
                     <label>Pair</label>
                     <select
                         class="chart-box d-inline-flex"
@@ -199,16 +199,16 @@
                     </select>
                 </div>
                 {{- /* EXCHANGE SELECTION */ -}}
-                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 my-2" data-submarket-target="exchanges"
+                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 my-3" data-submarket-target="exchanges"
                 data-action="click->submarket#changeExchange">
                     <label>Exchange</label>
                     <div class="btn-group" data-submarket-target="exchangeBtnArea">
                         {{range $index, $exchange := $botState.VolumnOrdered}}
                         <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
-                           class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
+                           class="tab-button exchange-tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
                         {{end}}
                         <button name="aggregated" data-submarket-target="aggOption" data-depth="1"
-                           class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
+                           class="tab-button exchange-tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
                      </div>
                 </div>
                 {{- /* DISPLAY CURRENCY */ -}}
@@ -247,7 +247,7 @@
               <div class="d-flex w-100 position-relative market-chart">
                 <div class="w-100">
                     <div class="w-100 position-relative">
-                        <div class="submarket-chart-title">
+                        <div class="submarket-chart-title d-block d-md-flex">
                             <ul class="nav nav-pills">
                                 <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-submarket-target="chartType"
                                    data-action="click->submarket#setChart" data-option="history">
@@ -262,7 +262,7 @@
                                    Volume
                                 </li>
                              </ul>
-                             <div class="nav nav-pills ms-3" data-submarket-target="bin" data-action="click->submarket#changeBin">
+                             <div class="nav nav-pills ms-0 ms-md-3 mt-2 mt-md-0" data-submarket-target="bin" data-action="click->submarket#changeBin">
                                 <button class="nav-item nav-link mobile-nav-link active mobile-mode" name="5m">
                                    5m
                                 </button>
@@ -289,8 +289,8 @@
                         <div class="market-chart-legend" data-submarket-target="legend"></div>
                         <div class="w-100 market-subchart mt-2" data-submarket-target="chart"></div>
                     </div>
-                    <div class="w-100 position-relative">
-                        <div class="submarket-chart-title">
+                    <div class="w-100 position-relative mt-3">
+                        <div class="submarket-chart-title d-block d-md-flex">
                             <ul class="nav nav-pills">
                                 <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-submarket-target="depthChartType"
                                    data-action="click->submarket#setDepthChart" data-option="depth">
@@ -301,20 +301,23 @@
                                    Order Book
                                 </li>
                              </ul>
-                             <div class="nav nav-pills ms-3" data-submarket-target="zoom"
-                                data-action="click->submarket#setZoom">
-                                <button class="nav-item nav-link mobile-nav-link active mobile-mode" name="10">
-                                    10%
-                                </button>
-                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="20">
-                                    20%
-                                </button>
-                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="40">
-                                    40%
-                                </button>
-                                <button class="nav-item nav-link mobile-nav-link mobile-mode" name="95">
-                                    95%
-                                </button>
+                             <div class="ms-0 ms-md-3 d-flex ai-center">
+                                <p class="fs-13 fw-bold">Zoom +/-</p>
+                                <div class="nav nav-pills ms-2 mt-2 mt-md-0" data-submarket-target="zoom"
+                                   data-action="click->submarket#setZoom">
+                                   <button class="nav-item nav-link mobile-nav-link active mobile-mode" name="10">
+                                       10%
+                                   </button>
+                                   <button class="nav-item nav-link mobile-nav-link mobile-mode" name="20">
+                                       20%
+                                   </button>
+                                   <button class="nav-item nav-link mobile-nav-link mobile-mode" name="40">
+                                       40%
+                                   </button>
+                                   <button class="nav-item nav-link mobile-nav-link mobile-mode" name="95">
+                                       95%
+                                   </button>
+                                </div>
                              </div>
                         </div>
                         <div class="market-chart-legend" data-submarket-target="depthLegend"></div>
