@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -140,7 +141,8 @@ type ExchangeBotState struct {
 	BtcUsd            map[string]*ExchangeState `json:"btc_usd_exchanges"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
-	FiatIndices map[string]*ExchangeState `json:"btc_indices"`
+	FiatIndices   map[string]*ExchangeState `json:"btc_indices"`
+	VolumnOrdered []*TokenedExchange
 }
 
 type ExchangeBotStateContent struct {
@@ -216,6 +218,9 @@ func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 		if xcList[i].Token == "binance" {
 			return true
 		}
+		if xcList[j].Token == "binance" {
+			return false
+		}
 		return xcList[i].State.Volume > xcList[j].State.Volume
 	})
 	return xcList
@@ -234,6 +239,9 @@ func (state *ExchangeBotState) MutilchainVolumeOrderedExchanges(chainType string
 	sort.Slice(xcList, func(i, j int) bool {
 		if xcList[i].Token == "binance" {
 			return true
+		}
+		if xcList[j].Token == "binance" {
+			return false
 		}
 		return xcList[i].State.Volume > xcList[j].State.Volume
 	})
@@ -1548,6 +1556,57 @@ func unmapAgOrders(book map[int64]agBookPt, reverse bool) []agBookPt {
 	return orderedBook
 }
 
+func (bot *ExchangeBot) aggMutilchainOrderbookSubMarketHandler(chainType string, tokenStr string) *aggregateOrderbook {
+	state := bot.State()
+	if state == nil {
+		return nil
+	}
+	bids := make(map[int64]agBookPt)
+	asks := make(map[int64]agBookPt)
+
+	oldestUpdate := time.Now().Unix()
+	var newestTime int64
+	currentState := state.GetMutilchainExchangeState(chainType)
+	// First, grab the tokens for exchanges with depth data so that they can be
+	// counted and sorted alphabetically.
+	tokenInputs := strings.Split(tokenStr, ",")
+	tokens := []string{}
+	for token, xcState := range currentState {
+		if !xcState.HasDepth() || !slices.Contains(tokenInputs, token) {
+			continue
+		}
+		tokens = append(tokens, token)
+	}
+	numXc := len(tokens)
+	updateTimes := make([]int64, 0, numXc)
+	sort.Strings(tokens)
+	for i, token := range tokens {
+		xcState := currentState[token]
+		depth := xcState.Depth
+		if depth.Time < oldestUpdate {
+			oldestUpdate = depth.Time
+		}
+		if depth.Time > newestTime {
+			newestTime = depth.Time
+		}
+		updateTimes = append(updateTimes, depth.Time)
+		mapifyDepthPoints(depth.Bids, bids, i, numXc)
+		mapifyDepthPoints(depth.Asks, asks, i, numXc)
+	}
+	return &aggregateOrderbook{
+		Tokens:      tokens,
+		BtcIndex:    bot.BtcIndex,
+		Price:       state.GetMutilchainPrice(chainType),
+		UpdateTimes: updateTimes,
+		Data: aggregateData{
+			Time: newestTime,
+			Bids: unmapAgOrders(bids, true),
+			Asks: unmapAgOrders(asks, false),
+		},
+		Expiration: oldestUpdate + int64(bot.RequestExpiry.Seconds()),
+	}
+}
+
 func (bot *ExchangeBot) aggMutilchainOrderbook(chainType string) *aggregateOrderbook {
 	state := bot.State()
 	if state == nil {
@@ -1652,6 +1711,96 @@ func (bot *ExchangeBot) aggOrderbookHandler(isDcrUsdtPair bool) *aggregateOrderb
 	}
 }
 
+func (bot *ExchangeBot) aggOrderbookSubMarketHandler(tokenStr string) *aggregateOrderbook {
+	state := bot.State()
+	if state == nil {
+		return nil
+	}
+	bids := make(map[int64]agBookPt)
+	asks := make(map[int64]agBookPt)
+
+	oldestUpdate := time.Now().Unix()
+	var newestTime int64
+	tokenInputs := strings.Split(tokenStr, ",")
+	// First, grab the tokens for exchanges with depth data so that they can be
+	// counted and sorted alphabetically.
+	tokens := []string{}
+	for token, xcState := range state.DcrBtc {
+		if !xcState.HasDepth() || !slices.Contains(tokenInputs, token) {
+			continue
+		}
+		tokens = append(tokens, token)
+	}
+	numXc := len(tokens)
+	updateTimes := make([]int64, 0, numXc)
+	sort.Strings(tokens)
+	for i, token := range tokens {
+		xcState := state.DcrBtc[token]
+		depth := xcState.Depth
+		if depth.Time < oldestUpdate {
+			oldestUpdate = depth.Time
+		}
+		if depth.Time > newestTime {
+			newestTime = depth.Time
+		}
+		updateTimes = append(updateTimes, depth.Time)
+		mapifyDepthPoints(depth.Bids, bids, i, numXc)
+		mapifyDepthPoints(depth.Asks, asks, i, numXc)
+	}
+	return &aggregateOrderbook{
+		Tokens:      tokens,
+		BtcIndex:    bot.BtcIndex,
+		Price:       state.Price,
+		UpdateTimes: updateTimes,
+		Data: aggregateData{
+			Time: newestTime,
+			Bids: unmapAgOrders(bids, true),
+			Asks: unmapAgOrders(asks, false),
+		},
+		Expiration: oldestUpdate + int64(bot.RequestExpiry.Seconds()),
+	}
+}
+
+func (bot *ExchangeBot) QuickSubMarketDepth(tokens string) (chart []byte, err error) {
+	chartID := genCacheID(tokens, orderbookKey)
+	data, bestVersion, isGood := bot.fetchFromCache(chartID)
+	if isGood {
+		return data, nil
+	}
+
+	if tokens == aggregatedOrderbookKey {
+		agDepth := bot.aggOrderbookHandler(true)
+		if agDepth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(agDepth)
+	} else if tokens == aggregatedBTCOrderbookKey {
+		agDepth := bot.aggOrderbookHandler(false)
+		if agDepth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(agDepth)
+	} else {
+		listDepth := bot.aggOrderbookSubMarketHandler(tokens)
+		if listDepth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(listDepth)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("JSON encode error for %s depth chart", tokens)
+	}
+
+	vChart := &versionedChart{
+		chartID: chartID,
+		dataID:  bestVersion,
+		chart:   chart,
+	}
+
+	bot.versionedCharts[chartID] = vChart
+	return vChart.chart, nil
+}
+
 // QuickDepth returns the up-to-date depth chart data for the specified
 // exchange, pulling from the cache if appropriate.
 func (bot *ExchangeBot) QuickDepth(token string) (chart []byte, err error) {
@@ -1737,6 +1886,57 @@ func (bot *ExchangeBot) MutilchainQuickDepth(token string, chainType string) (ch
 	}
 	if err != nil {
 		return nil, fmt.Errorf("JSON encode error for %s depth chart", token)
+	}
+
+	vChart := &versionedChart{
+		chartID: chartID,
+		dataID:  bestVersion,
+		chart:   chart,
+	}
+
+	bot.versionedCharts[chartID] = vChart
+	return vChart.chart, nil
+}
+
+func (bot *ExchangeBot) MutilchainQuickSubMarketDepth(tokens string, chainType string) (chart []byte, err error) {
+	chartID := genMutilchainCacheID(chainType, tokens, orderbookKey)
+	data, bestVersion, isGood := bot.fetchFromCache(chartID)
+	if isGood {
+		return data, nil
+	}
+
+	if tokens == aggregatedOrderbookKey {
+		agDepth := bot.aggMutilchainOrderbook(chainType)
+		if agDepth == nil {
+			return nil, fmt.Errorf("failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(agDepth)
+	} else if strings.Contains(tokens, ",") {
+		agDepth := bot.aggMutilchainOrderbookSubMarketHandler(chainType, tokens)
+		if agDepth == nil {
+			return nil, fmt.Errorf("failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(agDepth)
+	} else {
+		bot.mtx.Lock()
+		defer bot.mtx.Unlock()
+		currentChainState := bot.currentState.GetMutilchainExchangeState(chainType)
+		xcState, found := currentChainState[tokens]
+		if !found {
+			return nil, fmt.Errorf("Failed to find DCR exchange state for %s", tokens)
+		}
+		if xcState.Depth == nil {
+			return nil, fmt.Errorf("Failed to find depth for %s", tokens)
+		}
+		chart, err = bot.encodeJSON(&depthResponse{
+			BtcIndex:   bot.BtcIndex,
+			Price:      bot.currentState.GetMutilchainPrice(chainType),
+			Data:       xcState.Depth,
+			Expiration: xcState.Depth.Time + int64(bot.RequestExpiry.Seconds()),
+		})
+	}
+	if err != nil {
+		return nil, fmt.Errorf("JSON encode error for %s depth chart", tokens)
 	}
 
 	vChart := &versionedChart{

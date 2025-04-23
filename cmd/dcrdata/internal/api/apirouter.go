@@ -256,6 +256,10 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 			rd.With(m.StickWidthContext).Get("/candlestick/{bin}", app.getCandlestickChart)
 			rd.Get("/depth", app.getDepthChart)
 		})
+		r.Route("/submarket/{token}", func(rd chi.Router) {
+			rd.Use(m.ExchangeTokenContext)
+			rd.Get("/depth", app.getDepthSubMarketChart)
+		})
 		r.With(m.ChartTypeCtx).Get("/{charttype}", app.ChartTypeData)
 	})
 
@@ -264,6 +268,10 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 			rd.Use(m.ExchangeTokenContext)
 			rd.With(m.StickWidthContext).Get("/candlestick/{bin}", app.getMutilchainCandlestickChart)
 			rd.Get("/depth", app.getMutilchainDepthChart)
+		})
+		r.Route("/{chaintype}/submarket/{token}", func(rd chi.Router) {
+			rd.Use(m.ExchangeTokenContext)
+			rd.Get("/depth", app.getMutilchainDepthSubmarketChart)
 		})
 		r.Get("/exchanges", app.getExchangeData)
 		r.With(m.ChartTypeCtx).Get("/{chaintype}/{charttype}", app.MutilchainChartTypeData)

@@ -1,10 +1,10 @@
 import { Controller } from '@hotwired/stimulus'
-import TurboQuery from '../helpers/turbolinks_helper'
-import { getDefault } from '../helpers/module_helper'
-import { requestJSON } from '../helpers/http'
-import humanize from '../helpers/humanize_helper'
-import { darkEnabled } from '../services/theme_service'
-import globalEventBus from '../services/event_bus_service'
+import TurboQuery from '../helpers/turbolinks_helper.js'
+import { getDefault } from '../helpers/module_helper.js'
+import { requestJSON } from '../helpers/http.js'
+import humanize from '../helpers/humanize_helper.js'
+import { darkEnabled } from '../services/theme_service.js'
+import globalEventBus from '../services/event_bus_service.js'
 
 let Dygraph
 const SELL = 1
@@ -16,6 +16,7 @@ const history = 'history'
 const volume = 'volume'
 const aggregatedKey = 'aggregated'
 const anHour = '1h'
+let globalChainType = ''
 const minuteMap = {
   '5m': 5,
   '30m': 30,
@@ -30,59 +31,6 @@ const prettyDurations = {
   '1h': 'hour',
   '1d': 'day',
   '1mo': 'month'
-}
-const exchangeLinks = {
-  binance: 'https://www.binance.com/en/trade/DCR_USDT',
-  btc_binance: 'https://www.binance.com/en/trade/DCR_BTC',
-  bittrex: 'https://bittrex.com/Market/Index?MarketName=BTC-DCR',
-  poloniex: 'https://poloniex.com/exchange#btc_dcr',
-  dragonex: 'https://dragonex.io/en-us/trade/index/dcr_btc',
-  huobi: 'https://www.hbg.com/en-us/exchange/?s=dcr_btc',
-  dcrdex: 'https://dex.decred.org',
-  coinex: 'https://www.coinex.com/en/exchange/DCR-USDT',
-  btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc'
-}
-
-const btcPairUses = ['btc_binance', 'btc_coinex', 'dcrdex', 'aggregated']
-
-const yAxisLabelWidth = {
-  usdt: {
-    depth: 40,
-    orders: 50,
-    candlestick: 30,
-    history: 30,
-    volume: 40
-  },
-  btc: {
-    depth: 40,
-    orders: 40,
-    candlestick: 60,
-    history: 60,
-    volume: 40
-  }
-}
-
-function isMobile () {
-  return window.innerWidth <= 768
-}
-
-function useBTCPair (exchange) {
-  return btcPairUses.indexOf(exchange) > -1
-}
-
-function useUSDPair (exchange) {
-  return btcPairUses.indexOf(exchange) < 0 || exchange === 'aggregated'
-}
-
-function getAxisWidth (pair, chart) {
-  if (!pair || pair === '' || !yAxisLabelWidth[pair] || !yAxisLabelWidth[pair][chart]) {
-    return 50
-  }
-  return yAxisLabelWidth[pair][chart]
-}
-
-function getYAxisLabel (label) {
-  return isMobile() ? '' : label
 }
 
 const printNames = {
@@ -131,11 +79,19 @@ function usesCandlesticks (chart) {
 }
 
 let requestCounter = 0
+let depthRequestCounter = 0
 let responseCache = {}
+const depthResponseCache = {}
 
 function hasCache (k) {
   if (!responseCache[k]) return false
   const expiration = new Date(responseCache[k].expiration)
+  return expiration > new Date()
+}
+
+function hasDepthCache (k) {
+  if (!depthResponseCache[k]) return false
+  const expiration = new Date(depthResponseCache[k].expiration)
   return expiration > new Date()
 }
 
@@ -169,6 +125,7 @@ const exchangeHues = {
 }
 
 const hsl = (h) => `hsl(${(h + hslOffset) % 360},${hslS},${hslL})`
+
 // Generates colors on the hue sequence 0, 1/2, 1/4, 3/4, 1/8, 3/8, 5/8, 7/8, 1/16, ...
 function generateHue () {
   if (colorNumerator >= colorDenominator) {
@@ -191,10 +148,53 @@ function getHue (token) {
   return exchangeHues[token]
 }
 
+const yAxisLabelWidth = {
+  depth: 40,
+  orders: 50,
+  candlestick: 30,
+  history: 45,
+  volume: 40
+}
+
+function isMobile () {
+  return window.innerWidth <= 768
+}
+
+function getAxisWidth (chart) {
+  if (!yAxisLabelWidth[chart]) {
+    return 50
+  }
+  return yAxisLabelWidth[chart]
+}
+
+function getYAxisLabel (label) {
+  return isMobile() ? '' : label
+}
+
 // Generate the constant hues so dynamically assigned hues won't use them.
 Object.keys(exchangeHues).forEach(generateHue)
 
 const commonChartOpts = {
+  gridLineColor: gridColor,
+  axisLineColor: 'transparent',
+  underlayCallback: (ctx, area, dygraph) => {
+    ctx.lineWidth = 1
+    ctx.strokeStyle = gridColor
+    ctx.strokeRect(area.x, area.y, area.w, area.h)
+  },
+  // these should be set to avoid Dygraph strangeness
+  labels: [' ', ' '], // To avoid an annoying console message,
+  xlabel: ' ',
+  ylabel: ' ',
+  pointSize: 6,
+  showRangeSelector: true,
+  rangeSelectorPlotFillColor: '#b5d2ed',
+  foregroundStrokeColor: '#1e5180',
+  rangeSelectorAlpha: 0.4,
+  rangeSelectorHeight: 40
+}
+
+const commonDepthChartOpts = {
   gridLineColor: gridColor,
   axisLineColor: 'transparent',
   underlayCallback: (ctx, area, dygraph) => {
@@ -508,7 +508,7 @@ function depthLegendPlotter (e) {
   const midGapPrice = humanize.threeSigFigs(stats.midGap)
   const deltaPctTxt = `${greekCapDelta} : ${humanize.threeSigFigs(stats.gap / stats.midGap * 100)}%`
   const fiatGapTxt = `${humanize.threeSigFigs(stats.gap * btcPrice)} ${fiatCode}`
-  const btcGapTxt = `${humanize.threeSigFigs(stats.gap)} BTC`
+  const btcGapTxt = `${humanize.threeSigFigs(stats.gap)} USD`
   let boxW = 0
   const txts = [fiatGapTxt, btcGapTxt, deltaPctTxt, midGapPrice]
   txts.forEach(txt => {
@@ -597,8 +597,7 @@ function depthPlotter (e) {
   if (e.seriesIndex === e.allSeriesPoints.length - 1) depthLegendPlotter(e)
 }
 
-let stickZoom, orderZoom
-let samePair
+let stickZoom, orderZoom, depthOrderZoom
 function calcStickWindow (start, end, bin) {
   const halfBin = minuteMap[bin] / 2
   start = new Date(start.getTime())
@@ -609,48 +608,34 @@ function calcStickWindow (start, end, bin) {
   ]
 }
 
+let exchangeStateMap
+
 export default class extends Controller {
   static get targets () {
-    return ['chartSelect', 'exchanges', 'bin', 'chart', 'legend', 'conversion',
+    return ['exchanges', 'bin', 'chart', 'legend', 'conversion',
       'xcName', 'xcLogo', 'actions', 'sticksOnly', 'depthOnly', 'chartLoader',
       'xcRow', 'xcIndex', 'price', 'age', 'ageSpan', 'link', 'aggOption',
-      'aggStack', 'zoom', 'pairSelect', 'exchangeBtnArea', 'fiatLabel',
-      'usdChange', 'btcPrice', 'btcChange', 'dcrVol', 'usdVol',
-      'volCapRate', 'lowPrice', 'highPrice', 'priceBar', 'priceBarMarker',
-      'priceBarLabel']
+      'aggStack', 'zoom', 'chainTypeSelected', 'exchangeBtnArea', 'fiatLabel', 'lowPrice', 'highPrice', 'priceBar',
+      'priceBarMarker', 'priceBarLabel', 'depthchart', 'depthLegend', 'chartType', 'depthChartType',
+      'marketCap']
   }
 
   async connect () {
     this.isHomepage = !window.location.href.includes('/market')
-    this.query = new TurboQuery()
-    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs', 'pair'])
-    this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
-    this.dcrBtcPrice = this.data.get('dcrbtcprice')
-    this.dcrBtcVolume = this.data.get('dcrbtcvolume')
-    this.dcrUsdtPrice = this.data.get('price')
-    this.dcrUsdtVolume = this.data.get('volume')
-    const _this = this
-    if (!this.isHomepage) {
-      this.query.update(settings)
-    } else {
-      settings.chart = 'history'
-      let hasBinance = false
-      this.exchangesButtons.forEach(button => {
-        if (button.name === 'binance') {
-          hasBinance = true
-          settings.xc = button.name
-          settings.xcs = button.name
-          // in mobile view mode, default bin is 1d
-          settings.bin = isMobile() ? '1d' : '1mo'
-        }
-      })
-      if (!hasBinance) {
-        const defaultOption = _this.exchangesButtons[0]
-        settings.xc = defaultOption.name
-        settings.xcs = defaultOption.name
-        settings.bin = '1d'
-      }
+    this.chainType = this.data.get('chainType')
+    if (!this.chainType || this.chainType === '') {
+      this.chainType = 'dcr'
     }
+    globalChainType = this.chainType
+    this.setExchaneLinks()
+    this.query = new TurboQuery()
+    // chart: history chart
+    // dchart: depth chart
+    settings = TurboQuery.nullTemplate(['chart', 'xc', 'bin', 'xcs', 'dchart'])
+    this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
+    this.query.update(settings)
+
+    this.initMutilchainExchangeStates()
     this.processors = {
       orders: this.processOrders,
       candlestick: this.processCandlesticks,
@@ -661,13 +646,15 @@ export default class extends Controller {
       xcvolume: this.processXcsVolume
     }
     commonChartOpts.labelsDiv = this.legendTarget
+    commonDepthChartOpts.labelsDiv = this.depthLegendTarget
     this.converted = false
     btcPrice = parseFloat(this.conversionTarget.dataset.factor)
     fiatCode = this.conversionTarget.dataset.code
     this.binButtons = this.binTarget.querySelectorAll('button')
     this.lastUrl = null
     this.zoomButtons = this.zoomTarget.querySelectorAll('button')
-    this.depthZoomCallback = this._depthZoomCallback.bind(this)
+    this.zoomCallback = this._zoomCallback.bind(this)
+    this.depthZoomSubmarketCallback = this._depthSubmarketZoomCallback.bind(this)
     availableCandlesticks = {}
     availableDepths = []
     this.exchangeOptions = []
@@ -680,22 +667,23 @@ export default class extends Controller {
       }
       if (option.dataset.depth) availableDepths.push(option.name)
     }
-    availableDepths.push('btc_aggregated')
-    this.chartOptions = []
-    const opts = this.chartSelectTarget.options
-    for (let i = 0; i < opts.length; i++) {
-      this.chartOptions.push(opts[i])
+    if (humanize.isEmpty(settings.chart)) {
+      settings.chart = history
     }
-
-    if (settings.chart == null) {
-      settings.chart = depth
-    }
-    if (settings.pair == null || !settings.pair) {
-      settings.pair = 'usdt'
-    }
-    this.pairSelectTarget.value = settings.pair
     if (settings.xc == null) {
-      settings.xc = usesOrderbook(settings.chart) ? aggregatedKey : 'binance'
+      settings.xc = aggregatedKey
+    }
+    if (settings.xc === aggregatedKey) {
+      const xcsList = []
+      this.exchangesButtons.forEach(exchangeBtn => {
+        if (exchangeBtn.name !== 'aggregated') {
+          xcsList.push(exchangeBtn.name)
+        }
+      })
+      settings.xcs = xcsList.join(',')
+    }
+    if (humanize.isEmpty(settings.dchart)) {
+      settings.dchart = depth
     }
     if (settings.stack) {
       settings.stack = parseInt(settings.stack)
@@ -704,16 +692,22 @@ export default class extends Controller {
     if (settings.bin == null) {
       settings.bin = anHour
     }
-    if (settings.pair === 'btc') {
-      this.setAggRowData(true)
-    }
     // if chart is history, set to xcs
-    if ((settings.chart === 'history' || settings.chart === 'volume') && (!settings.xcs || settings.xcs === null)) {
+
+    if (humanize.isEmpty(settings.xcs)) {
+      settings.xcs = settings.xc
+    }
+    if (settings.chart === candlestick) {
+      if (settings.xc === 'aggregated') {
+        settings.xc = this.getFirstExchangeButton()
+      }
       settings.xcs = settings.xc
     }
     this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
+    this.setActiveOptionBtn(settings.chart, this.chartTypeTargets)
+    this.setActiveOptionBtn(settings.dchart, this.depthChartTypeTargets)
     this.resize = this._resize.bind(this)
     window.addEventListener('resize', this.resize)
     this.tabVis = this._tabVis.bind(this)
@@ -723,12 +717,58 @@ export default class extends Controller {
     this.processXcUpdate = this._processXcUpdate.bind(this)
     globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
     if (darkEnabled()) chartStroke = darkStroke
-    this.setNameDisplay()
     this.fetchInitialData()
-    // TODO: handler all pages
-    if (this.isHomepage) {
-      this.updateMarketPriceBar()
+    this.fetchDepthInitialData()
+    this.updateMarketPriceBar()
+  }
+
+  async initMutilchainExchangeStates () {
+    const url = '/api/chainchart/exchanges'
+    if (exchangeStateMap !== undefined) {
+      return
     }
+    const response = await requestJSON(url)
+    exchangeStateMap = {}
+    response.forEach((chainState) => {
+      exchangeStateMap[chainState.chain_type] = chainState.exchanges
+    })
+  }
+
+  setExchaneLinks () {
+    this.exchangeLinks = {
+      binance: 'https://www.binance.com/en/trade/' + this.chainType.toUpperCase() + '_USDT',
+      btc_binance: 'https://www.binance.com/en/trade/' + this.chainType.toUpperCase() + '_BTC',
+      bittrex: 'https://bittrex.com/Market/Index?MarketName=USD-' + this.chainType.toUpperCase(),
+      poloniex: 'https://poloniex.com/exchange#usd_' + this.chainType,
+      dragonex: 'https://dragonex.io/en-us/trade/index/' + this.chainType + '_usd',
+      huobi: 'https://www.hbg.com/en-us/exchange/?s=' + this.chainType + '_usd',
+      dcrdex: 'https://dex.decred.org',
+      kucoin: 'https://www.kucoin.com/vi/trade/' + this.chainType.toUpperCase() + '-USDT',
+      gemini: 'https://exchange.gemini.com/trade/' + this.chainType.toUpperCase() + 'USD',
+      coinex: 'https://www.coinex.com/en/exchange/' + this.chainType.toUpperCase() + '-USDT',
+      btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc'
+    }
+  }
+
+  chainTypeChange (e) {
+    if (e.target.name === this.chainType) {
+      return
+    }
+    const target = e.srcElement || e.target
+    this.chainTypeSelectedTargets.forEach((cTypeTarget) => {
+      cTypeTarget.classList.remove('active')
+    })
+    target.classList.add('active')
+    this.chainType = e.target.name
+    // reload data
+    globalChainType = this.chainType
+    this.updateOptions()
+    this.handlerExchangesDisplay()
+    this.setButtons()
+    this.setExchaneLinks()
+    this.setExchangeName()
+    orderZoom = undefined
+    this.fetchChart()
   }
 
   updateMarketPriceBar () {
@@ -738,6 +778,68 @@ export default class extends Controller {
     const percent = ((currentPrice - lowPrice) / (highPrice - lowPrice)) * 100
     this.priceBarMarkerTarget.style.left = `${percent}%`
     this.priceBarLabelTarget.style.left = `${percent}%`
+  }
+
+  updateOptions () {
+    const _this = this
+    if (!exchangeStateMap) {
+      return
+    }
+    const volumnedExchanges = exchangeStateMap[this.chainType]
+    // if is top page, update exchange options
+    let selectOptions = ''
+    const exchangeBefore = this.getSelectedExchanges()
+    const selectedExchange = []
+    if (volumnedExchanges && volumnedExchanges.length > 0) {
+      for (let i = 0; i < volumnedExchanges.length; i++) {
+        const exchange = volumnedExchanges[i]
+        if (exchange.State) {
+          selectOptions += `<button name="${exchange.Token}" ${exchange.State.candlesticks ? `data-sticks="1" data-bins="${exchange.State.sticks}"` : ''} ${exchange.State.depth ? 'data-depth="1"' : ''} ` +
+            `class="tab-button home-chart-toggle-btn white c-txt-main">${_this.getExchangeDispName(exchange.Token)}</button>`
+          if (exchangeBefore.includes(exchange.Token)) {
+            selectedExchange.push(exchange.Token)
+          }
+        }
+      }
+      selectOptions += '<button name="aggregated" data-chainmarket-target="aggOption" data-depth="1" ' +
+        'class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>'
+      this.exchangeBtnAreaTarget.innerHTML = selectOptions
+      this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
+      availableCandlesticks = {}
+      availableDepths = []
+      this.exchangeOptions = []
+      for (let i = 0; i < this.exchangesButtons.length; i++) {
+        const option = this.exchangesButtons[i]
+        this.exchangeOptions.push(option)
+        if (option.dataset.sticks) {
+          availableCandlesticks[option.name] = option.dataset.bins.split(';')
+        }
+        if (option.dataset.depth) availableDepths.push(option.name)
+      }
+      if (this.chainType === 'dcr') {
+        availableDepths.push('btc_aggregated')
+      }
+      const validExchanges = this.isValidExchange(selectedExchange)
+      const isValidExchanges = validExchanges.length > 0
+      // set current exchange
+      if (isValidExchanges) {
+        this.setActiveExchanges(validExchanges)
+      } else {
+        this.setActiveExchanges(this.getFirstExchangeButton())
+        this.changeExchangeSetting()
+      }
+    }
+  }
+
+  isValidExchange (selectedExchanges) {
+    const res = []
+    for (let i = 0; i < this.exchangesButtons.length; i++) {
+      const exBtn = this.exchangesButtons[i]
+      if (selectedExchanges.indexOf(exBtn) >= 0 && !exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none')) {
+        res.push(exBtn)
+      }
+    }
+    return res
   }
 
   handlerRadiusForBtnGroup (btnGroup) {
@@ -760,10 +862,24 @@ export default class extends Controller {
     }
   }
 
-  setAggRowData (isBtcPair) {
-    const aggRow = this.getExchangeRow(aggregatedKey)
-    aggRow.price.textContent = humanize.threeSigFigs(isBtcPair ? this.dcrBtcPrice : this.dcrUsdtPrice)
-    aggRow.volume.textContent = humanize.threeSigFigs(isBtcPair ? this.dcrBtcVolume : this.dcrUsdtVolume)
+  setActiveExchanges (activeExchanges) {
+    this.exchangesButtons.forEach(exchangeBtn => {
+      if (activeExchanges.includes(exchangeBtn.name)) {
+        exchangeBtn.classList.add('active')
+      } else if (exchangeBtn.classList.contains('active')) {
+        exchangeBtn.classList.remove('active')
+      }
+    })
+  }
+
+  getSelectedExchanges () {
+    const activeExchanges = []
+    this.exchangesButtons.forEach(button => {
+      if (button.classList.contains('active')) {
+        activeExchanges.push(button.name)
+      }
+    })
+    return activeExchanges
   }
 
   disconnect () {
@@ -779,20 +895,94 @@ export default class extends Controller {
       orderPtSize = screenIsBig() ? 7 : 4
       this.graph.resize()
     }
-    this.setNameDisplay()
-  }
-
-  setNameDisplay () {
-    if (screenIsBig()) {
-      this.xcNameTarget.classList.remove('d-hide')
-    } else {
-      this.xcNameTarget.classList.add('d-hide')
-    }
   }
 
   _tabVis () {
     focused = !document[hidden]
     if (focused && refreshAvailable) this.refreshChart()
+  }
+
+  async fetchDepthInitialData () {
+    Dygraph = await getDefault(
+      import(/* webpackChunkName: "dygraphs" */ '../vendor/dygraphs.min.js')
+    )
+    const dummyGraph = new Dygraph(document.createElement('div'), [[0, 1]], { labels: ['', ''] })
+    const model = dummyGraph.getOption('interactionModel')
+    model.mousedown = (event, g, context) => {
+      // End panning even if the mouseup event is not on the chart.
+      const mouseup = () => {
+        context.isPanning = false
+        document.removeEventListener('mouseup', mouseup)
+      }
+      document.addEventListener('mouseup', mouseup)
+      context.initializeMouseDown(event, g, context)
+      Dygraph.startPan(event, g, context)
+    }
+
+    model.mouseup = (event, g, context) => {
+      if (!context.isPanning) return
+      Dygraph.endPan(event, g, context)
+      context.isPanning = false // I think Dygraph is supposed to set this, but they don't.
+      const zoomCallback = g.getOption('zoomCallback')
+      if (zoomCallback) {
+        const range = g.xAxisRange()
+        zoomCallback(range[0], range[1], g.yAxisRanges())
+      }
+    }
+
+    model.mousemove = (event, g, context) => {
+      if (!context.isPanning) return
+      Dygraph.movePan(event, g, context)
+    }
+
+    model.touchstart = (event, g, context) => {
+      console.log('TODO: touch start')
+    }
+    model.touchmove = (event, g, context) => {
+      console.log('TODO: touch move')
+    }
+    model.touchend = (event, g, context) => {
+      console.log('TODO: touch end')
+    }
+    commonDepthChartOpts.interactionModel = model
+    this.depthGraph = new Dygraph(this.depthchartTarget, [[0, 0], [0, 1]], commonDepthChartOpts)
+    this.fetchDepthChart()
+  }
+
+  async setChart (e) {
+    const chart = e.target.dataset.option
+    if (chart === settings.chart) {
+      return
+    }
+    const oldChart = settings.chart
+    settings.chart = chart
+    let reload = false
+    if (settings.chart === candlestick) {
+      if (settings.xc === 'aggregated') {
+        settings.xc = this.getFirstExchangeButton()
+      }
+      settings.xcs = settings.xc
+      reload = true
+      this.aggOptionTarget.classList.add('d-none')
+    } else if (oldChart === candlestick) {
+      this.aggOptionTarget.classList.remove('d-none')
+    }
+    this.setActiveOptionBtn(chart, this.chartTypeTargets)
+    this.setButtons()
+    await this.fetchChart()
+    if (reload) {
+      await this.fetchDepthChart()
+    }
+  }
+
+  setDepthChart (e) {
+    const chart = e.target.dataset.option
+    if (chart === settings.dchart) {
+      return
+    }
+    settings.dchart = chart
+    this.setActiveOptionBtn(chart, this.depthChartTypeTargets)
+    this.fetchDepthChart()
   }
 
   async fetchInitialData () {
@@ -843,37 +1033,109 @@ export default class extends Controller {
     this.fetchChart()
   }
 
+  handlerExchangesDisplay () {
+    this.exchangesButtons.forEach(button => {
+      this.fiatLabelTarget.textContent = this.chainType.toUpperCase() + '/USDT'
+      button.classList.remove('d-hide')
+    })
+    // this.reorderExchanges()
+    for (let i = 0; i < this.xcRowTargets.length; i++) {
+      const xcRow = this.xcRowTargets[i]
+      const token = xcRow.dataset.token
+      if (token === 'aggregated') {
+        continue
+      }
+      xcRow.classList.remove('d-hide')
+    }
+  }
+
+  setActiveOptionBtn (opt, optTargets) {
+    optTargets.forEach(li => {
+      if (li.dataset.option === opt) {
+        li.classList.add('active')
+      } else {
+        li.classList.remove('active')
+      }
+    })
+  }
+
+  containExchange (exchange) {
+    for (let i = 0; i < this.exchangesButtons.length; i++) {
+      const exBtn = this.exchangesButtons[i]
+      if (exBtn.name === exchange && !exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none')) {
+        return true
+      }
+    }
+    return false
+  }
+
+  reorderExchanges () {
+    const activeExchange = this.getSelectedExchanges()
+    const afterActiveExchange = []
+    const _this = this
+    if (settings.chart === 'history' || settings.chart === 'volume') {
+      if (activeExchange.length > 0) {
+        activeExchange.forEach((activeEx) => {
+          if (activeEx !== aggregatedKey && _this.containExchange(activeEx)) {
+            afterActiveExchange.push(activeEx)
+          }
+        })
+      }
+      if (afterActiveExchange.length <= 0) {
+        afterActiveExchange.push(_this.getFirstExchangeButton())
+      }
+      settings.xcs = afterActiveExchange.join(',')
+    } else {
+      if (activeExchange.length <= 0) {
+        afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton())
+      } else {
+        const exc = activeExchange[0]
+        afterActiveExchange.push(exc)
+      }
+      if (afterActiveExchange.length > 0) {
+        settings.xc = afterActiveExchange.join(',')
+      }
+    }
+  }
+
+  getXcLogo (xc) {
+    if (xc.startsWith('btc_')) {
+      return xc.replaceAll('btc_', '')
+    }
+    return xc
+  }
+
+  getFirstExchangeButton () {
+    let firstBtn = this.exchangesButtons[0].name
+    for (let i = 0; i < this.exchangesButtons.length; i++) {
+      const exBtn = this.exchangesButtons[i]
+      if (!exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none')) {
+        firstBtn = exBtn.name
+        break
+      }
+    }
+    return firstBtn
+  }
+
   async fetchChart (isRefresh) {
-    let url = null
     requestCounter++
     const thisRequest = requestCounter
     let bin = settings.bin
-    let xc = settings.xc
-    const _this = this
-    if (xc === 'aggregated' && settings.pair === 'btc') {
-      xc = 'btc_' + xc
-    }
+    const xc = settings.xc
     const chart = settings.chart
     const oldZoom = this.graph.xAxisRange()
-    if (usesCandlesticks(chart)) {
-      if (settings.chart !== 'history' && settings.chart !== 'volume') {
-        if (!(xc in availableCandlesticks)) {
-          console.warn('invalid candlestick exchange:', xc)
-          return
-        }
-        if (availableCandlesticks[xc].indexOf(bin) === -1) {
-          console.warn('invalid bin:', bin)
-          bin = _this.setLastBin(xc)
-        }
-      }
-      url = `/api/chart/market/${xc}/candlestick/${bin}`
-    } else if (usesOrderbook(chart)) {
-      if (!validDepthExchange(xc)) {
-        console.warn('invalid depth exchange:', xc)
+    const _this = this
+    if (settings.chart !== 'history' && settings.chart !== 'volume') {
+      if (!(xc in availableCandlesticks)) {
+        console.warn('invalid candlestick exchange:', xc)
         return
       }
-      url = `/api/chart/market/${xc}/depth`
+      if (availableCandlesticks[xc].indexOf(bin) === -1) {
+        console.warn('invalid bin:', bin)
+        bin = _this.setLastBin(xc)
+      }
     }
+    const url = `/api/chainchart/${this.chainType}/market/${xc}/candlestick/${bin}`
     if (!url) {
       console.warn('invalid chart:', chart)
       return
@@ -899,7 +1161,7 @@ export default class extends Controller {
             console.warn('invalid bin:', bin)
             bin = _this.setLastBin(itemXc)
           }
-          const xcUrl = `/api/chart/market/${xcList[i]}/candlestick/${bin}`
+          const xcUrl = `/api/chainchart/${this.chainType}/market/${xcList[i]}/candlestick/${bin}`
           let xcResponse
           if (hasCache(xcUrl)) {
             xcResponse = responseCache[xcUrl]
@@ -931,13 +1193,7 @@ export default class extends Controller {
       }
     }
     // Fiat conversion only available for order books for now.
-    if (usesOrderbook(chart)) {
-      this.ageSpanTarget.dataset.age = response.data.time
-      this.ageSpanTarget.textContent = humanize.timeSince(response.data.time)
-      this.ageTarget.classList.remove('d-hide')
-    } else {
-      this.ageTarget.classList.add('d-hide')
-    }
+    this.ageTarget.classList.add('d-hide')
     // clear canvas before update
     const canvas = this.chartTarget.querySelector('canvas')
     if (canvas) {
@@ -952,14 +1208,70 @@ export default class extends Controller {
     } else {
       this.graph.updateOptions(this.processors[chart](response))
     }
-    if (!this.isHomepage) {
-      this.query.replace(settings)
-    }
+    this.query.replace(settings)
     if (isRefresh) this.graph.updateOptions({ dateWindow: oldZoom })
     else this.resetZoom()
     this.chartLoaderTarget.classList.remove('loading')
     this.lastUrl = url
     refreshAvailable = false
+  }
+
+  async fetchDepthChart (isRefresh) {
+    let url = null
+    depthRequestCounter++
+    const thisRequest = depthRequestCounter
+    const xcs = settings.xcs && settings.xcs !== null ? settings.xcs : settings.xc
+    const xcList = xcs.split(',')
+    const xcListFinal = []
+    for (let i = 0; i < xcList.length; i++) {
+      if (xcList[i].trim() === '' || !validDepthExchange(xcList[i])) {
+        continue
+      }
+      xcListFinal.push(xcList[i])
+    }
+    const chart = settings.dchart
+    const oldZoom = this.depthGraph.xAxisRange()
+    if (xcListFinal.length < 1) {
+      console.warn('invalid depth exchange:', xcs)
+      return
+    }
+    url = `/api/chainchart/${this.chainType}/submarket/${xcListFinal.join(',')}/depth`
+    if (!url) {
+      console.warn('invalid chart:', chart)
+      return
+    }
+    this.chartLoaderTarget.classList.add('loading')
+    let response
+    if (hasDepthCache(url)) {
+      response = depthResponseCache[url]
+    } else {
+      // response = await axios.get(url)
+      response = await requestJSON(url)
+      depthResponseCache[url] = response
+      if (thisRequest !== depthRequestCounter) {
+        // new request was issued while waiting.
+        this.chartLoaderTarget.classList.remove('loading')
+        return
+      }
+    }
+    // Fiat conversion only available for order books for now.
+    this.ageSpanTarget.dataset.age = response.data.time
+    this.ageSpanTarget.textContent = humanize.timeSince(response.data.time)
+    this.ageTarget.classList.remove('d-hide')
+    // clear canvas before update
+    const canvas = this.depthchartTarget.querySelector('canvas')
+    if (canvas) {
+      const context = canvas.getContext('2d')
+      context.clearRect(0, 0, canvas.width, canvas.height)
+    }
+    this.depthGraph.updateOptions(chartResetOpts, true)
+    this.depthGraph.updateOptions(this.processors[chart](response))
+    this.query.replace(settings)
+    if (isRefresh) this.depthGraph.updateOptions({ dateWindow: oldZoom })
+    else this.resetDepthZoom()
+    this.chartLoaderTarget.classList.remove('loading')
+    // this.lastUrl = url
+    // refreshAvailable = false
   }
 
   setLastBin (xc) {
@@ -973,6 +1285,19 @@ export default class extends Controller {
       }
     }
     return ''
+  }
+
+  getExchangeDispName (token) {
+    switch (token) {
+      case 'dcrdex':
+        return 'dex.decred.org'
+      default:
+        return this.upperFirstCase(token)
+    }
+  }
+
+  upperFirstCase (token) {
+    return token.charAt(0).toUpperCase() + token.slice(1)
   }
 
   processCandlesticks (response) {
@@ -993,7 +1318,7 @@ export default class extends Controller {
       file: data,
       labels: ['time', 'open', 'close', 'high', 'low'],
       xlabel: 'Time',
-      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
+      ylabel: getYAxisLabel('Price (USD)'),
       plotter: candlestickPlotter,
       axes: {
         x: {
@@ -1002,7 +1327,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       }
     }
@@ -1097,7 +1422,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
+      ylabel: getYAxisLabel('Price (USD)'),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1107,7 +1432,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
       strokeWidth: 2
@@ -1127,7 +1452,7 @@ export default class extends Controller {
       }),
       labels: ['time', 'price'],
       xlabel: 'Time',
-      ylabel: getYAxisLabel(`Price (${settings.pair === 'btc' ? 'BTC' : 'USD'})`),
+      ylabel: getYAxisLabel('Price (USD)'),
       colors: [chartStroke],
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1137,7 +1462,34 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.chart)
+        }
+      },
+      strokeWidth: 3
+    }
+  }
+
+  processVolume (response) {
+    const halfDuration = minuteMap[settings.bin] / 2
+    return {
+      file: response.sticks.map(stick => {
+        const t = new Date(stick.start)
+        t.setMinutes(t.getMinutes() + halfDuration)
+        return [t, stick.volume]
+      }),
+      labels: ['time', 'volume'],
+      xlabel: 'Time',
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`),
+      colors: [chartStroke],
+      plotter: Dygraph.Plotters.linePlotter,
+      axes: {
+        x: {
+          axisLabelFormatter: Dygraph.dateAxisLabelFormatter
+        },
+        y: {
+          axisLabelFormatter: humanize.threeSigFigs,
+          valueFormatter: humanize.threeSigFigs,
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
       strokeWidth: 3
@@ -1149,8 +1501,8 @@ export default class extends Controller {
     const colors = []
     const timeArray = []
     const timeDataMap = new Map()
-    xcColors[0] = chartStroke
     let index = 0
+    xcColors[0] = chartStroke
     for (const [key, value] of responseMap) {
       labels.push(key.charAt(0).toUpperCase() + key.slice(1))
       colors.push(xcColors[index])
@@ -1232,7 +1584,7 @@ export default class extends Controller {
       }),
       labels: labels,
       xlabel: 'Time',
-      ylabel: getYAxisLabel(`Volume (DCR / ${prettyDurations[settings.bin]})`),
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ` / ${prettyDurations[settings.bin]})`),
       colors: colors,
       plotter: Dygraph.Plotters.linePlotter,
       axes: {
@@ -1242,37 +1594,10 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.chart)
         }
       },
       strokeWidth: 2
-    }
-  }
-
-  processVolume (response) {
-    const halfDuration = minuteMap[settings.bin] / 2
-    return {
-      file: response.sticks.map(stick => {
-        const t = new Date(stick.start)
-        t.setMinutes(t.getMinutes() + halfDuration)
-        return [t, stick.volume]
-      }),
-      labels: ['time', 'volume'],
-      xlabel: 'Time',
-      ylabel: getYAxisLabel(`Volume (DCR / ${prettyDurations[settings.bin]})`),
-      colors: [chartStroke],
-      plotter: Dygraph.Plotters.linePlotter,
-      axes: {
-        x: {
-          axisLabelFormatter: Dygraph.dateAxisLabelFormatter
-        },
-        y: {
-          axisLabelFormatter: humanize.threeSigFigs,
-          valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
-        }
-      },
-      strokeWidth: 3
     }
   }
 
@@ -1286,12 +1611,12 @@ export default class extends Controller {
       file: data.pts,
       fillGraph: true,
       colors: ['#ed6d47', '#41be53'],
-      xlabel: 'Price (USD)',
-      ylabel: getYAxisLabel('Volume (DCR)'),
+      xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ')'),
       tokens: null,
       stats: data.stats,
       plotter: depthPlotter, // Don't use Dygraph.linePlotter here. fillGraph won't work.
-      zoomCallback: this.depthZoomCallback,
+      zoomCallback: this.depthZoomSubmarketCallback,
       axes: {
         x: {
           axisLabelFormatter: convertedThreeSigFigs,
@@ -1300,7 +1625,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.dchart)
         }
       }
     }
@@ -1327,15 +1652,15 @@ export default class extends Controller {
       labels: keys,
       file: data.pts,
       colors: colors,
-      xlabel: 'Price (USD)',
-      ylabel: getYAxisLabel('Volume (DCR)'),
+      xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ')'),
       plotter: depthPlotter,
       fillGraph: aggStacking,
       stackedGraph: aggStacking,
       tokens: tokens,
       stats: data.stats,
       dupes: data.dupes,
-      zoomCallback: this.depthZoomCallback,
+      zoomCallback: this.depthZoomSubmarketCallback,
       axes: {
         x: {
           axisLabelFormatter: convertedThreeSigFigs,
@@ -1344,7 +1669,7 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.dchart)
         }
       }
     }
@@ -1356,8 +1681,8 @@ export default class extends Controller {
       labels: ['price', 'sell', 'buy'],
       file: data.pts,
       colors: ['#f93f39cc', '#1acc84cc'],
-      xlabel: 'Price (USD)',
-      ylabel: getYAxisLabel('Volume (DCR)'),
+      xlabel: `Price (${this.converted ? fiatCode : 'USD'})`,
+      ylabel: getYAxisLabel('Volume (' + globalChainType.toUpperCase() + ')'),
       plotter: orderPlotter,
       axes: {
         x: {
@@ -1366,10 +1691,10 @@ export default class extends Controller {
         y: {
           axisLabelFormatter: humanize.threeSigFigs,
           valueFormatter: humanize.threeSigFigs,
-          axisLabelWidth: getAxisWidth(settings.pair, settings.chart)
+          axisLabelWidth: getAxisWidth(settings.dchart)
         }
       },
-      zoomCallback: this.depthZoomCallback,
+      zoomCallback: this.depthZoomSubmarketCallback,
       stats: data.stats,
       strokeWidth: 0,
       drawPoints: true,
@@ -1398,18 +1723,25 @@ export default class extends Controller {
     }
   }
 
-  setActiveExchanges (activeExchanges) {
-    this.exchangesButtons.forEach(exchangeBtn => {
-      if (activeExchanges.includes(exchangeBtn.name)) {
-        exchangeBtn.classList.add('active')
-      } else if (exchangeBtn.classList.contains('active')) {
-        exchangeBtn.classList.remove('active')
+  getHistoryChartAvailableBins () {
+    const bins = []
+    let xcs = [settings.xc]
+    if (settings.xcs && settings.xcs !== '') {
+      xcs = settings.xcs.split(',')
+    }
+    bins.push(...binList)
+    xcs.forEach((xc) => {
+      const itemBins = availableCandlesticks[xc]
+      for (let i = bins.length - 1; i >= 0; i--) {
+        if (itemBins.indexOf(bins[i]) < 0) {
+          bins.splice(i, 1)
+        }
       }
     })
+    return bins
   }
 
   setButtons () {
-    this.chartSelectTarget.value = settings.chart
     let lastExchangeBtn = this.exchangesButtons[0]
     let lastExchangeIndex = 0
     this.exchangesButtons.forEach(exchangeBtn => {
@@ -1419,17 +1751,16 @@ export default class extends Controller {
         lastExchangeBtn = exchangeBtn
       }
     })
-    const xsList = settings.chart === 'history' || settings.chart === 'volume' ? settings.xcs.split(',') : settings.xc.split(',')
+    let xsList = settings.chart === 'history' || settings.chart === 'volume' ? settings.xcs.split(',') : settings.xc.split(',')
+    if (settings.xc === 'aggregated') {
+      xsList = ['aggregated']
+    }
     this.setActiveExchanges(xsList)
     if (usesOrderbook(settings.chart)) {
       this.binTarget.classList.add('d-hide')
-      this.zoomTarget.classList.remove('d-hide')
-      this.aggOptionTarget.classList.remove('d-hide')
       lastExchangeBtn.classList.remove('last-toggle-btn')
     } else {
       this.binTarget.classList.remove('d-hide')
-      this.zoomTarget.classList.add('d-hide')
-      this.aggOptionTarget.classList.add('d-hide')
       lastExchangeBtn.classList.add('last-toggle-btn')
       let bins
       if (settings.chart === 'history' || settings.chart === 'volume') {
@@ -1437,9 +1768,32 @@ export default class extends Controller {
       } else {
         bins = availableCandlesticks[settings.xc]
       }
+      let lastBinIndex = 0
+      let firstBinIndex = binList.length
+      bins.forEach((bin) => {
+        const indexOfBin = binList.indexOf(bin)
+        if (indexOfBin >= 0) {
+          if (indexOfBin > lastBinIndex) {
+            lastBinIndex = indexOfBin
+          }
+          if (indexOfBin < firstBinIndex) {
+            firstBinIndex = indexOfBin
+          }
+        }
+      })
       this.binButtons.forEach(button => {
         if (bins.indexOf(button.name) >= 0) {
           button.classList.remove('d-hide')
+          if (button.name === binList[lastBinIndex]) {
+            button.classList.add('last-toggle-btn')
+          } else {
+            button.classList.remove('last-toggle-btn')
+          }
+          if (button.name === binList[firstBinIndex]) {
+            button.classList.add('first-toggle-btn')
+          } else {
+            button.classList.remove('first-toggle-btn')
+          }
         } else {
           button.classList.add('d-hide')
         }
@@ -1458,25 +1812,6 @@ export default class extends Controller {
       settings.stack = null
     }
     this.handlerRadiusForBtnGroup(this.exchangesButtons)
-    this.handlerRadiusForBtnGroup(this.binButtons)
-  }
-
-  getHistoryChartAvailableBins () {
-    const bins = []
-    let xcs = [settings.xc]
-    if (settings.xcs && settings.xcs !== '') {
-      xcs = settings.xcs.split(',')
-    }
-    bins.push(...binList)
-    xcs.forEach((xc) => {
-      const itemBins = availableCandlesticks[xc]
-      for (let i = bins.length - 1; i >= 0; i--) {
-        if (itemBins.indexOf(bins[i]) < 0) {
-          bins.splice(i, 1)
-        }
-      }
-    })
-    return bins
   }
 
   setBinSelection () {
@@ -1496,129 +1831,34 @@ export default class extends Controller {
     if (usesCandlesticks(settings.chart)) {
       this.justifyBins()
     }
-    this.reorderExchanges()
+    // this.reorderExchanges()
     this.setButtons()
     this.setExchangeName()
     this.fetchChart()
+    this.fetchDepthChart()
   }
 
-  reorderExchanges () {
-    const isBTCPair = settings.pair === 'btc'
-    const activeExchange = this.getSelectedExchanges()
-    const afterActiveExchange = []
-    const _this = this
+  changeExchangeSetting () {
+    const selectedExchanges = this.getSelectedExchanges().join(',')
     if (settings.chart === 'history' || settings.chart === 'volume') {
-      if (activeExchange.length > 0) {
-        activeExchange.forEach((activeEx) => {
-          if (activeEx !== aggregatedKey && ((isBTCPair && useBTCPair(activeEx)) || (!isBTCPair && useUSDPair(activeEx)))) {
-            afterActiveExchange.push(activeEx)
-          }
-        })
-      }
-      if (afterActiveExchange.length <= 0) {
-        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
-      }
-      settings.xcs = afterActiveExchange.join(',')
+      settings.xcs = selectedExchanges
     } else {
-      if (activeExchange.length <= 0) {
-        afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair))
-      } else {
-        const exc = activeExchange[0]
-        if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
-          afterActiveExchange.push(exc)
-        } else {
-          afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
-        }
-      }
-      if (afterActiveExchange.length > 0) {
-        settings.xc = afterActiveExchange.join(',')
-      }
+      settings.xc = selectedExchanges
     }
-  }
-
-  async changePair (e) {
-    const target = e.target || e.srcElement
-    settings.pair = target.value
-    this.setAggRowData(settings.pair === 'btc')
-    this.handlerExchangesDisplay()
-    this.setButtons()
     this.setExchangeName()
-    await this.fetchChart()
-    samePair = false
-    if (usesOrderbook(settings.chart)) {
-      samePair = true
-      this.setZoomPct(defaultZoomPct)
-      const stats = this.graph.getOption('stats')
-      const spread = stats.midGap * defaultZoomPct / 100
-      this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
-    }
-  }
-
-  handlerExchangesDisplay () {
-    const isBTCPair = settings.pair === 'btc'
-    this.exchangesButtons.forEach(button => {
-      if (isBTCPair) {
-        this.fiatLabelTarget.textContent = 'DCR/BTC'
-        if (useBTCPair(button.name)) {
-          button.classList.remove('d-hide')
-        } else if (useUSDPair(button.name)) {
-          button.classList.add('d-hide')
-        }
+    if (usesCandlesticks(settings.chart)) {
+      if (!availableCandlesticks[settings.xc]) {
+        // exchange does not have candlestick data
+        // show the depth chart.
+        settings.chart = depth
       } else {
-        this.fiatLabelTarget.textContent = 'DCR/USDT'
-        if (useBTCPair(button.name)) {
-          button.classList.add('d-hide')
-        } else if (useUSDPair(button.name)) {
-          button.classList.remove('d-hide')
-        }
-      }
-    })
-    this.reorderExchanges()
-    for (let i = 0; i < this.xcRowTargets.length; i++) {
-      const xcRow = this.xcRowTargets[i]
-      const token = xcRow.dataset.token
-      if (token === 'aggregated') {
-        continue
-      }
-      if (isBTCPair) {
-        if (useBTCPair(token)) {
-          xcRow.classList.remove('d-hide')
-        } else if (useUSDPair(token)) {
-          xcRow.classList.add('d-hide')
-        }
-      } else {
-        if (useBTCPair(token)) {
-          xcRow.classList.add('d-hide')
-        } else if (useUSDPair(token)) {
-          xcRow.classList.remove('d-hide')
-        }
+        this.justifyBins()
       }
     }
-  }
-
-  getFirstExchangeButton (isBTCPair) {
-    let firstBtn = this.exchangesButtons[0].name
-    for (let i = 0; i < this.exchangesButtons.length; i++) {
-      const exBtn = this.exchangesButtons[i]
-      if (!exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none') && ((isBTCPair && useBTCPair(exBtn.name)) || (!isBTCPair && useUSDPair(exBtn.name)))) {
-        firstBtn = exBtn.name
-        break
-      }
-    }
-    return firstBtn
-  }
-
-  changeExchange (e) {
-    const btn = e.target || e.srcElement
-    if (btn.nodeName !== 'BUTTON' || !this.graph) return
-    this.handlerExchange(btn.name)
+    this.setButtons()
   }
 
   setExchange (e) {
-    // not handle if is history or volume chart
-    if (settings.chart === 'history' || settings.chart === 'volume') {
-      return
-    }
     let node = e.target || e.srcElement
     while (node && node.nodeName !== 'TR') node = node.parentNode
     if (!node || !node.dataset || !node.dataset.token) return
@@ -1626,39 +1866,6 @@ export default class extends Controller {
       return
     }
     this.handlerExchange(node.dataset.token)
-  }
-
-  handlerExchange (token) {
-    if (settings.chart === 'history' || settings.chart === 'volume') {
-      const xcs = settings.xcs.split(',')
-      if (xcs.indexOf(token) < 0) {
-        xcs.push(token)
-      } else {
-        if (xcs.length > 1) {
-          xcs.splice(xcs.indexOf(token), 1)
-        } else {
-          return
-        }
-      }
-      settings.xcs = xcs.join(',')
-    } else {
-      if (settings.xc === token) {
-        return
-      }
-      settings.xc = token
-    }
-    if (usesCandlesticks(settings.chart)) {
-      if (settings.xc !== 'aggregated') {
-        if (!availableCandlesticks[settings.xc]) {
-          settings.chart = depth
-        }
-      }
-      this.justifyBins()
-    }
-    this.setButtons()
-    this.setExchangeName()
-    this.fetchChart()
-    this.resetZoom()
   }
 
   changeBin (e) {
@@ -1670,17 +1877,75 @@ export default class extends Controller {
     this.fetchChart()
   }
 
+  changeExchange (e) {
+    const btn = e.target || e.srcElement
+    if (btn.nodeName !== 'BUTTON' || !this.graph) return
+    this.handlerExchange(btn.name)
+  }
+
+  async handlerExchange (token) {
+    const xcs = settings.xcs.split(',')
+    if (xcs.indexOf(token) < 0) {
+      xcs.push(token)
+    } else {
+      if (xcs.length > 1) {
+        xcs.splice(xcs.indexOf(token), 1)
+      } else {
+        return
+      }
+    }
+    settings.xcs = xcs.join(',')
+    if (token !== 'aggregated' && settings.xc === 'aggregated') {
+      settings.xcs = token
+    }
+    settings.xc = token
+    if (settings.chart === candlestick) {
+      settings.xcs = token
+    }
+    if (settings.xc === 'aggregated') {
+      const xcsList = []
+      this.exchangesButtons.forEach(exchangeBtn => {
+        if (exchangeBtn.name !== 'aggregated') {
+          xcsList.push(exchangeBtn.name)
+        }
+      })
+      settings.xcs = xcsList.join(',')
+    }
+    if (usesCandlesticks(settings.chart)) {
+      if (settings.xc !== 'aggregated') {
+        if (!availableCandlesticks[settings.xc]) {
+          settings.chart = depth
+        }
+      }
+      this.justifyBins()
+    }
+    this.setButtons()
+    this.setExchangeName()
+    depthOrderZoom = undefined
+    orderZoom = undefined
+    await this.fetchChart()
+    await this.fetchDepthChart()
+    this.resetZoom()
+    this.resetDepthZoom()
+  }
+
   resetZoom () {
     if (settings.chart === candlestick) {
       this.graph.updateOptions({ dateWindow: stickZoom })
     } else if (usesOrderbook(settings.chart)) {
-      if (orderZoom && samePair) this.graph.updateOptions({ dateWindow: orderZoom })
+      if (orderZoom) this.graph.updateOptions({ dateWindow: orderZoom })
       else {
         this.setZoomPct(defaultZoomPct)
-        samePair = true
       }
     } else {
       this.graph.resetZoom()
+    }
+  }
+
+  resetDepthZoom () {
+    if (depthOrderZoom) this.depthGraph.updateOptions({ dateWindow: depthOrderZoom })
+    else {
+      this.setDepthZoomPct(defaultZoomPct)
     }
   }
 
@@ -1697,8 +1962,8 @@ export default class extends Controller {
     if (btn.nodeName !== 'BUTTON' || !this.graph) return
     this.conversionTarget.querySelectorAll('button').forEach(b => b.classList.remove('btn-selected'))
     btn.classList.add('btn-selected')
-    let cLabel = 'BTC'
-    if (e.target.name === 'BTC') {
+    let cLabel = 'USD'
+    if (e.target.name === 'USD') {
       this.converted = false
       conversionFactor = 1
     } else {
@@ -1711,7 +1976,6 @@ export default class extends Controller {
 
   setExchangeName () {
     if (settings.chart === 'history' || settings.chart === 'volume') {
-      this.xcLogoTarget.classList.add('d-hide')
       this.actionsTarget.classList.add('d-hide')
       // exchange name
       const exchanges = []
@@ -1721,15 +1985,9 @@ export default class extends Controller {
           exchanges.push(ex.charAt(0).toUpperCase() + ex.slice(1))
         })
       }
-      this.xcNameTarget.textContent = exchanges.join(',')
-      this.xcNameTarget.classList.add('fs-17')
     } else {
-      this.xcNameTarget.classList.remove('fs-17')
-      this.xcLogoTarget.classList.remove('d-hide')
-      this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
       const prettyName = printName(settings.xc)
-      this.xcNameTarget.textContent = prettyName
-      const href = exchangeLinks[settings.xc]
+      const href = this.exchangeLinks[settings.xc]
       if (href) {
         this.linkTarget.href = href
         this.linkTarget.textContent = `Visit ${prettyName}`
@@ -1738,13 +1996,6 @@ export default class extends Controller {
         this.actionsTarget.classList.add('d-hide')
       }
     }
-  }
-
-  getXcLogo (xc) {
-    if (xc.startsWith('btc_')) {
-      return xc.replaceAll('btc_', '')
-    }
-    return xc
   }
 
   _processNightMode (data) {
@@ -1786,16 +2037,6 @@ export default class extends Controller {
     return null
   }
 
-  getSelectedExchanges () {
-    const activeExchanges = []
-    this.exchangesButtons.forEach(button => {
-      if (button.classList.contains('active')) {
-        activeExchanges.push(button.name)
-      }
-    })
-    return activeExchanges
-  }
-
   setStacking (e) {
     const btn = e.target || e.srcElement
     if (btn.nodeName !== 'BUTTON' || !this.graph) return
@@ -1807,17 +2048,17 @@ export default class extends Controller {
 
   setZoom (e) {
     const btn = e.target || e.srcElement
-    if (btn.nodeName !== 'BUTTON' || !this.graph) return
-    this.setZoomPct(parseInt(btn.name))
-    const stats = this.graph.getOption('stats')
+    if (btn.nodeName !== 'BUTTON' || !this.depthGraph) return
+    this.setDepthZoomPct(parseInt(btn.name))
+    const stats = this.depthGraph.getOption('stats')
     const spread = stats.midGap * parseFloat(btn.name) / 100
-    this.graph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
+    this.depthGraph.updateOptions({ dateWindow: [stats.midGap - spread, stats.midGap + spread] })
   }
 
   setZoomPct (pct) {
     this.zoomButtons.forEach(b => {
-      if (parseInt(b.name) === pct) b.classList.add('btn-selected')
-      else b.classList.remove('btn-selected')
+      if (parseInt(b.name) === pct) b.classList.add('active')
+      else b.classList.remove('active')
     })
     const stats = this.graph.getOption('stats')
     const spread = stats.midGap * pct / 100
@@ -1830,28 +2071,52 @@ export default class extends Controller {
     this.graph.updateOptions({ dateWindow: orderZoom })
   }
 
-  _depthZoomCallback (start, end) {
+  setDepthZoomPct (pct) {
+    this.zoomButtons.forEach(b => {
+      if (parseInt(b.name) === pct) b.classList.add('active')
+      else b.classList.remove('active')
+    })
+    const stats = this.depthGraph.getOption('stats')
+    const spread = stats.midGap * pct / 100
+    let low = stats.midGap - spread
+    let high = stats.midGap + spread
+    const [min, max] = this.depthGraph.xAxisExtremes()
+    if (low < min) low = min
+    if (high > max) high = max
+    depthOrderZoom = [low, high]
+    this.depthGraph.updateOptions({ dateWindow: depthOrderZoom })
+  }
+
+  _zoomCallback (start, end) {
     orderZoom = [start, end]
-    this.zoomButtons.forEach(b => b.classList.remove('btn-selected'))
+    this.zoomButtons.forEach(b => b.classList.remove('active'))
+  }
+
+  _depthSubmarketZoomCallback (start, end) {
+    depthOrderZoom = [start, end]
+    this.zoomButtons.forEach(b => b.classList.remove('active'))
   }
 
   _processXcUpdate (update) {
     const xc = update.updater
     const cType = xc.chain_type
-    if (cType && cType !== 'dcr') {
+    if (cType !== this.chainType) {
       return
     }
-    if (update.fiat) { // btc-fiat exchange update
-      this.xcIndexTargets.forEach(span => {
-        if (span.dataset.token === xc.token) {
-          span.textContent = humanize.commaWithDecimal(xc.price, 2)
-        }
-      })
-    } else { // dcr-btc exchange update
+    if (!update.fiat) { // dcr-btc exchange update
       const row = this.getExchangeRow(xc.token)
-      row.volume.textContent = humanize.threeSigFigs(xc.volume)
-      row.price.textContent = humanize.threeSigFigs(xc.price)
-      // row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
+      if (!row) {
+        return
+      }
+      if (row.volume) {
+        row.volume.textContent = humanize.threeSigFigs(xc.volume)
+      }
+      if (row.price) {
+        row.price.textContent = humanize.threeSigFigs(xc.price)
+      }
+      if (row.fiat) {
+        row.fiat.textContent = (xc.price * update.btc_price).toFixed(2)
+      }
       if (xc.change === 0) {
         row.arrow.className = ''
       } else if (xc.change > 0) {
@@ -1859,50 +2124,26 @@ export default class extends Controller {
       } else {
         row.arrow.className = 'dcricon-arrow-down text-danger'
       }
+    } else {
+      return
     }
     // Update the big displayed value and the aggregated row
-    // const fmtPrice = settings.pair === 'btc' ? update.dcr_btc_price.toFixed(6) : update.price.toFixed(2)
-    this.priceTarget.textContent = update.price.toFixed(2)
-    // TODO: handler on all page
-    if (this.isHomepage) {
-      // handler dcr/usd price change
-      const usdChangeHtml = update.dcr_usd_24h_change === 0
-        ? '<span></span>'
-        : `<span class="dcricon-arrow-${update.dcr_usd_24h_change > 0 ? 'up text-green' : 'down text-danger'}">
-      ${Math.abs(100 * update.dcr_usd_24h_change / update.price).toFixed(2)}%</span>`
-      this.usdChangeTarget.innerHTML = usdChangeHtml
-      this.btcPriceTarget.textContent = update.dcr_btc_price.toFixed(6)
-      // handler dcr/btc price change
-      const btcChangeHtml = update.dcr_btc_24h_change === 0
-        ? '<span></span>'
-        : `<span class="dcricon-arrow-${update.dcr_btc_24h_change > 0 ? 'up text-green' : 'down text-danger'}">
-    ${Math.abs(100 * update.dcr_btc_24h_change / update.dcr_btc_price).toFixed(2)}%</span>`
-      this.btcChangeTarget.innerHTML = btcChangeHtml
-      // display dcr volume
-      this.dcrVolTarget.textContent = humanize.threeSigFigs(update.volume)
-      // display usd volume
-      this.usdVolTarget.textContent = humanize.threeSigFigs(Math.round(update.volume * update.price))
-      // display vol/cap rate (%)
-      this.volCapRateTarget.textContent = (100 * update.volume / Number(this.volCapRateTarget.dataset.coinall)).toFixed(2)
-      // display low/high price
-      this.lowPriceTarget.textContent = update.low_price.toFixed(2)
-      this.highPriceTarget.textContent = update.high_price.toFixed(2)
-      // display on price bar label
-      this.priceBarLabelTarget.textContent = '$' + update.price.toFixed(2)
-      // TODO: directly handle
-      this.priceBarTarget.dataset.low = update.low_price
-      this.priceBarTarget.dataset.high = update.high_price
-      this.priceBarTarget.dataset.price = update.price
-      this.updateMarketPriceBar()
-    }
+    const fmtPrice = update.price.toFixed(2)
+    this.priceTarget.textContent = fmtPrice
     const aggRow = this.getExchangeRow(aggregatedKey)
     btcPrice = update.btc_price
-    this.dcrBtcPrice = update.dcr_btc_price
-    this.dcrUsdtPrice = update.price
-    this.dcrUsdtVolume = update.volume
-    this.dcrBtcVolum = update.dcr_btc_volume
-    aggRow.price.textContent = humanize.threeSigFigs(settings.pair === 'btc' ? update.dcr_btc_price : update.price)
-    aggRow.volume.textContent = humanize.threeSigFigs(settings.pair === 'btc' ? update.dcr_btc_volume : update.volume)
+    if (!aggRow) {
+      return
+    }
+    if (aggRow.price) {
+      aggRow.price.textContent = humanize.threeSigFigs(update.price)
+    }
+    if (aggRow.volume) {
+      aggRow.volume.textContent = humanize.threeSigFigs(update.volume)
+    }
+    if (aggRow.fiat) {
+      aggRow.fiat.textContent = fmtPrice
+    }
     // Auto-update the chart if it makes sense.
     if (settings.xc !== aggregatedKey && settings.xc !== xc.token) return
     if (settings.xc === aggregatedKey &&

@@ -1383,14 +1383,14 @@
                      {{- /* LEFT COLUMN */ -}}
                      <div class="col-24 col-md-10 col-lg-8 col-xl-7 col-xxl-5 p-0 flex-column-card">
                         {{- /* PRICE */ -}}
-                        <div class="mx-0 mx-md-2 my-2 my-md-3 p-3 p-lg-4 bg-white new-home-card-container flex-1">
-                           <div class="fs22 text-center pb-2"><img src="/images/dcr-icon.png" width="25" height="25"
+                        <div class="mx-0 mx-md-2 my-2 px-3 px-lg-4 pt-2 pb-3 bg-white new-home-card-container flex-1">
+                           <div class="fs22 text-center pb-1"><img src="/images/dcr-icon.png" width="25" height="25"
                                  class="me-2">Market Information</div>
                            <table class="w-100 mx-0">
                               <tbody>
                                  <tr>
-                                    <td class="py-2 fs-16 fw-bold">Price</td>
-                                    <td class="ps-2 py-2 text-end">
+                                    <td class="market-vol-row fs-16 fw-bold">Price</td>
+                                    <td class="ps-2 market-vol-row text-end">
                                        <p class="fs-16">
                                           $<span data-market-target="price">{{printf "%.2f" $botState.Price}}</span>
                                           USD
@@ -1430,8 +1430,8 @@
                                     </td>
                                  </tr>
                                  <tr>
-                                    <td class="py-2 fs-16 fw-bold">Market Cap</td>
-                                    <td class="ps-2 py-2 text-end">
+                                    <td class="market-vol-row fs-16 fw-bold">Market Cap</td>
+                                    <td class="ps-2 market-vol-row text-end">
                                        <p class="fs-16">
                                           <span data-homepage-target="marketCap">
                                              {{if $conv -}}
@@ -1442,8 +1442,8 @@
                                     </td>
                                  </tr>
                                  <tr>
-                                    <td class="py-2 fs-16 fw-bold">Volume (24h)</td>
-                                    <td class="ps-2 py-2 text-end">
+                                    <td class="market-vol-row fs-16 fw-bold">Volume (24h)</td>
+                                    <td class="ps-2 market-vol-row text-end">
                                        <p class="fs-16">
                                           <span data-market-target="dcrVol">{{threeSigFigs $botState.Volume}}</span>
                                           DCR <span class="fs15">(~
@@ -1453,8 +1453,8 @@
                                     </td>
                                  </tr>
                                  <tr>
-                                    <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
-                                    <td class="ps-2 py-2 text-end">
+                                    <td class="market-vol-row fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
+                                    <td class="ps-2 market-vol-row text-end">
                                        <p><span class="fs-16" data-coinall="{{$.Info.CoinValueSupply}}"
                                              data-market-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
                                              $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
@@ -1463,9 +1463,9 @@
                               </tbody>
                            </table>
                            <div class="d-flex justify-content-between mb-1">
-                              <p class="mb-0 fs-13">Low (<span data-market-target="lowPrice">{{printf "%.2f"
+                              <p class="mb-0 fs-13">Low ($<span data-market-target="lowPrice">{{printf "%.2f"
                                     $botState.LowPrice}}</span>)</p>
-                              <p class="mb-0 fs-13">High (<span data-market-target="highPrice">{{printf "%.2f"
+                              <p class="mb-0 fs-13">High ($<span data-market-target="highPrice">{{printf "%.2f"
                                     $botState.HighPrice}}</span>)</p>
                            </div>
                            <div class="fs22 text-center pb-3">
@@ -1475,34 +1475,34 @@
                                  <div class="range-marker" id="currentMarker" data-market-target="priceBarMarker">
                                  </div>
                                  <div class="range-label fs-13" id="currentLabel" data-market-target="priceBarLabel">
-                                    {{printf
+                                    ${{printf
                                     "%.2f"
                                     $botState.Price}}</div>
                               </div>
                            </div>
                         </div>
                         {{- /* DCR/BTC MARKETS */ -}}
-                        <div class="mx-0 mx-md-2 my-2 my-md-3 p-2 p-lg-3 bg-white new-home-card-container flex-1">
-                           <div class="h-100 d-flex ai-center">
-                              <table class="mx-auto mx-lg-3">
+                        <div class="mx-0 mx-md-2 my-2 p-2 p-lg-3 bg-white new-home-card-container flex-1">
+                           <div class="d-flex justify-content-center ai-center">
+                              <table>
                                  <tbody>
-                                    <tr class="fs14 lh1rem">
-                                       <td></td>
-                                       <td class="text-end fw-bold">DCR Vol.</td>
-                                       <td class="text-end fw-bold ps-3" data-market-target="fiatLabel"></td>
-                                       <td></td>
-                                    </tr>
+                                    <tr>
+                                       <th></th>
+                                       <th class="text-end fs-12 fw-bold">DCR Vol.</th>
+                                       <th class="text-end fs-12 fw-bold ps-3" data-market-target="fiatLabel">DCR/USDT</th>
+                                       <th></th>
+                                     </tr>
                                     {{range $botState.VolumeOrderedExchanges}}
                                     <tr class="fs hover-row" data-market-target="xcRow"
                                        data-action="click->market#setExchange" data-token="{{.Token}}">
-                                       <td class="py-2 fs18 fw-bold">
+                                       <td class="fs18 fw-bold market-vol-row">
                                           <div class="exchange-logo {{xcLogoName .Token}} me-2"></div> {{xcDisplayName
                                           .Token}}
                                        </td>
-                                       <td class="ps-2 fs16 py-2 text-end" data-type="volume">
+                                       <td class="ps-2 fs16 market-vol-row text-end" data-type="volume">
                                           {{threeSigFigs .State.BaseVolume}}
                                        </td>
-                                       <td class="ps-3 fs16 py-2 text-end" data-type="price">
+                                       <td class="ps-3 fs16 market-vol-row text-end" data-type="price">
                                           {{threeSigFigs .State.Price}}
                                        </td>
                                        <td class="fs16 px-2" data-type="arrow">
@@ -1517,26 +1517,26 @@
                                     </tr>
                                     {{end}}
                                     <tr class="fs sum-row hover-row" data-market-target="xcRow"
-                                       data-action="click->market#setExchange" data-token="aggregated">
-                                       <td class="py-2 fs18 fw-bold">
-                                          <div class="exchange-logo aggregated me-2"></div> Aggregate
-                                       </td>
-                                       <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                                          {{threeSigFigs $botState.Volume}}
-                                       </td>
-                                       <td class="ps-1 fs16 py-2 text-end" data-type="price">
-                                          {{threeSigFigs $botState.Price}}
-                                       </td>
-                                       <td class="fs16 px-2" data-type="arrow">
-                                          {{if eq $botState.DCRUSD24hChange 0.0}}
-                                          <span></span>
-                                          {{else if gt $botState.DCRUSD24hChange 0.0}}
-                                          <span class="dcricon-arrow-up text-green"></span>
-                                          {{else}}
-                                          <span class="dcricon-arrow-down text-danger"></span>
-                                          {{end}}
-                                       </td>
-                                    </tr>
+                                    data-action="click->market#setExchange" data-token="aggregated">
+                                    <td class="market-vol-row fs18 fw-bold">
+                                       <div class="exchange-logo aggregated me-2"></div> Aggregate
+                                    </td>
+                                    <td class="ps-2 fs16 market-vol-row text-end" data-type="volume">
+                                       {{threeSigFigs $botState.Volume}}
+                                    </td>
+                                    <td class="ps-1 fs16 market-vol-row text-end" data-type="price">
+                                       {{threeSigFigs $botState.Price}}
+                                    </td>
+                                    <td class="fs16 px-2" data-type="arrow">
+                                       {{if eq $botState.DCRUSD24hChange 0.0}}
+                                       <span></span>
+                                       {{else if gt $botState.DCRUSD24hChange 0.0}}
+                                       <span class="dcricon-arrow-up text-green"></span>
+                                       {{else}}
+                                       <span class="dcricon-arrow-down text-danger"></span>
+                                       {{end}}
+                                    </td>
+                                 </tr>
                                  </tbody>
                               </table>
                            </div>
@@ -1544,7 +1544,7 @@
                      </div>
                      {{- /* RIGHT COLUMN */ -}}
                      <div
-                        class="col-24 col-md-14 col-lg-16 col-xl-17 col-xxl-19 px-0 px-md-3 my-2 my-md-3 market-right-column">
+                        class="col-24 col-md-14 col-lg-16 col-xl-17 col-xxl-19 px-0 px-md-3 market-right-column">
                         <div
                            class="me-md-2 flex-grow-1 d-flex flex-column bg-white position-relative h-100 px-0 px-md-3 new-home-card-container">
                            <div class="loader-v2 loading" data-market-target="chartLoader"></div>
@@ -1654,7 +1654,7 @@
                            {{- /* CHART */ -}}
                            <div class="flex-grow-1 ps-0 ps-md-3 mb-2 market-chart-box d-flex">
                               <div class="d-flex w-100 position-relative market-chart">
-                                 <div class="market-chart-title d-flex align-items-center">
+                                 <div class="market-chart-title d-flex align-items-center d-hide">
                                     <div data-market-target="xcLogo"></div>
                                     <div data-market-target="xcName"></div>
                                  </div>

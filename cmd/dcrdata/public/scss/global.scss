@@ -1427,11 +1427,11 @@ textarea::placeholder {
 }
 
 .border-bottom-grey {
-  border-bottom: 1px solid #ededed !important;
+  border-bottom: 1px solid #e0e0e0 !important;
 }
 
 .border-2-bottom-grey {
-  border-bottom: 2px solid #ededed !important;
+  border-bottom: 2px solid #e0e0e0 !important;
 }
 
 .border--cyan-d3 {
@@ -2713,4 +2713,17 @@ body.darkBG {
 .small-dot {
   width: 10px;
   height: 10px;
+}
+
+.market-subchart {
+  min-height: 400px;
+}
+
+.btn-set-inchart {
+  border-top: none !important;
+  padding-top: 0 !important;
+
+  button {
+    border: 1px solid #eaeaea;
+  }
 }

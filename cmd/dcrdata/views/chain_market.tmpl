@@ -1,58 +1,128 @@
 {{define "chain_market" -}}
 {{- $botState := .XcState -}}
 {{- $ChainType := .ChainType}}
+{{- $conv := .Conversions -}}
 <!DOCTYPE html>
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "%s Market Charts" (chainName $ChainType))}}
+
 <body class="{{ theme }} mutilchain-sub-page">
 
-{{- template "mutilchain_navbar" . -}}
+    {{- template "mutilchain_navbar" . -}}
 
-{{- if $botState -}}
+    {{- if $botState -}}
 
-<div class="row w-100 align-items-top mb-4" data-controller="chainmarket"
-data-chainmarket-chain-type="{{$ChainType}}">
-<div class="col-24 ps-4">
-    <nav class="breadcrumbs mt-0">
-        <a href="/" class="breadcrumbs__item no-underline ps-2">
-            <span class="homeicon-tags me-1"></span>
-            <span class="link-underline">Homepage</span>
-         </a>
-         <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
-        <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
-        <span class="breadcrumbs__item is-active">Market</span>
-     </nav>
-</div>
-
-    {{- /* LEFT COLUMN */ -}}
-    <div class="col-24 col-lg-auto m-3 mt-2 market-common-card">
-        {{- /* PRICE */ -}}
-        <div class="ms-2 ms-sm-4 me-2 my-4 p-2 p-lg-4 market-common-card bg-white text-center">
-            <div class="text-center fs18 text-secondary">1 {{toUpperCase $ChainType}} =</div>
-            {{if eq $botState.BtcIndex "USD"}}
-                <span class="fs22 fw-bold d-inline-block">$</span>
-            {{end}}
-            <span class="fs24" data-chainmarket-target="price">
-             {{printf "%.2f" $botState.Price}}
-             </span> <span class="fs16 text-secondary">{{$botState.BtcIndex}}</span>
+    <div class="row w-100 align-items-top mb-4" data-controller="chainsubmarket"
+        data-chainsubmarket-chain-type="{{$ChainType}}">
+        <div class="col-24 ps-4">
+            <nav class="breadcrumbs mt-0">
+                <a href="/" class="breadcrumbs__item no-underline ps-2">
+                    <span class="homeicon-tags me-1"></span>
+                    <span class="link-underline">Homepage</span>
+                </a>
+                <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
+                <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+                <span class="breadcrumbs__item is-active">Market</span>
+            </nav>
         </div>
 
-
-        {{- /* DCR/BTC MARKETS */ -}}
-        <div class="ms-2 ms-sm-4 me-2 my-4 p-2 p-lg-4 market-common-card bg-white">
-            <div colspan="4" class="fs24 text-center border-bottom-grey mb-3 pb-2">
-            <img src="/images/{{$ChainType}}-icon.png" width="25" height="25"> {{chainName $ChainType}} Markets</div>
-            <table class="mx-auto mx-lg-3">
-                <tbody>
-                    <tr class="fs14 lh1rem">
-                      <td></td>
-                      <td class="text-end fw-bold">{{toUpperCase $ChainType}} Vol.</td>
-                      <td class="text-end fw-bold ps-3" data-chainmarket-target="fiatLabel"></td>
-                      <td></td>
-                    </tr>
-                    {{range $botState.VolumnOrdered}}
-                        <tr class="fs hover-row" data-chainmarket-target="xcRow" data-action="click->chainmarket#setExchange" data-token="{{.Token}}">
-                            <td class="py-2 fs18 fw-bold"><div class="exchange-logo {{.Token}} me-2"></div> {{xcDisplayName .Token}}</td>
+        {{- /* LEFT COLUMN */ -}}
+        <div class="col-24 col-md-10 col-lg-8 col-xl-7 col-xxl-5 p-0">
+            {{- /* PRICE */ -}}
+            <div class="ms-2 ms-sm-4 me-2 mb-3 mt-2 p-2 p-lg-4 market-common-card bg-white text-center">
+                <div class="fs22 text-center pb-2"><img src="/images/{{$ChainType}}-icon.png" width="25" height="25"
+                        class="me-2">Market Information</div>
+                <table class="w-100 mx-0">
+                    <tbody>
+                        <tr>
+                            <td class="py-2 fs-16 fw-bold text-start">Price</td>
+                            <td class="ps-2 py-2 text-end">
+                                <p class="fs-16">
+                                    $<span data-chainsubmarket-target="price">{{commaWithDecimal $botState.Price
+                                        2}}</span>
+                                    <span data-chainsubmarket-target="change24h">
+                                        {{if eq $botState.Change24h 0.0}}
+                                        <span></span>
+                                        {{else if gt $botState.Change24h 0.0}}
+                                        <span class="dcricon-arrow-up text-green">{{printf "%.2f" (x100
+                                            (divideFloat
+                                            $botState.Change24h $botState.Price))}}%</span>
+                                        {{else}}
+                                        <span class="dcricon-arrow-down text-danger">{{printf "%.2f" (x100
+                                            (divideFloat
+                                            (toAbsValue $botState.Change24h) $botState.Price))}}%</span>
+                                        {{end}}
+                                    </span>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 fs-16 fw-bold text-start">Market Cap</td>
+                            <td class="ps-2 py-2 text-end">
+                                <p class="fs-16">
+                                    {{if $conv}}
+                                    <span data-chainsubmarket-target="marketCap">
+                                        {{threeSigFigs $conv.CoinSupply.Value}} {{$conv.CoinSupply.Index}}
+                                    </span>
+                                    {{end}}
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 fs-16 fw-bold text-start">Volume (24h)</td>
+                            <td class="ps-2 py-2 text-end">
+                                <p class="fs-16">
+                                    <span data-chainsubmarket-target="marketVol">
+                                        {{threeSigFigs $.Volume24h}}
+                                    </span> {{toUpperCase $ChainType}}
+                                    <span class="fs15">(~$<span data-chainsubmarket-target="marketUSDVol">{{threeSigFigs
+                                            (floatMultiply $.Volume24h $botState.Price)}}</span>)</span>
+                                </p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="py-2 fs-16 fw-bold text-start">Vol/Mkt Cap (24h)</td>
+                            <td class="ps-2 py-2 text-end">
+                                <p><span class="fs-16" data-coinall="{{$.CoinValueSupply}}"
+                                        data-chainsubmarket-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
+                                        $.Volume24h $.CoinValueSupply))}}</span>%</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="d-flex justify-content-between mb-1">
+                    <p class="mb-0 fs-13">Low (<span data-chainsubmarket-target="lowPrice">{{printf "%.2f"
+                            $botState.LowPrice}}</span>)</p>
+                    <p class="mb-0 fs-13">High (<span data-chainsubmarket-target="highPrice">{{printf "%.2f"
+                            $botState.HighPrice}}</span>)</p>
+                </div>
+                <div class="fs22 text-center pb-3">
+                    <div class="range-price-bar" id="priceBar" data-chainsubmarket-target="priceBar"
+                        data-low="{{$botState.LowPrice}}" data-high="{{$botState.HighPrice}}"
+                        data-price="{{$botState.Price}}">
+                        <div class="range-marker" id="currentMarker" data-chainsubmarket-target="priceBarMarker">
+                        </div>
+                        <div class="range-label fs-13" id="currentLabel" data-chainsubmarket-target="priceBarLabel">
+                            {{printf "%.2f" $botState.Price}}</div>
+                    </div>
+                </div>
+            </div>
+            {{- /* DCR/BTC MARKETS */ -}}
+            <div class="ms-2 ms-sm-4 me-2 my-4 py-2 py-lg-4 px-2 market-common-card bg-white">
+                <table class="mx-auto mx-lg-3">
+                    <tbody>
+                        <tr class="fs14 lh1rem">
+                            <td></td>
+                            <td class="text-end fw-bold">{{toUpperCase $ChainType}} Vol.</td>
+                            <td class="text-end fw-bold ps-3" data-chainsubmarket-target="fiatLabel"></td>
+                            <td></td>
+                        </tr>
+                        {{range $botState.VolumnOrdered}}
+                        <tr class="fs hover-row" data-chainsubmarket-target="xcRow"
+                            data-action="click->chainsubmarket#setExchange" data-token="{{.Token}}">
+                            <td class="py-2 fs18 fw-bold">
+                                <div class="exchange-logo {{.Token}} me-2"></div> {{xcDisplayName .Token}}
+                            </td>
                             <td class="ps-2 fs16 py-2 text-end" data-type="volume">
                                 {{threeSigFigs .State.BaseVolume}}
                             </td>
@@ -60,188 +130,189 @@ data-chainmarket-chain-type="{{$ChainType}}">
                                 {{threeSigFigs .State.Price}}
                             </td>
                             <td class="fs16 px-2" data-type="arrow">
-                              {{if eq .State.Change 0.0}}
-                                  <span></span>
-                              {{else if gt .State.Change 0.0}}
-                                  <span class="dcricon-arrow-up text-green"></span>
-                              {{else}}
-                                  <span class="dcricon-arrow-down text-danger"></span>
-                              {{end}}
+                                {{if eq .State.Change 0.0}}
+                                <span></span>
+                                {{else if gt .State.Change 0.0}}
+                                <span class="dcricon-arrow-up text-green"></span>
+                                {{else}}
+                                <span class="dcricon-arrow-down text-danger"></span>
+                                {{end}}
                             </td>
                         </tr>
-                    {{end}}
-                    <tr class="fs sum-row hover-row" data-chainmarket-target="xcRow" data-action="click->chainmarket#setExchange" data-token="aggregated">
-                        <td class="py-2 fs18 fw-bold"><div class="exchange-logo aggregated me-2"></div> Aggregate</td>
-                        <td class="ps-2 fs16 py-2 text-end" data-type="volume">
-                            {{threeSigFigs $botState.Volume}}
-                        </td>
-                        <td class="ps-1 fs16 py-2 text-end" data-type="price">
-                            {{threeSigFigs $botState.Price}}
-                        </td>
-                        <td></td> {{- /* no arrow for aggregated data */ -}}
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-
-        {{- /* BITCOIN INDICES */ -}}
-        <div class="ms-2 ms-sm-4 me-2 my-4 py-4 px-2 market-common-card bg-white d-none">
-            <div colspan="4" class="fs24 d-flex align-items-center justify-content-center pb-3"><div class="exchange-logo bitcoin me-2"></div> <span>Bitcoin Indices</span></div>
-            <div class="row">
-              {{range $token, $state := $botState.FiatIndices}}
-                  <div class="col-12 text-center">
-                      <div class="fs18 fw-bold d-flex align-items-center justify-content-center"><div class="exchange-logo {{$token}} me-1"></div> <span class="d-inline-block">{{toTitleCase $token}}</span></div>
-                      {{if eq $botState.BtcIndex "USD"}}
-                          <span class="fs22 fw-bold d-inline-block">$</span>
-                      {{end}}
-                      <span class="fs24" data-price="{{$state.Price}}" data-token="{{$token}}" data-chainmarket-target="xcIndex">{{commaWithDecimal $state.Price 2}}</span> <span class="fs16 text-secondary">{{$botState.BtcIndex}}</span><br>
-                      {{if eq $token "coindesk"}}
-                        <a class="fs12" href="https://www.coindesk.com/price/bitcoin">Powered by CoinDesk</a>
-                      {{end}}
-                  </div>
-              {{end}}
-            </div>
-        </div>
-    </div>
-
-    {{- /* RIGHT COLUMN */ -}}
-    <div class="ms-2 row flex-grow-0 m-3 mt-2 col-24 col-lg mx-0 flex-lg-grow-1 market-common-card">
-        <div class="col ms-4 ms-lg-3 me-2 me-lg-3 mb-4 mt-1 mt-lg-4 flex-grow-1 d-flex flex-column bg-white px-2 py-2 py-lg-3 position-relative">
-        <div class="loader-v2 loading" data-chainmarket-target="chartLoader"></div>
-            {{- /* CHART ONTROLS */ -}}
-            <div class="d-flex flex-shrink-1 align-items-top justify-content-around market-common-card justify-content-lg-center flex-wrap mx-1 py-2 mx-lg-4 mb-2">
-                {{- /* PAIR SELECTION */ -}}
-                <div class="d-hide btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-chainmarket-target="pairSelectorArea">
-                    <label>Pair</label>
-                    <select
-                        class="chart-box d-inline-flex"
-                        data-chainmarket-target="pairSelect"
-                        data-action="change->chainmarket#changePair"
-                    >
-                        <option value="usdt" selected>DCR/USDT</option>
-                        <option value="btc">DCR/BTC</option>
-                    </select>
-                </div>
-                {{- /* EXCHANGE SELECTION */ -}}
-                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4" data-chainmarket-target="exchanges"
-                data-action="click->chainmarket#changeExchange">
-                    <label>Exchange</label>
-                    <div class="btn-group" data-chainmarket-target="exchangeBtnArea">
-                        {{range $index, $exchange := $botState.VolumnOrdered}}
-                        <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
-                           class="tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
                         {{end}}
-                        <button name="aggregated" data-chainmarket-target="aggOption" data-depth="1"
-                           class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
-                     </div>
-                </div>
+                        <tr class="fs sum-row hover-row" data-chainsubmarket-target="xcRow"
+                            data-action="click->chainsubmarket#setExchange" data-token="aggregated">
+                            <td class="py-2 fs18 fw-bold">
+                                <div class="exchange-logo aggregated me-2"></div> Aggregate
+                            </td>
+                            <td class="ps-2 fs16 py-2 text-end" data-type="volume">
+                                {{threeSigFigs $botState.Volume}}
+                            </td>
+                            <td class="ps-1 fs16 py-2 text-end" data-type="price">
+                                {{threeSigFigs $botState.Price}}
+                            </td>
+                            <td></td> {{- /* no arrow for aggregated data */ -}}
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-center py-2 py-lg-0 text-lg-end px-4 fs13 c-grey-3" data-chainsubmarket-target="age">
+                    updated <span data-controller="time" data-time-target="age" data-chainsubmarket-target="ageSpan"
+                        data-age="0"></span> ago</div>
+            </div>
+        </div>
 
-                {{- /* CHART TYPE SELECTION */ -}}
-                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
-                    <label>Chart</label>
-                    <select
-                        class="chart-box d-inline-flex"
-                        data-chainmarket-target="chartSelect"
-                        data-action="change->chainmarket#changeGraph"
-                    >
-                        <option value="depth" data-chainmarket-target="depthOnly" selected>Depth Chart</option>
-                        <option value="orders" data-chainmarket-target="depthOnly">Order Book</option>
-                        <option value="candlestick" data-chainmarket-target="sticksOnly">Candlesticks</option>
-                        <option value="history" data-chainmarket-target="sticksOnly">Market History</option>
-                        <option value="volume" data-chainmarket-target="sticksOnly">Volume</option>
-                    </select>
-                </div>
-                {{- /* BIN SIZE SELECTIONS */ -}}
-                <div
-                    class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
-                    data-chainmarket-target="bin"
-                    data-action="click->chainmarket#changeBin"
-                >
-                  <label class="text-nowrap">Bin Size</label>
-                  <button name="5m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">5m</button>
-                  <button name="30m" class="tab-button d-hide home-chart-toggle-btn white c-txt-main">30m</button>
-                  <button name="1h" class="tab-button home-chart-toggle-btn white c-txt-main mx-0 px-3">Hour</button>
-                  <button name="4h" class="tab-button home-chart-toggle-btn white c-txt-main mx-0 px-3">4 Hours</button>
-                  <button name="1d" class="tab-button home-chart-toggle-btn white c-txt-main mx-0 px-3">Day</button>
-                  <button name="1w" class="tab-button home-chart-toggle-btn white c-txt-main mx-0 px-3">Week</button>
-                  <button name="1mo" class="tab-button home-chart-toggle-btn white c-txt-main mx-0 px-3">Month</button>
-                </div>
+        {{- /* RIGHT COLUMN */ -}}
+        <div class="row flex-grow-0 col-24 col-md-14 col-lg-16 col-xl-17 col-xxl-19 px-2 flex-lg-grow-1">
+            <div
+                class="col mb-4 mt-2 market-common-card flex-grow-1 d-flex flex-column bg-white px-3 py-2 pt-3 position-relative">
+                <div class="loader-v2 loading" data-chainsubmarket-target="chartLoader"></div>
+                {{- /* CHART ONTROLS */ -}}
+                <div class="d-flex flex-shrink-1 align-items-top flex-wrap mx-1 mx-lg-4 mb-3 border-2-bottom-grey">
+                    {{- /* EXCHANGE SELECTION */ -}}
+                    <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 my-3"
+                        data-chainsubmarket-target="exchanges" data-action="click->chainsubmarket#changeExchange">
+                        <label>Exchange</label>
+                        <div class="btn-group" data-chainsubmarket-target="exchangeBtnArea">
+                            {{range $index, $exchange := $botState.VolumnOrdered}}
+                            <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}}
+                                data-exchangeindex="{{$index}}" data-sticks="1"
+                                data-bins="{{$exchange.State.StickList}}" {{end}} {{if $exchange.State.HasDepth}}
+                                data-depth="1" {{end}}
+                                class="tab-button exchange-tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName
+                                $exchange.Token}}</button>
+                            {{end}}
+                            <button name="aggregated" data-chainsubmarket-target="aggOption" data-depth="1"
+                                class="tab-button exchange-tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>
+                        </div>
+                    </div>
+                    {{- /* DISPLAY CURRENCY */ -}}
+                    <div class="btn-set d-hide bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                        data-chainsubmarket-target="conversion" data-factor="{{$botState.BtcPrice}}"
+                        data-code="{{$botState.BtcIndex}}" data-action="click->chainsubmarket#setConversion">
+                        <label>Index</label>
+                        <button class="btn-selected" name="BTC">BTC</button>
+                        <button name="fiat">{{$botState.BtcIndex}}</button>
+                    </div>
 
-
-                {{- /* DISPLAY CURRENCY */ -}}
-                <div
-                    class="btn-set d-hide bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
-                    data-chainmarket-target="conversion"
-                    data-factor="{{$botState.BtcPrice}}"
-                    data-code="{{$botState.BtcIndex}}"
-                    data-action="click->chainmarket#setConversion"
-                >
-                  <label>Index</label>
-                  <button class="btn-selected" name="BTC">BTC</button>
-                  <button name="fiat">{{$botState.BtcIndex}}</button>
+                    {{- /* AGGREGATE DEPTH STACKING */ -}}
+                    <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                        data-chainsubmarket-target="aggStack">
+                        <label>Stacking</label>
+                        <button class="btn-selected" data-action="click->chainsubmarket#setStacking"
+                            name="on">On</button>
+                        <button data-action="click->chainsubmarket#setStacking" name="off">Off</button>
+                    </div>
+                    {{- /* OTHER CHART OPTIONS */ -}}
+                    <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
+                        data-chainsubmarket-target="actions">
+                        <label>Actions</label>
+                        <button><a data-chainsubmarket-target="link" href="" target="_blank"
+                                rel="noopener noreferrer"></a></button>
+                    </div>
                 </div>
-
-                {{- /* AGGREGATE DEPTH STACKING */ -}}
-                <div
-                    class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
-                    data-chainmarket-target="aggStack"
-                >
-                  <label>Stacking</label>
-                  <button class="btn-selected" data-action="click->chainmarket#setStacking" name="on">On</button>
-                  <button data-action="click->chainmarket#setStacking" name="off">Off</button>
-                </div>
-
-                {{- /* ZOOM */ -}}
-                <div
-                    class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
-                    data-chainmarket-target="zoom"
-                    data-action="click->chainmarket#setZoom"
-                >
-                  <label>Zoom +/-</label>
-                  <button class="btn-selected" name="10">10%</button>
-                  <button name="20">20%</button>
-                  <button name="40">40%</button>
-                  <button name="95">95%</button>
-                </div>
-
-                {{- /* OTHER CHART OPTIONS */ -}}
-                <div
-                    class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
-                    data-chainmarket-target="actions"
-                >
-                  <label>Actions</label>
-                  <button><a data-chainmarket-target="link" href="" target="_blank" rel="noopener noreferrer"></a></button>
+                {{- /* CHART */ -}}
+                <div class="flex-grow-1 ps-3 pe-4 mb-2 market-chart-box d-flex">
+                    <div class="d-flex w-100 position-relative market-chart">
+                        <div class="w-100">
+                            <div class="w-100 position-relative">
+                                <div class="submarket-chart-title d-block d-md-flex">
+                                    <ul class="nav nav-pills">
+                                        <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                            data-chainsubmarket-target="chartType" data-action="click->chainsubmarket#setChart"
+                                            data-option="history">
+                                            Market History
+                                        </li>
+                                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                            data-chainsubmarket-target="chartType" data-action="click->chainsubmarket#setChart"
+                                            data-option="candlestick">
+                                            Candlesticks
+                                        </li>
+                                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                            data-chainsubmarket-target="chartType" data-action="click->chainsubmarket#setChart"
+                                            data-option="volume">
+                                            Volume
+                                        </li>
+                                    </ul>
+                                    <div class="nav nav-pills ms-0 ms-md-3 mt-2 mt-md-0" data-chainsubmarket-target="bin"
+                                        data-action="click->chainsubmarket#changeBin">
+                                        <button class="nav-item nav-link mobile-nav-link active mobile-mode" name="5m">
+                                            5m
+                                        </button>
+                                        <button class="nav-item nav-link mobile-nav-link mobile-mode" name="30m">
+                                            30m
+                                        </button>
+                                        <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1h">
+                                            Hour
+                                        </button>
+                                        <button class="nav-item nav-link mobile-nav-link mobile-mode" name="4h">
+                                            4 Hours
+                                        </button>
+                                        <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1d">
+                                            Day
+                                        </button>
+                                        <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1w">
+                                            Week
+                                        </button>
+                                        <button class="nav-item nav-link mobile-nav-link mobile-mode" name="1mo">
+                                            Month
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="market-chart-legend" data-chainsubmarket-target="legend"></div>
+                                <div class="w-100 market-subchart mt-2" data-chainsubmarket-target="chart"></div>
+                            </div>
+                            <div class="w-100 position-relative mt-3">
+                                <div class="submarket-chart-title d-block d-md-flex">
+                                    <ul class="nav nav-pills">
+                                        <li class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                            data-chainsubmarket-target="depthChartType"
+                                            data-action="click->chainsubmarket#setDepthChart" data-option="depth">
+                                            Depth
+                                        </li>
+                                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
+                                            data-chainsubmarket-target="depthChartType"
+                                            data-action="click->chainsubmarket#setDepthChart" data-option="orders">
+                                            Order Book
+                                        </li>
+                                    </ul>
+                                    <div class="ms-0 ms-md-3 d-flex ai-center">
+                                        <p class="fs-13 fw-bold">Zoom +/-</p>
+                                        <div class="nav nav-pills ms-2 mt-2 mt-md-0" data-chainsubmarket-target="zoom"
+                                            data-action="click->chainsubmarket#setZoom">
+                                            <button class="nav-item nav-link mobile-nav-link active mobile-mode"
+                                                name="10">
+                                                10%
+                                            </button>
+                                            <button class="nav-item nav-link mobile-nav-link mobile-mode" name="20">
+                                                20%
+                                            </button>
+                                            <button class="nav-item nav-link mobile-nav-link mobile-mode" name="40">
+                                                40%
+                                            </button>
+                                            <button class="nav-item nav-link mobile-nav-link mobile-mode" name="95">
+                                                95%
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="market-chart-legend" data-chainsubmarket-target="depthLegend"></div>
+                                <div class="w-100 market-subchart mt-2" data-chainsubmarket-target="depthchart"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-
-            {{- /* CHART */ -}}
-            <div class="flex-grow-1 ps-3 pe-4 mb-2 market-chart-box d-flex">
-              <div class="d-flex w-100 position-relative market-chart">
-                <div class="market-chart-title d-flex align-items-center">
-                    <div data-chainmarket-target="xcLogo"></div>
-                    <div data-chainmarket-target="xcName"></div>
-                </div>
-                <div class="market-chart-legend" data-chainmarket-target="legend"></div>
-                <div class="position-absolute w-100 h-100" data-chainmarket-target="chart"></div>
-              </div>
-            </div>
-
-            {{- /* TODO: Test this data controller (time & market) */ -}}
-            <div class="text-center py-2 py-lg-0 text-lg-end px-4 fs13 d-hide" data-chainmarket-target="age">updated <span data-controller="time" data-time-target="age" data-chainmarket-target="ageSpan" data-age="0"></span> ago</div>
-        
         </div>
     </div>
-</div>
-{{- else -}} {{/* EXCHANGE MONITORING DISABLED */}}
+    {{- else -}} {{/* EXCHANGE MONITORING DISABLED */}}
 
     <h5 class="py-5 text-center">Exchange monitoring disabled</h5>
 
-{{- end -}}
+    {{- end -}}
 
-{{- template "footer" . -}}
+    {{- template "footer" . -}}
 
 </body>
+
 </html>
 {{end}}

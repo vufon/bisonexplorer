@@ -29,6 +29,31 @@
   cursor: default;
 }
 
+.submarket-page-toggle-btn {
+  height: 25px !important;
+  border-radius: unset !important;
+  background-color: var(--c-bg-bright);
+  padding: 0 7px !important;
+  border: 1px solid #eaeaea;
+  box-sizing: border-box;
+  font-weight: 500;
+  color: #78828d;
+  font-size: 13px;
+}
+
+.submarket-page-toggle-btn:hover {
+  background: #d6f0ff;
+  color: #3f3f3f;
+  border-color: #dce8ee;
+}
+
+.submarket-page-toggle-btn.active,
+.submarket-page-toggle-btn.active:hover {
+  background-color: #255595;
+  color: white !important;
+  cursor: default;
+}
+
 .tab-button.white:hover {
   background: #d6f0ff;
   color: #3f3f3f;
@@ -78,5 +103,9 @@
   .tab-button {
     padding: 0 7px;
     font-size: 13px;
+  }
+
+  .exchange-tab-button {
+    padding: 0 4px !important;
   }
 }

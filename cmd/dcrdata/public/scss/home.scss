@@ -556,9 +556,14 @@
 }
 
 .nav-pills {
-  .nav-link.active {
+  .nav-link.active,
+  .nav-link.active:hover {
     background-color: #255595;
     border-radius: 8px;
+  }
+
+  .nav-link.active:hover {
+    cursor: default;
   }
 
   .nav-link,
@@ -572,6 +577,10 @@
     border-radius: 0 !important;
     padding-top: 3px;
     padding-bottom: 3px;
+  }
+
+  .nav-link:hover {
+    background: #eee;
   }
 }
 

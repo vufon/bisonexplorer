@@ -3105,9 +3105,6 @@ func (c *appContext) getStakeDiffRange(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) addressTotals(w http.ResponseWriter, r *http.Request) {
-	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
 	if err != nil || len(addresses) > 1 {
 		http.Error(w, http.StatusText(422), 422)
@@ -3328,9 +3325,6 @@ func (c *appContext) getSwapsAmountChartData(w http.ResponseWriter, r *http.Requ
 }
 
 func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Request) {
-	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
 	if err != nil || len(addresses) > 1 {
 		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
@@ -3381,9 +3375,6 @@ func (c *appContext) getAddressTxTypesData(w http.ResponseWriter, r *http.Reques
 }
 
 func (c *appContext) getAddressTxAmountFlowData(w http.ResponseWriter, r *http.Request) {
-	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
 	if err != nil || len(addresses) > 1 {
 		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
@@ -3567,9 +3558,6 @@ func (c *appContext) getExchangeData(w http.ResponseWriter, r *http.Request) {
 
 // route: chainchart/market/{token}/candlestick/{bin}
 func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *http.Request) {
-	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -3588,14 +3576,12 @@ func (c *appContext) getMutilchainCandlestickChart(w http.ResponseWriter, r *htt
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 		return
 	}
-
 	chart, err := c.xcBot.MutilchainQuickSticks(token, bin, chainType)
 	if err != nil {
 		apiLog.Infof("QuickSticks error: %v", err)
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
-
 	writeJSONBytes(w, chart)
 }
 
@@ -3621,10 +3607,34 @@ func (c *appContext) getCandlestickChart(w http.ResponseWriter, r *http.Request)
 	writeJSONBytes(w, chart)
 }
 
-func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Request) {
-	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
+func (c *appContext) getMutilchainDepthSubmarketChart(w http.ResponseWriter, r *http.Request) {
+	chainType := chi.URLParam(r, "chaintype")
+	if chainType == "" {
 		return
 	}
+	if chainType == mutilchain.TYPEDCR {
+		c.getDepthChart(w, r)
+		return
+	}
+	if c.xcBot == nil {
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	token := m.RetrieveExchangeTokenCtx(r)
+	if token == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+	chart, err := c.xcBot.MutilchainQuickSubMarketDepth(token, chainType)
+	if err != nil {
+		apiLog.Infof("QuickDepth error: %v", err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	writeJSONBytes(w, chart)
+}
+
+func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
@@ -3644,6 +3654,27 @@ func (c *appContext) getMutilchainDepthChart(w http.ResponseWriter, r *http.Requ
 	}
 
 	chart, err := c.xcBot.MutilchainQuickDepth(token, chainType)
+	if err != nil {
+		apiLog.Infof("QuickDepth error: %v", err)
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+	writeJSONBytes(w, chart)
+}
+
+// route: /market/{token}/depth
+func (c *appContext) getDepthSubMarketChart(w http.ResponseWriter, r *http.Request) {
+	if c.xcBot == nil {
+		http.Error(w, http.StatusText(http.StatusServiceUnavailable), http.StatusServiceUnavailable)
+		return
+	}
+	token := m.RetrieveExchangeTokenCtx(r)
+	if token == "" {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	chart, err := c.xcBot.QuickSubMarketDepth(token)
 	if err != nil {
 		apiLog.Infof("QuickDepth error: %v", err)
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -3674,9 +3705,6 @@ func (c *appContext) getDepthChart(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *appContext) getAddressTransactions(w http.ResponseWriter, r *http.Request) {
-	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
 	if err != nil || len(addresses) > 1 {
 		http.Error(w, http.StatusText(422), 422)
@@ -3794,9 +3822,6 @@ func (c *appContext) broadcastTx(w http.ResponseWriter, r *http.Request) {
 // getAddressTransactionsRaw handles the various /address/{addr}/.../raw API
 // endpoints.
 func (c *appContext) getAddressTransactionsRaw(w http.ResponseWriter, r *http.Request) {
-	if c.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
 	addresses, err := m.GetAddressCtx(r, c.Params)
 	if err != nil || len(addresses) > 1 {
 		http.Error(w, http.StatusText(422), 422)
@@ -4095,10 +4120,10 @@ func (c *appContext) IsCrawlerUserAgent(userAgent, ip string) bool {
 	handlerAgent.LastTime = now
 	externalapi.TempAgent[existIndex] = handlerAgent
 	// if access count is 8 times in about 10s, add to black list
-	if handlerAgent.GetCount >= 7 {
+	if handlerAgent.GetCount >= 15 {
 		// remove from temp agents
 		externalapi.TempAgent = append(externalapi.TempAgent[:existIndex], externalapi.TempAgent[existIndex+1:]...)
-		if handlerAgent.Duration < 15 {
+		if handlerAgent.Duration < 30 {
 			// add to blacklist
 			err := c.DataSource.InsertToBlackList(userAgent, ip, "Too many visits in a short period of time")
 			if err != nil {
