@@ -233,7 +233,7 @@
                                        <a class="fs-22" data-turbolinks="false" href="/{{$ChainType}}/block/{{.Hash}}"
                                           data-chainhome-target="blockHeight">{{.Height}}</a>
                                     </span>
-                                    <span class="stats-subinfo fs-15i" data-chainhome-target="lastBlockTime"
+                                    <span class="stats-subinfo fs-15i" data-chainhome-target="blockTime"
                                        data-type="age" data-time-target="age" data-age="{{.BlockTimeUnix}}"></span>
                                  </div>
                               </div>
@@ -969,9 +969,9 @@
                                     <td class="ps-2 py-2 text-end">
                                        <p class="fs-16">
                                           <span data-chainmarket-target="marketVol">
-                                             {{threeSigFigs $botState.Volume}}
+                                             {{threeSigFigs $.Volume24h}}
                                           </span> {{toUpperCase $ChainType}}
-                                          <span class="fs15">(~$<span data-chainmarket-target="marketUSDVol">{{threeSigFigs (floatMultiply $botState.Volume $botState.Price)}}</span>)</span>
+                                          <span class="fs15">(~$<span data-chainmarket-target="marketUSDVol">{{threeSigFigs (floatMultiply $.Volume24h $botState.Price)}}</span>)</span>
                                        </p>
                                     </td>
                                  </tr>
@@ -979,7 +979,7 @@
                                     <td class="py-2 fs-16 fw-bold">Vol/Mkt Cap (24h)</td>
                                     <td class="ps-2 py-2 text-end">
                                        <p><span class="fs-16" data-coinall="{{$.Info.CoinValueSupply}}" data-chainmarket-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
-                                          $botState.Volume $.Info.CoinValueSupply))}}</span>%</p>
+                                          $botState.Volume24h $.Info.CoinValueSupply))}}</span>%</p>
                                     </td>
                                  </tr>
                               </tbody>
@@ -1047,8 +1047,7 @@
                                        <td class="ps-1 fs16 py-2 text-end" data-type="price">
                                           {{threeSigFigs $botState.Price}}
                                        </td>
-                                       <td class="fs16 px-2" data-type="arrow">
-                                          <span class="dcricon-arrow-up text-green"></span>
+                                       <td>
                                        </td>
                                     </tr>
                                  </tbody>

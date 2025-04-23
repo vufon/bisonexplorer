@@ -649,6 +649,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		TargetTimePerBlock float64
 		MarketCap          *dbtypes.MarketCapData
 		PoolDataList       []*dbtypes.MultichainPoolDataItem
+		Volume24h          float64
 	}{
 		CommonPageData:     commonData,
 		MempoolInfo:        mempoolInfo,
@@ -661,6 +662,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
 		MarketCap:          marketCap,
 		PoolDataList:       poolDataList,
+		Volume24h:          btcutil.Amount(homeInfo.Volume24h).ToBTC(),
 	})
 
 	if err != nil {
@@ -4430,6 +4432,7 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	allXcState := exp.getExchangeState()
+	lowPrice, highPrice := allXcState.GetMutilchainLowHighPrice(chainType)
 	xcState := exchanges.ExchangeBotStateContent{
 		BtcIndex:      allXcState.BtcIndex,
 		BtcPrice:      allXcState.BtcPrice,
@@ -4438,18 +4441,54 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
 		FiatIndices:   allXcState.FiatIndices,
 		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+		Change24h:     allXcState.GetMutilchainPriceChange(chainType),
+		LowPrice:      lowPrice,
+		HighPrice:     highPrice,
+	}
+	var conversions *MutilchainHomeConversions
+	xcBot := exp.xcBot
+	var coinValueSupply float64
+	var volume float64
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		exp.BtcPageData.RLock()
+		// Get fiat conversions if available
+		coinValueSupply = exp.BtcPageData.HomeInfo.CoinValueSupply
+		volume = btcutil.Amount(exp.BtcPageData.HomeInfo.Volume24h).ToBTC()
+		exp.BtcPageData.RUnlock()
+	case mutilchain.TYPELTC:
+		exp.LtcPageData.RLock()
+		// Get fiat conversions if available
+		coinValueSupply = exp.LtcPageData.HomeInfo.CoinValueSupply
+		volume = ltcutil.Amount(exp.LtcPageData.HomeInfo.Volume24h).ToBTC()
+		exp.LtcPageData.RUnlock()
+	default:
+		exp.pageData.RLock()
+		coinValueSupply = exp.pageData.HomeInfo.CoinValueSupply
+		volume = xcState.Volume
+	}
+	if xcBot != nil {
+		conversions = &MutilchainHomeConversions{
+			CoinSupply: xcBot.MutilchainConversion(coinValueSupply, chainType),
+		}
 	}
 
 	str, err := exp.templates.exec("chain_market", struct {
 		*CommonPageData
-		DepthMarkets []string
-		StickMarkets map[string]string
-		XcState      exchanges.ExchangeBotStateContent
-		ChainType    string
+		DepthMarkets    []string
+		StickMarkets    map[string]string
+		XcState         exchanges.ExchangeBotStateContent
+		Conversions     *MutilchainHomeConversions
+		ChainType       string
+		CoinValueSupply float64
+		Volume24h       float64
 	}{
-		CommonPageData: exp.commonData(r),
-		XcState:        xcState,
-		ChainType:      chainType,
+		CommonPageData:  exp.commonData(r),
+		XcState:         xcState,
+		ChainType:       chainType,
+		Conversions:     conversions,
+		CoinValueSupply: coinValueSupply,
+		Volume24h:       volume,
 	})
 
 	if err != nil {

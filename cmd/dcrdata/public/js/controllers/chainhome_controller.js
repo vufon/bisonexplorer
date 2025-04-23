@@ -338,7 +338,6 @@ export default class extends Controller {
         const prevRetarget = res.da.previousRetarget
         const remainingBlocks = res.da.remainingBlocks
         const timeRemaining = res.da.remainingTime
-        const timeAvg = res.da.timeAvg
         _this.diffChangeTarget.innerHTML = humanize.decimalParts(diffChange, false, 2, 0)
         if (diffChange > 0) {
           _this.diffChangeTarget.classList.remove('c-red')
@@ -350,7 +349,7 @@ export default class extends Controller {
         _this.prevRetargetTarget.innerHTML = humanize.threeSigFigs(prevRetarget)
         _this.remainingBlocksTarget.innerHTML = humanize.decimalParts(remainingBlocks, true, 0)
         _this.timeRemaningTarget.setAttribute('data-duration', timeRemaining)
-        _this.blockTimeAvgTarget.setAttribute('data-duration', timeAvg)
+        // _this.blockTimeAvgTarget.setAttribute('data-duration', timeAvg)
       }
     })
   }
