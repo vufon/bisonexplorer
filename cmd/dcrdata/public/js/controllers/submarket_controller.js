@@ -117,6 +117,7 @@ let focused = true
 let aggStacking = true
 let refreshAvailable = false
 let availableCandlesticks, availableDepths
+let chartLoaded = false; let depthChartLoaded = false
 
 function screenIsBig () {
   return window.innerWidth >= 992
@@ -979,8 +980,8 @@ export default class extends Controller {
       console.warn('invalid chart:', chart)
       return
     }
-
     this.chartLoaderTarget.classList.add('loading')
+    depthChartLoaded = false
     let response
     if (hasDepthCache(url)) {
       response = depthResponseCache[url]
@@ -990,7 +991,7 @@ export default class extends Controller {
       depthResponseCache[url] = response
       if (thisRequest !== depthRequestCounter) {
         // new request was issued while waiting.
-        this.chartLoaderTarget.classList.remove('loading')
+        this.removeLoader(chartLoaded, true)
         return
       }
     }
@@ -1009,7 +1010,7 @@ export default class extends Controller {
     this.query.replace(settings)
     if (isRefresh) this.depthGraph.updateOptions({ dateWindow: oldZoom })
     else this.resetDepthZoom()
-    this.chartLoaderTarget.classList.remove('loading')
+    this.removeLoader(chartLoaded, true)
     // this.lastUrl = url
     // refreshAvailable = false
   }
@@ -1038,8 +1039,8 @@ export default class extends Controller {
       console.warn('invalid chart:', chart)
       return
     }
-
     this.chartLoaderTarget.classList.add('loading')
+    chartLoaded = false
     let response
     const xcResponseMap = new Map()
     if (settings.chart === 'history' || settings.chart === 'volume') {
@@ -1072,7 +1073,7 @@ export default class extends Controller {
         }
         if (thisRequest !== requestCounter) {
           // new request was issued while waiting.
-          this.chartLoaderTarget.classList.remove('loading')
+          this.removeLoader(true, depthChartLoaded)
           return
         }
       }
@@ -1085,7 +1086,7 @@ export default class extends Controller {
         responseCache[url] = response
         if (thisRequest !== requestCounter) {
           // new request was issued while waiting.
-          this.chartLoaderTarget.classList.remove('loading')
+          this.removeLoader(true, depthChartLoaded)
           return
         }
       }
@@ -1109,9 +1110,17 @@ export default class extends Controller {
     this.query.replace(settings)
     if (isRefresh) this.graph.updateOptions({ dateWindow: oldZoom })
     else this.resetZoom()
-    this.chartLoaderTarget.classList.remove('loading')
+    this.removeLoader(true, depthChartLoaded)
     this.lastUrl = url
     refreshAvailable = false
+  }
+
+  removeLoader (chartFlag, depthChartFlag) {
+    chartLoaded = chartFlag
+    depthChartLoaded = depthChartFlag
+    if (chartLoaded && depthChartLoaded) {
+      this.chartLoaderTarget.classList.remove('loading')
+    }
   }
 
   setLastBin (xc) {
