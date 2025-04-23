@@ -108,9 +108,9 @@
              </tbody>
           </table>
           <div class="d-flex justify-content-between mb-1">
-             <p class="mb-0 fs-13">Low (<span data-submarket-target="lowPrice">{{printf "%.2f"
+             <p class="mb-0 fs-13">Low ($<span data-submarket-target="lowPrice">{{printf "%.2f"
                    $botState.LowPrice}}</span>)</p>
-             <p class="mb-0 fs-13">High (<span data-submarket-target="highPrice">{{printf "%.2f"
+             <p class="mb-0 fs-13">High ($<span data-submarket-target="highPrice">{{printf "%.2f"
                    $botState.HighPrice}}</span>)</p>
           </div>
           <div class="fs22 text-center pb-3">
@@ -120,7 +120,7 @@
                 <div class="range-marker" id="currentMarker" data-submarket-target="priceBarMarker">
                 </div>
                 <div class="range-label fs-13" id="currentLabel" data-submarket-target="priceBarLabel">
-                   {{printf
+                   ${{printf
                    "%.2f"
                    $botState.Price}}</div>
              </div>

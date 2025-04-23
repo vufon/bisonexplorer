@@ -20,7 +20,9 @@ const minuteMap = {
   '5m': 5,
   '30m': 30,
   '1h': 60,
+  '4h': 240,
   '1d': 1440,
+  '1w': 10080,
   '1mo': 43200
 }
 const PIPI = 2 * Math.PI
@@ -28,7 +30,9 @@ const prettyDurations = {
   '5m': '5 min',
   '30m': '30 min',
   '1h': 'hour',
+  '4h': '4 hours',
   '1d': 'day',
+  '1w': 'week',
   '1mo': 'month'
 }
 const exchangeLinks = {
@@ -150,7 +154,7 @@ let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#a5b7cf'
-const binList = ['5m', '30m', '1h', '4h', '1d', 'week', '1mo']
+const binList = ['5m', '30m', '1h', '4h', '1d', '1w', '1mo']
 let settings = {}
 const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12']
 
