@@ -1888,7 +1888,7 @@ export default class extends Controller {
       this.lowPriceTarget.textContent = update.low_price.toFixed(2)
       this.highPriceTarget.textContent = update.high_price.toFixed(2)
       // display on price bar label
-      this.priceBarLabelTarget.textContent = update.price.toFixed(2)
+      this.priceBarLabelTarget.textContent = '$' + update.price.toFixed(2)
       // TODO: directly handle
       this.priceBarTarget.dataset.low = update.low_price
       this.priceBarTarget.dataset.high = update.high_price

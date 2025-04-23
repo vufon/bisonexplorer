@@ -85,7 +85,7 @@
                             <td class="ps-2 py-2 text-end">
                                 <p><span class="fs-16" data-coinall="{{$.CoinValueSupply}}"
                                         data-chainsubmarket-target="volCapRate">{{printf "%.2f" (x100 (divideFloat
-                                        $botState.Volume24h $.CoinValueSupply))}}</span>%</p>
+                                        $.Volume24h $.CoinValueSupply))}}</span>%</p>
                             </td>
                         </tr>
                     </tbody>
@@ -108,7 +108,7 @@
                 </div>
             </div>
             {{- /* DCR/BTC MARKETS */ -}}
-            <div class="ms-2 ms-sm-4 me-2 my-4 p-2 p-lg-4 market-common-card bg-white">
+            <div class="ms-2 ms-sm-4 me-2 my-4 py-2 py-lg-4 px-2 market-common-card bg-white">
                 <table class="mx-auto mx-lg-3">
                     <tbody>
                         <tr class="fs14 lh1rem">

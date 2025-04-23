@@ -4460,7 +4460,7 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 		exp.LtcPageData.RLock()
 		// Get fiat conversions if available
 		coinValueSupply = exp.LtcPageData.HomeInfo.CoinValueSupply
-		volume = ltcutil.Amount(exp.LtcPageData.HomeInfo.Volume24h).ToBTC()
+		volume = xcState.Volume // since data from blockchair failed
 		exp.LtcPageData.RUnlock()
 	default:
 		exp.pageData.RLock()

@@ -728,6 +728,11 @@ body.darkBG {
   font-size: 0;
 }
 
+.market-vol-row {
+  padding-top: 7px !important;
+  padding-bottom: 7px !important;
+}
+
 @media (max-width: 768px) {
   .market-mobile-set {
     border-top: none;
