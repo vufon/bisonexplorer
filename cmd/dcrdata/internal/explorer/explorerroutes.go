@@ -632,7 +632,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	var commonData = exp.commonData(r)
 	commonData.IsHomepage = true
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
-	if conversions != nil {
+	if conversions != nil && mempoolInfo != nil && xcBot != nil {
 		conversions.MempoolSent = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalOut).ToBTC(), chainType)
 		conversions.MempoolFees = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalFee).ToBTC(), chainType)
 	}
