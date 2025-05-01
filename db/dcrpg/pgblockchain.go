@@ -10831,6 +10831,9 @@ func (pgb *ChainDB) GetAvgTxFee() (int64, error) {
 // return (total vol : int64, last 30 days vol : int64)
 func (pgb *ChainDB) GetBwDashData() (int64, int64, int64) {
 	dailyData := utils.ReadCsvFileFromUrl("https://raw.githubusercontent.com/bochinchero/dcrsnapcsv/main/data/stream/dex_decred_org_VolUSD.csv")
+	if len(dailyData) < 2 {
+		return 0, 0, 0
+	}
 	dailyData = dailyData[1:]
 	var volSum, last30days, vol24h float64
 	count := 0
