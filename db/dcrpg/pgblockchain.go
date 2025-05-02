@@ -1155,6 +1155,18 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 	})
 
 	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "coin age",
+		Fetcher:  pgb.coinAge,
+		Appender: appendCoinAge,
+	})
+
+	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "coin age bands",
+		Fetcher:  pgb.coinAgeBands,
+		Appender: appendCoinAgeBands,
+	})
+
+	charts.AddUpdater(cache.ChartUpdater{
 		Tag:      "window stats",
 		Fetcher:  pgb.windowStats,
 		Appender: appendWindowStats,
@@ -5724,6 +5736,28 @@ func (pgb *ChainDB) coinSupply(charts *cache.ChartData) (*sql.Rows, func(), erro
 	rows, err := retrieveCoinSupply(ctx, pgb.db, charts)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("coinSupply: %w", pgb.replaceCancelError(err))
+	}
+
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) coinAge(charts *cache.ChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveCoinAge(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("coinAge: %w", pgb.replaceCancelError(err))
+	}
+
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) coinAgeBands(charts *cache.ChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveCoinAgeBands(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("coinAgeBands: %w", pgb.replaceCancelError(err))
 	}
 
 	return rows, cancel, nil

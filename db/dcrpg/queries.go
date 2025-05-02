@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -4359,6 +4360,24 @@ func retrieveCoinSupply(ctx context.Context, db *sql.DB, charts *cache.ChartData
 	return rows, nil
 }
 
+// retrieveCoinAge fetches the coin age avg and coin destroyed days
+func retrieveCoinAge(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, internal.SelectCoinDaysDestroyed, charts.CoinAgeTip())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// retrieveCoinAgeBands fetches the coin age bands
+func retrieveCoinAgeBands(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBands, charts.CoinAgeBandsTip())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // retrieveMutilchainCoinSupply fetches the coin supply data from the vins table.
 func retrieveMutilchainCoinSupply(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData) (*sql.Rows, error) {
 	rows, err := db.QueryContext(ctx, mutilchainquery.MakeSelectCoinSupply(charts.ChainType), charts.NewAtomsTip())
@@ -4390,6 +4409,77 @@ func appendCoinSupply(charts *cache.ChartData, rows *sql.Rows) error {
 	if len(blocks.NewAtoms) > 0 {
 		blocks.NewAtoms[0] = 0
 	}
+	return nil
+}
+
+func appendCoinAge(charts *cache.ChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	blocks := charts.Blocks
+	for rows.Next() {
+		var cdd, avgAgeDays float64
+		var timestamp time.Time
+		if err := rows.Scan(&timestamp, &cdd, &avgAgeDays); err != nil {
+			return err
+		}
+		cddAmount := dcrutil.Amount(int64(math.Floor(cdd)))
+		blocks.CoinDaysDestroyed = append(blocks.CoinDaysDestroyed, cddAmount.ToCoin())
+		blocks.AvgCoinAge = append(blocks.AvgCoinAge, avgAgeDays)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// Set the genesis block to zero because the DB stores it as -1
+	if len(blocks.CoinDaysDestroyed) > 0 {
+		blocks.CoinDaysDestroyed[0] = 0
+		blocks.AvgCoinAge[0] = 0
+	}
+	fmt.Println("Check avg coin age length: ", len(blocks.CoinDaysDestroyed))
+	return nil
+}
+
+type AgeBandRow struct {
+	BlockHeight int64
+	BlockTime   time.Time
+	AgeBand     string
+	TotalValue  float64
+}
+
+func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	blocks := charts.Blocks
+	var currentHeight int64 = int64(charts.CoinAgeBandsTip())
+	var currentMap map[string]float64
+	for rows.Next() {
+		var blockHeight int64
+		var blockTime time.Time // nếu cần
+		var ageBand string
+		var totalValue float64
+		if err := rows.Scan(&blockHeight, &blockTime, &ageBand, &totalValue); err != nil {
+			return err
+		}
+		if blockHeight != currentHeight {
+			// if new block → save old map and create new map
+			if currentMap != nil {
+				blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentMap)
+			}
+			currentMap = make(map[string]float64)
+			currentHeight = blockHeight
+		}
+		currentMap[ageBand] = totalValue
+	}
+	if currentMap != nil {
+		blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentMap)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// Set the genesis block to zero because the DB stores it as -1
+	if len(blocks.CoinAgeBands) > 0 {
+		blocks.CoinAgeBands[0] = map[string]float64{}
+	}
+	fmt.Println("Check coin age bands length: ", len(blocks.CoinAgeBands))
 	return nil
 }
 

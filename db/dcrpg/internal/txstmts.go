@@ -289,6 +289,61 @@ const (
 			AND fund_tx.is_mainchain
 		ORDER BY fund_tx.block_height;`
 
+	SelectCoinDaysDestroyed = `
+	SELECT
+		spend_blk.time,
+  		SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS total_cdd,
+		AVG(FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS avg_age_days
+		FROM vins
+		JOIN vouts vout
+  		ON vins.prev_tx_hash = vout.tx_hash AND vins.prev_tx_index = vout.tx_index
+		JOIN transactions spend_tx
+  		ON vins.tx_hash = spend_tx.tx_hash
+		JOIN blocks spend_blk
+  		ON spend_tx.block_hash = spend_blk.hash
+		JOIN transactions create_tx
+  		ON vout.tx_hash = create_tx.tx_hash
+		JOIN blocks create_blk
+  		ON create_tx.block_hash = create_blk.hash
+		WHERE vout.value > 0 AND spend_blk.height > $1 AND spend_tx.is_mainchain AND create_tx.is_mainchain
+		GROUP BY spend_blk.height, spend_blk.time
+		ORDER BY spend_blk.height;`
+
+	SelectCoinAgeBands = `
+		SELECT
+		spend_blk.height AS block_height,
+  		spend_blk.time AS block_time,
+  		CASE
+    	WHEN age_days < 1 THEN '<1d'
+    	WHEN age_days < 7 THEN '1d-1w'
+    	WHEN age_days < 30 THEN '1w-1m'
+   		WHEN age_days < 180 THEN '1m-6m'
+    	WHEN age_days < 365 THEN '6m-1y'
+    	WHEN age_days < 2 * 365 THEN '1y-2y'
+    	WHEN age_days < 3 * 365 THEN '2y-3y'
+    	WHEN age_days < 5 * 365 THEN '3y-5y'
+    	WHEN age_days < 7 * 365 THEN '5y-7y'
+    	ELSE '>7y'
+  	END AS age_band,
+  	SUM(vout.value) AS total_value
+	FROM vins
+	JOIN vouts vout
+  	ON vins.prev_tx_hash = vout.tx_hash AND vins.prev_tx_index = vout.tx_index
+	JOIN transactions spend_tx
+  	ON vins.tx_hash = spend_tx.tx_hash
+	JOIN blocks spend_blk
+  	ON spend_tx.block_hash = spend_blk.hash
+	JOIN transactions create_tx
+  	ON vout.tx_hash = create_tx.tx_hash
+	JOIN blocks create_blk
+  	ON create_tx.block_hash = create_blk.hash
+	CROSS JOIN LATERAL (
+  	SELECT FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400) AS age_days
+	) AS age_data
+	WHERE vout.value > 0 AND spend_blk.height > $1 AND spend_tx.is_mainchain AND create_tx.is_mainchain
+	GROUP BY spend_blk.height, spend_blk.time, age_band
+	ORDER BY spend_blk.height, age_band;`
+
 	Select24hBlockSummary = `SELECT COUNT(*),SUM(spent),SUM(sent),SUM(num_vin),SUM(num_vout) FROM transactions WHERE block_height=$1 AND tx_type=0`
 
 	SelectTotalTransactions = `SELECT COUNT(*) FROM transactions WHERE is_valid AND is_mainchain;`
