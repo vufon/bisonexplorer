@@ -4362,7 +4362,7 @@ func retrieveCoinSupply(ctx context.Context, db *sql.DB, charts *cache.ChartData
 
 // retrieveCoinAge fetches the coin age avg and coin destroyed days
 func retrieveCoinAge(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
-	rows, err := db.QueryContext(ctx, internal.SelectCoinDaysDestroyed, charts.CoinAgeTip())
+	rows, err := db.QueryContext(ctx, internal.SelectCoinAgeAllRows, charts.CoinAgeTip())
 	if err != nil {
 		return nil, err
 	}
@@ -4371,7 +4371,7 @@ func retrieveCoinAge(ctx context.Context, db *sql.DB, charts *cache.ChartData) (
 
 // retrieveCoinAgeBands fetches the coin age bands
 func retrieveCoinAgeBands(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
-	rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBands, charts.CoinAgeBandsTip())
+	rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBandsAllRows, charts.CoinAgeBandsTip())
 	if err != nil {
 		return nil, err
 	}
@@ -4417,13 +4417,14 @@ func appendCoinAge(charts *cache.ChartData, rows *sql.Rows) error {
 	blocks := charts.Blocks
 	for rows.Next() {
 		var cdd, avgAgeDays float64
+		var height int64
 		var timestamp time.Time
-		if err := rows.Scan(&timestamp, &cdd, &avgAgeDays); err != nil {
+		if err := rows.Scan(&height, &timestamp, &cdd, &avgAgeDays); err != nil {
 			return err
 		}
-		cddAmount := dcrutil.Amount(int64(math.Floor(cdd)))
+		cddAmount := dcrutil.Amount(int64(math.Floor(math.Abs(cdd))))
 		blocks.CoinDaysDestroyed = append(blocks.CoinDaysDestroyed, cddAmount.ToCoin())
-		blocks.AvgCoinAge = append(blocks.AvgCoinAge, avgAgeDays)
+		blocks.AvgCoinAge = append(blocks.AvgCoinAge, math.Abs(avgAgeDays))
 	}
 	if err := rows.Err(); err != nil {
 		return err
@@ -4434,7 +4435,6 @@ func appendCoinAge(charts *cache.ChartData, rows *sql.Rows) error {
 		blocks.CoinDaysDestroyed[0] = 0
 		blocks.AvgCoinAge[0] = 0
 	}
-	fmt.Println("Check avg coin age length: ", len(blocks.CoinDaysDestroyed))
 	return nil
 }
 
@@ -4454,7 +4454,7 @@ func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {
 		var blockHeight int64
 		var blockTime time.Time // nếu cần
 		var ageBand string
-		var totalValue float64
+		var totalValue int64
 		if err := rows.Scan(&blockHeight, &blockTime, &ageBand, &totalValue); err != nil {
 			return err
 		}
@@ -4466,7 +4466,8 @@ func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {
 			currentMap = make(map[string]float64)
 			currentHeight = blockHeight
 		}
-		currentMap[ageBand] = totalValue
+		valueAmount := dcrutil.Amount(totalValue)
+		currentMap[ageBand] = valueAmount.ToCoin()
 	}
 	if currentMap != nil {
 		blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentMap)

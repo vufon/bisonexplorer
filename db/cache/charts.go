@@ -542,7 +542,7 @@ func (charts *ChartData) Lengthen() error {
 	shortest, err := ValidateLengths(blocks.Height, blocks.Time,
 		blocks.PoolSize, blocks.PoolValue, blocks.BlockSize, blocks.TxCount,
 		blocks.NewAtoms, blocks.Chainwork, blocks.Difficulty, blocks.Fees, blocks.TotalMixed,
-		blocks.AnonymitySet, blocks.AvgCoinAge, blocks.CoinDaysDestroyed, blocks.CoinAgeBands)
+		blocks.AnonymitySet, blocks.AvgCoinAge, blocks.CoinDaysDestroyed)
 	if err != nil {
 		log.Warnf("ChartData.Lengthen: block data length mismatch detected. "+
 			"Truncating blocks length to %d", shortest)
@@ -627,7 +627,7 @@ func (charts *ChartData) Lengthen() error {
 			days.AnonymitySet = append(days.AnonymitySet, blocks.AnonymitySet.Avg(interval[0], interval[1]))
 			days.CoinDaysDestroyed = append(days.CoinDaysDestroyed, blocks.CoinDaysDestroyed.Sum(interval[0], interval[1]))
 			days.AvgCoinAge = append(days.AvgCoinAge, blocks.AvgCoinAge.Avg(interval[0], interval[1]))
-			days.CoinAgeBands = append(days.CoinAgeBands, blocks.CoinAgeBands.Sum(interval[0], interval[1]))
+			// days.CoinAgeBands = append(days.CoinAgeBands, blocks.CoinAgeBands.Sum(interval[0], interval[1]))
 		}
 	}
 
@@ -635,8 +635,7 @@ func (charts *ChartData) Lengthen() error {
 	daysLen, err := ValidateLengths(days.Height, days.Time, days.PoolSize,
 		days.PoolValue, days.BlockSize, days.TxCount, days.NewAtoms,
 		days.Chainwork, days.Difficulty, days.Fees, days.TotalMixed,
-		days.AnonymitySet, days.AvgCoinAge, days.CoinDaysDestroyed,
-		days.CoinAgeBands)
+		days.AnonymitySet, days.AvgCoinAge, days.CoinDaysDestroyed)
 	if err != nil {
 		return fmt.Errorf("day bin: %v", err)
 	} else if daysLen == 0 {

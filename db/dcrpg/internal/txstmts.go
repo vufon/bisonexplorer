@@ -291,6 +291,7 @@ const (
 
 	SelectCoinDaysDestroyed = `
 	SELECT
+		spend_blk.height,
 		spend_blk.time,
   		SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS total_cdd,
 		AVG(FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS avg_age_days

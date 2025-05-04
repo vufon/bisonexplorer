@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"math"
 	"regexp"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/chainhash"
+	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
@@ -56,6 +58,100 @@ func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
 	monthPriceMap := pgb.GetBitDegreeAllPriceMap()
 
 	pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
+	return nil
+}
+
+func (pgb *ChainDB) SyncCoinAgesData() error {
+	// get max height of coin_age table
+	var maxCoinAgeHeight int64
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeMaxHeight).Scan(&maxCoinAgeHeight)
+	if err != nil {
+		log.Errorf("Get max height of coin age failed: %v", err)
+		return err
+	}
+	// get max height of coin_age_bands table
+	var maxCoinAgeBandsHeight int64
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeBandsMaxHeight).Scan(&maxCoinAgeBandsHeight)
+	if err != nil {
+		log.Errorf("Get max height of coin age bands failed: %v", err)
+		return err
+	}
+	log.Info("Start sync coin_age table from height: ", maxCoinAgeHeight)
+	// sync coin age data
+	err = pgb.syncCoinAgeTable(maxCoinAgeHeight)
+	if err != nil {
+		log.Errorf("Sync coin age table data failed: %v", err)
+		return err
+	}
+
+	log.Info("Start sync coin_age_bands table from height: %d", maxCoinAgeBandsHeight)
+	// sync coin age bands data
+	err = pgb.syncCoinAgeBandsTable(maxCoinAgeBandsHeight)
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table data failed: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (pgb *ChainDB) syncCoinAgeBandsTable(maxHeight int64) error {
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectCoinAgeBands, maxHeight)
+	if err != nil {
+		return err
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var blockHeight int64
+		var blockTime time.Time // nếu cần
+		var ageBand string
+		var totalValue int64
+		if err := rows.Scan(&blockHeight, &blockTime, &ageBand, &totalValue); err != nil {
+			return err
+		}
+		result, err := pgb.db.Exec(internal.InsertCoinAgeBandsRow,
+			blockHeight, blockTime, ageBand, totalValue)
+		if err != nil {
+			return fmt.Errorf("insert new rows to coin_age_bands table failed: %w", err)
+		}
+		_, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pgb *ChainDB) syncCoinAgeTable(maxHeight int64) error {
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectCoinDaysDestroyed, maxHeight)
+	if err != nil {
+		return err
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var cdd, avgAgeDays float64
+		var height int64
+		var timestamp time.Time
+		if err := rows.Scan(&height, &timestamp, &cdd, &avgAgeDays); err != nil {
+			return err
+		}
+		cddAmount := dcrutil.Amount(int64(math.Floor(cdd)))
+		result, err := pgb.db.Exec(internal.InsertCoinAgeRow,
+			height, timestamp, cddAmount, avgAgeDays)
+		if err != nil {
+			return fmt.Errorf("insert new rows to coin_age table failed: %w", err)
+		}
+
+		_, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
 	return nil
 }
 

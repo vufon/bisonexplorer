@@ -985,6 +985,36 @@ func (pgb *ChainDB) MutilchainCheckAndCreateTable(chainType string) error {
 	return nil
 }
 
+func (pgb *ChainDB) CheckAndCreateCoinAgeTable() error {
+	exists, err := TableExists(pgb.db, "coin_age")
+	if err != nil {
+		return err
+	}
+	if !exists {
+		// Empty database (no blocks table). Proceed to setupTables.
+		log.Infof(`tables of %s empty. Creating tables...`, "coin_age")
+		if err = createTable(pgb.db, "coin_age", internal.CreateCoinAgeTable); err != nil {
+			return fmt.Errorf("failed to create tables: %w", err)
+		}
+	}
+	return nil
+}
+
+func (pgb *ChainDB) CheckAndCreateCoinAgeBandsTable() error {
+	exists, err := TableExists(pgb.db, "coin_age_bands")
+	if err != nil {
+		return err
+	}
+	if !exists {
+		// Empty database (no blocks table). Proceed to setupTables.
+		log.Infof(`tables of %s empty. Creating tables...`, "coin_age_bands")
+		if err = createTable(pgb.db, "coin_age_bands", internal.CreateCoinAgeBandsTable); err != nil {
+			return fmt.Errorf("failed to create tables: %w", err)
+		}
+	}
+	return nil
+}
+
 // DropTables drops (deletes) all of the known dcrdata tables.
 func (pgb *ChainDB) DropTables() {
 	DropTables(pgb.db)
@@ -1160,11 +1190,11 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 		Appender: appendCoinAge,
 	})
 
-	charts.AddUpdater(cache.ChartUpdater{
-		Tag:      "coin age bands",
-		Fetcher:  pgb.coinAgeBands,
-		Appender: appendCoinAgeBands,
-	})
+	// charts.AddUpdater(cache.ChartUpdater{
+	// 	Tag:      "coin age bands",
+	// 	Fetcher:  pgb.coinAgeBands,
+	// 	Appender: appendCoinAgeBands,
+	// })
 
 	charts.AddUpdater(cache.ChartUpdater{
 		Tag:      "window stats",
