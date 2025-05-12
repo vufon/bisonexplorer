@@ -48,7 +48,10 @@ const yAxisLabelWidth = {
     chainwork: 35,
     hashrate: 40,
     'coin-supply': 30,
-    fees: 35
+    fees: 35,
+    'avg-age-days': 50,
+    'coin-days-destroyed': 50,
+    'hodl-age-bands': 50
   },
   y2: {
     'ticket-price': 45
@@ -792,6 +795,20 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Cumulative Chainwork'],
           false, 'Cumulative Chainwork (exahash)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y, chainworkUnits))
+        break
+
+      case 'avg-age-days': // Total chainwork over time
+        d = zip2D(data, data.avgAge)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Average Age Days'],
+          false, 'Average Age Days (days)', true, false))
+        yFormatter = customYFormatter(y => y.toFixed(2) + ' days')
+        break
+
+      case 'coin-days-destroyed': // Total chainwork over time
+        d = zip2D(data, data.cdd)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coin Days Destroyed'],
+          false, 'Coin Days Destroyed (coin-days)', true, false))
+        yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' coin-days')
         break
 
       case 'hashrate': // Total chainwork over time

@@ -16,32 +16,36 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/v3"
 
+	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
 
 // Keys for specifying chart data type.
 const (
-	BlockSize       = "block-size"
-	BlockChainSize  = "blockchain-size"
-	ChainWork       = "chainwork"
-	CoinSupply      = "coin-supply"
-	DurationBTW     = "duration-btw-blocks"
-	HashRate        = "hashrate"
-	POWDifficulty   = "pow-difficulty"
-	TicketPrice     = "ticket-price"
-	TxCount         = "tx-count"
-	Fees            = "fees"
-	AnonymitySet    = "privacy-participation"
-	TicketPoolSize  = "ticket-pool-size"
-	TicketPoolValue = "ticket-pool-value"
-	WindMissedVotes = "missed-votes"
-	PercentStaked   = "stake-participation"
-	TxNumPerBlock   = "tx-per-block"
-	MinedBlocks     = "mined-blocks"
-	MempoolTxCount  = "mempool-txs"
-	MempoolSize     = "mempool-size"
-	AddressNumber   = "address-number"
+	BlockSize         = "block-size"
+	BlockChainSize    = "blockchain-size"
+	ChainWork         = "chainwork"
+	CoinSupply        = "coin-supply"
+	DurationBTW       = "duration-btw-blocks"
+	HashRate          = "hashrate"
+	POWDifficulty     = "pow-difficulty"
+	TicketPrice       = "ticket-price"
+	TxCount           = "tx-count"
+	Fees              = "fees"
+	AnonymitySet      = "privacy-participation"
+	TicketPoolSize    = "ticket-pool-size"
+	TicketPoolValue   = "ticket-pool-value"
+	WindMissedVotes   = "missed-votes"
+	PercentStaked     = "stake-participation"
+	TxNumPerBlock     = "tx-per-block"
+	MinedBlocks       = "mined-blocks"
+	MempoolTxCount    = "mempool-txs"
+	MempoolSize       = "mempool-size"
+	AddressNumber     = "address-number"
+	AvgAgeDays        = "avg-age-days"
+	CoinDaysDestroyed = "coin-days-destroyed"
+	CoinAgeBands      = "coin-age-bands"
 
 	// Some chartResponse keys
 	heightKey       = "h"
@@ -63,6 +67,9 @@ const (
 	durationKey     = "duration"
 	workKey         = "work"
 	rateKey         = "rate"
+	cddKey          = "cdd"
+	avgCoinAgeKey   = "avgAge"
+	ageBandKey      = "ageBands"
 )
 
 // binLevel specifies the granularity of data.
@@ -204,6 +211,54 @@ func (data ChartFloats) Sum(s, e int) (sum float64) {
 	return
 }
 
+// ChartFloats is a slice of floats. It satisfies the lengther interface, and
+// provides methods for taking averages or sums of segments.
+type ChartCoinAgeBands []*dbtypes.AgeBandData
+
+func newChartAgeCoinBands(size int) ChartCoinAgeBands {
+	return make([]*dbtypes.AgeBandData, 0, size)
+}
+
+// Length returns the length of data. Satisfies the lengther interface.
+func (data ChartCoinAgeBands) Length() int {
+	return len(data)
+}
+
+// Truncate makes a subset of the underlying dataset. It satisfies the lengther
+// interface.
+func (data ChartCoinAgeBands) Truncate(l int) lengther {
+	return data[:l]
+}
+
+// If the data is longer than max, return a subset of length max.
+func (data ChartCoinAgeBands) snip(max int) ChartCoinAgeBands {
+	if len(data) < max {
+		max = len(data)
+	}
+	return data[:max]
+}
+
+// Sum is the accumulation of a segment of the dataset.
+func (data ChartCoinAgeBands) Sum(s, e int) *dbtypes.AgeBandData {
+	if e <= s {
+		return &dbtypes.AgeBandData{}
+	}
+	sumBand := dbtypes.AgeBandData{}
+	for _, v := range data[s:e] {
+		sumBand.Less1Day += v.Less1Day
+		sumBand.DayToWeek += v.DayToWeek
+		sumBand.WeekToMonth += v.WeekToMonth
+		sumBand.MonthToHalfYear += v.MonthToHalfYear
+		sumBand.HalfYearToYear += v.HalfYearToYear
+		sumBand.YearTo2Year += v.YearTo2Year
+		sumBand.TwoYearTo3Year += v.TwoYearTo3Year
+		sumBand.ThreeYearTo5Year += v.ThreeYearTo5Year
+		sumBand.FiveYearTo7Year += v.FiveYearTo7Year
+		sumBand.GreaterThan7Year += v.GreaterThan7Year
+	}
+	return &sumBand
+}
+
 // A constructor for a sized ChartFloats.
 func newChartFloats(size int) ChartFloats {
 	return make([]float64, 0, size)
@@ -287,6 +342,9 @@ type ZoomSet struct {
 	AnonymitySet      ChartUints
 	Difficulty        ChartFloats
 	Hashrate          ChartFloats
+	CoinDaysDestroyed ChartFloats
+	AvgCoinAge        ChartFloats
+	CoinAgeBands      ChartCoinAgeBands
 }
 
 // Snip truncates the zoomSet to a provided length.
@@ -312,18 +370,21 @@ func (set *ZoomSet) Snip(length int) {
 // since the height is implicit for block-binned data.
 func newBlockSet(size int) *ZoomSet {
 	return &ZoomSet{
-		Height:       newChartUints(size),
-		Time:         newChartUints(size),
-		PoolSize:     newChartUints(size),
-		PoolValue:    newChartUints(size),
-		BlockSize:    newChartUints(size),
-		TxCount:      newChartUints(size),
-		NewAtoms:     newChartUints(size),
-		Chainwork:    newChartUints(size),
-		Difficulty:   newChartFloats(size),
-		Fees:         newChartUints(size),
-		TotalMixed:   newChartUints(size),
-		AnonymitySet: newChartUints(size),
+		Height:            newChartUints(size),
+		Time:              newChartUints(size),
+		PoolSize:          newChartUints(size),
+		PoolValue:         newChartUints(size),
+		BlockSize:         newChartUints(size),
+		TxCount:           newChartUints(size),
+		NewAtoms:          newChartUints(size),
+		Chainwork:         newChartUints(size),
+		Difficulty:        newChartFloats(size),
+		Fees:              newChartUints(size),
+		TotalMixed:        newChartUints(size),
+		AnonymitySet:      newChartUints(size),
+		AvgCoinAge:        newChartFloats(size),
+		CoinDaysDestroyed: newChartFloats(size),
+		CoinAgeBands:      newChartAgeCoinBands(size),
 	}
 }
 
@@ -491,7 +552,7 @@ func (charts *ChartData) Lengthen() error {
 	shortest, err := ValidateLengths(blocks.Height, blocks.Time,
 		blocks.PoolSize, blocks.PoolValue, blocks.BlockSize, blocks.TxCount,
 		blocks.NewAtoms, blocks.Chainwork, blocks.Difficulty, blocks.Fees, blocks.TotalMixed,
-		blocks.AnonymitySet)
+		blocks.AnonymitySet, blocks.AvgCoinAge, blocks.CoinDaysDestroyed)
 	if err != nil {
 		log.Warnf("ChartData.Lengthen: block data length mismatch detected. "+
 			"Truncating blocks length to %d", shortest)
@@ -574,13 +635,17 @@ func (charts *ChartData) Lengthen() error {
 			days.Fees = append(days.Fees, blocks.Fees.Sum(interval[0], interval[1]))
 			days.TotalMixed = append(days.TotalMixed, blocks.TotalMixed.Sum(interval[0], interval[1]))
 			days.AnonymitySet = append(days.AnonymitySet, blocks.AnonymitySet.Avg(interval[0], interval[1]))
+			days.CoinDaysDestroyed = append(days.CoinDaysDestroyed, blocks.CoinDaysDestroyed.Sum(interval[0], interval[1]))
+			days.AvgCoinAge = append(days.AvgCoinAge, blocks.AvgCoinAge.Avg(interval[0], interval[1]))
+			// days.CoinAgeBands = append(days.CoinAgeBands, blocks.CoinAgeBands.Sum(interval[0], interval[1]))
 		}
 	}
 
 	// Check that all relevant datasets have been updated to the same length.
 	daysLen, err := ValidateLengths(days.Height, days.Time, days.PoolSize,
 		days.PoolValue, days.BlockSize, days.TxCount, days.NewAtoms,
-		days.Chainwork, days.Difficulty, days.Fees, days.TotalMixed, days.AnonymitySet)
+		days.Chainwork, days.Difficulty, days.Fees, days.TotalMixed,
+		days.AnonymitySet, days.AvgCoinAge, days.CoinDaysDestroyed)
 	if err != nil {
 		return fmt.Errorf("day bin: %v", err)
 	} else if daysLen == 0 {
@@ -821,6 +886,20 @@ func (charts *ChartData) TotalMixedTip() int32 {
 	return int32(len(charts.Blocks.TotalMixed)) - 1
 }
 
+// CoinAgeTip is the height of the CoinAge data
+func (charts *ChartData) CoinAgeTip() int32 {
+	charts.mtx.RLock()
+	defer charts.mtx.RUnlock()
+	return int32(len(charts.Blocks.AvgCoinAge)) - 1
+}
+
+// CoinAgeBandsTip is the height of the CoinAgeBands data
+func (charts *ChartData) CoinAgeBandsTip() int32 {
+	charts.mtx.RLock()
+	defer charts.mtx.RUnlock()
+	return int32(len(charts.Blocks.CoinAgeBands)) - 1
+}
+
 // AnonymitySetTip is the height of the anonymity set
 func (charts *ChartData) AnonymitySetTip() int32 {
 	charts.mtx.RLock()
@@ -1035,21 +1114,24 @@ type ChartMaker func(charts *ChartData, bin binLevel, axis axisType, rangeOpt st
 type CustomUintsMaker func(charts *ChartData) uint64
 
 var chartMakers = map[string]ChartMaker{
-	BlockSize:       blockSizeChart,
-	BlockChainSize:  blockchainSizeChart,
-	ChainWork:       chainWorkChart,
-	CoinSupply:      coinSupplyChart,
-	DurationBTW:     durationBTWChart,
-	HashRate:        hashRateChart,
-	POWDifficulty:   powDifficultyChart,
-	TicketPrice:     ticketPriceChart,
-	TxCount:         txCountChart,
-	Fees:            feesChart,
-	AnonymitySet:    anonymitySetChart,
-	TicketPoolSize:  ticketPoolSizeChart,
-	TicketPoolValue: poolValueChart,
-	WindMissedVotes: missedVotesChart,
-	PercentStaked:   stakedCoinsChart,
+	BlockSize:         blockSizeChart,
+	BlockChainSize:    blockchainSizeChart,
+	ChainWork:         chainWorkChart,
+	CoinSupply:        coinSupplyChart,
+	DurationBTW:       durationBTWChart,
+	HashRate:          hashRateChart,
+	POWDifficulty:     powDifficultyChart,
+	TicketPrice:       ticketPriceChart,
+	TxCount:           txCountChart,
+	Fees:              feesChart,
+	AnonymitySet:      anonymitySetChart,
+	TicketPoolSize:    ticketPoolSizeChart,
+	TicketPoolValue:   poolValueChart,
+	WindMissedVotes:   missedVotesChart,
+	PercentStaked:     stakedCoinsChart,
+	AvgAgeDays:        avgAgeDaysChart,
+	CoinDaysDestroyed: coinDaysDestroyed,
+	CoinAgeBands:      coinAgeBands,
 }
 
 var customMakers = map[string]CustomUintsMaker{
@@ -1303,6 +1385,102 @@ func chainWorkChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
 				workKey: charts.Days.Chainwork,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func avgAgeDaysChart(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				avgCoinAgeKey: charts.Blocks.AvgCoinAge,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:       charts.Blocks.Time,
+				avgCoinAgeKey: charts.Blocks.AvgCoinAge,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey:     charts.Days.Height,
+				avgCoinAgeKey: charts.Days.AvgCoinAge,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:       charts.Days.Time,
+				avgCoinAgeKey: charts.Days.AvgCoinAge,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func coinDaysDestroyed(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				cddKey: charts.Blocks.CoinDaysDestroyed,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Blocks.Time,
+				cddKey:  charts.Blocks.CoinDaysDestroyed,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				cddKey:    charts.Days.CoinDaysDestroyed,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Days.Time,
+				cddKey:  charts.Days.CoinDaysDestroyed,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func coinAgeBands(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				ageBandKey: charts.Blocks.CoinAgeBands,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:    charts.Blocks.Time,
+				ageBandKey: charts.Blocks.CoinAgeBands,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey:  charts.Days.Height,
+				ageBandKey: charts.Days.CoinAgeBands,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:    charts.Days.Time,
+				ageBandKey: charts.Days.CoinAgeBands,
 			}, seed)
 		}
 	}
@@ -1895,4 +2073,21 @@ func stakedCoinsChart(charts *ChartData, bin binLevel, axis axisType, _ string) 
 		}
 	}
 	return nil, InvalidBinErr
+}
+
+func AgeGroup(ageDays int) string {
+	switch {
+	case ageDays < 1:
+		return "<1d"
+	case ageDays < 7:
+		return "1d-1w"
+	case ageDays < 30:
+		return "1w-1m"
+	case ageDays < 180:
+		return "1m-6m"
+	case ageDays < 365:
+		return "6m-1y"
+	default:
+		return ">1y"
+	}
 }

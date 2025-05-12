@@ -1254,6 +1254,34 @@ func _main(ctx context.Context) error {
 			}
 			log.Infof("Finish checking and syncing tspend_votes table...")
 		}
+
+		// sync coin age table
+		err = chainDB.CheckAndCreateCoinAgeTable()
+		if err != nil {
+			return fmt.Errorf("check and create coin_age table failed: %v", err)
+		}
+		err = chainDB.CheckAndCreateUtxoHistoryTable()
+		if err != nil {
+			return fmt.Errorf("check and create utxo_history table failed: %v", err)
+		}
+		err = chainDB.CheckAndCreateCoinAgeBandsTable()
+		if err != nil {
+			return fmt.Errorf("check and create coin_age_bands table failed: %v", err)
+		}
+		log.Infof("Begin checking and syncing coin age tables...")
+		syncCoinAgeData := func() error {
+			err := chainDB.SyncCoinAgesData()
+			if err != nil {
+				log.Errorf("dcrpg.SyncCoinAgesData failed")
+				return err
+			}
+			return nil
+		}
+		err = syncCoinAgeData()
+		if err != nil {
+			return err
+		}
+		log.Infof("Finish checking and syncing coin age tables...")
 	}
 
 	// After sync and indexing, must use upsert statement, which checks for

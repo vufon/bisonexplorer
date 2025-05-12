@@ -1043,6 +1043,19 @@ type Vout struct {
 	Mixed            bool             `json:"mixed"`
 }
 
+type AgeBandData struct {
+	Less1Day         float64 `json:"less1Day"`
+	DayToWeek        float64 `json:"dayToWeek"`
+	WeekToMonth      float64 `json:"weekToMonth"`
+	MonthToHalfYear  float64 `json:"monthToHalfYear"`
+	HalfYearToYear   float64 `json:"halfYearToYear"`
+	YearTo2Year      float64 `json:"yearTo2Year"`
+	TwoYearTo3Year   float64 `json:"twoYearTo3Year"`
+	ThreeYearTo5Year float64 `json:"threeYearTo5Year"`
+	FiveYearTo7Year  float64 `json:"fiveYearTo7Year"`
+	GreaterThan7Year float64 `json:"greaterThan7Year"`
+}
+
 // UTXOData stores an address and value associated with a transaction output.
 type UTXOData struct {
 	Addresses []string

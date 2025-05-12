@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"math/big"
 	"strconv"
 	"strings"
@@ -4359,6 +4360,26 @@ func retrieveCoinSupply(ctx context.Context, db *sql.DB, charts *cache.ChartData
 	return rows, nil
 }
 
+// retrieveCoinAge fetches the coin age avg and coin destroyed days
+func retrieveCoinAge(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, internal.SelectCoinAgeAllRows, charts.CoinAgeTip())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// retrieveCoinAgeBands fetches the coin age bands
+func retrieveCoinAgeBands(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
+	// fmt.Println("Coin age band tips height: ", charts.CoinAgeBandsTip())
+	// rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBandsAllRows, charts.CoinAgeBandsTip())
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return rows, nil
+	return nil, nil
+}
+
 // retrieveMutilchainCoinSupply fetches the coin supply data from the vins table.
 func retrieveMutilchainCoinSupply(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData) (*sql.Rows, error) {
 	rows, err := db.QueryContext(ctx, mutilchainquery.MakeSelectCoinSupply(charts.ChainType), charts.NewAtomsTip())
@@ -4391,6 +4412,104 @@ func appendCoinSupply(charts *cache.ChartData, rows *sql.Rows) error {
 		blocks.NewAtoms[0] = 0
 	}
 	return nil
+}
+
+func appendCoinAge(charts *cache.ChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	blocks := charts.Blocks
+	for rows.Next() {
+		var cdd, avgAgeDays float64
+		var height int64
+		var timestamp time.Time
+		if err := rows.Scan(&height, &timestamp, &cdd, &avgAgeDays); err != nil {
+			return err
+		}
+		cddAmount := dcrutil.Amount(int64(math.Floor(math.Abs(cdd))))
+		blocks.CoinDaysDestroyed = append(blocks.CoinDaysDestroyed, cddAmount.ToCoin())
+		blocks.AvgCoinAge = append(blocks.AvgCoinAge, math.Abs(avgAgeDays))
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// Set the genesis block to zero because the DB stores it as -1
+	if len(blocks.CoinDaysDestroyed) > 0 {
+		blocks.CoinDaysDestroyed[0] = 0
+		blocks.AvgCoinAge[0] = 0
+	}
+	return nil
+}
+
+type AgeBandRow struct {
+	BlockHeight int64
+	BlockTime   time.Time
+	AgeBand     string
+	TotalValue  float64
+}
+
+func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	blocks := charts.Blocks
+	var currentHeight int64 = int64(len(charts.Blocks.CoinAgeBands)) - 1
+	var currentBand *dbtypes.AgeBandData
+	for rows.Next() {
+		var blockHeight int64
+		var blockTime time.Time // nếu cần
+		var ageBand string
+		var totalValue int64
+		if err := rows.Scan(&blockHeight, &blockTime, &ageBand, &totalValue); err != nil {
+			return err
+		}
+		if blockHeight != currentHeight {
+			// if new block → save old map and create new map
+			if currentBand != nil {
+				blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentBand)
+			}
+			currentBand = &dbtypes.AgeBandData{}
+			currentHeight = blockHeight
+		}
+		valueAmount := dcrutil.Amount(totalValue)
+		setAgeBandItemData(ageBand, currentBand, valueAmount.ToCoin())
+	}
+	if currentBand != nil {
+		blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentBand)
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// Set the genesis block to zero because the DB stores it as -1
+	if len(blocks.CoinAgeBands) > 0 {
+		blocks.CoinAgeBands[0] = &dbtypes.AgeBandData{}
+	}
+	return nil
+}
+
+func setAgeBandItemData(ageBand string, currentBand *dbtypes.AgeBandData, data float64) {
+	switch ageBand {
+	case "<1d":
+		currentBand.Less1Day = data
+	case "1d-1w":
+		currentBand.DayToWeek = data
+	case "1w-1m":
+		currentBand.WeekToMonth = data
+	case "1m-6m":
+		currentBand.MonthToHalfYear = data
+	case "6m-1y":
+		currentBand.HalfYearToYear = data
+	case "1y-2y":
+		currentBand.YearTo2Year = data
+	case "2y-3y":
+		currentBand.TwoYearTo3Year = data
+	case "3y-5y":
+		currentBand.ThreeYearTo5Year = data
+	case "5y-7y":
+		currentBand.FiveYearTo7Year = data
+	case ">7y":
+		currentBand.GreaterThan7Year = data
+	default:
+		return
+	}
 }
 
 func appendMutilchainCoinSupply(charts *cache.MutilchainChartData, rows *sql.Rows) error {
