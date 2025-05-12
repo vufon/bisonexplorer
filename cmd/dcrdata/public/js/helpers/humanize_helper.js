@@ -27,6 +27,16 @@ const humanize = {
     else if (decimal > 8) decimal = 8
     return val.toLocaleString('en-US', { minimumFractionDigits: decimal, maximumFractionDigits: decimal })
   },
+  formatNumber: function (value, decimals = 2, useComma = true) {
+    if (isNaN(value)) return 'NaN'
+    const fixed = Number(value).toFixed(decimals)
+    const [intPart, decimalPart] = fixed.split('.')
+    const formattedInt = useComma
+      ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+      : intPart
+
+    return decimalPart ? `${formattedInt}.${decimalPart}` : formattedInt
+  },
   fmtPercentage: function (val) {
     let sign = '+'
     let cssClass = 'text-green'
