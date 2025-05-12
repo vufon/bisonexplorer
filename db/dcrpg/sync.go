@@ -70,10 +70,17 @@ func (pgb *ChainDB) SyncCoinAgesData() error {
 		return err
 	}
 	// get max height of coin_age_bands table
+	var maxUtxoHistoryHeight int64
+	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectUtxoHistoryMaxHeight).Scan(&maxUtxoHistoryHeight)
+	if err != nil {
+		log.Errorf("Get max height of utxo_history failed: %v", err)
+		return err
+	}
+	// get max height of coin_age_bands table
 	var maxCoinAgeBandsHeight int64
 	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeBandsMaxHeight).Scan(&maxCoinAgeBandsHeight)
 	if err != nil {
-		log.Errorf("Get max height of coin age bands failed: %v", err)
+		log.Errorf("Get max height of coin_age_bands failed: %v", err)
 		return err
 	}
 	log.Info("Start sync coin_age table from height: ", maxCoinAgeHeight)
@@ -84,32 +91,54 @@ func (pgb *ChainDB) SyncCoinAgesData() error {
 		return err
 	}
 
-	log.Info("Start sync coin_age_bands table from height: %d", maxCoinAgeBandsHeight)
-	// sync coin age bands data
-	err = pgb.syncCoinAgeBandsTable(maxCoinAgeBandsHeight)
+	log.Info("Start sync utxo_history table from height: %d", maxUtxoHistoryHeight)
+	// sync utxo history data
+	err = pgb.syncUtxoHistoryTable(maxUtxoHistoryHeight)
 	if err != nil {
-		log.Errorf("Sync coin_age_bands table data failed: %v", err)
+		log.Errorf("Sync utxo_history table data failed: %v", err)
 		return err
+	}
+
+	log.Info("Start sync coin_age_bands table from height: %d", maxCoinAgeBandsHeight)
+	// sync coin_age_bands table
+	go pgb.syncCoinAgeBandsTable(maxCoinAgeBandsHeight)
+	return nil
+}
+
+func (pgb *ChainDB) syncCoinAgeBandsTable(lastHeight int64) error {
+	maxHeight := pgb.bestBlock.height
+	batchSize := int64(50)
+	for fromHeight := lastHeight + 1; fromHeight <= maxHeight; fromHeight += batchSize {
+		toHeight := fromHeight + batchSize - 1
+		if toHeight > maxHeight {
+			toHeight = maxHeight
+		}
+		err := pgb.SyncCoinAgeBandsWithHeightRange(fromHeight, toHeight)
+		if err != nil {
+			log.Errorf("Sync coin_age_bands table failed with height from: %d to %d. Error: %v", fromHeight, toHeight, err)
+			return err
+		}
 	}
 	return nil
 }
 
-func (pgb *ChainDB) syncCoinAgeBandsTable(maxHeight int64) error {
-	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectCoinAgeBands, maxHeight)
+func (pgb *ChainDB) SyncCoinAgeBandsWithHeightRange(fromHeight, toHeight int64) error {
+	log.Infof("Start sync coin_age_bands table from: %d to %d", fromHeight, toHeight)
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectCoinAgeBandsFromUtxoHistory, fromHeight, toHeight)
 	if err != nil {
 		return err
 	}
 	defer closeRows(rows)
 	for rows.Next() {
-		var blockHeight int64
-		var blockTime time.Time // nếu cần
-		var ageBand string
 		var totalValue int64
-		if err := rows.Scan(&blockHeight, &blockTime, &ageBand, &totalValue); err != nil {
+		var height int64
+		var ageBand string
+		var timestamp time.Time
+		if err := rows.Scan(&height, &timestamp, &ageBand, &totalValue); err != nil {
 			return err
 		}
 		result, err := pgb.db.Exec(internal.InsertCoinAgeBandsRow,
-			blockHeight, blockTime, ageBand, totalValue)
+			height, timestamp, ageBand, totalValue)
 		if err != nil {
 			return fmt.Errorf("insert new rows to coin_age_bands table failed: %w", err)
 		}
@@ -119,6 +148,38 @@ func (pgb *ChainDB) syncCoinAgeBandsTable(maxHeight int64) error {
 		}
 	}
 	if err := rows.Err(); err != nil {
+		return err
+	}
+	log.Infof("Finish sync coin_age_bands table from: %d to %d", fromHeight, toHeight)
+	return nil
+}
+
+func (pgb *ChainDB) syncUtxoHistoryTable(lastHeight int64) error {
+	maxHeight := pgb.bestBlock.height
+	for height := lastHeight + 1; height <= maxHeight; height++ {
+		err := pgb.SyncUtxoHistoryHeight(height)
+		if err != nil {
+			log.Errorf("Sync utxo history on height %d failed: %v", height, err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (pgb *ChainDB) SyncUtxoHistoryHeight(height int64) error {
+	fmt.Printf("🔄 Processing block %d...\n", height)
+	// Add new utxo_history row
+	result, err := pgb.db.Exec(internal.InsertUtxoHistoryRow, height)
+	if err != nil {
+		return fmt.Errorf("Insert to utxo history failed with height: %d. Error: %v", height, err)
+	}
+	_, err = result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	_, err = pgb.db.Exec(internal.UpdateSpentUtxo, height)
+	if err != nil {
 		return err
 	}
 	return nil
@@ -144,6 +205,36 @@ func (pgb *ChainDB) syncCoinAgeTable(maxHeight int64) error {
 			return fmt.Errorf("insert new rows to coin_age table failed: %w", err)
 		}
 
+		_, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (pgb *ChainDB) SyncCoinAgeTableWithHeight(height int64) error {
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectCoinDaysDestroyedWithHeight, height)
+	if err != nil {
+		return err
+	}
+	defer closeRows(rows)
+	for rows.Next() {
+		var cdd, avgAgeDays float64
+		var height int64
+		var timestamp time.Time
+		if err := rows.Scan(&height, &timestamp, &cdd, &avgAgeDays); err != nil {
+			return err
+		}
+		cddAmount := dcrutil.Amount(int64(math.Floor(cdd)))
+		result, err := pgb.db.Exec(internal.InsertCoinAgeRow,
+			height, timestamp, cddAmount, avgAgeDays)
+		if err != nil {
+			return fmt.Errorf("insert new rows to coin_age table failed: %w", err)
+		}
 		_, err = result.RowsAffected()
 		if err != nil {
 			return err

@@ -16,6 +16,7 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/v3"
 
+	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
 )
@@ -212,21 +213,25 @@ func (data ChartFloats) Sum(s, e int) (sum float64) {
 
 // ChartFloats is a slice of floats. It satisfies the lengther interface, and
 // provides methods for taking averages or sums of segments.
-type ChartFloatsBands []map[string]float64
+type ChartCoinAgeBands []*dbtypes.AgeBandData
+
+func newChartAgeCoinBands(size int) ChartCoinAgeBands {
+	return make([]*dbtypes.AgeBandData, 0, size)
+}
 
 // Length returns the length of data. Satisfies the lengther interface.
-func (data ChartFloatsBands) Length() int {
+func (data ChartCoinAgeBands) Length() int {
 	return len(data)
 }
 
 // Truncate makes a subset of the underlying dataset. It satisfies the lengther
 // interface.
-func (data ChartFloatsBands) Truncate(l int) lengther {
+func (data ChartCoinAgeBands) Truncate(l int) lengther {
 	return data[:l]
 }
 
 // If the data is longer than max, return a subset of length max.
-func (data ChartFloatsBands) snip(max int) ChartFloatsBands {
+func (data ChartCoinAgeBands) snip(max int) ChartCoinAgeBands {
 	if len(data) < max {
 		max = len(data)
 	}
@@ -234,22 +239,24 @@ func (data ChartFloatsBands) snip(max int) ChartFloatsBands {
 }
 
 // Sum is the accumulation of a segment of the dataset.
-func (data ChartFloatsBands) Sum(s, e int) map[string]float64 {
+func (data ChartCoinAgeBands) Sum(s, e int) *dbtypes.AgeBandData {
 	if e <= s {
-		return map[string]float64{}
+		return &dbtypes.AgeBandData{}
 	}
-	sumMap := make(map[string]float64)
+	sumBand := dbtypes.AgeBandData{}
 	for _, v := range data[s:e] {
-		for key, value := range v {
-			inSum, existInSum := sumMap[key]
-			if existInSum {
-				sumMap[key] = inSum + value
-			} else {
-				sumMap[key] = value
-			}
-		}
+		sumBand.Less1Day += v.Less1Day
+		sumBand.DayToWeek += v.DayToWeek
+		sumBand.WeekToMonth += v.WeekToMonth
+		sumBand.MonthToHalfYear += v.MonthToHalfYear
+		sumBand.HalfYearToYear += v.HalfYearToYear
+		sumBand.YearTo2Year += v.YearTo2Year
+		sumBand.TwoYearTo3Year += v.TwoYearTo3Year
+		sumBand.ThreeYearTo5Year += v.ThreeYearTo5Year
+		sumBand.FiveYearTo7Year += v.FiveYearTo7Year
+		sumBand.GreaterThan7Year += v.GreaterThan7Year
 	}
-	return sumMap
+	return &sumBand
 }
 
 // A constructor for a sized ChartFloats.
@@ -337,7 +344,7 @@ type ZoomSet struct {
 	Hashrate          ChartFloats
 	CoinDaysDestroyed ChartFloats
 	AvgCoinAge        ChartFloats
-	CoinAgeBands      ChartFloatsBands
+	CoinAgeBands      ChartCoinAgeBands
 }
 
 // Snip truncates the zoomSet to a provided length.
@@ -363,18 +370,21 @@ func (set *ZoomSet) Snip(length int) {
 // since the height is implicit for block-binned data.
 func newBlockSet(size int) *ZoomSet {
 	return &ZoomSet{
-		Height:       newChartUints(size),
-		Time:         newChartUints(size),
-		PoolSize:     newChartUints(size),
-		PoolValue:    newChartUints(size),
-		BlockSize:    newChartUints(size),
-		TxCount:      newChartUints(size),
-		NewAtoms:     newChartUints(size),
-		Chainwork:    newChartUints(size),
-		Difficulty:   newChartFloats(size),
-		Fees:         newChartUints(size),
-		TotalMixed:   newChartUints(size),
-		AnonymitySet: newChartUints(size),
+		Height:            newChartUints(size),
+		Time:              newChartUints(size),
+		PoolSize:          newChartUints(size),
+		PoolValue:         newChartUints(size),
+		BlockSize:         newChartUints(size),
+		TxCount:           newChartUints(size),
+		NewAtoms:          newChartUints(size),
+		Chainwork:         newChartUints(size),
+		Difficulty:        newChartFloats(size),
+		Fees:              newChartUints(size),
+		TotalMixed:        newChartUints(size),
+		AnonymitySet:      newChartUints(size),
+		AvgCoinAge:        newChartFloats(size),
+		CoinDaysDestroyed: newChartFloats(size),
+		CoinAgeBands:      newChartAgeCoinBands(size),
 	}
 }
 

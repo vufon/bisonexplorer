@@ -1000,6 +1000,21 @@ func (pgb *ChainDB) CheckAndCreateCoinAgeTable() error {
 	return nil
 }
 
+func (pgb *ChainDB) CheckAndCreateUtxoHistoryTable() error {
+	exists, err := TableExists(pgb.db, "utxo_history")
+	if err != nil {
+		return err
+	}
+	if !exists {
+		// Empty database (no blocks table). Proceed to setupTables.
+		log.Infof(`tables of %s empty. Creating tables...`, "utxo_history")
+		if err = createTable(pgb.db, "utxo_history", internal.CreateUtxoHistoryTable); err != nil {
+			return fmt.Errorf("failed to create tables: %w", err)
+		}
+	}
+	return nil
+}
+
 func (pgb *ChainDB) CheckAndCreateCoinAgeBandsTable() error {
 	exists, err := TableExists(pgb.db, "coin_age_bands")
 	if err != nil {
@@ -1190,7 +1205,7 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 		Appender: appendCoinAge,
 	})
 
-	// charts.AddUpdater(cache.ChartUpdater{
+	// TODO: charts.AddUpdater(cache.ChartUpdater{
 	// 	Tag:      "coin age bands",
 	// 	Fetcher:  pgb.coinAgeBands,
 	// 	Appender: appendCoinAgeBands,
@@ -5408,11 +5423,26 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	_, _, _, err := pgb.StoreBlock(msgBlock, isValid, isMainChain,
 		updateExistingRecords, updateAddressesSpendingInfo,
 		blockData.Header.ChainWork)
-
+	if err != nil {
+		log.Errorf("Store block %d failed. %v", blockData.Header.Height, err)
+		return err
+	}
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalHeight(msgBlock.Header.Height)
-
-	return err
+	// sync coin age table
+	err = pgb.SyncCoinAgeTableWithHeight(int64(msgBlock.Header.Height))
+	if err != nil {
+		log.Errorf("Sync coin_age table on height %d failed. %v", blockData.Header.Height, err)
+		return err
+	}
+	// sync utxo_history table
+	err = pgb.SyncUtxoHistoryHeight(int64(msgBlock.Header.Height))
+	if err != nil {
+		log.Errorf("Sync utxo_history table on height %d failed. %v", blockData.Header.Height, err)
+		return err
+	}
+	// err = pgb.SyncCoinAgeBandsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	return nil
 }
 
 // Store satisfies BlockDataSaver. Blocks stored this way are considered valid
@@ -5789,7 +5819,6 @@ func (pgb *ChainDB) coinAgeBands(charts *cache.ChartData) (*sql.Rows, func(), er
 	if err != nil {
 		return nil, cancel, fmt.Errorf("coinAgeBands: %w", pgb.replaceCancelError(err))
 	}
-
 	return rows, cancel, nil
 }
 

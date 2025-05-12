@@ -4371,11 +4371,13 @@ func retrieveCoinAge(ctx context.Context, db *sql.DB, charts *cache.ChartData) (
 
 // retrieveCoinAgeBands fetches the coin age bands
 func retrieveCoinAgeBands(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
-	rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBandsAllRows, charts.CoinAgeBandsTip())
-	if err != nil {
-		return nil, err
-	}
-	return rows, nil
+	// fmt.Println("Coin age band tips height: ", charts.CoinAgeBandsTip())
+	// rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBandsAllRows, charts.CoinAgeBandsTip())
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// return rows, nil
+	return nil, nil
 }
 
 // retrieveMutilchainCoinSupply fetches the coin supply data from the vins table.
@@ -4448,8 +4450,8 @@ type AgeBandRow struct {
 func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {
 	defer closeRows(rows)
 	blocks := charts.Blocks
-	var currentHeight int64 = int64(charts.CoinAgeBandsTip())
-	var currentMap map[string]float64
+	var currentHeight int64 = int64(len(charts.Blocks.CoinAgeBands)) - 1
+	var currentBand *dbtypes.AgeBandData
 	for rows.Next() {
 		var blockHeight int64
 		var blockTime time.Time // nếu cần
@@ -4460,17 +4462,17 @@ func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {
 		}
 		if blockHeight != currentHeight {
 			// if new block → save old map and create new map
-			if currentMap != nil {
-				blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentMap)
+			if currentBand != nil {
+				blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentBand)
 			}
-			currentMap = make(map[string]float64)
+			currentBand = &dbtypes.AgeBandData{}
 			currentHeight = blockHeight
 		}
 		valueAmount := dcrutil.Amount(totalValue)
-		currentMap[ageBand] = valueAmount.ToCoin()
+		setAgeBandItemData(ageBand, currentBand, valueAmount.ToCoin())
 	}
-	if currentMap != nil {
-		blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentMap)
+	if currentBand != nil {
+		blocks.CoinAgeBands = append(blocks.CoinAgeBands, currentBand)
 	}
 	if err := rows.Err(); err != nil {
 		return err
@@ -4478,10 +4480,36 @@ func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {
 
 	// Set the genesis block to zero because the DB stores it as -1
 	if len(blocks.CoinAgeBands) > 0 {
-		blocks.CoinAgeBands[0] = map[string]float64{}
+		blocks.CoinAgeBands[0] = &dbtypes.AgeBandData{}
 	}
-	fmt.Println("Check coin age bands length: ", len(blocks.CoinAgeBands))
 	return nil
+}
+
+func setAgeBandItemData(ageBand string, currentBand *dbtypes.AgeBandData, data float64) {
+	switch ageBand {
+	case "<1d":
+		currentBand.Less1Day = data
+	case "1d-1w":
+		currentBand.DayToWeek = data
+	case "1w-1m":
+		currentBand.WeekToMonth = data
+	case "1m-6m":
+		currentBand.MonthToHalfYear = data
+	case "6m-1y":
+		currentBand.HalfYearToYear = data
+	case "1y-2y":
+		currentBand.YearTo2Year = data
+	case "2y-3y":
+		currentBand.TwoYearTo3Year = data
+	case "3y-5y":
+		currentBand.ThreeYearTo5Year = data
+	case "5y-7y":
+		currentBand.FiveYearTo7Year = data
+	case ">7y":
+		currentBand.GreaterThan7Year = data
+	default:
+		return
+	}
 }
 
 func appendMutilchainCoinSupply(charts *cache.MutilchainChartData, rows *sql.Rows) error {

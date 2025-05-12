@@ -1260,6 +1260,10 @@ func _main(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("check and create coin_age table failed: %v", err)
 		}
+		err = chainDB.CheckAndCreateUtxoHistoryTable()
+		if err != nil {
+			return fmt.Errorf("check and create utxo_history table failed: %v", err)
+		}
 		err = chainDB.CheckAndCreateCoinAgeBandsTable()
 		if err != nil {
 			return fmt.Errorf("check and create coin_age_bands table failed: %v", err)
