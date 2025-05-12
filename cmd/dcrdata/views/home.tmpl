@@ -677,55 +677,11 @@
                      </thead>
                      <tbody class="bgc-white">
                         <tr>
-                           <td class="mono text-start pe-2 nowrap p03rem0">NextBlockReward</td>
-                           {{range .ParamsList}}
-                           <td class="mono">
-                              {{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase .ChainType}}
-                           </td>
-                           {{end}}
-                           <td>Next Block Reward (Estimate)</td>
-                        </tr>
-                        <tr>
-                           <td class="mono text-start pe-2 nowrap p03rem0">RemainingBlocks</td>
-                           {{range .ParamsList}}
-                           <td class="mono">{{.RemainingBlocks}}</td>
-                           {{end}}
-                           <td>Remaining Blocks for next reward reduction</td>
-                        </tr>
-                        <tr>
-                           <td class="mono text-start pe-2 nowrap p03rem0">NextTime</td>
-                           {{range .ParamsList}}
-                           <td class="mono nowrap pe-3">{{TimeConversion .NextTime}}</td>
-                           {{end}}
-                           <td>Estimated time for next reward reduction</td>
-                        </tr>
-                        <tr>
-                           <td class="mono text-start pe-2 nowrap p03rem0">ReduceMinDifficulty</td>
-                           {{range .ParamsList}}
-                           <td class="mono">{{.ReduceMinDifficulty}}</td>
-                           {{end}}
-                           <td>Whether the network should reduce the minimum required difficulty after a long enough period of time has passed without finding a block</td>
-                        </tr>
-                        <tr>
-                           <td class="mono text-start pe-2 nowrap p03rem0">MinDiffReductionTime</td>
-                           {{range .ParamsList}}
-                           <td class="mono">{{.MinDiffReductionTime}}</td>
-                           {{end}}
-                           <td>Amount of time after which the minimum required difficulty should be reduced when a block hasn't been found</td>
-                        </tr>
-                        <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">GenerateSupported</td>
                            {{range .ParamsList}}
                            <td class="mono">{{.GenerateSupported}}</td>
                            {{end}}
                            <td>Whether or not CPU mining is allowed</td>
-                        </tr>
-                        <tr>
-                           <td class="mono text-start pe-2 nowrap p03rem0">TargetTimespan</td>
-                           {{range .ParamsList}}
-                           <td class="mono">{{durationToShortDurationString .TargetTimespan}}</td>
-                           {{end}}
-                           <td>Amount of time that should elapse before the block difficulty requirement is examined to determine how it should be changed in order to maintain the desired block generation rate</td>
                         </tr>
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">TargetTimePerBlock</td>
@@ -747,6 +703,29 @@
                            <td class="mono">{{.CoinbaseMaturity}}</td>
                            {{end}}
                            <td>Number of blocks required before newly mined</td>
+                        </tr>
+                        <tr>
+                           <td class="mono text-start pe-2 nowrap p03rem0">NextBlockReward</td>
+                           {{range .ParamsList}}
+                           <td class="mono">
+                              {{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase .ChainType}}
+                           </td>
+                           {{end}}
+                           <td>Next Block Reward (Estimate)</td>
+                        </tr>
+                        <tr>
+                           <td class="mono text-start pe-2 nowrap p03rem0">RemainingBlocks</td>
+                           {{range .ParamsList}}
+                           <td class="mono">{{.RemainingBlocks}}</td>
+                           {{end}}
+                           <td>Remaining Blocks for next reward reduction</td>
+                        </tr>
+                        <tr>
+                           <td class="mono text-start pe-2 nowrap p03rem0">NextTime</td>
+                           {{range .ParamsList}}
+                           <td class="mono nowrap pe-3">{{TimeConversion .NextTime}}</td>
+                           {{end}}
+                           <td>Estimated time for next reward reduction</td>
                         </tr>
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">SubsidyReductionInterval</td>
