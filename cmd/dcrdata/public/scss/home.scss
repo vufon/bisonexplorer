@@ -2021,3 +2021,18 @@ label[for=c_more], label[for=c_more--scroll]) {
 .js-plotly-plot .plotly {
   width: auto !important;
 }
+
+.sort-icon {
+  margin-left: 2px;
+  opacity: 0.4;
+  transition: opacity 0.2s, fill 0.2s;
+}
+
+th:hover .sort-icon {
+  opacity: 0.7;
+}
+
+.sort-active {
+  opacity: 1 !important;
+  fill: #333 !important;
+}

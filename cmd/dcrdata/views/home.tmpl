@@ -15,51 +15,98 @@
                   <table class="btable-table w-100">
                      <thead>
                         <tr class="text-secondary bg-none">
-                           <th class="text-start">Name</th>
-                           <th class="text-end pe-2 pe-lg-5">Lastest Block</th>
-                           <th class="text-end pe-2 pe-lg-5">Price</th>
-                           <th class="text-end pe-2 pe-lg-5">Market Cap</th>
-                           <th class="text-end pe-2 pe-lg-5">24h Volume</th>
-                           <th class="text-end pe-2 pe-lg-5">Total Transactions</th>
-                           <th class="text-end pe-2 pe-lg-5">Coin Supply</th>
-                           <th class="text-end pe-2 pe-lg-3">Blockchain Size</th>
+                           <th class="text-start cursor-pointer" data-action="click->top#sortChainTable" data-column="name">
+                              Name <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="name"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
+                           <th class="text-end pe-2 pe-lg-5 cursor-pointer" data-action="click->top#sortChainTable" data-column="block">
+                              Latest Block 
+                              <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="block"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
+                           <th class="text-end pe-2 pe-lg-5 cursor-pointer" data-action="click->top#sortChainTable" data-column="price">
+                              Price 
+                              <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="price"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
+                           <th class="text-end pe-2 pe-lg-5 cursor-pointer" data-action="click->top#sortChainTable" data-column="cap">
+                              Market Cap 
+                              <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="cap"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
+                           <th class="text-end pe-2 pe-lg-5 cursor-pointer" data-action="click->top#sortChainTable" data-column="vol">
+                              24h Volume
+                              <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="vol"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
+                           <th class="text-end pe-2 pe-lg-5 cursor-pointer" data-action="click->top#sortChainTable" data-column="txcount">
+                              Total Transactions 
+                              <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="txcount"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
+                           <th class="text-end pe-2 pe-lg-5 cursor-pointer" data-action="click->top#sortChainTable" data-column="coinsupply">
+                              Coin Supply
+                              <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="coinsupply"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
+                           <th class="text-end pe-2 pe-lg-3 cursor-pointer" data-action="click->top#sortChainTable" data-column="size">
+                              Blockchain size
+                              <svg class="sort-icon text-muted" data-top-target="sortIcon" data-column="size"
+                              viewBox="0 0 10 10" width="13" height="13" fill="currentColor">
+                                 <path d="M2 3h6L5 0 2 3zm0 4h6L5 10 2 7z"/>
+                              </svg>
+                           </th>
                         </tr>
                      </thead>
                      <tbody class="bgc-white" data-top-target="supportedTable">
                         {{range .HomeInfoList}}
                         <tr>
-                           <td class="text-start">
+                           <td class="text-start" data-value="{{.Chain}}">
                               <a href="{{if eq .Chain "dcr"}}/decred{{else}}/{{.Chain}}{{end}}">
                                  <img src="/images/{{.Chain}}-icon.png" width="25" height="25" />
                                  <span class="ms-2 fs-17">{{chainName .Chain}}</span>
                                  <span class="fs-17">({{toUpperCase .Chain}})</span>
                               </a>
                            </td>
-                           <td class="text-end pe-2 pe-lg-5">
+                           <td class="text-end pe-2 pe-lg-5" data-value="{{.BestBlock.Height}}">
                               <a class="fs-16" id="{{.Chain}}_blockHeight" data-top-target="blockHeight" {{if eq
                                  .Chain "dcr" }}href="/decred/block/{{.BestBlock.Height}}"
                                  {{else}}href="/{{.Chain}}/block/{{.BestBlock.Height}}"
                                  {{end}}>{{.BestBlock.Height}}</a>
                            </td>
-                           <td class="text-end pe-2 pe-lg-5">
+                           <td class="text-end pe-2 pe-lg-5" data-value="{{.Price}}">
                               ${{template "decimalParts" (float64AsDecimalParts .Price 2 true)}}
                            </td>
-                           <td class="text-end pe-2 pe-lg-5">
+                           <td class="text-end pe-2 pe-lg-5" data-value="{{.MarketCap}}">
                               ${{difficultyDisp .MarketCap}}
                            </td>
-                           <td class="text-end pe-2 pe-lg-5">
+                           <td class="text-end pe-2 pe-lg-5" data-value="{{.Volumn}}">
                               ${{difficultyDisp .Volumn}}
                            </td>
-                           <td class="text-end pe-2 pe-lg-5">
+                           <td class="text-end pe-2 pe-lg-5" data-value="{{.HomeInfo.TotalTransactions}}">
                               <span id="{{.Chain}}_txcount">{{int64Comma .HomeInfo.TotalTransactions}}</span>
                            </td>
-                           <td class="text-end pe-2 pe-lg-5">
+                           <td class="text-end pe-2 pe-lg-5" data-value="{{.HomeInfo.CoinValueSupply}}">
                               <span id="{{.Chain}}_coinSupply" data-top-target="coinSupply">
                                  {{template "decimalParts" (float64AsDecimalParts .HomeInfo.CoinValueSupply 2 true)}}
                               </span>
                               <span>{{toUpperCase .Chain}}</span>
                            </td>
-                           <td class="text-end pe-2 pe-lg-3">
+                           <td class="text-end pe-2 pe-lg-3" data-value="{{.HomeInfo.TotalSize}}">
                               <span>
                                  {{.HomeInfo.FormattedSize}}
                               </span>
