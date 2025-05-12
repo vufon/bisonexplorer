@@ -223,6 +223,7 @@ type MutilchainHomeInfo struct {
 	HomeInfo     *types.HomeInfo
 	MarketCap    float64
 	Volumn       float64
+	VolumeUSD    float64
 	Price        float64
 }
 
@@ -449,20 +450,26 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			bestBlock = blocks[0]
 		}
 		var homeInfo *types.HomeInfo
+		var volume24h float64
+		allXcState := exp.getExchangeState()
 		switch chainType {
 		case mutilchain.TYPEBTC:
 			exp.BtcPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.BtcPageData.HomeInfo
+			volume24h = btcutil.Amount(homeInfo.Volume24h).ToBTC()
 			exp.BtcPageData.RUnlock()
 		case mutilchain.TYPELTC:
 			exp.LtcPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.LtcPageData.HomeInfo
+			volume24h = allXcState.LTCVolume
 			exp.LtcPageData.RUnlock()
 		default:
 			exp.pageData.RLock()
 			homeInfo = exp.pageData.HomeInfo
+			homeInfo.TotalTransactions = exp.pageData.SummaryInfo.TotalTransactions
+			volume24h = allXcState.Volume
 			exp.pageData.RUnlock()
 		}
 
@@ -479,16 +486,10 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			BestBlock:    bestBlock,
 			HomeInfo:     homeInfo,
 		}
-		chainHomeInfo.Price = chainHomeInfo.ExchangeRate.Value
+		chainHomeInfo.Price = allXcState.GetMutilchainPrice(chainType)
+		chainHomeInfo.Volumn = volume24h
+		chainHomeInfo.VolumeUSD = volume24h * chainHomeInfo.Price
 		chainHomeInfo.MarketCap = chainHomeInfo.Price * chainHomeInfo.HomeInfo.CoinValueSupply
-		if len(exp.CoinCapDataList) > 0 {
-			for _, capData := range exp.CoinCapDataList {
-				if capData.Symbol == dbtypes.ChainSymbolMap[chainType] {
-					chainHomeInfo.Volumn = capData.Volumn * chainHomeInfo.Price
-					break
-				}
-			}
-		}
 		homeChainInfoList = append(homeChainInfoList, chainHomeInfo)
 	}
 

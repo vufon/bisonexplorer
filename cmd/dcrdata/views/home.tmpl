@@ -94,8 +94,8 @@
                            <td class="text-end pe-2 pe-lg-5" data-value="{{.MarketCap}}">
                               ${{difficultyDisp .MarketCap}}
                            </td>
-                           <td class="text-end pe-2 pe-lg-5" data-value="{{.Volumn}}">
-                              ${{difficultyDisp .Volumn}}
+                           <td class="text-end pe-2 pe-lg-5" data-value="{{.VolumeUSD}}">
+                              ${{difficultyDisp .VolumeUSD}} ({{difficultyDisp .Volumn}} {{toUpperCase .Chain}})
                            </td>
                            <td class="text-end pe-2 pe-lg-5" data-value="{{.HomeInfo.TotalTransactions}}">
                               <span id="{{.Chain}}_txcount">{{int64Comma .HomeInfo.TotalTransactions}}</span>
