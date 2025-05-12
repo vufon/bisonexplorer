@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/csv"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,13 +12,15 @@ import (
 func ReadCsvFileFromUrl(filePath string) [][]string {
 	resp, err := http.Get(filePath)
 	if err != nil {
-		log.Fatal("Unable to read input file "+filePath, err)
+		fmt.Println("Unable to read input file for: ", filePath)
+		return make([][]string, 0)
 	}
 	defer resp.Body.Close()
 	csvReader := csv.NewReader(resp.Body)
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		log.Fatal("Unable to parse file as CSV for "+filePath, err)
+		fmt.Println("Unable to parse file as CSV for: ", filePath)
+		return make([][]string, 0)
 	}
 	return records
 }
