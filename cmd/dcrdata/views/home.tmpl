@@ -264,22 +264,35 @@
                                              class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
                                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                                                 <label>Chain</label>
-                                                <div class="d-flex ai-center">
-                                                   <div class="btn-group" data-toggle="buttons">
-                                                      <input data-chainmarket-target="chainTypeSelected"
-                                                         data-action="click->chainmarket#chainTypeChange" type="button"
-                                                         class="tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn active"
-                                                         value="DCR" name="dcr">
-                                                      <input data-chainmarket-target="chainTypeSelected"
-                                                         data-action="click->chainmarket#chainTypeChange" type="button"
-                                                         class="tab-button home-chart-toggle-btn white c-txt-main"
-                                                         value="LTC" name="ltc">
-                                                      <input data-chainmarket-target="chainTypeSelected"
-                                                         data-action="click->chainmarket#chainTypeChange" type="button"
-                                                         class="tab-button home-chart-toggle-btn white last-toggle-btn c-txt-main"
-                                                         value="BTC" name="btc">
-                                                   </div>
+                                                <select data-chainmarket-target="chainTypeSelected"
+                                                data-action="change->chainmarket#chainTypeChange" class="top-vodiapicker market-chart-vodiapicker">
+                                                <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">
+                                                   Bitcoin</option>
+                                                <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">
+                                                   Litecoin</option>
+                                                <option name="dcr" value="dcr" class="test"
+                                                   data-thumbnail="/images/dcr-icon.png">Decred</option>
+                                             </select>
+                                             <div class="top-chain-select-area">
+                                                <div class="h-100 d-flex ai-center">
+                                                <button class="top-chain-selected-btn market-chart-selected-btn" value="dcr">
+                                                   <li><img src="" alt=""><span class="ms-1"></span>
+                                                      <span class="dropdown-arrow" style="margin-left: 0.5rem; display: flex; align-items: center;">
+                                                         <svg width="10" height="6" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                                                           <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" fill-rule="evenodd"/>
+                                                         </svg>
+                                                       </span>
+                                                   </li>
+                                                </button>
                                                 </div>
+                                                <div id="marketSelectList" class="top-selection-area market-chart-selection-area" style="display: none;">
+                                                   <ul id="marketChartSelectUl" class="top-chain-select-list">
+                                                      <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin</span></li>
+                                                      <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin</span></li>
+                                                      <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred</span></li>
+                                                   </ul>
+                                                </div>
+                                             </div>
                                              </div>
                                              {{- /* PAIR SELECTION */ -}}
                                              <div class="d-hide btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
@@ -470,7 +483,7 @@
                                                 </button>
                                                 </div>
                                                 <div id="chainSelectList" class="top-selection-area chain-chart-selection-area" style="display: none;">
-                                                   <ul id="chainChartSelectUl" class="top-chain-select-list top-chain-select-list">
+                                                   <ul id="chainChartSelectUl" class="top-chain-select-list">
                                                       <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin</span></li>
                                                       <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin</span></li>
                                                       <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred</span></li>

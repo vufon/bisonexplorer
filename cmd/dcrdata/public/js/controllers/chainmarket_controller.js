@@ -707,6 +707,7 @@ export default class extends Controller {
     this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
+    this.initForMarketChartChainTypeSelector()
     this.resize = this._resize.bind(this)
     window.addEventListener('resize', this.resize)
     this.tabVis = this._tabVis.bind(this)
@@ -722,6 +723,67 @@ export default class extends Controller {
     // TODO: handler all pages
     if (this.isHomepage) {
       this.updateMarketPriceBar()
+    }
+  }
+
+  initForMarketChartChainTypeSelector () {
+    const chainArray = []
+    const chainIconArray = []
+    const chainNameArr = []
+    $('.market-chart-vodiapicker option').each(function () {
+      const img = $(this).attr('data-thumbnail')
+      const text = this.innerText
+      const value = $(this).val()
+      const item = `<li><img src="${img}" alt="" value="${value}"/><span>${text}</span></li>`
+      chainArray.push(item)
+      chainIconArray.push(`<li class="d-flex ai-center"><img src="${img}" alt="" value="${value}"/><span>${text}</span>
+        <span class="dropdown-arrow" style="margin-left: 0.5rem;">
+        <svg width="8" height="5" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M0 0L5 6L10 0H0Z" />
+        </svg>
+      </span>
+        </li>`)
+      chainNameArr.push(value)
+    })
+    $('#marketChartSelectUl').html(chainArray)
+    const chainIndex = chainNameArr.indexOf(this.chainType)
+    if (chainIndex >= 0) {
+      $('.market-chart-selected-btn').html(chainIconArray[chainIndex])
+      $('.market-chart-selected-btn').attr('value', this.chainType)
+    }
+    const _this = this
+    $('#marketChartSelectUl li').click(function () {
+      const value = $(this).find('img').attr('value')
+      if (value === _this.chainType) {
+        _this.toggleSelection('.market-chart-selection-area')
+        return
+      }
+      _this.chainTypeSelectedTarget.value = value
+      _this.chainTypeChange()
+      const img = $(this).find('img').attr('src')
+      const text = this.innerText
+      const item = `<li class="d-flex ai-center"><img src="${img}" alt=""/><span class="ms-1">${text}</span>
+      <span class="dropdown-arrow" style="margin-left: 0.5rem;">
+        <svg width="8" height="5" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M0 0L5 6L10 0H0Z" />
+        </svg>
+      </span>
+      </li>`
+      $('.market-chart-selected-btn').html(item)
+      $('.market-chart-selected-btn').attr('value', value)
+      _this.toggleSelection('.market-chart-selection-area')
+    })
+    $('.market-chart-selected-btn').click(function () {
+      _this.toggleSelection('.market-chart-selection-area')
+    })
+  }
+
+  toggleSelection (selector) {
+    const target = $(selector)
+    if (target.css('display') === 'none') {
+      target.show()
+    } else {
+      target.hide()
     }
   }
 
@@ -753,16 +815,12 @@ export default class extends Controller {
     }
   }
 
-  chainTypeChange (e) {
-    if (e.target.name === this.chainType) {
+  chainTypeChange () {
+    const chain = this.chainTypeSelectedTarget.value
+    if (chain === this.chainType) {
       return
     }
-    const target = e.srcElement || e.target
-    this.chainTypeSelectedTargets.forEach((cTypeTarget) => {
-      cTypeTarget.classList.remove('active')
-    })
-    target.classList.add('active')
-    this.chainType = e.target.name
+    this.chainType = chain
     // reload data
     globalChainType = this.chainType
     this.updateOptions()
