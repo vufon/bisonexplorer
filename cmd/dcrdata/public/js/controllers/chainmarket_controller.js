@@ -718,6 +718,7 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+    this.updateHeaderLink()
     // TODO: handler all pages
     if (this.isHomepage) {
       this.updateMarketPriceBar()
@@ -771,6 +772,7 @@ export default class extends Controller {
     this.setExchangeName()
     orderZoom = undefined
     this.fetchChart()
+    this.updateHeaderLink()
   }
 
   updateMarketPriceBar () {
@@ -972,6 +974,7 @@ export default class extends Controller {
     this.setButtons()
     this.setExchangeName()
     await this.fetchChart()
+    this.updateHeaderLink()
     samePair = false
     if (usesOrderbook(settings.chart)) {
       this.setZoomPct(defaultZoomPct)
@@ -1085,6 +1088,29 @@ export default class extends Controller {
       }
     }
     return firstBtn
+  }
+
+  updateHeaderLink () {
+    const chartHeader = document.getElementById('marketChartHeader')
+    if (!chartHeader) {
+      return
+    }
+    const chain = this.chainType
+    const chart = settings.chart
+    let pair = settings.pair
+    let link = chain === 'dcr' ? '/decred/market' : `/${chain}/market`
+    let chartParam = ''
+    if (usesCandlesticks(chart)) {
+      chartParam = `chart=${chart}`
+    } else {
+      chartParam = `dchart=${chart}`
+    }
+    link += `?${chartParam}`
+    if (chain === 'dcr') {
+      pair = pair || 'usdt'
+      link += `&pair=${pair}`
+    }
+    chartHeader.href = link
   }
 
   async fetchChart (isRefresh) {
@@ -1775,6 +1801,7 @@ export default class extends Controller {
     this.setButtons()
     this.setExchangeName()
     this.fetchChart()
+    this.updateHeaderLink()
   }
 
   changeExchangeSetting () {

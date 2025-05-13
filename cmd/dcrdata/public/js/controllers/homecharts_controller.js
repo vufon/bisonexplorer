@@ -598,6 +598,16 @@ export default class extends Controller {
     this.settings.chart = this.settings.chart || (this.chainType === 'dcr' ? 'ticket-price' : 'block-size')
     this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
     this.chartSelectTarget.value = this.settings.chart
+    this.handlerChainChartHeaderLink()
+  }
+
+  handlerChainChartHeaderLink () {
+    const chartHeader = document.getElementById('chainChartHeader')
+    const chain = this.chainType
+    const chart = this.settings.chart
+    let link = chain === 'dcr' ? '/decred/charts' : `/${chain}/charts`
+    link += `?chart=${chart}`
+    chartHeader.href = link
   }
 
   toggleSelection (selector) {
@@ -944,6 +954,7 @@ export default class extends Controller {
     }
     // determind select chart
     this.settings.chart = this.getSelectedChart()
+    this.handlerChainChartHeaderLink()
     this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
     this.customLimits = null
@@ -1079,6 +1090,7 @@ export default class extends Controller {
 
   async selectChart () {
     const selection = this.settings.chart = this.chartSelectTarget.value
+    this.handlerChainChartHeaderLink()
     this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
     this.customLimits = null

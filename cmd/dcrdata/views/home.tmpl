@@ -130,9 +130,10 @@
             <div class="hp-explore__cards-wrap mt-2">
                <!-- Start Market chart -->
                <div class="hp-explore__cards-content-1">
-                  <div class="explore-card-wrap">
+                  <div class="explore-card-wrap" data-controller="chainmarket">
                      <div class="explore-card-content">
-                        <div class="explore-card__header bg-for-header">
+                        <a href="#" id="marketChartHeader" data-turbolinks="false" class="link-to-subpage">
+                        <div class="explore-card__header">
                            <span class="homeicon-market explore-card__header__logo" alt="Market Charts route"
                               loading="lazy"></span>
                            <div class="explore-card__header__text ml-15">
@@ -149,12 +150,13 @@
                               </div>
                            </div>
                         </div>
+                     </a>
                         <div class="explore-card__values-content market-chart-content pb-2">
                            <section class="ms-0 ms-md-3">
                               {{- if $botState -}}
                               <div class="row border-1-grey chart-wrapper">
                                  <!-- market chart start -->
-                                 <div class="row px-0 w-100 align-items-top" data-controller="chainmarket">
+                                 <div class="row px-0 w-100 align-items-top">
                                     {{- /* LEFT COLUMN */ -}}
                                     <div class="col-24 col-lg-auto p-0 d-none">
                                        {{- /* PRICE */ -}}
@@ -423,33 +425,15 @@
                <div class="explore-card-wrap" data-controller="homecharts" {{range .ChainListTargetTimePerBlock}}
                   data-homecharts-{{.ChainType}}-blocktime="{{.TargetTimePerBlock}}" {{end}}>
                   <div class="explore-card-content">
-                     <div class="bg-for-header">
-                        <div class="row">
-                           <div class="col-md-8 col-lg-7 col-xl-5">
-                              <div class="row">
-                                 <div class="explore-card__header ps-4">
-                                    <span class="homeicon-chart explore-card__header__logo" alt="Charts route"
-                                       loading="lazy"></span>
-                                    <div class="explore-card__header__text ml-15">
-                                       <h5 class="explore-card__header__text__name"> Chain Charts </h5>
-                                    </div>
-                                 </div>
-                              </div>
+                     <a href="#" id="chainChartHeader" data-turbolinks="false" class="link-to-subpage">
+                        <div class="explore-card__header d-flex align-items-center position-relative px-4">
+                           <div class="d-flex align-items-center">
+                           <span class="homeicon-chart explore-card__header__logo me-3" alt="Charts route" loading="lazy"></span>
+                           <h5 class="explore-card__header__text__name mb-0">Chain Charts</h5>
                            </div>
-                           <div class="col-md-3 col-lg-3 col-xl-4"></div>
-                           <div class="col-md-10 col-lg-11 col-xl-11 ta-center chart-title-name pt-15">
-                              <span class="fs-22 fw-600" data-homecharts-target="chartTitleName"></span>
-                           </div>
-                           <div class="col-md-3 col-lg-3 col-xl-4 ta-right p-relative">
-                              <span class="explore-card__header__arrow">
-                                 <span class='the-arrow -right'>
-                                    <span class='shaft'></span>
-                                 </span>
-                              </span>
-                           </div>
+                           <span class="fs-22 fw-600 position-absolute top-50 start-50 translate-middle" data-homecharts-target="chartTitleName"></span>
                         </div>
-                     </div>
-
+                     </a>
                      <div class="explore-card__values-content market-chart-content">
                         <section>
                            <div class="row border-1-grey chart-wrapper">
@@ -545,7 +529,7 @@
                                           </div>
                                           {{- /* ZOOM SELECTIONS */ -}}
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
-                                             <label class="text-nowrap">ZOOM</label>
+                                             <label class="text-nowrap">Zoom</label>
                                              <select id="zoomSelector" class="chart-box d-inline-flex zoom-selector cursor-pointer"
                                                 data-homecharts-target="zoomSelector"
                                                 data-action="change->homecharts#setSelectZoom">
@@ -560,7 +544,7 @@
                                           <div class="d-hide btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
                                              data-homecharts-target="binSelector"
                                              data-action="click->homecharts#setSelectBin">
-                                             <label class="text-nowrap">BIN</label>
+                                             <label class="text-nowrap">Bin</label>
                                              <div class="btn-group top-button-group">
                                                 <button name="day"
                                                    class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn top-home-chart-toggle-btn">Day</button>
@@ -572,7 +556,7 @@
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
                                              data-homecharts-target="scaleSelector"
                                              data-action="click->homecharts#setSelectScale">
-                                             <label class="text-nowrap">SCALE</label>
+                                             <label class="text-nowrap">Scale</label>
                                              <div class="btn-group top-button-group">
                                                 <button name="linear"
                                                    class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn top-home-chart-toggle-btn">Linear</button>
@@ -583,7 +567,7 @@
                                           {{- /* SCALE SELECTIONS */ -}}
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
                                              data-homecharts-target="vSelector">
-                                             <label class="text-nowrap">VISIBILITY</label>
+                                             <label class="text-nowrap">Visibility</label>
                                              <ul class="nav nav-pills top-button-group">
                                                 <li class="nav-item" data-homecharts-target="vSelectorItem"
                                                    data-charts="ticket-price">
@@ -620,7 +604,7 @@
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
                                              data-homecharts-target="modeSelector"
                                              data-action="click->homecharts#setSelectMode">
-                                             <label class="text-nowrap">MODE</label>
+                                             <label class="text-nowrap">Mode</label>
                                              <div class="btn-group top-button-group">
                                                 <button name="smooth"
                                                    class="active tab-button home-chart-toggle-btn white c-txt-main first-toggle-btn">Smooth</button>
