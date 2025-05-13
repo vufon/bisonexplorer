@@ -66,6 +66,15 @@ let aggStacking = true
 let refreshAvailable = false
 let availableCandlesticks, availableDepths
 
+$(document).mouseup(function (e) {
+  const selectArea = $('#marketSelectList')
+  if (!selectArea.is(e.target) && selectArea.has(e.target).length === 0) {
+    if (selectArea.css('display') !== 'none') {
+      selectArea.css('display', 'none')
+    }
+  }
+})
+
 function screenIsBig () {
   return window.innerWidth >= 992
 }

@@ -77,6 +77,15 @@ function hashrateBlockPlotter (e) {
   hashrateLegendPlotter(e, 794429)
 }
 
+$(document).mouseup(function (e) {
+  const selectArea = $('#chainChartSelectList')
+  if (!selectArea.is(e.target) && selectArea.has(e.target).length === 0) {
+    if (selectArea.css('display') !== 'none') {
+      selectArea.css('display', 'none')
+    }
+  }
+})
+
 function makePt (x, y) { return { x, y } }
 
 // Legend plotter processing for hashrate chart for blake3 algorithm transition

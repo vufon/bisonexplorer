@@ -84,7 +84,7 @@
                         {{range .HomeInfoList}}
                         <tr>
                            <td class="text-start" data-value="{{.Chain}}">
-                              <a href="{{if eq .Chain " dcr"}}/decred{{else}}/{{.Chain}}{{end}}">
+                              <a href="{{if eq .Chain "dcr"}}/decred{{else}}/{{.Chain}}{{end}}">
                                  <img src="/images/{{.Chain}}-icon.png" width="25" height="25" />
                                  <span class="ms-2 fs-17">{{chainName .Chain}}</span>
                                  <span class="fs-17">({{toUpperCase .Chain}})</span>
@@ -133,28 +133,28 @@
                   <div class="explore-card-wrap" data-controller="chainmarket">
                      <div class="explore-card-content">
                         <a href="#" id="marketChartHeader" data-turbolinks="false" class="link-to-subpage">
-                        <div class="explore-card__header">
-                           <span class="homeicon-market explore-card__header__logo" alt="Market Charts route"
-                              loading="lazy"></span>
-                           <div class="explore-card__header__text ml-15">
-                              <h5 class="explore-card__header__text__name"> Market Charts </h5>
-                              <span class="explore-card__header__arrow">
-                                 <span class='the-arrow -right'>
-                                    <span class='shaft'></span>
+                           <div class="explore-card__header">
+                              <span class="homeicon-market explore-card__header__logo" alt="Market Charts route"
+                                 loading="lazy"></span>
+                              <div class="explore-card__header__text ml-15">
+                                 <h5 class="explore-card__header__text__name"> Market Charts </h5>
+                                 <span class="explore-card__header__arrow">
+                                    <span class='the-arrow -right'>
+                                       <span class='shaft'></span>
+                                    </span>
                                  </span>
-                              </span>
-                              <div class="explore-card__header__text__price">
-                                 <div class="price-wrap d-flex ai-center">
-                                    <span class="price-usd fs-13">Long-term market historic price chart</span>
+                                 <div class="explore-card__header__text__price">
+                                    <div class="price-wrap d-flex ai-center">
+                                       <span class="price-usd fs-13">Long-term market historic price chart</span>
+                                    </div>
                                  </div>
                               </div>
                            </div>
-                        </div>
-                     </a>
-                        <div class="explore-card__values-content market-chart-content pb-2">
-                           <section class="ms-0 ms-md-3">
+                        </a>
+                        <div class="explore-card__values-content market-chart-content pb-3">
+                           <section class="ms-0 border-1-grey ps-md-3 pb-2">
                               {{- if $botState -}}
-                              <div class="row border-1-grey chart-wrapper">
+                              <div class="row chart-wrapper">
                                  <!-- market chart start -->
                                  <div class="row px-0 w-100 align-items-top">
                                     {{- /* LEFT COLUMN */ -}}
@@ -265,34 +265,46 @@
                                              <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                                                 <label>Chain</label>
                                                 <select data-chainmarket-target="chainTypeSelected"
-                                                data-action="change->chainmarket#chainTypeChange" class="top-vodiapicker market-chart-vodiapicker">
-                                                <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">
-                                                   Bitcoin</option>
-                                                <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">
-                                                   Litecoin</option>
-                                                <option name="dcr" value="dcr" class="test"
-                                                   data-thumbnail="/images/dcr-icon.png">Decred</option>
-                                             </select>
-                                             <div class="top-chain-select-area">
-                                                <div class="h-100 d-flex ai-center">
-                                                <button class="top-chain-selected-btn market-chart-selected-btn" value="dcr">
-                                                   <li><img src="" alt=""><span class="ms-1"></span>
-                                                      <span class="dropdown-arrow" style="margin-left: 0.5rem; display: flex; align-items: center;">
-                                                         <svg width="10" height="6" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                                                           <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" fill-rule="evenodd"/>
-                                                         </svg>
-                                                       </span>
-                                                   </li>
-                                                </button>
+                                                   data-action="change->chainmarket#chainTypeChange"
+                                                   class="top-vodiapicker market-chart-vodiapicker">
+                                                   <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">
+                                                      Bitcoin</option>
+                                                   <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">
+                                                      Litecoin</option>
+                                                   <option name="dcr" value="dcr" class="test"
+                                                      data-thumbnail="/images/dcr-icon.png">Decred</option>
+                                                </select>
+                                                <div class="top-chain-select-area">
+                                                   <div class="h-100 d-flex ai-center">
+                                                      <button class="top-chain-selected-btn market-chart-selected-btn"
+                                                         value="dcr">
+                                                         <li><img src="" alt=""><span class="ms-1"></span>
+                                                            <span class="dropdown-arrow"
+                                                               style="margin-left: 0.5rem; display: flex; align-items: center;">
+                                                               <svg width="10" height="6" viewBox="0 0 10 6"
+                                                                  xmlns="http://www.w3.org/2000/svg"
+                                                                  fill="currentColor">
+                                                                  <path d="M1 1l4 4 4-4" stroke="currentColor"
+                                                                     stroke-width="1.5" fill="none"
+                                                                     fill-rule="evenodd" />
+                                                               </svg>
+                                                            </span>
+                                                         </li>
+                                                      </button>
+                                                   </div>
+                                                   <div id="marketSelectList"
+                                                      class="top-selection-area market-chart-selection-area"
+                                                      style="display: none;">
+                                                      <ul id="marketChartSelectUl" class="top-chain-select-list">
+                                                         <li><img src="/images/btc-icon.png"
+                                                               value="btc"><span>Bitcoin</span></li>
+                                                         <li><img src="/images/ltc-icon.png"
+                                                               value="ltc"><span>Litecoin</span></li>
+                                                         <li><img src="/images/dcr-icon.png"
+                                                               value="dcr"><span>Decred</span></li>
+                                                      </ul>
+                                                   </div>
                                                 </div>
-                                                <div id="marketSelectList" class="top-selection-area market-chart-selection-area" style="display: none;">
-                                                   <ul id="marketChartSelectUl" class="top-chain-select-list">
-                                                      <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin</span></li>
-                                                      <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin</span></li>
-                                                      <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred</span></li>
-                                                   </ul>
-                                                </div>
-                                             </div>
                                              </div>
                                              {{- /* PAIR SELECTION */ -}}
                                              <div class="d-hide btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
@@ -441,10 +453,12 @@
                      <a href="#" id="chainChartHeader" data-turbolinks="false" class="link-to-subpage">
                         <div class="explore-card__header d-flex align-items-center position-relative px-4">
                            <div class="d-flex align-items-center">
-                           <span class="homeicon-chart explore-card__header__logo me-3" alt="Charts route" loading="lazy"></span>
-                           <h5 class="explore-card__header__text__name mb-0">Chain Charts</h5>
+                              <span class="homeicon-chart explore-card__header__logo me-3" alt="Charts route"
+                                 loading="lazy"></span>
+                              <h5 class="explore-card__header__text__name mb-0">Chain Charts</h5>
                            </div>
-                           <span class="fs-22 fw-600 position-absolute top-50 start-50 translate-middle" data-homecharts-target="chartTitleName"></span>
+                           <span class="fs-22 fw-600 position-absolute top-50 start-50 translate-middle"
+                              data-homecharts-target="chartTitleName"></span>
                         </div>
                      </a>
                      <div class="explore-card__values-content market-chart-content">
@@ -456,13 +470,13 @@
                                     <div class="col me-2 flex-grow-1 d-flex flex-column bg-white position-relative">
                                        {{- /* CHART ONTROLS */ -}}
                                        <div
-                                          class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-between flex-wrap px-1 px-lg-3 mb-2">
-                                          <div class="d-flex ai-center">
+                                          class="d-flex flex-shrink-1 align-items-top justify-content-around justify-content-lg-center flex-wrap px-1 px-lg-3 mb-2">
                                           {{- /* CHAIN SELECTIONS */ -}}
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                                              <label class="text-nowrap">Chain</label>
                                              <select data-homecharts-target="chainTypeSelected"
-                                                data-action="change->homecharts#chainTypeChange" class="top-vodiapicker chain-chart-vodiapicker">
+                                                data-action="change->homecharts#chainTypeChange"
+                                                class="top-vodiapicker chain-chart-vodiapicker">
                                                 <option name="btc" value="btc" data-thumbnail="/images/btc-icon.png">
                                                    Bitcoin</option>
                                                 <option name="ltc" value="ltc" data-thumbnail="/images/ltc-icon.png">
@@ -472,21 +486,30 @@
                                              </select>
                                              <div class="top-chain-select-area">
                                                 <div class="h-100 d-flex ai-center">
-                                                <button class="top-chain-selected-btn chain-chart-selected-btn" value="dcr">
-                                                   <li><img src="" alt=""><span class="ms-1"></span>
-                                                      <span class="dropdown-arrow" style="margin-left: 0.5rem; display: flex; align-items: center;">
-                                                         <svg width="10" height="6" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-                                                           <path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.5" fill="none" fill-rule="evenodd"/>
-                                                         </svg>
-                                                       </span>
-                                                   </li>
-                                                </button>
+                                                   <button class="top-chain-selected-btn chain-chart-selected-btn"
+                                                      value="dcr">
+                                                      <li><img src="" alt=""><span class="ms-1"></span>
+                                                         <span class="dropdown-arrow"
+                                                            style="margin-left: 0.5rem; display: flex; align-items: center;">
+                                                            <svg width="10" height="6" viewBox="0 0 10 6"
+                                                               xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+                                                               <path d="M1 1l4 4 4-4" stroke="currentColor"
+                                                                  stroke-width="1.5" fill="none" fill-rule="evenodd" />
+                                                            </svg>
+                                                         </span>
+                                                      </li>
+                                                   </button>
                                                 </div>
-                                                <div id="chainSelectList" class="top-selection-area chain-chart-selection-area" style="display: none;">
+                                                <div id="chainChartSelectList"
+                                                   class="top-selection-area chain-chart-selection-area"
+                                                   style="display: none;">
                                                    <ul id="chainChartSelectUl" class="top-chain-select-list">
-                                                      <li><img src="/images/btc-icon.png" value="btc"><span>Bitcoin</span></li>
-                                                      <li><img src="/images/ltc-icon.png" value="ltc"><span>Litecoin</span></li>
-                                                      <li><img src="/images/dcr-icon.png" value="dcr"><span>Decred</span></li>
+                                                      <li><img src="/images/btc-icon.png"
+                                                            value="btc"><span>Bitcoin</span></li>
+                                                      <li><img src="/images/ltc-icon.png"
+                                                            value="ltc"><span>Litecoin</span></li>
+                                                      <li><img src="/images/dcr-icon.png"
+                                                            value="dcr"><span>Decred</span></li>
                                                    </ul>
                                                 </div>
                                              </div>
@@ -494,7 +517,8 @@
                                           {{- /* CHART TYPE SELECTION */ -}}
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                                              <label>Chart</label>
-                                             <select id="selectBox" class="chart-box top-chart-box d-inline-flex cursor-pointer"
+                                             <select id="selectBox"
+                                                class="chart-box top-chart-box d-inline-flex cursor-pointer"
                                                 data-homecharts-target="chartSelect"
                                                 data-action="homecharts#selectChart">
                                                 <optgroup label="Staking">
@@ -522,8 +546,6 @@
                                                 </optgroup>
                                              </select>
                                           </div>
-                                       </div>
-                                       <div class="d-flex ai-center">
                                           {{- /* RANGE SELECTIONS */ -}}
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4"
                                              data-homecharts-target="rangeSelector">
@@ -543,7 +565,8 @@
                                           {{- /* ZOOM SELECTIONS */ -}}
                                           <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                                              <label class="text-nowrap">Zoom</label>
-                                             <select id="zoomSelector" class="chart-box d-inline-flex zoom-selector cursor-pointer"
+                                             <select id="zoomSelector"
+                                                class="chart-box d-inline-flex zoom-selector cursor-pointer"
                                                 data-homecharts-target="zoomSelector"
                                                 data-action="change->homecharts#setSelectZoom">
                                                 <option selected value="all">All</option>
@@ -626,7 +649,6 @@
                                              </div>
                                           </div>
                                        </div>
-                                       </div>
                                        {{- /* CHART */ -}}
                                        <div class="ps-0 ps-md-3 mb-2 market-chart-box home-chart-wrapper"
                                           data-homecharts-target="chartWrapper">
@@ -640,7 +662,8 @@
                                              </div>
                                           </div>
                                           <div
-                                             class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1 d-hide" id="chainChartFooterRow">
+                                             class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-1 d-hide"
+                                             id="chainChartFooterRow">
                                              <div class="row">
                                                 <div class="col-4 column-center chart-control chart-control-wrapper">
                                                    <ul class="nav nav-pills">

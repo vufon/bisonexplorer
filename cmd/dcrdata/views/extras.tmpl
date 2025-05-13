@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.82b9ddd2eb5e70be.css" rel="stylesheet">
+	<link href="/dist/css/style.28a664d21f5e378d.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -133,7 +133,7 @@
 {{define "top_navbar"}}
 <body class="{{ theme }}{{if .Cookies.DarkMode}} darkBG{{end}} {{if .IsHomepage}}homepage-body{{end}} top-page" data-controller="scroll">
 <header class="top-nav align-items-center pt-4" id="navBar" data-scroll-target="navbar" data-blocktime="{{.BlockTimeUnix}}">
-   <div class="top-bar-container position-relative w-100">
+   <div class="top-bar-container container position-relative w-100">
 	<a class="top-home-link dcrdata-logo position-absolute start-50 translate-middle-x" href="/"></a>
 	<div class="top-menu-item position-absolute end-0 me-3">
 	  <span id="sun-icon" data-action="click->scroll#topSunClick"
@@ -401,7 +401,7 @@
     </li>
 	 <li><a class="menu-item-title px-3">Tools</a>
       <ul class="submenu tools-menu-column last-submenu-item">
-		<li><a data-keynav-skip href="/chain" data-turbolinks="false" class="nav-btn--promo" title="Other blockchains">Other Blockchains</a></li>
+		<li><a data-keynav-skip href="/" data-turbolinks="false" class="nav-btn--promo" title="Other blockchains">Other Blockchains</a></li>
 	  	<li><a data-keynav-skip href="/finance-report" data-turbolinks="false" class="nav-btn--promo" title="Financial Reports">Financial Reports</a></li>
 	  	<li><a data-keynav-skip href="/stakingcalc" data-turbolinks="false" title="Staking Reward Calculator">Staking Reward Calculator</a></li>
 		<li><a data-keynav-skip href="/supply" data-turbolinks="false" class="nav-btn--promo" title="Next Block Reward Reduction">Supply</a></li>
@@ -449,7 +449,7 @@
     </li>
 	 <li><a class="menu-item-title px-3">Tools</a>
       <ul class="submenu tools-menu-column last-submenu-item">
-		<li><a data-keynav-skip href="/chain" title="Other blockchains">Other Blockchains</a></li>
+		<li><a data-keynav-skip href="/" title="Other blockchains">Other Blockchains</a></li>
 		<li><a data-keynav-skip href="/{{.ChainType}}/supply" title="Next Block Reward Reduction">Supply</a></li>
         <li><a data-keynav-skip href="/{{.ChainType}}/parameters" title="Chain Parameters">Parameters</a></li>
 		<li><a data-keynav-skip href="/whatsnew" title="Whats new">Whats New</a></li>
@@ -471,7 +471,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.5b1df664172ca15c.bundle.js"
+	src="/dist/js/app.446c34115500a2f2.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>
