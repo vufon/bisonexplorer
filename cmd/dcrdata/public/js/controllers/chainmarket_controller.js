@@ -774,6 +774,9 @@ export default class extends Controller {
   }
 
   updateMarketPriceBar () {
+    if (!this.hasPriceBarTarget) {
+      return
+    }
     const currentPrice = Number(this.priceBarTarget.dataset.price)
     const lowPrice = Number(this.priceBarTarget.dataset.low)
     const highPrice = Number(this.priceBarTarget.dataset.high)
@@ -901,11 +904,12 @@ export default class extends Controller {
   }
 
   setNameDisplay () {
-    if (screenIsBig()) {
-      this.xcNameTarget.classList.remove('d-hide')
-    } else {
-      this.xcNameTarget.classList.add('d-hide')
-    }
+    // TODO: Temporarily hide xc logo
+    // if (screenIsBig()) {
+    //   this.xcNameTarget.classList.remove('d-hide')
+    // } else {
+    //   this.xcNameTarget.classList.add('d-hide')
+    // }
   }
 
   _tabVis () {
@@ -1892,24 +1896,24 @@ export default class extends Controller {
 
   setExchangeName () {
     if (settings.chart === 'history' || settings.chart === 'volume') {
-      this.xcLogoTarget.classList.add('d-hide')
+      // this.xcLogoTarget.classList.add('d-hide')
       this.actionsTarget.classList.add('d-hide')
-      // exchange name
-      const exchanges = []
-      if (settings.xcs) {
-        const exStrArr = settings.xcs.split(',')
-        exStrArr.forEach((ex) => {
-          exchanges.push(ex.charAt(0).toUpperCase() + ex.slice(1))
-        })
-      }
-      this.xcNameTarget.textContent = exchanges.join(',')
-      this.xcNameTarget.classList.add('fs-17')
+      // TODO: exchange name. Handling xcLogo - xcName in the future
+      // const exchanges = []
+      // if (settings.xcs) {
+      //   const exStrArr = settings.xcs.split(',')
+      //   exStrArr.forEach((ex) => {
+      //     exchanges.push(ex.charAt(0).toUpperCase() + ex.slice(1))
+      //   })
+      // }
+      // this.xcNameTarget.textContent = exchanges.join(',')
+      // this.xcNameTarget.classList.add('fs-17')
     } else {
-      this.xcLogoTarget.classList.remove('d-hide')
-      this.xcNameTarget.classList.remove('fs-17')
-      this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
+      // this.xcLogoTarget.classList.remove('d-hide')
+      // this.xcNameTarget.classList.remove('fs-17')
+      // this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
       const prettyName = printName(settings.xc)
-      this.xcNameTarget.textContent = prettyName
+      // this.xcNameTarget.textContent = prettyName
       const href = this.exchangeLinks[settings.xc]
       if (href) {
         this.linkTarget.href = href

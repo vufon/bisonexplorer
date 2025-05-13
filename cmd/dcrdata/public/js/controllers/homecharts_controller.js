@@ -490,7 +490,7 @@ export default class extends Controller {
     baseSubsidy = parseInt(this.data.get('bs'))
     subsidyInterval = parseInt(this.data.get('sri'))
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
-    this.chainType = 'dcr'
+    this.chainType = 'btc'
     avgBlockTime = parseInt(this.data.get(this.chainType + 'BlockTime')) * 1000
     globalChainType = this.chainType
     legendElement = this.labelsTarget
@@ -517,8 +517,7 @@ export default class extends Controller {
     if (!this.isHomepage) {
       this.query.update(this.settings)
     }
-    this.settings.chart = this.settings.chart || 'ticket-price'
-    this.zoomButtons = this.zoomSelectorTarget.querySelectorAll('button')
+    this.initForChainChartChainTypeSelector()
     this.binButtons = this.binSelectorTarget.querySelectorAll('button')
     this.scaleButtons = this.scaleSelectorTarget.querySelectorAll('button')
     this.modeButtons = this.modeSelectorTarget.querySelectorAll('button')
@@ -544,6 +543,70 @@ export default class extends Controller {
       )
     }
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
+  }
+
+  initForChainChartChainTypeSelector () {
+    const chainArray = []
+    const chainIconArray = []
+    const chainNameArr = []
+    $('.chain-chart-vodiapicker option').each(function () {
+      const img = $(this).attr('data-thumbnail')
+      const text = this.innerText
+      const value = $(this).val()
+      const item = `<li><img src="${img}" alt="" value="${value}"/><span>${text}</span></li>`
+      chainArray.push(item)
+      chainIconArray.push(`<li class="d-flex ai-center"><img src="${img}" alt="" value="${value}"/><span>${text}</span>
+        <span class="dropdown-arrow" style="margin-left: 0.5rem;">
+        <svg width="8" height="5" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M0 0L5 6L10 0H0Z" />
+        </svg>
+      </span>
+        </li>`)
+      chainNameArr.push(value)
+    })
+    $('#chainChartSelectUl').html(chainArray)
+    const chainIndex = chainNameArr.indexOf(this.chainType)
+    if (chainIndex >= 0) {
+      $('.chain-chart-selected-btn').html(chainIconArray[chainIndex])
+      $('.chain-chart-selected-btn').attr('value', this.chainType)
+    }
+    const _this = this
+    $('#chainChartSelectUl li').click(function () {
+      const value = $(this).find('img').attr('value')
+      if (value === _this.chainType) {
+        _this.toggleSelection('.chain-chart-selection-area')
+        return
+      }
+      _this.chainTypeSelectedTarget.value = value
+      _this.chainTypeChange()
+      const img = $(this).find('img').attr('src')
+      const text = this.innerText
+      const item = `<li class="d-flex ai-center"><img src="${img}" alt=""/><span class="ms-1">${text}</span>
+      <span class="dropdown-arrow" style="margin-left: 0.5rem;">
+        <svg width="8" height="5" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M0 0L5 6L10 0H0Z" />
+        </svg>
+      </span>
+      </li>`
+      $('.chain-chart-selected-btn').html(item)
+      $('.chain-chart-selected-btn').attr('value', value)
+      _this.toggleSelection('.chain-chart-selection-area')
+    })
+    $('.chain-chart-selected-btn').click(function () {
+      _this.toggleSelection('.chain-chart-selection-area')
+    })
+    this.settings.chart = this.settings.chart || (this.chainType === 'dcr' ? 'ticket-price' : 'block-size')
+    this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
+    this.chartSelectTarget.value = this.settings.chart
+  }
+
+  toggleSelection (selector) {
+    const target = $(selector)
+    if (target.css('display') === 'none') {
+      target.show()
+    } else {
+      target.hide()
+    }
   }
 
   setRange (e) {
@@ -620,7 +683,7 @@ export default class extends Controller {
 
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setSelectScale(this.settings.scale)
-    if (this.settings.zoom) this.setSelectZoom(this.settings.zoom)
+    if (this.settings.zoom) this.setInitSelectZoom(this.settings.zoom)
     this.setSelectBin(this.settings.bin ? this.settings.bin : 'day')
     this.setSelectMode(this.settings.mode ? this.settings.mode : 'smooth')
 
@@ -865,19 +928,16 @@ export default class extends Controller {
     this.setVisibilityFromSettings()
   }
 
-  async chainTypeChange (e) {
-    if (e.target.name === this.chainType) {
+  async chainTypeChange () {
+    // selected chain
+    const chain = this.chainTypeSelectedTarget.value
+    if (chain === this.chainType) {
       return
     }
-    const target = e.srcElement || e.target
-    this.chainTypeSelectedTargets.forEach((cTypeTarget) => {
-      cTypeTarget.classList.remove('active')
-    })
     const _this = this
-    target.classList.add('active')
     let reinitChartType = false
-    reinitChartType = this.chainType === 'dcr' || e.target.name === 'dcr'
-    this.chainType = e.target.name
+    reinitChartType = this.chainType === 'dcr' || chain === 'dcr'
+    this.chainType = chain
     // reinit
     if (reinitChartType) {
       this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
@@ -1130,8 +1190,8 @@ export default class extends Controller {
     await animationFrame()
     let oldLimits = this.limits || this.chartsView.xAxisExtremes()
     this.limits = this.chartsView.xAxisExtremes()
-    const selected = this.selectedZoom()
-    if (selected && !(selectedChart === 'privacy-participation' && selected === 'all')) {
+    const selected = this.zoomSelectorTarget.value
+    if (selected && this.isValidZoomSelect(selected) && !(selectedChart === 'privacy-participation' && selected === 'all')) {
       this.lastZoom = Zoom.validate(selected, this.limits,
         this.isTimeAxis() ? avgBlockTime : 1, this.isTimeAxis() ? 1 : avgBlockTime)
     } else {
@@ -1158,6 +1218,10 @@ export default class extends Controller {
     })
   }
 
+  isValidZoomSelect (option) {
+    return option === 'all' || option === 'year' || option === 'month' || option === 'week' || option === 'day'
+  }
+
   _zoomCallback (start, end) {
     this.lastZoom = Zoom.object(start, end)
     this.settings.zoom = Zoom.encode(this.lastZoom)
@@ -1166,7 +1230,7 @@ export default class extends Controller {
     }
     const ex = this.chartsView.xAxisExtremes()
     const option = Zoom.mapKey(this.settings.zoom, ex, this.isTimeAxis() ? 1 : avgBlockTime)
-    this.setActiveToggleBtn(option, this.zoomButtons)
+    this.zoomSelectorTarget.value = option
     const axesData = axesToRestoreYRange(this.settings.chart,
       this.supportedYRange, this.chartsView.yAxisRanges())
     if (axesData) this.chartsView.updateOptions({ axes: axesData })
@@ -1211,17 +1275,15 @@ export default class extends Controller {
     this._zoomCallback(start, end)
   }
 
-  setSelectZoom (e) {
-    const btn = e.target || e.srcElement
-    let option
-    if (btn.nodeName === 'BUTTON') {
-      option = btn.name
-    } else {
-      const ex = this.chartsView.xAxisExtremes()
-      option = Zoom.mapKey(e, ex, this.isTimeAxis() ? 1 : avgBlockTime)
-    }
-    this.setActiveToggleBtn(option, this.zoomButtons)
+  setInitSelectZoom (e) {
+    const ex = this.chartsView.xAxisExtremes()
+    const option = Zoom.mapKey(e, ex, this.isTimeAxis() ? 1 : avgBlockTime)
+    this.zoomSelectorTarget.value = option
     if (!e.target) return // Exit if running for the first time\
+    this.validateZoom()
+  }
+
+  setSelectZoom (e) {
     this.validateZoom()
   }
 
@@ -1347,7 +1409,6 @@ export default class extends Controller {
     })
   }
 
-  selectedZoom () { return this.selectedButtons(this.zoomButtons) }
   selectedBin () { return this.selectedButtons(this.binButtons) }
   selectedScale () { return this.selectedButtons(this.scaleButtons) }
   selectedAxis () { return this.selectedOption(this.axisOptionTargets) }
