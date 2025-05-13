@@ -517,10 +517,10 @@ export default class extends Controller {
     if (!this.isHomepage) {
       this.query.update(this.settings)
     }
-    this.initForChainChartChainTypeSelector()
     this.binButtons = this.binSelectorTarget.querySelectorAll('button')
     this.scaleButtons = this.scaleSelectorTarget.querySelectorAll('button')
     this.modeButtons = this.modeSelectorTarget.querySelectorAll('button')
+    this.initForChainChartChainTypeSelector()
     this.zoomCallback = this._zoomCallback.bind(this)
     this.drawCallback = this._drawCallback.bind(this)
     this.limits = null
@@ -599,6 +599,7 @@ export default class extends Controller {
     this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
     this.chartSelectTarget.value = this.settings.chart
     this.handlerChainChartHeaderLink()
+    this.setDisplayChainChartFooter()
   }
 
   handlerChainChartHeaderLink () {
@@ -608,6 +609,19 @@ export default class extends Controller {
     let link = chain === 'dcr' ? '/decred/charts' : `/${chain}/charts`
     link += `?chart=${chart}`
     chartHeader.href = link
+  }
+
+  setDisplayChainChartFooter () {
+    const chain = this.chainType
+    if (chain === 'dcr') {
+      $('#chainChartFooterRow').removeClass('d-hide')
+    } else {
+      $('#chainChartFooterRow').addClass('d-hide')
+      this.settings.axis = 'time'
+      this.settings.bin = 'day'
+      this.setActiveOptionBtn(this.settings.axis, this.axisOptionTargets)
+      this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+    }
   }
 
   toggleSelection (selector) {
@@ -955,6 +969,7 @@ export default class extends Controller {
     // determind select chart
     this.settings.chart = this.getSelectedChart()
     this.handlerChainChartHeaderLink()
+    this.setDisplayChainChartFooter()
     this.chartNameTarget.textContent = this.getChartName(this.chartSelectTarget.value)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
     this.customLimits = null
