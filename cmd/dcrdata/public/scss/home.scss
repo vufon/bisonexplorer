@@ -2040,3 +2040,24 @@ th:hover .sort-icon {
 .top-chain-chart {
   max-height: 400px;
 }
+
+.top-bar-container {
+  position: relative;
+  width: 100%;
+  height: 60px; /* hoặc chiều cao bạn muốn */
+  display: block;
+}
+
+.top-home-link {
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  transform: translate(-50%, -50%);
+}
+
+.top-menu-item {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
