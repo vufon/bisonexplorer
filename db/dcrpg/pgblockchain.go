@@ -354,6 +354,10 @@ type ChainDB struct {
 		// commonly retrieved when the explorer block is updated.
 		difficulties map[int64]float64
 	}
+	coinAgeSync      sync.Mutex
+	utxoHistorySync  sync.Mutex
+	coinAgeBandsSync sync.Mutex
+	mcaSnapShotSync  sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -5430,18 +5434,18 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalHeight(msgBlock.Header.Height)
 	// sync coin age table
-	err = pgb.SyncCoinAgeTableWithHeight(int64(msgBlock.Header.Height))
+	err = pgb.SyncCoinAgeTable()
 	if err != nil {
 		log.Errorf("Sync coin_age table on height %d failed. %v", blockData.Header.Height, err)
 		return err
 	}
 	// sync utxo_history table
-	err = pgb.SyncUtxoHistoryHeight(int64(msgBlock.Header.Height))
+	err = pgb.SyncUtxoHistoryTable()
 	if err != nil {
 		log.Errorf("Sync utxo_history table on height %d failed. %v", blockData.Header.Height, err)
 		return err
 	}
-	// err = pgb.SyncCoinAgeBandsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	// TODO: err = pgb.SyncCoinAgeBandsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
 	return nil
 }
 
