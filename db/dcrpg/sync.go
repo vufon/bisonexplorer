@@ -99,7 +99,7 @@ func (pgb *ChainDB) SyncCoinAgesData() error {
 		return err
 	}
 
-	log.Info("Start sync coin_age_bands table from height: %d", maxCoinAgeBandsHeight)
+	log.Info("Start sync coin_age_bands table from height: ", maxCoinAgeBandsHeight)
 	// sync coin_age_bands table
 	go pgb.syncCoinAgeBandsTable(maxCoinAgeBandsHeight)
 	return nil

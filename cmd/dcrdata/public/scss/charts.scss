@@ -222,7 +222,7 @@
 
 .market-chart-box {
   position: relative;
-  min-height: 350px;
+  min-height: 400px;
 }
 
 .market-chart {
@@ -273,6 +273,10 @@
   margin: 0 1%;
   min-height: 60vh;
   width: 96%;
+}
+
+.top-chart-view {
+  min-height: 400px;
 }
 
 .chartview .dygraph-ylabel {
@@ -754,4 +758,43 @@ body.darkBG {
   .submarket-chart-legend {
     top: 60px;
   }
+}
+
+.top-chart-box {
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #007bff;
+  box-shadow: 0 0 8px rgb(98 171 249 / 60%);
+  background-color: #f0f8ff;
+  font-weight: 600;
+  color: #2172c8;
+  border-radius: 8px;
+  padding-left: 8px;
+  transition: box-shadow 0.3s ease, background-color 0.3s ease;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.2rem;
+  min-height: 35px;
+}
+
+.top-chart-box:focus {
+  box-shadow: 0 0 12px rgb(84 160 241 / 90%);
+  background-color: #e6f2ff;
+}
+
+.zoom-selector {
+  min-height: 35px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-left: 8px;
+  transition: box-shadow 0.3s ease, background-color 0.3s ease;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='black' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.2rem;
+  min-width: 90px;
 }

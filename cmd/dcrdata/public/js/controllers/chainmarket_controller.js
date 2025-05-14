@@ -66,6 +66,15 @@ let aggStacking = true
 let refreshAvailable = false
 let availableCandlesticks, availableDepths
 
+$(document).mouseup(function (e) {
+  const selectArea = $('#marketSelectList')
+  if (!selectArea.is(e.target) && selectArea.has(e.target).length === 0) {
+    if (selectArea.css('display') !== 'none') {
+      selectArea.css('display', 'none')
+    }
+  }
+})
+
 function screenIsBig () {
   return window.innerWidth >= 992
 }
@@ -707,6 +716,7 @@ export default class extends Controller {
     this.handlerExchangesDisplay()
     this.setButtons()
     this.setExchangeName()
+    this.initForMarketChartChainTypeSelector()
     this.resize = this._resize.bind(this)
     window.addEventListener('resize', this.resize)
     this.tabVis = this._tabVis.bind(this)
@@ -718,9 +728,71 @@ export default class extends Controller {
     if (darkEnabled()) chartStroke = darkStroke
     this.setNameDisplay()
     this.fetchInitialData()
+    this.updateHeaderLink()
     // TODO: handler all pages
     if (this.isHomepage) {
       this.updateMarketPriceBar()
+    }
+  }
+
+  initForMarketChartChainTypeSelector () {
+    const chainArray = []
+    const chainIconArray = []
+    const chainNameArr = []
+    $('.market-chart-vodiapicker option').each(function () {
+      const img = $(this).attr('data-thumbnail')
+      const text = this.innerText
+      const value = $(this).val()
+      const item = `<li><img src="${img}" alt="" value="${value}"/><span>${text}</span></li>`
+      chainArray.push(item)
+      chainIconArray.push(`<li class="d-flex ai-center"><img src="${img}" alt="" value="${value}"/><span>${text}</span>
+        <span class="dropdown-arrow" style="margin-left: 0.5rem;">
+        <svg width="8" height="5" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M0 0L5 6L10 0H0Z" />
+        </svg>
+      </span>
+        </li>`)
+      chainNameArr.push(value)
+    })
+    $('#marketChartSelectUl').html(chainArray)
+    const chainIndex = chainNameArr.indexOf(this.chainType)
+    if (chainIndex >= 0) {
+      $('.market-chart-selected-btn').html(chainIconArray[chainIndex])
+      $('.market-chart-selected-btn').attr('value', this.chainType)
+    }
+    const _this = this
+    $('#marketChartSelectUl li').click(function () {
+      const value = $(this).find('img').attr('value')
+      if (value === _this.chainType) {
+        _this.toggleSelection('.market-chart-selection-area')
+        return
+      }
+      _this.chainTypeSelectedTarget.value = value
+      _this.chainTypeChange()
+      const img = $(this).find('img').attr('src')
+      const text = this.innerText
+      const item = `<li class="d-flex ai-center"><img src="${img}" alt=""/><span class="ms-1">${text}</span>
+      <span class="dropdown-arrow" style="margin-left: 0.5rem;">
+        <svg width="8" height="5" viewBox="0 0 10 6" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+          <path d="M0 0L5 6L10 0H0Z" />
+        </svg>
+      </span>
+      </li>`
+      $('.market-chart-selected-btn').html(item)
+      $('.market-chart-selected-btn').attr('value', value)
+      _this.toggleSelection('.market-chart-selection-area')
+    })
+    $('.market-chart-selected-btn').click(function () {
+      _this.toggleSelection('.market-chart-selection-area')
+    })
+  }
+
+  toggleSelection (selector) {
+    const target = $(selector)
+    if (target.css('display') === 'none') {
+      target.show()
+    } else {
+      target.hide()
     }
   }
 
@@ -752,16 +824,12 @@ export default class extends Controller {
     }
   }
 
-  chainTypeChange (e) {
-    if (e.target.name === this.chainType) {
+  chainTypeChange () {
+    const chain = this.chainTypeSelectedTarget.value
+    if (chain === this.chainType) {
       return
     }
-    const target = e.srcElement || e.target
-    this.chainTypeSelectedTargets.forEach((cTypeTarget) => {
-      cTypeTarget.classList.remove('active')
-    })
-    target.classList.add('active')
-    this.chainType = e.target.name
+    this.chainType = chain
     // reload data
     globalChainType = this.chainType
     this.updateOptions()
@@ -771,9 +839,13 @@ export default class extends Controller {
     this.setExchangeName()
     orderZoom = undefined
     this.fetchChart()
+    this.updateHeaderLink()
   }
 
   updateMarketPriceBar () {
+    if (!this.hasPriceBarTarget) {
+      return
+    }
     const currentPrice = Number(this.priceBarTarget.dataset.price)
     const lowPrice = Number(this.priceBarTarget.dataset.low)
     const highPrice = Number(this.priceBarTarget.dataset.high)
@@ -901,11 +973,12 @@ export default class extends Controller {
   }
 
   setNameDisplay () {
-    if (screenIsBig()) {
-      this.xcNameTarget.classList.remove('d-hide')
-    } else {
-      this.xcNameTarget.classList.add('d-hide')
-    }
+    // TODO: Temporarily hide xc logo
+    // if (screenIsBig()) {
+    //   this.xcNameTarget.classList.remove('d-hide')
+    // } else {
+    //   this.xcNameTarget.classList.add('d-hide')
+    // }
   }
 
   _tabVis () {
@@ -968,6 +1041,7 @@ export default class extends Controller {
     this.setButtons()
     this.setExchangeName()
     await this.fetchChart()
+    this.updateHeaderLink()
     samePair = false
     if (usesOrderbook(settings.chart)) {
       this.setZoomPct(defaultZoomPct)
@@ -1081,6 +1155,29 @@ export default class extends Controller {
       }
     }
     return firstBtn
+  }
+
+  updateHeaderLink () {
+    const chartHeader = document.getElementById('marketChartHeader')
+    if (!chartHeader) {
+      return
+    }
+    const chain = this.chainType
+    const chart = settings.chart
+    let pair = settings.pair
+    let link = chain === 'dcr' ? '/decred/market' : `/${chain}/market`
+    let chartParam = ''
+    if (usesCandlesticks(chart)) {
+      chartParam = `chart=${chart}`
+    } else {
+      chartParam = `dchart=${chart}`
+    }
+    link += `?${chartParam}`
+    if (chain === 'dcr') {
+      pair = pair || 'usdt'
+      link += `&pair=${pair}`
+    }
+    chartHeader.href = link
   }
 
   async fetchChart (isRefresh) {
@@ -1771,6 +1868,7 @@ export default class extends Controller {
     this.setButtons()
     this.setExchangeName()
     this.fetchChart()
+    this.updateHeaderLink()
   }
 
   changeExchangeSetting () {
@@ -1892,24 +1990,24 @@ export default class extends Controller {
 
   setExchangeName () {
     if (settings.chart === 'history' || settings.chart === 'volume') {
-      this.xcLogoTarget.classList.add('d-hide')
+      // this.xcLogoTarget.classList.add('d-hide')
       this.actionsTarget.classList.add('d-hide')
-      // exchange name
-      const exchanges = []
-      if (settings.xcs) {
-        const exStrArr = settings.xcs.split(',')
-        exStrArr.forEach((ex) => {
-          exchanges.push(ex.charAt(0).toUpperCase() + ex.slice(1))
-        })
-      }
-      this.xcNameTarget.textContent = exchanges.join(',')
-      this.xcNameTarget.classList.add('fs-17')
+      // TODO: exchange name. Handling xcLogo - xcName in the future
+      // const exchanges = []
+      // if (settings.xcs) {
+      //   const exStrArr = settings.xcs.split(',')
+      //   exStrArr.forEach((ex) => {
+      //     exchanges.push(ex.charAt(0).toUpperCase() + ex.slice(1))
+      //   })
+      // }
+      // this.xcNameTarget.textContent = exchanges.join(',')
+      // this.xcNameTarget.classList.add('fs-17')
     } else {
-      this.xcLogoTarget.classList.remove('d-hide')
-      this.xcNameTarget.classList.remove('fs-17')
-      this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
+      // this.xcLogoTarget.classList.remove('d-hide')
+      // this.xcNameTarget.classList.remove('fs-17')
+      // this.xcLogoTarget.className = `exchange-logo ${this.getXcLogo(settings.xc)}`
       const prettyName = printName(settings.xc)
-      this.xcNameTarget.textContent = prettyName
+      // this.xcNameTarget.textContent = prettyName
       const href = this.exchangeLinks[settings.xc]
       if (href) {
         this.linkTarget.href = href

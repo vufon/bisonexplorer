@@ -18,11 +18,13 @@ body.theme-testnet {
     background-image: url("/images/logo-night.svg");
   }
 
-  .chain-selected-btn {
+  .chain-selected-btn,
+  .top-chain-selected-btn {
     color: white;
   }
 
-  .selection-area {
+  .selection-area,
+  .top-selection-area {
     background-color: #116466;
   }
 

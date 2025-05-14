@@ -2021,3 +2021,43 @@ label[for=c_more], label[for=c_more--scroll]) {
 .js-plotly-plot .plotly {
   width: auto !important;
 }
+
+.sort-icon {
+  margin-left: 2px;
+  opacity: 0.4;
+  transition: opacity 0.2s, fill 0.2s;
+}
+
+th:hover .sort-icon {
+  opacity: 0.7;
+}
+
+.sort-active {
+  opacity: 1 !important;
+  fill: #333 !important;
+}
+
+.top-chain-chart {
+  max-height: 400px;
+}
+
+.top-bar-container {
+  position: relative;
+  width: 100%;
+  height: 60px; /* hoặc chiều cao bạn muốn */
+  display: block;
+}
+
+.top-home-link {
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  transform: translate(-50%, -50%);
+}
+
+.top-menu-item {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}

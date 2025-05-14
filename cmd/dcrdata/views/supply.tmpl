@@ -26,6 +26,8 @@
         </a>
         {{if ne $ChainType "dcr"}}
         <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+        {{else}}
+        <a href="/decred" class="breadcrumbs__item item-link">Decred</a>
         {{end}}
         <span class="breadcrumbs__item is-active">Supply</span>
      </nav>
