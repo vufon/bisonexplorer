@@ -2056,8 +2056,13 @@ th:hover .sort-icon {
 }
 
 .top-menu-item {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
+  text-decoration: none;
+  color: #4f5052;
+  transition: color 0.2s;
+  font-size: 17px !important;
+}
+
+.top-left-menu {
+  display: flex;
+  gap: 20px;
 }

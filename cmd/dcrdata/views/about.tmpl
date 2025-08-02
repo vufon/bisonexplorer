@@ -1,0 +1,90 @@
+{{define "about"}}
+<!DOCTYPE html>
+<html lang="en">
+{{ template "html-head" headData .CommonPageData "About Bison Explorer"}}
+{{template "navbar" . }}
+<div class="container mt-2 pb-5">
+    <nav class="breadcrumbs mt-0">
+        <a href="/" class="breadcrumbs__item no-underline ps-2">
+            <span class="homeicon-tags me-1"></span>
+            <span class="link-underline">Homepage</span>
+        </a>
+        <span class="breadcrumbs__item is-active">About</span>
+    </nav>
+    <div class="row">
+        <section style="margin: 0 auto; padding-top: 1rem;">
+            <h1 style="font-size: 1.5rem; color: #2c3e50;">🐂 About Bison Explorer</h1>
+            <!-- Logo -->
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <img src="/images/logo-bison.png" alt="Bison Explorer Logo" width="300">
+                <p style="font-style: italic; color: #666; font-size: 1rem; margin-top: 0.7rem;">
+                    The bison symbolizes growth and upward movement. Our logo depicts a bison embracing the world of
+                    blockchain —
+                    representing the vision that blockchain and the world will evolve and grow together.
+                </p>
+            </div>
+            <!-- Introduction -->
+            <p style="font-size: 1rem; line-height: 1.6; margin-top: 1.3rem;">
+                <strong>Bison Explorer</strong> is a powerful and user-friendly blockchain explorer designed to provide
+                in-depth, transparent blockchain data for major networks including <strong>Decred (DCR)</strong>,
+                <strong>Bitcoin (BTC)</strong>, and <strong>Litecoin (LTC)</strong>. We are committed to expanding
+                support to more chains in the near future.
+            </p>
+
+            <!-- Technical Foundation -->
+            <h2 style="margin-top: 1.5rem; font-size: 1.5rem; color: #2c3e50;">🌱 Community-Driven Foundation</h2>
+            <p style="font-size: 1rem; line-height: 1.6;">
+                Built upon the robust technical framework of <a href="https://dcrdata.org"
+                    style="color: #2980b9; text-decoration: none; font-size: 1rem !important;">dcrdata</a>, the official explorer by the Decred
+                community, Bison Explorer carries forward the values of decentralization, transparency, and open-source
+                collaboration. This is a tool crafted by the community, for the community.
+            </p>
+
+            <!-- Features -->
+            <h2 style="margin-top: 1.5rem; font-size: 1.5rem; color: #2c3e50;">📊 Key Features</h2>
+            <ul style="font-size: 1rem; margin-top: 0.3rem; line-height: 1.6; padding-left: 1rem;">
+                <li>🔹 Detailed technical views of blocks, transactions, addresses, and mempool states.</li>
+                <li>🔹 Live market data including prices, trading volumes, and market capitalization.</li>
+                <li>🔹 Visual analytics for transaction activity, hash rate, and coin distribution.</li>
+                <li>🔹 <strong>Financial reporting tools tailored for Decred</strong> — enabling deeper ecosystem insights.
+                </li>
+                <li>🔹 Developer-friendly API access for easy integration with third-party platforms.</li>
+                <li>🔹 Responsive, mobile-first design for seamless usage across devices.</li>
+            </ul>
+
+            <!-- Vision -->
+            <h2 style="margin-top: 1.5rem; font-size: 1.5rem; color: #2c3e50;">🚀 Vision for the Future</h2>
+            <p style="font-size: 1rem; line-height: 1.6;">
+                Bison Explorer is more than a data viewer — it is a foundation for blockchain insight and growth. As the
+                blockchain space matures, our goal is to evolve with it by supporting more chains, adding advanced
+                on-chain analytics, and offering custom dashboards for users, researchers, and developers alike.
+            </p>
+
+            <!-- Community Involvement -->
+            <h2 style="margin-top: 1.5rem; font-size: 1.5rem; color: #2c3e50;">🤝 Join the Journey</h2>
+            <p style="font-size: 1rem; line-height: 1.6;">
+                Bison Explorer is an open and collaborative project. We welcome developers, designers, data analysts,
+                and blockchain enthusiasts to contribute and build with us. Let's create the most transparent and
+                insightful blockchain explorer together.
+            </p>
+
+            <!-- Technical Links -->
+            <h2 style="margin-top: 1.5rem; font-size: 1.5rem; color: #2c3e50;">🔗 Technical & Community Links</h2>
+            <ul style="font-size: 1rem; line-height: 1.6; padding-left: 1rem;">
+                <li>🔹 <strong>GitHub:</strong> <a href="https://github.com/chaineco/bisonexplorer"
+                        style="color: #2980b9;">https://github.com/chaineco/bisonexplorer</a></li>
+                <li>🔹 <strong>X (Twitter):</strong> <a href="https://x.com/bisonexplorer"
+                        style="color: #2980b9;">https://x.com/bisonexplorer</a></li>
+            </ul>
+
+            <p style="margin-top: 1.8rem; font-size: 1rem; color: #7f8c8d;">
+                Bison Explorer – Data transparency. Community-driven. Built for the future of blockchain.
+            </p>
+        </section>
+    </div>
+</div>
+{{ template "footer" . }}
+</body>
+
+</html>
+{{end}}

@@ -3863,6 +3863,23 @@ func (exp *ExplorerUI) WhatsNewPage(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, str)
 }
 
+func (exp *ExplorerUI) AboutPage(w http.ResponseWriter, r *http.Request) {
+	str, err := exp.templates.exec("about", struct {
+		*CommonPageData
+	}{
+		CommonPageData: exp.commonData(r),
+	})
+
+	if err != nil {
+		log.Errorf("Template execute failure: %v", err)
+		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, str)
+}
+
 // MutilchainParametersPage is the page handler for the "/chain/{chainType}/parameters" path.
 func (exp *ExplorerUI) MutilchainParametersPage(w http.ResponseWriter, r *http.Request) {
 	chainType := chi.URLParam(r, "chaintype")
