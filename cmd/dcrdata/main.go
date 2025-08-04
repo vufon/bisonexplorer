@@ -989,7 +989,6 @@ func _main(ctx context.Context) error {
 			rd.Get("/agendas", explore.AgendasPage)
 			rd.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)
 			rd.Get("/proposals", explore.ProposalsPage)
-			rd.Get("/whatsnew", explore.WhatsNewPage)
 			rd.With(explorer.ProposalPathCtx).Get("/proposal/{proposaltoken}", explore.ProposalPage)
 			rd.Get("/decodetx", explore.DecodeTxPage)
 			rd.Get("/search", explore.Search)
@@ -1076,7 +1075,6 @@ func _main(ctx context.Context) error {
 		r.Get("/agendas", mainRedirect("/decred/agendas"))
 		r.Get("/agenda/{x}", redirectOneParam("/decred/agenda"))
 		r.Get("/proposals", mainRedirect("/decred/proposals"))
-		r.Get("/whatsnew", mainRedirect("/decred/whatsnew"))
 		r.Get("/proposal/{x}", redirectOneParam("/decred/proposal"))
 		r.Get("/decodetx", mainRedirect("/decred/decodetx"))
 		r.Get("/search", mainRedirect("/decred/search"))
@@ -1095,6 +1093,8 @@ func _main(ctx context.Context) error {
 		r.Get("/finance-report/detail", mainRedirect("/decred/finance-report/detail"))
 		r.Get("/supply", mainRedirect("/decred/supply"))
 		r.Get("/atomic-swaps", mainRedirect("/decred/atomic-swaps"))
+		r.Get("/about", explore.AboutPage)
+		r.Get("/whatsnew", explore.WhatsNewPage)
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.
 		r.With(explorer.MenuFormParser).Post("/set", explore.DecredHome)
