@@ -12,7 +12,8 @@ const (
 		height INT8,
 		time TIMESTAMPTZ,
 		age_band TEXT,
-		value INT8
+		value INT8,
+		UNIQUE (height, age_band)
 	);`
 
 	CreateMeanCoinAgeTable = `CREATE TABLE IF NOT EXISTS mca_snapshots (
@@ -134,6 +135,41 @@ ORDER BY b.height;`
     						total_supply = EXCLUDED.total_supply,
 							mean_coin_age = EXCLUDED.mean_coin_age`
 
-	InsertCoinAgeBandsRow     = `INSERT INTO coin_age_bands (height, time, age_band, value) VALUES ($1, $2, $3, $4)`
-	SelectCoinAgeBandsAllRows = `SELECT * FROM coin_age_bands WHERE height > $1 ORDER BY height`
+	UpsertCoinAgeBandsRow              = `INSERT INTO coin_age_bands (height, time, age_band, value) VALUES ($1, $2, $3, $4) ON CONFLICT(height, age_band) DO NOTHING`
+	SelectCoinAgeBandsAllRows          = `SELECT * FROM coin_age_bands WHERE height > $1 ORDER BY height`
+	SelectRemainingCoinAgeBandsHeights = `WITH all_heights AS (
+  SELECT generate_series(1, $1) AS height
+),
+existing_heights AS (
+  SELECT DISTINCT height FROM coin_age_bands
+)
+SELECT a.height
+FROM all_heights a
+LEFT JOIN existing_heights e ON a.height = e.height
+WHERE e.height IS NULL
+ORDER BY a.height;`
+
+	SelectRemainingMcaSnapshotsHeights = `WITH all_heights AS (
+  SELECT generate_series(1, $1) AS block_height
+),
+existing_heights AS (
+  SELECT DISTINCT block_height FROM mca_snapshots
+)
+SELECT a.block_height
+FROM all_heights a
+LEFT JOIN existing_heights e ON a.block_height = e.block_height
+WHERE e.block_height IS NULL
+ORDER BY a.block_height;`
+
+	SelectRemainingUtxoHistoryHeights = `WITH all_heights AS (
+  SELECT generate_series(1, $1) AS create_height
+),
+existing_heights AS (
+  SELECT DISTINCT create_height FROM utxo_history
+)
+SELECT a.create_height
+FROM all_heights a
+LEFT JOIN existing_heights e ON a.create_height = e.create_height
+WHERE e.create_height IS NULL
+ORDER BY a.create_height;`
 )

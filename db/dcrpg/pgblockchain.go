@@ -5445,7 +5445,18 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 		log.Errorf("Sync utxo_history table on height %d failed. %v", blockData.Header.Height, err)
 		return err
 	}
-	// TODO: err = pgb.SyncCoinAgeBandsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	// sync for coin_age_bands table
+	err = pgb.SyncCoinAgeBandsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table on new height %d failed. %v", blockData.Header.Height, err)
+		return err
+	}
+	// sync for mca_snapshots table
+	err = pgb.SyncMCASnapshotsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	if err != nil {
+		log.Errorf("Sync mca_snapshots table on new height %d failed. %v", blockData.Header.Height, err)
+		return err
+	}
 	return nil
 }
 
