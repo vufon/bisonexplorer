@@ -1865,6 +1865,11 @@ func (pgb *ChainDB) CheckCreateMonthlyPriceTable() (err error) {
 	return checkExistAndCreateMonthlyPriceTable(pgb.db)
 }
 
+// Check exist or create a new daily_market table
+func (pgb *ChainDB) CheckCreateDailyMarketTable() (err error) {
+	return checkExistAndCreateDailyMarketTable(pgb.db)
+}
+
 // Add proposal meta data to table
 func (pgb *ChainDB) AddProposalMeta(proposalMetaData []map[string]string) (err error) {
 	return addNewProposalMetaData(pgb.db, proposalMetaData)
@@ -2933,6 +2938,33 @@ func (pgb *ChainDB) SyncTreasuryMonthlyPrice() {
 	pgb.CheckAndInsertToMonthlyPriceTable(currencyPriceMap)
 }
 
+func (pgb *ChainDB) CheckAndInsertToDailyMarketTable(dailyMarketData *dbtypes.DailyMarket) {
+	if dailyMarketData == nil {
+		return
+	}
+	for _, dailyData := range dailyMarketData.Data {
+		// check exist on db
+		var dateExist bool
+		//check exist on DB
+		err := pgb.db.QueryRowContext(pgb.ctx, internal.CheckDailyMarketExistDate, dailyData.Date).Scan(&dateExist)
+		if err != nil {
+			log.Errorf("Check exist date on daily_market table failed: %v", err)
+			return
+		}
+		// if exist, ignore
+		if dateExist {
+			continue
+		}
+		// upsert to table
+		_, err = pgb.db.Exec(internal.UpsertDailyMarketRow, dailyData.Date, dailyData.Volume, dailyData.Open, dailyData.High, dailyData.Low, dailyData.Close)
+		if err != nil {
+			log.Errorf("upsert to daily_market table failed: %v", err)
+			continue
+		}
+	}
+	log.Info("Completed sync daily_market table data")
+}
+
 func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[string]float64) {
 	now := time.Now()
 	for month, price := range currencyPriceMap {
@@ -3065,18 +3097,24 @@ func (pgb *ChainDB) GetMexcPriceMap(from, to int64) map[string]float64 {
 	return result
 }
 
-func (pgb *ChainDB) GetBitDegreeAllPriceMap() map[string]float64 {
+func (pgb *ChainDB) GetBitDegreeAllPriceMap() (map[string]float64, *dbtypes.DailyMarket) {
 	result := make(map[string]float64)
 	res, err := pgb.GetPriceAll()
 	if err != nil {
-		return result
+		return result, nil
 	}
 	countMap := make(map[string]int)
 	if len(res.Ohlc) == 0 {
-		return result
+		return result, nil
 	}
-	for _, dataArr := range res.Ohlc {
-		if len(dataArr) < 4 {
+	dailyResult := &dbtypes.DailyMarket{
+		Data: make([]*dbtypes.DailyItemData, 0),
+	}
+	for idx, dataArr := range res.Ohlc {
+		if len(dataArr) < 5 {
+			continue
+		}
+		if len(res.Volumns)-1 < idx || len(res.Volumns[idx]) < 2 {
 			continue
 		}
 		date := time.Unix(int64(dataArr[0])/1000, 0)
@@ -3089,11 +3127,23 @@ func (pgb *ChainDB) GetBitDegreeAllPriceMap() map[string]float64 {
 			result[key] = dataArr[4]
 			countMap[key] = 1
 		}
+		// if valid daily index
+		if idx < len(res.Ohlc)-1 {
+			dailyItem := &dbtypes.DailyItemData{
+				Date:   int64(dataArr[0]) / 1000,
+				Volume: res.Volumns[idx][1],
+				Open:   dataArr[1],
+				High:   dataArr[2],
+				Low:    dataArr[3],
+				Close:  dataArr[4],
+			}
+			dailyResult.Data = append(dailyResult.Data, dailyItem)
+		}
 	}
 	for k, v := range result {
 		result[k] = v / float64(countMap[k])
 	}
-	return result
+	return result, dailyResult
 }
 
 // Get legacy summary data

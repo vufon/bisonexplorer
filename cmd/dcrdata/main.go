@@ -1179,7 +1179,6 @@ func _main(ctx context.Context) error {
 		}
 		//synchronize legacy address data
 		log.Infof("Starting address summary sync...")
-
 		syncAdressSummaryData := func() error {
 			err := chainDB.SyncAddressSummary()
 			if err != nil {
@@ -1214,23 +1213,45 @@ func _main(ctx context.Context) error {
 		log.Infof("Finished treasury summary sync")
 
 		//Synchronize DCR's price by month
-		log.Infof("Starting DCR monthly price sync...")
-
-		syncMonthlyPriceData := func() error {
+		syncDailyMarketData := func() error {
+			log.Infof("Starting DCR monthly price sync...")
 			err := chainDB.SyncMonthlyPrice(ctx)
 			if err != nil {
 				log.Errorf("dcrpg.SyncMonthlyPrice failed")
 				return err
 			}
+			log.Infof("Finished DCR monthly price sync")
+			log.Infof("Starting DCR daily market data sync...")
+			err = chainDB.SyncDailyMarket(ctx)
+			if err != nil {
+				log.Errorf("dcrpg.SyncDailyMarket failed")
+				return err
+			}
+			log.Infof("Finished DCR daily market data sync")
 			return nil
 		}
 
-		err = syncMonthlyPriceData()
-		if err != nil {
-			return err
-		}
+		// synchorozie monthly_price and daily_market data everyday
+		go func() {
+			// Chạy lần đầu ngay lập tức
+			err = syncDailyMarketData()
+			if err != nil {
+				log.Errorf("Sync daily market data failed: %v", err)
+			}
+			// Lặp lại mỗi 24h
+			ticker := time.NewTicker(24 * time.Hour)
+			defer ticker.Stop()
 
-		log.Infof("Finished DCR monthly price sync")
+			for {
+				select {
+				case <-ticker.C:
+					err = syncDailyMarketData()
+					if err != nil {
+						log.Errorf("Sync daily market data failed: %v", err)
+					}
+				}
+			}
+		}()
 
 		// check and sync for tspend votes
 		// check tspend_votes table exist

@@ -48,17 +48,34 @@ func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
 		log.Infof("No need to sync monthly price data")
 		return nil
 	}
-	//check table exist and create new
+
+	//check table exist and create new monthly_price
 	createTableErr := pgb.CheckCreateMonthlyPriceTable()
 	if createTableErr != nil {
 		log.Errorf("Check exist and create monthly_price table failed: %v", createTableErr)
 		return createTableErr
 	}
 
-	//Get lastest monthly on monthly_table
-	monthPriceMap := pgb.GetBitDegreeAllPriceMap()
-
+	//Get lastest monthly on monthly_price table
+	monthPriceMap, _ := pgb.GetBitDegreeAllPriceMap()
 	pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
+	return nil
+}
+
+func (pgb *ChainDB) SyncDailyMarket(ctx context.Context) error {
+	//check table exist and create new daily_market
+	createDailyMarketTableErr := pgb.CheckCreateDailyMarketTable()
+	if createDailyMarketTableErr != nil {
+		log.Errorf("Check exist and create daily_market table failed: %v", createDailyMarketTableErr)
+		return createDailyMarketTableErr
+	}
+
+	//Get lastest monthly on monthly_price table
+	_, dailyMarket := pgb.GetBitDegreeAllPriceMap()
+	if dailyMarket != nil {
+		// check and insert to daily_market table
+		pgb.CheckAndInsertToDailyMarketTable(dailyMarket)
+	}
 	return nil
 }
 

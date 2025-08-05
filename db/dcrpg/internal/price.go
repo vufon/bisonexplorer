@@ -10,6 +10,26 @@ const (
 		last_updated TIMESTAMPTZ NOT NULL
 	);`
 
+	CreateDailyMarketTable = `CREATE TABLE IF NOT EXISTS daily_market (
+		id SERIAL8 PRIMARY KEY,
+		date INT8,
+		volume FLOAT8,
+		open  FLOAT8,
+		high FLOAT8,
+		low FLOAT8,
+		close FLOAT8,
+		UNIQUE (date)
+	);`
+
+	// daily market check date exist
+	CheckDailyMarketExistDate = `SELECT EXISTS(SELECT 1 FROM daily_market WHERE date=$1);`
+
+	// upsert to daily_market table
+	UpsertDailyMarketRow = `INSERT INTO daily_market (date, volume, open, high, low, close)
+							VALUES ($1, $2, $3, $4, $5, $6)
+							ON CONFLICT (date) DO UPDATE 
+						SET volume = $2, open = $3, high = $4, low = $5, close = $6`
+
 	//insert to address summary table
 	InsertMonthlyPriceRow = `INSERT INTO monthly_price (month, price, is_complete, last_updated)
 		VALUES ($1, $2, $3, $4)`

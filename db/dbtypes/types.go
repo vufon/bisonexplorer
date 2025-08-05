@@ -2327,6 +2327,19 @@ type BitDegreeOhlcResponse struct {
 	Volumns [][]float64 `json:"volumes"`
 }
 
+type DailyItemData struct {
+	Date   int64
+	Volume float64
+	Open   float64
+	High   float64
+	Low    float64
+	Close  float64
+}
+
+type DailyMarket struct {
+	Data []*DailyItemData
+}
+
 type MexcMonthlyPriceResponse [][]interface{}
 
 // TreasuryBalance is the current balance, spent amount, and tx count for the

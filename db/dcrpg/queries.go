@@ -865,6 +865,12 @@ func checkExistAndCreateMonthlyPriceTable(db *sql.DB) error {
 	return err
 }
 
+// Check exist and create daily_market table
+func checkExistAndCreateDailyMarketTable(db *sql.DB) error {
+	err := createTable(db, "daily_market", internal.CreateDailyMarketTable)
+	return err
+}
+
 // Get proposal Meta by owner
 func getProposalMetasByOwner(db *sql.DB, name string) ([]map[string]string, error) {
 	return queryProposalMetaList(db, internal.SelectProposalMetasByOwner, name)

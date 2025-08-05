@@ -40,6 +40,7 @@ var createTableStatements = [][2]string{
 	{"btc_swaps", internal.CreateBtcAtomicSwapTable},
 	{"ltc_swaps", internal.CreateLtcAtomicSwapTable},
 	{"monthly_price", internal.CreateMonthlyPriceTable},
+	{"daily_market", internal.CreateDailyMarketTable},
 	{"blocks24h", internal.Create24hBlocksTable},
 	{"tspend_votes", internal.CreateTSpendVotesTable},
 	{"black_list", internal.CreateBlackListTable},
