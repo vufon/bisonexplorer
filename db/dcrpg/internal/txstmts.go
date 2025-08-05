@@ -291,45 +291,53 @@ const (
 
 	SelectCoinDaysDestroyed = `
 	SELECT
-		spend_blk.height,
-		spend_blk.time,
-  		SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS total_cdd,
-		AVG(FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS avg_age_days
-		FROM vins
-		JOIN vouts vout
-  		ON vins.prev_tx_hash = vout.tx_hash AND vins.prev_tx_index = vout.tx_index
-		JOIN transactions spend_tx
-  		ON vins.tx_hash = spend_tx.tx_hash
-		JOIN blocks spend_blk
-  		ON spend_tx.block_hash = spend_blk.hash
-		JOIN transactions create_tx
-  		ON vout.tx_hash = create_tx.tx_hash
-		JOIN blocks create_blk
-  		ON create_tx.block_hash = create_blk.hash
-		WHERE vout.value > 0 AND spend_blk.height > $1 AND spend_tx.is_mainchain AND create_tx.is_mainchain
-		GROUP BY spend_blk.height, spend_blk.time
-		ORDER BY spend_blk.height;`
-	
+	spend_blk.height,
+	spend_blk.time,
+  	SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS total_cdd,
+  	SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400))::numeric
+		/ NULLIF(SUM(vout.value), 0) AS avg_age_days
+FROM vins
+JOIN vouts vout
+  ON vins.prev_tx_hash = vout.tx_hash AND vins.prev_tx_index = vout.tx_index
+JOIN transactions spend_tx
+  ON vins.tx_hash = spend_tx.tx_hash
+JOIN blocks spend_blk
+  ON spend_tx.block_hash = spend_blk.hash
+JOIN transactions create_tx
+  ON vout.tx_hash = create_tx.tx_hash
+JOIN blocks create_blk
+  ON create_tx.block_hash = create_blk.hash
+WHERE vout.value > 0 
+  AND spend_blk.height > $1
+  AND spend_tx.is_mainchain 
+  AND create_tx.is_mainchain
+GROUP BY spend_blk.height, spend_blk.time
+ORDER BY spend_blk.height;`
+
 	SelectCoinDaysDestroyedWithHeight = `
 	SELECT
-		spend_blk.height,
-		spend_blk.time,
-  		SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS total_cdd,
-		AVG(FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS avg_age_days
-		FROM vins
-		JOIN vouts vout
-  		ON vins.prev_tx_hash = vout.tx_hash AND vins.prev_tx_index = vout.tx_index
-		JOIN transactions spend_tx
-  		ON vins.tx_hash = spend_tx.tx_hash
-		JOIN blocks spend_blk
-  		ON spend_tx.block_hash = spend_blk.hash
-		JOIN transactions create_tx
-  		ON vout.tx_hash = create_tx.tx_hash
-		JOIN blocks create_blk
-  		ON create_tx.block_hash = create_blk.hash
-		WHERE vout.value > 0 AND spend_blk.height = $1 AND spend_tx.is_mainchain AND create_tx.is_mainchain
-		GROUP BY spend_blk.height, spend_blk.time
-		ORDER BY spend_blk.height;`
+	spend_blk.height,
+	spend_blk.time,
+	SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400)) AS total_cdd,
+	SUM(vout.value * FLOOR(EXTRACT(EPOCH FROM (spend_blk.time - create_blk.time)) / 86400))::numeric
+		/ NULLIF(SUM(vout.value), 0) AS avg_age_days
+FROM vins
+JOIN vouts vout
+  ON vins.prev_tx_hash = vout.tx_hash AND vins.prev_tx_index = vout.tx_index
+JOIN transactions spend_tx
+  ON vins.tx_hash = spend_tx.tx_hash
+JOIN blocks spend_blk
+  ON spend_tx.block_hash = spend_blk.hash
+JOIN transactions create_tx
+  ON vout.tx_hash = create_tx.tx_hash
+JOIN blocks create_blk
+  ON create_tx.block_hash = create_blk.hash
+WHERE vout.value > 0 
+  AND spend_blk.height = $1
+  AND spend_tx.is_mainchain 
+  AND create_tx.is_mainchain
+GROUP BY spend_blk.height, spend_blk.time
+ORDER BY spend_blk.height;`
 
 	SelectCoinAgeBands = `
 		SELECT
