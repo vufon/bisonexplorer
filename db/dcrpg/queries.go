@@ -865,6 +865,12 @@ func checkExistAndCreateMonthlyPriceTable(db *sql.DB) error {
 	return err
 }
 
+// Check exist and create daily_market table
+func checkExistAndCreateDailyMarketTable(db *sql.DB) error {
+	err := createTable(db, "daily_market", internal.CreateDailyMarketTable)
+	return err
+}
+
 // Get proposal Meta by owner
 func getProposalMetasByOwner(db *sql.DB, name string) ([]map[string]string, error) {
 	return queryProposalMetaList(db, internal.SelectProposalMetasByOwner, name)
@@ -4371,13 +4377,33 @@ func retrieveCoinAge(ctx context.Context, db *sql.DB, charts *cache.ChartData) (
 
 // retrieveCoinAgeBands fetches the coin age bands
 func retrieveCoinAgeBands(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
-	// fmt.Println("Coin age band tips height: ", charts.CoinAgeBandsTip())
-	// rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBandsAllRows, charts.CoinAgeBandsTip())
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return rows, nil
-	return nil, nil
+	rows, err := db.QueryContext(ctx, internal.SelectCoinAgeBandsAllRows, charts.CoinAgeBandsTip())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+	// return nil, nil
+}
+
+// retrieveMcaSnapshot fetches the coin age bands
+func retrieveMcaSnapshot(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, internal.SelectMcaSnapshotsAllRows, charts.McaSnapshotsTip())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+	// return nil, nil
+}
+
+// retrieveMcaSnapshot fetches the coin age bands
+func retrieveDailyMarketPrice(ctx context.Context, db *sql.DB, charts *cache.ChartData) (*sql.Rows, error) {
+	lastTime, _ := charts.LastMarketPriceTimeAndHeight()
+	rows, err := db.QueryContext(ctx, internal.SelectDailyMarketPriceAllRows, lastTime)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+	// return nil, nil
 }
 
 // retrieveMutilchainCoinSupply fetches the coin supply data from the vins table.
@@ -4424,6 +4450,7 @@ func appendCoinAge(charts *cache.ChartData, rows *sql.Rows) error {
 		if err := rows.Scan(&height, &timestamp, &cdd, &avgAgeDays); err != nil {
 			return err
 		}
+		// datePrice, err := getDatePriceByTime()
 		cddAmount := dcrutil.Amount(int64(math.Floor(math.Abs(cdd))))
 		blocks.CoinDaysDestroyed = append(blocks.CoinDaysDestroyed, cddAmount.ToCoin())
 		blocks.AvgCoinAge = append(blocks.AvgCoinAge, math.Abs(avgAgeDays))
@@ -4445,6 +4472,101 @@ type AgeBandRow struct {
 	BlockTime   time.Time
 	AgeBand     string
 	TotalValue  float64
+}
+
+func appendMcaSnapshot(charts *cache.ChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	blocks := charts.Blocks
+	// var currentHeight int64 = int64(len(charts.Blocks.CoinAgeBands)) - 1
+	for rows.Next() {
+		var blockHeight int64
+		var totalCoinDays float64
+		var meanCoinAge float64
+		if err := rows.Scan(&blockHeight, &totalCoinDays, &meanCoinAge); err != nil {
+			return err
+		}
+		blocks.MeanCoinAge = append(blocks.MeanCoinAge, meanCoinAge)
+		// blocks.TotalCoinDays = append(blocks.TotalCoinDays, )
+		tcdAmount := dcrutil.Amount(int64(math.Floor(totalCoinDays)))
+		blocks.TotalCoinDays = append(blocks.TotalCoinDays, tcdAmount.ToCoin())
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// Set the genesis block to zero because the DB stores it as -1
+	if len(blocks.MeanCoinAge) > 0 {
+		blocks.MeanCoinAge[0] = 0
+		blocks.TotalCoinDays[0] = 0
+	}
+	return nil
+}
+
+func appendMarketPrice(charts *cache.ChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	blocks := charts.Blocks
+	priceMap := make(map[string]float64)
+	for rows.Next() {
+		var dateUnix int64
+		var price float64
+		if err := rows.Scan(&dateUnix, &price); err != nil {
+			return err
+		}
+		t := time.Unix(dateUnix, 0).UTC()
+		formatted := t.Format("2006-01-02")
+		priceMap[formatted] = price
+	}
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	// get lastest index (tip/height)
+	currentIndex := len(charts.Blocks.MarketPrice) - 1
+	currentHeightIndex := 0
+	if currentIndex < 0 || len(charts.Blocks.Height)-1 < currentHeightIndex {
+		charts.Blocks.MarketPrice = make([]float64, 0)
+		currentHeightIndex = -1
+	} else {
+		currentHeightIndex = currentIndex
+	}
+
+	for i := currentHeightIndex + 1; i < len(charts.Blocks.Height); i++ {
+		curTime := charts.Blocks.Time[i]
+		t := time.Unix(int64(curTime), 0).UTC()
+		curTimeFormatted := t.Format("2006-01-02")
+		// check exist on price map
+		price, exist := priceMap[curTimeFormatted]
+		if exist {
+			charts.Blocks.MarketPrice = append(charts.Blocks.MarketPrice, price)
+		} else {
+			nearestPrice := getNearestPriceForDate(t, priceMap)
+			charts.Blocks.MarketPrice = append(charts.Blocks.MarketPrice, nearestPrice)
+		}
+	}
+
+	// Set the genesis block to zero because the DB stores it as -1
+	if len(blocks.MarketPrice) > 0 {
+		blocks.MarketPrice[0] = 0
+	}
+	return nil
+}
+
+func getNearestPriceForDate(currentTime time.Time, priceMap map[string]float64) float64 {
+	price := float64(0)
+	exist := false
+	count := 0
+	curTime := currentTime
+	for count < 250 {
+		prevDate := curTime.AddDate(0, 0, -1)
+		prevFormatted := prevDate.Format("2006-01-02")
+		price, exist = priceMap[prevFormatted]
+		if exist {
+			break
+		}
+		curTime = prevDate
+		count++
+	}
+	return price
 }
 
 func appendCoinAgeBands(charts *cache.ChartData, rows *sql.Rows) error {

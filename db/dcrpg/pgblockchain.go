@@ -354,6 +354,10 @@ type ChainDB struct {
 		// commonly retrieved when the explorer block is updated.
 		difficulties map[int64]float64
 	}
+	coinAgeSync      sync.Mutex
+	utxoHistorySync  sync.Mutex
+	coinAgeBandsSync sync.Mutex
+	mcaSnapShotSync  sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -1205,11 +1209,23 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 		Appender: appendCoinAge,
 	})
 
-	// TODO: charts.AddUpdater(cache.ChartUpdater{
-	// 	Tag:      "coin age bands",
-	// 	Fetcher:  pgb.coinAgeBands,
-	// 	Appender: appendCoinAgeBands,
-	// })
+	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "coin age bands",
+		Fetcher:  pgb.coinAgeBands,
+		Appender: appendCoinAgeBands,
+	})
+
+	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "mca snapshot",
+		Fetcher:  pgb.mcaSnapshot,
+		Appender: appendMcaSnapshot,
+	})
+
+	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "market price",
+		Fetcher:  pgb.marketPrice,
+		Appender: appendMarketPrice,
+	})
 
 	charts.AddUpdater(cache.ChartUpdater{
 		Tag:      "window stats",
@@ -1859,6 +1875,11 @@ func (pgb *ChainDB) CheckCreateTreasurySummaryTable() (err error) {
 // Check exist or create a new monthly_price table
 func (pgb *ChainDB) CheckCreateMonthlyPriceTable() (err error) {
 	return checkExistAndCreateMonthlyPriceTable(pgb.db)
+}
+
+// Check exist or create a new daily_market table
+func (pgb *ChainDB) CheckCreateDailyMarketTable() (err error) {
+	return checkExistAndCreateDailyMarketTable(pgb.db)
 }
 
 // Add proposal meta data to table
@@ -2929,6 +2950,33 @@ func (pgb *ChainDB) SyncTreasuryMonthlyPrice() {
 	pgb.CheckAndInsertToMonthlyPriceTable(currencyPriceMap)
 }
 
+func (pgb *ChainDB) CheckAndInsertToDailyMarketTable(dailyMarketData *dbtypes.DailyMarket) {
+	if dailyMarketData == nil {
+		return
+	}
+	for _, dailyData := range dailyMarketData.Data {
+		// check exist on db
+		var dateExist bool
+		//check exist on DB
+		err := pgb.db.QueryRowContext(pgb.ctx, internal.CheckDailyMarketExistDate, dailyData.Date).Scan(&dateExist)
+		if err != nil {
+			log.Errorf("Check exist date on daily_market table failed: %v", err)
+			return
+		}
+		// if exist, ignore
+		if dateExist {
+			continue
+		}
+		// upsert to table
+		_, err = pgb.db.Exec(internal.UpsertDailyMarketRow, dailyData.Date, dailyData.Volume, dailyData.Open, dailyData.High, dailyData.Low, dailyData.Close)
+		if err != nil {
+			log.Errorf("upsert to daily_market table failed: %v", err)
+			continue
+		}
+	}
+	log.Info("Completed sync daily_market table data")
+}
+
 func (pgb *ChainDB) CheckAndInsertToMonthlyPriceTable(currencyPriceMap map[string]float64) {
 	now := time.Now()
 	for month, price := range currencyPriceMap {
@@ -3061,18 +3109,24 @@ func (pgb *ChainDB) GetMexcPriceMap(from, to int64) map[string]float64 {
 	return result
 }
 
-func (pgb *ChainDB) GetBitDegreeAllPriceMap() map[string]float64 {
+func (pgb *ChainDB) GetBitDegreeAllPriceMap() (map[string]float64, *dbtypes.DailyMarket) {
 	result := make(map[string]float64)
 	res, err := pgb.GetPriceAll()
 	if err != nil {
-		return result
+		return result, nil
 	}
 	countMap := make(map[string]int)
 	if len(res.Ohlc) == 0 {
-		return result
+		return result, nil
 	}
-	for _, dataArr := range res.Ohlc {
-		if len(dataArr) < 4 {
+	dailyResult := &dbtypes.DailyMarket{
+		Data: make([]*dbtypes.DailyItemData, 0),
+	}
+	for idx, dataArr := range res.Ohlc {
+		if len(dataArr) < 5 {
+			continue
+		}
+		if len(res.Volumns)-1 < idx || len(res.Volumns[idx]) < 2 {
 			continue
 		}
 		date := time.Unix(int64(dataArr[0])/1000, 0)
@@ -3085,11 +3139,23 @@ func (pgb *ChainDB) GetBitDegreeAllPriceMap() map[string]float64 {
 			result[key] = dataArr[4]
 			countMap[key] = 1
 		}
+		// if valid daily index
+		if idx < len(res.Ohlc)-1 {
+			dailyItem := &dbtypes.DailyItemData{
+				Date:   int64(dataArr[0]) / 1000,
+				Volume: res.Volumns[idx][1],
+				Open:   dataArr[1],
+				High:   dataArr[2],
+				Low:    dataArr[3],
+				Close:  dataArr[4],
+			}
+			dailyResult.Data = append(dailyResult.Data, dailyItem)
+		}
 	}
 	for k, v := range result {
 		result[k] = v / float64(countMap[k])
 	}
-	return result
+	return result, dailyResult
 }
 
 // Get legacy summary data
@@ -5430,18 +5496,29 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalHeight(msgBlock.Header.Height)
 	// sync coin age table
-	err = pgb.SyncCoinAgeTableWithHeight(int64(msgBlock.Header.Height))
+	err = pgb.SyncCoinAgeTable()
 	if err != nil {
 		log.Errorf("Sync coin_age table on height %d failed. %v", blockData.Header.Height, err)
 		return err
 	}
 	// sync utxo_history table
-	err = pgb.SyncUtxoHistoryHeight(int64(msgBlock.Header.Height))
+	err = pgb.SyncUtxoHistoryTable()
 	if err != nil {
 		log.Errorf("Sync utxo_history table on height %d failed. %v", blockData.Header.Height, err)
 		return err
 	}
-	// err = pgb.SyncCoinAgeBandsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	// sync for coin_age_bands table
+	err = pgb.SyncCoinAgeBandsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table on new height %d failed. %v", blockData.Header.Height, err)
+		return err
+	}
+	// sync for mca_snapshots table
+	err = pgb.SyncMCASnapshotsWithHeightRange(int64(msgBlock.Header.Height), int64(msgBlock.Header.Height))
+	if err != nil {
+		log.Errorf("Sync mca_snapshots table on new height %d failed. %v", blockData.Header.Height, err)
+		return err
+	}
 	return nil
 }
 
@@ -5809,6 +5886,26 @@ func (pgb *ChainDB) coinAge(charts *cache.ChartData) (*sql.Rows, func(), error) 
 		return nil, cancel, fmt.Errorf("coinAge: %w", pgb.replaceCancelError(err))
 	}
 
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) mcaSnapshot(charts *cache.ChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveMcaSnapshot(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("mcaSnapshot: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) marketPrice(charts *cache.ChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveDailyMarketPrice(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("marketPrice: %w", pgb.replaceCancelError(err))
+	}
 	return rows, cancel, nil
 }
 

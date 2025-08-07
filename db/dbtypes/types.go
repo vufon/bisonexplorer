@@ -1056,6 +1056,22 @@ type AgeBandData struct {
 	GreaterThan7Year float64 `json:"greaterThan7Year"`
 }
 
+type MeanCoinAgeData struct {
+	MeanCoinAge float64 `json:"meanCoinAge"`
+}
+
+type TotalCoinDaysData struct {
+	TotalCoinAge float64 `json:"totalCoinAge"`
+}
+
+type AvgCoinAgeData struct {
+	AvgCoinAge float64 `json:"avgCoinAge"`
+}
+
+type CoinDayDestroyedData struct {
+	CoinDayDestroyed float64 `json:"coinDayDestroyed"`
+}
+
 // UTXOData stores an address and value associated with a transaction output.
 type UTXOData struct {
 	Addresses []string
@@ -2325,6 +2341,19 @@ type TreasuryMonthDataObject struct {
 type BitDegreeOhlcResponse struct {
 	Ohlc    [][]float64 `json:"ohlc"`
 	Volumns [][]float64 `json:"volumes"`
+}
+
+type DailyItemData struct {
+	Date   int64
+	Volume float64
+	Open   float64
+	High   float64
+	Low    float64
+	Close  float64
+}
+
+type DailyMarket struct {
+	Data []*DailyItemData
 }
 
 type MexcMonthlyPriceResponse [][]interface{}

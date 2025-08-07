@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -47,40 +48,46 @@ func (pgb *ChainDB) SyncMonthlyPrice(ctx context.Context) error {
 		log.Infof("No need to sync monthly price data")
 		return nil
 	}
-	//check table exist and create new
+
+	//check table exist and create new monthly_price
 	createTableErr := pgb.CheckCreateMonthlyPriceTable()
 	if createTableErr != nil {
 		log.Errorf("Check exist and create monthly_price table failed: %v", createTableErr)
 		return createTableErr
 	}
 
-	//Get lastest monthly on monthly_table
-	monthPriceMap := pgb.GetBitDegreeAllPriceMap()
-
+	//Get lastest monthly on monthly_price table
+	monthPriceMap, _ := pgb.GetBitDegreeAllPriceMap()
 	pgb.CheckAndInsertToMonthlyPriceTable(monthPriceMap)
 	return nil
 }
 
-func (pgb *ChainDB) SyncCoinAgesData() error {
+func (pgb *ChainDB) SyncDailyMarket(ctx context.Context) error {
+	//check table exist and create new daily_market
+	createDailyMarketTableErr := pgb.CheckCreateDailyMarketTable()
+	if createDailyMarketTableErr != nil {
+		log.Errorf("Check exist and create daily_market table failed: %v", createDailyMarketTableErr)
+		return createDailyMarketTableErr
+	}
+
+	//Get lastest monthly on monthly_price table
+	_, dailyMarket := pgb.GetBitDegreeAllPriceMap()
+	if dailyMarket != nil {
+		// check and insert to daily_market table
+		pgb.CheckAndInsertToDailyMarketTable(dailyMarket)
+	}
+	return nil
+}
+
+// SyncCoinAgeTable: sync coin age table (for coin age average, coin days destroyed)
+func (pgb *ChainDB) SyncCoinAgeTable() error {
+	pgb.coinAgeSync.Lock()
+	defer pgb.coinAgeSync.Unlock()
 	// get max height of coin_age table
 	var maxCoinAgeHeight int64
 	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeMaxHeight).Scan(&maxCoinAgeHeight)
 	if err != nil {
 		log.Errorf("Get max height of coin age failed: %v", err)
-		return err
-	}
-	// get max height of coin_age_bands table
-	var maxUtxoHistoryHeight int64
-	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectUtxoHistoryMaxHeight).Scan(&maxUtxoHistoryHeight)
-	if err != nil {
-		log.Errorf("Get max height of utxo_history failed: %v", err)
-		return err
-	}
-	// get max height of coin_age_bands table
-	var maxCoinAgeBandsHeight int64
-	err = pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeBandsMaxHeight).Scan(&maxCoinAgeBandsHeight)
-	if err != nil {
-		log.Errorf("Get max height of coin_age_bands failed: %v", err)
 		return err
 	}
 	log.Info("Start sync coin_age table from height: ", maxCoinAgeHeight)
@@ -90,32 +97,343 @@ func (pgb *ChainDB) SyncCoinAgesData() error {
 		log.Errorf("Sync coin age table data failed: %v", err)
 		return err
 	}
+	return nil
+}
 
-	log.Info("Start sync utxo_history table from height: %d", maxUtxoHistoryHeight)
+// SyncUtxoHistoryTable: sync utxo_history table for coin age chart and future goals
+func (pgb *ChainDB) SyncUtxoHistoryTable() error {
+	pgb.utxoHistorySync.Lock()
+	defer pgb.utxoHistorySync.Unlock()
+	// get max height of coin_age_bands table
+	var maxUtxoHistoryHeight int64
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectUtxoHistoryMaxHeight).Scan(&maxUtxoHistoryHeight)
+	if err != nil {
+		log.Errorf("Get max height of utxo_history failed: %v", err)
+		return err
+	}
+	log.Infof("Start sync utxo_history table from height: %d", maxUtxoHistoryHeight)
 	// sync utxo history data
 	err = pgb.syncUtxoHistoryTable(maxUtxoHistoryHeight)
 	if err != nil {
 		log.Errorf("Sync utxo_history table data failed: %v", err)
 		return err
 	}
+	return nil
+}
 
-	log.Info("Start sync coin_age_bands table from height: ", maxCoinAgeBandsHeight)
+// SyncCoinAgesData: sync all coin age related data
+func (pgb *ChainDB) SyncCoinAgesData() error {
+	// sync coin_age table
+	err := pgb.SyncCoinAgeTable()
+	if err != nil {
+		log.Errorf("Sync coin_age table data failed: %v", err)
+		return err
+	}
+	// sync utxo_history table
+	err = pgb.SyncUtxoHistoryTable()
+	if err != nil {
+		log.Errorf("Sync utxo_history table data failed: %v", err)
+		return err
+	}
+	// sync remaining utxo_history data
+	err = pgb.SyncRemainingUtxoHistory()
+	if err != nil {
+		log.Errorf("Sync remaining heights for utxo_history table data failed: %v", err)
+	}
 	// sync coin_age_bands table
-	go pgb.syncCoinAgeBandsTable(maxCoinAgeBandsHeight)
+	go pgb.SyncCoinAgeBandsTable()
+	// sync mean coin age table
+	go pgb.SyncMcaSnapshotTable()
+	// sync remaining coin_age_bands data
+	go pgb.SyncRemainingCoinAgeBands()
+	// sync remaining mean_coin_age snapshot data
+	go pgb.SyncRemainingMcaSnapshot()
+	return nil
+}
+
+// SyncMcaSnapshotTable: sync mean coin age snapshot data
+func (pgb *ChainDB) SyncMcaSnapshotTable() error {
+	pgb.mcaSnapShotSync.Lock()
+	defer pgb.mcaSnapShotSync.Unlock()
+	var maxMcaSnapShotHeight int64
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectMcaSnapshotsMaxHeight).Scan(&maxMcaSnapShotHeight)
+	if err != nil {
+		log.Errorf("Get max height of mca_snapshots failed: %v", err)
+		return err
+	}
+	err = pgb.syncMcaSnapshotTable(maxMcaSnapShotHeight)
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table failed: %v", err)
+		return err
+	}
+	return nil
+}
+
+// SyncCoinAgeBandsTable: sync coin_age_bands data
+func (pgb *ChainDB) SyncCoinAgeBandsTable() error {
+	pgb.coinAgeBandsSync.Lock()
+	defer pgb.coinAgeBandsSync.Unlock()
+	var maxCoinAgeBandsHeight int64
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeBandsMaxHeight).Scan(&maxCoinAgeBandsHeight)
+	if err != nil {
+		log.Errorf("Get max height of coin_age_bands failed: %v", err)
+		return err
+	}
+	err = pgb.syncCoinAgeBandsTable(maxCoinAgeBandsHeight)
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table failed: %v", err)
+		return err
+	}
+	return nil
+}
+
+// get not sync remaining blocks from rows
+func getRemainingHeightsFromSqlRows(rows *sql.Rows) ([]int64, error) {
+	defer rows.Close()
+	var results []int64
+	for rows.Next() {
+		var height int64
+		err := rows.Scan(&height)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, height)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// SyncRemainingUtxoHistory: sync remaining utxo_history data
+func (pgb *ChainDB) SyncRemainingUtxoHistory() error {
+	var maxUtxoHistoryHeight int64
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectUtxoHistoryMaxHeight).Scan(&maxUtxoHistoryHeight)
+	if err != nil {
+		log.Errorf("Get max height of utxo_history failed: %v", err)
+		return err
+	}
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectRemainingUtxoHistoryHeights, maxUtxoHistoryHeight)
+	if err != nil {
+		log.Errorf("query remaining utxo_history blocks height list failed: %v", err)
+		return err
+	}
+
+	remaingHeights, err := getRemainingHeightsFromSqlRows(rows)
+	if err != nil {
+		log.Errorf("get remaining utxo_history blocks height list failed: %v", err)
+		return err
+	}
+	log.Infof("Start sync utxo_history table for remaining height. Total %d blocks", len(remaingHeights))
+	for _, remainingHeight := range remaingHeights {
+		err := pgb.SyncUtxoHistoryHeight(remainingHeight)
+		if err != nil {
+			log.Errorf("Sync utxo history on height %d failed: %v", remainingHeight, err)
+			return err
+		}
+	}
+	log.Infof("Finish sync utxo_history table for remaining height. Total %d blocks", len(remaingHeights))
+	return nil
+}
+
+// SyncRemainingMcaSnapshot: sync remaining mca_snapshots data
+func (pgb *ChainDB) SyncRemainingMcaSnapshot() error {
+	var maxMcaSnapshotHeight int64
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectMcaSnapshotsMaxHeight).Scan(&maxMcaSnapshotHeight)
+	if err != nil {
+		log.Errorf("Get max height of coin_age_bands failed: %v", err)
+		return err
+	}
+
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectRemainingMcaSnapshotsHeights, maxMcaSnapshotHeight)
+	if err != nil {
+		log.Errorf("query remaining mca_snapshots blocks height list failed: %v", err)
+		return err
+	}
+
+	remaingHeights, err := getRemainingHeightsFromSqlRows(rows)
+	if err != nil {
+		log.Errorf("get remaining mca_snapshots blocks height list failed: %v", err)
+		return err
+	}
+
+	for _, remainingHeight := range remaingHeights {
+		log.Infof("Start sync mca_snapshots table for height %d", remainingHeight)
+		err = pgb.syncRemainingMcaSnapshotsWithHeight(remainingHeight)
+		if err != nil {
+			log.Errorf("sync mca_snapshots table for height %d failed: %v", remainingHeight, err)
+			return err
+		}
+		log.Infof("Sync mca_snapshots table for height %d successfully", remainingHeight)
+	}
+	return nil
+}
+
+// SyncRemainingCoinAgeBands: sync remaining coin_age_bands data
+func (pgb *ChainDB) SyncRemainingCoinAgeBands() error {
+	var maxCoinAgeBandsHeight int64
+	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeBandsMaxHeight).Scan(&maxCoinAgeBandsHeight)
+	if err != nil {
+		log.Errorf("Get max height of coin_age_bands failed: %v", err)
+		return err
+	}
+
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectRemainingCoinAgeBandsHeights, maxCoinAgeBandsHeight)
+	if err != nil {
+		log.Errorf("query remaining coin_age_bands blocks height list failed: %v", err)
+		return err
+	}
+
+	remaingHeights, err := getRemainingHeightsFromSqlRows(rows)
+	if err != nil {
+		log.Errorf("get remaining coin_age_bands blocks height list failed: %v", err)
+		return err
+	}
+
+	for _, remainingHeight := range remaingHeights {
+		log.Infof("Start sync coin_age_bands table for height %d", remainingHeight)
+		err = pgb.syncRemainingCoinAgeBandsWithHeight(remainingHeight)
+		if err != nil {
+			log.Errorf("sync coin_age_bands table for height %d failed: %v", remainingHeight, err)
+			return err
+		}
+		log.Infof("Sync coin_age_bands table for height %d successfully", remainingHeight)
+	}
+	return nil
+}
+
+// sync remaining coin_age_bands with special block height
+func (pgb *ChainDB) syncRemainingCoinAgeBandsWithHeight(height int64) error {
+	err := pgb.SyncCoinAgeBandsWithHeightRange(height, height)
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table for height: %d failed: %v", height, err)
+		return err
+	}
 	return nil
 }
 
 func (pgb *ChainDB) syncCoinAgeBandsTable(lastHeight int64) error {
 	maxHeight := pgb.bestBlock.height
 	batchSize := int64(50)
-	for fromHeight := lastHeight + 1; fromHeight <= maxHeight; fromHeight += batchSize {
-		toHeight := fromHeight + batchSize - 1
-		if toHeight > maxHeight {
-			toHeight = maxHeight
+	concurrency := 10
+
+	type heightRange struct {
+		from int64
+		to   int64
+	}
+
+	// create block range list
+	var jobs []heightRange
+	for from := lastHeight + 1; from <= maxHeight; from += batchSize {
+		to := from + batchSize - 1
+		if to > maxHeight {
+			to = maxHeight
 		}
-		err := pgb.SyncCoinAgeBandsWithHeightRange(fromHeight, toHeight)
+		jobs = append(jobs, heightRange{from, to})
+	}
+
+	// channel for send job and receive errors
+	jobCh := make(chan heightRange, len(jobs))
+	errCh := make(chan error, len(jobs))
+
+	// put all jobs to channels
+	for _, j := range jobs {
+		jobCh <- j
+	}
+	close(jobCh)
+
+	// WaitGroup for wait all go rountine complete
+	var wg sync.WaitGroup
+
+	// Run max of 'concurrency' goroutines
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range jobCh {
+				log.Infof("Start sync coin_age_bands table from: %d to %d", j.from, j.to)
+				err := pgb.SyncCoinAgeBandsWithHeightRange(j.from, j.to)
+				if err != nil {
+					errCh <- fmt.Errorf("failed block range %d-%d: %w", j.from, j.to, err)
+					return
+				}
+				log.Infof("Finish sync coin_age_bands table from: %d to %d", j.from, j.to)
+			}
+		}()
+	}
+
+	// Waiting goroutines complete
+	wg.Wait()
+	close(errCh)
+
+	// Return error
+	for err := range errCh {
 		if err != nil {
-			log.Errorf("Sync coin_age_bands table failed with height from: %d to %d. Error: %v", fromHeight, toHeight, err)
+			log.Error(err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (pgb *ChainDB) syncMcaSnapshotTable(lastHeight int64) error {
+	maxHeight := pgb.bestBlock.height
+	batchSize := int64(50)
+	concurrency := 10
+
+	type heightRange struct {
+		from int64
+		to   int64
+	}
+
+	// create block range list
+	var jobs []heightRange
+	for from := lastHeight + 1; from <= maxHeight; from += batchSize {
+		to := from + batchSize - 1
+		if to > maxHeight {
+			to = maxHeight
+		}
+		jobs = append(jobs, heightRange{from, to})
+	}
+
+	// channel for send job and receive errors
+	jobCh := make(chan heightRange, len(jobs))
+	errCh := make(chan error, len(jobs))
+
+	// put all jobs to channels
+	for _, j := range jobs {
+		jobCh <- j
+	}
+	close(jobCh)
+
+	// WaitGroup for wait all go rountine complete
+	var wg sync.WaitGroup
+
+	// Run max of 'concurrency' goroutines
+	for i := 0; i < concurrency; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range jobCh {
+				log.Infof("Start sync mca_snapshot table from: %d to %d", j.from, j.to)
+				err := pgb.SyncMCASnapshotsWithHeightRange(j.from, j.to)
+				if err != nil {
+					errCh <- fmt.Errorf("failed block range %d-%d: %w", j.from, j.to, err)
+					return
+				}
+				log.Infof("Finish sync mca_snapshot table from: %d to %d", j.from, j.to)
+			}
+		}()
+	}
+
+	// Waiting goroutines complete
+	wg.Wait()
+	close(errCh)
+
+	// Return error
+	for err := range errCh {
+		if err != nil {
+			log.Error(err)
 			return err
 		}
 	}
@@ -137,7 +455,7 @@ func (pgb *ChainDB) SyncCoinAgeBandsWithHeightRange(fromHeight, toHeight int64) 
 		if err := rows.Scan(&height, &timestamp, &ageBand, &totalValue); err != nil {
 			return err
 		}
-		result, err := pgb.db.Exec(internal.InsertCoinAgeBandsRow,
+		result, err := pgb.db.Exec(internal.UpsertCoinAgeBandsRow,
 			height, timestamp, ageBand, totalValue)
 		if err != nil {
 			return fmt.Errorf("insert new rows to coin_age_bands table failed: %w", err)
@@ -154,8 +472,59 @@ func (pgb *ChainDB) SyncCoinAgeBandsWithHeightRange(fromHeight, toHeight int64) 
 	return nil
 }
 
+func (pgb *ChainDB) syncRemainingMcaSnapshotsWithHeight(height int64) error {
+	err := pgb.SyncMCASnapshotsWithHeightRange(height, height)
+	if err != nil {
+		log.Errorf("Sync mca_snapshots table for height: %d failed: %v", height, err)
+		return err
+	}
+	return nil
+}
+
+func (pgb *ChainDB) SyncMCASnapshotsWithHeightRange(fromHeight, toHeight int64) error {
+	log.Infof("Start sync mca_snapshots table from: %d to %d", fromHeight, toHeight)
+
+	rows, err := pgb.db.QueryContext(pgb.ctx, internal.SelectMeanCoinAgeSnapshotsFromUtxoHistory, fromHeight, toHeight)
+	if err != nil {
+		return fmt.Errorf("query mca_snapshots failed: %w", err)
+	}
+	defer closeRows(rows)
+
+	for rows.Next() {
+		var (
+			height        int64
+			timestamp     time.Time
+			totalCoinDays float64
+			totalSupply   int64
+			meanCoinAge   float64
+		)
+
+		if err := rows.Scan(&height, &timestamp, &totalCoinDays, &totalSupply, &meanCoinAge); err != nil {
+			return fmt.Errorf("scan mca_snapshot row failed: %w", err)
+		}
+
+		result, err := pgb.db.Exec(internal.UpsertMCASnapshotRow,
+			height, timestamp, totalCoinDays, totalSupply, meanCoinAge)
+		if err != nil {
+			return fmt.Errorf("insert into mca_snapshots failed (height %d): %w", height, err)
+		}
+
+		if _, err := result.RowsAffected(); err != nil {
+			return fmt.Errorf("failed to get affected rows: %w", err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("row iteration error: %w", err)
+	}
+
+	log.Infof("Finish sync mca_snapshots table from: %d to %d", fromHeight, toHeight)
+	return nil
+}
+
 func (pgb *ChainDB) syncUtxoHistoryTable(lastHeight int64) error {
 	maxHeight := pgb.bestBlock.height
+	fmt.Printf("🔄 Processing block from %d to %d...\n", lastHeight+1, maxHeight)
 	for height := lastHeight + 1; height <= maxHeight; height++ {
 		err := pgb.SyncUtxoHistoryHeight(height)
 		if err != nil {
@@ -163,15 +532,15 @@ func (pgb *ChainDB) syncUtxoHistoryTable(lastHeight int64) error {
 			return err
 		}
 	}
+	fmt.Printf("🔄 Complete process block from %d to %d...\n", lastHeight+1, maxHeight)
 	return nil
 }
 
 func (pgb *ChainDB) SyncUtxoHistoryHeight(height int64) error {
-	fmt.Printf("🔄 Processing block %d...\n", height)
 	// Add new utxo_history row
 	result, err := pgb.db.Exec(internal.InsertUtxoHistoryRow, height)
 	if err != nil {
-		return fmt.Errorf("Insert to utxo history failed with height: %d. Error: %v", height, err)
+		return fmt.Errorf("insert to utxo history failed with height: %d. Error: %v", height, err)
 	}
 	_, err = result.RowsAffected()
 	if err != nil {
@@ -190,6 +559,7 @@ func (pgb *ChainDB) syncCoinAgeTable(maxHeight int64) error {
 	if err != nil {
 		return err
 	}
+	inserted := make([]int64, 0)
 	defer closeRows(rows)
 	for rows.Next() {
 		var cdd, avgAgeDays float64
@@ -199,12 +569,12 @@ func (pgb *ChainDB) syncCoinAgeTable(maxHeight int64) error {
 			return err
 		}
 		cddAmount := dcrutil.Amount(int64(math.Floor(cdd)))
-		result, err := pgb.db.Exec(internal.InsertCoinAgeRow,
+		result, err := pgb.db.Exec(internal.UpsertCoinAgeRow,
 			height, timestamp, cddAmount, avgAgeDays)
 		if err != nil {
 			return fmt.Errorf("insert new rows to coin_age table failed: %w", err)
 		}
-
+		inserted = append(inserted, height)
 		_, err = result.RowsAffected()
 		if err != nil {
 			return err
@@ -212,6 +582,30 @@ func (pgb *ChainDB) syncCoinAgeTable(maxHeight int64) error {
 	}
 	if err := rows.Err(); err != nil {
 		return err
+	}
+	// handler for not inserted to coin_age table
+	for i := maxHeight + 1; i < pgb.bestBlock.height; i++ {
+		if i <= 0 {
+			continue
+		}
+		if slices.Contains(inserted, i) {
+			continue
+		}
+		// get block time
+		blockRst := pgb.GetBlockVerbose(int(i), false)
+		if blockRst == nil {
+			continue
+		}
+		blockTime := time.Unix(blockRst.Time, 0)
+		result, err := pgb.db.Exec(internal.UpsertCoinAgeRow,
+			i, blockTime, 0, 0)
+		if err != nil {
+			return fmt.Errorf("insert new rows to coin_age table failed, height: %d: %w", i, err)
+		}
+		_, err = result.RowsAffected()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -230,7 +624,7 @@ func (pgb *ChainDB) SyncCoinAgeTableWithHeight(height int64) error {
 			return err
 		}
 		cddAmount := dcrutil.Amount(int64(math.Floor(cdd)))
-		result, err := pgb.db.Exec(internal.InsertCoinAgeRow,
+		result, err := pgb.db.Exec(internal.UpsertCoinAgeRow,
 			height, timestamp, cddAmount, avgAgeDays)
 		if err != nil {
 			return fmt.Errorf("insert new rows to coin_age table failed: %w", err)

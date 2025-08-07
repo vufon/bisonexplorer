@@ -69,7 +69,7 @@ func (charts *MutilchainChartData) Lengthen() error {
 		blocks.BlockSize, blocks.TxCount,
 		blocks.NewAtoms, blocks.Fees, blocks.Difficulty, blocks.Hashrate)
 	if err != nil {
-		log.Warnf("ChartData.Lengthen: block data length mismatch detected. "+
+		log.Warnf("MultiChartData.Lengthen: multichain block data length mismatch detected. "+
 			"Truncating blocks length to %d", shortest)
 		blocks.Snip(shortest)
 	}
@@ -264,7 +264,7 @@ func (charts *MutilchainChartData) Load(cacheDumpPath string) error {
 	}
 
 	// Bring the charts up to date.
-	log.Infof("Updating charts data...")
+	log.Infof("Updating multicharts data...")
 	return charts.Update()
 }
 

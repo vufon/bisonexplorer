@@ -989,7 +989,6 @@ func _main(ctx context.Context) error {
 			rd.Get("/agendas", explore.AgendasPage)
 			rd.With(explorer.AgendaPathCtx).Get("/agenda/{agendaid}", explore.AgendaPage)
 			rd.Get("/proposals", explore.ProposalsPage)
-			rd.Get("/whatsnew", explore.WhatsNewPage)
 			rd.With(explorer.ProposalPathCtx).Get("/proposal/{proposaltoken}", explore.ProposalPage)
 			rd.Get("/decodetx", explore.DecodeTxPage)
 			rd.Get("/search", explore.Search)
@@ -1076,7 +1075,6 @@ func _main(ctx context.Context) error {
 		r.Get("/agendas", mainRedirect("/decred/agendas"))
 		r.Get("/agenda/{x}", redirectOneParam("/decred/agenda"))
 		r.Get("/proposals", mainRedirect("/decred/proposals"))
-		r.Get("/whatsnew", mainRedirect("/decred/whatsnew"))
 		r.Get("/proposal/{x}", redirectOneParam("/decred/proposal"))
 		r.Get("/decodetx", mainRedirect("/decred/decodetx"))
 		r.Get("/search", mainRedirect("/decred/search"))
@@ -1095,6 +1093,8 @@ func _main(ctx context.Context) error {
 		r.Get("/finance-report/detail", mainRedirect("/decred/finance-report/detail"))
 		r.Get("/supply", mainRedirect("/decred/supply"))
 		r.Get("/atomic-swaps", mainRedirect("/decred/atomic-swaps"))
+		r.Get("/about", explore.AboutPage)
+		r.Get("/whatsnew", explore.WhatsNewPage)
 		// MenuFormParser will typically redirect, but going to the homepage as a
 		// fallback.
 		r.With(explorer.MenuFormParser).Post("/set", explore.DecredHome)
@@ -1179,7 +1179,6 @@ func _main(ctx context.Context) error {
 		}
 		//synchronize legacy address data
 		log.Infof("Starting address summary sync...")
-
 		syncAdressSummaryData := func() error {
 			err := chainDB.SyncAddressSummary()
 			if err != nil {
@@ -1214,23 +1213,45 @@ func _main(ctx context.Context) error {
 		log.Infof("Finished treasury summary sync")
 
 		//Synchronize DCR's price by month
-		log.Infof("Starting DCR monthly price sync...")
-
-		syncMonthlyPriceData := func() error {
+		syncDailyMarketData := func() error {
+			log.Infof("Starting DCR monthly price sync...")
 			err := chainDB.SyncMonthlyPrice(ctx)
 			if err != nil {
 				log.Errorf("dcrpg.SyncMonthlyPrice failed")
 				return err
 			}
+			log.Infof("Finished DCR monthly price sync")
+			log.Infof("Starting DCR daily market data sync...")
+			err = chainDB.SyncDailyMarket(ctx)
+			if err != nil {
+				log.Errorf("dcrpg.SyncDailyMarket failed")
+				return err
+			}
+			log.Infof("Finished DCR daily market data sync")
 			return nil
 		}
 
-		err = syncMonthlyPriceData()
-		if err != nil {
-			return err
-		}
+		// synchorozie monthly_price and daily_market data everyday
+		go func() {
+			// Chạy lần đầu ngay lập tức
+			err = syncDailyMarketData()
+			if err != nil {
+				log.Errorf("Sync daily market data failed: %v", err)
+			}
+			// Lặp lại mỗi 24h
+			ticker := time.NewTicker(24 * time.Hour)
+			defer ticker.Stop()
 
-		log.Infof("Finished DCR monthly price sync")
+			for {
+				select {
+				case <-ticker.C:
+					err = syncDailyMarketData()
+					if err != nil {
+						log.Errorf("Sync daily market data failed: %v", err)
+					}
+				}
+			}
+		}()
 
 		// check and sync for tspend votes
 		// check tspend_votes table exist
