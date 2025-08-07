@@ -23,6 +23,22 @@ const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation']
+const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
+// const coinAgeBandsLabels = ['<1D', '1D-1W', '1W-1M', '1-6M', '6M-1Y', '1-2Y', '2-3Y', '3-5Y', '5-7Y', '>7Y', 'Decred Price']
+const coinAgeBandsColors = [
+  '#e9baa6',
+  '#152b83',
+  '#dc3912',
+  '#ff9900',
+  '#109618',
+  '#990099',
+  '#0099c6',
+  '#dd4477',
+  '#66aa00',
+  '#b82e2e',
+  '#316395',
+  '#994499'
+]
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
 const chainworkUnits = ['exahash', 'zettahash', 'yottahash']
@@ -316,7 +332,7 @@ function zipWindowTvYZ (times, ys, zs, yMult, zMult) {
   })
 }
 
-// data coin age handler for bin = day, axis height 
+// data coin age handler for bin = day, axis height
 function zipCoinAgeHvY (heights, ys, zs, yMult, zMult, offset) {
   yMult = yMult || 1
   zMult = zMult || 1
@@ -326,7 +342,7 @@ function zipCoinAgeHvY (heights, ys, zs, yMult, zMult, offset) {
   })
 }
 
-// data coin age handler for axis time 
+// data coin age handler for axis time
 function zipCoinAgeTvY (times, ys, zs, yMult, zMult) {
   yMult = yMult || 1
   zMult = zMult || 1
@@ -335,13 +351,157 @@ function zipCoinAgeTvY (times, ys, zs, yMult, zMult) {
   })
 }
 
-// data coin age handler for bin = block, axis height 
+// data coin age handler for bin = block, axis height
 function zipCoinAgeIvY (ys, zs, yMult, zMult, offset) {
   yMult = yMult || 1
   zMult = zMult || 1
   offset = offset || 1 // TODO: check for why offset is set to a default value of 1 when genesis block has a height of 0
   return ys.map((y, i) => {
     return [offset + i, y * yMult, zs[i] * zMult]
+  })
+}
+
+// data coin age bands handler for bin = day, axis height
+function zipCoinAgeBandsHvY (heights, ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    const less1Day = Number(y.less1Day)
+    const dayToWeek = Number(y.dayToWeek)
+    const weekToMonth = Number(y.weekToMonth)
+    const monthToHalfYear = Number(y.monthToHalfYear)
+    const halfYearToYear = Number(y.halfYearToYear)
+    const yearTo2Year = Number(y.yearTo2Year)
+    const twoYearTo3Year = Number(y.twoYearTo3Year)
+    const threeYearTo5Year = Number(y.threeYearTo5Year)
+    const fiveYearTo7Year = Number(y.fiveYearTo7Year)
+    const greaterThan7Year = Number(y.greaterThan7Year)
+    const totalValue = less1Day + dayToWeek + weekToMonth + monthToHalfYear + halfYearToYear + yearTo2Year +
+      twoYearTo3Year + threeYearTo5Year + fiveYearTo7Year + greaterThan7Year
+    // const less1DayPercent = (less1Day / totalValue) * 100
+    const dayToWeekPercent = (dayToWeek / totalValue) * 100 + 0.00001
+    const weekToMonthPercent = (weekToMonth / totalValue) * 100 + 0.00001
+    const monthToHalfYearPercent = (monthToHalfYear / totalValue) * 100 + 0.00001
+    const halfYearToYearPercent = (halfYearToYear / totalValue) * 100 + 0.00001
+    const yearTo2YearPercent = (yearTo2Year / totalValue) * 100 + 0.00001
+    const twoYearTo3YearPercent = (twoYearTo3Year / totalValue) * 100 + 0.00001
+    const threeYearTo5YearPercent = (threeYearTo5Year / totalValue) * 100 + 0.00001
+    const fiveYearTo7YearPercent = (fiveYearTo7Year / totalValue) * 100 + 0.00001
+    const greaterThan7YearPercent = (greaterThan7Year / totalValue) * 100 + 0.00001
+    const noneValue = 0.00001
+    const less1DayPercent = 100 - dayToWeekPercent - weekToMonthPercent - monthToHalfYearPercent - halfYearToYearPercent -
+      yearTo2YearPercent - twoYearTo3YearPercent - threeYearTo5YearPercent - fiveYearTo7YearPercent - greaterThan7YearPercent - noneValue
+    return [
+      offset + heights[i],
+      noneValue,
+      greaterThan7YearPercent * yMult,
+      fiveYearTo7YearPercent * yMult,
+      threeYearTo5YearPercent * yMult,
+      twoYearTo3YearPercent * yMult,
+      yearTo2YearPercent * yMult,
+      halfYearToYearPercent * yMult,
+      monthToHalfYearPercent * yMult,
+      weekToMonthPercent * yMult,
+      dayToWeekPercent * yMult,
+      less1DayPercent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+// data coin age bands handler for bin = block, axis height
+function zipCoinAgeBandsIvY (ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1 // TODO: check for why offset is set to a default value of 1 when genesis block has a height of 0
+  return ys.map((y, i) => {
+    const less1Day = Number(y.less1Day)
+    const dayToWeek = Number(y.dayToWeek)
+    const weekToMonth = Number(y.weekToMonth)
+    const monthToHalfYear = Number(y.monthToHalfYear)
+    const halfYearToYear = Number(y.halfYearToYear)
+    const yearTo2Year = Number(y.yearTo2Year)
+    const twoYearTo3Year = Number(y.twoYearTo3Year)
+    const threeYearTo5Year = Number(y.threeYearTo5Year)
+    const fiveYearTo7Year = Number(y.fiveYearTo7Year)
+    const greaterThan7Year = Number(y.greaterThan7Year)
+    const totalValue = less1Day + dayToWeek + weekToMonth + monthToHalfYear + halfYearToYear + yearTo2Year +
+      twoYearTo3Year + threeYearTo5Year + fiveYearTo7Year + greaterThan7Year
+    // const less1DayPercent = (less1Day / totalValue) * 100
+    const dayToWeekPercent = (dayToWeek / totalValue) * 100 + 0.00001
+    const weekToMonthPercent = (weekToMonth / totalValue) * 100 + 0.00001
+    const monthToHalfYearPercent = (monthToHalfYear / totalValue) * 100 + 0.00001
+    const halfYearToYearPercent = (halfYearToYear / totalValue) * 100 + 0.00001
+    const yearTo2YearPercent = (yearTo2Year / totalValue) * 100 + 0.00001
+    const twoYearTo3YearPercent = (twoYearTo3Year / totalValue) * 100 + 0.00001
+    const threeYearTo5YearPercent = (threeYearTo5Year / totalValue) * 100 + 0.00001
+    const fiveYearTo7YearPercent = (fiveYearTo7Year / totalValue) * 100 + 0.00001
+    const greaterThan7YearPercent = (greaterThan7Year / totalValue) * 100 + 0.00001
+    const noneValue = 0.00001
+    const less1DayPercent = 100 - dayToWeekPercent - weekToMonthPercent - monthToHalfYearPercent - halfYearToYearPercent -
+      yearTo2YearPercent - twoYearTo3YearPercent - threeYearTo5YearPercent - fiveYearTo7YearPercent - greaterThan7YearPercent - noneValue
+    return [
+      offset + i,
+      noneValue,
+      greaterThan7YearPercent * yMult,
+      fiveYearTo7YearPercent * yMult,
+      threeYearTo5YearPercent * yMult,
+      twoYearTo3YearPercent * yMult,
+      yearTo2YearPercent * yMult,
+      halfYearToYearPercent * yMult,
+      monthToHalfYearPercent * yMult,
+      weekToMonthPercent * yMult,
+      dayToWeekPercent * yMult,
+      less1DayPercent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+// data coin age bands handler for axis time
+function zipCoinAgeBandsTvY (times, ys, zs, yMult, zMult) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  return times.map((t, i) => {
+    const y = ys[i]
+    const less1Day = Number(y.less1Day)
+    const dayToWeek = Number(y.dayToWeek)
+    const weekToMonth = Number(y.weekToMonth)
+    const monthToHalfYear = Number(y.monthToHalfYear)
+    const halfYearToYear = Number(y.halfYearToYear)
+    const yearTo2Year = Number(y.yearTo2Year)
+    const twoYearTo3Year = Number(y.twoYearTo3Year)
+    const threeYearTo5Year = Number(y.threeYearTo5Year)
+    const fiveYearTo7Year = Number(y.fiveYearTo7Year)
+    const greaterThan7Year = Number(y.greaterThan7Year)
+    const totalValue = less1Day + dayToWeek + weekToMonth + monthToHalfYear + halfYearToYear + yearTo2Year +
+      twoYearTo3Year + threeYearTo5Year + fiveYearTo7Year + greaterThan7Year
+    // const less1DayPercent = (less1Day / totalValue) * 100
+    const dayToWeekPercent = (dayToWeek / totalValue) * 100 + 0.00001
+    const weekToMonthPercent = (weekToMonth / totalValue) * 100 + 0.00001
+    const monthToHalfYearPercent = (monthToHalfYear / totalValue) * 100 + 0.00001
+    const halfYearToYearPercent = (halfYearToYear / totalValue) * 100 + 0.00001
+    const yearTo2YearPercent = (yearTo2Year / totalValue) * 100 + 0.00001
+    const twoYearTo3YearPercent = (twoYearTo3Year / totalValue) * 100 + 0.00001
+    const threeYearTo5YearPercent = (threeYearTo5Year / totalValue) * 100 + 0.00001
+    const fiveYearTo7YearPercent = (fiveYearTo7Year / totalValue) * 100 + 0.00001
+    const greaterThan7YearPercent = (greaterThan7Year / totalValue) * 100 + 0.00001
+    const noneValue = 0.00001
+    const less1DayPercent = 100 - dayToWeekPercent - weekToMonthPercent - monthToHalfYearPercent - halfYearToYearPercent -
+      yearTo2YearPercent - twoYearTo3YearPercent - threeYearTo5YearPercent - fiveYearTo7YearPercent - greaterThan7YearPercent - noneValue
+    return [
+      new Date(t * 1000),
+      noneValue,
+      greaterThan7YearPercent * yMult,
+      fiveYearTo7YearPercent * yMult,
+      threeYearTo5YearPercent * yMult,
+      twoYearTo3YearPercent * yMult,
+      yearTo2YearPercent * yMult,
+      halfYearToYearPercent * yMult,
+      monthToHalfYearPercent * yMult,
+      weekToMonthPercent * yMult,
+      dayToWeekPercent * yMult,
+      less1DayPercent * yMult,
+      zs[i] * zMult]
   })
 }
 
@@ -446,6 +606,19 @@ function avgCoinDayDestroyedFunc (data) {
     }
   } else {
     return zipCoinAgeTvY(data.t, data.cdd, data.marketPrice)
+  }
+}
+
+// handler func for coin age bands
+function coindAgeBandsFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeBandsIvY(data.ageBands, data.marketPrice)
+    } else {
+      return zipCoinAgeBandsHvY(data.h, data.ageBands, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeBandsTvY(data.t, data.ageBands, data.marketPrice)
   }
 }
 
@@ -723,7 +896,7 @@ export default class extends Controller {
 
   plotGraph (chartName, data) {
     let d = []
-    const gOptions = {
+    let gOptions = {
       zoomCallback: null,
       drawCallback: null,
       logscale: this.settings.scale === 'log',
@@ -739,6 +912,7 @@ export default class extends Controller {
     }
     rawPoolValue = []
     rawCoinSupply = []
+    const labels = []
     yFormatter = defaultYFormatter
     const xlabel = data.t ? 'Date' : 'Block Height'
     const _this = this
@@ -947,6 +1121,50 @@ export default class extends Controller {
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['total-coin-days'] : yAxisLabelWidth.y2['total-coin-days'] + 15
         }
         yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' days')
+        break
+
+      case 'coin-age-bands':
+        d = coindAgeBandsFunc(data)
+        labels.push(xlabel)
+        labels.push(...coinAgeBandsLabels)
+        gOptions = {
+          labels: labels,
+          file: d,
+          colors: coinAgeBandsColors,
+          ylabel: 'HODL Wave (%)',
+          y2label: 'Decred Price',
+          valueRange: [0, 100],
+          fillGraph: true,
+          stackedGraph: true,
+          series: {
+            none: { fillGraph: true },
+            '>7Y': { fillGraph: true },
+            '5-7Y': { fillGraph: true },
+            '3-5Y': { fillGraph: true },
+            '2-3Y': { fillGraph: true },
+            '1-2Y': { fillGraph: true },
+            '6M-1Y': { fillGraph: true },
+            '1-6M': { fillGraph: true },
+            '1W-1M': { fillGraph: true },
+            '1D-1W': { fillGraph: true },
+            '<1D': { fillGraph: true },
+            'Decred Price': {
+              axis: 'y2',
+              strokeWidth: 2,
+              fillGraph: false
+            }
+          },
+          legend: 'always',
+          includeZero: true,
+          // zoomCallback: this.depthZoomCallback,
+          axes: {
+            y2: {
+              valueRange: [0, 300],
+              axisLabelFormatter: (y) => Math.round(y),
+              axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['coin-age-bands'] : yAxisLabelWidth.y2['coin-age-bands'] + 15
+            }
+          }
+        }
         break
 
       case 'hashrate': // Total chainwork over time
