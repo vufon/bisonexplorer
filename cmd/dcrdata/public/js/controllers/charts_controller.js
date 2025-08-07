@@ -22,7 +22,8 @@ const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
-const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation']
+const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
 // const coinAgeBandsLabels = ['<1D', '1D-1W', '1W-1M', '1-6M', '6M-1Y', '1-2Y', '2-3Y', '3-5Y', '5-7Y', '>7Y', 'Decred Price']
 const coinAgeBandsColors = [
@@ -99,6 +100,10 @@ function isModeEnabled (chart) {
 
 function hasMultipleVisibility (chart) {
   return multiYAxisChart.indexOf(chart) > -1
+}
+
+function isCoinAgeChart (chart) {
+  return coinAgeCharts.indexOf(chart) > -1
 }
 
 function useRange (chart) {
@@ -772,7 +777,8 @@ export default class extends Controller {
       'chartName',
       'chartTitleName',
       'rangeSelector',
-      'rangeOption'
+      'rangeOption',
+      'marketPrice'
     ]
   }
 
@@ -915,6 +921,7 @@ export default class extends Controller {
     rawPoolValue = []
     rawCoinSupply = []
     const labels = []
+    const stackVisibility = []
     yFormatter = defaultYFormatter
     const xlabel = data.t ? 'Date' : 'Block Height'
     const _this = this
@@ -1067,7 +1074,7 @@ export default class extends Controller {
           'Average Age Days (days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, 300],
@@ -1086,7 +1093,7 @@ export default class extends Controller {
           'Coin Days Destroyed (coin-days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, 300],
@@ -1105,7 +1112,7 @@ export default class extends Controller {
           'Mean Coin Age (days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, 300],
@@ -1124,7 +1131,7 @@ export default class extends Controller {
           'Total Coin Days (days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.visibility = this.visibility
         gOptions.axes.y2 = {
           valueRange: [0, 300],
@@ -1141,6 +1148,11 @@ export default class extends Controller {
         d = coindAgeBandsFunc(data)
         labels.push(xlabel)
         labels.push(...coinAgeBandsLabels)
+        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
+        coinAgeBandsColors.forEach((item) => {
+          stackVisibility.push(true)
+        })
+        stackVisibility[stackVisibility.length - 1] = this.visibility[1]
         gOptions = {
           labels: labels,
           file: d,
@@ -1150,6 +1162,7 @@ export default class extends Controller {
           valueRange: [0, 100],
           fillGraph: true,
           stackedGraph: true,
+          visibility: stackVisibility,
           series: {
             none: { fillGraph: true },
             '>7Y': { fillGraph: true },
@@ -1341,6 +1354,16 @@ export default class extends Controller {
         return 'Coin Supply'
       case 'fees':
         return 'Fees'
+      case 'avg-age-days':
+        return 'Average Age Days'
+      case 'coin-days-destroyed':
+        return 'Coin Days Destroyed'
+      case 'coin-age-bands':
+        return 'HODL Age Bands'
+      case 'mean-coin-age':
+        return 'Mean Coin Age'
+      case 'total-coin-days':
+        return 'Total Coin Days'
       default:
         return ''
     }
@@ -1523,6 +1546,9 @@ export default class extends Controller {
       if (el.dataset.bin && el.dataset.bin.indexOf(that.selectedBin()) === -1) {
         show = false
       }
+      if (el.dataset.charts === 'coin-age' && isCoinAgeChart(chart)) {
+        show = true
+      }
       if (show) {
         el.classList.remove('d-hide')
         showWrapper = true
@@ -1560,6 +1586,16 @@ export default class extends Controller {
         }
         this.setTargetsChecked(this.anonymitySetTargets, this.visibility[1])
         break
+      case 'avg-age-days':
+      case 'coin-days-destroyed':
+      case 'coin-age-bands':
+      case 'mean-coin-age':
+      case 'total-coin-days':
+        if (this.visibility.length !== 2) {
+          this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
+        }
+        this.setTargetsChecked(this.marketPriceTargets, this.visibility[1])
+        break
       default:
         return
     }
@@ -1589,14 +1625,33 @@ export default class extends Controller {
       case 'privacy-participation':
         this.visibility = [true, this.getTargetsChecked(this.anonymitySetTargets)]
         break
+      case 'avg-age-days':
+      case 'coin-days-destroyed':
+      case 'coin-age-bands':
+      case 'mean-coin-age':
+      case 'total-coin-days':
+        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
+        break
       default:
         return
     }
-    this.chartsView.updateOptions({ visibility: this.visibility })
+    this.chartsView.updateOptions({ visibility: this.getVisibilityForCharts(selectChart, this.visibility) })
     this.settings.visibility = this.visibility.join('-')
     if (!this.isHomepage) {
       this.query.replace(this.settings)
     }
+  }
+
+  getVisibilityForCharts (chart, visibility) {
+    if (chart !== 'coin-age-bands') {
+      return visibility
+    }
+    const stackVisibility = []
+    coinAgeBandsColors.forEach((item) => {
+      stackVisibility.push(true)
+    })
+    stackVisibility[stackVisibility.length - 1] = visibility[1]
+    return stackVisibility
   }
 
   setActiveOptionBtn (opt, optTargets) {
