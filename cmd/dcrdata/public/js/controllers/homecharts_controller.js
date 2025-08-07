@@ -23,10 +23,28 @@ const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
-const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation']
+const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
+// const coinAgeBandsLabels = ['<1D', '1D-1W', '1W-1M', '1-6M', '6M-1Y', '1-2Y', '2-3Y', '3-5Y', '5-7Y', '>7Y', 'Decred Price']
+const coinAgeBandsColors = [
+  '#e9baa6',
+  '#152b83',
+  '#dc3912',
+  '#ff9900',
+  '#109618',
+  '#990099',
+  '#0099c6',
+  '#dd4477',
+  '#66aa00',
+  '#b82e2e',
+  '#576812ff',
+  '#255595'
+]
 const decredChartOpts = ['ticket-price', 'ticket-pool-size', 'ticket-pool-value', 'stake-participation',
   'privacy-participation', 'missed-votes', 'block-size', 'blockchain-size', 'tx-count', 'duration-btw-blocks',
-  'pow-difficulty', 'chainwork', 'hashrate', 'coin-supply', 'fees']
+  'pow-difficulty', 'chainwork', 'hashrate', 'coin-supply', 'fees', 'avg-age-days', 'coin-days-destroyed',
+  'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const mutilchainChartOpts = ['block-size', 'blockchain-size', 'tx-count', 'tx-per-block', 'address-number',
   'pow-difficulty', 'hashrate', 'mined-blocks', 'mempool-size', 'mempool-txs', 'coin-supply', 'fees']
 let globalChainType = ''
@@ -58,15 +76,29 @@ const yAxisLabelWidth = {
     'address-number': 45,
     'mined-blocks': 40,
     'mempool-size': 40,
-    'mempool-txs': 50
+    'mempool-txs': 50,
+    'avg-age-days': 50,
+    'coin-days-destroyed': 50,
+    'coin-age-bands': 30,
+    'mean-coin-age': 50,
+    'total-coin-days': 50
   },
   y2: {
-    'ticket-price': 40
+    'ticket-price': 40,
+    'avg-age-days': 30,
+    'coin-days-destroyed': 30,
+    'coin-age-bands': 30,
+    'mean-coin-age': 30,
+    'total-coin-days': 30
   }
 }
 
 function isMobile () {
   return window.innerWidth <= 768
+}
+
+function isCoinAgeChart (chart) {
+  return coinAgeCharts.indexOf(chart) > -1
 }
 
 function hashrateTimePlotter (e) {
@@ -347,6 +379,244 @@ function nightModeOptions (nightModeOn) {
   }
 }
 
+// data coin age handler for bin = day, axis height
+function zipCoinAgeHvY (heights, ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    return [offset + heights[i], y * yMult, zs[i] * zMult]
+  })
+}
+
+// data coin age handler for axis time
+function zipCoinAgeTvY (times, ys, zs, yMult, zMult) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  return times.map((t, i) => {
+    return [new Date(t * 1000), ys[i] * yMult, zs[i] * zMult]
+  })
+}
+
+// data coin age handler for bin = block, axis height
+function zipCoinAgeIvY (ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1 // TODO: check for why offset is set to a default value of 1 when genesis block has a height of 0
+  return ys.map((y, i) => {
+    return [offset + i, y * yMult, zs[i] * zMult]
+  })
+}
+
+// data coin age bands handler for bin = day, axis height
+function zipCoinAgeBandsHvY (heights, ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    const less1Day = Number(y.less1Day)
+    const dayToWeek = Number(y.dayToWeek)
+    const weekToMonth = Number(y.weekToMonth)
+    const monthToHalfYear = Number(y.monthToHalfYear)
+    const halfYearToYear = Number(y.halfYearToYear)
+    const yearTo2Year = Number(y.yearTo2Year)
+    const twoYearTo3Year = Number(y.twoYearTo3Year)
+    const threeYearTo5Year = Number(y.threeYearTo5Year)
+    const fiveYearTo7Year = Number(y.fiveYearTo7Year)
+    const greaterThan7Year = Number(y.greaterThan7Year)
+    const totalValue = less1Day + dayToWeek + weekToMonth + monthToHalfYear + halfYearToYear + yearTo2Year +
+      twoYearTo3Year + threeYearTo5Year + fiveYearTo7Year + greaterThan7Year
+    // const less1DayPercent = (less1Day / totalValue) * 100
+    const dayToWeekPercent = (dayToWeek / totalValue) * 100 + 0.00001
+    const weekToMonthPercent = (weekToMonth / totalValue) * 100 + 0.00001
+    const monthToHalfYearPercent = (monthToHalfYear / totalValue) * 100 + 0.00001
+    const halfYearToYearPercent = (halfYearToYear / totalValue) * 100 + 0.00001
+    const yearTo2YearPercent = (yearTo2Year / totalValue) * 100 + 0.00001
+    const twoYearTo3YearPercent = (twoYearTo3Year / totalValue) * 100 + 0.00001
+    const threeYearTo5YearPercent = (threeYearTo5Year / totalValue) * 100 + 0.00001
+    const fiveYearTo7YearPercent = (fiveYearTo7Year / totalValue) * 100 + 0.00001
+    const greaterThan7YearPercent = (greaterThan7Year / totalValue) * 100 + 0.00001
+    const noneValue = 0.00001
+    const less1DayPercent = 100 - dayToWeekPercent - weekToMonthPercent - monthToHalfYearPercent - halfYearToYearPercent -
+      yearTo2YearPercent - twoYearTo3YearPercent - threeYearTo5YearPercent - fiveYearTo7YearPercent - greaterThan7YearPercent - noneValue
+    return [
+      offset + heights[i],
+      noneValue,
+      greaterThan7YearPercent * yMult,
+      fiveYearTo7YearPercent * yMult,
+      threeYearTo5YearPercent * yMult,
+      twoYearTo3YearPercent * yMult,
+      yearTo2YearPercent * yMult,
+      halfYearToYearPercent * yMult,
+      monthToHalfYearPercent * yMult,
+      weekToMonthPercent * yMult,
+      dayToWeekPercent * yMult,
+      less1DayPercent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+// data coin age bands handler for bin = block, axis height
+function zipCoinAgeBandsIvY (ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1 // TODO: check for why offset is set to a default value of 1 when genesis block has a height of 0
+  return ys.map((y, i) => {
+    const less1Day = Number(y.less1Day)
+    const dayToWeek = Number(y.dayToWeek)
+    const weekToMonth = Number(y.weekToMonth)
+    const monthToHalfYear = Number(y.monthToHalfYear)
+    const halfYearToYear = Number(y.halfYearToYear)
+    const yearTo2Year = Number(y.yearTo2Year)
+    const twoYearTo3Year = Number(y.twoYearTo3Year)
+    const threeYearTo5Year = Number(y.threeYearTo5Year)
+    const fiveYearTo7Year = Number(y.fiveYearTo7Year)
+    const greaterThan7Year = Number(y.greaterThan7Year)
+    const totalValue = less1Day + dayToWeek + weekToMonth + monthToHalfYear + halfYearToYear + yearTo2Year +
+      twoYearTo3Year + threeYearTo5Year + fiveYearTo7Year + greaterThan7Year
+    // const less1DayPercent = (less1Day / totalValue) * 100
+    const dayToWeekPercent = (dayToWeek / totalValue) * 100 + 0.00001
+    const weekToMonthPercent = (weekToMonth / totalValue) * 100 + 0.00001
+    const monthToHalfYearPercent = (monthToHalfYear / totalValue) * 100 + 0.00001
+    const halfYearToYearPercent = (halfYearToYear / totalValue) * 100 + 0.00001
+    const yearTo2YearPercent = (yearTo2Year / totalValue) * 100 + 0.00001
+    const twoYearTo3YearPercent = (twoYearTo3Year / totalValue) * 100 + 0.00001
+    const threeYearTo5YearPercent = (threeYearTo5Year / totalValue) * 100 + 0.00001
+    const fiveYearTo7YearPercent = (fiveYearTo7Year / totalValue) * 100 + 0.00001
+    const greaterThan7YearPercent = (greaterThan7Year / totalValue) * 100 + 0.00001
+    const noneValue = 0.00001
+    const less1DayPercent = 100 - dayToWeekPercent - weekToMonthPercent - monthToHalfYearPercent - halfYearToYearPercent -
+      yearTo2YearPercent - twoYearTo3YearPercent - threeYearTo5YearPercent - fiveYearTo7YearPercent - greaterThan7YearPercent - noneValue
+    return [
+      offset + i,
+      noneValue,
+      greaterThan7YearPercent * yMult,
+      fiveYearTo7YearPercent * yMult,
+      threeYearTo5YearPercent * yMult,
+      twoYearTo3YearPercent * yMult,
+      yearTo2YearPercent * yMult,
+      halfYearToYearPercent * yMult,
+      monthToHalfYearPercent * yMult,
+      weekToMonthPercent * yMult,
+      dayToWeekPercent * yMult,
+      less1DayPercent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+// data coin age bands handler for axis time
+function zipCoinAgeBandsTvY (times, ys, zs, yMult, zMult) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  return times.map((t, i) => {
+    const y = ys[i]
+    const less1Day = Number(y.less1Day)
+    const dayToWeek = Number(y.dayToWeek)
+    const weekToMonth = Number(y.weekToMonth)
+    const monthToHalfYear = Number(y.monthToHalfYear)
+    const halfYearToYear = Number(y.halfYearToYear)
+    const yearTo2Year = Number(y.yearTo2Year)
+    const twoYearTo3Year = Number(y.twoYearTo3Year)
+    const threeYearTo5Year = Number(y.threeYearTo5Year)
+    const fiveYearTo7Year = Number(y.fiveYearTo7Year)
+    const greaterThan7Year = Number(y.greaterThan7Year)
+    const totalValue = less1Day + dayToWeek + weekToMonth + monthToHalfYear + halfYearToYear + yearTo2Year +
+      twoYearTo3Year + threeYearTo5Year + fiveYearTo7Year + greaterThan7Year
+    // const less1DayPercent = (less1Day / totalValue) * 100
+    const dayToWeekPercent = (dayToWeek / totalValue) * 100 + 0.00001
+    const weekToMonthPercent = (weekToMonth / totalValue) * 100 + 0.00001
+    const monthToHalfYearPercent = (monthToHalfYear / totalValue) * 100 + 0.00001
+    const halfYearToYearPercent = (halfYearToYear / totalValue) * 100 + 0.00001
+    const yearTo2YearPercent = (yearTo2Year / totalValue) * 100 + 0.00001
+    const twoYearTo3YearPercent = (twoYearTo3Year / totalValue) * 100 + 0.00001
+    const threeYearTo5YearPercent = (threeYearTo5Year / totalValue) * 100 + 0.00001
+    const fiveYearTo7YearPercent = (fiveYearTo7Year / totalValue) * 100 + 0.00001
+    const greaterThan7YearPercent = (greaterThan7Year / totalValue) * 100 + 0.00001
+    const noneValue = 0.00001
+    const less1DayPercent = 100 - dayToWeekPercent - weekToMonthPercent - monthToHalfYearPercent - halfYearToYearPercent -
+      yearTo2YearPercent - twoYearTo3YearPercent - threeYearTo5YearPercent - fiveYearTo7YearPercent - greaterThan7YearPercent - noneValue
+    return [
+      new Date(t * 1000),
+      noneValue,
+      greaterThan7YearPercent * yMult,
+      fiveYearTo7YearPercent * yMult,
+      threeYearTo5YearPercent * yMult,
+      twoYearTo3YearPercent * yMult,
+      yearTo2YearPercent * yMult,
+      halfYearToYearPercent * yMult,
+      monthToHalfYearPercent * yMult,
+      weekToMonthPercent * yMult,
+      dayToWeekPercent * yMult,
+      less1DayPercent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+// handler func fo avg age days
+function avgAgeDaysFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.avgAge, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.avgAge, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.avgAge, data.marketPrice)
+  }
+}
+
+// handler func for coin day destroyed
+function avgCoinDayDestroyedFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.cdd, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.cdd, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.cdd, data.marketPrice)
+  }
+}
+
+// handler func for coin age bands
+function coindAgeBandsFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeBandsIvY(data.ageBands, data.marketPrice)
+    } else {
+      return zipCoinAgeBandsHvY(data.h, data.ageBands, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeBandsTvY(data.t, data.ageBands, data.marketPrice)
+  }
+}
+
+// handler func for mean coin age
+function meanCoinAgeFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.meanCoinAge, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.meanCoinAge, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.meanCoinAge, data.marketPrice)
+  }
+}
+
+// handler func for total coin days (SUM coin age)
+function totalCoinDaysFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.totalCoinDays, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.totalCoinDays, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.totalCoinDays, data.marketPrice)
+  }
+}
+
 function zipWindowHvY (ys, winSize, yMult, offset) {
   yMult = yMult || 1
   offset = offset || 0
@@ -486,7 +756,8 @@ export default class extends Controller {
       'anonymitySet',
       'ticketsPrice',
       'rangeSelector',
-      'rangeOption'
+      'rangeOption',
+      'marketPrice'
     ]
   }
 
@@ -667,14 +938,33 @@ export default class extends Controller {
       case 'privacy-participation':
         this.visibility = [true, this.anonymitySetTarget.checked]
         break
+      case 'avg-age-days':
+      case 'coin-days-destroyed':
+      case 'coin-age-bands':
+      case 'mean-coin-age':
+      case 'total-coin-days':
+        this.visibility = [true, this.marketPriceTarget.checked]
+        break
       default:
         return
     }
-    this.chartsView.updateOptions({ visibility: this.visibility })
+    this.chartsView.updateOptions({ visibility: this.getVisibilityForCharts(this.chartSelectTarget.value, this.visibility) })
     this.settings.visibility = this.visibility.join('-')
     if (!this.isHomepage) {
       this.query.replace(this.settings)
     }
+  }
+
+  getVisibilityForCharts (chart, visibility) {
+    if (chart !== 'coin-age-bands') {
+      return visibility
+    }
+    const stackVisibility = []
+    coinAgeBandsColors.forEach((item) => {
+      stackVisibility.push(true)
+    })
+    stackVisibility[stackVisibility.length - 1] = visibility[1]
+    return stackVisibility
   }
 
   disconnect () {
@@ -730,7 +1020,7 @@ export default class extends Controller {
 
   plotGraph (chartName, data) {
     let d = []
-    const gOptions = {
+    let gOptions = {
       zoomCallback: null,
       drawCallback: null,
       logscale: this.settings.scale === 'log',
@@ -742,10 +1032,14 @@ export default class extends Controller {
       axes: {},
       series: null,
       inflation: null,
-      plotter: null
+      plotter: null,
+      fillGraph: false,
+      stackedGraph: false
     }
     rawPoolValue = []
     rawCoinSupply = []
+    const labels = []
+    const stackVisibility = []
     yFormatter = defaultYFormatter
     const xlabel = data.t ? 'Date' : 'Block Height'
     const _this = this
@@ -920,6 +1214,157 @@ export default class extends Controller {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
         break
+
+      case 'avg-age-days':
+        d = avgAgeDaysFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Average Age Days', 'Decred Price'], true,
+          'Average Age Days (days)', true, false))
+        gOptions.y2label = 'Decred Price (USD)'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [true, this.marketPriceTarget.checked]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['avg-age-days'] : yAxisLabelWidth.y2['avg-age-days'] + 15
+        }
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => y.toFixed(2) + ' days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
+        break
+
+      case 'coin-days-destroyed':
+        d = avgCoinDayDestroyedFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coin Days Destroyed', 'Decred Price'], true,
+          'Coin Days Destroyed (coin-days)', true, false))
+        gOptions.y2label = 'Decred Price (USD)'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [true, this.marketPriceTarget.checked]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['coin-days-destroyed'] : yAxisLabelWidth.y2['coin-days-destroyed'] + 15
+        }
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
+        break
+
+      case 'mean-coin-age':
+        d = meanCoinAgeFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mean Coin Age', 'Decred Price'], true,
+          'Mean Coin Age (days)', true, false))
+        gOptions.y2label = 'Decred Price (USD)'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [true, this.marketPriceTarget.checked]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['mean-coin-age'] : yAxisLabelWidth.y2['mean-coin-age'] + 15
+        }
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
+        break
+
+      case 'total-coin-days':
+        d = totalCoinDaysFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Coin Days', 'Decred Price'], true,
+          'Total Coin Days (days)', true, false))
+        gOptions.y2label = 'Decred Price (USD)'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [true, this.marketPriceTarget.checked]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['total-coin-days'] : yAxisLabelWidth.y2['total-coin-days'] + 15
+        }
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
+        break
+
+      case 'coin-age-bands':
+        d = coindAgeBandsFunc(data)
+        labels.push(xlabel)
+        labels.push(...coinAgeBandsLabels)
+        this.visibility = [true, this.marketPriceTarget.checked]
+        coinAgeBandsColors.forEach((item) => {
+          stackVisibility.push(true)
+        })
+        stackVisibility[stackVisibility.length - 1] = this.visibility[1]
+        gOptions = {
+          labels: labels,
+          file: d,
+          colors: coinAgeBandsColors,
+          ylabel: 'HODL Wave (%)',
+          y2label: 'Decred Price (USD)',
+          valueRange: [0, 100],
+          fillGraph: true,
+          stackedGraph: true,
+          visibility: stackVisibility,
+          series: {
+            none: { fillGraph: true },
+            '>7Y': { fillGraph: true },
+            '5-7Y': { fillGraph: true },
+            '3-5Y': { fillGraph: true },
+            '2-3Y': { fillGraph: true },
+            '1-2Y': { fillGraph: true },
+            '6M-1Y': { fillGraph: true },
+            '1-6M': { fillGraph: true },
+            '1W-1M': { fillGraph: true },
+            '1D-1W': { fillGraph: true },
+            '<1D': { fillGraph: true },
+            'Decred Price': {
+              axis: 'y2',
+              strokeWidth: 1,
+              fillGraph: false
+            }
+          },
+          legend: 'always',
+          includeZero: true,
+          // zoomCallback: this.depthZoomCallback,
+          axes: {
+            y2: {
+              valueRange: [0, 300],
+              axisLabelFormatter: (y) => Math.round(y),
+              axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['coin-age-bands'] : yAxisLabelWidth.y2['coin-age-bands'] + 15
+            }
+          }
+        }
+        yFormatter = (div, data, i) => {
+          const insideLegendDiv = document.createElement('div')
+          const line1LegendDiv = document.createElement('div')
+          const line2LegendDiv = document.createElement('div')
+          line1LegendDiv.classList.add('d-flex', 'align-items-center')
+          line2LegendDiv.classList.add('d-flex', 'align-items-center')
+          insideLegendDiv.classList.add('coin-age-band-data-area')
+          data.series.forEach((serie, idx) => {
+            if (idx === 0) {
+              return
+            }
+            if (idx === data.series.length - 1) {
+              addLegendEntryFmt(insideLegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+            } else {
+              if (idx < 6) {
+                addLegendEntryFmt(line1LegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
+              } else {
+                addLegendEntryFmt(line2LegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
+              }
+            }
+          })
+          insideLegendDiv.appendChild(line1LegendDiv)
+          insideLegendDiv.appendChild(line2LegendDiv)
+          div.appendChild(insideLegendDiv)
+        }
+        break
     }
     gOptions.axes.y = {
       axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 10
@@ -945,6 +1390,9 @@ export default class extends Controller {
       let show = el.dataset.charts.indexOf(chart) > -1
       if (el.dataset.bin && el.dataset.bin.indexOf(that.selectedBin()) === -1) {
         show = false
+      }
+      if (el.dataset.charts === 'coin-age' && isCoinAgeChart(chart)) {
+        show = true
       }
       if (show) {
         el.classList.remove('d-hide')
@@ -1066,29 +1514,37 @@ export default class extends Controller {
   }
 
   getDecredChartOptsHtml () {
-    return '<optgroup label="Staking">' +
-      '<option value="ticket-price">Ticket Price</option>' +
-      '<option value="ticket-pool-size">Ticket Pool Size</option>' +
-      '<option value="ticket-pool-value">Ticket Pool Value</option>' +
-      '<option value="stake-participation">Stake Participation</option>' +
-      '<option value="privacy-participation">Privacy Participation</option>' +
-      '<option value="missed-votes">Missed Votes</option>' +
-      '</optgroup>' +
-      '<optgroup label="Chain">' +
-      '<option value="block-size">Block Size</option>' +
-      '<option value="blockchain-size">Blockchain Size</option>' +
-      '<option value="tx-count">Transaction Count</option>' +
-      '<option value="duration-btw-blocks">Duration Between Blocks</option>' +
-      '</optgroup>' +
-      '<optgroup label="Mining">' +
-      '<option value="pow-difficulty">PoW Difficulty</option>' +
-      '<option value="chainwork">Total Work</option>' +
-      '<option value="hashrate">Hashrate</option>' +
-      '</optgroup>' +
-      '<optgroup label="Distribution">' +
-      '<option value="coin-supply">Coin Supply</option>' +
-      '<option value="fees">Fees</option>' +
-      '</optgroup>'
+    return `<optgroup label="Staking">
+        <option value="ticket-price">Ticket Price</option>
+        <option value="ticket-pool-size">Ticket Pool Size</option>
+        <option value="ticket-pool-value">Ticket Pool Value</option>
+        <option value="stake-participation">Stake Participation</option>
+        <option value="privacy-participation">Privacy Participation</option>
+        <option value="missed-votes">Missed Votes</option>
+      </optgroup>
+        <optgroup label="Chain">
+        <option value="block-size">Block Size</option>
+        <option value="blockchain-size">Blockchain Size</option>
+        <option value="tx-count">Transaction Count</option>
+        <option value="duration-btw-blocks">Duration Between Blocks</option>
+      </optgroup>
+      <optgroup label="Mining">
+        <option value="pow-difficulty">PoW Difficulty</option>
+        <option value="chainwork">Total Work</option>
+        <option value="hashrate">Hashrate</option>
+      </optgroup>
+        <optgroup label="Distribution">
+        <option value="coin-supply">Coin Supply</option>
+        <option value="fees">Fees</option>
+      </optgroup>
+      </optgroup>
+      <optgroup label="Coin Age">
+        <option value="avg-age-days">Average Age Days</option>
+        <option value="coin-days-destroyed">Coin Days Destroyed</option>
+        <option value="coin-age-bands">HODL Age Bands</option>
+        <option value="mean-coin-age">Mean Coin Age</option>
+        <option value="total-coin-days">Total Coin Days</option>
+      </optgroup>`
   }
 
   getMutilchainChartOptsHtml () {
@@ -1189,6 +1645,18 @@ export default class extends Controller {
 
   getChartName (chartValue) {
     switch (chartValue) {
+      case 'ticket-price':
+        return 'Ticket Price'
+      case 'ticket-pool-size':
+        return 'Ticket Pool Size'
+      case 'ticket-pool-value':
+        return 'Ticket Pool Value'
+      case 'stake-participation':
+        return 'Stake Participation'
+      case 'privacy-participation':
+        return 'Privacy Participation'
+      case 'missed-votes':
+        return 'Missed Votes'
       case 'block-size':
         return 'Block Size'
       case 'blockchain-size':
@@ -1199,6 +1667,8 @@ export default class extends Controller {
         return 'Duration Between Blocks'
       case 'pow-difficulty':
         return 'PoW Difficulty'
+      case 'chainwork':
+        return 'Total Work'
       case 'hashrate':
         return 'Hashrate'
       case 'coin-supply':
@@ -1215,6 +1685,16 @@ export default class extends Controller {
         return 'Mempool Size'
       case 'address-number':
         return 'Active Addresses'
+      case 'avg-age-days':
+        return 'Average Age Days'
+      case 'coin-days-destroyed':
+        return 'Coin Days Destroyed'
+      case 'coin-age-bands':
+        return 'HODL Age Bands'
+      case 'mean-coin-age':
+        return 'Mean Coin Age'
+      case 'total-coin-days':
+        return 'Total Coin Days'
       default:
         return ''
     }
@@ -1415,6 +1895,16 @@ export default class extends Controller {
           this.visibility = [true, this.anonymitySetTarget.checked]
         }
         this.anonymitySetTarget.checked = this.visibility[1]
+        break
+      case 'avg-age-days':
+      case 'coin-days-destroyed':
+      case 'coin-age-bands':
+      case 'mean-coin-age':
+      case 'total-coin-days':
+        if (this.visibility.length !== 2) {
+          this.visibility = [true, this.marketPriceTarget.checked]
+        }
+        this.marketPriceTarget.checked = this.visibility[1]
         break
       default:
         return
