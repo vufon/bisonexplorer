@@ -1,11 +1,12 @@
 .dygraph-legend {
+  display: inline-block;
+  white-space: normal;
   position: absolute;
   font-size: 13px;
   z-index: 10;
   background: white;
   line-height: normal;
   text-align: left;
-  overflow: hidden;
   padding: 4px !important;
   border: 1px solid #000;
   border-radius: 5px;
@@ -190,9 +191,14 @@
   position: relative;
   bottom: 0.5ex;
   padding-left: 1em;
-  height: 1px;
-  border-bottom-width: 2px;
+  height: 4px;
+  border-bottom-width: 4px;
   border-bottom-style: solid;
+}
+
+.coin-age-band-data-area {
+  padding-left: 10px;
+  border-left: 1px solid #b0afaf;
 }
 
 .dygraph-legend-dash {

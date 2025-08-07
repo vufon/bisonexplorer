@@ -36,8 +36,8 @@ const coinAgeBandsColors = [
   '#dd4477',
   '#66aa00',
   '#b82e2e',
-  '#316395',
-  '#994499'
+  '#576812ff',
+  '#255595'
 ]
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
@@ -908,7 +908,9 @@ export default class extends Controller {
       axes: {},
       series: null,
       inflation: null,
-      plotter: null
+      plotter: null,
+      fillGraph: false,
+      stackedGraph: false
     }
     rawPoolValue = []
     rawCoinSupply = []
@@ -1063,7 +1065,7 @@ export default class extends Controller {
         d = avgAgeDaysFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Average Age Days', 'Decred Price'], true,
           'Average Age Days (days)', true, false))
-        gOptions.y2label = 'Decred Price'
+        gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
         this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
         gOptions.visibility = this.visibility
@@ -1072,14 +1074,17 @@ export default class extends Controller {
           axisLabelFormatter: (y) => Math.round(y),
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['avg-age-days'] : yAxisLabelWidth.y2['avg-age-days'] + 15
         }
-        yFormatter = customYFormatter(y => y.toFixed(2) + ' days')
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => y.toFixed(2) + ' days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
         break
 
       case 'coin-days-destroyed':
         d = avgCoinDayDestroyedFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coin Days Destroyed', 'Decred Price'], true,
           'Coin Days Destroyed (coin-days)', true, false))
-        gOptions.y2label = 'Decred Price'
+        gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
         this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
         gOptions.visibility = this.visibility
@@ -1088,14 +1093,17 @@ export default class extends Controller {
           axisLabelFormatter: (y) => Math.round(y),
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['coin-days-destroyed'] : yAxisLabelWidth.y2['coin-days-destroyed'] + 15
         }
-        yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' coin-days')
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
         break
 
       case 'mean-coin-age':
         d = meanCoinAgeFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mean Coin Age', 'Decred Price'], true,
           'Mean Coin Age (days)', true, false))
-        gOptions.y2label = 'Decred Price'
+        gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
         this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
         gOptions.visibility = this.visibility
@@ -1104,14 +1112,17 @@ export default class extends Controller {
           axisLabelFormatter: (y) => Math.round(y),
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['mean-coin-age'] : yAxisLabelWidth.y2['mean-coin-age'] + 15
         }
-        yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' days')
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
         break
 
       case 'total-coin-days':
         d = totalCoinDaysFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Coin Days', 'Decred Price'], true,
           'Total Coin Days (days)', true, false))
-        gOptions.y2label = 'Decred Price'
+        gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
         this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
         gOptions.visibility = this.visibility
@@ -1120,7 +1131,10 @@ export default class extends Controller {
           axisLabelFormatter: (y) => Math.round(y),
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['total-coin-days'] : yAxisLabelWidth.y2['total-coin-days'] + 15
         }
-        yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' days')
+        yFormatter = (div, data, i) => {
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
+          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+        }
         break
 
       case 'coin-age-bands':
@@ -1132,7 +1146,7 @@ export default class extends Controller {
           file: d,
           colors: coinAgeBandsColors,
           ylabel: 'HODL Wave (%)',
-          y2label: 'Decred Price',
+          y2label: 'Decred Price (USD)',
           valueRange: [0, 100],
           fillGraph: true,
           stackedGraph: true,
@@ -1150,7 +1164,7 @@ export default class extends Controller {
             '<1D': { fillGraph: true },
             'Decred Price': {
               axis: 'y2',
-              strokeWidth: 2,
+              strokeWidth: 1,
               fillGraph: false
             }
           },
@@ -1164,6 +1178,31 @@ export default class extends Controller {
               axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['coin-age-bands'] : yAxisLabelWidth.y2['coin-age-bands'] + 15
             }
           }
+        }
+        yFormatter = (div, data, i) => {
+          const insideLegendDiv = document.createElement('div')
+          const line1LegendDiv = document.createElement('div')
+          const line2LegendDiv = document.createElement('div')
+          line1LegendDiv.classList.add('d-flex', 'align-items-center')
+          line2LegendDiv.classList.add('d-flex', 'align-items-center')
+          insideLegendDiv.classList.add('coin-age-band-data-area')
+          data.series.forEach((serie, idx) => {
+            if (idx === 0) {
+              return
+            }
+            if (idx === data.series.length - 1) {
+              addLegendEntryFmt(insideLegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+            } else {
+              if (idx < 6) {
+                addLegendEntryFmt(line1LegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
+              } else {
+                addLegendEntryFmt(line2LegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
+              }
+            }
+          })
+          insideLegendDiv.appendChild(line1LegendDiv)
+          insideLegendDiv.appendChild(line2LegendDiv)
+          div.appendChild(insideLegendDiv)
         }
         break
 
