@@ -4487,7 +4487,7 @@ func appendMcaSnapshot(charts *cache.ChartData, rows *sql.Rows) error {
 		}
 		blocks.MeanCoinAge = append(blocks.MeanCoinAge, meanCoinAge)
 		// blocks.TotalCoinDays = append(blocks.TotalCoinDays, )
-		tcdAmount := dcrutil.Amount(int64(math.Floor(math.Abs(totalCoinDays))))
+		tcdAmount := dcrutil.Amount(int64(math.Floor(totalCoinDays)))
 		blocks.TotalCoinDays = append(blocks.TotalCoinDays, tcdAmount.ToCoin())
 	}
 	if err := rows.Err(); err != nil {

@@ -663,8 +663,7 @@ func (charts *ChartData) Lengthen() error {
 			days.CoinDaysDestroyed = append(days.CoinDaysDestroyed, blocks.CoinDaysDestroyed.Sum(interval[0], interval[1]))
 			days.AvgCoinAge = append(days.AvgCoinAge, blocks.AvgCoinAge.Avg(interval[0], interval[1]))
 			days.CoinAgeBands = append(days.CoinAgeBands, blocks.CoinAgeBands.Sum(interval[0], interval[1]))
-			days.MeanCoinAge = append(days.MeanCoinAge, blocks.MeanCoinAge.Sum(interval[0], interval[1]))
-			days.TotalCoinDays = append(days.TotalCoinDays, blocks.TotalCoinDays.Sum(interval[0], interval[1]))
+			days.MeanCoinAge = append(days.MeanCoinAge, blocks.MeanCoinAge.Avg(interval[0], interval[1]))
 			days.TotalCoinDays = append(days.TotalCoinDays, blocks.TotalCoinDays.Sum(interval[0], interval[1]))
 			days.MarketPrice = append(days.MarketPrice, blocks.MarketPrice.Avg(interval[0], interval[1]))
 		}

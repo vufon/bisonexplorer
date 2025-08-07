@@ -51,10 +51,17 @@ const yAxisLabelWidth = {
     fees: 35,
     'avg-age-days': 50,
     'coin-days-destroyed': 50,
-    'hodl-age-bands': 50
+    'coin-age-bands': 30,
+    'mean-coin-age': 50,
+    'total-coin-days': 50
   },
   y2: {
-    'ticket-price': 45
+    'ticket-price': 45,
+    'avg-age-days': 30,
+    'coin-days-destroyed': 30,
+    'coin-age-bands': 30,
+    'mean-coin-age': 30,
+    'total-coin-days': 30
   }
 }
 
@@ -309,6 +316,35 @@ function zipWindowTvYZ (times, ys, zs, yMult, zMult) {
   })
 }
 
+// data coin age handler for bin = day, axis height 
+function zipCoinAgeHvY (heights, ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    return [offset + heights[i], y * yMult, zs[i] * zMult]
+  })
+}
+
+// data coin age handler for axis time 
+function zipCoinAgeTvY (times, ys, zs, yMult, zMult) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  return times.map((t, i) => {
+    return [new Date(t * 1000), ys[i] * yMult, zs[i] * zMult]
+  })
+}
+
+// data coin age handler for bin = block, axis height 
+function zipCoinAgeIvY (ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1 // TODO: check for why offset is set to a default value of 1 when genesis block has a height of 0
+  return ys.map((y, i) => {
+    return [offset + i, y * yMult, zs[i] * zMult]
+  })
+}
+
 function zipWindowTvY (times, ys, yMult) {
   yMult = yMult || 1
   return times.map((t, i) => {
@@ -385,6 +421,58 @@ function anonymitySetFunc (data) {
 function ticketPriceFunc (data) {
   if (data.t) return zipWindowTvYZ(data.t, data.price, data.count, atomsToDCR)
   return zipWindowHvYZ(data.price, data.count, data.window, atomsToDCR)
+}
+
+// handler func fo avg age days
+function avgAgeDaysFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.avgAge, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.avgAge, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.avgAge, data.marketPrice)
+  }
+}
+
+// handler func for coin day destroyed
+function avgCoinDayDestroyedFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.cdd, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.cdd, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.cdd, data.marketPrice)
+  }
+}
+
+// handler func for mean coin age
+function meanCoinAgeFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.meanCoinAge, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.meanCoinAge, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.meanCoinAge, data.marketPrice)
+  }
+}
+
+// handler func for total coin days (SUM coin age)
+function totalCoinDaysFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipCoinAgeIvY(data.totalCoinDays, data.marketPrice)
+    } else {
+      return zipCoinAgeHvY(data.h, data.totalCoinDays, data.marketPrice)
+    }
+  } else {
+    return zipCoinAgeTvY(data.t, data.totalCoinDays, data.marketPrice)
+  }
 }
 
 function poolSizeFunc (data) {
@@ -797,18 +885,68 @@ export default class extends Controller {
         yFormatter = customYFormatter(y => withBigUnits(y, chainworkUnits))
         break
 
-      case 'avg-age-days': // Total chainwork over time
-        d = zip2D(data, data.avgAge)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Average Age Days'],
-          false, 'Average Age Days (days)', true, false))
+      case 'avg-age-days':
+        d = avgAgeDaysFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Average Age Days', 'Decred Price'], true,
+          'Average Age Days (days)', true, false))
+        gOptions.y2label = 'Decred Price'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['avg-age-days'] : yAxisLabelWidth.y2['avg-age-days'] + 15
+        }
         yFormatter = customYFormatter(y => y.toFixed(2) + ' days')
         break
 
-      case 'coin-days-destroyed': // Total chainwork over time
-        d = zip2D(data, data.cdd)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coin Days Destroyed'],
-          false, 'Coin Days Destroyed (coin-days)', true, false))
+      case 'coin-days-destroyed':
+        d = avgCoinDayDestroyedFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coin Days Destroyed', 'Decred Price'], true,
+          'Coin Days Destroyed (coin-days)', true, false))
+        gOptions.y2label = 'Decred Price'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['coin-days-destroyed'] : yAxisLabelWidth.y2['coin-days-destroyed'] + 15
+        }
         yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' coin-days')
+        break
+
+      case 'mean-coin-age':
+        d = meanCoinAgeFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mean Coin Age', 'Decred Price'], true,
+          'Mean Coin Age (days)', true, false))
+        gOptions.y2label = 'Decred Price'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['mean-coin-age'] : yAxisLabelWidth.y2['mean-coin-age'] + 15
+        }
+        yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' days')
+        break
+
+      case 'total-coin-days':
+        d = totalCoinDaysFunc(data)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Coin Days', 'Decred Price'], true,
+          'Total Coin Days (days)', true, false))
+        gOptions.y2label = 'Decred Price'
+        gOptions.series = { 'Decred Price': { axis: 'y2' } }
+        this.visibility = [this.getTargetsChecked(this.ticketsPriceTargets), this.getTargetsChecked(this.ticketsPurchaseTargets)]
+        gOptions.visibility = this.visibility
+        gOptions.axes.y2 = {
+          valueRange: [0, 300],
+          axisLabelFormatter: (y) => Math.round(y),
+          axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['total-coin-days'] : yAxisLabelWidth.y2['total-coin-days'] + 15
+        }
+        yFormatter = customYFormatter(y => humanize.formatNumber(y, 2, true) + ' days')
         break
 
       case 'hashrate': // Total chainwork over time
