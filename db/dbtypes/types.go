@@ -1056,6 +1056,22 @@ type AgeBandData struct {
 	GreaterThan7Year float64 `json:"greaterThan7Year"`
 }
 
+type MeanCoinAgeData struct {
+	MeanCoinAge float64 `json:"meanCoinAge"`
+}
+
+type TotalCoinDaysData struct {
+	TotalCoinAge float64 `json:"totalCoinAge"`
+}
+
+type AvgCoinAgeData struct {
+	AvgCoinAge float64 `json:"avgCoinAge"`
+}
+
+type CoinDayDestroyedData struct {
+	CoinDayDestroyed float64 `json:"coinDayDestroyed"`
+}
+
 // UTXOData stores an address and value associated with a transaction output.
 type UTXOData struct {
 	Addresses []string

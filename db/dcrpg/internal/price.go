@@ -47,4 +47,9 @@ const (
 	CheckExistMonth            = `SELECT EXISTS(SELECT 1 FROM monthly_price WHERE (EXTRACT(YEAR from month AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH from month AT TIME ZONE 'UTC')) = $1)`
 	GetMonthlyPriceInfoByMonth = `SELECT is_complete,last_updated FROM monthly_price WHERE (EXTRACT(YEAR from month AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH from month AT TIME ZONE 'UTC')) = $1 LIMIT 1`
 	UpdateMonthlyPriceRow      = `UPDATE monthly_price SET price = $1, is_complete = $2, last_updated = $3 WHERE (EXTRACT(YEAR from month AT TIME ZONE 'UTC')*12 + EXTRACT(MONTH from month AT TIME ZONE 'UTC')) = $4`
+
+	SelectDailyMarketPriceAllRows = `SELECT date, close
+		FROM daily_market
+		WHERE to_timestamp(date)::date >= to_timestamp($1)::date;
+	`
 )

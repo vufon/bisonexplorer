@@ -1209,11 +1209,23 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 		Appender: appendCoinAge,
 	})
 
-	// TODO: charts.AddUpdater(cache.ChartUpdater{
-	// 	Tag:      "coin age bands",
-	// 	Fetcher:  pgb.coinAgeBands,
-	// 	Appender: appendCoinAgeBands,
-	// })
+	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "coin age bands",
+		Fetcher:  pgb.coinAgeBands,
+		Appender: appendCoinAgeBands,
+	})
+
+	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "mca snapshot",
+		Fetcher:  pgb.mcaSnapshot,
+		Appender: appendMcaSnapshot,
+	})
+
+	charts.AddUpdater(cache.ChartUpdater{
+		Tag:      "market price",
+		Fetcher:  pgb.marketPrice,
+		Appender: appendMarketPrice,
+	})
 
 	charts.AddUpdater(cache.ChartUpdater{
 		Tag:      "window stats",
@@ -5874,6 +5886,26 @@ func (pgb *ChainDB) coinAge(charts *cache.ChartData) (*sql.Rows, func(), error) 
 		return nil, cancel, fmt.Errorf("coinAge: %w", pgb.replaceCancelError(err))
 	}
 
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) mcaSnapshot(charts *cache.ChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveMcaSnapshot(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("mcaSnapshot: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) marketPrice(charts *cache.ChartData) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+
+	rows, err := retrieveDailyMarketPrice(ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("marketPrice: %w", pgb.replaceCancelError(err))
+	}
 	return rows, cancel, nil
 }
 

@@ -46,30 +46,35 @@ const (
 	AvgAgeDays        = "avg-age-days"
 	CoinDaysDestroyed = "coin-days-destroyed"
 	CoinAgeBands      = "coin-age-bands"
+	MeanCoinAge       = "mean-coin-age"
+	TotalCoinDays     = "total-coin-days"
 
 	// Some chartResponse keys
-	heightKey       = "h"
-	timeKey         = "t"
-	binKey          = "bin"
-	axisKey         = "axis"
-	supplyKey       = "supply"
-	windowKey       = "window"
-	diffKey         = "diff"
-	priceKey        = "price"
-	countKey        = "count"
-	offsetKey       = "offset"
-	circulationKey  = "circulation"
-	poolValKey      = "poolval"
-	missedKey       = "missed"
-	sizeKey         = "size"
-	feesKey         = "fees"
-	anonymitySetKey = "anonymitySet"
-	durationKey     = "duration"
-	workKey         = "work"
-	rateKey         = "rate"
-	cddKey          = "cdd"
-	avgCoinAgeKey   = "avgAge"
-	ageBandKey      = "ageBands"
+	heightKey        = "h"
+	timeKey          = "t"
+	binKey           = "bin"
+	axisKey          = "axis"
+	supplyKey        = "supply"
+	windowKey        = "window"
+	diffKey          = "diff"
+	priceKey         = "price"
+	countKey         = "count"
+	offsetKey        = "offset"
+	circulationKey   = "circulation"
+	poolValKey       = "poolval"
+	missedKey        = "missed"
+	sizeKey          = "size"
+	feesKey          = "fees"
+	anonymitySetKey  = "anonymitySet"
+	durationKey      = "duration"
+	workKey          = "work"
+	rateKey          = "rate"
+	cddKey           = "cdd"
+	avgCoinAgeKey    = "avgAge"
+	ageBandKey       = "ageBands"
+	meanCoinAgeKey   = "meanCoinAge"
+	totalCoinDaysKey = "totalCoinDays"
+	marketPriceKey   = "marketPrice"
 )
 
 // binLevel specifies the granularity of data.
@@ -342,9 +347,12 @@ type ZoomSet struct {
 	AnonymitySet      ChartUints
 	Difficulty        ChartFloats
 	Hashrate          ChartFloats
+	MarketPrice       ChartFloats
 	CoinDaysDestroyed ChartFloats
 	AvgCoinAge        ChartFloats
 	CoinAgeBands      ChartCoinAgeBands
+	MeanCoinAge       ChartFloats
+	TotalCoinDays     ChartFloats // Sum Coin Age
 }
 
 // Snip truncates the zoomSet to a provided length.
@@ -364,6 +372,12 @@ func (set *ZoomSet) Snip(length int) {
 	set.Fees = set.Fees.snip(length)
 	set.TotalMixed = set.TotalMixed.snip(length)
 	set.AnonymitySet = set.AnonymitySet.snip(length)
+	set.CoinDaysDestroyed = set.CoinDaysDestroyed.snip(length)
+	set.AvgCoinAge = set.AvgCoinAge.snip(length)
+	set.CoinAgeBands = set.CoinAgeBands.snip(length)
+	set.MeanCoinAge = set.MeanCoinAge.snip(length)
+	set.TotalCoinDays = set.TotalCoinDays.snip(length)
+	set.MarketPrice = set.MarketPrice.snip(length)
 }
 
 // Constructor for a sized zoomSet for blocks, which has has no Height slice
@@ -380,11 +394,15 @@ func newBlockSet(size int) *ZoomSet {
 		Chainwork:         newChartUints(size),
 		Difficulty:        newChartFloats(size),
 		Fees:              newChartUints(size),
+		Hashrate:          newChartFloats(size),
 		TotalMixed:        newChartUints(size),
 		AnonymitySet:      newChartUints(size),
+		MarketPrice:       newChartFloats(size),
 		AvgCoinAge:        newChartFloats(size),
 		CoinDaysDestroyed: newChartFloats(size),
 		CoinAgeBands:      newChartAgeCoinBands(size),
+		MeanCoinAge:       newChartFloats(size),
+		TotalCoinDays:     newChartFloats(size),
 	}
 }
 
@@ -435,24 +453,30 @@ func newWindowSet(size int) *windowSet {
 // has a lot of extraneous fields, and also embeds sync.RWMutex, so is not
 // suitable for gobbing.
 type ChartGobject struct {
-	Height       ChartUints
-	Time         ChartUints
-	PoolSize     ChartUints
-	PoolValue    ChartUints
-	BlockSize    ChartUints
-	TxCount      ChartUints
-	NewAtoms     ChartUints
-	Chainwork    ChartUints
-	Difficulty   ChartFloats
-	Fees         ChartUints
-	WindowTime   ChartUints
-	PowDiff      ChartFloats
-	Hashrate     ChartFloats
-	TicketPrice  ChartUints
-	StakeCount   ChartUints
-	MissedVotes  ChartUints
-	TotalMixed   ChartUints
-	AnonymitySet ChartUints
+	Height            ChartUints
+	Time              ChartUints
+	PoolSize          ChartUints
+	PoolValue         ChartUints
+	BlockSize         ChartUints
+	TxCount           ChartUints
+	NewAtoms          ChartUints
+	Chainwork         ChartUints
+	Difficulty        ChartFloats
+	Fees              ChartUints
+	WindowTime        ChartUints
+	PowDiff           ChartFloats
+	Hashrate          ChartFloats
+	TicketPrice       ChartUints
+	StakeCount        ChartUints
+	MissedVotes       ChartUints
+	TotalMixed        ChartUints
+	AnonymitySet      ChartUints
+	CoinDaysDestroyed ChartFloats
+	AvgCoinAge        ChartFloats
+	CoinAgeBands      ChartCoinAgeBands
+	MeanCoinAge       ChartFloats
+	TotalCoinDays     ChartFloats // Sum Coin Age
+	MarketPrice       ChartFloats
 }
 
 // The chart data is cached with the current cacheID of the zoomSet or windowSet.
@@ -552,7 +576,8 @@ func (charts *ChartData) Lengthen() error {
 	shortest, err := ValidateLengths(blocks.Height, blocks.Time,
 		blocks.PoolSize, blocks.PoolValue, blocks.BlockSize, blocks.TxCount,
 		blocks.NewAtoms, blocks.Chainwork, blocks.Difficulty, blocks.Fees, blocks.TotalMixed,
-		blocks.AnonymitySet, blocks.AvgCoinAge, blocks.CoinDaysDestroyed)
+		blocks.AnonymitySet, blocks.AvgCoinAge, blocks.CoinDaysDestroyed, blocks.MeanCoinAge,
+		blocks.TotalCoinDays, blocks.CoinAgeBands, blocks.MarketPrice)
 	if err != nil {
 		log.Warnf("ChartData.Lengthen: block data length mismatch detected. "+
 			"Truncating blocks length to %d", shortest)
@@ -637,7 +662,11 @@ func (charts *ChartData) Lengthen() error {
 			days.AnonymitySet = append(days.AnonymitySet, blocks.AnonymitySet.Avg(interval[0], interval[1]))
 			days.CoinDaysDestroyed = append(days.CoinDaysDestroyed, blocks.CoinDaysDestroyed.Sum(interval[0], interval[1]))
 			days.AvgCoinAge = append(days.AvgCoinAge, blocks.AvgCoinAge.Avg(interval[0], interval[1]))
-			// days.CoinAgeBands = append(days.CoinAgeBands, blocks.CoinAgeBands.Sum(interval[0], interval[1]))
+			days.CoinAgeBands = append(days.CoinAgeBands, blocks.CoinAgeBands.Sum(interval[0], interval[1]))
+			days.MeanCoinAge = append(days.MeanCoinAge, blocks.MeanCoinAge.Sum(interval[0], interval[1]))
+			days.TotalCoinDays = append(days.TotalCoinDays, blocks.TotalCoinDays.Sum(interval[0], interval[1]))
+			days.TotalCoinDays = append(days.TotalCoinDays, blocks.TotalCoinDays.Sum(interval[0], interval[1]))
+			days.MarketPrice = append(days.MarketPrice, blocks.MarketPrice.Avg(interval[0], interval[1]))
 		}
 	}
 
@@ -645,7 +674,8 @@ func (charts *ChartData) Lengthen() error {
 	daysLen, err := ValidateLengths(days.Height, days.Time, days.PoolSize,
 		days.PoolValue, days.BlockSize, days.TxCount, days.NewAtoms,
 		days.Chainwork, days.Difficulty, days.Fees, days.TotalMixed,
-		days.AnonymitySet, days.AvgCoinAge, days.CoinDaysDestroyed)
+		days.AnonymitySet, days.AvgCoinAge, days.CoinDaysDestroyed,
+		days.CoinAgeBands, days.MeanCoinAge, days.TotalCoinDays, days.MarketPrice)
 	if err != nil {
 		return fmt.Errorf("day bin: %v", err)
 	} else if daysLen == 0 {
@@ -763,7 +793,12 @@ func (charts *ChartData) readCacheFile(filePath string) error {
 	charts.Windows.TicketPrice = gobject.TicketPrice
 	charts.Windows.StakeCount = gobject.StakeCount
 	charts.Windows.MissedVotes = gobject.MissedVotes
-
+	charts.Blocks.CoinDaysDestroyed = gobject.CoinDaysDestroyed
+	charts.Blocks.AvgCoinAge = gobject.AvgCoinAge
+	charts.Blocks.MeanCoinAge = gobject.MeanCoinAge
+	charts.Blocks.CoinAgeBands = gobject.CoinAgeBands
+	charts.Blocks.TotalCoinDays = gobject.TotalCoinDays
+	charts.Blocks.MarketPrice = gobject.MarketPrice
 	charts.mtx.Unlock()
 
 	err = charts.Lengthen()
@@ -818,23 +853,30 @@ func (charts *ChartData) TriggerUpdate(_ string, _ uint32) error {
 
 func (charts *ChartData) gobject() *ChartGobject {
 	return &ChartGobject{
-		Height:       charts.Blocks.Height,
-		Time:         charts.Blocks.Time,
-		PoolSize:     charts.Blocks.PoolSize,
-		PoolValue:    charts.Blocks.PoolValue,
-		BlockSize:    charts.Blocks.BlockSize,
-		TxCount:      charts.Blocks.TxCount,
-		NewAtoms:     charts.Blocks.NewAtoms,
-		Chainwork:    charts.Blocks.Chainwork,
-		Difficulty:   charts.Blocks.Difficulty,
-		Fees:         charts.Blocks.Fees,
-		TotalMixed:   charts.Blocks.TotalMixed,
-		AnonymitySet: charts.Blocks.AnonymitySet,
-		WindowTime:   charts.Windows.Time,
-		PowDiff:      charts.Windows.PowDiff,
-		TicketPrice:  charts.Windows.TicketPrice,
-		StakeCount:   charts.Windows.StakeCount,
-		MissedVotes:  charts.Windows.MissedVotes,
+		Height:            charts.Blocks.Height,
+		Time:              charts.Blocks.Time,
+		PoolSize:          charts.Blocks.PoolSize,
+		PoolValue:         charts.Blocks.PoolValue,
+		BlockSize:         charts.Blocks.BlockSize,
+		TxCount:           charts.Blocks.TxCount,
+		NewAtoms:          charts.Blocks.NewAtoms,
+		Chainwork:         charts.Blocks.Chainwork,
+		Difficulty:        charts.Blocks.Difficulty,
+		Fees:              charts.Blocks.Fees,
+		TotalMixed:        charts.Blocks.TotalMixed,
+		AnonymitySet:      charts.Blocks.AnonymitySet,
+		WindowTime:        charts.Windows.Time,
+		PowDiff:           charts.Windows.PowDiff,
+		TicketPrice:       charts.Windows.TicketPrice,
+		StakeCount:        charts.Windows.StakeCount,
+		MissedVotes:       charts.Windows.MissedVotes,
+		Hashrate:          charts.Blocks.Hashrate,
+		CoinDaysDestroyed: charts.Blocks.CoinDaysDestroyed,
+		AvgCoinAge:        charts.Blocks.AvgCoinAge,
+		CoinAgeBands:      charts.Blocks.CoinAgeBands,
+		MeanCoinAge:       charts.Blocks.MeanCoinAge,
+		TotalCoinDays:     charts.Blocks.TotalCoinDays,
+		MarketPrice:       charts.Blocks.MarketPrice,
 	}
 }
 
@@ -898,6 +940,27 @@ func (charts *ChartData) CoinAgeBandsTip() int32 {
 	charts.mtx.RLock()
 	defer charts.mtx.RUnlock()
 	return int32(len(charts.Blocks.CoinAgeBands)) - 1
+}
+
+func (charts *ChartData) McaSnapshotsTip() int32 {
+	charts.mtx.RLock()
+	defer charts.mtx.RUnlock()
+	return int32(len(charts.Blocks.MeanCoinAge)) - 1
+}
+
+func (charts *ChartData) LastMarketPriceTimeAndHeight() (uint64, int32) {
+	charts.mtx.RLock()
+	defer charts.mtx.RUnlock()
+	if len(charts.Blocks.MarketPrice) == 0 {
+		return 0, -1
+	}
+	indexOfMarketPrice := len(charts.Blocks.MarketPrice) - 1
+	if len(charts.Blocks.Height)-1 < indexOfMarketPrice || len(charts.Blocks.Time)-1 < indexOfMarketPrice {
+		return 0, -1
+	}
+	height := charts.Blocks.Height[indexOfMarketPrice]
+	lastTime := charts.Blocks.Time[indexOfMarketPrice]
+	return lastTime, int32(height)
 }
 
 // AnonymitySetTip is the height of the anonymity set
@@ -1132,6 +1195,8 @@ var chartMakers = map[string]ChartMaker{
 	AvgAgeDays:        avgAgeDaysChart,
 	CoinDaysDestroyed: coinDaysDestroyed,
 	CoinAgeBands:      coinAgeBands,
+	MeanCoinAge:       meanCoinAge,
+	TotalCoinDays:     totalCoinDays,
 }
 
 var customMakers = map[string]CustomUintsMaker{
@@ -1398,25 +1463,29 @@ func avgAgeDaysChart(charts *ChartData, bin binLevel, axis axisType, _ string) (
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				avgCoinAgeKey: charts.Blocks.AvgCoinAge,
+				avgCoinAgeKey:  charts.Blocks.AvgCoinAge,
+				marketPriceKey: charts.Blocks.MarketPrice,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey:       charts.Blocks.Time,
-				avgCoinAgeKey: charts.Blocks.AvgCoinAge,
+				timeKey:        charts.Blocks.Time,
+				avgCoinAgeKey:  charts.Blocks.AvgCoinAge,
+				marketPriceKey: charts.Blocks.MarketPrice,
 			}, seed)
 		}
 	case DayBin:
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				heightKey:     charts.Days.Height,
-				avgCoinAgeKey: charts.Days.AvgCoinAge,
+				heightKey:      charts.Days.Height,
+				avgCoinAgeKey:  charts.Days.AvgCoinAge,
+				marketPriceKey: charts.Days.MarketPrice,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey:       charts.Days.Time,
-				avgCoinAgeKey: charts.Days.AvgCoinAge,
+				timeKey:        charts.Days.Time,
+				avgCoinAgeKey:  charts.Days.AvgCoinAge,
+				marketPriceKey: charts.Days.MarketPrice,
 			}, seed)
 		}
 	}
@@ -1430,25 +1499,29 @@ func coinDaysDestroyed(charts *ChartData, bin binLevel, axis axisType, _ string)
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				cddKey: charts.Blocks.CoinDaysDestroyed,
+				cddKey:         charts.Blocks.CoinDaysDestroyed,
+				marketPriceKey: charts.Blocks.MarketPrice,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey: charts.Blocks.Time,
-				cddKey:  charts.Blocks.CoinDaysDestroyed,
+				timeKey:        charts.Blocks.Time,
+				cddKey:         charts.Blocks.CoinDaysDestroyed,
+				marketPriceKey: charts.Blocks.MarketPrice,
 			}, seed)
 		}
 	case DayBin:
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				heightKey: charts.Days.Height,
-				cddKey:    charts.Days.CoinDaysDestroyed,
+				heightKey:      charts.Days.Height,
+				cddKey:         charts.Days.CoinDaysDestroyed,
+				marketPriceKey: charts.Days.MarketPrice,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey: charts.Days.Time,
-				cddKey:  charts.Days.CoinDaysDestroyed,
+				timeKey:        charts.Days.Time,
+				cddKey:         charts.Days.CoinDaysDestroyed,
+				marketPriceKey: charts.Days.MarketPrice,
 			}, seed)
 		}
 	}
@@ -1462,25 +1535,101 @@ func coinAgeBands(charts *ChartData, bin binLevel, axis axisType, _ string) ([]b
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				ageBandKey: charts.Blocks.CoinAgeBands,
+				ageBandKey:     charts.Blocks.CoinAgeBands,
+				marketPriceKey: charts.Blocks.MarketPrice,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey:    charts.Blocks.Time,
-				ageBandKey: charts.Blocks.CoinAgeBands,
+				timeKey:        charts.Blocks.Time,
+				ageBandKey:     charts.Blocks.CoinAgeBands,
+				marketPriceKey: charts.Blocks.MarketPrice,
 			}, seed)
 		}
 	case DayBin:
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				heightKey:  charts.Days.Height,
-				ageBandKey: charts.Days.CoinAgeBands,
+				heightKey:      charts.Days.Height,
+				ageBandKey:     charts.Days.CoinAgeBands,
+				marketPriceKey: charts.Days.MarketPrice,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey:    charts.Days.Time,
-				ageBandKey: charts.Days.CoinAgeBands,
+				timeKey:        charts.Days.Time,
+				ageBandKey:     charts.Days.CoinAgeBands,
+				marketPriceKey: charts.Days.MarketPrice,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func meanCoinAge(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				meanCoinAgeKey: charts.Blocks.MeanCoinAge,
+				marketPriceKey: charts.Blocks.MarketPrice,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:        charts.Blocks.Time,
+				meanCoinAgeKey: charts.Blocks.MeanCoinAge,
+				marketPriceKey: charts.Blocks.MarketPrice,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey:      charts.Days.Height,
+				meanCoinAgeKey: charts.Days.MeanCoinAge,
+				marketPriceKey: charts.Days.MarketPrice,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:        charts.Days.Time,
+				meanCoinAgeKey: charts.Days.MeanCoinAge,
+				marketPriceKey: charts.Days.MarketPrice,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func totalCoinDays(charts *ChartData, bin binLevel, axis axisType, _ string) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				totalCoinDaysKey: charts.Blocks.TotalCoinDays,
+				marketPriceKey:   charts.Blocks.MarketPrice,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:          charts.Blocks.Time,
+				totalCoinDaysKey: charts.Blocks.TotalCoinDays,
+				marketPriceKey:   charts.Blocks.MarketPrice,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey:        charts.Days.Height,
+				totalCoinDaysKey: charts.Days.TotalCoinDays,
+				marketPriceKey:   charts.Days.MarketPrice,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:          charts.Days.Time,
+				totalCoinDaysKey: charts.Days.TotalCoinDays,
+				marketPriceKey:   charts.Days.MarketPrice,
 			}, seed)
 		}
 	}
@@ -2073,21 +2222,4 @@ func stakedCoinsChart(charts *ChartData, bin binLevel, axis axisType, _ string) 
 		}
 	}
 	return nil, InvalidBinErr
-}
-
-func AgeGroup(ageDays int) string {
-	switch {
-	case ageDays < 1:
-		return "<1d"
-	case ageDays < 7:
-		return "1d-1w"
-	case ageDays < 30:
-		return "1w-1m"
-	case ageDays < 180:
-		return "1m-6m"
-	case ageDays < 365:
-		return "6m-1y"
-	default:
-		return ">1y"
-	}
 }

@@ -172,4 +172,6 @@ FROM all_heights a
 LEFT JOIN existing_heights e ON a.create_height = e.create_height
 WHERE e.create_height IS NULL
 ORDER BY a.create_height;`
+
+	SelectMcaSnapshotsAllRows = `SELECT block_height, total_coin_days, mean_coin_age FROM mca_snapshots WHERE block_height > $1 ORDER BY block_height`
 )
