@@ -19,6 +19,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
+	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
@@ -81,8 +82,6 @@ func (pgb *ChainDB) SyncDailyMarket(ctx context.Context) error {
 
 // SyncCoinAgeTable: sync coin age table (for coin age average, coin days destroyed)
 func (pgb *ChainDB) SyncCoinAgeTable() error {
-	pgb.coinAgeSync.Lock()
-	defer pgb.coinAgeSync.Unlock()
 	// get max height of coin_age table
 	var maxCoinAgeHeight int64
 	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeMaxHeight).Scan(&maxCoinAgeHeight)
@@ -102,8 +101,6 @@ func (pgb *ChainDB) SyncCoinAgeTable() error {
 
 // SyncUtxoHistoryTable: sync utxo_history table for coin age chart and future goals
 func (pgb *ChainDB) SyncUtxoHistoryTable() error {
-	pgb.utxoHistorySync.Lock()
-	defer pgb.utxoHistorySync.Unlock()
 	// get max height of coin_age_bands table
 	var maxUtxoHistoryHeight int64
 	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectUtxoHistoryMaxHeight).Scan(&maxUtxoHistoryHeight)
@@ -123,6 +120,8 @@ func (pgb *ChainDB) SyncUtxoHistoryTable() error {
 
 // SyncCoinAgesData: sync all coin age related data
 func (pgb *ChainDB) SyncCoinAgesData() error {
+	pgb.coinAgeSync.Lock()
+	defer pgb.coinAgeSync.Unlock()
 	// sync coin_age table
 	err := pgb.SyncCoinAgeTable()
 	if err != nil {
@@ -141,20 +140,38 @@ func (pgb *ChainDB) SyncCoinAgesData() error {
 		log.Errorf("Sync remaining heights for utxo_history table data failed: %v", err)
 	}
 	// sync coin_age_bands table
-	go pgb.SyncCoinAgeBandsTable()
-	// sync mean coin age table
-	go pgb.SyncMcaSnapshotTable()
-	// sync remaining coin_age_bands data
-	go pgb.SyncRemainingCoinAgeBands()
-	// sync remaining mean_coin_age snapshot data
-	go pgb.SyncRemainingMcaSnapshot()
+	go pgb.SyncCoinAgeBandsAndMcaData()
+	return nil
+}
+
+func (pgb *ChainDB) SyncCoinAgeBandsAndMcaData() error {
+	pgb.utxoHistorySync.Lock()
+	defer pgb.utxoHistorySync.Unlock()
+	err := pgb.SyncCoinAgeBandsTable()
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table data failed: %v", err)
+		return err
+	}
+	err = pgb.SyncMcaSnapshotTable()
+	if err != nil {
+		log.Errorf("Sync mca_snapshots table data failed: %v", err)
+		return err
+	}
+	err = pgb.SyncRemainingCoinAgeBands()
+	if err != nil {
+		log.Errorf("Sync remaining coin age data failed: %v", err)
+		return err
+	}
+	err = pgb.SyncRemainingMcaSnapshot()
+	if err != nil {
+		log.Errorf("Sync remaining mca snapshot data failed: %v", err)
+		return err
+	}
 	return nil
 }
 
 // SyncMcaSnapshotTable: sync mean coin age snapshot data
 func (pgb *ChainDB) SyncMcaSnapshotTable() error {
-	pgb.mcaSnapShotSync.Lock()
-	defer pgb.mcaSnapShotSync.Unlock()
 	var maxMcaSnapShotHeight int64
 	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectMcaSnapshotsMaxHeight).Scan(&maxMcaSnapShotHeight)
 	if err != nil {
@@ -171,8 +188,6 @@ func (pgb *ChainDB) SyncMcaSnapshotTable() error {
 
 // SyncCoinAgeBandsTable: sync coin_age_bands data
 func (pgb *ChainDB) SyncCoinAgeBandsTable() error {
-	pgb.coinAgeBandsSync.Lock()
-	defer pgb.coinAgeBandsSync.Unlock()
 	var maxCoinAgeBandsHeight int64
 	err := pgb.db.QueryRowContext(pgb.ctx, internal.SelectCoinAgeBandsMaxHeight).Scan(&maxCoinAgeBandsHeight)
 	if err != nil {
@@ -1900,5 +1915,41 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 		return err
 	}
 	log.Infof("Finish Sync LTC swap data with height: %d", height)
+	return nil
+}
+
+func (pgb *ChainDB) SyncCoinAgeDataAllSet(msgBlock *wire.MsgBlock) {
+	pgb.coinAgeSync.Lock()
+	defer pgb.coinAgeSync.Unlock()
+	// sync coin age table
+	err := pgb.SyncCoinAgeTable()
+	if err != nil {
+		log.Errorf("Sync coin_age table on height %d failed. %v", msgBlock.Header.Height, err)
+		return
+	}
+	// sync utxo_history table
+	err = pgb.SyncUtxoHistoryTable()
+	if err != nil {
+		log.Errorf("Sync utxo_history table on height %d failed. %v", msgBlock.Header.Height, err)
+		return
+	}
+	go pgb.SyncCoinAgeBandsAndMcaDataWithoutRemaining(int64(msgBlock.Header.Height))
+}
+
+func (pgb *ChainDB) SyncCoinAgeBandsAndMcaDataWithoutRemaining(height int64) error {
+	pgb.utxoHistorySync.Lock()
+	defer pgb.utxoHistorySync.Unlock()
+	// sync for coin_age_bands table
+	err := pgb.SyncCoinAgeBandsWithHeightRange(height, height)
+	if err != nil {
+		log.Errorf("Sync coin_age_bands table on new height %d failed. %v", height, err)
+		return err
+	}
+	// sync for mca_snapshots table
+	err = pgb.SyncMCASnapshotsWithHeightRange(height, height)
+	if err != nil {
+		log.Errorf("Sync mca_snapshots table on new height %d failed. %v", height, err)
+		return err
+	}
 	return nil
 }
