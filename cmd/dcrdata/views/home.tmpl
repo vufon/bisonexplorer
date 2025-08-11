@@ -544,6 +544,13 @@
                                                    <option value="coin-supply">Coin Supply</option>
                                                    <option value="fees">Fees</option>
                                                 </optgroup>
+                                                   <optgroup label="Coin Age">
+                                                   <option value="avg-age-days">Average Age Days</option>
+                                                   <option value="coin-days-destroyed">Coin Days Destroyed</option>
+                                                   <option value="coin-age-bands">HODL Age Bands</option>
+                                                   <option value="mean-coin-age">Mean Coin Age</option>
+                                                   <option value="total-coin-days">Total Coin Days</option>
+                                                </optgroup>
                                              </select>
                                           </div>
                                           {{- /* RANGE SELECTIONS */ -}}
@@ -623,14 +630,19 @@
                                                       <span class="checkmark tickets-bought"></span>
                                                    </label>
                                                 </li>
-                                                <li class="nav-item">
-                                                   <label class="customcheck mx-2 d-inline-flex"
-                                                      data-homecharts-target="vSelectorItem"
-                                                      data-charts="coin-supply">Mixed
-                                                      Coins
+                                                <li class="nav-item" data-homecharts-target="vSelectorItem"
+                                                      data-charts="coin-supply">
+                                                   <label class="customcheck mx-2 d-inline-flex">Mixed Coins
                                                       <input type="checkbox"
                                                          data-action="click->homecharts#setVisibility"
                                                          data-homecharts-target="anonymitySet">
+                                                      <span class="checkmark total-mixed"></span>
+                                                   </label>
+                                                </li>
+                                                <li class="nav-item" data-homecharts-target="vSelectorItem" data-charts="coin-age">
+                                                   <label class="customcheck mx-2 d-inline-flex">Market Price
+                                                      <input type="checkbox" checked data-action="click->homecharts#setVisibility"
+                                                         data-homecharts-target="marketPrice">
                                                       <span class="checkmark total-mixed"></span>
                                                    </label>
                                                 </li>
