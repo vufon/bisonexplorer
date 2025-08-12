@@ -36,7 +36,7 @@ import (
 
 // SyncHandlerDeadline is a hard deadline for handlers to finish handling before
 // an error is logged.
-const SyncHandlerDeadline = time.Minute * 5
+const SyncHandlerDeadline = time.Minute * 10
 
 // BranchTips describes the old and new chain tips involved in a reorganization.
 type BranchTips struct {
@@ -323,8 +323,7 @@ func (notifier *Notifier) processBlock(bh *wire.BlockHeader) {
 			return
 		}
 	}
-	log.Debugf("handlers of Notifier.processBlock() completed in %v", time.Since(start))
-
+	log.Infof("handlers of Notifier.processBlock() completed in %v", time.Since(start))
 	// Record this block as the best block connected by the collectionQueue.
 	notifier.SetPreviousBlock(hash, height)
 }
