@@ -140,13 +140,11 @@ func (pgb *ChainDB) SyncCoinAgesData() error {
 		log.Errorf("Sync remaining heights for utxo_history table data failed: %v", err)
 	}
 	// sync coin_age_bands table
-	go pgb.SyncCoinAgeBandsAndMcaData()
-	return nil
+	err = pgb.SyncCoinAgeBandsAndMcaData()
+	return err
 }
 
 func (pgb *ChainDB) SyncCoinAgeBandsAndMcaData() error {
-	pgb.utxoHistorySync.Lock()
-	defer pgb.utxoHistorySync.Unlock()
 	err := pgb.SyncCoinAgeBandsTable()
 	if err != nil {
 		log.Errorf("Sync coin_age_bands table data failed: %v", err)
@@ -271,7 +269,7 @@ func (pgb *ChainDB) SyncRemainingMcaSnapshot() error {
 		log.Errorf("get remaining mca_snapshots blocks height list failed: %v", err)
 		return err
 	}
-
+	log.Infof("Remaining blocks for mca_snapshots table: Blocks number: %d", len(remaingHeights))
 	for _, remainingHeight := range remaingHeights {
 		log.Infof("Start sync mca_snapshots table for height %d", remainingHeight)
 		err = pgb.syncRemainingMcaSnapshotsWithHeight(remainingHeight)
@@ -304,7 +302,7 @@ func (pgb *ChainDB) SyncRemainingCoinAgeBands() error {
 		log.Errorf("get remaining coin_age_bands blocks height list failed: %v", err)
 		return err
 	}
-
+	log.Infof("Remaining blocks for coin_age_bands table: Blocks number: %d", len(remaingHeights))
 	for _, remainingHeight := range remaingHeights {
 		log.Infof("Start sync coin_age_bands table for height %d", remainingHeight)
 		err = pgb.syncRemainingCoinAgeBandsWithHeight(remainingHeight)
@@ -366,13 +364,13 @@ func (pgb *ChainDB) syncCoinAgeBandsTable(lastHeight int64) error {
 		go func() {
 			defer wg.Done()
 			for j := range jobCh {
-				log.Infof("Start sync coin_age_bands table from: %d to %d", j.from, j.to)
+				// log.Infof("Start sync coin_age_bands table from: %d to %d", j.from, j.to)
 				err := pgb.SyncCoinAgeBandsWithHeightRange(j.from, j.to)
 				if err != nil {
 					errCh <- fmt.Errorf("failed block range %d-%d: %w", j.from, j.to, err)
 					return
 				}
-				log.Infof("Finish sync coin_age_bands table from: %d to %d", j.from, j.to)
+				// log.Infof("Finish sync coin_age_bands table from: %d to %d", j.from, j.to)
 			}
 		}()
 	}
@@ -1933,12 +1931,13 @@ func (pgb *ChainDB) SyncCoinAgeDataAllSet(msgBlock *wire.MsgBlock) {
 		log.Errorf("Sync utxo_history table on height %d failed. %v", msgBlock.Header.Height, err)
 		return
 	}
-	go pgb.SyncCoinAgeBandsAndMcaDataWithoutRemaining(int64(msgBlock.Header.Height))
+	err = pgb.SyncCoinAgeBandsAndMcaDataWithoutRemaining(int64(msgBlock.Header.Height))
+	if err != nil {
+		log.Errorf("Sync coin age band and mca data for block %d failed. %v", msgBlock.Header.Height, err)
+	}
 }
 
 func (pgb *ChainDB) SyncCoinAgeBandsAndMcaDataWithoutRemaining(height int64) error {
-	pgb.utxoHistorySync.Lock()
-	defer pgb.utxoHistorySync.Unlock()
 	// sync for coin_age_bands table
 	err := pgb.SyncCoinAgeBandsWithHeightRange(height, height)
 	if err != nil {

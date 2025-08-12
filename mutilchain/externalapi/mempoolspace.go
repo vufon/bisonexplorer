@@ -75,6 +75,9 @@ func GetBitcoinLastBlocksPool(startHeight int64) ([]*dbtypes.MultichainPoolDataI
 	// get last 5 blocks
 	result := make([]*dbtypes.MultichainPoolDataItem, 0)
 	for i := 0; i < 10; i++ {
+		if len(blocks) <= i {
+			break
+		}
 		block := blocks[i]
 		poolData := dbtypes.MultichainPoolDataItem{
 			BlockHeight: block.Height,
