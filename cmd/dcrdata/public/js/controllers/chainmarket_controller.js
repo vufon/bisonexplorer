@@ -820,7 +820,10 @@ export default class extends Controller {
       kucoin: 'https://www.kucoin.com/vi/trade/' + this.chainType.toUpperCase() + '-USDT',
       gemini: 'https://exchange.gemini.com/trade/' + this.chainType.toUpperCase() + 'USD',
       coinex: 'https://www.coinex.com/en/exchange/' + this.chainType.toUpperCase() + '-USDT',
-      btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc'
+      btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc',
+      xt: 'https://www.xt.com/en/trade/' + this.chainType + '_usdt',
+      pionex: 'https://www.pionex.com/en/trade/' + this.chainType.toUpperCase() + '_USDT/Bot',
+      hotcoin: 'https://www.hotcoin.com/apiDocument/contract/exchange/trade/?tradeName=' + this.chainType + 'usdt'
     }
   }
 

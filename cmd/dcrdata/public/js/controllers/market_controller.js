@@ -44,7 +44,9 @@ const exchangeLinks = {
   huobi: 'https://www.hbg.com/en-us/exchange/?s=dcr_btc',
   dcrdex: 'https://dex.decred.org',
   coinex: 'https://www.coinex.com/en/exchange/DCR-USDT',
-  btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc'
+  btc_coinex: 'https://www.coinex.com/en/exchange/dcr-btc',
+  xt: 'https://www.xt.com/en/trade/dcr_usdt',
+  pionex: 'https://www.pionex.com/en/trade/DCR_USDT/Bot'
 }
 
 const btcPairUses = ['btc_binance', 'btc_coinex', 'dcrdex', 'aggregated']
