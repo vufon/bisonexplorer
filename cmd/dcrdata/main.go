@@ -54,6 +54,7 @@ import (
 	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
 	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 
+	"github.com/decred/dcrdata/cmd/dcrdata/internal/antibot"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api/insight"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/chainsocket"
@@ -870,13 +871,25 @@ func _main(ctx context.Context) error {
 	// File downloads piggy-back on the API.
 	fileMux := api.NewFileRouter(app, cfg.UseRealIP)
 
+	// for antibot
+	ab := antibot.NewMiddleware(antibot.Config{
+		RPS:               1,
+		Burst:             5,
+		BlockScore:        50,
+		BlockEmptyUA:      true,
+		AllowVerifiedBots: true,
+		TrustedHeader:     "X-Forwarded-For", // hoặc "CF-Connecting-IP" nếu sau Cloudflare
+		BypassPrefixes:    []string{"/healthz", "/metrics"},
+		Logger:            func(f string, a ...any) { log.Infof(f, a...) },
+	})
+
 	// Configure the explorer web pages router.
 	webMux := chi.NewRouter()
 	if cfg.ServerHeader != "" {
 		log.Debugf("Using Server HTTP response header %q", cfg.ServerHeader)
 		webMux.Use(mw.Server(cfg.ServerHeader))
 	}
-
+	webMux.Use(ab.Handler())
 	// Request per sec limit for "POST /verify-message" endpoint.
 	reqPerSecLimit := 5.0
 	// Create a rate limiter struct.
@@ -900,6 +913,8 @@ func _main(ctx context.Context) error {
 	if len(cfg.AllowedHosts) > 0 {
 		webMux.Use(explorer.AllowedHosts(cfg.AllowedHosts))
 	}
+	// mount honeypot route (đường bẫy)
+	webMux.Handle(ab.HoneypotPath(), http.HandlerFunc(ab.HoneypotHandler))
 
 	webMux.With(explore.SyncStatusPageIntercept).Group(func(r chi.Router) {
 		r.Get("/", explore.Home)

@@ -109,7 +109,7 @@ export default class extends Controller {
   }
 
   makeTableUrl (txType, count, offset, time) {
-    const root = `chain/${this.chainType}/addresstable/${this.dcrAddress}`
+    const root = `${this.chainType}/addresstable/${this.dcrAddress}`
     return `/${root}?txntype=${txType}&n=${count}&start=${offset}${time && time !== '' ? '&time=' + time : ''}`
   }
 
@@ -231,7 +231,7 @@ export default class extends Controller {
     const time = this.time
     let links = ''
 
-    const root = this.dcrAddress === `chain/${this.chainType}/address/${this.dcrAddress}`
+    const root = this.dcrAddress === `${this.chainType}/address/${this.dcrAddress}`
 
     if (typeof offset !== 'undefined' && offset > 0) {
       links = `<a href="/${root}?start=${offset - pageSize}&n=${pageSize}&txntype=${txnType}${time && time !== '' ? '&time=' + time : ''}" ` +

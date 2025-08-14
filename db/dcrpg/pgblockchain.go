@@ -4852,9 +4852,9 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 			addrData.NumTransactions = apiAddrInfo.NumTransactions
 			addrData.TxnCount = addrData.NumTransactions
 			//update balance cache
-			// hash, height := pgb.GetMutilchainHashHeight(chainType)
-			// blockID := cache.NewMutilchainBlockID(hash, height)
-			// pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType)
+			hash, height := pgb.GetMutilchainHashHeight(chainType)
+			blockID := cache.NewMutilchainBlockID(hash, height)
+			pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType)
 		}
 	} else /*err == nil*/ {
 		// Generate AddressInfo skeleton from the address table rows.
@@ -10612,10 +10612,12 @@ func (pgb *ChainDB) MutilchainGetBlockchainInfo(chainType string) (*mutilchain.B
 	default:
 		return nil, fmt.Errorf("%s", "Get size and tx count error. Invalid chain type")
 	}
-	coinSupply, txCount, err := externalapi.GetOkLinkBlockchainSummaryData(pgb.OkLinkAPIKey, chainType)
-	if err != nil {
-		log.Errorf("MutilchainGetBlockchainInfo get oklink blockchain summary data failed: %v", err)
-	}
+	coinSupply := float64(0)
+	txCount := int64(0)
+	// , txCount, err := externalapi.GetOkLinkBlockchainSummaryData(pgb.OkLinkAPIKey, chainType)
+	// if err != nil {
+	// 	log.Errorf("MutilchainGetBlockchainInfo get oklink blockchain summary data failed: %v", err)
+	// }
 
 	//TODO get blockchaininfo
 	return &mutilchain.BlockchainInfo{

@@ -138,13 +138,16 @@ func (pgb *ChainDB) SyncCoinAgesData() error {
 	err = pgb.SyncRemainingUtxoHistory()
 	if err != nil {
 		log.Errorf("Sync remaining heights for utxo_history table data failed: %v", err)
+		return err
 	}
 	// sync coin_age_bands table
-	err = pgb.SyncCoinAgeBandsAndMcaData()
-	return err
+	go pgb.SyncCoinAgeBandsAndMcaData()
+	return nil
 }
 
 func (pgb *ChainDB) SyncCoinAgeBandsAndMcaData() error {
+	pgb.utxoHistorySync.Lock()
+	defer pgb.utxoHistorySync.Unlock()
 	err := pgb.SyncCoinAgeBandsTable()
 	if err != nil {
 		log.Errorf("Sync coin_age_bands table data failed: %v", err)
@@ -428,13 +431,11 @@ func (pgb *ChainDB) syncMcaSnapshotTable(lastHeight int64) error {
 		go func() {
 			defer wg.Done()
 			for j := range jobCh {
-				log.Infof("Start sync mca_snapshot table from: %d to %d", j.from, j.to)
 				err := pgb.SyncMCASnapshotsWithHeightRange(j.from, j.to)
 				if err != nil {
 					errCh <- fmt.Errorf("failed block range %d-%d: %w", j.from, j.to, err)
 					return
 				}
-				log.Infof("Finish sync mca_snapshot table from: %d to %d", j.from, j.to)
 			}
 		}()
 	}
@@ -1938,6 +1939,8 @@ func (pgb *ChainDB) SyncCoinAgeDataAllSet(msgBlock *wire.MsgBlock) {
 }
 
 func (pgb *ChainDB) SyncCoinAgeBandsAndMcaDataWithoutRemaining(height int64) error {
+	pgb.utxoHistorySync.Lock()
+	defer pgb.utxoHistorySync.Unlock()
 	// sync for coin_age_bands table
 	err := pgb.SyncCoinAgeBandsWithHeightRange(height, height)
 	if err != nil {
