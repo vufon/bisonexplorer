@@ -23,7 +23,7 @@ export default class extends Controller {
   static get targets () {
     return ['addr', 'balance',
       'numUnconfirmed',
-      'pagesize', 'txntype', 'txnCount', 'qricon', 'qrimg', 'qrbox',
+      'pagesize', 'txnCount', 'qricon', 'qrimg', 'qrbox',
       'paginator', 'pageplus', 'pageminus', 'listbox', 'table',
       'range', 'noconfirms', 'pagebuttons',
       'pending', 'hash', 'matchhash', 'view', 'listLoader',
@@ -44,7 +44,7 @@ export default class extends Controller {
 
     // These two are templates for query parameter sets.
     // When url query parameters are set, these will also be updated.
-    const settings = ctrl.settings = TurboQuery.nullTemplate(['n', 'start', 'txntype', 'time'])
+    const settings = ctrl.settings = TurboQuery.nullTemplate(['n', 'start', 'txntype'])
     ctrl.state = Object.assign({}, settings)
     // Parse stimulus data
     const cdata = ctrl.data
@@ -58,7 +58,6 @@ export default class extends Controller {
 
     // Get initial view settings from the url
     ctrl.query.update(settings)
-    this.time = settings.time
   }
 
   disconnect () {
@@ -108,17 +107,13 @@ export default class extends Controller {
     await animationFrame()
   }
 
-  makeTableUrl (txType, count, offset, time) {
+  makeTableUrl (txType, count, offset) {
     const root = `${this.chainType}/addresstable/${this.dcrAddress}`
-    return `/${root}?txntype=${txType}&n=${count}&start=${offset}${time && time !== '' ? '&time=' + time : ''}`
+    return `/${root}?txntype=${txType}&n=${count}&start=${offset}`
   }
 
   changePageSize () {
-    this.fetchTableWithPeriod(this.txnType, this.pageSize, this.paginationParams.offset, this.time)
-  }
-
-  changeTxType () {
-    this.fetchTableWithPeriod(this.txnType, this.pageSize, 0, this.time)
+    this.fetchTableWithPeriod('all', this.pageSize, this.paginationParams.offset)
   }
 
   nextPage () {
@@ -136,26 +131,23 @@ export default class extends Controller {
     const start = parser.searchParams.get('start')
     const pagesize = parser.searchParams.get('n')
     const txntype = parser.searchParams.get('txntype')
-    const time = parser.searchParams.get('time')
-    this.time = time
-    this.fetchTableWithPeriod(txntype, pagesize, start, time)
+    this.fetchTableWithPeriod(txntype, pagesize, start)
   }
 
   toPage (direction) {
     const params = ctrl.paginationParams
     const count = ctrl.pageSize
     const txType = ctrl.txnType
-    const time = this.time
     let requestedOffset = params.offset + count * direction
     if (requestedOffset >= params.count) return
     if (requestedOffset < 0) requestedOffset = 0
-    ctrl.fetchTableWithPeriod(txType, count, requestedOffset, time)
+    ctrl.fetchTableWithPeriod(txType, count, requestedOffset)
   }
 
-  async fetchTableWithPeriod (txType, count, offset, time) {
+  async fetchTableWithPeriod (txType, count, offset) {
     ctrl.listLoaderTarget.classList.add('loading')
     const requestCount = count > 20 ? count : 20
-    const tableResponse = await requestJSON(ctrl.makeTableUrl(txType, requestCount, offset, time))
+    const tableResponse = await requestJSON(ctrl.makeTableUrl(txType, requestCount, offset))
     ctrl.tableTarget.innerHTML = dompurify.sanitize(tableResponse.html)
     const settings = ctrl.settings
     settings.n = count
@@ -228,13 +220,12 @@ export default class extends Controller {
     const offset = parseInt(ctrl.paginationParams.offset)
     const pageSize = parseInt(ctrl.paginationParams.pagesize)
     const txnType = ctrl.paginationParams.txntype
-    const time = this.time
     let links = ''
 
     const root = this.dcrAddress === `${this.chainType}/address/${this.dcrAddress}`
 
     if (typeof offset !== 'undefined' && offset > 0) {
-      links = `<a href="/${root}?start=${offset - pageSize}&n=${pageSize}&txntype=${txnType}${time && time !== '' ? '&time=' + time : ''}" ` +
+      links = `<a href="/${root}?start=${offset - pageSize}&n=${pageSize}&txntype=${txnType}" ` +
       'class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fz20" data-action="click->address#pageNumberLink"></a>' + '\n'
     }
 
@@ -244,7 +235,7 @@ export default class extends Controller {
     }).join('\n')
 
     if ((txCount - offset) > pageSize) {
-      links += '\n' + `<a href="/${root}?start=${(offset + pageSize)}&n=${pageSize}&txntype=${txnType}${time && time !== '' ? '&time=' + time : ''}" ` +
+      links += '\n' + `<a href="/${root}?start=${(offset + pageSize)}&n=${pageSize}&txntype=${txnType}" ` +
       'class="d-inline-block dcricon-arrow-right pagination-number pagination-narrow m-1 fs20" data-action="click->address#pageNumberLink"></a>'
     }
 
@@ -283,10 +274,6 @@ export default class extends Controller {
         }
       })
     }
-  }
-
-  get txnType () {
-    return this.txntypeTarget.selectedOptions[0].value
   }
 
   get pageSize () {

@@ -15,7 +15,7 @@ import (
 const bitapsAPIURL = "https://api.bitaps.com/%s/v1/blockchain/%s"
 
 var bitapsAddressDetailUrl = `address/state/%s`
-var bitapsAddressTxsUrl = `address/transactions/%s?page=%d&limit=%d`
+var bitapsAddressTxsUrl = `address/transactions/%s`
 
 type BitapsSummaryResponseData struct {
 	Time float64           `json:"time"`
@@ -67,15 +67,15 @@ func GetBitapsSummaryData(chainType, address string) (*BitapsSummaryResponseData
 func GetBitapsAddressTxsData(chainType, address string, limit, offset int64) (*BitapsAddressTxsResponseData, error) {
 	var fetchData BitapsAddressTxsResponseData
 	pageNumber := offset/limit + 1
-	// query := map[string]string{
-	// 	"page":  fmt.Sprintf("%d", pageNumber),
-	// 	"limit": fmt.Sprintf("%d", limit),
-	// }
+	query := map[string]string{
+		"page":  fmt.Sprintf("%d", pageNumber),
+		"limit": fmt.Sprintf("%d", limit),
+	}
 	//insert api key
 	req := &ReqConfig{
 		Method:  http.MethodGet,
-		HttpUrl: fmt.Sprintf(bitapsAPIURL, chainType, fmt.Sprintf(bitapsAddressTxsUrl, address, pageNumber, limit)),
-		Payload: map[string]string{},
+		HttpUrl: fmt.Sprintf(bitapsAPIURL, chainType, fmt.Sprintf(bitapsAddressTxsUrl, address)),
+		Payload: query,
 	}
 	if err := HttpRequest(req, &fetchData); err != nil {
 		return nil, err
