@@ -889,7 +889,6 @@ func _main(ctx context.Context) error {
 		log.Debugf("Using Server HTTP response header %q", cfg.ServerHeader)
 		webMux.Use(mw.Server(cfg.ServerHeader))
 	}
-	webMux.Use(ab.Handler())
 	// Request per sec limit for "POST /verify-message" endpoint.
 	reqPerSecLimit := 5.0
 	// Create a rate limiter struct.
@@ -1122,14 +1121,17 @@ func _main(ctx context.Context) error {
 			rd.Get("/blocks", explore.MutilchainBlocks)
 			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.MutilchainBlockDetail)
 			rd.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.MutilchainTxPage)
-			rd.With(explorer.AddressPathCtx).Get("/address/{address}", explore.MutilchainAddressPage)
-			rd.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.MutilchainAddressTable)
 			rd.Get("/mempool", explore.MutilchainMempool)
 			rd.Get("/charts", explore.MutilchainCharts)
 			rd.Get("/market", explore.MutilchainMarketPage)
 			rd.Get("/supply", explore.SupplyPage)
 			rd.Get("/visualblocks", explore.MultichainVisualBlocks)
 			rd.Get("/parameters", explore.MutilchainParametersPage)
+			rd.Group(func(g chi.Router) {
+				g.Use(ab.Handler())
+				g.With(explorer.AddressPathCtx).Get("/address/{address}", explore.MutilchainAddressPage)
+				g.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.MutilchainAddressTable)
+			})
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
