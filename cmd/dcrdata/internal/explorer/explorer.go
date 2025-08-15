@@ -1026,12 +1026,12 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	//TODO: Open later
 	//totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPEBTC)
 	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPEBTC)
-	err = exp.dataSource.SyncLast20BTCBlocks(blockData.Header.Height)
-	if err != nil {
-		log.Error(err)
-	} else {
-		log.Infof("Sync last 25 BTC Blocks successfully")
-	}
+	// err = exp.dataSource.SyncLast20BTCBlocks(blockData.Header.Height)
+	// if err != nil {
+	// 	log.Error(err)
+	// } else {
+	// 	log.Infof("Sync last 25 BTC Blocks successfully")
+	// }
 	//get and set 25 last block
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEBTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 	// get last 5 block pools

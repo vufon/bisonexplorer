@@ -9593,7 +9593,7 @@ func (pgb *ChainDB) GetMultichainBlockTxCount(height int64, chainType string) (i
 		if data == nil {
 			return 0, fmt.Errorf("get btc block verbose tx by hash failed")
 		}
-		return len(data.Tx), nil
+		return len(data.RawTx), nil
 	case mutilchain.TYPELTC:
 		hash, err := pgb.LtcClient.GetBlockHash(height)
 		if err != nil {
@@ -9603,7 +9603,7 @@ func (pgb *ChainDB) GetMultichainBlockTxCount(height int64, chainType string) (i
 		if data == nil {
 			return 0, fmt.Errorf("get ltc block verbose tx by hash failed")
 		}
-		return len(data.Tx), nil
+		return len(data.RawTx), nil
 	}
 	return 0, nil
 }
