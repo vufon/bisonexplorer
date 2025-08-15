@@ -538,7 +538,7 @@ func (pgb *ChainDB) SyncMCASnapshotsWithHeightRange(fromHeight, toHeight int64) 
 
 func (pgb *ChainDB) syncUtxoHistoryTable(lastHeight int64) error {
 	maxHeight := pgb.bestBlock.height
-	fmt.Printf("🔄 Processing block from %d to %d...\n", lastHeight+1, maxHeight)
+	log.Infof("🔄 Processing block from %d to %d...\n", lastHeight+1, maxHeight)
 	for height := lastHeight + 1; height <= maxHeight; height++ {
 		err := pgb.SyncUtxoHistoryHeight(height)
 		if err != nil {
@@ -546,7 +546,7 @@ func (pgb *ChainDB) syncUtxoHistoryTable(lastHeight int64) error {
 			return err
 		}
 	}
-	fmt.Printf("🔄 Complete process block from %d to %d...\n", lastHeight+1, maxHeight)
+	log.Infof("🔄 Complete process block from %d to %d...\n", lastHeight+1, maxHeight)
 	return nil
 }
 
@@ -1655,6 +1655,117 @@ func (pgb *ChainDB) supplementUnknownTicketError(err error) error {
 	return fmt.Errorf("%v\n\t**** Unknown ticket was mined in block %d. "+
 		"Try \"--purge-n-blocks=%d to recover. ****",
 		err, badTxBlock, numToPurge)
+}
+
+func (pgb *ChainDB) GetMultichainTxCount(chainType string) (int64, error) {
+	var currentTxcount int64
+	err := pgb.db.QueryRow(internal.GetMultichainTxCountQuery(chainType)).Scan(&currentTxcount)
+	if err != nil {
+		log.Errorf("Get %s tx count failed: %v", chainType, err)
+		return 0, err
+	}
+	return currentTxcount, nil
+}
+
+func (pgb *ChainDB) SyncMultichainTxCount(btcDisabled, ltcDisabled bool) (err error) {
+	if !btcDisabled {
+		// sync btc txcount in meta
+		err = pgb.SyncBTCTxCount()
+		if err != nil {
+			log.Errorf("Sync btc txcount failed: %v", err)
+		} else {
+			log.Infof("Sync btc txcount successfully")
+		}
+	}
+	if !ltcDisabled {
+		// sync ltc txcount in meta
+		err = pgb.SyncLTCTxCount()
+		if err != nil {
+			log.Errorf("Sync ltc txcount failed: %v", err)
+		} else {
+			log.Infof("Sync ltc txcount successfully")
+		}
+	}
+	return nil
+}
+
+func (pgb *ChainDB) SyncBTCTxCount() error {
+	pgb.multichainBtcTxCountSync.Lock()
+	defer pgb.multichainBtcTxCountSync.Unlock()
+	log.Info("Start sync btc txcount for meta table")
+	// check current height in meta table
+	var currentBlockHeight int64
+	err := pgb.db.QueryRow(internal.GetMultichainTxCountHeightQuery(mutilchain.TYPEBTC)).Scan(&currentBlockHeight)
+	if err != nil {
+		log.Errorf("Get btc tx count height failed: %v", err)
+		return err
+	}
+	// current height on db
+	bestBlockHeight := pgb.BtcBestBlock.Height
+	if currentBlockHeight >= bestBlockHeight {
+		log.Info("All btc blocks have been counted for txcount")
+		return nil
+	}
+	addTxCount := int64(0)
+	// sync for tx count
+	log.Infof("Start calculate btc sum tx count for blocks from %d to %d", currentBlockHeight+1, bestBlockHeight)
+	lastHeight := int64(0)
+	for i := currentBlockHeight + 1; i <= bestBlockHeight; i++ {
+		blockTxCount, err := pgb.GetMultichainBlockTxCount(int64(i), mutilchain.TYPEBTC)
+		if err != nil {
+			return err
+		}
+		addTxCount += int64(blockTxCount)
+		if i%50 == 0 || i == bestBlockHeight {
+			log.Infof("Completed calculating blocks from %d to %d", lastHeight, i)
+			lastHeight = i
+		}
+	}
+	// update to meta table
+	_, err = pgb.db.Exec(internal.CreateMultichainTxCountUpdateQuery(mutilchain.TYPEBTC), bestBlockHeight, addTxCount)
+	if err != nil {
+		log.Errorf("update btc txcount to meta table failed: %v", err)
+		return err
+	}
+	log.Infof("Finish sync btc txcount for meta table")
+	return nil
+}
+
+func (pgb *ChainDB) SyncLTCTxCount() error {
+	pgb.multichainLtcTxCountSync.Lock()
+	defer pgb.multichainLtcTxCountSync.Unlock()
+	log.Info("Start sync ltc txcount for meta table")
+	// check current height in meta table
+	var currentBlockHeight int64
+	err := pgb.db.QueryRow(internal.GetMultichainTxCountHeightQuery(mutilchain.TYPELTC)).Scan(&currentBlockHeight)
+	if err != nil {
+		log.Errorf("Get ltc tx count height failed: %v", err)
+		return err
+	}
+	// current height on db
+	bestBlockHeight := pgb.LtcBestBlock.Height
+	if currentBlockHeight >= bestBlockHeight {
+		log.Info("All ltc blocks have been counted for txcount")
+		return nil
+	}
+	addTxCount := int64(0)
+	// sync for tx count
+	log.Infof("Start calculate ltc sum tx count for blocks from %d to %d", currentBlockHeight+1, bestBlockHeight)
+	for i := currentBlockHeight + 1; i <= bestBlockHeight; i++ {
+		blockTxCount, err := pgb.GetMultichainBlockTxCount(int64(i), mutilchain.TYPELTC)
+		if err != nil {
+			return err
+		}
+		addTxCount += int64(blockTxCount)
+	}
+	// update to meta table
+	_, err = pgb.db.Exec(internal.CreateMultichainTxCountUpdateQuery(mutilchain.TYPELTC), bestBlockHeight, addTxCount)
+	if err != nil {
+		log.Errorf("update ltc txcount to meta table failed: %v", err)
+		return err
+	}
+	log.Info("Finish sync ltc txcount for meta table")
+	return nil
 }
 
 func (pgb *ChainDB) SyncDecredAtomicSwap() error {

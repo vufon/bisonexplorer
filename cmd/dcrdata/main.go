@@ -1319,7 +1319,8 @@ func _main(ctx context.Context) error {
 		}
 		log.Infof("Finish checking and syncing coin age tables...")
 	}
-
+	log.Infof("Start sync btc/ltc tx count")
+	go chainDB.SyncMultichainTxCount(btcDisabled, ltcDisabled)
 	// After sync and indexing, must use upsert statement, which checks for
 	// duplicate entries and updates instead of erroring. SyncChainDB should
 	// set this on successful sync, but do it again anyway.

@@ -354,8 +354,10 @@ type ChainDB struct {
 		// commonly retrieved when the explorer block is updated.
 		difficulties map[int64]float64
 	}
-	coinAgeSync     sync.Mutex
-	utxoHistorySync sync.Mutex
+	coinAgeSync              sync.Mutex
+	utxoHistorySync          sync.Mutex
+	multichainBtcTxCountSync sync.Mutex
+	multichainLtcTxCountSync sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -5526,7 +5528,9 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalLTCHeight(uint32(blockData.Header.Height))
 	// sync for ltc atomic swap
-	pgb.SyncLTCAtomicSwapData(int64(blockData.Header.Height))
+	go pgb.SyncLTCAtomicSwapData(int64(blockData.Header.Height))
+	// sync for block txcount
+	go pgb.SyncLTCTxCount()
 	return nil
 }
 
@@ -5577,7 +5581,9 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalBTCHeight(uint32(blockData.Header.Height))
 	// sync for btc atomic swap
-	pgb.SyncBTCAtomicSwapData(int64(blockData.Header.Height))
+	go pgb.SyncBTCAtomicSwapData(int64(blockData.Header.Height))
+	// sync for block txcount
+	go pgb.SyncBTCTxCount()
 	return nil
 }
 
@@ -9576,6 +9582,32 @@ func (pgb *ChainDB) GetMutilchainExplorerBlock(hash, chainType string) *exptypes
 	return blockInfo
 }
 
+func (pgb *ChainDB) GetMultichainBlockTxCount(height int64, chainType string) (int, error) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		hash, err := pgb.BtcClient.GetBlockHash(height)
+		if err != nil {
+			return 0, err
+		}
+		data := pgb.GetBTCBlockVerboseTxByHash(hash.String())
+		if data == nil {
+			return 0, fmt.Errorf("get btc block verbose tx by hash failed")
+		}
+		return len(data.Tx), nil
+	case mutilchain.TYPELTC:
+		hash, err := pgb.LtcClient.GetBlockHash(height)
+		if err != nil {
+			return 0, err
+		}
+		data := pgb.GetLTCBlockVerboseTxByHash(hash.String())
+		if data == nil {
+			return 0, fmt.Errorf("get ltc block verbose tx by hash failed")
+		}
+		return len(data.Tx), nil
+	}
+	return 0, nil
+}
+
 // GetBTCExplorerBlock gets a *exptypes.Blockinfo for the specified btc block.
 func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.btcLastExplorerBlock.Lock()
@@ -10612,8 +10644,14 @@ func (pgb *ChainDB) MutilchainGetBlockchainInfo(chainType string) (*mutilchain.B
 	default:
 		return nil, fmt.Errorf("%s", "Get size and tx count error. Invalid chain type")
 	}
-	coinSupply := float64(0)
-	txCount := int64(0)
+	txCount, err := pgb.GetMultichainTxCount(chainType)
+	if err != nil {
+		log.Errorf("Getting txCount for %s failed. Setting is 0. %v", chainType, err)
+	}
+	coinSupply, err := externalapi.GetCoinRankingCoinSupply(chainType)
+	if err != nil {
+		log.Errorf("Getting coinsupply for %s from coinranking API failed. Setting is 0. %v", chainType, err)
+	}
 	// , txCount, err := externalapi.GetOkLinkBlockchainSummaryData(pgb.OkLinkAPIKey, chainType)
 	// if err != nil {
 	// 	log.Errorf("MutilchainGetBlockchainInfo get oklink blockchain summary data failed: %v", err)
