@@ -31,10 +31,10 @@ type APIAddressInfo struct {
 const (
 	BLockchainAPI  = "blockchain"
 	BlockcypherAPI = "blockcypher"
-	OkLinkAPI      = "oklink"
+	BitapsAPI      = "bitaps"
 )
 
-var APIList = []string{BLockchainAPI, OkLinkAPI}
+var APIList = []string{BLockchainAPI, BitapsAPI}
 
 func GetAPIMutilchainAddressDetails(okLinkAPIKey, address string, chainType string, limit, offset, chainHeight int64, txnType dbtypes.AddrTxnViewType) (*APIAddressInfo, error) {
 	for _, api := range APIList {
@@ -54,8 +54,8 @@ func GetAddressDetailsByAPIEnv(okLinkAPIKey, address, chainType, apiType string,
 	switch apiType {
 	case BLockchainAPI:
 		return GetBlockchainInfoAddressInfoAPI(address, chainType, limit, offset, chainHeight)
-	case OkLinkAPI:
-		return GetOkLinkAddressInfoAPI(okLinkAPIKey, address, chainType, limit, offset, chainHeight, txnType)
+	case BitapsAPI:
+		return GetBitapsAddressInfoAPI(address, chainType, limit, offset, txnType)
 	default:
 		return nil, fmt.Errorf("%s%s", "Get by API failed, API type:", apiType)
 	}

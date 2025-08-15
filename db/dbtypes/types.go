@@ -2253,6 +2253,7 @@ type AddressTx struct {
 	IsUnconfirmed    bool
 	SwapsType        string
 	SwapsTypeDisplay string
+	Coinbase         bool
 }
 
 type MonthlyUsdPrice struct {

@@ -54,6 +54,7 @@ import (
 	ltcchainhash "github.com/ltcsuite/ltcd/chaincfg/chainhash"
 	ltcClient "github.com/ltcsuite/ltcd/rpcclient"
 
+	"github.com/decred/dcrdata/cmd/dcrdata/internal/antibot"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/api/insight"
 	"github.com/decred/dcrdata/cmd/dcrdata/internal/chainsocket"
@@ -870,13 +871,24 @@ func _main(ctx context.Context) error {
 	// File downloads piggy-back on the API.
 	fileMux := api.NewFileRouter(app, cfg.UseRealIP)
 
+	// for antibot
+	ab := antibot.NewMiddleware(antibot.Config{
+		RPS:               1,
+		Burst:             5,
+		BlockScore:        50,
+		BlockEmptyUA:      true,
+		AllowVerifiedBots: true,
+		TrustedHeader:     "X-Forwarded-For", // hoặc "CF-Connecting-IP" nếu sau Cloudflare
+		BypassPrefixes:    []string{"/healthz", "/metrics"},
+		Logger:            func(f string, a ...any) { log.Infof(f, a...) },
+	})
+
 	// Configure the explorer web pages router.
 	webMux := chi.NewRouter()
 	if cfg.ServerHeader != "" {
 		log.Debugf("Using Server HTTP response header %q", cfg.ServerHeader)
 		webMux.Use(mw.Server(cfg.ServerHeader))
 	}
-
 	// Request per sec limit for "POST /verify-message" endpoint.
 	reqPerSecLimit := 5.0
 	// Create a rate limiter struct.
@@ -900,6 +912,8 @@ func _main(ctx context.Context) error {
 	if len(cfg.AllowedHosts) > 0 {
 		webMux.Use(explorer.AllowedHosts(cfg.AllowedHosts))
 	}
+	// mount honeypot route (đường bẫy)
+	webMux.Handle(ab.HoneypotPath(), http.HandlerFunc(ab.HoneypotHandler))
 
 	webMux.With(explore.SyncStatusPageIntercept).Group(func(r chi.Router) {
 		r.Get("/", explore.Home)
@@ -1107,14 +1121,17 @@ func _main(ctx context.Context) error {
 			rd.Get("/blocks", explore.MutilchainBlocks)
 			rd.With(explore.MutilchainBlockHashPathOrIndexCtx).Get("/block/{blockhash}", explore.MutilchainBlockDetail)
 			rd.With(explorer.TransactionHashCtx).Get("/tx/{txid}", explore.MutilchainTxPage)
-			rd.With(explorer.AddressPathCtx).Get("/address/{address}", explore.MutilchainAddressPage)
-			rd.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.MutilchainAddressTable)
 			rd.Get("/mempool", explore.MutilchainMempool)
 			rd.Get("/charts", explore.MutilchainCharts)
 			rd.Get("/market", explore.MutilchainMarketPage)
 			rd.Get("/supply", explore.SupplyPage)
 			rd.Get("/visualblocks", explore.MultichainVisualBlocks)
 			rd.Get("/parameters", explore.MutilchainParametersPage)
+			rd.Group(func(g chi.Router) {
+				g.Use(ab.Handler())
+				g.With(explorer.AddressPathCtx).Get("/address/{address}", explore.MutilchainAddressPage)
+				g.With(explorer.AddressPathCtx).Get("/addresstable/{address}", explore.MutilchainAddressTable)
+			})
 		})
 		r.With(mw.Tollbooth(limiter)).Post("/verify-message", explore.VerifyMessageHandler)
 	})
@@ -1304,7 +1321,8 @@ func _main(ctx context.Context) error {
 		}
 		log.Infof("Finish checking and syncing coin age tables...")
 	}
-
+	log.Infof("Start sync btc/ltc tx count")
+	go chainDB.SyncMultichainTxCount(btcDisabled, ltcDisabled)
 	// After sync and indexing, must use upsert statement, which checks for
 	// duplicate entries and updates instead of erroring. SyncChainDB should
 	// set this on successful sync, but do it again anyway.

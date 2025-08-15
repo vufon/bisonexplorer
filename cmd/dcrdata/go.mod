@@ -1,8 +1,8 @@
 module github.com/decred/dcrdata/cmd/dcrdata
 
-go 1.21
+go 1.23.0
 
-toolchain go1.21.6
+toolchain go1.24.2
 
 replace (
 	github.com/decred/dcrdata/db/dcrpg/v8 => ../../db/dcrpg/
@@ -207,7 +207,7 @@ require (
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/grpc v1.61.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
