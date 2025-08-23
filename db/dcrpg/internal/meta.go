@@ -19,14 +19,16 @@ const (
 		btc_block_height INT8 DEFAULT 0,
 		ltc_block_height INT8 DEFAULT 0,
 		btc_tx_count INT8 DEFAULT 0,
-		ltc_tx_count INT8 DEFAULT 0
+		ltc_tx_count INT8 DEFAULT 0,
+		btc_coin_supply INT8 DEFAULT 0,
+		ltc_coin_supply INT8 DEFAULT 0
 	);`
 
-	UpdateMultichainTxCount = `UPDATE meta SET %s_block_height = $1, %s_tx_count = %s_tx_count + $2`
+	UpdateMultichainMetaInfo = `UPDATE meta SET %s_block_height = $1, %s_tx_count = %s_tx_count + $2, %s_coin_supply = %s_coin_supply + $3`
 
-	GetCurrentMultichainTxCountHeight = `SELECT %s_block_height FROM meta LIMIT 1`
+	GetCurrentMultichainMetaInfoHeight = `SELECT %s_block_height FROM meta LIMIT 1`
 
-	GetCurrentMultichainTxCount = `SELECT %s_tx_count FROM meta LIMIT 1`
+	GetCurrentMultichainMetaInfo = `SELECT %s_tx_count, %s_coin_supply FROM meta LIMIT 1`
 
 	InsertMetaRow = `INSERT INTO meta (net_name, currency_net, best_block_height, best_block_hash,
 		compatibility_version, schema_version, maintenance_version,
@@ -59,14 +61,14 @@ const (
 		SET maintenance_version = $1;`
 )
 
-func CreateMultichainTxCountUpdateQuery(chainType string) string {
-	return fmt.Sprintf(UpdateMultichainTxCount, chainType, chainType, chainType)
+func CreateMultichainMetaInfoUpdateQuery(chainType string) string {
+	return fmt.Sprintf(UpdateMultichainMetaInfo, chainType, chainType, chainType, chainType, chainType)
 }
 
-func GetMultichainTxCountHeightQuery(chainType string) string {
-	return fmt.Sprintf(GetCurrentMultichainTxCountHeight, chainType)
+func GetMultichainCurrentMetaInfoHeightQuery(chainType string) string {
+	return fmt.Sprintf(GetCurrentMultichainMetaInfoHeight, chainType)
 }
 
-func GetMultichainTxCountQuery(chainType string) string {
-	return fmt.Sprintf(GetCurrentMultichainTxCount, chainType)
+func GetMultichainMetaInfoQuery(chainType string) string {
+	return fmt.Sprintf(GetCurrentMultichainMetaInfo, chainType, chainType)
 }
