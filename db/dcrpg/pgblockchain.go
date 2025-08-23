@@ -354,10 +354,10 @@ type ChainDB struct {
 		// commonly retrieved when the explorer block is updated.
 		difficulties map[int64]float64
 	}
-	coinAgeSync              sync.Mutex
-	utxoHistorySync          sync.Mutex
-	multichainBtcTxCountSync sync.Mutex
-	multichainLtcTxCountSync sync.Mutex
+	coinAgeSync               sync.Mutex
+	utxoHistorySync           sync.Mutex
+	multichainBtcMetaInfoSync sync.Mutex
+	multichainLtcMetaInfoSync sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -5531,7 +5531,7 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 	// sync for ltc atomic swap
 	go pgb.SyncLTCAtomicSwapData(int64(blockData.Header.Height))
 	// sync for block txcount
-	go pgb.SyncLTCTxCount()
+	go pgb.SyncLTCMetaInfo()
 	return nil
 }
 
@@ -5584,7 +5584,7 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 	// sync for btc atomic swap
 	go pgb.SyncBTCAtomicSwapData(int64(blockData.Header.Height))
 	// sync for block txcount
-	go pgb.SyncBTCTxCount()
+	go pgb.SyncBTCMetaInfo()
 	return nil
 }
 
@@ -10645,15 +10645,15 @@ func (pgb *ChainDB) MutilchainGetBlockchainInfo(chainType string) (*mutilchain.B
 	default:
 		return nil, fmt.Errorf("%s", "Get size and tx count error. Invalid chain type")
 	}
-	txCount, err := pgb.GetMultichainTxCount(chainType)
+	txCount, coinSupply, err := pgb.GetMultichainMetaInfo(chainType)
 	if err != nil {
-		log.Errorf("Getting txCount for %s failed. Setting is 0. %v", chainType, err)
+		log.Errorf("Getting txCount/coinSupply for %s failed. Setting is 0. %v", chainType, err)
 	}
-	coinSupply := 0.0
+	coinAmount := btcutil.Amount(coinSupply)
 	//TODO get blockchaininfo
 	return &mutilchain.BlockchainInfo{
 		TotalTransactions: txCount,
-		CoinSupply:        coinSupply,
+		CoinSupply:        coinAmount.ToBTC(),
 		Difficulty:        difficulty,
 	}, nil
 }

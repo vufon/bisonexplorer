@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
+	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v4"
@@ -28,6 +30,8 @@ import (
 	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/decred/dcrdata/v8/txhelpers/btctxhelper"
 	"github.com/decred/dcrdata/v8/txhelpers/ltctxhelper"
+	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
+	"github.com/ltcsuite/ltcd/ltcutil"
 )
 
 const (
@@ -1657,20 +1661,20 @@ func (pgb *ChainDB) supplementUnknownTicketError(err error) error {
 		err, badTxBlock, numToPurge)
 }
 
-func (pgb *ChainDB) GetMultichainTxCount(chainType string) (int64, error) {
-	var currentTxcount int64
-	err := pgb.db.QueryRow(internal.GetMultichainTxCountQuery(chainType)).Scan(&currentTxcount)
+func (pgb *ChainDB) GetMultichainMetaInfo(chainType string) (int64, int64, error) {
+	var currentTxcount, coinSupply int64
+	err := pgb.db.QueryRow(internal.GetMultichainMetaInfoQuery(chainType)).Scan(&currentTxcount, &coinSupply)
 	if err != nil {
 		log.Errorf("Get %s tx count failed: %v", chainType, err)
-		return 0, err
+		return 0, 0, err
 	}
-	return currentTxcount, nil
+	return currentTxcount, coinSupply, nil
 }
 
-func (pgb *ChainDB) SyncMultichainTxCount(btcDisabled, ltcDisabled bool) (err error) {
+func (pgb *ChainDB) SyncMultichainMetaInfo(btcDisabled, ltcDisabled bool) (err error) {
 	if !btcDisabled {
 		// sync btc txcount in meta
-		err = pgb.SyncBTCTxCount()
+		err = pgb.SyncBTCMetaInfo()
 		if err != nil {
 			log.Errorf("Sync btc txcount failed: %v", err)
 		} else {
@@ -1679,7 +1683,7 @@ func (pgb *ChainDB) SyncMultichainTxCount(btcDisabled, ltcDisabled bool) (err er
 	}
 	if !ltcDisabled {
 		// sync ltc txcount in meta
-		err = pgb.SyncLTCTxCount()
+		err = pgb.SyncLTCMetaInfo()
 		if err != nil {
 			log.Errorf("Sync ltc txcount failed: %v", err)
 		} else {
@@ -1689,27 +1693,27 @@ func (pgb *ChainDB) SyncMultichainTxCount(btcDisabled, ltcDisabled bool) (err er
 	return nil
 }
 
-func (pgb *ChainDB) SyncBTCTxCount() error {
-	pgb.multichainBtcTxCountSync.Lock()
-	defer pgb.multichainBtcTxCountSync.Unlock()
-	log.Info("Start sync btc txcount for meta table")
+func (pgb *ChainDB) SyncBTCMetaInfo() error {
+	pgb.multichainBtcMetaInfoSync.Lock()
+	defer pgb.multichainBtcMetaInfoSync.Unlock()
+	log.Info("Start sync btc meta info for meta table")
 	// check current height in meta table
 	var currentBlockHeight int64
-	err := pgb.db.QueryRow(internal.GetMultichainTxCountHeightQuery(mutilchain.TYPEBTC)).Scan(&currentBlockHeight)
+	err := pgb.db.QueryRow(internal.GetMultichainCurrentMetaInfoHeightQuery(mutilchain.TYPEBTC)).Scan(&currentBlockHeight)
 	if err != nil {
-		log.Errorf("Get btc tx count height failed: %v", err)
+		log.Errorf("Get btc meta info height failed: %v", err)
 		return err
 	}
 	// current height on db
 	bestBlockHeight := pgb.BtcBestBlock.Height
 	if currentBlockHeight >= bestBlockHeight {
-		log.Info("All btc blocks have been counted for txcount")
+		log.Info("All btc blocks have been counted for txcount/coinsupply")
 		return nil
 	}
 	addTxCount := int64(0)
 	// sync for tx count
-	log.Infof("Start calculate btc sum tx count for blocks from %d to %d", currentBlockHeight+1, bestBlockHeight)
-	lastHeight := int64(0)
+	log.Infof("Start calculate btc sum tx count/coin supply for blocks from %d to %d", currentBlockHeight+1, bestBlockHeight)
+	lastHeight := currentBlockHeight + 1
 	for i := currentBlockHeight + 1; i <= bestBlockHeight; i++ {
 		blockTxCount, err := pgb.GetMultichainBlockTxCount(int64(i), mutilchain.TYPEBTC)
 		if err != nil {
@@ -1717,54 +1721,61 @@ func (pgb *ChainDB) SyncBTCTxCount() error {
 		}
 		addTxCount += int64(blockTxCount)
 		if i%50 == 0 || i == bestBlockHeight {
-			log.Infof("Completed calculating blocks from %d to %d", lastHeight, i)
+			log.Infof("Completed calculating btc blocks from %d to %d", lastHeight, i)
 			lastHeight = i
 		}
 	}
+	btcSupplyAmount := SumBTCSubsidy(int32(currentBlockHeight+1), int32(bestBlockHeight), pgb.btcChainParams, false)
 	// update to meta table
-	_, err = pgb.db.Exec(internal.CreateMultichainTxCountUpdateQuery(mutilchain.TYPEBTC), bestBlockHeight, addTxCount)
+	_, err = pgb.db.Exec(internal.CreateMultichainMetaInfoUpdateQuery(mutilchain.TYPEBTC), bestBlockHeight, addTxCount, int64(btcSupplyAmount))
 	if err != nil {
-		log.Errorf("update btc txcount to meta table failed: %v", err)
+		log.Errorf("update btc meta info to meta table failed: %v", err)
 		return err
 	}
-	log.Infof("Finish sync btc txcount for meta table")
+	log.Infof("Finish sync btc meta info for meta table")
 	return nil
 }
 
-func (pgb *ChainDB) SyncLTCTxCount() error {
-	pgb.multichainLtcTxCountSync.Lock()
-	defer pgb.multichainLtcTxCountSync.Unlock()
-	log.Info("Start sync ltc txcount for meta table")
+func (pgb *ChainDB) SyncLTCMetaInfo() error {
+	pgb.multichainLtcMetaInfoSync.Lock()
+	defer pgb.multichainLtcMetaInfoSync.Unlock()
+	log.Info("Start sync ltc meta info for meta table")
 	// check current height in meta table
 	var currentBlockHeight int64
-	err := pgb.db.QueryRow(internal.GetMultichainTxCountHeightQuery(mutilchain.TYPELTC)).Scan(&currentBlockHeight)
+	err := pgb.db.QueryRow(internal.GetMultichainCurrentMetaInfoHeightQuery(mutilchain.TYPELTC)).Scan(&currentBlockHeight)
 	if err != nil {
-		log.Errorf("Get ltc tx count height failed: %v", err)
+		log.Errorf("Get ltc meta info height failed: %v", err)
 		return err
 	}
 	// current height on db
 	bestBlockHeight := pgb.LtcBestBlock.Height
 	if currentBlockHeight >= bestBlockHeight {
-		log.Info("All ltc blocks have been counted for txcount")
+		log.Info("All ltc blocks have been counted for txcount/coinsupply")
 		return nil
 	}
 	addTxCount := int64(0)
 	// sync for tx count
-	log.Infof("Start calculate ltc sum tx count for blocks from %d to %d", currentBlockHeight+1, bestBlockHeight)
+	log.Infof("Start calculate ltc sum tx count/coin supply for blocks from %d to %d", currentBlockHeight+1, bestBlockHeight)
+	lastHeight := currentBlockHeight + 1
 	for i := currentBlockHeight + 1; i <= bestBlockHeight; i++ {
 		blockTxCount, err := pgb.GetMultichainBlockTxCount(int64(i), mutilchain.TYPELTC)
 		if err != nil {
 			return err
 		}
 		addTxCount += int64(blockTxCount)
+		if i%50 == 0 || i == bestBlockHeight {
+			log.Infof("Completed calculating ltc blocks from %d to %d", lastHeight, i)
+			lastHeight = i
+		}
 	}
+	ltcSupplyAmount := SumLTCSubsidy(int32(currentBlockHeight+1), int32(bestBlockHeight), pgb.ltcChainParams, false)
 	// update to meta table
-	_, err = pgb.db.Exec(internal.CreateMultichainTxCountUpdateQuery(mutilchain.TYPELTC), bestBlockHeight, addTxCount)
+	_, err = pgb.db.Exec(internal.CreateMultichainMetaInfoUpdateQuery(mutilchain.TYPELTC), bestBlockHeight, addTxCount, int64(ltcSupplyAmount))
 	if err != nil {
-		log.Errorf("update ltc txcount to meta table failed: %v", err)
+		log.Errorf("update ltc meta info to meta table failed: %v", err)
 		return err
 	}
-	log.Info("Finish sync ltc txcount for meta table")
+	log.Info("Finish sync ltc meta info for meta table")
 	return nil
 }
 
@@ -2065,4 +2076,48 @@ func (pgb *ChainDB) SyncCoinAgeBandsAndMcaDataWithoutRemaining(height int64) err
 		return err
 	}
 	return nil
+}
+
+func CalcBTCBlockSubsidy(height int32, params *btcchaincfg.Params) btcutil.Amount {
+	const initialSubsidy = 50 * btcutil.SatoshiPerBitcoin // 50 BTC in satoshis
+	interval := int32(params.SubsidyReductionInterval)    // 210,000 on Bitcoin
+	halvings := uint(height / interval)
+	if halvings >= 64 {
+		return 0
+	}
+	return btcutil.Amount(initialSubsidy >> halvings)
+}
+
+func CalcLTCBlockSubsidy(height int32, params *ltcchaincfg.Params) ltcutil.Amount {
+	const initialSubsidy = 50 * ltcutil.SatoshiPerBitcoin // 50 BTC in satoshis
+	interval := int32(params.SubsidyReductionInterval)    // 210,000 on Bitcoin
+	halvings := uint(height / interval)
+	if halvings >= 64 {
+		return 0
+	}
+	return ltcutil.Amount(initialSubsidy >> halvings)
+}
+
+func SumBTCSubsidy(startHeight, endHeight int32, params *btcchaincfg.Params, excludeGenesis bool) btcutil.Amount {
+	var total btcutil.Amount
+	for h := startHeight; h <= endHeight; h++ {
+		// Nếu muốn "circulating supply", có thể bỏ qua genesis (height 0)
+		if excludeGenesis && h == 0 {
+			continue
+		}
+		total += CalcBTCBlockSubsidy(h, params)
+	}
+	return total
+}
+
+func SumLTCSubsidy(startHeight, endHeight int32, params *ltcchaincfg.Params, excludeGenesis bool) ltcutil.Amount {
+	var total ltcutil.Amount
+	for h := startHeight; h <= endHeight; h++ {
+		// Nếu muốn "circulating supply", có thể bỏ qua genesis (height 0)
+		if excludeGenesis && h == 0 {
+			continue
+		}
+		total += CalcLTCBlockSubsidy(h, params)
+	}
+	return total
 }
