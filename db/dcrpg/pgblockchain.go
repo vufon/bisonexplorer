@@ -4827,10 +4827,11 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 		//set client for api
 		externalapi.BTCClient = pgb.BtcClient
 		externalapi.LTCClient = pgb.LtcClient
-		apiAddrInfo, err := externalapi.GetAPIMutilchainAddressDetails(pgb.OkLinkAPIKey, address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType), txnType)
+		var apiAddrInfo *externalapi.APIAddressInfo
+		// err := externalapi.GetAPIMutilchainAddressDetails(pgb.OkLinkAPIKey, address, chainType, limitN, offsetAddrOuts, pgb.MutilchainHeight(chainType), txnType)
 		useAPI = true
 		if err != nil || apiAddrInfo == nil {
-			addrData.Balance = &dbtypes.AddressBalance{
+			balance = &dbtypes.AddressBalance{
 				NumSpent:     0,
 				NumUnspent:   0,
 				TotalSpent:   0,
@@ -4854,9 +4855,9 @@ func (pgb *ChainDB) MutilchainAddressData(address string, limitN, offsetAddrOuts
 			addrData.NumTransactions = apiAddrInfo.NumTransactions
 			addrData.TxnCount = addrData.NumTransactions
 			//update balance cache
-			hash, height := pgb.GetMutilchainHashHeight(chainType)
-			blockID := cache.NewMutilchainBlockID(hash, height)
-			pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType)
+			// hash, height := pgb.GetMutilchainHashHeight(chainType)
+			// blockID := cache.NewMutilchainBlockID(hash, height)
+			// pgb.AddressCache.StoreMutilchainBalance(address, balance, blockID, chainType)
 		}
 	} else /*err == nil*/ {
 		// Generate AddressInfo skeleton from the address table rows.
@@ -10648,15 +10649,7 @@ func (pgb *ChainDB) MutilchainGetBlockchainInfo(chainType string) (*mutilchain.B
 	if err != nil {
 		log.Errorf("Getting txCount for %s failed. Setting is 0. %v", chainType, err)
 	}
-	coinSupply, err := externalapi.GetCoinRankingCoinSupply(chainType)
-	if err != nil {
-		log.Errorf("Getting coinsupply for %s from coinranking API failed. Setting is 0. %v", chainType, err)
-	}
-	// , txCount, err := externalapi.GetOkLinkBlockchainSummaryData(pgb.OkLinkAPIKey, chainType)
-	// if err != nil {
-	// 	log.Errorf("MutilchainGetBlockchainInfo get oklink blockchain summary data failed: %v", err)
-	// }
-
+	coinSupply := 0.0
 	//TODO get blockchaininfo
 	return &mutilchain.BlockchainInfo{
 		TotalTransactions: txCount,
