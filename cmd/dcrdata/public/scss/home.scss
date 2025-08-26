@@ -543,11 +543,12 @@
 
 /* Start customize chart */
 .chart-control-wrapper {
-  border-radius: 10px;
+  border-radius: 5px;
   border: 1px solid #e6eaed;
 
   .chart-control {
-    border-radius: 10px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
     color: #78828d;
   }
 }

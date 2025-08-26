@@ -776,6 +776,7 @@ export default class extends Controller {
       'rawDataURL',
       'chartName',
       'chartTitleName',
+      'chartDescription',
       'rangeSelector',
       'rangeOption',
       'marketPrice'
@@ -1252,6 +1253,7 @@ export default class extends Controller {
     const selection = this.settings.chart = selectChart
     this.chartNameTarget.textContent = this.getChartName(selectChart)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
+    this.chartDescriptionTarget.dataset.tooltip = this.getChartDescriptionTooltip(selection)
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
@@ -1319,6 +1321,53 @@ export default class extends Controller {
       this.plotGraph(selection, chartResponse)
     } else {
       this.chartWrapperTarget.classList.remove('loading')
+    }
+  }
+
+  getChartDescriptionTooltip (chartType) {
+    switch (chartType) {
+      case 'ticket-price':
+        return 'Shows the historical ticket price of Decred, reflecting the cost of purchasing staking tickets over time.'
+      case 'ticket-pool-size':
+        return 'Displays the historical size of the Decred ticket pool, indicating the total number of tickets locked for staking over time.'
+      case 'ticket-pool-value':
+        return 'Represents the total value of the Decred ticket pool, showing the amount of DCR locked in staking tickets over time.'
+      case 'stake-participation':
+        return 'Shows the percentage of circulating DCR actively participating in staking over time.'
+      case 'privacy-participation':
+        return 'Indicates the percentage of circulating DCR that has gone through privacy mixing over time.'
+      case 'missed-votes':
+        return 'Shows the number of staking votes that were missed, meaning tickets that failed to vote when selected.'
+      case 'block-size':
+        return 'Displays the historical average size of Decred blocks, reflecting how much transaction data each block contains.'
+      case 'blockchain-size':
+        return 'Shows the total size of the Decred blockchain, representing cumulative data stored over time.'
+      case 'tx-count':
+        return 'Displays the number of transactions recorded on the Decred network over time.'
+      case 'duration-btw-blocks':
+        return 'Shows the average time interval between consecutive Decred blocks over time.'
+      case 'pow-difficulty':
+        return 'Represents the mining difficulty of Decred’s Proof-of-Work, indicating how hard it is to find a new block over time.'
+      case 'chainwork':
+        return 'Shows the cumulative amount of computational work contributed to secure the Decred blockchain over time.'
+      case 'hashrate':
+        return 'Displays the total computational power securing the Decred network through Proof-of-Work over time.'
+      case 'coin-supply':
+        return 'Shows the total circulating supply of Decred coins over time.'
+      case 'fees':
+        return 'Displays the total transaction fees paid by users on the Decred network over time.'
+      case 'avg-age-days':
+        return 'Shows the average age (in days) of coins spent in each Decred block, reflecting how long coins were held before being transacted.'
+      case 'coin-days-destroyed':
+        return 'Represents the total coin-days destroyed per block, measuring the age of coins moved multiplied by their amount.'
+      case 'coin-age-bands':
+        return 'Visualizes the distribution of Decred’s coin supply by age bands, showing how long coins have been held before moving.'
+      case 'mean-coin-age':
+        return 'Shows the average age of all Decred coins in circulation, indicating how long coins have been held without moving.'
+      case 'total-coin-days':
+        return 'Represents the cumulative total of all coin-days in the Decred network, measuring how long coins have remained unmoved.'
+      default:
+        return ''
     }
   }
 

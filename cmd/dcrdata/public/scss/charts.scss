@@ -804,3 +804,19 @@ body.darkBG {
   background-size: 1.2rem;
   min-width: 90px;
 }
+
+.info-label {
+  padding: 2px 5px;
+  background-color: rgb(255 184 0 / 15%);
+  border-radius: 5px;
+}
+
+.chart-title {
+  color: #545454;
+}
+
+.chart-selector-bg {
+  background:
+    var(--arrow-icon) no-repeat right 0.8em center/1.4em,
+    linear-gradient(to left, var(--arrow-bg) 3em, var(--select-bg) 3em);
+}
