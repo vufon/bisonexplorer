@@ -1422,10 +1422,12 @@ func _main(ctx context.Context) error {
 	blockDataSavers = append(blockDataSavers, blockdata.BlockTrigger{
 		Async: true,
 		Saver: func(hash string, height uint32) error {
+			log.Infof("Start trigger update chart data when have new block: %d", height)
 			if err := charts.TriggerUpdate(hash, height); err != nil {
 				return err
 			}
 			explore.ChartsUpdated()
+			log.Infof("Finish trigger update chart data when have new block: %d", height)
 			return nil
 		},
 	})
