@@ -710,7 +710,6 @@ func (psh *PubSubHub) StoreMPData(_ *mempool.StakeData, _ []exptypes.MempoolTx, 
 // that the new data is available.
 func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBlock) error {
 	// treasuryActive := txhelpers.IsTreasuryActive(psh.params.Net, int64(msgBlock.Header.Height))
-	log.Infof("Start store block data on pubsub. Block height: %d", blockData.Header.Height)
 	// Retrieve block data for the passed block hash.
 	newBlockData := psh.sourceBase.GetExplorerBlock(msgBlock.BlockHash().String())
 
@@ -862,7 +861,6 @@ func (psh *PubSubHub) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBl
 			log.Errorf("sigNewTx send failed: Timeout waiting for WebsocketHub.")
 		}
 	}()
-	log.Infof("Finish store block data on pubsub. Block height: %d", blockData.Header.Height)
 	return nil
 }
 

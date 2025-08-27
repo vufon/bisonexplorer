@@ -21,7 +21,6 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
-	"github.com/decred/dcrd/wire"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
@@ -2039,42 +2038,71 @@ func (pgb *ChainDB) SyncLTCAtomicSwapData(height int64) error {
 	return nil
 }
 
-func (pgb *ChainDB) SyncCoinAgeDataAllSet(msgBlock *wire.MsgBlock) {
+func (pgb *ChainDB) SyncCoinAgeDataAllSet(height int64) {
 	pgb.coinAgeSync.Lock()
 	defer pgb.coinAgeSync.Unlock()
 	// sync coin age table
 	err := pgb.SyncCoinAgeTable()
 	if err != nil {
-		log.Errorf("Sync coin_age table on height %d failed. %v", msgBlock.Header.Height, err)
+		log.Errorf("Sync coin_age table on height %d failed. %v", height, err)
 		return
 	}
 	// sync utxo_history table
 	err = pgb.SyncUtxoHistoryTable()
 	if err != nil {
-		log.Errorf("Sync utxo_history table on height %d failed. %v", msgBlock.Header.Height, err)
+		log.Errorf("Sync utxo_history table on height %d failed. %v", height, err)
 		return
 	}
-	err = pgb.SyncCoinAgeBandsAndMcaDataWithoutRemaining(int64(msgBlock.Header.Height))
+	err = pgb.SyncCoinAgeBandsAndMcaDataOnHeight(height)
 	if err != nil {
-		log.Errorf("Sync coin age band and mca data for block %d failed. %v", msgBlock.Header.Height, err)
+		log.Errorf("Sync coin age band and mca data for block %d failed. %v", height, err)
 	}
 }
 
-func (pgb *ChainDB) SyncCoinAgeBandsAndMcaDataWithoutRemaining(height int64) error {
+func (pgb *ChainDB) SyncCoinAgeBandsAndMcaDataOnHeight(height int64) error {
 	pgb.utxoHistorySync.Lock()
 	defer pgb.utxoHistorySync.Unlock()
-	// sync for coin_age_bands table
-	err := pgb.SyncCoinAgeBandsWithHeightRange(height, height)
-	if err != nil {
-		log.Errorf("Sync coin_age_bands table on new height %d failed. %v", height, err)
+
+	// set timeout is 20 minutes for only 1 block syncing
+	timeout := 20 * time.Minute
+	done := make(chan error, 1)
+
+	go func() {
+		// sync for coin_age_bands table
+		if err := pgb.SyncCoinAgeBandsWithHeightRange(height, height); err != nil {
+			log.Errorf("Sync coin_age_bands table on new height %d failed. %v", height, err)
+			done <- err
+			return
+		}
+
+		// sync for mca_snapshots table
+		if err := pgb.SyncMCASnapshotsWithHeightRange(height, height); err != nil {
+			log.Errorf("Sync mca_snapshots table on new height %d failed. %v", height, err)
+			done <- err
+			return
+		}
+
+		done <- nil
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			return err
+		}
+	case <-time.After(timeout):
+		return fmt.Errorf("sync coin_age_bands and mca_snapshots timed out after %s", timeout)
+	}
+
+	if err := pgb.SyncRemainingCoinAgeBands(); err != nil {
+		log.Errorf("Sync remaining coin age data failed: %v", err)
 		return err
 	}
-	// sync for mca_snapshots table
-	err = pgb.SyncMCASnapshotsWithHeightRange(height, height)
-	if err != nil {
-		log.Errorf("Sync mca_snapshots table on new height %d failed. %v", height, err)
+	if err := pgb.SyncRemainingMcaSnapshot(); err != nil {
+		log.Errorf("Sync remaining mca snapshot data failed: %v", err)
 		return err
 	}
+
 	return nil
 }
 
