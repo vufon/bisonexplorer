@@ -82,6 +82,30 @@ const yAxisLabelWidth = {
   }
 }
 
+function formatYLegend (g, seriesName, yval, rowIdx, colIdx) {
+  if (yval == null || isNaN(yval)) return '–'
+
+  const props = g.getPropertiesForSeries(seriesName) // {axis:1|2, column, color,…}
+  const axisKey = props.axis === 2 ? 'y2' : 'y'
+  const axes = g.getOption('axes') || {}
+  const axisOpts = axes[axisKey] || {}
+
+  // Priority: valueFormatter of series → y axis → global
+  const vf =
+    g.getOption('valueFormatter', seriesName) ||
+    axisOpts.valueFormatter ||
+    g.getOption('valueFormatter')
+
+  if (typeof vf === 'function') {
+    // opts(name) like spec of Dygraphs
+    const optsFn = (name) =>
+      (axisOpts && axisOpts[name] !== undefined) ? axisOpts[name] : g.getOption(name)
+    // Main signals: (num_or_millis, opts, seriesName, dygraph, row, col)
+    return vf(yval, optsFn, seriesName, g, rowIdx, colIdx)
+  }
+  return String(yval)
+}
+
 function usesWindowUnits (chart) {
   return windowScales.indexOf(chart) > -1
 }
@@ -161,11 +185,21 @@ function addLegendEntry (div, series) {
 }
 
 function defaultYFormatter (div, data) {
-  addLegendEntry(div, data.series[0])
+  if (!data.series || data.series.length === 0) return
+  data.series.forEach(s => {
+    if (s.y == null || isNaN(s.y)) return
+    addLegendEntry(div, s) // default: show raw value
+  })
 }
 
 function customYFormatter (fmt) {
-  return (div, data) => addLegendEntryFmt(div, data.series[0], fmt)
+  return (div, data) => {
+    if (!data.series || data.series.length === 0) return
+    data.series.forEach(s => {
+      if (s.y == null || isNaN(s.y)) return
+      addLegendEntryFmt(div, s, y => fmt(s.y))
+    })
+  }
 }
 
 function legendFormatter (data) {
@@ -855,6 +889,9 @@ export default class extends Controller {
   }
 
   drawInitialGraph () {
+    const legendWrapper = document.querySelector('.legend-wrapper')
+    const _this = this
+
     const options = {
       axes: { y: { axisLabelWidth: 50 }, y2: { axisLabelWidth: 55 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
@@ -873,7 +910,64 @@ export default class extends Controller {
       ylabel: 'Ticket Price',
       y2label: 'Tickets Bought',
       labelsUTC: true,
-      axisLineColor: '#C4CBD2'
+      axisLineColor: '#C4CBD2',
+      highlightCallback: function (e, x, points) {
+        legendWrapper.style.display = 'block'
+
+        legendWrapper.innerHTML = legendFormatter({
+          x: x,
+          xHTML: Dygraph.dateString_(new Date(x)),
+          dygraph: _this.chartsView,
+          points: points,
+          series: points.map(p => {
+            const g = _this.chartsView
+            const props = g.getPropertiesForSeries(p.name) // get corectly axis & column
+            const color = g.getOption('color', p.name) || props.color
+
+            return {
+              label: p.name,
+              y: p.yval,
+              yHTML: formatYLegend(g, p.name, p.yval, p.idx, props.column),
+              color: color,
+              dashHTML: `<div class="dygraph-legend-line"
+                 style="border-bottom-color:${color};
+                        border-bottom-style:solid;
+                        border-bottom-width:2px;
+                        display:inline-block;
+                        width:12px;
+                        margin-right:4px;"></div>`,
+              labelHTML: p.name
+            }
+          })
+        })
+
+        const rect = _this.chartsView.graphDiv.getBoundingClientRect()
+        const relX = e.clientX - rect.left
+        const relY = e.clientY - rect.top
+
+        let left = relX - legendWrapper.offsetWidth - 10
+        let top = relY - 5
+
+        // Flip horizontally if left edge touched
+        if (left < 0) left = relX + 10
+        // Flip horizontally if right edge touched
+        if (left + legendWrapper.offsetWidth > rect.width) {
+          left = relX - legendWrapper.offsetWidth - 10
+        }
+
+        // Flip vertically if touching the ceiling
+        if (top < 0) top = relY + 10
+        // Flip vertically if bottomed out
+        if (top + legendWrapper.offsetHeight > rect.height) {
+          top = relY - legendWrapper.offsetHeight - 10
+        }
+
+        legendWrapper.style.left = left + 'px'
+        legendWrapper.style.top = top + 'px'
+      },
+      unhighlightCallback: function () {
+        legendWrapper.style.display = 'none'
+      }
     }
 
     this.chartsView = new Dygraph(
@@ -881,6 +975,11 @@ export default class extends Controller {
       [[1, 1, 5], [2, 5, 11]],
       options
     )
+    const graphDiv = _this.chartsView.graphDiv
+
+    graphDiv.addEventListener('mouseleave', () => {
+      legendWrapper.style.display = 'none'
+    })
     this.setSelectedChart(this.settings.chart)
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
     if (this.settings.scale === 'log') this.setScale(this.settings.scale)
@@ -941,7 +1040,10 @@ export default class extends Controller {
           axisLabelFormatter: (y) => Math.round(y),
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['ticket-price'] : yAxisLabelWidth.y2['ticket-price'] + 15
         }
-        yFormatter = customYFormatter(y => y.toFixed(8) + ' DCR')
+        yFormatter = customYFormatter(y => {
+          if (y == null || isNaN(y)) return '–'
+          return y.toFixed(8) + ' DCR'
+        })
         break
       case 'ticket-pool-size': // pool size graph
         d = poolSizeFunc(data)
@@ -955,7 +1057,7 @@ export default class extends Controller {
             color: '#C4CBD2'
           }
         }
-        yFormatter = customYFormatter(y => `${intComma(y)} tickets &nbsp;&nbsp; (network target ${intComma(ticketPoolSizeTarget)})`)
+        yFormatter = customYFormatter(y => `${intComma(y)} tickets<br>(network target ${intComma(ticketPoolSizeTarget)})`)
         break
 
       case 'stake-participation':
@@ -963,6 +1065,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Stake Participation'], true,
           'Stake Participation (%)', true, false))
         yFormatter = (div, data, i) => {
+          if (!data.series || data.series.length === 0) return
           addLegendEntryFmt(div, data.series[0], y => y.toFixed(4) + '%')
           div.appendChild(legendEntry(`${legendMarker()} Ticket Pool Value: ${intComma(rawPoolValue[i])} DCR`))
           div.appendChild(legendEntry(`${legendMarker()} Coin Supply: ${intComma(rawCoinSupply[i])} DCR`))
@@ -1022,6 +1125,7 @@ export default class extends Controller {
         }
         gOptions.inflation = d.inflation
         yFormatter = (div, data, i) => {
+          if (!data.series || data.series.length === 0) return
           addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' DCR')
           let change = 0
           if (i < d.inflation.length) {
@@ -1052,6 +1156,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d.data, [xlabel, label], false, `${label} (DCR)`, true, false))
 
         yFormatter = (div, data, i) => {
+          if (!data.series || data.series.length === 0) return
           addLegendEntryFmt(div, data.series[0], y => (y > 0 ? intComma(y) : '0') + ' DCR')
         }
         break
@@ -1083,8 +1188,9 @@ export default class extends Controller {
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['avg-age-days'] : yAxisLabelWidth.y2['avg-age-days'] + 15
         }
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => y.toFixed(2) + ' days')
+          if (!data.series || data.series.length === 0) return
           addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          addLegendEntryFmt(div, data.series[0], y => y.toFixed(2) + ' days')
         }
         break
 
@@ -1102,8 +1208,9 @@ export default class extends Controller {
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['coin-days-destroyed'] : yAxisLabelWidth.y2['coin-days-destroyed'] + 15
         }
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
+          if (!data.series || data.series.length === 0) return
           addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
         }
         break
 
@@ -1121,8 +1228,9 @@ export default class extends Controller {
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['mean-coin-age'] : yAxisLabelWidth.y2['mean-coin-age'] + 15
         }
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' days')
+          if (!data.series || data.series.length === 0) return
           addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' days')
         }
         break
 
@@ -1140,8 +1248,9 @@ export default class extends Controller {
           axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['total-coin-days'] : yAxisLabelWidth.y2['total-coin-days'] + 15
         }
         yFormatter = (div, data, i) => {
-          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
+          if (!data.series || data.series.length === 0) return
           addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
         }
         break
 
@@ -1194,29 +1303,14 @@ export default class extends Controller {
           }
         }
         yFormatter = (div, data, i) => {
-          const insideLegendDiv = document.createElement('div')
-          const line1LegendDiv = document.createElement('div')
-          const line2LegendDiv = document.createElement('div')
-          line1LegendDiv.classList.add('d-flex', 'align-items-center')
-          line2LegendDiv.classList.add('d-flex', 'align-items-center')
-          insideLegendDiv.classList.add('coin-age-band-data-area')
+          if (!data.series || data.series.length === 0) return
+          addLegendEntryFmt(div, data.series[data.series.length - 1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
           data.series.forEach((serie, idx) => {
-            if (idx === 0) {
+            if (idx === 0 || idx === data.series.length - 1) {
               return
             }
-            if (idx === data.series.length - 1) {
-              addLegendEntryFmt(insideLegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
-            } else {
-              if (idx < 6) {
-                addLegendEntryFmt(line1LegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
-              } else {
-                addLegendEntryFmt(line2LegendDiv, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
-              }
-            }
+            addLegendEntryFmt(div, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
           })
-          insideLegendDiv.appendChild(line1LegendDiv)
-          insideLegendDiv.appendChild(line2LegendDiv)
-          div.appendChild(insideLegendDiv)
         }
         break
 
