@@ -863,6 +863,37 @@
   position: relative;
   margin-bottom: 60px;
   border-top: 2px solid #e9ebed;
+
+  [data-tooltip]:hover::before {
+    content: attr(data-tooltip);
+    font-size: 0.8rem;
+    position: absolute;
+    z-index: 21;
+    top: 35px;
+    bottom: auto;
+    background-color: #b6dbf9;
+    padding: 0.4em 1em;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    left: 50%;
+  }
+
+  [data-tooltip]:hover::after {
+    content: "";
+    z-index: 20;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-top: unset;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid #b6dbf9;
+    top: 25px;
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 .hp-explore-wrap {
