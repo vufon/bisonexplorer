@@ -5486,7 +5486,7 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	// Since Store should not be used in batch block processing, address'
 	// spending information is updated.
 	updateAddressesSpendingInfo := true
-
+	log.Infof("Start store block data. Block height: %d", blockData.Header.Height)
 	_, _, _, err := pgb.StoreBlock(msgBlock, isValid, isMainChain,
 		updateExistingRecords, updateAddressesSpendingInfo,
 		blockData.Header.ChainWork)
@@ -5494,10 +5494,11 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 		log.Errorf("Store block %d failed. %v", blockData.Header.Height, err)
 		return err
 	}
+	log.Infof("Store block data complete. Block height: %d", blockData.Header.Height)
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalHeight(msgBlock.Header.Height)
-	go pgb.SyncCoinAgeDataAllSet(msgBlock)
 	log.Infof("Start syncing coin age bands/mean coin age data in the background. Height: %d.", msgBlock.Header.Height)
+	go pgb.SyncCoinAgeDataAllSet(int64(msgBlock.Header.Height))
 	return nil
 }
 
@@ -5973,23 +5974,48 @@ func (pgb *ChainDB) privacyParticipation(charts *cache.ChartData) (*sql.Rows, fu
 // half of a pair that make up a cache.ChartUpdater. The Appender half is
 // appendAnonymitySet.
 func (pgb *ChainDB) anonymitySet(charts *cache.ChartData) (*sql.Rows, func(), error) {
-	// First check if the necessary data is available in mixSetDiffs.
 	nextDataHeight := uint32(len(charts.Blocks.AnonymitySet))
 	targetDataHeight := uint32(len(charts.Blocks.Height) - 1)
 
-	pgb.mixSetDiffsMtx.Lock()
-	defer pgb.mixSetDiffsMtx.Unlock()
+	// channel to receive data
+	resultCh := make(chan struct {
+		rows   *sql.Rows
+		cancel func()
+		err    error
+	}, 1)
 
-	for h := nextDataHeight; h <= targetDataHeight; h++ {
-		if _, found := pgb.mixSetDiffs[h]; !found {
-			log.Debugf("Mixed set deltas not available at height %d. Querying DB...", h)
-			// A DB query is necessary.
-			return pgb.retrieveAnonymitySet(int32(nextDataHeight) - 1) // -1 means include genesis
+	go func() {
+		pgb.mixSetDiffsMtx.Lock()
+		defer pgb.mixSetDiffsMtx.Unlock()
+
+		for h := nextDataHeight; h <= targetDataHeight; h++ {
+			if _, found := pgb.mixSetDiffs[h]; !found {
+				log.Debugf("Mixed set deltas not available at height %d. Querying DB...", h)
+				rows, cancel, err := pgb.retrieveAnonymitySet(int32(nextDataHeight) - 1) // -1 means include genesis
+				resultCh <- struct {
+					rows   *sql.Rows
+					cancel func()
+					err    error
+				}{rows, cancel, err}
+				return
+			}
 		}
-	}
 
-	// appendAnonymitySet has all the data it needs in mixSetDiffs.
-	return nil, func() {}, nil
+		// appendAnonymitySet has enough data
+		resultCh <- struct {
+			rows   *sql.Rows
+			cancel func()
+			err    error
+		}{nil, func() {}, nil}
+	}()
+
+	select {
+	case res := <-resultCh:
+		return res.rows, res.cancel, res.err
+	case <-time.After(7 * time.Minute):
+		log.Warnf("anonymitySet loop timed out after 7 minutes, returning empty result")
+		return nil, func() {}, nil
+	}
 }
 
 // retrieveAnonymitySet fetches the mixed output fund/spend heights and values
@@ -6357,7 +6383,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	chainWork string) (numVins int64, numVouts int64, numAddresses int64, err error) {
 
 	blockHash := msgBlock.BlockHash()
-
 	// winningTickets is only set during initial chain sync.
 	// Retrieve it from the stakeDB.
 	var tpi *apitypes.TicketPoolInfo
@@ -6390,7 +6415,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	// TODO: Somehow verify reorg operates as described when switching manually
 	// imported side chain blocks over to main chain.
 	prevBlockHash := msgBlock.Header.PrevBlock
-
 	var winners []string
 	if isMainchain && !bytes.Equal(zeroHash[:], prevBlockHash[:]) {
 		lastTpi, found := pgb.stakeDB.PoolInfo(prevBlockHash)
@@ -6482,7 +6506,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	for ad := range affectedAddresses {
 		addresses = append(addresses, ad)
 	}
-
 	// Store the block now that it has all if its transaction row IDs.
 	var blockDbID uint64
 	blockDbID, err = InsertBlock(pgb.db, dbBlock, isValid, isMainchain, pgb.dupChecks)
@@ -6491,7 +6514,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 		return
 	}
 	pgb.lastBlock[blockHash] = blockDbID
-
 	// Insert the block in the block_chain table with the previous block hash
 	// and an empty string for the next block hash, which may be updated when a
 	// new block extends this chain.
@@ -6861,7 +6883,6 @@ txns:
 	if err != nil {
 		return storeTxnsResult{err: err}
 	}
-
 	// The return value, containing counts of inserted vins/vouts/txns, and an
 	// error value.
 	txRes := storeTxnsResult{
@@ -6896,7 +6917,6 @@ txns:
 	if !isMainchain {
 		msgBlock.Validators = []string{}
 	}
-
 	// If processing stake transactions, insert tickets, votes, and misses. Also
 	// update pool status and spending information in tickets table pertaining
 	// to the new votes, revokes, misses, and expires.
@@ -7088,7 +7108,6 @@ txns:
 		}
 		txRes.addresses[ad.Address] = struct{}{}
 	}
-
 	for it, tx := range dbTransactions {
 		// vins array for this transaction
 		txVins := dbTxVins[it]
@@ -7162,7 +7181,6 @@ txns:
 			}
 		}
 	}
-
 	// Scan for swap transactions. Only scan regular txn tree, and if we are
 	// currently processing the regular tree.
 	var txnsSwapScan []*wire.MsgTx
@@ -7193,7 +7211,6 @@ txns:
 			}
 		}
 	}
-
 	txRes.err = dbTx.Commit()
 	txRes.mixSetDelta = mixDiff
 

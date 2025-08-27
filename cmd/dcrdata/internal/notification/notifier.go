@@ -36,7 +36,7 @@ import (
 
 // SyncHandlerDeadline is a hard deadline for handlers to finish handling before
 // an error is logged.
-const SyncHandlerDeadline = time.Minute * 10
+const SyncHandlerDeadline = time.Minute * 15
 
 // BranchTips describes the old and new chain tips involved in a reorganization.
 type BranchTips struct {
