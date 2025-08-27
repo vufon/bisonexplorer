@@ -20,7 +20,7 @@ const atomsToDCR = 1e-8
 const windowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
 const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
-const lineScales = ['ticket-price', 'privacy-participation']
+const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const modeScales = ['ticket-price']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
@@ -38,7 +38,7 @@ const coinAgeBandsColors = [
   '#66aa00',
   '#b82e2e',
   '#576812ff',
-  '#255595'
+  '#4c4c4cff'
 ]
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
@@ -882,6 +882,14 @@ export default class extends Controller {
         nightModeOptions(params.nightMode)
       )
     }
+    // add space to chart selector
+    this.chartSelectTargets.forEach((chartSelector) => {
+      if (isMobile()) {
+        return
+      }
+      const currentWidth = parseInt(window.getComputedStyle(chartSelector).width, 10)
+      chartSelector.style.width = (currentWidth + 25) + 'px'
+    })
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
   }
 
@@ -926,7 +934,7 @@ export default class extends Controller {
           points: points,
           series: points.map(p => {
             const g = _this.chartsView
-            const props = g.getPropertiesForSeries(p.name) // get corectly axis & column
+            const props = g.getPropertiesForSeries(p.name) // get đúng axis & column
             const color = g.getOption('color', p.name) || props.color
 
             return {
@@ -935,11 +943,11 @@ export default class extends Controller {
               yHTML: formatYLegend(g, p.name, p.yval, p.idx, props.column),
               color: color,
               dashHTML: `<div class="dygraph-legend-line"
-                 style="border-bottom-color:${color};
-                        border-bottom-style:solid;
-                        border-bottom-width:4px;
-                        display:inline-block;
-                        margin-right:4px;"></div>`,
+           style="border-bottom-color:${color};
+                  border-bottom-style:solid;
+                  border-bottom-width:4px;
+                  display:inline-block;
+                  margin-right:4px;"></div>`,
               labelHTML: p.name
             }
           })
@@ -952,17 +960,21 @@ export default class extends Controller {
         let left = relX - legendWrapper.offsetWidth - 10
         let top = relY - 5
 
-        // Flip horizontally if left edge touched
-        if (left < 0) left = relX + 10
-        // Flip horizontally if right edge touched
-        if (left + legendWrapper.offsetWidth > rect.width) {
+        // Flip horizontally if left edge touched (so với viewport)
+        if (left + rect.left < 0) {
+          left = relX + 10
+        }
+        // Flip horizontally if right edge touched (so với viewport)
+        if (left + rect.left + legendWrapper.offsetWidth > window.innerWidth) {
           left = relX - legendWrapper.offsetWidth - 10
         }
 
         // Flip vertically if touching the ceiling
-        if (top < 0) top = relY + 10
+        if (top + rect.top < 0) {
+          top = relY + 10
+        }
         // Flip vertically if bottomed out
-        if (top + legendWrapper.offsetHeight > rect.height) {
+        if (top + rect.top + legendWrapper.offsetHeight > window.innerHeight) {
           top = relY - legendWrapper.offsetHeight - 10
         }
 
@@ -1184,8 +1196,8 @@ export default class extends Controller {
           'Average Age Days (days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
-        gOptions.visibility = this.visibility
+        this.visibility = [true, true, this.getTargetsChecked(this.marketPriceTargets)]
+        gOptions.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.axes.y2 = {
           valueRange: [0, 300],
           axisLabelFormatter: (y) => Math.round(y),
@@ -1206,8 +1218,8 @@ export default class extends Controller {
           'Coin Days Destroyed (coin-days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
-        gOptions.visibility = this.visibility
+        this.visibility = [true, true, this.getTargetsChecked(this.marketPriceTargets)]
+        gOptions.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.axes.y2 = {
           valueRange: [0, 300],
           axisLabelFormatter: (y) => Math.round(y),
@@ -1228,8 +1240,8 @@ export default class extends Controller {
           'Mean Coin Age (days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
-        gOptions.visibility = this.visibility
+        this.visibility = [true, true, this.getTargetsChecked(this.marketPriceTargets)]
+        gOptions.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.axes.y2 = {
           valueRange: [0, 300],
           axisLabelFormatter: (y) => Math.round(y),
@@ -1250,8 +1262,8 @@ export default class extends Controller {
           'Total Coin Days (days)', true, false))
         gOptions.y2label = 'Decred Price (USD)'
         gOptions.series = { 'Decred Price': { axis: 'y2' } }
-        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
-        gOptions.visibility = this.visibility
+        this.visibility = [true, true, this.getTargetsChecked(this.marketPriceTargets)]
+        gOptions.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
         gOptions.axes.y2 = {
           valueRange: [0, 300],
           axisLabelFormatter: (y) => Math.round(y),
@@ -1270,11 +1282,11 @@ export default class extends Controller {
         d = coindAgeBandsFunc(data)
         labels.push(xlabel)
         labels.push(...coinAgeBandsLabels)
-        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
+        this.visibility = [true, true, this.getTargetsChecked(this.marketPriceTargets)]
         coinAgeBandsColors.forEach((item) => {
           stackVisibility.push(true)
         })
-        stackVisibility[stackVisibility.length - 1] = this.visibility[1]
+        stackVisibility[stackVisibility.length - 1] = this.visibility[2]
         gOptions = {
           labels: labels,
           file: d,
@@ -1748,10 +1760,10 @@ export default class extends Controller {
       case 'coin-age-bands':
       case 'mean-coin-age':
       case 'total-coin-days':
-        if (this.visibility.length !== 2) {
-          this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
+        if (this.visibility.length !== 3) {
+          this.visibility = [true, true, this.getTargetsChecked(this.marketPriceTargets)]
         }
-        this.setTargetsChecked(this.marketPriceTargets, this.visibility[1])
+        this.setTargetsChecked(this.marketPriceTargets, this.visibility[2])
         break
       default:
         return
@@ -1787,7 +1799,7 @@ export default class extends Controller {
       case 'coin-age-bands':
       case 'mean-coin-age':
       case 'total-coin-days':
-        this.visibility = [true, this.getTargetsChecked(this.marketPriceTargets)]
+        this.visibility = [true, true, this.getTargetsChecked(this.marketPriceTargets)]
         break
       default:
         return
@@ -1807,7 +1819,7 @@ export default class extends Controller {
     coinAgeBandsColors.forEach((item) => {
       stackVisibility.push(true)
     })
-    stackVisibility[stackVisibility.length - 1] = visibility[1]
+    stackVisibility[stackVisibility.length - 1] = visibility[2]
     return stackVisibility
   }
 
