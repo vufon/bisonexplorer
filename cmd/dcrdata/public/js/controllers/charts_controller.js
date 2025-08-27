@@ -47,7 +47,7 @@ const hashrateUnits = ['Th/s', 'Ph/s', 'Eh/s']
 let ticketPoolSizeTarget, premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
-let yFormatter, legendEntry, legendMarker, legendElement
+let yFormatter, legendEntry, legendMarker, legendColorMaker, legendElement
 let rangeOption = ''
 const yAxisLabelWidth = {
   y1: {
@@ -841,6 +841,11 @@ export default class extends Controller {
       node.appendChild(lm.cloneNode())
       return node.innerHTML
     }
+    legendColorMaker = (color) => {
+      const clone = lm.cloneNode()
+      clone.style.borderBottomColor = color
+      return clone.outerHTML
+    }
     const le = this.legendEntryTarget
     le.remove()
     le.removeAttribute('data-charts-target')
@@ -932,9 +937,8 @@ export default class extends Controller {
               dashHTML: `<div class="dygraph-legend-line"
                  style="border-bottom-color:${color};
                         border-bottom-style:solid;
-                        border-bottom-width:2px;
+                        border-bottom-width:4px;
                         display:inline-block;
-                        width:12px;
                         margin-right:4px;"></div>`,
               labelHTML: p.name
             }
@@ -1133,7 +1137,7 @@ export default class extends Controller {
             if (this.getTargetsChecked(this.anonymitySetTargets)) {
               const mixed = data.series[2].y
               const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
-              div.appendChild(legendEntry(`${legendMarker()} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
+              div.appendChild(legendEntry(`${legendColorMaker('#17b080ff')} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
             }
             const predicted = d.inflation[i]
             const unminted = predicted - data.series[0].y
@@ -1189,7 +1193,9 @@ export default class extends Controller {
         }
         yFormatter = (div, data, i) => {
           if (!data.series || data.series.length === 0) return
-          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          if (this.getTargetsChecked(this.marketPriceTargets)) {
+            addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          }
           addLegendEntryFmt(div, data.series[0], y => y.toFixed(2) + ' days')
         }
         break
@@ -1209,7 +1215,9 @@ export default class extends Controller {
         }
         yFormatter = (div, data, i) => {
           if (!data.series || data.series.length === 0) return
-          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          if (this.getTargetsChecked(this.marketPriceTargets)) {
+            addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          }
           addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
         }
         break
@@ -1229,7 +1237,9 @@ export default class extends Controller {
         }
         yFormatter = (div, data, i) => {
           if (!data.series || data.series.length === 0) return
-          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          if (this.getTargetsChecked(this.marketPriceTargets)) {
+            addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          }
           addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' days')
         }
         break
@@ -1249,7 +1259,9 @@ export default class extends Controller {
         }
         yFormatter = (div, data, i) => {
           if (!data.series || data.series.length === 0) return
-          addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          if (this.getTargetsChecked(this.marketPriceTargets)) {
+            addLegendEntryFmt(div, data.series[1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          }
           addLegendEntryFmt(div, data.series[0], y => humanize.formatNumber(y, 2, true) + ' coin-days')
         }
         break
@@ -1304,7 +1316,9 @@ export default class extends Controller {
         }
         yFormatter = (div, data, i) => {
           if (!data.series || data.series.length === 0) return
-          addLegendEntryFmt(div, data.series[data.series.length - 1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          if (this.getTargetsChecked(this.marketPriceTargets)) {
+            addLegendEntryFmt(div, data.series[data.series.length - 1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
+          }
           data.series.forEach((serie, idx) => {
             if (idx === 0 || idx === data.series.length - 1) {
               return
