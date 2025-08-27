@@ -5498,7 +5498,7 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	// Signal updates to any subscribed heightClients.
 	pgb.SignalHeight(msgBlock.Header.Height)
 	log.Infof("Start syncing coin age bands/mean coin age data in the background. Height: %d.", msgBlock.Header.Height)
-	go pgb.SyncCoinAgeDataAllSet(msgBlock)
+	go pgb.SyncCoinAgeDataAllSet(int64(msgBlock.Header.Height))
 	return nil
 }
 
@@ -5974,23 +5974,48 @@ func (pgb *ChainDB) privacyParticipation(charts *cache.ChartData) (*sql.Rows, fu
 // half of a pair that make up a cache.ChartUpdater. The Appender half is
 // appendAnonymitySet.
 func (pgb *ChainDB) anonymitySet(charts *cache.ChartData) (*sql.Rows, func(), error) {
-	// First check if the necessary data is available in mixSetDiffs.
 	nextDataHeight := uint32(len(charts.Blocks.AnonymitySet))
 	targetDataHeight := uint32(len(charts.Blocks.Height) - 1)
 
-	pgb.mixSetDiffsMtx.Lock()
-	defer pgb.mixSetDiffsMtx.Unlock()
+	// channel to receive data
+	resultCh := make(chan struct {
+		rows   *sql.Rows
+		cancel func()
+		err    error
+	}, 1)
 
-	for h := nextDataHeight; h <= targetDataHeight; h++ {
-		if _, found := pgb.mixSetDiffs[h]; !found {
-			log.Debugf("Mixed set deltas not available at height %d. Querying DB...", h)
-			// A DB query is necessary.
-			return pgb.retrieveAnonymitySet(int32(nextDataHeight) - 1) // -1 means include genesis
+	go func() {
+		pgb.mixSetDiffsMtx.Lock()
+		defer pgb.mixSetDiffsMtx.Unlock()
+
+		for h := nextDataHeight; h <= targetDataHeight; h++ {
+			if _, found := pgb.mixSetDiffs[h]; !found {
+				log.Debugf("Mixed set deltas not available at height %d. Querying DB...", h)
+				rows, cancel, err := pgb.retrieveAnonymitySet(int32(nextDataHeight) - 1) // -1 means include genesis
+				resultCh <- struct {
+					rows   *sql.Rows
+					cancel func()
+					err    error
+				}{rows, cancel, err}
+				return
+			}
 		}
-	}
 
-	// appendAnonymitySet has all the data it needs in mixSetDiffs.
-	return nil, func() {}, nil
+		// appendAnonymitySet has enough data
+		resultCh <- struct {
+			rows   *sql.Rows
+			cancel func()
+			err    error
+		}{nil, func() {}, nil}
+	}()
+
+	select {
+	case res := <-resultCh:
+		return res.rows, res.cancel, res.err
+	case <-time.After(7 * time.Minute):
+		log.Warnf("anonymitySet loop timed out after 7 minutes, returning empty result")
+		return nil, func() {}, nil
+	}
 }
 
 // retrieveAnonymitySet fetches the mixed output fund/spend heights and values
@@ -6358,19 +6383,11 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	chainWork string) (numVins int64, numVouts int64, numAddresses int64, err error) {
 
 	blockHash := msgBlock.BlockHash()
-	log.Infof("[StoreBlock] START block %s (height=%d, mainchain=%v, valid=%v)",
-		blockHash, msgBlock.Header.Height, isMainchain, isValid)
-
-	defer func() {
-		log.Infof("[StoreBlock] END block %s (height=%d) → vins=%d, vouts=%d, addrs=%d, err=%v",
-			blockHash, msgBlock.Header.Height, numVins, numVouts, numAddresses, err)
-	}()
 	// winningTickets is only set during initial chain sync.
 	// Retrieve it from the stakeDB.
 	var tpi *apitypes.TicketPoolInfo
 	var winningTickets []string
 	if isMainchain {
-		log.Infof("[StoreBlock] Getting TicketPoolInfo for %d", msgBlock.Header.Height)
 		var found bool
 		tpi, found = pgb.stakeDB.PoolInfo(blockHash)
 		if !found {
@@ -6398,7 +6415,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	// TODO: Somehow verify reorg operates as described when switching manually
 	// imported side chain blocks over to main chain.
 	prevBlockHash := msgBlock.Header.PrevBlock
-	log.Infof("[StoreBlock] Preparing MsgBlockPG for block %s", blockHash)
 	var winners []string
 	if isMainchain && !bytes.Equal(zeroHash[:], prevBlockHash[:]) {
 		lastTpi, found := pgb.stakeDB.PoolInfo(prevBlockHash)
@@ -6426,21 +6442,17 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		log.Infof("[StoreBlock] Goroutine REGULAR txns start")
 		resChanReg <- pgb.storeBlockTxnTree(MsgBlockPG, wire.TxTreeRegular,
 			pgb.chainParams, isValid, isMainchain, updateExistingRecords,
 			updateAddressesSpendingInfo)
-		log.Infof("[StoreBlock] Goroutine REGULAR txns done")
 	}()
 
 	// stake transactions
 	resChanStake := make(chan storeTxnsResult)
 	go func() {
-		log.Infof("[StoreBlock] Goroutine STAKE txns start")
 		resChanStake <- pgb.storeBlockTxnTree(MsgBlockPG, wire.TxTreeStake,
 			pgb.chainParams, isValid, isMainchain, updateExistingRecords,
 			updateAddressesSpendingInfo)
-		log.Infof("[StoreBlock] Goroutine STAKE txns done")
 	}()
 
 	if dbBlock.Height%5000 == 0 {
@@ -6449,10 +6461,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 
 	resReg := <-resChanReg
 	resStk := <-resChanStake
-	log.Infof("[StoreBlock] Received REGULAR result: vins=%d, vouts=%d, addrs=%d, err=%v",
-		resReg.numVins, resReg.numVouts, resReg.numAddresses, resReg.err)
-	log.Infof("[StoreBlock] Received STAKE result: vins=%d, vouts=%d, addrs=%d, err=%v",
-		resStk.numVins, resStk.numVouts, resStk.numAddresses, resStk.err)
 	if resStk.err != nil {
 		if resReg.err == nil {
 			err = resStk.err
@@ -6498,7 +6506,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	for ad := range affectedAddresses {
 		addresses = append(addresses, ad)
 	}
-	log.Infof("[StoreBlock] Inserting block %s into DB", blockHash)
 	// Store the block now that it has all if its transaction row IDs.
 	var blockDbID uint64
 	blockDbID, err = InsertBlock(pgb.db, dbBlock, isValid, isMainchain, pgb.dupChecks)
@@ -6507,11 +6514,9 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 		return
 	}
 	pgb.lastBlock[blockHash] = blockDbID
-	log.Infof("[StoreBlock] InsertBlock success, blockDbID=%d", blockDbID)
 	// Insert the block in the block_chain table with the previous block hash
 	// and an empty string for the next block hash, which may be updated when a
 	// new block extends this chain.
-	log.Infof("[StoreBlock] InsertBlockPrevNext for blockDbID=%d", blockDbID)
 	err = InsertBlockPrevNext(pgb.db, blockDbID, dbBlock.Hash,
 		dbBlock.PreviousHash, "")
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -6524,7 +6529,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	// invalidated/disapproved the previous block, also update the is_valid
 	// columns for the previous block's entries in the following tables: blocks,
 	// vins, addresses, and transactions.
-	log.Infof("[StoreBlock] UpdateLastBlock for %s", blockHash)
 	err = pgb.UpdateLastBlock(msgBlock, isMainchain)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) && !errors.Is(err, dbtypes.ErrNoResult) {
 		err = fmt.Errorf("UpdateLastBlock: %w", err)
@@ -6558,7 +6562,6 @@ func (pgb *ChainDB) StoreBlock(msgBlock *wire.MsgBlock, isValid, isMainchain,
 	// If not in batch sync, lazy update the dev fund balance, and expire cache
 	// data for the affected addresses.
 	if !pgb.InBatchSync {
-		log.Infof("[StoreBlock] FreshenAddressCaches for block %s (addresses=%d)", blockHash, len(addresses))
 		if err = pgb.FreshenAddressCaches(true, addresses); err != nil {
 			log.Warnf("FreshenAddressCaches: %v", err)
 		}
@@ -6800,22 +6803,14 @@ func (pgb *ChainDB) storeBlockTxnTree(msgBlock *MsgBlockPG, txTree int8,
 	// and vouts. Note that each txn in dbTransactions has IsValid set according
 	// to the isValid flag for the block and the tree of the transaction itself,
 	// where TxTreeStake transactions are never invalidated.
-	log.Infof("[storeBlockTxnTree] START block=%s tree=%d isMainchain=%v",
-		msgBlock.MsgBlock.BlockHash(), txTree, isMainchain)
-	defer func() {
-		log.Infof("[storeBlockTxnTree] END block=%s tree=%d",
-			msgBlock.MsgBlock.BlockHash(), txTree)
-	}()
 	height := int64(msgBlock.Header.Height)
 	isStake := txTree == wire.TxTreeStake
-	log.Infof("[storeBlockTxnTree] Extracting transactions for block %d (tree=%d)", height, txTree)
 	dbTransactions, dbTxVouts, dbTxVins := dbtypes.ExtractBlockTransactions(
 		msgBlock.MsgBlock, txTree, chainParams, isValid, isMainchain)
 
 	// The transactions' VinDbIds are not yet set, but update the UTXO cache
 	// without it so we can check the mixed status of stake transaction inputs
 	// without missing prevouts generated by txns mined in the same block.
-	log.Infof("[storeBlockTxnTree] Updating UTXO cache pre-check")
 	pgb.updateUtxoCache(dbTxVouts, dbTransactions)
 
 	// Check the previous outputs funding the stake transactions and certain
@@ -6883,13 +6878,11 @@ txns:
 
 	// Store the transactions, vins, and vouts. This sets the VoutDbIds,
 	// VinDbIds, and Vouts fields of each Tx in the dbTransactions slice.
-	log.Infof("[storeBlockTxnTree] Storing txns in DB (count=%d)", len(dbTransactions))
 	dbAddressRows, txDbIDs, totalAddressRows, numOuts, numIns, err :=
 		pgb.storeTxns(dbTransactions, dbTxVouts, dbTxVins, updateExistingRecords)
 	if err != nil {
 		return storeTxnsResult{err: err}
 	}
-	log.Infof("[storeBlockTxnTree] storeTxns OK vins=%d vouts=%d addrs=%d", numIns, numOuts, totalAddressRows)
 	// The return value, containing counts of inserted vins/vouts/txns, and an
 	// error value.
 	txRes := storeTxnsResult{
@@ -6911,7 +6904,6 @@ txns:
 		wg.Done()
 	}
 	// Do this concurrently with stake transaction data insertion.
-	log.Infof("[storeBlockTxnTree] Launching goroutines flattenAddressRows + updateUtxoCache")
 	wg.Add(2)
 	go processAddressRows()
 	go updateUTXOCache()
@@ -6925,12 +6917,10 @@ txns:
 	if !isMainchain {
 		msgBlock.Validators = []string{}
 	}
-	log.Infof("[storeBlockTxnTree] Both goroutines completed")
 	// If processing stake transactions, insert tickets, votes, and misses. Also
 	// update pool status and spending information in tickets table pertaining
 	// to the new votes, revokes, misses, and expires.
 	if isStake {
-		log.Infof("[storeBlockTxnTree] InsertTickets ...")
 		// Tickets: Insert new (unspent) tickets
 		newTicketDbIDs, newTicketTx, err := InsertTickets(pgb.db, dbTransactions, txDbIDs,
 			pgb.dupChecks, updateExistingRecords)
@@ -6953,7 +6943,6 @@ txns:
 
 		// voteDbIDs, voteTxns, spentTicketHashes, ticketDbIDs, missDbIDs, err := ...
 		var missesHashIDs map[string]uint64
-		log.Infof("[storeBlockTxnTree] InsertVotes ...")
 		_, _, _, _, missesHashIDs, err = InsertVotes(pgb.db, dbTransactions, txDbIDs,
 			pgb.unspentTicketCache, msgBlock, pgb.dupChecks, updateExistingRecords,
 			pgb.chainParams, pgb.ChainInfo())
@@ -6977,7 +6966,6 @@ txns:
 		// go (SetSpendingForTickets). CollectTicketSpendDBInfo uses ChainDB's
 		// ticket DB row ID cache (unspentTicketCache), and immediately expires
 		// any found entries for a main chain block.
-		log.Infof("[storeBlockTxnTree] CollectTicketSpendDBInfo ...")
 		spendingTxDbIDs, spendTypes, spentTicketHashes, ticketDbIDs, err :=
 			pgb.CollectTicketSpendDBInfo(dbTransactions, txDbIDs,
 				msgBlock.MsgBlock.STransactions, isMainchain)
@@ -7105,7 +7093,6 @@ txns:
 
 	// Insert each new funding AddressRow, absent MatchingTxHash (spending txn
 	// since these new address rows are *funding*).
-	log.Infof("[storeBlockTxnTree] InsertAddressRowsDbTx rows=%d", len(dbAddressRowsFlat))
 	_, err = InsertAddressRowsDbTx(dbTx, dbAddressRowsFlat, pgb.dupChecks, updateExistingRecords)
 	if err != nil {
 		_ = dbTx.Rollback()
@@ -7121,7 +7108,6 @@ txns:
 		}
 		txRes.addresses[ad.Address] = struct{}{}
 	}
-	log.Infof("[storeBlockTxnTree] Processing %d transactions spending vins", len(dbTransactions))
 	for it, tx := range dbTransactions {
 		// vins array for this transaction
 		txVins := dbTxVins[it]
@@ -7195,7 +7181,6 @@ txns:
 			}
 		}
 	}
-	log.Infof("[storeBlockTxnTree] Hanlder check 2222222", len(dbTransactions))
 	// Scan for swap transactions. Only scan regular txn tree, and if we are
 	// currently processing the regular tree.
 	var txnsSwapScan []*wire.MsgTx
@@ -7226,7 +7211,6 @@ txns:
 			}
 		}
 	}
-	log.Infof("[storeBlockTxnTree] Hanlder check completedddd", len(dbTransactions))
 	txRes.err = dbTx.Commit()
 	txRes.mixSetDelta = mixDiff
 

@@ -120,7 +120,9 @@ func (p *ChainMonitor) switchToSideChain(reorgData *txhelpers.ReorgData) (int32,
 		endHash = blockHash
 
 		log.Infof("Connected block %v (height %d) from side chain.", endHash, endHeight)
-
+		// handler for sync coin_age_bands table
+		log.Infof("Start syncing coin age bands/mean coin age data in the background. Height (From Sidechain): %d.", msgBlock.Header.Height)
+		go p.db.SyncCoinAgeDataAllSet(int64(msgBlock.Header.Height))
 		currentHeight++
 	}
 

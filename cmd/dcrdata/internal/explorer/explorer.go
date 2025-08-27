@@ -658,7 +658,6 @@ func (exp *ExplorerUI) StoreMutilchainMPData(chainType string, inv *types.Mutilc
 
 // Store implements BlockDataSaver.
 func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBlock) error {
-	log.Infof("Start syncing block for explorer data. Block height: %d", blockData.Header.Height)
 	// Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetExplorerBlock(msgBlock.BlockHash().String())
 
@@ -969,7 +968,6 @@ func (exp *ExplorerUI) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgB
 			log.Errorf("Sync treasury summary failed: %v", err)
 		}
 	}()
-	log.Infof("Complete syncing block for explorer data. Block height: %d", blockData.Header.Height)
 	return nil
 }
 

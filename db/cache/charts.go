@@ -1025,7 +1025,7 @@ func (charts *ChartData) Update() error {
 	defer charts.updateMtx.Unlock()
 
 	t := time.Now()
-	log.Infof("Running charts updaters for data at height %d...", charts.Height())
+	log.Debugf("Running charts updaters for data at height %d...", charts.Height())
 
 	for _, updater := range charts.updaters {
 		ti := time.Now()
@@ -1055,7 +1055,7 @@ func (charts *ChartData) Update() error {
 			updater.Tag, time.Since(ti).Seconds())
 	}
 
-	log.Infof("Charts updaters complete at height %d in %f seconds.",
+	log.Debugf("Charts updaters complete at height %d in %f seconds.",
 		charts.Height(), time.Since(t).Seconds())
 
 	// Since the charts db data query is complete. Update chart.Days derived dataset.
