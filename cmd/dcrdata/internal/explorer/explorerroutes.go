@@ -2788,6 +2788,7 @@ func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 		Type      txhelpers.AddressType
 		Pages     []pageNumber
 		ChainType string
+		Maintain  bool
 	}
 
 	chainType := chi.URLParam(r, "chaintype")
@@ -2843,6 +2844,7 @@ func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Requ
 		Data:           addrData,
 		ChainType:      chainType,
 		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
+		Maintain:       true,
 	}
 	str, err := exp.templates.exec("chain_address", pageData)
 	if err != nil {

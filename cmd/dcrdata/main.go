@@ -1171,22 +1171,127 @@ func _main(ctx context.Context) error {
 		return height, nil
 	}
 
+	// define address summary syncing function
+	syncAdressSummaryData := func() error {
+		err := chainDB.SyncAddressSummary()
+		if err != nil {
+			log.Errorf("dcrpg.SyncAddressSummary failed")
+			return err
+		}
+		return nil
+	}
+	// define coin age data syncing function
+	syncCoinAgeData := func() error {
+		err := chainDB.SyncCoinAgesData()
+		if err != nil {
+			log.Errorf("dcrpg.SyncCoinAgesData failed")
+			return err
+		}
+		return nil
+	}
+
+	// define treasury summary syncing function
+	syncTreasurySummaryData := func() error {
+		err := chainDB.SyncTreasurySummary()
+		if err != nil {
+			log.Errorf("dcrpg.SyncTreasurySummary failed")
+			return err
+		}
+		return nil
+	}
+
 	if !dcrDisabled {
 		chainDBHeight, err = syncChainDB()
 		if err != nil {
 			return err
 		}
+		// Ensure all side chains known by dcrd are also present in the DB and
+		// import them if they are not already there.
+		if cfg.ImportSideChains {
+			// First identify the side chain blocks that are missing from the DB.
+			log.Info("Retrieving side chain blocks from dcrd...")
+			sideChainBlocksToStore, nSideChainBlocks, err := chainDB.MissingSideChainBlocks()
+			if err != nil {
+				return fmt.Errorf("Unable to determine missing side chain blocks: %v", err)
+			}
+			nSideChains := len(sideChainBlocksToStore)
+
+			// Importing side chain blocks involves only the aux (postgres) DBs
+			// since stakedb only supports mainchain. TODO: Get stakedb to work with
+			// side chain blocks to get ticket pool info.
+
+			// Collect and store data for each side chain.
+			log.Infof("Importing %d new block(s) from %d known side chains...",
+				nSideChainBlocks, nSideChains)
+			// Disable recomputing project fund balance, and clearing address
+			// balance and counts cache.
+			chainDB.InBatchSync = true
+			var sideChainsStored, sideChainBlocksStored int
+			for _, sideChain := range sideChainBlocksToStore {
+				// Process this side chain only if there are blocks in it that need
+				// to be stored.
+				if len(sideChain.Hashes) == 0 {
+					continue
+				}
+				sideChainsStored++
+
+				// Collect and store data for each block in this side chain.
+				for _, hash := range sideChain.Hashes {
+					// Validate the block hash.
+					blockHash, err := chainhash.NewHashFromStr(hash)
+					if err != nil {
+						log.Errorf("Invalid block hash %s: %v.", hash, err)
+						continue
+					}
+
+					// Collect block data.
+					_, msgBlock, err := collector.CollectHash(blockHash)
+					if err != nil {
+						// Do not quit if unable to collect side chain block data.
+						log.Errorf("Unable to collect data for side chain block %s: %v.",
+							hash, err)
+						continue
+					}
+
+					// Get the chainwork
+					chainWork, err := rpcutils.GetChainWork(chainDB.Client, blockHash)
+					if err != nil {
+						log.Errorf("GetChainWork failed (%s): %v", blockHash, err)
+						continue
+					}
+
+					// Main DB
+					log.Debugf("Importing block %s (height %d) into DB.",
+						blockHash, msgBlock.Header.Height)
+
+					// Stake invalidation is always handled by subsequent block, so
+					// add the block as valid. These are all side chain blocks.
+					isValid, isMainchain := true, false
+
+					// Existing DB records might be for mainchain and/or valid
+					// blocks, so these imported blocks should not data in rows that
+					// are conflicting as per the different table constraints and
+					// unique indexes.
+					updateExistingRecords := false
+
+					// Store data in the DB.
+					_, _, _, err = chainDB.StoreBlock(msgBlock, isValid, isMainchain,
+						updateExistingRecords, true, chainWork)
+					if err != nil {
+						// If data collection succeeded, but storage fails, bail out
+						// to diagnose the DB trouble.
+						return fmt.Errorf("ChainDB.StoreBlock failed: %w", err)
+					}
+
+					sideChainBlocksStored++
+				}
+			}
+			chainDB.InBatchSync = false
+			log.Infof("Successfully added %d blocks from %d side chains into dcrpg DB.",
+				sideChainBlocksStored, sideChainsStored)
+		}
 		//synchronize legacy address data
 		log.Infof("Starting address summary sync...")
-		syncAdressSummaryData := func() error {
-			err := chainDB.SyncAddressSummary()
-			if err != nil {
-				log.Errorf("dcrpg.SyncAddressSummary failed")
-				return err
-			}
-			return nil
-		}
-
 		err = syncAdressSummaryData()
 		if err != nil {
 			return err
@@ -1194,16 +1299,6 @@ func _main(ctx context.Context) error {
 
 		//synchronize treasury summary data
 		log.Infof("Starting treasury summary sync...")
-
-		syncTreasurySummaryData := func() error {
-			err := chainDB.SyncTreasurySummary()
-			if err != nil {
-				log.Errorf("dcrpg.SyncTreasurySummary failed")
-				return err
-			}
-			return nil
-		}
-
 		err = syncTreasurySummaryData()
 		if err != nil {
 			return err
@@ -1289,14 +1384,6 @@ func _main(ctx context.Context) error {
 			return fmt.Errorf("check and create coin_age_bands table failed: %v", err)
 		}
 		log.Infof("Begin checking and syncing coin age tables...")
-		syncCoinAgeData := func() error {
-			err := chainDB.SyncCoinAgesData()
-			if err != nil {
-				log.Errorf("dcrpg.SyncCoinAgesData failed")
-				return err
-			}
-			return nil
-		}
 		err = syncCoinAgeData()
 		if err != nil {
 			return err
@@ -1309,92 +1396,6 @@ func _main(ctx context.Context) error {
 	// duplicate entries and updates instead of erroring. SyncChainDB should
 	// set this on successful sync, but do it again anyway.
 	chainDB.EnableDuplicateCheckOnInsert(true)
-
-	// Ensure all side chains known by dcrd are also present in the DB and
-	// import them if they are not already there.
-	if cfg.ImportSideChains {
-		// First identify the side chain blocks that are missing from the DB.
-		log.Info("Retrieving side chain blocks from dcrd...")
-		sideChainBlocksToStore, nSideChainBlocks, err := chainDB.MissingSideChainBlocks()
-		if err != nil {
-			return fmt.Errorf("Unable to determine missing side chain blocks: %v", err)
-		}
-		nSideChains := len(sideChainBlocksToStore)
-
-		// Importing side chain blocks involves only the aux (postgres) DBs
-		// since stakedb only supports mainchain. TODO: Get stakedb to work with
-		// side chain blocks to get ticket pool info.
-
-		// Collect and store data for each side chain.
-		log.Infof("Importing %d new block(s) from %d known side chains...",
-			nSideChainBlocks, nSideChains)
-		// Disable recomputing project fund balance, and clearing address
-		// balance and counts cache.
-		chainDB.InBatchSync = true
-		var sideChainsStored, sideChainBlocksStored int
-		for _, sideChain := range sideChainBlocksToStore {
-			// Process this side chain only if there are blocks in it that need
-			// to be stored.
-			if len(sideChain.Hashes) == 0 {
-				continue
-			}
-			sideChainsStored++
-
-			// Collect and store data for each block in this side chain.
-			for _, hash := range sideChain.Hashes {
-				// Validate the block hash.
-				blockHash, err := chainhash.NewHashFromStr(hash)
-				if err != nil {
-					log.Errorf("Invalid block hash %s: %v.", hash, err)
-					continue
-				}
-
-				// Collect block data.
-				_, msgBlock, err := collector.CollectHash(blockHash)
-				if err != nil {
-					// Do not quit if unable to collect side chain block data.
-					log.Errorf("Unable to collect data for side chain block %s: %v.",
-						hash, err)
-					continue
-				}
-
-				// Get the chainwork
-				chainWork, err := rpcutils.GetChainWork(chainDB.Client, blockHash)
-				if err != nil {
-					log.Errorf("GetChainWork failed (%s): %v", blockHash, err)
-					continue
-				}
-
-				// Main DB
-				log.Debugf("Importing block %s (height %d) into DB.",
-					blockHash, msgBlock.Header.Height)
-
-				// Stake invalidation is always handled by subsequent block, so
-				// add the block as valid. These are all side chain blocks.
-				isValid, isMainchain := true, false
-
-				// Existing DB records might be for mainchain and/or valid
-				// blocks, so these imported blocks should not data in rows that
-				// are conflicting as per the different table constraints and
-				// unique indexes.
-				updateExistingRecords := false
-
-				// Store data in the DB.
-				_, _, _, err = chainDB.StoreBlock(msgBlock, isValid, isMainchain,
-					updateExistingRecords, true, chainWork)
-				if err != nil {
-					// If data collection succeeded, but storage fails, bail out
-					// to diagnose the DB trouble.
-					return fmt.Errorf("ChainDB.StoreBlock failed: %w", err)
-				}
-
-				sideChainBlocksStored++
-			}
-		}
-		chainDB.InBatchSync = false
-		log.Infof("Successfully added %d blocks from %d side chains into dcrpg DB.",
-			sideChainBlocksStored, sideChainsStored)
-	}
 
 	// Exits immediately after the sync completes if SyncAndQuit is to true
 	// because all we needed then was the blockchain sync be completed successfully.
@@ -1422,10 +1423,12 @@ func _main(ctx context.Context) error {
 	blockDataSavers = append(blockDataSavers, blockdata.BlockTrigger{
 		Async: true,
 		Saver: func(hash string, height uint32) error {
+			log.Infof("Start trigger update chart data when have new block: %d", height)
 			if err := charts.TriggerUpdate(hash, height); err != nil {
 				return err
 			}
 			explore.ChartsUpdated()
+			log.Infof("Finish trigger update chart data when have new block: %d", height)
 			return nil
 		},
 	})
@@ -1558,6 +1561,11 @@ func _main(ctx context.Context) error {
 			log.Infof("Initial chain DB sync complete. Now catching up with network...")
 			newPGIndexes, updateAllAddresses = false, false
 			chainDBHeight, err = syncChainDB()
+			if err != nil {
+				return err
+			}
+			log.Infof("Begin checking and syncing coin age tables...")
+			err = syncCoinAgeData()
 			if err != nil {
 				return err
 			}
