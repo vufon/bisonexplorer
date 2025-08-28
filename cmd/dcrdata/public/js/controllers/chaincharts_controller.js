@@ -45,32 +45,32 @@ const yAxisLabelWidth = {
   }
 }
 
-function isMobile () {
+function isMobile() {
   return window.innerWidth <= 768
 }
 
-function usesWindowUnits (chart) {
+function usesWindowUnits(chart) {
   return windowScales.indexOf(chart) > -1
 }
 
-function usesHybridUnits (chart) {
+function usesHybridUnits(chart) {
   return hybridScales.indexOf(chart) > -1
 }
 
-function isScaleDisabled (chart) {
+function isScaleDisabled(chart) {
   return lineScales.indexOf(chart) > -1
 }
 
-function isModeEnabled (chart) {
+function isModeEnabled(chart) {
   return modeScales.includes(chart)
 }
 
-function intComma (amount) {
+function intComma(amount) {
   if (!amount) return ''
   return amount.toLocaleString(undefined, { maximumFractionDigits: 0 })
 }
 
-function axesToRestoreYRange (chartName, origYRange, newYRange) {
+function axesToRestoreYRange(chartName, origYRange, newYRange) {
   const axesIndexes = yValueRanges[chartName]
   if (!Array.isArray(origYRange) || !Array.isArray(newYRange) ||
     origYRange.length !== newYRange.length || !axesIndexes) return
@@ -91,35 +91,46 @@ function axesToRestoreYRange (chartName, origYRange, newYRange) {
   return axes
 }
 
-function withBigUnits (v, units) {
+function withBigUnits(v, units) {
   const i = v === 0 ? 0 : Math.floor(Math.log10(v) / 3)
   return (v / Math.pow(1000, i)).toFixed(3) + ' ' + units[i]
 }
 
-function blockReward (height) {
+function blockReward(height) {
   if (height >= stakeValHeight) return baseSubsidy * Math.pow(subsidyExponent, Math.floor(height / subsidyInterval))
   if (height > 1) return baseSubsidy * (1 - stakeShare)
   if (height === 1) return premine
   return 0
 }
 
-function addLegendEntryFmt (div, series, fmt) {
+function addLegendEntryFmt(div, series, fmt) {
   div.appendChild(legendEntry(`${series.dashHTML} ${series.labelHTML}: ${fmt(series.y)}`))
 }
 
-function addLegendEntry (div, series) {
+function addLegendEntry(div, series) {
   div.appendChild(legendEntry(`${series.dashHTML} ${series.labelHTML}: ${series.yHTML}`))
 }
 
-function defaultYFormatter (div, data) {
+function defaultYFormatter(div, data) {
   addLegendEntry(div, data.series[0])
+  if (!data.series || data.series.length === 0) return
+  data.series.forEach(s => {
+    if (s.y == null || isNaN(s.y)) return
+    addLegendEntry(div, s) // default: show raw value
+  })
 }
 
-function customYFormatter (fmt) {
-  return (div, data) => addLegendEntryFmt(div, data.series[0], fmt)
+function customYFormatter(fmt) {
+  return (div, data) => {
+    if (!data.series || data.series.length === 0) return
+    data.series.forEach(s => {
+      if (s.y == null || isNaN(s.y)) return
+      addLegendEntryFmt(div, s, y => fmt(s.y))
+    })
+  }
 }
 
-function legendFormatter (data) {
+function legendFormatter(data) {
   if (data.x == null) return legendElement.classList.add('d-hide')
   legendElement.classList.remove('d-hide')
   const div = document.createElement('div')
@@ -133,7 +144,7 @@ function legendFormatter (data) {
   return div.innerHTML
 }
 
-function nightModeOptions (nightModeOn) {
+function nightModeOptions(nightModeOn) {
   if (nightModeOn) {
     return {
       rangeSelectorAlpha: 0.3,
@@ -148,7 +159,7 @@ function nightModeOptions (nightModeOn) {
   }
 }
 
-function zipWindowHvY (ys, winSize, yMult, offset) {
+function zipWindowHvY(ys, winSize, yMult, offset) {
   yMult = yMult || 1
   offset = offset || 0
   return ys.map((y, i) => {
@@ -156,21 +167,21 @@ function zipWindowHvY (ys, winSize, yMult, offset) {
   })
 }
 
-function zipWindowTvY (times, ys, yMult) {
+function zipWindowTvY(times, ys, yMult) {
   yMult = yMult || 1
   return times.map((t, i) => {
     return [new Date(t * 1000), ys[i] * yMult]
   })
 }
 
-function zipTvY (times, ys, yMult) {
+function zipTvY(times, ys, yMult) {
   yMult = yMult || 1
   return times.map((t, i) => {
     return [new Date(t * 1000), ys[i] * yMult]
   })
 }
 
-function zipIvY (ys, yMult, offset) {
+function zipIvY(ys, yMult, offset) {
   yMult = yMult || 1
   offset = offset || 1 // TODO: check for why offset is set to a default value of 1 when genesis block has a height of 0
   return ys.map((y, i) => {
@@ -178,7 +189,7 @@ function zipIvY (ys, yMult, offset) {
   })
 }
 
-function zipHvY (heights, ys, yMult, offset) {
+function zipHvY(heights, ys, yMult, offset) {
   yMult = yMult || 1
   offset = offset || 1
   return ys.map((y, i) => {
@@ -186,7 +197,7 @@ function zipHvY (heights, ys, yMult, offset) {
   })
 }
 
-function zip2D (data, ys, yMult, offset) {
+function zip2D(data, ys, yMult, offset) {
   yMult = yMult || 1
   if (data.axis === 'height') {
     if (data.bin === 'block') return zipIvY(ys, yMult)
@@ -195,12 +206,12 @@ function zip2D (data, ys, yMult, offset) {
   return zipTvY(data.t, ys, yMult)
 }
 
-function powDiffFunc (data) {
+function powDiffFunc(data) {
   if (data.t) return zipWindowTvY(data.t, data.diff)
   return zipWindowHvY(data.diff, data.window)
 }
 
-function circulationFunc (chartData) {
+function circulationFunc(chartData) {
   let yMax = 0
   let h = -1
   const addDough = (newHeight) => {
@@ -248,7 +259,7 @@ function circulationFunc (chartData) {
   return { data, inflation }
 }
 
-function mapDygraphOptions (data, labelsVal, isDrawPoint, yLabel, labelsMG, labelsMG2) {
+function mapDygraphOptions(data, labelsVal, isDrawPoint, yLabel, labelsMG, labelsMG2) {
   return merge({
     file: data,
     labels: labelsVal,
@@ -259,8 +270,32 @@ function mapDygraphOptions (data, labelsVal, isDrawPoint, yLabel, labelsMG, labe
   }, nightModeOptions(darkEnabled()))
 }
 
+function formatYLegend(g, seriesName, yval, rowIdx, colIdx) {
+  if (yval == null || isNaN(yval)) return '–'
+
+  const props = g.getPropertiesForSeries(seriesName) // {axis:1|2, column, color,…}
+  const axisKey = props.axis === 2 ? 'y2' : 'y'
+  const axes = g.getOption('axes') || {}
+  const axisOpts = axes[axisKey] || {}
+
+  // Priority: valueFormatter of series → y axis → global
+  const vf =
+    g.getOption('valueFormatter', seriesName) ||
+    axisOpts.valueFormatter ||
+    g.getOption('valueFormatter')
+
+  if (typeof vf === 'function') {
+    // opts(name) like spec of Dygraphs
+    const optsFn = (name) =>
+      (axisOpts && axisOpts[name] !== undefined) ? axisOpts[name] : g.getOption(name)
+    // Main signals: (num_or_millis, opts, seriesName, dygraph, row, col)
+    return vf(yval, optsFn, seriesName, g, rowIdx, colIdx)
+  }
+  return String(yval)
+}
+
 export default class extends Controller {
-  static get targets () {
+  static get targets() {
     return [
       'chartWrapper',
       'labels',
@@ -279,12 +314,12 @@ export default class extends Controller {
       'modeOption',
       'rawDataURL',
       'chartName',
-      'chartTitleName'
-
+      'chartTitleName',
+      'chartDescription'
     ]
   }
 
-  async connect () {
+  async connect() {
     this.isHomepage = !window.location.href.includes('/charts')
     this.query = new TurboQuery()
     premine = parseInt(this.data.get('premine'))
@@ -344,10 +379,18 @@ export default class extends Controller {
         nightModeOptions(params.nightMode)
       )
     }
+    const _this = this
+    // add space to chart selector
+    this.chartSelectTargets.forEach((chartSelector) => {
+      if (!_this.isHomepage || isMobile()) {
+        const currentWidth = parseInt(window.getComputedStyle(chartSelector).width, 10)
+        chartSelector.style.width = (currentWidth + 25) + 'px'
+      }
+    })
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
   }
 
-  disconnect () {
+  disconnect() {
     globalEventBus.off('NIGHT_MODE', this.processNightMode)
     if (this.chartsView !== undefined) {
       this.chartsView.destroy()
@@ -355,7 +398,9 @@ export default class extends Controller {
     selectedChart = null
   }
 
-  drawInitialGraph () {
+  drawInitialGraph() {
+    const legendWrapper = document.querySelector('.legend-wrapper')
+    const _this = this
     const options = {
       axes: { y: { axisLabelWidth: 50 }, y2: { axisLabelWidth: 55 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
@@ -374,7 +419,66 @@ export default class extends Controller {
       ylabel: 'Ticket Price',
       y2label: 'Tickets Bought',
       labelsUTC: true,
-      axisLineColor: '#C4CBD2'
+      axisLineColor: '#C4CBD2',
+      highlightCallback: function (e, x, points) {
+        legendWrapper.style.display = 'block'
+        legendWrapper.innerHTML = legendFormatter({
+          x: x,
+          xHTML: Dygraph.dateString_(new Date(x)),
+          dygraph: _this.chartsView,
+          points: points,
+          series: points.map(p => {
+            const g = _this.chartsView
+            const props = g.getPropertiesForSeries(p.name) // get corectly axis & column
+            const color = g.getOption('color', p.name) || props.color
+
+            return {
+              label: p.name,
+              y: p.yval,
+              yHTML: formatYLegend(g, p.name, p.yval, p.idx, props.column),
+              color: color,
+              dashHTML: `<div class="dygraph-legend-line"
+           style="border-bottom-color:${color};
+                  border-bottom-style:solid;
+                  border-bottom-width:4px;
+                  display:inline-block;
+                  margin-right:4px;"></div>`,
+              labelHTML: p.name
+            }
+          })
+        })
+
+        const rect = _this.chartsView.graphDiv.getBoundingClientRect()
+        const relX = e.clientX - rect.left
+        const relY = e.clientY - rect.top
+
+        let left = relX - legendWrapper.offsetWidth - 10
+        let top = relY - 5
+
+        // Flip horizontally if left edge touched (with viewport)
+        if (left + rect.left < 0) {
+          left = relX + 10
+        }
+        // Flip horizontally if right edge touched (with viewport)
+        if (left + rect.left + legendWrapper.offsetWidth > window.innerWidth) {
+          left = relX - legendWrapper.offsetWidth - 10
+        }
+
+        // Flip vertically if touching the ceiling
+        if (top + rect.top < 0) {
+          top = relY + 10
+        }
+        // Flip vertically if bottomed out
+        if (top + rect.top + legendWrapper.offsetHeight > window.innerHeight) {
+          top = relY - legendWrapper.offsetHeight - 10
+        }
+
+        legendWrapper.style.left = left + 'px'
+        legendWrapper.style.top = top + 'px'
+      },
+      unhighlightCallback: function () {
+        legendWrapper.style.display = 'none'
+      }
     }
 
     this.chartsView = new Dygraph(
@@ -382,6 +486,10 @@ export default class extends Controller {
       [[1, 1, 5], [2, 5, 11]],
       options
     )
+    const graphDiv = _this.chartsView.graphDiv
+    graphDiv.addEventListener('mouseleave', () => {
+      legendWrapper.style.display = 'none'
+    })
     this.setSelectedChart(this.settings.chart)
 
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
@@ -402,7 +510,7 @@ export default class extends Controller {
     this.selectChart()
   }
 
-  plotGraph (chartName, data) {
+  plotGraph(chartName, data) {
     let d = []
     const gOptions = {
       zoomCallback: null,
@@ -535,11 +643,12 @@ export default class extends Controller {
     this.validateZoom()
   }
 
-  async selectChart () {
+  async selectChart() {
     const selectChart = this.getSelectedChart()
     const selection = this.settings.chart = selectChart
     this.chartNameTarget.textContent = this.getChartName(selectChart)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
+    this.chartDescriptionTarget.dataset.tooltip = this.getChartDescriptionTooltip(selection)
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
@@ -596,7 +705,53 @@ export default class extends Controller {
     }
   }
 
-  getChartName (chartValue) {
+  getChainName() {
+    switch (this.chainType) {
+      case 'btc':
+        return 'Bitcoin'
+      case 'ltc':
+        return 'Litecoin'
+      case 'dcr':
+        return 'Decred'
+      default:
+        return 'Unknown'
+    }
+  }
+
+  getChartDescriptionTooltip(chartType) {
+    switch (chartType) {
+      case 'block-size':
+        return `Displays the historical average size of ${this.getChainName()} blocks, reflecting how much transaction data each block contains.`
+      case 'blockchain-size':
+        return `Shows the total size of the ${this.getChainName()} blockchain, representing cumulative data stored over time.`
+      case 'tx-count':
+        return `Displays the number of transactions recorded on the ${this.getChainName()} network over time.`
+      case 'tx-per-block':
+        return `Average number of transactions per ${this.getChainName()} block over time.`
+      case 'mined-blocks':
+        return `Number of ${this.getChainName()} blocks successfully mined over time.`
+      case 'mempool-txs':
+        return `Number of unconfirmed ${this.getChainName()} transactions waiting in the mempool over time.`
+      case 'mempool-size':
+        return `Total size of unconfirmed ${this.getChainName()} transactions in the mempool over time.`
+      case 'address-number':
+        return `Total number of unique ${this.getChainName()} addresses over time.`
+      case 'pow-difficulty':
+        return `${this.getChainName()} mining difficulty (Proof-of-Work): a measure of how hard it is to find a valid block over time.`
+      case 'coin-supply':
+        return `Shows the total circulating supply of ${this.getChainName()} coins over time.`
+      case 'fees':
+        return `Total transaction fees paid to ${this.getChainName()} miners over time.`
+      case 'duration-btw-blocks':
+        return `Shows the average time interval between consecutive ${this.getChainName()} blocks over time.`
+      case 'hashrate':
+        return `Total computational power securing the ${this.getChainName()} network over time.`
+      default:
+        return ''
+    }
+  }
+
+  getChartName(chartValue) {
     switch (chartValue) {
       case 'block-size':
         return 'Block Size'
@@ -629,7 +784,7 @@ export default class extends Controller {
     }
   }
 
-  async validateZoom () {
+  async validateZoom() {
     await animationFrame()
     this.chartWrapperTarget.classList.add('loading')
     await animationFrame()
@@ -663,7 +818,7 @@ export default class extends Controller {
     })
   }
 
-  _zoomCallback (start, end) {
+  _zoomCallback(start, end) {
     this.lastZoom = Zoom.object(start, end)
     this.settings.zoom = Zoom.encode(this.lastZoom)
     if (!this.isHomepage) {
@@ -677,11 +832,11 @@ export default class extends Controller {
     if (axesData) this.chartsView.updateOptions({ axes: axesData })
   }
 
-  isTimeAxis () {
+  isTimeAxis() {
     return this.selectedAxis() === 'time'
   }
 
-  _drawCallback (graph, first) {
+  _drawCallback(graph, first) {
     // update position of y1, y2 label
     if (isMobile()) {
       // get axes
@@ -706,7 +861,7 @@ export default class extends Controller {
     this._zoomCallback(start, end)
   }
 
-  setZoom (e) {
+  setZoom(e) {
     const target = e.srcElement || e.target
     let option
     if (!target) {
@@ -720,7 +875,7 @@ export default class extends Controller {
     this.validateZoom()
   }
 
-  setBin (e) {
+  setBin(e) {
     const target = e.srcElement || e.target
     const option = target ? target.dataset.option : e
     if (!option) return
@@ -730,7 +885,7 @@ export default class extends Controller {
     this.selectChart()
   }
 
-  setScale (e) {
+  setScale(e) {
     const target = e.srcElement || e.target
     const option = target ? target.dataset.option : e
     if (!option) return
@@ -745,7 +900,7 @@ export default class extends Controller {
     }
   }
 
-  setMode (e) {
+  setMode(e) {
     const target = e.srcElement || e.target
     const option = target ? target.dataset.option : e
     if (!option) return
@@ -760,7 +915,7 @@ export default class extends Controller {
     }
   }
 
-  setAxis (e) {
+  setAxis(e) {
     const target = e.srcElement || e.target
     const option = target ? target.dataset.option : e
     if (!option) return
@@ -770,7 +925,7 @@ export default class extends Controller {
     this.selectChart()
   }
 
-  setVisibilityFromSettings () {
+  setVisibilityFromSettings() {
     switch (this.chartSelectTarget.value) {
       case 'coin-supply':
         if (this.visibility.length !== 3) {
@@ -786,7 +941,7 @@ export default class extends Controller {
     }
   }
 
-  setActiveOptionBtn (opt, optTargets) {
+  setActiveOptionBtn(opt, optTargets) {
     const _this = this
     optTargets.forEach(li => {
       if (_this.exitCond(li)) {
@@ -800,18 +955,18 @@ export default class extends Controller {
     })
   }
 
-  selectedZoom () { return this.selectedOption(this.zoomOptionTargets) }
-  selectedBin () { return this.selectedOption(this.binSizeTargets) }
-  selectedScale () { return this.selectedOption(this.scaleTypeTargets) }
-  selectedAxis () { return this.selectedNormalOption(this.axisOptionTargets) }
+  selectedZoom() { return this.selectedOption(this.zoomOptionTargets) }
+  selectedBin() { return this.selectedOption(this.binSizeTargets) }
+  selectedScale() { return this.selectedOption(this.scaleTypeTargets) }
+  selectedAxis() { return this.selectedNormalOption(this.axisOptionTargets) }
 
-  hideMultiTargets (opts) {
+  hideMultiTargets(opts) {
     opts.forEach((opt) => {
       opt.classList.add('d-hide')
     })
   }
 
-  showMultiTargets (opts) {
+  showMultiTargets(opts) {
     opts.forEach((opt) => {
       if ((isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))) {
         opt.classList.add('d-hide')
@@ -822,7 +977,7 @@ export default class extends Controller {
     })
   }
 
-  selectedOption (optTargets) {
+  selectedOption(optTargets) {
     let key = false
     const _this = this
     optTargets.forEach((el) => {
@@ -832,7 +987,7 @@ export default class extends Controller {
     return key
   }
 
-  selectedNormalOption (optTargets) {
+  selectedNormalOption(optTargets) {
     let key = false
     optTargets.forEach((el) => {
       if (el.classList.contains('active')) key = el.dataset.option
@@ -840,11 +995,11 @@ export default class extends Controller {
     return key
   }
 
-  exitCond (opt) {
+  exitCond(opt) {
     return (isMobile() && !opt.classList.contains('mobile-mode')) || (!isMobile() && opt.classList.contains('mobile-mode'))
   }
 
-  getSelectedChart () {
+  getSelectedChart() {
     let selected = 'block-size'
     const _this = this
     this.chartSelectTargets.forEach((chart) => {
@@ -856,7 +1011,7 @@ export default class extends Controller {
     return selected
   }
 
-  setSelectedChart (select) {
+  setSelectedChart(select) {
     const _this = this
     this.chartSelectTargets.forEach((chart) => {
       if (_this.exitCond(chart)) {
@@ -866,7 +1021,7 @@ export default class extends Controller {
     })
   }
 
-  getTargetsChecked (targets) {
+  getTargetsChecked(targets) {
     const _this = this
     let checked = false
     targets.forEach((target) => {
@@ -878,7 +1033,7 @@ export default class extends Controller {
     return checked
   }
 
-  setTargetsChecked (targets, checked) {
+  setTargetsChecked(targets, checked) {
     const _this = this
     targets.forEach((target) => {
       if (_this.exitCond(target)) {

@@ -1,28 +1,26 @@
 {{define "chain_charts"}}
 <!DOCTYPE html>
 <html lang="en">
-   {{template "html-head" headData .CommonPageData (printf "%s Chain Charts" (chainName .ChainType))}}
-   {{template "mutilchain_navbar" . }}
-   <div data-controller="chaincharts"
-      data-chaincharts-block-time="{{.TargetTimePerBlock}}"
-      data-chaincharts-chain-type="{{.ChainType}}"
-      >
-      <div class="container mt-3 pb-2">
-         <nav class="breadcrumbs mt-0">
-            <a href="/" class="breadcrumbs__item no-underline ps-2">
-               <span class="homeicon-tags me-1"></span>
-               <span class="link-underline">Homepage</span>
-            </a>
-            <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
-            <a href="/{{.ChainType}}" class="breadcrumbs__item item-link">{{chainName .ChainType}}</a>
-            <span class="breadcrumbs__item is-active">Charts</span>
-         </nav>
-         <span class="d-none" data-chaincharts-target="chartTitleName"></span>
+{{template "html-head" headData .CommonPageData (printf "%s Chain Charts" (chainName .ChainType))}}
+{{template "mutilchain_navbar" . }}
+<div data-controller="chaincharts" data-chaincharts-block-time="{{.TargetTimePerBlock}}"
+   data-chaincharts-chain-type="{{.ChainType}}">
+   <div class="px-3 mt-3 pb-2">
+      <nav class="breadcrumbs mt-0">
+         <a href="/" class="breadcrumbs__item no-underline ps-2">
+            <span class="homeicon-tags me-1"></span>
+            <span class="link-underline">Homepage</span>
+         </a>
+         <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
+         <a href="/{{.ChainType}}" class="breadcrumbs__item item-link">{{chainName .ChainType}}</a>
+         <span class="breadcrumbs__item is-active">Charts</span>
+      </nav>
+      <div class="common-card mt-2">
          <div class="px-3">
             <div class="d-flex d-md-none flex-shrink-1 align-items-top flex-wrap">
                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                   <label>Chart</label>
-                  <select id="selectBox" class="chart-box d-inline-flex mobile-mode"
+                  <select id="selectBox" class="chart-box d-inline-flex mobile-mode chart-selector-bg"
                      data-chaincharts-target="chartSelect" data-action="chaincharts#selectChart">
                      <optgroup label="Chain">
                         <option value="block-size">Block Size</option>
@@ -50,13 +48,11 @@
                   <div class="btn-group">
                      <ul class="nav nav-pills">
                         <li class="nav-item nav-link mobile-nav-link active mobile-mode"
-                           data-chaincharts-target="binSize" data-action="click->chaincharts#setBin"
-                           data-option="day">
+                           data-chaincharts-target="binSize" data-action="click->chaincharts#setBin" data-option="day">
                            Day
                         </li>
-                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
-                           data-chaincharts-target="binSize" data-action="click->chaincharts#setBin"
-                           data-option="block">
+                        <li class="nav-item nav-link mobile-nav-link mobile-mode" data-chaincharts-target="binSize"
+                           data-action="click->chaincharts#setBin" data-option="block">
                            Blocks
                         </li>
                      </ul>
@@ -72,9 +68,8 @@
                            data-option="linear">
                            Linear
                         </li>
-                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
-                           data-chaincharts-target="scaleType" data-action="click->chaincharts#setScale"
-                           data-option="log">
+                        <li class="nav-item nav-link mobile-nav-link mobile-mode" data-chaincharts-target="scaleType"
+                           data-action="click->chaincharts#setScale" data-option="log">
                            Log
                         </li>
                      </ul>
@@ -90,26 +85,22 @@
                            data-option="smooth">
                            Smooth
                         </li>
-                        <li class="nav-item nav-link mobile-nav-link mobile-mode"
-                           data-chaincharts-target="modeOption" data-action="click->chaincharts#setMode"
-                           data-option="stepped">
+                        <li class="nav-item nav-link mobile-nav-link mobile-mode" data-chaincharts-target="modeOption"
+                           data-action="click->chaincharts#setMode" data-option="stepped">
                            Stepped
                         </li>
                      </ul>
                   </div>
                </div>
             </div>
-            </div>
-            <div class="d-none d-md-flex flex-wrap justify-content-center align-items-center chart-controls common-card p-2 mb-1 mt-2">
+         </div>
+         <div
+            class="d-none d-md-flex flex-wrap justify-content-center align-items-center chart-controls border-2-bottom-grey p-2 mb-2">
             <div class="chart-control-wrapper me-2 mb-1">
                <div class="chart-control-label">CHART</div>
                <div class="chart-control">
-                  <select
-                     id="selectBox"
-                     class="form-control chart-form-control bg-none"
-                     data-chaincharts-target="chartSelect"
-                     data-action="chaincharts#selectChart"
-                     >
+                  <select id="selectBox" class="form-control chart-form-control chart-selector-bg cursor-pointer"
+                     data-chaincharts-target="chartSelect" data-action="chaincharts#selectChart">
                      <optgroup label="Chain">
                         <option value="block-size">Block Size</option>
                         <option value="blockchain-size">Blockchain Size</option>
@@ -135,34 +126,24 @@
                <div class="chart-control-label">ZOOM</div>
                <div class="chart-control p-1">
                   <ul class="nav nav-pills">
-                     <li class="nav-item nav-link active"
-                        data-chaincharts-target="zoomOption"
-                        data-action="click->chaincharts#setZoom"
-                        data-option="all">
+                     <li class="nav-item nav-link active" data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom" data-option="all">
                         All
                      </li>
-                     <li class="nav-item nav-link"
-                        data-chaincharts-target="zoomOption"
-                        data-action="click->chaincharts#setZoom"
-                        data-option="year">
+                     <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom" data-option="year">
                         Year
                      </li>
-                     <li class="nav-item nav-link"
-                        data-chaincharts-target="zoomOption"
-                        data-action="click->chaincharts#setZoom"
-                        data-option="month">
+                     <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom" data-option="month">
                         Month
                      </li>
-                     <li class="nav-item nav-link"
-                        data-chaincharts-target="zoomOption"
-                        data-action="click->chaincharts#setZoom"
-                        data-option="week">
+                     <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom" data-option="week">
                         Week
                      </li>
-                     <li class="nav-item nav-link"
-                        data-chaincharts-target="zoomOption"
-                        data-action="click->chaincharts#setZoom"
-                        data-option="day">
+                     <li class="nav-item nav-link" data-chaincharts-target="zoomOption"
+                        data-action="click->chaincharts#setZoom" data-option="day">
                         Day
                      </li>
                   </ul>
@@ -172,16 +153,12 @@
                <div class="chart-control-label">BIN</div>
                <div class="chart-control p-1">
                   <ul class="nav nav-pills">
-                     <li class="nav-item nav-link active"
-                        data-chaincharts-target="binSize"
-                        data-action="click->chaincharts#setBin"
-                        data-option="day">
+                     <li class="nav-item nav-link active" data-chaincharts-target="binSize"
+                        data-action="click->chaincharts#setBin" data-option="day">
                         Day
                      </li>
-                     <li class="nav-item nav-link"
-                        data-chaincharts-target="binSize"
-                        data-action="click->chaincharts#setBin"
-                        data-option="block">
+                     <li class="nav-item nav-link" data-chaincharts-target="binSize"
+                        data-action="click->chaincharts#setBin" data-option="block">
                         Blocks
                      </li>
                   </ul>
@@ -191,16 +168,12 @@
                <div class="chart-control-label">SCALE</div>
                <div class="chart-control p-1">
                   <ul class="nav nav-pills">
-                     <li class="nav-item nav-link active"
-                        data-chaincharts-target="scaleType"
-                        data-action="click->chaincharts#setScale"
-                        data-option="linear">
+                     <li class="nav-item nav-link active" data-chaincharts-target="scaleType"
+                        data-action="click->chaincharts#setScale" data-option="linear">
                         Linear
                      </li>
-                     <li class="nav-item nav-link"
-                        data-chaincharts-target="scaleType"
-                        data-action="click->chaincharts#setScale"
-                        data-option="log">
+                     <li class="nav-item nav-link" data-chaincharts-target="scaleType"
+                        data-action="click->chaincharts#setScale" data-option="log">
                         Log
                      </li>
                   </ul>
@@ -210,104 +183,101 @@
                <div class="chart-control-label">MODE</div>
                <div class="chart-control p-1">
                   <ul class="nav nav-pills">
-                     <li class="nav-item nav-link active"
-                        data-chaincharts-target="modeOption"
-                        data-action="click->chaincharts#setMode"
-                        data-option="smooth">
+                     <li class="nav-item nav-link active" data-chaincharts-target="modeOption"
+                        data-action="click->chaincharts#setMode" data-option="smooth">
                         Smooth
                      </li>
-                     <li class="nav-item nav-link"
-                        data-chaincharts-target="modeOption"
-                        data-action="click->chaincharts#setMode"
-                        data-option="stepped">
+                     <li class="nav-item nav-link" data-chaincharts-target="modeOption"
+                        data-action="click->chaincharts#setMode" data-option="stepped">
                         Stepped
                      </li>
                   </ul>
                </div>
             </div>
          </div>
-      </div>
-      <div class="d-flex justify-content-center">
-      <div data-chaincharts-target="chartWrapper" class="d-block chart-wrapper common-card p-3 px-2 pb-5 mb-50">
-         <div class="d-flex d-md-none my-2 ps-3">
-            <ul class="nav nav-pills">
-               <li class="nav-item nav-link mobile-nav-link active mobile-mode"
-                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
-                  data-option="all">
-                  All
-               </li>
-               <li class="nav-item nav-link mobile-nav-link mobile-mode"
-                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
-                  data-option="year">
-                  Year
-               </li>
-               <li class="nav-item nav-link mobile-nav-link mobile-mode"
-                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
-                  data-option="month">
-                  Month
-               </li>
-               <li class="nav-item nav-link mobile-nav-link mobile-mode"
-                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
-                  data-option="week">
-                  Week
-               </li>
-               <li class="nav-item nav-link mobile-nav-link mobile-mode"
-                  data-chaincharts-target="zoomOption" data-action="click->chaincharts#setZoom"
-                  data-option="day">
-                  Day
-               </li>
-            </ul>
+         <div class="d-flex justify-content-center ai-center">
+            <img src="/images/{{.ChainType}}-icon.png" width="23" height="23" class="me-2">
+            <p class="fs-20 fw-600 chart-title" data-chaincharts-target="chartTitleName"></p>
+            <div data-chaincharts-target="chartDescription" data-tooltip=""
+               class="d-flex ai-center cursor-pointer info-label position-relative ms-2">
+               <span>
+                  <span class="dcricon-info fs15" style="color: #e6ad2b;">
+                  </span>
+               </span>
+               <span class="ms-2 fs13" style="color: #97772e;">About</span>
+            </div>
          </div>
-         <span class="d-none" data-chaincharts-target="chartName"></span>
-         <div
-            class="chartview"
-            data-chaincharts-target="chartsView">
-         </div>
-         <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-3 d-none">
-            <div class="chart-control">
-               <ul class="nav nav-pills justify-content-center">
-                  <li class="nav-item nav-link active"
-                     data-chaincharts-target="axisOption"
-                     data-action="click->chaincharts#setAxis"
-                     data-option="time">
-                     Time
+         <div data-chaincharts-target="chartWrapper" class="d-block chart-wrapper common-card p-3 px-2 pb-5 mb-50">
+            <div class="d-flex d-md-none my-2 ps-3">
+               <ul class="nav nav-pills">
+                  <li class="nav-item nav-link mobile-nav-link active mobile-mode" data-chaincharts-target="zoomOption"
+                     data-action="click->chaincharts#setZoom" data-option="all">
+                     All
                   </li>
-                  <li class="nav-item nav-link"
-                     data-chaincharts-target="axisOption"
-                     data-action="click->chaincharts#setAxis"
-                     data-option="height">
-                     Blocks
+                  <li class="nav-item nav-link mobile-nav-link mobile-mode" data-chaincharts-target="zoomOption"
+                     data-action="click->chaincharts#setZoom" data-option="year">
+                     Year
+                  </li>
+                  <li class="nav-item nav-link mobile-nav-link mobile-mode" data-chaincharts-target="zoomOption"
+                     data-action="click->chaincharts#setZoom" data-option="month">
+                     Month
+                  </li>
+                  <li class="nav-item nav-link mobile-nav-link mobile-mode" data-chaincharts-target="zoomOption"
+                     data-action="click->chaincharts#setZoom" data-option="week">
+                     Week
+                  </li>
+                  <li class="nav-item nav-link mobile-nav-link mobile-mode" data-chaincharts-target="zoomOption"
+                     data-action="click->chaincharts#setZoom" data-option="day">
+                     Day
                   </li>
                </ul>
             </div>
-         </div>
-         <div class="d-flex justify-content-center">
-            <div class="d-flex flex-column align-items-center p-2 px-3 my-2 bg-white">
-               <span class="fs18">JSON-formatted raw data for this chart @</span>
-               <div class="d-inline-block text-center fs15 clipboard py-1">
-                  <span class="text-center" data-chaincharts-target="rawDataURL"></span>
-                  {{template "copyTextIcon"}}
+            <span class="d-none" data-chaincharts-target="chartName"></span>
+            <div class="chartview" data-chaincharts-target="chartsView">
+            </div>
+            <div class="d-flex flex-wrap justify-content-center align-items-center mb-1 mt-3 d-none">
+               <div class="chart-control">
+                  <ul class="nav nav-pills justify-content-center">
+                     <li class="nav-item nav-link active" data-chaincharts-target="axisOption"
+                        data-action="click->chaincharts#setAxis" data-option="time">
+                        Time
+                     </li>
+                     <li class="nav-item nav-link" data-chaincharts-target="axisOption"
+                        data-action="click->chaincharts#setAxis" data-option="height">
+                        Blocks
+                     </li>
+                  </ul>
+               </div>
+            </div>
+            <div class="d-flex justify-content-center">
+               <div class="d-flex flex-column align-items-center p-2 px-3 my-2 bg-white">
+                  <span class="fs18">JSON-formatted raw data for this chart @</span>
+                  <div class="d-inline-block text-center fs15 clipboard py-1">
+                     <span class="text-center" data-chaincharts-target="rawDataURL"></span>
+                     {{template "copyTextIcon"}}
+                  </div>
+               </div>
+            </div>
+            <div class="spinner-wrapper">
+               <div class="spinner-centerer d-flex align-items-center justify-content-center">
+                  <div class="spinner">
+                     <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                  </div>
+               </div>
+            </div>
+            <div class="legend-wrapper">
+               <div class="legend d-flex align-items-center" data-chaincharts-target="labels">
+                  <div class="pe-3" data-chaincharts-target="legendEntry">
+                     <div class="dygraph-legend-line" data-chaincharts-target="legendMarker"></div>
+                  </div>
                </div>
             </div>
          </div>
-         <div class="spinner-wrapper">
-            <div class="spinner-centerer d-flex align-items-center justify-content-center">
-               <div class="spinner">
-                  <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-               </div>
-            </div>
-         </div>
-         <div class="d-flex justify-content-center legend-wrapper">
-            <div class="legend d-flex align-items-center" data-chaincharts-target="labels">
-               <div class="pe-3" data-chaincharts-target="legendEntry">
-                  <div class="dygraph-legend-line" data-chaincharts-target="legendMarker"></div>
-               </div>
-            </div>
-         </div>
-      </div>
       </div>
    </div>
-   {{ template "footer" . }}
-   </body>
+</div>
+{{ template "footer" . }}
+</body>
+
 </html>
 {{end}}

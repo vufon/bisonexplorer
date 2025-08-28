@@ -457,8 +457,18 @@
                                  loading="lazy"></span>
                               <h5 class="explore-card__header__text__name mb-0">Chain Charts</h5>
                            </div>
-                           <span class="fs-22 fw-600 position-absolute top-50 start-50 translate-middle"
-                              data-homecharts-target="chartTitleName"></span>
+                           <div class="position-absolute top-50 start-50 translate-middle">
+                              <span class="fs-22 fw-600"
+                                 data-homecharts-target="chartTitleName"></span>
+                              <div data-homecharts-target="chartDescription" data-tooltip=""
+                                 class="d-flex ai-center cursor-pointer info-label position-relative ms-2">
+                                 <span>
+                                    <span class="dcricon-info fs15" style="color: #e6ad2b;">
+                                    </span>
+                                 </span>
+                                 <span class="ms-2 fs13" style="color: #97772e;">About</span>
+                              </div>
+                           </div>
                         </div>
                      </a>
                      <div class="explore-card__values-content market-chart-content">
@@ -544,7 +554,7 @@
                                                    <option value="coin-supply">Coin Supply</option>
                                                    <option value="fees">Fees</option>
                                                 </optgroup>
-                                                   <optgroup label="Coin Age">
+                                                <optgroup label="Coin Age">
                                                    <option value="avg-age-days">Average Age Days</option>
                                                    <option value="coin-days-destroyed">Coin Days Destroyed</option>
                                                    <option value="coin-age-bands">HODL Age Bands</option>
@@ -631,7 +641,7 @@
                                                    </label>
                                                 </li>
                                                 <li class="nav-item" data-homecharts-target="vSelectorItem"
-                                                      data-charts="coin-supply">
+                                                   data-charts="coin-supply">
                                                    <label class="customcheck mx-2 d-inline-flex">Mixed Coins
                                                       <input type="checkbox"
                                                          data-action="click->homecharts#setVisibility"
@@ -639,9 +649,11 @@
                                                       <span class="checkmark total-mixed"></span>
                                                    </label>
                                                 </li>
-                                                <li class="nav-item" data-homecharts-target="vSelectorItem" data-charts="coin-age">
+                                                <li class="nav-item" data-homecharts-target="vSelectorItem"
+                                                   data-charts="coin-age">
                                                    <label class="customcheck mx-2 d-inline-flex">Market Price
-                                                      <input type="checkbox" checked data-action="click->homecharts#setVisibility"
+                                                      <input type="checkbox" checked
+                                                         data-action="click->homecharts#setVisibility"
                                                          data-homecharts-target="marketPrice">
                                                       <span class="checkmark total-mixed"></span>
                                                    </label>
@@ -701,7 +713,7 @@
                                                 </div>
                                              </div>
                                           </div>
-                                          <div class="d-flex justify-content-center legend-wrapper">
+                                          <div class="legend-wrapper">
                                              <div class="legend d-flex align-items-center"
                                                 data-homecharts-target="labels">
                                                 <div class="pe-3" data-homecharts-target="legendEntry">
