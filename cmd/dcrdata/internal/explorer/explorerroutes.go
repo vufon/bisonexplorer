@@ -4962,6 +4962,7 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		BlockReward        int64
 		NextBlockReward    int64
 		TargetTimePerBlock float64
+		Premine            int64
 	}{
 		CommonPageData:     exp.commonData(r),
 		ChainType:          chainType,
@@ -4972,6 +4973,7 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		NextBlockReward:    nextBlockReward,
 		TicketTargetTime:   uint64(nextTicketTime),
 		TargetTimePerBlock: targetTimePerBlock,
+		Premine:            exp.premine,
 	})
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)

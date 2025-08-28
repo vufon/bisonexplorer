@@ -10,6 +10,8 @@
 {{template "navbar" . }}
 {{end}}
 {{$HomeInfo := .Info}}
+{{$ChainParams := .ChainParams}}
+{{$Premine := .Premine}}
 <div class="container" data-controller="supply" data-supply-chain-type="{{$ChainType}}"
    data-supply-target-time="{{.TargetTime}}" data-supply-ticket-time="{{.TicketTargetTime}}">
    {{if ne $ChainType "dcr"}}
@@ -203,7 +205,16 @@
                <div class="hp-explore__cards-content-1">
                   {{if eq $ChainType "dcr"}}
                   <!-- Start Chain Charts Card -->
-                  <div class="explore-card-wrap" data-controller="charts" data-charts-supply-page="true">
+                  <div class="explore-card-wrap" data-controller="charts" data-charts-supply-page="true"
+                  data-charts-svh="{{$ChainParams.StakeValidationHeight}}"
+                  data-charts-bs="{{$ChainParams.BaseSubsidy}}"
+                  data-charts-mul-subsidy="{{$ChainParams.MulSubsidy}}"
+                  data-charts-div-subsidy="{{$ChainParams.DivSubsidy}}"
+                  data-charts-sri="{{$ChainParams.SubsidyReductionInterval}}"
+                  data-charts-pos="{{$ChainParams.StakeRewardProportion}}"
+                  data-charts-premine="{{$Premine}}"
+                  data-charts-block-time="{{$ChainParams.TargetTimePerBlock.Seconds}}"
+                  >
                      <div class="explore-card-content">
                         <a href="/charts" class="link-to-subpage">
                            <div class="row">
