@@ -882,16 +882,14 @@ export default class extends Controller {
         nightModeOptions(params.nightMode)
       )
     }
-    if (!this.isHomepage) {
-      // add space to chart selector
-      this.chartSelectTargets.forEach((chartSelector) => {
-        if (isMobile()) {
-          return
-        }
+    const _this = this
+    // add space to chart selector
+    this.chartSelectTargets.forEach((chartSelector) => {
+      if (!_this.isHomepage || isMobile()) {
         const currentWidth = parseInt(window.getComputedStyle(chartSelector).width, 10)
         chartSelector.style.width = (currentWidth + 25) + 'px'
-      })
-    }
+      }
+    })
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
   }
 
