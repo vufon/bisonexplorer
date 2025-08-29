@@ -112,7 +112,6 @@ function addLegendEntry (div, series) {
 }
 
 function defaultYFormatter (div, data) {
-  addLegendEntry(div, data.series[0])
   if (!data.series || data.series.length === 0) return
   data.series.forEach(s => {
     if (s.y == null || isNaN(s.y)) return
