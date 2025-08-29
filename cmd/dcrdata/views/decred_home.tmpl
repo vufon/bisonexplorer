@@ -2451,17 +2451,24 @@
                      <div
                         class="col-xs-24 col-md-16 col-lg-17 col-xl-20 d-none d-md-flex justify-content-center ai-center">
                         <span class="fs-22 fw-600" data-charts-target="chartTitleName"></span>
+                        <div data-charts-target="chartDescription" data-tooltip=""
+                           class="d-flex ai-center cursor-pointer info-label position-relative ms-2">
+                           <span>
+                              <span class="dcricon-info fs15" style="color: #e6ad2b;">
+                              </span>
+                           </span>
+                           <span class="ms-2 fs13" style="color: #97772e;">About</span>
+                        </div>
                      </div>
                   </div>
                </a>
                <div class="px-2 px-md-3 py-2 h-90 new-home-card-content">
                   <div class="row py-2 h-100">
                      <div class="col-xs-24 col-sm-24 col-md-8 col-lg-7 col-xl-4 align-center px-0 pe-md-3">
-
                         <div class="d-flex d-md-none flex-shrink-1 align-items-top flex-wrap">
                            <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4">
                               <label>Chart</label>
-                              <select class="chart-box d-inline-flex mobile-mode" data-charts-target="chartSelect"
+                              <select class="chart-box d-inline-flex mobile-mode chart-selector-bg" data-charts-target="chartSelect"
                                  data-action="charts#selectChart">
                                  <optgroup label="Staking">
                                     <option value="ticket-price">Ticket Price</option>
@@ -2577,7 +2584,8 @@
                                           <span class="checkmark tickets-bought"></span>
                                        </label>
                                     </li>
-                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem" data-charts="coin-supply">
+                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem"
+                                       data-charts="coin-supply">
                                        <label class="customcheck mx-2 d-inline-flex">Mixed Coins
                                           <input type="checkbox" class="mobile-mode"
                                              data-action="click->charts#setVisibility"
@@ -2585,10 +2593,11 @@
                                           <span class="checkmark total-mixed"></span>
                                        </label>
                                     </li>
-                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem" data-charts="coin-age">
+                                    <li class="nav-item mobile-mode" data-charts-target="vSelectorItem"
+                                       data-charts="coin-age">
                                        <label class="customcheck mx-2 d-inline-flex">Market Price
-                                          <input type="checkbox" class="mobile-mode" checked data-action="click->charts#setVisibility"
-                                             data-charts-target="marketPrice">
+                                          <input type="checkbox" class="mobile-mode" checked
+                                             data-action="click->charts#setVisibility" data-charts-target="marketPrice">
                                           <span class="checkmark total-mixed"></span>
                                        </label>
                                     </li>
@@ -2618,7 +2627,7 @@
                            class="d-none d-md-block chart-control-wrapper chart-filter-tools mb-1 chart-select-option">
                            <div class="chart-control-label">CHART</div>
                            <div class="chart-control">
-                              <select id="selectBox" class="form-control chart-form-control"
+                              <select id="selectBox" class="form-control chart-form-control cursor-pointer"
                                  data-charts-target="chartSelect" data-action="charts#selectChart">
                                  <optgroup label="Staking">
                                     <option value="ticket-price">Ticket Price</option>
@@ -2851,7 +2860,7 @@
                                  </div>
                               </div>
                            </div>
-                           <div class="d-flex justify-content-center legend-wrapper">
+                           <div class="legend-wrapper">
                               <div class="legend d-flex align-items-center" data-charts-target="labels">
                                  <div class="pe-3" data-charts-target="legendEntry">
                                     <div class="dygraph-legend-line" data-charts-target="legendMarker">

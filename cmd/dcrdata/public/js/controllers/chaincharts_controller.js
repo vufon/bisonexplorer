@@ -113,10 +113,21 @@ function addLegendEntry (div, series) {
 
 function defaultYFormatter (div, data) {
   addLegendEntry(div, data.series[0])
+  if (!data.series || data.series.length === 0) return
+  data.series.forEach(s => {
+    if (s.y == null || isNaN(s.y)) return
+    addLegendEntry(div, s) // default: show raw value
+  })
 }
 
 function customYFormatter (fmt) {
-  return (div, data) => addLegendEntryFmt(div, data.series[0], fmt)
+  return (div, data) => {
+    if (!data.series || data.series.length === 0) return
+    data.series.forEach(s => {
+      if (s.y == null || isNaN(s.y)) return
+      addLegendEntryFmt(div, s, y => fmt(s.y))
+    })
+  }
 }
 
 function legendFormatter (data) {
@@ -259,6 +270,30 @@ function mapDygraphOptions (data, labelsVal, isDrawPoint, yLabel, labelsMG, labe
   }, nightModeOptions(darkEnabled()))
 }
 
+function formatYLegend (g, seriesName, yval, rowIdx, colIdx) {
+  if (yval == null || isNaN(yval)) return '–'
+
+  const props = g.getPropertiesForSeries(seriesName) // {axis:1|2, column, color,…}
+  const axisKey = props.axis === 2 ? 'y2' : 'y'
+  const axes = g.getOption('axes') || {}
+  const axisOpts = axes[axisKey] || {}
+
+  // Priority: valueFormatter of series → y axis → global
+  const vf =
+    g.getOption('valueFormatter', seriesName) ||
+    axisOpts.valueFormatter ||
+    g.getOption('valueFormatter')
+
+  if (typeof vf === 'function') {
+    // opts(name) like spec of Dygraphs
+    const optsFn = (name) =>
+      (axisOpts && axisOpts[name] !== undefined) ? axisOpts[name] : g.getOption(name)
+    // Main signals: (num_or_millis, opts, seriesName, dygraph, row, col)
+    return vf(yval, optsFn, seriesName, g, rowIdx, colIdx)
+  }
+  return String(yval)
+}
+
 export default class extends Controller {
   static get targets () {
     return [
@@ -279,8 +314,8 @@ export default class extends Controller {
       'modeOption',
       'rawDataURL',
       'chartName',
-      'chartTitleName'
-
+      'chartTitleName',
+      'chartDescription'
     ]
   }
 
@@ -344,6 +379,14 @@ export default class extends Controller {
         nightModeOptions(params.nightMode)
       )
     }
+    const _this = this
+    // add space to chart selector
+    this.chartSelectTargets.forEach((chartSelector) => {
+      if (!_this.isHomepage || isMobile()) {
+        const currentWidth = parseInt(window.getComputedStyle(chartSelector).width, 10)
+        chartSelector.style.width = (currentWidth + 25) + 'px'
+      }
+    })
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
   }
 
@@ -356,6 +399,8 @@ export default class extends Controller {
   }
 
   drawInitialGraph () {
+    const legendWrapper = document.querySelector('.legend-wrapper')
+    const _this = this
     const options = {
       axes: { y: { axisLabelWidth: 50 }, y2: { axisLabelWidth: 55 } },
       labels: ['Date', 'Ticket Price', 'Tickets Bought'],
@@ -374,7 +419,66 @@ export default class extends Controller {
       ylabel: 'Ticket Price',
       y2label: 'Tickets Bought',
       labelsUTC: true,
-      axisLineColor: '#C4CBD2'
+      axisLineColor: '#C4CBD2',
+      highlightCallback: function (e, x, points) {
+        legendWrapper.style.display = 'block'
+        legendWrapper.innerHTML = legendFormatter({
+          x: x,
+          xHTML: Dygraph.dateString_(new Date(x)),
+          dygraph: _this.chartsView,
+          points: points,
+          series: points.map(p => {
+            const g = _this.chartsView
+            const props = g.getPropertiesForSeries(p.name) // get corectly axis & column
+            const color = g.getOption('color', p.name) || props.color
+
+            return {
+              label: p.name,
+              y: p.yval,
+              yHTML: formatYLegend(g, p.name, p.yval, p.idx, props.column),
+              color: color,
+              dashHTML: `<div class="dygraph-legend-line"
+           style="border-bottom-color:${color};
+                  border-bottom-style:solid;
+                  border-bottom-width:4px;
+                  display:inline-block;
+                  margin-right:4px;"></div>`,
+              labelHTML: p.name
+            }
+          })
+        })
+
+        const rect = _this.chartsView.graphDiv.getBoundingClientRect()
+        const relX = e.clientX - rect.left
+        const relY = e.clientY - rect.top
+
+        let left = relX - legendWrapper.offsetWidth - 10
+        let top = relY - 5
+
+        // Flip horizontally if left edge touched (with viewport)
+        if (left + rect.left < 0) {
+          left = relX + 10
+        }
+        // Flip horizontally if right edge touched (with viewport)
+        if (left + rect.left + legendWrapper.offsetWidth > window.innerWidth) {
+          left = relX - legendWrapper.offsetWidth - 10
+        }
+
+        // Flip vertically if touching the ceiling
+        if (top + rect.top < 0) {
+          top = relY + 10
+        }
+        // Flip vertically if bottomed out
+        if (top + rect.top + legendWrapper.offsetHeight > window.innerHeight) {
+          top = relY - legendWrapper.offsetHeight - 10
+        }
+
+        legendWrapper.style.left = left + 'px'
+        legendWrapper.style.top = top + 'px'
+      },
+      unhighlightCallback: function () {
+        legendWrapper.style.display = 'none'
+      }
     }
 
     this.chartsView = new Dygraph(
@@ -382,6 +486,10 @@ export default class extends Controller {
       [[1, 1, 5], [2, 5, 11]],
       options
     )
+    const graphDiv = _this.chartsView.graphDiv
+    graphDiv.addEventListener('mouseleave', () => {
+      legendWrapper.style.display = 'none'
+    })
     this.setSelectedChart(this.settings.chart)
 
     if (this.settings.axis) this.setAxis(this.settings.axis) // set first
@@ -540,6 +648,7 @@ export default class extends Controller {
     const selection = this.settings.chart = selectChart
     this.chartNameTarget.textContent = this.getChartName(selectChart)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
+    this.chartDescriptionTarget.dataset.tooltip = this.getChartDescriptionTooltip(selection)
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
@@ -593,6 +702,52 @@ export default class extends Controller {
       this.plotGraph(selection, chartResponse)
     } else {
       this.chartWrapperTarget.classList.remove('loading')
+    }
+  }
+
+  getChainName () {
+    switch (this.chainType) {
+      case 'btc':
+        return 'Bitcoin'
+      case 'ltc':
+        return 'Litecoin'
+      case 'dcr':
+        return 'Decred'
+      default:
+        return 'Unknown'
+    }
+  }
+
+  getChartDescriptionTooltip (chartType) {
+    switch (chartType) {
+      case 'block-size':
+        return `Displays the historical average size of ${this.getChainName()} blocks, reflecting how much transaction data each block contains.`
+      case 'blockchain-size':
+        return `Shows the total size of the ${this.getChainName()} blockchain, representing cumulative data stored over time.`
+      case 'tx-count':
+        return `Displays the number of transactions recorded on the ${this.getChainName()} network over time.`
+      case 'tx-per-block':
+        return `Average number of transactions per ${this.getChainName()} block over time.`
+      case 'mined-blocks':
+        return `Number of ${this.getChainName()} blocks successfully mined over time.`
+      case 'mempool-txs':
+        return `Number of unconfirmed ${this.getChainName()} transactions waiting in the mempool over time.`
+      case 'mempool-size':
+        return `Total size of unconfirmed ${this.getChainName()} transactions in the mempool over time.`
+      case 'address-number':
+        return `Total number of unique ${this.getChainName()} addresses over time.`
+      case 'pow-difficulty':
+        return `${this.getChainName()} mining difficulty (Proof-of-Work): a measure of how hard it is to find a valid block over time.`
+      case 'coin-supply':
+        return `Shows the total circulating supply of ${this.getChainName()} coins over time.`
+      case 'fees':
+        return `Total transaction fees paid to ${this.getChainName()} miners over time.`
+      case 'duration-btw-blocks':
+        return `Shows the average time interval between consecutive ${this.getChainName()} blocks over time.`
+      case 'hashrate':
+        return `Total computational power securing the ${this.getChainName()} network over time.`
+      default:
+        return ''
     }
   }
 

@@ -192,6 +192,7 @@
   bottom: 0.5ex;
   padding-left: 1em;
   height: 4px;
+  width: 15px;
   border-bottom-width: 4px;
   border-bottom-style: solid;
 }
@@ -409,9 +410,13 @@ body.darkBG .chartview .dygraph-y2label {
 
 .legend-wrapper {
   position: absolute;
-  top: -2.5rem;
-  left: 100px;
-  right: 20px;
+  pointer-events: none;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: none;
 }
 
 .legend {
@@ -803,4 +808,20 @@ body.darkBG {
   background-position: right 0.5rem center;
   background-size: 1.2rem;
   min-width: 90px;
+}
+
+.info-label {
+  padding: 2px 5px;
+  background-color: rgb(255 184 0 / 15%);
+  border-radius: 5px;
+}
+
+.chart-title {
+  color: #545454;
+}
+
+.chart-selector-bg {
+  background:
+    var(--arrow-icon) no-repeat right 0.8em center/1.4em,
+    linear-gradient(to left, var(--arrow-bg) 3em, var(--select-bg) 3em);
 }

@@ -543,11 +543,12 @@
 
 /* Start customize chart */
 .chart-control-wrapper {
-  border-radius: 10px;
+  border-radius: 5px;
   border: 1px solid #e6eaed;
 
   .chart-control {
-    border-radius: 10px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
     color: #78828d;
   }
 }
@@ -858,33 +859,10 @@
   }
 }
 
-.main-container.new-homepage {
-  position: relative;
-  margin-bottom: 60px;
-  border-top: 2px solid #e9ebed;
-}
-
 .hp-explore-wrap {
   background-color: #fff;
   margin-top: -21px;
   padding-bottom: 70px;
-}
-
-.hp-explore-wrap.homepage-page {
-  margin-top: 0;
-  padding-bottom: 0;
-}
-
-.decred-sub-page {
-  margin-top: 120px;
-}
-
-.mutilchain-sub-page {
-  .top-nav {
-    height: 105px;
-  }
-
-  margin-top: 120px;
 }
 
 .top-page {
@@ -917,6 +895,91 @@
   .search-bttn {
     width: 50px;
   }
+
+  [data-tooltip]:hover::before {
+    content: attr(data-tooltip);
+    font-size: 0.8rem;
+    position: absolute;
+    z-index: 21;
+    top: 35px;
+    bottom: auto;
+    background-color: #b6dbf9;
+    padding: 0.4em 1em;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    left: 50%;
+  }
+
+  [data-tooltip]:hover::after {
+    content: "";
+    z-index: 20;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-top: unset;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid #b6dbf9;
+    top: 25px;
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+.main-container.new-homepage {
+  position: relative;
+  margin-bottom: 60px;
+  border-top: 2px solid #e9ebed;
+
+  [data-tooltip]:hover::before {
+    content: attr(data-tooltip);
+    font-size: 0.8rem;
+    position: absolute;
+    z-index: 21;
+    top: 35px;
+    bottom: auto;
+    background-color: #b6dbf9;
+    padding: 0.4em 1em;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    left: 50%;
+  }
+
+  [data-tooltip]:hover::after {
+    content: "";
+    z-index: 20;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-top: unset;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid #b6dbf9;
+    top: 25px;
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+.hp-explore-wrap.homepage-page {
+  margin-top: 0;
+  padding-bottom: 0;
+}
+
+.decred-sub-page {
+  margin-top: 120px;
+}
+
+.mutilchain-sub-page {
+  .top-nav {
+    height: 105px;
+  }
+
+  margin-top: 120px;
 }
 
 .explore-card__header {
@@ -2065,4 +2128,8 @@ th:hover .sort-icon {
 .top-left-menu {
   display: flex;
   gap: 20px;
+}
+
+.w-200px {
+  width: 200px;
 }
