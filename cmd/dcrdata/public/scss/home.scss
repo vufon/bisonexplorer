@@ -859,6 +859,75 @@
   }
 }
 
+.hp-explore-wrap {
+  background-color: #fff;
+  margin-top: -21px;
+  padding-bottom: 70px;
+}
+
+.top-page {
+  .top-nav {
+    background-image: url("/images/banner-light.svg");
+    background-position: right 5% top 0;
+    background-repeat: no-repeat;
+    position: relative;
+    height: 300px;
+  }
+
+  .main-container {
+    position: relative;
+  }
+
+  .hp-explore-wrap {
+    margin-top: 0 !important;
+  }
+
+  .search-form {
+    height: 50px;
+    max-width: 600px;
+  }
+
+  .top-search {
+    padding: 8px 10px;
+    font-size: 16px;
+  }
+
+  .search-bttn {
+    width: 50px;
+  }
+
+  [data-tooltip]:hover::before {
+    content: attr(data-tooltip);
+    font-size: 0.8rem;
+    position: absolute;
+    z-index: 21;
+    top: 35px;
+    bottom: auto;
+    background-color: #b6dbf9;
+    padding: 0.4em 1em;
+    border-radius: 3px;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    left: 50%;
+  }
+
+  [data-tooltip]:hover::after {
+    content: "";
+    z-index: 20;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-top: unset;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid #b6dbf9;
+    top: 25px;
+    bottom: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
 .main-container.new-homepage {
   position: relative;
   margin-bottom: 60px;
@@ -896,12 +965,6 @@
   }
 }
 
-.hp-explore-wrap {
-  background-color: #fff;
-  margin-top: -21px;
-  padding-bottom: 70px;
-}
-
 .hp-explore-wrap.homepage-page {
   margin-top: 0;
   padding-bottom: 0;
@@ -917,38 +980,6 @@
   }
 
   margin-top: 120px;
-}
-
-.top-page {
-  .top-nav {
-    background-image: url("/images/banner-light.svg");
-    background-position: right 5% top 0;
-    background-repeat: no-repeat;
-    position: relative;
-    height: 300px;
-  }
-
-  .main-container {
-    position: relative;
-  }
-
-  .hp-explore-wrap {
-    margin-top: 0 !important;
-  }
-
-  .search-form {
-    height: 50px;
-    max-width: 600px;
-  }
-
-  .top-search {
-    padding: 8px 10px;
-    font-size: 16px;
-  }
-
-  .search-bttn {
-    width: 50px;
-  }
 }
 
 .explore-card__header {
@@ -2097,4 +2128,8 @@ th:hover .sort-icon {
 .top-left-menu {
   display: flex;
   gap: 20px;
+}
+
+.w-200px {
+  width: 200px;
 }

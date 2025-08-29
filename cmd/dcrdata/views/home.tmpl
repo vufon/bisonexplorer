@@ -447,17 +447,28 @@
          <section>
             <!-- Start Chain Charts -->
             <div class="hp-explore__cards-content-1 mt-3">
-               <div class="explore-card-wrap" data-controller="homecharts" {{range .ChainListTargetTimePerBlock}}
-                  data-homecharts-{{.ChainType}}-blocktime="{{.TargetTimePerBlock}}" {{end}}>
+               <div class="explore-card-wrap" 
+                  data-controller="homecharts"
+                  data-homecharts-tps="{{.TargetPoolSize}}"
+                  data-homecharts-svh="{{.ChainParams.StakeValidationHeight}}" 
+                  data-homecharts-pos="{{.ChainParams.StakeRewardProportion}}"
+                  data-homecharts-premine="{{.Premine}}" 
+                  data-homecharts-bs="{{.ChainParams.BaseSubsidy}}"
+                  data-homecharts-sri="{{.ChainParams.SubsidyReductionInterval}}" 
+                  data-homecharts-mul-subsidy="{{.ChainParams.MulSubsidy}}"
+                  data-homecharts-div-subsidy="{{.ChainParams.DivSubsidy}}"
+                  {{range .ChainListTargetTimePerBlock}}
+                     data-homecharts-{{.ChainType}}-blocktime="{{.TargetTimePerBlock}}" 
+                  {{end}}>
                   <div class="explore-card-content">
                      <a href="#" id="chainChartHeader" data-turbolinks="false" class="link-to-subpage">
                         <div class="explore-card__header d-flex align-items-center position-relative px-4">
-                           <div class="d-flex align-items-center">
+                           <div class="d-flex align-items-center w-200px">
                               <span class="homeicon-chart explore-card__header__logo me-3" alt="Charts route"
                                  loading="lazy"></span>
                               <h5 class="explore-card__header__text__name mb-0">Chain Charts</h5>
                            </div>
-                           <div class="position-absolute top-50 start-50 translate-middle">
+                           <div class="d-flex justify-content-center align-items-center w-100">
                               <span class="fs-22 fw-600"
                                  data-homecharts-target="chartTitleName"></span>
                               <div data-homecharts-target="chartDescription" data-tooltip=""

@@ -418,6 +418,7 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	chainStrList := make([]string, 0)
 	homeChainInfoList := make([]MutilchainHomeInfo, 0)
 	paramsList := make([]*types.ChainParamData, 0)
+	var tpSize uint32
 	for _, chainType := range chainList {
 		disabled, exist := exp.ChainDisabledMap[chainType]
 		if !exist || disabled {
@@ -470,6 +471,7 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			homeInfo = exp.pageData.HomeInfo
 			homeInfo.TotalTransactions = exp.pageData.SummaryInfo.TotalTransactions
 			volume24h = allXcState.Volume
+			tpSize = exp.pageData.HomeInfo.PoolInfo.Target
 			exp.pageData.RUnlock()
 		}
 
@@ -521,6 +523,8 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		XcState                     *exchanges.ExchangeBotState
 		ActiveChain                 string
 		ChainListTargetTimePerBlock []TargetTimeData
+		Premine                     int64
+		TargetPoolSize              uint32
 	}{
 		CommonPageData:              commonData,
 		HomeInfoList:                homeChainInfoList,
@@ -528,6 +532,8 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		XcState:                     exp.getExchangeState(),
 		ActiveChain:                 strings.Join(chainStrList, ","),
 		ChainListTargetTimePerBlock: targetsTimeArr,
+		Premine:                     exp.premine,
+		TargetPoolSize:              tpSize,
 	})
 
 	if err != nil {
