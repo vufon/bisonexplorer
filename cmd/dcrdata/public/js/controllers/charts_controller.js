@@ -1393,15 +1393,17 @@ export default class extends Controller {
 
     // create bubble first time
     let bubble = target.querySelector('.ctooltip-bubble')
+    const ctooltip = target.getAttribute('data-ctooltip') ||
+                       target.getAttribute('data-tooltip') ||
+                       ''
     if (!bubble) {
       bubble = document.createElement('div')
       bubble.className = 'ctooltip-bubble'
-      bubble.textContent = target.getAttribute('data-ctooltip') ||
-                       target.getAttribute('data-tooltip') ||
-                       ''
+      bubble.textContent = ctooltip
       target.appendChild(bubble)
+    } else {
+      bubble.textContent = ctooltip
     }
-
     // close difference & toggle current
     this.element.querySelectorAll(`${SELECTOR}.${OPEN}`).forEach(el => { if (el !== target) el.classList.remove(OPEN) })
     target.classList.toggle(OPEN)
