@@ -200,6 +200,46 @@
   white-space: nowrap;
 }
 
+[data-ctooltip] {
+  position: relative;
+  cursor: pointer;
+
+  .ctooltip-bubble {
+    position: absolute;
+    z-index: 21;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    background-color: #b6dbf9;
+    padding: 0.4em 1em;
+    border-radius: 3px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+    pointer-events: none; // không chặn click ra ngoài
+
+    // mũi tên
+    &::before {
+      content: "";
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 10px;
+      height: 10px;
+      background: #b6dbf9;
+      z-index: -1; // nằm dưới bubble 1 chút
+    }
+  }
+
+  &.is-open > .ctooltip-bubble {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
 [data-tooltip]:hover::before {
   content: attr(data-tooltip);
   font-size: 0.8rem;

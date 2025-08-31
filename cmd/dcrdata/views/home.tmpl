@@ -461,7 +461,7 @@
                      data-homecharts-{{.ChainType}}-blocktime="{{.TargetTimePerBlock}}" 
                   {{end}}>
                   <div class="explore-card-content">
-                     <a href="#" id="chainChartHeader" data-turbolinks="false" class="link-to-subpage">
+                     <a href="#" id="chainChartHeader" data-turbolinks="false" class="link-to-subpage" data-action="click->homecharts#chainChartHeaderClick">
                         <div class="explore-card__header d-flex align-items-center position-relative px-4">
                            <div class="d-flex align-items-center w-200px">
                               <span class="homeicon-chart explore-card__header__logo me-3" alt="Charts route"
@@ -471,10 +471,11 @@
                            <div class="d-flex justify-content-center align-items-center w-100">
                               <span class="fs-22 fw-600"
                                  data-homecharts-target="chartTitleName"></span>
-                              <div data-homecharts-target="chartDescription" data-tooltip=""
+                              <div data-homecharts-target="chartDescription" data-ctooltip=""
+                                 data-action="click->homecharts#toggleChartDescription"
                                  class="d-flex ai-center cursor-pointer info-label position-relative ms-2">
                                  <span>
-                                    <span class="dcricon-info fs15" style="color: #e6ad2b;">
+                                    <span class="dcricon-question fs15" style="color: #e6ad2b;">
                                     </span>
                                  </span>
                                  <span class="ms-2 fs13" style="color: #97772e;">About</span>

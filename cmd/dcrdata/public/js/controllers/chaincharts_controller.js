@@ -387,6 +387,8 @@ export default class extends Controller {
       }
     })
     globalEventBus.on('NIGHT_MODE', this.processNightMode)
+    this._onDocClick = this.onDocClick.bind(this)
+    this._onKeydown = this.onKeydown.bind(this)
   }
 
   disconnect () {
@@ -395,7 +397,58 @@ export default class extends Controller {
       this.chartsView.destroy()
     }
     selectedChart = null
+    document.removeEventListener('click', this._onDocClick)
+    document.removeEventListener('keydown', this._onKeydown)
   }
+
+  toggleChartDescription (e) {
+    const SELECTOR = '[data-ctooltip]'
+    const OPEN = 'is-open'
+    const trigger = e.currentTarget
+    const target = trigger.matches(SELECTOR) ? trigger : trigger.closest(SELECTOR) || trigger
+
+    // create bubble first time
+    let bubble = target.querySelector('.ctooltip-bubble')
+    if (!bubble) {
+      bubble = document.createElement('div')
+      bubble.className = 'ctooltip-bubble'
+      bubble.textContent = target.getAttribute('data-ctooltip') ||
+        target.getAttribute('data-tooltip') ||
+        ''
+      target.appendChild(bubble)
+    }
+
+    // close difference & toggle current
+    this.element.querySelectorAll(`${SELECTOR}.${OPEN}`).forEach(el => { if (el !== target) el.classList.remove(OPEN) })
+    target.classList.toggle(OPEN)
+
+    const anyOpen = this.element.querySelector(`${SELECTOR}.${OPEN}`)
+    if (anyOpen) {
+      this._onDocClick ||= this.onDocClick.bind(this)
+      this._onKeydown ||= this.onKeydown.bind(this)
+      document.addEventListener('click', this._onDocClick)
+      document.addEventListener('keydown', this._onKeydown)
+    } else {
+      document.removeEventListener('click', this._onDocClick)
+      document.removeEventListener('keydown', this._onKeydown)
+    }
+  }
+
+  onDocClick (e) {
+    if (!this.element.contains(e.target)) return this.closeAll()
+    // if click out any item [data-ctooltip] in controller scope -> close all
+    if (!e.target.closest('[data-ctooltip]')) this.closeAll()
+  }
+
+  closeAll () {
+    this.element
+      .querySelectorAll(`${'[data-ctooltip]'}.${'is-open'}`)
+      .forEach(el => el.classList.remove('is-open'))
+    document.removeEventListener('click', this._onDocClick)
+    document.removeEventListener('keydown', this._onKeydown)
+  }
+
+  onKeydown (e) { if (e.key === 'Escape') this.closeAll() }
 
   drawInitialGraph () {
     const legendWrapper = document.querySelector('.legend-wrapper')
@@ -507,6 +560,12 @@ export default class extends Controller {
       return ogLegendGenerator(g, x, pts, w, row)
     }
     this.selectChart()
+  }
+
+  chainChartHeaderClick (e) {
+    if (e.target.closest('[data-chaincharts-target="chartDescription"]')) {
+      e.preventDefault()
+    }
   }
 
   plotGraph (chartName, data) {
@@ -647,7 +706,7 @@ export default class extends Controller {
     const selection = this.settings.chart = selectChart
     this.chartNameTarget.textContent = this.getChartName(selectChart)
     this.chartTitleNameTarget.textContent = this.chartNameTarget.textContent
-    this.chartDescriptionTarget.dataset.tooltip = this.getChartDescriptionTooltip(selection)
+    this.chartDescriptionTarget.dataset.ctooltip = this.getChartDescriptionTooltip(selection)
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {

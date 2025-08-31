@@ -568,9 +568,15 @@ func MutilchainBlockSizeChart(charts *MutilchainChartData, bin binLevel, axis ax
 			}, seed)
 		default:
 			if charts.UseAPI {
+				timeArray := newChartUints(0)
+				blockSizeArray := newChartUints(0)
+				if charts.APIBlockSize != nil {
+					timeArray = charts.APIBlockSize.Time
+					blockSizeArray = charts.APIBlockSize.BlockSize
+				}
 				return encode(lengtherMap{
-					timeKey: charts.APIBlockSize.Time,
-					sizeKey: charts.APIBlockSize.BlockSize,
+					timeKey: timeArray,
+					sizeKey: blockSizeArray,
 				}, seed)
 			}
 			return encode(lengtherMap{
@@ -606,9 +612,15 @@ func MutilchainBlockchainSizeChart(charts *MutilchainChartData, bin binLevel, ax
 			}, seed)
 		default:
 			if charts.UseAPI {
+				timeArray := newChartUints(0)
+				blockchainSizeArray := newChartUints(0)
+				if charts.APIBlockchainSize != nil {
+					timeArray = charts.APIBlockchainSize.Time
+					blockchainSizeArray = charts.APIBlockchainSize.APIBlockchainSize
+				}
 				return encode(lengtherMap{
-					timeKey: charts.APIBlockchainSize.Time,
-					sizeKey: charts.APIBlockchainSize.APIBlockchainSize,
+					timeKey: timeArray,
+					sizeKey: blockchainSizeArray,
 				}, seed)
 			}
 			return encode(lengtherMap{
@@ -676,9 +688,15 @@ func MutilchainCoinSupplyChart(charts *MutilchainChartData, bin binLevel, axis a
 			}, seed)
 		default:
 			if charts.UseAPI {
+				timeArray := newChartUints(0)
+				coinSupplyArray := newChartUints(0)
+				if charts.APICoinSupply != nil {
+					timeArray = charts.APICoinSupply.Time
+					coinSupplyArray = charts.APICoinSupply.NewAtoms
+				}
 				return encode(lengtherMap{
-					timeKey:   charts.APICoinSupply.Time,
-					supplyKey: charts.APICoinSupply.NewAtoms,
+					timeKey:   timeArray,
+					supplyKey: coinSupplyArray,
 				}, seed)
 			}
 			return encode(lengtherMap{
@@ -782,9 +800,15 @@ func MutilchainDifficultyChart(charts *MutilchainChartData, bin binLevel, axis a
 		}, seed)
 	default:
 		if charts.UseAPI {
+			timeArray := newChartUints(0)
+			difficultyArray := newChartFloats(0)
+			if charts.APIDifficulty != nil {
+				timeArray = charts.APIDifficulty.Time
+				difficultyArray = charts.APIDifficulty.Difficulty
+			}
 			return encode(lengtherMap{
-				diffKey: charts.APIDifficulty.Difficulty,
-				timeKey: charts.APIDifficulty.Time,
+				diffKey: difficultyArray,
+				timeKey: timeArray,
 			}, seed)
 		}
 		return encode(lengtherMap{
@@ -805,9 +829,15 @@ func MutilchainHashRateChart(charts *MutilchainChartData, bin binLevel, axis axi
 		}, seed)
 	default:
 		if charts.UseAPI {
+			timeArray := newChartUints(0)
+			hashrateArray := newChartFloats(0)
+			if charts.APIHashrate != nil {
+				timeArray = charts.APIHashrate.Time
+				hashrateArray = charts.APIHashrate.Hashrate
+			}
 			return encode(lengtherMap{
-				timeKey: charts.APIHashrate.Time,
-				rateKey: charts.APIHashrate.Hashrate,
+				timeKey: timeArray,
+				rateKey: hashrateArray,
 			}, seed)
 		}
 		return encode(lengtherMap{
@@ -841,9 +871,15 @@ func MutilchainTxCountChart(charts *MutilchainChartData, bin binLevel, axis axis
 			}, seed)
 		default:
 			if charts.UseAPI {
+				timeArray := newChartUints(0)
+				txcountArray := newChartUints(0)
+				if charts.APITxTotal != nil {
+					timeArray = charts.APITxTotal.Time
+					txcountArray = charts.APITxTotal.TxCount
+				}
 				return encode(lengtherMap{
-					timeKey:  charts.APITxTotal.Time,
-					countKey: charts.APITxTotal.TxCount,
+					timeKey:  timeArray,
+					countKey: txcountArray,
 				}, seed)
 			}
 			return encode(lengtherMap{
@@ -919,9 +955,15 @@ func MutilchainFeesChart(charts *MutilchainChartData, bin binLevel, axis axisTyp
 			}, seed)
 		default:
 			if charts.UseAPI {
+				timeArray := newChartUints(0)
+				feesArray := newChartUints(0)
+				if charts.APITxFeeAvg != nil {
+					timeArray = charts.APITxFeeAvg.Time
+					feesArray = charts.APITxFeeAvg.Fees
+				}
 				return encode(lengtherMap{
-					timeKey: charts.APITxFeeAvg.Time,
-					feesKey: charts.APITxFeeAvg.Fees,
+					timeKey: timeArray,
+					feesKey: feesArray,
 				}, seed)
 			}
 			return encode(lengtherMap{

@@ -627,7 +627,8 @@ export default class extends Controller {
     this.isHomepage = !window.location.href.includes('/market')
     this.chainType = this.data.get('chainType')
     if (!this.chainType || this.chainType === '') {
-      this.chainType = 'dcr'
+      // set default to max volume blockchain
+      this.chainType = 'btc'
     }
     globalChainType = this.chainType
     this.setExchaneLinks()

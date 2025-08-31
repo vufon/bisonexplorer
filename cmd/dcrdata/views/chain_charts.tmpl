@@ -11,7 +11,6 @@
             <span class="homeicon-tags me-1"></span>
             <span class="link-underline">Homepage</span>
          </a>
-         <a href="/chain" class="breadcrumbs__item item-link">Blockchains</a>
          <a href="/{{.ChainType}}" class="breadcrumbs__item item-link">{{chainName .ChainType}}</a>
          <span class="breadcrumbs__item is-active">Charts</span>
       </nav>
@@ -198,10 +197,11 @@
          <div class="d-flex justify-content-center ai-center">
             <img src="/images/{{.ChainType}}-icon.png" width="23" height="23" class="me-2">
             <p class="fs-20 fw-600 chart-title" data-chaincharts-target="chartTitleName"></p>
-            <div data-chaincharts-target="chartDescription" data-tooltip=""
+            <div data-chaincharts-target="chartDescription" data-ctooltip=""
+               data-action="click->chaincharts#toggleChartDescription"
                class="d-flex ai-center cursor-pointer info-label position-relative ms-2">
                <span>
-                  <span class="dcricon-info fs15" style="color: #e6ad2b;">
+                  <span class="dcricon-question fs15" style="color: #e6ad2b;">
                   </span>
                </span>
                <span class="ms-2 fs13" style="color: #97772e;">About</span>

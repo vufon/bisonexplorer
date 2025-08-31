@@ -1239,7 +1239,7 @@
          <section class="h-100 px-2 px-md-3 py-2 py-md-3 chain-chart-section">
             <div class="d-flex ai-center h-100 w-100">
             <div class="new-home-card-container w-100">
-               <a href="/{{$ChainType}}/charts" data-turbolinks="false" class="link-to-subpage">
+               <a href="/{{$ChainType}}/charts" data-turbolinks="false" class="link-to-subpage" data-action="click->chaincharts#chainChartHeaderClick">
                   <div class="row new-home-card-header mx-0">
                      <div class="col-24 col-md-8 col-lg-7 col-xl-4 py-2 px-3 d-flex ai-center">
                         <span class="homeicon-candle explore-card__header__logo" alt="Decred 24h metrics"
@@ -1249,10 +1249,11 @@
                      <div
                         class="col-xs-24 col-md-16 col-lg-17 col-xl-20 d-none d-md-flex justify-content-center ai-center">
                         <span class="fs-22 fw-600" data-chaincharts-target="chartTitleName"></span>
-                        <div data-chaincharts-target="chartDescription" data-tooltip=""
+                        <div data-chaincharts-target="chartDescription" data-ctooltip=""
+                           data-action="click->chaincharts#toggleChartDescription"
                            class="d-flex ai-center cursor-pointer info-label position-relative ms-2">
                            <span>
-                              <span class="dcricon-info fs15" style="color: #e6ad2b;">
+                              <span class="dcricon-question fs15" style="color: #e6ad2b;">
                               </span>
                            </span>
                            <span class="ms-2 fs13" style="color: #97772e;">About</span>
