@@ -154,7 +154,7 @@ export default class extends Controller {
         if (coin === 'dcr') {
           return
         }
-        window.location.href = originUrl + coin
+        window.location.href = originUrl.replaceAll('/decred', '/' + coin)
         return
       }
       if (oldChain === coin) {
