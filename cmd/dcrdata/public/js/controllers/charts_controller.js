@@ -1379,6 +1379,12 @@ export default class extends Controller {
     this.validateZoom()
   }
 
+  chainChartHeaderClick (e) {
+    if (e.target.closest('[data-charts-target="chartDescription"]')) {
+      e.preventDefault()
+    }
+  }
+
   toggleChartDescription (e) {
     const SELECTOR = '[data-ctooltip]'
     const OPEN = 'is-open'
