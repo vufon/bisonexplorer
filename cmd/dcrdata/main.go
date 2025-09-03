@@ -211,6 +211,7 @@ func _main(ctx context.Context) error {
 		AddrCacheRowCap:      rowCap,
 		AddrCacheUTXOByteCap: cfg.AddrCacheUXTOCap,
 		ChainDBDisabled:      cfg.DisableChainDB,
+		SyncChainDBFlag:      cfg.SyncChainDB,
 		OkLinkAPIKey:         cfg.OkLinkKey,
 	}
 
@@ -2012,7 +2013,7 @@ func _main(ctx context.Context) error {
 
 	//end - init rpcclient
 	//Start mutilchain support
-	//CHeck LTC enabled
+	//CHeck LTC enabled. TODO: Remove this, replace by whole syncing from daemon
 	if !ltcDisabled && ltcdClient != nil && !chainDB.ChainDBDisabled {
 		quit := make(chan struct{})
 		// Only accept a single CTRL+C
@@ -2058,6 +2059,10 @@ func _main(ctx context.Context) error {
 		//Finished - LTC Sync handler
 	}
 
+	// handler syncing for LTC blockchain on background
+	if !ltcDisabled && ltcdClient != nil && chainDB.SyncChainDBFlag {
+		go chainDB.SyncLTCWholeChain()
+	}
 	//Check BTC enabled
 	if !btcDisabled && btcdClient != nil && !chainDB.ChainDBDisabled {
 		quit := make(chan struct{})
@@ -2102,6 +2107,9 @@ func _main(ctx context.Context) error {
 		}
 		chainDB.MutilchainEnableDuplicateCheckOnInsert(true, mutilchain.TYPEBTC)
 		//Finished - BTC Sync handler
+	}
+	if !btcDisabled && btcdClient != nil && chainDB.SyncChainDBFlag {
+		go chainDB.SyncBTCWholeChain()
 	}
 	//End mutilchain support
 

@@ -101,10 +101,19 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 	tempIndex := mutilchainquery.MakeIndexBlockTableOnHash(chainType)
 	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+	tempIndex = mutilchainquery.MakeIndexBlockAllTableOnHash(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 	tempIndex = mutilchainquery.MakeIndexBlocksTableOnHeight(chainType)
 	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+	tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnHeight(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 	tempIndex = mutilchainquery.MakeIndexBlocksTableOnTime(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnTime(chainType)
 	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
 	tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)
@@ -119,13 +128,25 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 	tempIndex = mutilchainquery.MakeIndexVinTableOnPrevOuts(chainType)
 	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+	tempIndex = mutilchainquery.MakeIndexVinAllTableOnPrevOuts(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 	tempIndex = mutilchainquery.MakeIndexVinTableOnVins(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexVinAllTableOnVins(chainType)
 	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
 	tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHash(chainType)
 	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+	tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHash(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 	tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHashIdx(chainType)
+	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+	tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHashIdx(chainType)
 	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
 	tempIndex = mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType)
@@ -149,10 +170,19 @@ func GetIndexDescriptionsMap() map[string]string {
 		tempIndex := mutilchainquery.MakeIndexBlockTableOnHash(chainType)
 		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+		tempIndex = mutilchainquery.MakeIndexBlockAllTableOnHash(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 		tempIndex = mutilchainquery.MakeIndexBlocksTableOnHeight(chainType)
 		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+		tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnHeight(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 		tempIndex = mutilchainquery.MakeIndexBlocksTableOnTime(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnTime(chainType)
 		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
 		tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)
@@ -167,13 +197,25 @@ func GetIndexDescriptionsMap() map[string]string {
 		tempIndex = mutilchainquery.MakeIndexVinTableOnPrevOuts(chainType)
 		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+		tempIndex = mutilchainquery.MakeIndexVinAllTableOnPrevOuts(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 		tempIndex = mutilchainquery.MakeIndexVinTableOnVins(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexVinAllTableOnVins(chainType)
 		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
 		tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHash(chainType)
 		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
+		tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHash(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
 		tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHashIdx(chainType)
+		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHashIdx(chainType)
 		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
 
 		tempIndex = mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType)

@@ -4184,7 +4184,7 @@ func retrieveChartBlocks(ctx context.Context, db *sql.DB, charts *cache.ChartDat
 }
 
 func retrieveMutilchainChartBlocks(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData, chainType string) (*sql.Rows, error) {
-	rows, err := db.QueryContext(ctx, mutilchainquery.MakeSelectBlockStats(chainType), charts.Height())
+	rows, err := db.QueryContext(ctx, mutilchainquery.MakeSelectBlockAllStats(chainType), charts.Height())
 	if err != nil {
 		return nil, err
 	}

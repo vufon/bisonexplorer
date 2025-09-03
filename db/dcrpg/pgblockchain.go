@@ -322,6 +322,7 @@ type ChainDB struct {
 	tipMtx                 sync.Mutex
 	tipSummary             *apitypes.BlockDataBasic
 	ChainDBDisabled        bool
+	SyncChainDBFlag        bool
 	OkLinkAPIKey           string
 	BTC20BlocksSyncing     bool
 	LTC20BlocksSyncing     bool
@@ -358,6 +359,8 @@ type ChainDB struct {
 	utxoHistorySync           sync.Mutex
 	multichainBtcMetaInfoSync sync.Mutex
 	multichainLtcMetaInfoSync sync.Mutex
+	btcWholeSyncMtx           sync.Mutex
+	ltcWholeSyncMtx           sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -546,6 +549,7 @@ type ChainDBCfg struct {
 	AddrCacheRowCap, AddrCacheAddrCap int
 	AddrCacheUTXOByteCap              int
 	ChainDBDisabled                   bool
+	SyncChainDBFlag                   bool
 	OkLinkAPIKey                      string
 }
 
@@ -833,6 +837,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		shutdownDcrdata:    shutdown,
 		Client:             client,
 		ChainDBDisabled:    cfg.ChainDBDisabled,
+		SyncChainDBFlag:    cfg.SyncChainDBFlag,
 		OkLinkAPIKey:       cfg.OkLinkAPIKey,
 	}
 	chainDB.lastExplorerBlock.difficulties = make(map[int64]float64)
@@ -5522,6 +5527,11 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 		if err != nil {
 			return err
 		}
+		err = pgb.SyncOneLTCWholeBlock(pgb.LtcClient, msgBlock)
+		if err != nil {
+			log.Errorf("LTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
+			return err
+		}
 	}
 	//update best ltc block
 	pgb.LtcBestBlock.Hash = blockData.Header.Hash
@@ -5560,6 +5570,11 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 		updateAddressesSpendingInfo := true
 		_, _, err := pgb.StoreBTCBlock(pgb.BtcClient, msgBlock, isValid, updateAddressesSpendingInfo)
 		if err != nil {
+			return err
+		}
+		err = pgb.SyncOneBTCWholeBlock(pgb.BtcClient, msgBlock)
+		if err != nil {
+			log.Errorf("BTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
 			return err
 		}
 	} else {
