@@ -322,6 +322,7 @@ type ChainDB struct {
 	tipMtx                 sync.Mutex
 	tipSummary             *apitypes.BlockDataBasic
 	ChainDBDisabled        bool
+	SyncChainDBFlag        bool
 	OkLinkAPIKey           string
 	BTC20BlocksSyncing     bool
 	LTC20BlocksSyncing     bool
@@ -358,6 +359,8 @@ type ChainDB struct {
 	utxoHistorySync           sync.Mutex
 	multichainBtcMetaInfoSync sync.Mutex
 	multichainLtcMetaInfoSync sync.Mutex
+	btcWholeSyncMtx           sync.Mutex
+	ltcWholeSyncMtx           sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -546,6 +549,7 @@ type ChainDBCfg struct {
 	AddrCacheRowCap, AddrCacheAddrCap int
 	AddrCacheUTXOByteCap              int
 	ChainDBDisabled                   bool
+	SyncChainDBFlag                   bool
 	OkLinkAPIKey                      string
 }
 
@@ -833,6 +837,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		shutdownDcrdata:    shutdown,
 		Client:             client,
 		ChainDBDisabled:    cfg.ChainDBDisabled,
+		SyncChainDBFlag:    cfg.SyncChainDBFlag,
 		OkLinkAPIKey:       cfg.OkLinkAPIKey,
 	}
 	chainDB.lastExplorerBlock.difficulties = make(map[int64]float64)
@@ -5522,6 +5527,13 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 		if err != nil {
 			return err
 		}
+		if pgb.SyncChainDBFlag {
+			go pgb.SyncOneLTCWholeBlock(pgb.LtcClient, msgBlock)
+		}
+		// if err != nil {
+		// 	log.Errorf("LTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
+		// 	return err
+		// }
 	}
 	//update best ltc block
 	pgb.LtcBestBlock.Hash = blockData.Header.Hash
@@ -5562,6 +5574,13 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 		if err != nil {
 			return err
 		}
+		if pgb.SyncChainDBFlag {
+			go pgb.SyncOneBTCWholeBlock(pgb.BtcClient, msgBlock)
+		}
+		// if err != nil {
+		// 	log.Errorf("BTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
+		// 	return err
+		// }
 	} else {
 		if !pgb.BTC20BlocksSyncing {
 			go func() {
@@ -5977,42 +5996,53 @@ func (pgb *ChainDB) anonymitySet(charts *cache.ChartData) (*sql.Rows, func(), er
 	nextDataHeight := uint32(len(charts.Blocks.AnonymitySet))
 	targetDataHeight := uint32(len(charts.Blocks.Height) - 1)
 
-	// channel to receive data
-	resultCh := make(chan struct {
+	// parent ctx: if timeout outer, all downstream receive cancel
+	ctx, cancel := context.WithTimeout(pgb.ctx, 7*time.Minute)
+	defer cancel()
+
+	type result struct {
 		rows   *sql.Rows
 		cancel func()
 		err    error
-	}, 1)
+	}
+	resultCh := make(chan result, 1)
 
-	go func() {
+	go func(ctx context.Context) {
 		pgb.mixSetDiffsMtx.Lock()
 		defer pgb.mixSetDiffsMtx.Unlock()
 
 		for h := nextDataHeight; h <= targetDataHeight; h++ {
 			if _, found := pgb.mixSetDiffs[h]; !found {
 				log.Debugf("Mixed set deltas not available at height %d. Querying DB...", h)
-				rows, cancel, err := pgb.retrieveAnonymitySet(int32(nextDataHeight) - 1) // -1 means include genesis
-				resultCh <- struct {
-					rows   *sql.Rows
-					cancel func()
-					err    error
-				}{rows, cancel, err}
+				rows, dbCancel, err := pgb.retrieveAnonymitySet(ctx, int32(nextDataHeight)-1)
+
+				res := result{rows: rows, cancel: dbCancel, err: err}
+
+				select {
+				case resultCh <- res:
+				case <-ctx.Done():
+					if dbCancel != nil {
+						dbCancel()
+					}
+					if rows != nil {
+						_ = rows.Close()
+					}
+				}
 				return
 			}
 		}
 
-		// appendAnonymitySet has enough data
-		resultCh <- struct {
-			rows   *sql.Rows
-			cancel func()
-			err    error
-		}{nil, func() {}, nil}
-	}()
+		select {
+		case resultCh <- result{rows: nil, cancel: func() {}, err: nil}:
+		case <-ctx.Done():
+			// nothing to clean up
+		}
+	}(ctx)
 
 	select {
 	case res := <-resultCh:
 		return res.rows, res.cancel, res.err
-	case <-time.After(7 * time.Minute):
+	case <-ctx.Done():
 		log.Warnf("anonymitySet loop timed out after 7 minutes, returning empty result")
 		return nil, func() {}, nil
 	}
@@ -6021,9 +6051,9 @@ func (pgb *ChainDB) anonymitySet(charts *cache.ChartData) (*sql.Rows, func(), er
 // retrieveAnonymitySet fetches the mixed output fund/spend heights and values
 // for outputs funded after bestHeight. To include all blocks including genesis
 // use -1 for bestHeight.
-func (pgb *ChainDB) retrieveAnonymitySet(bestHeight int32) (*sql.Rows, func(), error) {
-	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
-	rows, err := pgb.db.QueryContext(ctx, internal.SelectMixedVouts, bestHeight)
+func (pgb *ChainDB) retrieveAnonymitySet(ctx context.Context, bestHeight int32) (*sql.Rows, func(), error) {
+	qctx, cancel := context.WithTimeout(ctx, pgb.queryTimeout)
+	rows, err := pgb.db.QueryContext(qctx, internal.SelectMixedVouts, bestHeight)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
 	}
@@ -6696,6 +6726,7 @@ type storeTxnsResult struct {
 	err                                              error
 	addresses                                        map[string]struct{}
 	mixSetDelta                                      int64
+	addressesSynced                                  bool
 }
 
 func (r *storeTxnsResult) Error() string {

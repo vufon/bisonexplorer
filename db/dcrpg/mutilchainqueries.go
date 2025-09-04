@@ -65,6 +65,55 @@ func InsertMutilchainVouts(db *sql.DB, dbVouts []*dbtypes.Vout, checked bool, ch
 	return ids, addressRows, dbtx.Commit()
 }
 
+func InsertMutilchainWholeVouts(db *sql.DB, dbVouts []*dbtypes.Vout, checked bool, chainType string) ([]uint64, []dbtypes.MutilchainAddressRow, error) {
+	addressRows := make([]dbtypes.MutilchainAddressRow, 0, len(dbVouts)*2)
+	dbtx, err := db.Begin()
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: unable to begin database transaction: %v", chainType, err)
+	}
+	stmt, err := dbtx.Prepare(mutilchainquery.MakeVoutAllInsertStatement(checked, chainType))
+	if err != nil {
+		log.Errorf("%s: Vout INSERT prepare: %v", chainType, err)
+		_ = dbtx.Rollback() // try, but we want the Prepare error back
+		return nil, nil, err
+	}
+
+	ids := make([]uint64, 0, len(dbVouts))
+	for _, vout := range dbVouts {
+		var id uint64
+		err := stmt.QueryRow(
+			vout.TxHash, vout.TxIndex, vout.TxTree, vout.Value, vout.Version,
+			vout.ScriptPubKey, vout.ScriptPubKeyData.ReqSigs,
+			vout.ScriptPubKeyData.Type,
+			pq.Array(vout.ScriptPubKeyData.Addresses)).Scan(&id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				continue
+			}
+			_ = stmt.Close() // try, but we want the QueryRow error back
+			if errRoll := dbtx.Rollback(); errRoll != nil {
+				log.Errorf("Rollback failed: %v", errRoll)
+			}
+			return nil, nil, err
+		}
+		for _, addr := range vout.ScriptPubKeyData.Addresses {
+			addressRows = append(addressRows, dbtypes.MutilchainAddressRow{
+				Address:            addr,
+				FundingTxHash:      vout.TxHash,
+				FundingTxVoutIndex: vout.TxIndex,
+				VoutDbID:           id,
+				Value:              vout.Value,
+			})
+		}
+		ids = append(ids, id)
+	}
+
+	// Close prepared statement. Ignore errors as we'll Commit regardless.
+	_ = stmt.Close()
+
+	return ids, addressRows, dbtx.Commit()
+}
+
 func InsertMutilchainVins(db *sql.DB, dbVins dbtypes.VinTxPropertyARRAY, chainType string, checked bool) ([]uint64, error) {
 	dbtx, err := db.Begin()
 	if err != nil {
@@ -101,6 +150,42 @@ func InsertMutilchainVins(db *sql.DB, dbVins dbtypes.VinTxPropertyARRAY, chainTy
 	return ids, dbtx.Commit()
 }
 
+func InsertMutilchainWholeVins(db *sql.DB, dbVins dbtypes.VinTxPropertyARRAY, chainType string, checked bool) ([]uint64, error) {
+	dbtx, err := db.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("unable to begin database transaction: %v", err)
+	}
+	queryBuilder := mutilchainquery.InsertVinAllRowFuncCheck(checked, chainType)
+	stmt, err := dbtx.Prepare(queryBuilder)
+	if err != nil {
+		log.Errorf("%s: Vin INSERT prepare: %v", chainType, err)
+		_ = dbtx.Rollback() // try, but we want the Prepare error back
+		return nil, err
+	}
+
+	// TODO/Question: Should we skip inserting coinbase txns, which have same PrevTxHash?
+
+	ids := make([]uint64, 0, len(dbVins))
+	for _, vin := range dbVins {
+		var id uint64
+		err = stmt.QueryRow(vin.TxID, vin.TxIndex, vin.TxTree,
+			vin.PrevTxHash, vin.PrevTxIndex, vin.PrevTxTree, vin.ValueIn).Scan(&id)
+		if err != nil {
+			_ = stmt.Close() // try, but we want the QueryRow error back
+			if errRoll := dbtx.Rollback(); errRoll != nil {
+				log.Errorf("Rollback failed: %v", errRoll)
+			}
+			return ids, fmt.Errorf("%s: InsertVins INSERT exec failed: %v", chainType, err)
+		}
+		ids = append(ids, id)
+	}
+
+	// Close prepared statement. Ignore errors as we'll Commit regardless.
+	_ = stmt.Close()
+
+	return ids, dbtx.Commit()
+}
+
 func InsertMutilchainTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked bool, chainType string) ([]uint64, error) {
 	dbtx, err := db.Begin()
 	if err != nil {
@@ -109,7 +194,7 @@ func InsertMutilchainTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked bool, chainT
 
 	stmt, err := dbtx.Prepare(mutilchainquery.MakeTxInsertStatement(checked, chainType))
 	if err != nil {
-		log.Errorf("Vout INSERT prepare: %v", err)
+		log.Errorf("%s: Txns INSERT prepare: %v", chainType, err)
 		_ = dbtx.Rollback() // try, but we want the Prepare error back
 		return nil, err
 	}
@@ -126,6 +211,7 @@ func InsertMutilchainTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked bool, chainT
 			tx.NumVout, pq.Array(tx.Vouts), dbtypes.UInt64Array(tx.VoutDbIds)).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
+				log.Errorf("%s: Insert to transactions table unsuccessfully. Height: %d", chainType, tx.BlockHeight)
 				continue
 			}
 			_ = stmt.Close() // try, but we want the QueryRow error back
@@ -217,6 +303,16 @@ func InsertMutilchainBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, checked 
 	return id, err
 }
 
+func InsertMutilchainWholeBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, checked bool, chainType string) (uint64, error) {
+	insertStatement := mutilchainquery.MakeBlockAllInsertStatement(dbBlock, checked, chainType)
+	var id uint64
+	err := db.QueryRow(insertStatement,
+		dbBlock.Hash, dbBlock.Height, dbBlock.Size, isValid, dbBlock.Version,
+		dbBlock.NumTx, dbBlock.Time.UNIX(), dbBlock.Nonce, dbBlock.PoolSize, dbBlock.Bits,
+		dbBlock.Difficulty, dbBlock.PreviousHash, dbBlock.NumVins, dbBlock.NumVouts, dbBlock.Fees, dbBlock.TotalSent).Scan(&id)
+	return id, err
+}
+
 func InsertMutilchainBlockPrevNext(db *sql.DB, blockDbID uint64,
 	hash, prev, next string, chainType string) error {
 
@@ -238,6 +334,21 @@ func UpdateMutilchainLastBlock(db *sql.DB, blockDbID uint64, isValid bool, chain
 	}
 	if numRows != 1 {
 		return fmt.Errorf("UpdateLastBlock failed to update exactly 1 row (%d)", numRows)
+	}
+	return nil
+}
+
+func UpdateMutilchainSyncedStatus(db *sql.DB, height uint64, chainType string) error {
+	res, err := db.Exec(mutilchainquery.MakeUpdateBlockAllSynced(chainType), height)
+	if err != nil {
+		return err
+	}
+	numRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows != 1 {
+		return fmt.Errorf("%s: UpdateLastBlock failed to update exactly 1 row (%d)", chainType, numRows)
 	}
 	return nil
 }

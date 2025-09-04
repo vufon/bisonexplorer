@@ -6,16 +6,19 @@ package dcrpg
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	btcchaincfg "github.com/btcsuite/btcd/chaincfg"
 	btcClient "github.com/btcsuite/btcd/rpcclient"
 	btcwire "github.com/btcsuite/btcd/wire"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
+	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	apitypes "github.com/decred/dcrdata/v8/api/types"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mutilchain"
@@ -175,11 +178,11 @@ func (db *ChainDB) SyncBTCChainDB(client *btcClient.Client, quit chan struct{},
 	speedReport()
 
 	if reindexing || newIndexes {
-		if err = db.IndexAllMutilchain(nil, mutilchain.TYPEBTC); err != nil {
+		if err = db.IndexAllMutilchain(mutilchain.TYPEBTC); err != nil {
 			return int64(nodeHeight), fmt.Errorf("BTC: IndexAllMutilchain failed: %v", err)
 		}
 		if !updateAllAddresses {
-			err = db.IndexMutilchainAddressTable(nil, mutilchain.TYPEBTC)
+			err = db.IndexMutilchainAddressTable(mutilchain.TYPEBTC)
 		}
 	}
 
@@ -192,7 +195,7 @@ func (db *ChainDB) SyncBTCChainDB(client *btcClient.Client, quit chan struct{},
 			log.Errorf("BTC: UpdateSpendingInfoInAllAddresses for BTC FAILED: %v", err)
 		}
 		log.Infof("BTC: Updated %d rows of address table", numAddresses)
-		if err = db.IndexMutilchainAddressTable(nil, mutilchain.TYPEBTC); err != nil {
+		if err = db.IndexMutilchainAddressTable(mutilchain.TYPEBTC); err != nil {
 			log.Errorf("BTC: IndexBTCAddressTable FAILED: %v", err)
 		}
 	}
@@ -233,11 +236,11 @@ func (pgb *ChainDB) SyncLast20BTCBlocks(nodeHeight int32) error {
 		return err
 	}
 	//delete txs
-	err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
-	if err != nil {
-		pgb.BTC20BlocksSyncing = false
-		return err
-	}
+	// err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
+	// if err != nil {
+	// 	pgb.BTC20BlocksSyncing = false
+	// 	return err
+	// }
 	//delete blocks
 	// err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
 	// if err != nil {
@@ -332,11 +335,11 @@ func (pgb *ChainDB) SyncLast20LTCBlocks(nodeHeight int32) error {
 		return err
 	}
 	//delete txs
-	err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
-	if err != nil {
-		pgb.LTC20BlocksSyncing = false
-		return err
-	}
+	// err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
+	// if err != nil {
+	// 	pgb.LTC20BlocksSyncing = false
+	// 	return err
+	// }
 	//delete blocks
 	// err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
 	// if err != nil {
@@ -521,11 +524,11 @@ func (db *ChainDB) SyncLTCChainDB(client *ltcClient.Client, quit chan struct{},
 	speedReport()
 
 	if reindexing || newIndexes {
-		if err = db.IndexAllMutilchain(nil, mutilchain.TYPELTC); err != nil {
+		if err = db.IndexAllMutilchain(mutilchain.TYPELTC); err != nil {
 			return int64(nodeHeight), fmt.Errorf("IndexAllMutilchain failed: %v", err)
 		}
 		if !updateAllAddresses {
-			err = db.IndexMutilchainAddressTable(nil, mutilchain.TYPELTC)
+			err = db.IndexMutilchainAddressTable(mutilchain.TYPELTC)
 		}
 	}
 
@@ -538,7 +541,7 @@ func (db *ChainDB) SyncLTCChainDB(client *ltcClient.Client, quit chan struct{},
 			log.Errorf("UpdateSpendingInfoInAllAddresses for LTC FAILED: %v", err)
 		}
 		log.Infof("Updated %d rows of address table", numAddresses)
-		if err = db.IndexMutilchainAddressTable(nil, mutilchain.TYPELTC); err != nil {
+		if err = db.IndexMutilchainAddressTable(mutilchain.TYPELTC); err != nil {
 			log.Errorf("IndexLTCAddressTable FAILED: %v", err)
 		}
 	}
@@ -746,6 +749,40 @@ func (pgb *ChainDB) StoreLTCBlock(client *ltcClient.Client, msgBlock *wire.MsgBl
 	return
 }
 
+func (pgb *ChainDB) StoreBTCWholeBlock(client *btcClient.Client, msgBlock *btcwire.MsgBlock) (numVins int64, numVouts int64, err error) {
+	// Convert the wire.MsgBlock to a dbtypes.Block
+	dbBlock := dbtypes.MsgBTCBlockToDBBlock(client, msgBlock, pgb.btcChainParams)
+	// regular transactions
+	resChanReg := make(chan storeTxnsResult)
+	go func() {
+		resChanReg <- pgb.storeBTCWholeTxns(client, dbBlock, msgBlock, true,
+			pgb.btcChainParams)
+	}()
+
+	errReg := <-resChanReg
+	numVins = errReg.numVins
+	numVouts = errReg.numVouts
+	dbBlock.NumVins = uint32(numVins)
+	dbBlock.NumVouts = uint32(numVouts)
+	dbBlock.Fees = uint64(errReg.fees)
+	dbBlock.TotalSent = uint64(errReg.totalSent)
+	// Store the block now that it has all it's transaction PK IDs
+	_, err = InsertMutilchainWholeBlock(pgb.db, dbBlock, true, true, mutilchain.TYPEBTC)
+	if err != nil {
+		log.Error("BTC: InsertBlock:", err)
+		return
+	}
+
+	// update synced flag for block
+	// log.Infof("BTC: Set synced flag for height: %d", dbBlock.Height)
+	err = UpdateMutilchainSyncedStatus(pgb.db, uint64(dbBlock.Height), mutilchain.TYPEBTC)
+	if err != nil {
+		log.Error("BTC: UpdateLastBlock:", err)
+		return
+	}
+	return
+}
+
 func (pgb *ChainDB) storeLTCTxns(client *ltcClient.Client, block *dbtypes.Block, msgBlock *wire.MsgBlock,
 	chainParams *chaincfg.Params, TxDbIDs *[]uint64,
 	updateAddressesSpendingInfo, onlyTxInsert bool) storeTxnsResult {
@@ -845,6 +882,40 @@ func (pgb *ChainDB) storeLTCTxns(client *ltcClient.Client, block *dbtypes.Block,
 	return txRes
 }
 
+func (pgb *ChainDB) StoreLTCWholeBlock(client *ltcClient.Client, msgBlock *wire.MsgBlock) (numVins int64, numVouts int64, err error) {
+	// Convert the wire.MsgBlock to a dbtypes.Block
+	dbBlock := dbtypes.MsgLTCBlockToDBBlock(client, msgBlock, pgb.ltcChainParams)
+	// regular transactions
+	resChanReg := make(chan storeTxnsResult)
+	go func() {
+		resChanReg <- pgb.storeLTCWholeTxns(client, dbBlock, msgBlock, true,
+			pgb.ltcChainParams)
+	}()
+
+	errReg := <-resChanReg
+	numVins = errReg.numVins
+	numVouts = errReg.numVouts
+	dbBlock.NumVins = uint32(numVins)
+	dbBlock.NumVouts = uint32(numVouts)
+	dbBlock.Fees = uint64(errReg.fees)
+	dbBlock.TotalSent = uint64(errReg.totalSent)
+	// Store the block now that it has all it's transaction PK IDs
+	_, err = InsertMutilchainWholeBlock(pgb.db, dbBlock, true, true, mutilchain.TYPELTC)
+	if err != nil {
+		log.Error("LTC: InsertBlock:", err)
+		return
+	}
+
+	// update synced flag for block
+	// log.Infof("LTC: Set synced flag for height: %d", dbBlock.Height)
+	err = UpdateMutilchainSyncedStatus(pgb.db, uint64(dbBlock.Height), mutilchain.TYPELTC)
+	if err != nil {
+		log.Error("LTC: UpdateLastBlock:", err)
+		return
+	}
+	return
+}
+
 func (pgb *ChainDB) storeBTCTxns(client *btcClient.Client, block *dbtypes.Block, msgBlock *btcwire.MsgBlock,
 	chainParams *btcchaincfg.Params, TxDbIDs *[]uint64,
 	updateAddressesSpendingInfo, onlyTxInsert bool) storeTxnsResult {
@@ -932,6 +1003,181 @@ func (pgb *ChainDB) storeBTCTxns(client *btcClient.Client, block *dbtypes.Block,
 		}
 	}
 
+	return txRes
+}
+
+func (pgb *ChainDB) storeBTCWholeTxns(client *btcClient.Client, block *dbtypes.Block, msgBlock *btcwire.MsgBlock, addressSpendingUpdateInfo bool,
+	chainParams *btcchaincfg.Params) storeTxnsResult {
+	dbTransactions, dbTxVouts, dbTxVins := dbtypes.ExtractBTCBlockTransactions(client, block,
+		msgBlock, chainParams)
+	var txRes storeTxnsResult
+	dbAddressRows := make([][]dbtypes.MutilchainAddressRow, len(dbTransactions))
+	var totalAddressRows int
+	var err error
+	for it, dbtx := range dbTransactions {
+		dbtx.VoutDbIds, dbAddressRows[it], err = InsertMutilchainWholeVouts(pgb.db, dbTxVouts[it], true, mutilchain.TYPEBTC)
+		if err != nil && err != sql.ErrNoRows {
+			log.Error("BTC: InsertVouts:", err)
+			txRes.err = err
+			return txRes
+		}
+		totalAddressRows += len(dbAddressRows[it])
+		txRes.numVouts += int64(len(dbtx.VoutDbIds))
+		if err == sql.ErrNoRows || len(dbTxVouts[it]) != len(dbtx.VoutDbIds) {
+			log.Warnf("BTC: Incomplete Vout insert.")
+		}
+		dbtx.VinDbIds, err = InsertMutilchainWholeVins(pgb.db, dbTxVins[it], mutilchain.TYPEBTC, true)
+		if err != nil && err != sql.ErrNoRows {
+			log.Error("BTC: InsertVins:", err)
+			txRes.err = err
+			return txRes
+		}
+		for _, dbTxVout := range dbTxVouts[it] {
+			txRes.totalSent += int64(dbTxVout.Value)
+		}
+		txRes.numVins += int64(len(dbtx.VinDbIds))
+		txRes.fees += dbtx.Fees
+	}
+	// Get the tx PK IDs for storage in the blocks table
+	TxDbIDs, err := InsertMutilchainTxns(pgb.db, dbTransactions, true, mutilchain.TYPEBTC)
+	if err != nil && err != sql.ErrNoRows {
+		log.Error("InsertTxns:", err)
+		txRes.err = err
+		return txRes
+	}
+	// Store tx Db IDs as funding tx in AddressRows and rearrange
+	dbAddressRowsFlat := make([]*dbtypes.MutilchainAddressRow, 0, totalAddressRows)
+	for it, txDbID := range TxDbIDs {
+		// Set the tx ID of the funding transactions
+		for iv := range dbAddressRows[it] {
+			// Transaction that pays to the address
+			dba := &dbAddressRows[it][iv]
+			dba.FundingTxDbID = txDbID
+			// Funding tx hash, vout id, value, and address are already assigned
+			// by InsertVouts. Only the funding tx DB ID was needed.
+			dbAddressRowsFlat = append(dbAddressRowsFlat, dba)
+		}
+	}
+	// Insert each new AddressRow, absent spending fields
+	_, err = InsertMutilchainAddressOuts(pgb.db, dbAddressRowsFlat, mutilchain.TYPEBTC, true)
+	if err != nil {
+		log.Error("BTC: InsertAddressOuts:", err)
+		txRes.err = err
+		return txRes
+	}
+	if !addressSpendingUpdateInfo {
+		return txRes
+	}
+	// Check the new vins and update sending tx data in Addresses table
+	for it, txDbID := range TxDbIDs {
+		for iv := range dbTxVins[it] {
+			// Transaction that spends an outpoint paying to >=0 addresses
+			vin := &dbTxVins[it][iv]
+			vinDbID := dbTransactions[it].VinDbIds[iv]
+			// skip coinbase inputs
+			if bytes.Equal(zeroHashStringBytes, []byte(vin.PrevTxHash)) {
+				continue
+			}
+			var numAddressRowsSet int64
+			numAddressRowsSet, err = SetMutilchainSpendingForFundingOP(pgb.db,
+				vin.PrevTxHash, vin.PrevTxIndex, // funding
+				txDbID, vin.TxID, vin.TxIndex, vinDbID, mutilchain.TYPEBTC) // spending
+			if err != nil {
+				log.Errorf("BTC: SetSpendingForFundingOP: %v", err)
+			}
+			txRes.numAddresses += numAddressRowsSet
+		}
+	}
+	// set address synced flag
+	txRes.addressesSynced = true
+	return txRes
+}
+
+func (pgb *ChainDB) storeLTCWholeTxns(client *ltcClient.Client, block *dbtypes.Block, msgBlock *wire.MsgBlock, addressSpendingUpdateInfo bool,
+	chainParams *chaincfg.Params) storeTxnsResult {
+	dbTransactions, dbTxVouts, dbTxVins := dbtypes.ExtractLTCBlockTransactions(client, block,
+		msgBlock, chainParams)
+	var txRes storeTxnsResult
+	dbAddressRows := make([][]dbtypes.MutilchainAddressRow, len(dbTransactions))
+	var totalAddressRows int
+	var err error
+	for it, dbtx := range dbTransactions {
+		dbtx.VoutDbIds, dbAddressRows[it], err = InsertMutilchainWholeVouts(pgb.db, dbTxVouts[it], true, mutilchain.TYPELTC)
+		if err != nil && err != sql.ErrNoRows {
+			log.Error("LTC: InsertVouts:", err)
+			txRes.err = err
+			return txRes
+		}
+		totalAddressRows += len(dbAddressRows[it])
+		txRes.numVouts += int64(len(dbtx.VoutDbIds))
+		if err == sql.ErrNoRows || len(dbTxVouts[it]) != len(dbtx.VoutDbIds) {
+			log.Warnf("LTC: Incomplete Vout insert.")
+		}
+		dbtx.VinDbIds, err = InsertMutilchainWholeVins(pgb.db, dbTxVins[it], mutilchain.TYPELTC, true)
+		if err != nil && err != sql.ErrNoRows {
+			log.Error("LTC: InsertVins:", err)
+			txRes.err = err
+			return txRes
+		}
+		for _, dbTxVout := range dbTxVouts[it] {
+			txRes.totalSent += int64(dbTxVout.Value)
+		}
+		txRes.numVins += int64(len(dbtx.VinDbIds))
+		txRes.fees += dbtx.Fees
+	}
+	// Get the tx PK IDs for storage in the blocks table
+	TxDbIDs, err := InsertMutilchainTxns(pgb.db, dbTransactions, true, mutilchain.TYPELTC)
+	if err != nil && err != sql.ErrNoRows {
+		log.Error("LTC: InsertTxns:", err)
+		txRes.err = err
+		return txRes
+	}
+	// Store tx Db IDs as funding tx in AddressRows and rearrange
+	dbAddressRowsFlat := make([]*dbtypes.MutilchainAddressRow, 0, totalAddressRows)
+	for it, txDbID := range TxDbIDs {
+		// Set the tx ID of the funding transactions
+		for iv := range dbAddressRows[it] {
+			// Transaction that pays to the address
+			dba := &dbAddressRows[it][iv]
+			dba.FundingTxDbID = txDbID
+			// Funding tx hash, vout id, value, and address are already assigned
+			// by InsertVouts. Only the funding tx DB ID was needed.
+			dbAddressRowsFlat = append(dbAddressRowsFlat, dba)
+		}
+	}
+	// Insert each new AddressRow, absent spending fields
+	_, err = InsertMutilchainAddressOuts(pgb.db, dbAddressRowsFlat, mutilchain.TYPELTC, true)
+	if err != nil {
+		log.Error("LTC: InsertAddressOuts:", err)
+		txRes.err = err
+		return txRes
+	}
+
+	if !addressSpendingUpdateInfo {
+		return txRes
+	}
+	// Check the new vins and update sending tx data in Addresses table
+	for it, txDbID := range TxDbIDs {
+		for iv := range dbTxVins[it] {
+			// Transaction that spends an outpoint paying to >=0 addresses
+			vin := &dbTxVins[it][iv]
+			vinDbID := dbTransactions[it].VinDbIds[iv]
+			// skip coinbase inputs
+			if bytes.Equal(zeroHashStringBytes, []byte(vin.PrevTxHash)) {
+				continue
+			}
+			var numAddressRowsSet int64
+			numAddressRowsSet, err = SetMutilchainSpendingForFundingOP(pgb.db,
+				vin.PrevTxHash, vin.PrevTxIndex, // funding
+				txDbID, vin.TxID, vin.TxIndex, vinDbID, mutilchain.TYPELTC) // spending
+			if err != nil {
+				log.Errorf("LTC: SetSpendingForFundingOP: %v", err)
+			}
+			txRes.numAddresses += numAddressRowsSet
+		}
+	}
+	// set address synced flag
+	txRes.addressesSynced = true
 	return txRes
 }
 
@@ -1224,4 +1470,449 @@ func (pgb *ChainDB) GetBTCBlockData(hash string, height int64) (*apitypes.Block2
 	block.NumVin = numVin
 	block.NumVout = numVout
 	return block, false
+}
+
+func (pgb *ChainDB) SyncMultichainWholeChain(chainType string) {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		pgb.SyncBTCWholeChain()
+		return
+	case mutilchain.TYPELTC:
+		pgb.SyncLTCWholeChain()
+		return
+	default:
+		return
+	}
+}
+
+func (pgb *ChainDB) SyncBTCWholeChain() {
+	pgb.btcWholeSyncMtx.Lock()
+	defer pgb.btcWholeSyncMtx.Unlock()
+
+	// config concurrency
+	const maxWorkers = 5
+
+	var totalTxs int64
+	var totalVins int64
+	var totalVouts int64
+	var processedBlocks int64
+
+	tickTime := 20 * time.Second
+	startTime := time.Now()
+
+	// speed (use atomic reads)
+	speedReporter := func() {
+		totalElapsed := time.Since(startTime).Seconds()
+		if totalElapsed < 1.0 {
+			return
+		}
+		tTx := atomic.LoadInt64(&totalTxs)
+		tVouts := atomic.LoadInt64(&totalVouts)
+		totalVoutPerSec := tVouts / int64(totalElapsed)
+		totalTxPerSec := tTx / int64(totalElapsed)
+		log.Infof("BTC: Avg. speed: %d tx/s, %d vout/s", totalTxPerSec, totalVoutPerSec)
+	}
+	var once sync.Once
+	defer once.Do(speedReporter)
+
+	// Get remaining heights
+	btcBestBlockHeight := pgb.BtcBestBlock.Height
+	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.CreateSelectRemainingNotSyncedHeights(mutilchain.TYPEBTC), btcBestBlockHeight)
+	if err != nil {
+		log.Errorf("BTC: Query remaining syncing blocks height list failed: %v", err)
+		return
+	}
+	remaingHeights, err := getRemainingHeightsFromSqlRows(rows)
+	if err != nil {
+		log.Errorf("BTC: Get remaining blocks height list failed: %v", err)
+		return
+	}
+	if len(remaingHeights) == 0 {
+		log.Infof("BTC: No more blocks to synchronize with the whole daemon")
+		return
+	}
+	log.Infof("BTC: Start sync for %d blocks. Minimum height: %d, Maximum height: %d", len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
+
+	reindexing := int64(len(remaingHeights)) > pgb.BtcBestBlock.Height/50
+	if reindexing {
+		log.Info("BTC: Large bulk load: Removing indexes")
+		if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEBTC); err != nil &&
+			!strings.Contains(err.Error(), "does not exist") &&
+			!strings.Contains(err.Error(), "不存在") {
+			log.Errorf("BTC: Deindex for multichain whole table: %v", err)
+			return
+		}
+	}
+
+	// context to cancel on first error
+	ctx, cancel := context.WithCancel(pgb.ctx)
+	defer cancel()
+
+	// worker semaphore & waitgroup
+	sem := make(chan struct{}, maxWorkers)
+	var wg sync.WaitGroup
+
+	// first error storage (atomic.Value to avoid locking complexity)
+	var firstErr atomic.Value // will store error
+
+	// ticker goroutine to log speed with tickTime
+	ticker := time.NewTicker(tickTime)
+	defer ticker.Stop()
+
+	// save local state for logs with tick
+	var lastProcessed int64
+	var lastTxs int64
+	var lastVins int64
+	var lastVouts int64
+
+	// ticker logger goroutine
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				curProcessed := atomic.LoadInt64(&processedBlocks)
+				curTxs := atomic.LoadInt64(&totalTxs)
+				curVins := atomic.LoadInt64(&totalVins)
+				curVouts := atomic.LoadInt64(&totalVouts)
+
+				blocksPerSec := float64(curProcessed-lastProcessed) / tickTime.Seconds()
+				txPerSec := float64(curTxs-lastTxs) / tickTime.Seconds()
+				vinsPerSec := float64(curVins-lastVins) / tickTime.Seconds()
+				voutPerSec := float64(curVouts-lastVouts) / tickTime.Seconds()
+
+				log.Infof("BTC: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
+
+				lastProcessed = curProcessed
+				lastTxs = curTxs
+				lastVins = curVins
+				lastVouts = curVouts
+			}
+		}
+	}()
+
+	// optional: if GetBlock or StoreBTCWholeBlock is NOT thread-safe, uncomment these mutexes and wrap calls.
+	// var getBlockMu sync.Mutex
+	// var storeBlockMu sync.Mutex
+
+	for idx, height := range remaingHeights {
+		// early exit if cancelled
+		if ctx.Err() != nil {
+			break
+		}
+
+		// occasional info logs similar to original behavior
+		if (idx-1)%btcRescanLogBlockChunk == 0 || idx == 0 {
+			if remaingHeights[idx] == 0 {
+				log.Infof("BTC: Scanning genesis block.")
+			} else {
+				curInd := (idx - 1) / btcRescanLogBlockChunk
+				endRangeBlockIdx := (curInd + 1) * btcRescanLogBlockChunk
+				if endRangeBlockIdx >= len(remaingHeights) {
+					endRangeBlockIdx = len(remaingHeights) - 1
+				}
+				log.Infof("BTC: Processing blocks %d to %d...", height, remaingHeights[endRangeBlockIdx])
+			}
+		}
+
+		// acquire worker slot
+		select {
+		case sem <- struct{}{}:
+			// got slot
+		case <-ctx.Done():
+			break
+		}
+
+		wg.Add(1)
+		go func(h int64) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			// Check cancellation once more
+			if ctx.Err() != nil {
+				return
+			}
+
+			// get block (if GetBlock is NOT thread-safe, guard with getBlockMu)
+			// getBlockMu.Lock()
+			block, _, err := btcrpcutils.GetBlock(h, pgb.BtcClient)
+			// getBlockMu.Unlock()
+			if err != nil {
+				// store first error and cancel
+				if firstErr.Load() == nil {
+					firstErr.Store(err)
+					cancel()
+				}
+				log.Errorf("BTC: GetBlock failed (%d): %v", h, err)
+				return
+			}
+
+			// store block (if StoreBTCWholeBlock is NOT thread-safe, guard with storeBlockMu)
+			// storeBlockMu.Lock()
+			numVins, numVouts, err := pgb.StoreBTCWholeBlock(pgb.BtcClient, block.MsgBlock())
+			// storeBlockMu.Unlock()
+			if err != nil {
+				if firstErr.Load() == nil {
+					firstErr.Store(err)
+					cancel()
+				}
+				log.Errorf("BTC StoreBlock failed (height %d): %v", h, err)
+				return
+			}
+
+			// update atomic counters
+			atomic.AddInt64(&totalVins, numVins)
+			atomic.AddInt64(&totalVouts, numVouts)
+			atomic.AddInt64(&totalTxs, int64(len(block.Transactions())))
+			atomic.AddInt64(&processedBlocks, 1)
+		}(height)
+	}
+
+	// wait worker finish
+	wg.Wait()
+
+	if v := firstErr.Load(); v != nil {
+		err = v.(error)
+		log.Errorf("BTC: sync aborted due to error: %v", err)
+		return
+	}
+
+	// final speed report
+	once.Do(speedReporter)
+
+	// rebuild index
+	if reindexing {
+		if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEBTC); err != nil {
+			log.Errorf("BTC: Re-index failed: %v", err)
+			return
+		}
+	}
+
+	log.Infof("BTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
+		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
+		atomic.LoadInt64(&processedBlocks), atomic.LoadInt64(&totalTxs), atomic.LoadInt64(&totalVins), atomic.LoadInt64(&totalVouts))
+}
+
+func (pgb *ChainDB) SyncOneBTCWholeBlock(client *btcClient.Client, msgBlock *btcwire.MsgBlock) (err error) {
+	pgb.btcWholeSyncMtx.Lock()
+	defer pgb.btcWholeSyncMtx.Unlock()
+	_, _, err = pgb.StoreBTCWholeBlock(client, msgBlock)
+	return err
+}
+
+func (pgb *ChainDB) SyncOneLTCWholeBlock(client *ltcClient.Client, msgBlock *wire.MsgBlock) (err error) {
+	pgb.ltcWholeSyncMtx.Lock()
+	defer pgb.ltcWholeSyncMtx.Unlock()
+	_, _, err = pgb.StoreLTCWholeBlock(client, msgBlock)
+	return err
+}
+
+func (pgb *ChainDB) SyncLTCWholeChain() {
+	pgb.ltcWholeSyncMtx.Lock()
+	defer pgb.ltcWholeSyncMtx.Unlock()
+
+	const maxWorkers = 5
+
+	// atomic counters
+	var totalTxs int64
+	var totalVins int64
+	var totalVouts int64
+	var processedBlocks int64
+
+	tickTime := 20 * time.Second
+	startTime := time.Now()
+
+	speedReporter := func() {
+		totalElapsed := time.Since(startTime).Seconds()
+		if totalElapsed < 1.0 {
+			return
+		}
+		tTx := atomic.LoadInt64(&totalTxs)
+		tVouts := atomic.LoadInt64(&totalVouts)
+		totalVoutPerSec := tVouts / int64(totalElapsed)
+		totalTxPerSec := tTx / int64(totalElapsed)
+		log.Infof("LTC: Avg. speed: %d tx/s, %d vout/s", totalTxPerSec, totalVoutPerSec)
+	}
+	var once sync.Once
+	defer once.Do(speedReporter)
+
+	// get remaining heights
+	ltcBestBlockHeight := pgb.LtcBestBlock.Height
+	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.CreateSelectRemainingNotSyncedHeights(mutilchain.TYPELTC), ltcBestBlockHeight)
+	if err != nil {
+		log.Errorf("LTC: Query remaining syncing blocks height list failed: %v", err)
+		return
+	}
+	remaingHeights, err := getRemainingHeightsFromSqlRows(rows)
+	if err != nil {
+		log.Errorf("LTC: Get remaining blocks height list failed: %v", err)
+		return
+	}
+	if len(remaingHeights) == 0 {
+		log.Infof("LTC: No more blocks to synchronize with the whole daemon")
+		return
+	}
+	log.Infof("LTC: Start sync for %d blocks. Minimum height: %d, Maximum height: %d", len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
+
+	reindexing := int64(len(remaingHeights)) > pgb.LtcBestBlock.Height/50
+	if reindexing {
+		log.Info("LTC: Large bulk load: Removing indexes")
+		if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPELTC); err != nil &&
+			!strings.Contains(err.Error(), "does not exist") &&
+			!strings.Contains(err.Error(), "不存在") {
+			log.Errorf("LTC: Deindex for multichain whole table: %v", err)
+			return
+		}
+	}
+
+	// context to cancel on first error
+	ctx, cancel := context.WithCancel(pgb.ctx)
+	defer cancel()
+
+	// semaphore to limit concurrency
+	sem := make(chan struct{}, maxWorkers)
+	var wg sync.WaitGroup
+
+	// store first error (atomic.Value)
+	var firstErr atomic.Value
+
+	// ticker for periodic speed logs
+	ticker := time.NewTicker(tickTime)
+	defer ticker.Stop()
+
+	// local last stats for per-tick delta
+	var lastProcessed int64
+	var lastTxs int64
+	var lastVins int64
+	var lastVouts int64
+
+	// ticker goroutine: log per tick
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				curProcessed := atomic.LoadInt64(&processedBlocks)
+				curTxs := atomic.LoadInt64(&totalTxs)
+				curVins := atomic.LoadInt64(&totalVins)
+				curVouts := atomic.LoadInt64(&totalVouts)
+
+				blocksPerSec := float64(curProcessed-lastProcessed) / tickTime.Seconds()
+				txPerSec := float64(curTxs-lastTxs) / tickTime.Seconds()
+				vinsPerSec := float64(curVins-lastVins) / tickTime.Seconds()
+				voutPerSec := float64(curVouts-lastVouts) / tickTime.Seconds()
+
+				log.Infof("LTC: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
+
+				lastProcessed = curProcessed
+				lastTxs = curTxs
+				lastVins = curVins
+				lastVouts = curVouts
+			}
+		}
+	}()
+
+	// If GetBlock or StoreLTCWholeBlock are NOT thread-safe, uncomment mutexes below:
+	// var getBlockMu sync.Mutex
+	// var storeBlockMu sync.Mutex
+
+	// iterate heights and spawn workers
+	for idx, height := range remaingHeights {
+		// early exit if cancelled
+		if ctx.Err() != nil {
+			break
+		}
+
+		// periodic chunk logs to keep parity với code gốc
+		if (idx-1)%ltcRescanLogBlockChunk == 0 || idx == 0 {
+			if remaingHeights[idx] == 0 {
+				log.Infof("LTC: Scanning genesis block.")
+			} else {
+				curInd := (idx - 1) / ltcRescanLogBlockChunk
+				endRangeBlockIdx := (curInd + 1) * ltcRescanLogBlockChunk
+				if endRangeBlockIdx >= len(remaingHeights) {
+					endRangeBlockIdx = len(remaingHeights) - 1
+				}
+				log.Infof("LTC: Processing blocks %d to %d...", height, remaingHeights[endRangeBlockIdx])
+			}
+		}
+
+		// acquire worker slot (or exit if cancelled)
+		select {
+		case sem <- struct{}{}:
+			// acquired
+		case <-ctx.Done():
+			break
+		}
+
+		wg.Add(1)
+		go func(h int64) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			if ctx.Err() != nil {
+				return
+			}
+
+			// get block (wrap with mutex if needed)
+			// getBlockMu.Lock()
+			block, _, err := ltcrpcutils.GetBlock(h, pgb.LtcClient)
+			// getBlockMu.Unlock()
+			if err != nil {
+				if firstErr.Load() == nil {
+					firstErr.Store(err)
+					cancel()
+				}
+				log.Errorf("LTC: GetBlock failed (%d): %v", h, err)
+				return
+			}
+
+			// store block (wrap with mutex if needed)
+			// storeBlockMu.Lock()
+			numVins, numVouts, err := pgb.StoreLTCWholeBlock(pgb.LtcClient, block.MsgBlock())
+			// storeBlockMu.Unlock()
+			if err != nil {
+				if firstErr.Load() == nil {
+					firstErr.Store(err)
+					cancel()
+				}
+				log.Errorf("LTC StoreBlock failed (height %d): %v", h, err)
+				return
+			}
+
+			// update counters
+			atomic.AddInt64(&totalVins, numVins)
+			atomic.AddInt64(&totalVouts, numVouts)
+			atomic.AddInt64(&totalTxs, int64(len(block.Transactions())))
+			atomic.AddInt64(&processedBlocks, 1)
+		}(height)
+	}
+
+	// wait for workers
+	wg.Wait()
+
+	// if any error occurred, log and return
+	if v := firstErr.Load(); v != nil {
+		if err, ok := v.(error); ok && err != nil {
+			log.Errorf("LTC: sync aborted due to error: %v", err)
+			return
+		}
+	}
+
+	// final speed report
+	once.Do(speedReporter)
+
+	// reindex if needed
+	if reindexing {
+		if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPELTC); err != nil {
+			log.Errorf("LTC: Re-index failed: %v", err)
+			return
+		}
+	}
+
+	log.Infof("LTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
+		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
+		atomic.LoadInt64(&processedBlocks), atomic.LoadInt64(&totalTxs), atomic.LoadInt64(&totalVins), atomic.LoadInt64(&totalVouts))
 }
