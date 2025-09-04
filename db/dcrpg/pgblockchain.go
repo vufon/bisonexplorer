@@ -5996,54 +5996,65 @@ func (pgb *ChainDB) anonymitySet(charts *cache.ChartData) (*sql.Rows, func(), er
 	nextDataHeight := uint32(len(charts.Blocks.AnonymitySet))
 	targetDataHeight := uint32(len(charts.Blocks.Height) - 1)
 
-	// parent ctx: if timeout outer, all downstream receive cancel
-	ctx, cancel := context.WithTimeout(pgb.ctx, 12*time.Minute)
-	defer cancel()
-
 	type result struct {
 		rows   *sql.Rows
 		cancel func()
 		err    error
 	}
 	resultCh := make(chan result, 1)
+	done := make(chan struct{}) // closed by parent when it no longer cares (timeout or got result)
 
-	go func(ctx context.Context) {
+	go func() {
+		// 1) Quick check under lock to find missing height, then release lock
 		pgb.mixSetDiffsMtx.Lock()
-		defer pgb.mixSetDiffsMtx.Unlock()
-
+		missing := int32(-1)
 		for h := nextDataHeight; h <= targetDataHeight; h++ {
 			if _, found := pgb.mixSetDiffs[h]; !found {
-				log.Debugf("Mixed set deltas not available at height %d. Querying DB...", h)
-				rows, dbCancel, err := pgb.retrieveAnonymitySet(ctx, int32(nextDataHeight)-1)
-
-				res := result{rows: rows, cancel: dbCancel, err: err}
-
-				select {
-				case resultCh <- res:
-				case <-ctx.Done():
-					if dbCancel != nil {
-						dbCancel()
-					}
-					if rows != nil {
-						_ = rows.Close()
-					}
-				}
-				return
+				// preserve the height you want to query; original code used nextDataHeight-1
+				missing = int32(nextDataHeight) - 1
+				break
 			}
 		}
+		pgb.mixSetDiffsMtx.Unlock()
 
-		select {
-		case resultCh <- result{rows: nil, cancel: func() {}, err: nil}:
-		case <-ctx.Done():
-			// nothing to clean up
+		if missing == -1 {
+			// nothing to query
+			select {
+			case resultCh <- result{rows: nil, cancel: func() {}, err: nil}:
+			case <-done:
+				// parent timed out / no longer cares, nothing to clean
+			}
+			return
 		}
-	}(ctx)
 
+		// 2) Do the DB work outside the mutex
+		log.Debugf("Mixed set deltas not available at height %d. Querying DB...", missing)
+		rows, cancel, err := pgb.retrieveAnonymitySet(missing)
+
+		res := result{rows: rows, cancel: cancel, err: err}
+		// 3) Try to send result, but if parent already timed out (done closed), cleanup
+		select {
+		case resultCh <- res:
+			// ownership of rows + cancel transferred to receiver
+		case <-done:
+			// parent no longer cares: cleanup to avoid leaking DB resources
+			if cancel != nil {
+				cancel()
+			}
+			if rows != nil {
+				_ = rows.Close()
+			}
+		}
+	}()
+
+	// Parent waits for result or timeout; close(done) so goroutine can cleanup if timed out.
 	select {
 	case res := <-resultCh:
+		close(done)
 		return res.rows, res.cancel, res.err
-	case <-ctx.Done():
-		log.Warnf("anonymitySet loop timed out after 7 minutes, returning empty result")
+	case <-time.After(12 * time.Minute):
+		close(done)
+		log.Warnf("anonymitySet loop timed out after 12 minutes, returning empty result")
 		return nil, func() {}, nil
 	}
 }
@@ -6051,9 +6062,9 @@ func (pgb *ChainDB) anonymitySet(charts *cache.ChartData) (*sql.Rows, func(), er
 // retrieveAnonymitySet fetches the mixed output fund/spend heights and values
 // for outputs funded after bestHeight. To include all blocks including genesis
 // use -1 for bestHeight.
-func (pgb *ChainDB) retrieveAnonymitySet(ctx context.Context, bestHeight int32) (*sql.Rows, func(), error) {
-	qctx, cancel := context.WithTimeout(ctx, pgb.queryTimeout)
-	rows, err := pgb.db.QueryContext(qctx, internal.SelectMixedVouts, bestHeight)
+func (pgb *ChainDB) retrieveAnonymitySet(bestHeight int32) (*sql.Rows, func(), error) {
+	ctx, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	rows, err := pgb.db.QueryContext(ctx, internal.SelectMixedVouts, bestHeight)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
 	}
