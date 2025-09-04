@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 )
 
 // indexingInfo defines a minimalistic structure used to append new indexes
@@ -577,7 +578,36 @@ func (pgb *ChainDB) DeindexMutilchainWholeTable(chainType string) error {
 		return err
 	}
 	err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnVoutIDStmt(chainType))
-	return err
+	if err != nil {
+		return err
+	}
+	if chainType == mutilchain.TYPEXMR {
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroVoutTableOnTxHash)
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroVoutTableOnGlobalIndex)
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroVoutTableOnOutPk)
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroKeyImagesOnBlockHeight)
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroRingMembersOnTxHashInputIndex)
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroRingMembersOnMemberGlobalIdx)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (pgb *ChainDB) DeindexMutilchainAddressesTable(chainType string) error {
@@ -811,6 +841,27 @@ func (pgb *ChainDB) IndexMutilchainWholeTable(chainType string) error {
 	}
 	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%saddress on vout ids", chainType), mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType)); err != nil {
 		return err
+	}
+
+	if chainType == mutilchain.TYPEXMR {
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_outputs on txhash", mutilchainquery.IndexMoneroVoutTableOnTxHash); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_outputs on global_index", mutilchainquery.IndexMoneroVoutTableOnGlobalIndex); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_outputs on out_pk", mutilchainquery.IndexMoneroVoutTableOnOutPk); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_key_images on spent_block_height", mutilchainquery.IndexMoneroKeyImagesOnBlockHeight); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_ring_members on tx_hash/tx_input_index", mutilchainquery.IndexMoneroRingMembersOnTxHashInputIndex); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_ring_members on member_global_index", mutilchainquery.IndexMoneroRingMembersOnMemberGlobalIdx); err != nil {
+			return err
+		}
 	}
 	return nil
 }

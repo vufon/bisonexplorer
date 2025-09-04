@@ -73,6 +73,7 @@ const (
 		pkscript BYTEA,
 		script_req_sigs INT4,
 		script_type TEXT,
+		monero_output_id INT8,
 		script_addresses TEXT[],
 		CONSTRAINT ux_%svout_all_txhash_txindex UNIQUE (tx_hash,tx_index)
 	);`

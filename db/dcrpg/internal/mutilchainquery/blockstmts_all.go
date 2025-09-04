@@ -33,6 +33,7 @@ const (
 		id SERIAL PRIMARY KEY,
 		hash TEXT NOT NULL, -- UNIQUE
 		height INT4,
+		block_blob BYTEA,
 		size INT4,
 		is_valid BOOLEAN,
 		version INT4,
@@ -44,6 +45,9 @@ const (
 		pool_size INT4,
 		bits INT4,
 		difficulty FLOAT8,
+		difficulty_num NUMERIC(40,0), -- For monero
+		cumulative_difficulty NUMERIC(40,0),
+		pow_algo TEXT,
 		previous_hash TEXT,
 		num_vins INT4,
 		num_vouts INT4,

@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 )
 
 const TSpentVotesTable = "tspend_votes"
@@ -62,6 +63,12 @@ func GetCreateDBTables() [][2]string {
 		result = append(result, [2]string{fmt.Sprintf("%svins_all", chainType), mutilchainquery.CreateVinAllTableFunc(chainType)})
 		result = append(result, [2]string{fmt.Sprintf("%svouts", chainType), mutilchainquery.CreateVoutTableFunc(chainType)})
 		result = append(result, [2]string{fmt.Sprintf("%svouts_all", chainType), mutilchainquery.CreateVoutAllTableFunc(chainType)})
+		if chainType == mutilchain.TYPEXMR {
+			result = append(result, [2]string{"monero_outputs", mutilchainquery.CreateMoneroOutputsTable})
+			result = append(result, [2]string{"monero_key_images", mutilchainquery.CreateMoneroKeyImagesTable})
+			result = append(result, [2]string{"monero_ring_members", mutilchainquery.CreateMoneroRingMembers})
+			result = append(result, [2]string{"monero_rct_data", mutilchainquery.CreateMoneroRctData})
+		}
 	}
 	return result
 }
@@ -80,6 +87,12 @@ func GetMutilchainTables(chainType string) [][2]string {
 	result = append(result, [2]string{fmt.Sprintf("%svouts", chainType), mutilchainquery.CreateVoutTableFunc(chainType)})
 	result = append(result, [2]string{fmt.Sprintf("%svins_all", chainType), mutilchainquery.CreateVinAllTableFunc(chainType)})
 	result = append(result, [2]string{fmt.Sprintf("%svouts_all", chainType), mutilchainquery.CreateVoutAllTableFunc(chainType)})
+	if chainType == mutilchain.TYPEXMR {
+		result = append(result, [2]string{"monero_outputs", mutilchainquery.CreateMoneroOutputsTable})
+		result = append(result, [2]string{"monero_key_images", mutilchainquery.CreateMoneroKeyImagesTable})
+		result = append(result, [2]string{"monero_ring_members", mutilchainquery.CreateMoneroRingMembers})
+		result = append(result, [2]string{"monero_rct_data", mutilchainquery.CreateMoneroRctData})
+	}
 	return result
 }
 
