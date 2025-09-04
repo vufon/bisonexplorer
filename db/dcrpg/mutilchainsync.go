@@ -236,11 +236,11 @@ func (pgb *ChainDB) SyncLast20BTCBlocks(nodeHeight int32) error {
 		return err
 	}
 	//delete txs
-	err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
-	if err != nil {
-		pgb.BTC20BlocksSyncing = false
-		return err
-	}
+	// err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
+	// if err != nil {
+	// 	pgb.BTC20BlocksSyncing = false
+	// 	return err
+	// }
 	//delete blocks
 	// err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
 	// if err != nil {
@@ -335,11 +335,11 @@ func (pgb *ChainDB) SyncLast20LTCBlocks(nodeHeight int32) error {
 		return err
 	}
 	//delete txs
-	err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
-	if err != nil {
-		pgb.LTC20BlocksSyncing = false
-		return err
-	}
+	// err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
+	// if err != nil {
+	// 	pgb.LTC20BlocksSyncing = false
+	// 	return err
+	// }
 	//delete blocks
 	// err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
 	// if err != nil {
@@ -1439,7 +1439,7 @@ func (pgb *ChainDB) SyncBTCWholeChain() {
 	defer pgb.btcWholeSyncMtx.Unlock()
 
 	// config concurrency
-	const maxWorkers = 10
+	const maxWorkers = 3
 
 	var totalTxs int64
 	var totalVins int64
@@ -1661,7 +1661,7 @@ func (pgb *ChainDB) SyncLTCWholeChain() {
 	pgb.ltcWholeSyncMtx.Lock()
 	defer pgb.ltcWholeSyncMtx.Unlock()
 
-	const maxWorkers = 10
+	const maxWorkers = 3
 
 	// atomic counters
 	var totalTxs int64

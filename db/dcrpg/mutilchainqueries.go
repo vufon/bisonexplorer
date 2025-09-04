@@ -211,6 +211,7 @@ func InsertMutilchainTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked bool, chainT
 			tx.NumVout, pq.Array(tx.Vouts), dbtypes.UInt64Array(tx.VoutDbIds)).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
+				log.Errorf("%s: Insert to transactions table unsuccessfully. Height: %d", chainType, tx.BlockHeight)
 				continue
 			}
 			_ = stmt.Close() // try, but we want the QueryRow error back
