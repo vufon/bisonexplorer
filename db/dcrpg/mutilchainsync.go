@@ -1490,7 +1490,7 @@ func (pgb *ChainDB) SyncBTCWholeChain() {
 	defer pgb.btcWholeSyncMtx.Unlock()
 
 	// config concurrency
-	const maxWorkers = 3
+	const maxWorkers = 5
 
 	var totalTxs int64
 	var totalVins int64
@@ -1712,7 +1712,7 @@ func (pgb *ChainDB) SyncLTCWholeChain() {
 	pgb.ltcWholeSyncMtx.Lock()
 	defer pgb.ltcWholeSyncMtx.Unlock()
 
-	const maxWorkers = 3
+	const maxWorkers = 5
 
 	// atomic counters
 	var totalTxs int64
