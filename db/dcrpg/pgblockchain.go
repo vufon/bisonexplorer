@@ -5527,7 +5527,9 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 		if err != nil {
 			return err
 		}
-		go pgb.SyncOneLTCWholeBlock(pgb.LtcClient, msgBlock)
+		if pgb.SyncChainDBFlag {
+			go pgb.SyncOneLTCWholeBlock(pgb.LtcClient, msgBlock)
+		}
 		// if err != nil {
 		// 	log.Errorf("LTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
 		// 	return err
@@ -5572,7 +5574,9 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 		if err != nil {
 			return err
 		}
-		go pgb.SyncOneBTCWholeBlock(pgb.BtcClient, msgBlock)
+		if pgb.SyncChainDBFlag {
+			go pgb.SyncOneBTCWholeBlock(pgb.BtcClient, msgBlock)
+		}
 		// if err != nil {
 		// 	log.Errorf("BTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
 		// 	return err
