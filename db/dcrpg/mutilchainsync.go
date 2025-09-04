@@ -755,7 +755,7 @@ func (pgb *ChainDB) StoreBTCWholeBlock(client *btcClient.Client, msgBlock *btcwi
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeBTCWholeTxns(client, dbBlock, msgBlock,
+		resChanReg <- pgb.storeBTCWholeTxns(client, dbBlock, msgBlock, true,
 			pgb.btcChainParams)
 	}()
 
@@ -774,7 +774,7 @@ func (pgb *ChainDB) StoreBTCWholeBlock(client *btcClient.Client, msgBlock *btcwi
 	}
 
 	// update synced flag for block
-	log.Infof("BTC: Set synced flag for height: %d", dbBlock.Height)
+	// log.Infof("BTC: Set synced flag for height: %d", dbBlock.Height)
 	err = UpdateMutilchainSyncedStatus(pgb.db, uint64(dbBlock.Height), mutilchain.TYPEBTC)
 	if err != nil {
 		log.Error("BTC: UpdateLastBlock:", err)
@@ -888,7 +888,7 @@ func (pgb *ChainDB) StoreLTCWholeBlock(client *ltcClient.Client, msgBlock *wire.
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeLTCWholeTxns(client, dbBlock, msgBlock,
+		resChanReg <- pgb.storeLTCWholeTxns(client, dbBlock, msgBlock, true,
 			pgb.ltcChainParams)
 	}()
 
@@ -907,7 +907,7 @@ func (pgb *ChainDB) StoreLTCWholeBlock(client *ltcClient.Client, msgBlock *wire.
 	}
 
 	// update synced flag for block
-	log.Infof("LTC: Set synced flag for height: %d", dbBlock.Height)
+	// log.Infof("LTC: Set synced flag for height: %d", dbBlock.Height)
 	err = UpdateMutilchainSyncedStatus(pgb.db, uint64(dbBlock.Height), mutilchain.TYPELTC)
 	if err != nil {
 		log.Error("LTC: UpdateLastBlock:", err)
@@ -1006,7 +1006,7 @@ func (pgb *ChainDB) storeBTCTxns(client *btcClient.Client, block *dbtypes.Block,
 	return txRes
 }
 
-func (pgb *ChainDB) storeBTCWholeTxns(client *btcClient.Client, block *dbtypes.Block, msgBlock *btcwire.MsgBlock,
+func (pgb *ChainDB) storeBTCWholeTxns(client *btcClient.Client, block *dbtypes.Block, msgBlock *btcwire.MsgBlock, addressSpendingUpdateInfo bool,
 	chainParams *btcchaincfg.Params) storeTxnsResult {
 	dbTransactions, dbTxVouts, dbTxVins := dbtypes.ExtractBTCBlockTransactions(client, block,
 		msgBlock, chainParams)
@@ -1065,10 +1065,35 @@ func (pgb *ChainDB) storeBTCWholeTxns(client *btcClient.Client, block *dbtypes.B
 		txRes.err = err
 		return txRes
 	}
+	if !addressSpendingUpdateInfo {
+		return txRes
+	}
+	// Check the new vins and update sending tx data in Addresses table
+	for it, txDbID := range TxDbIDs {
+		for iv := range dbTxVins[it] {
+			// Transaction that spends an outpoint paying to >=0 addresses
+			vin := &dbTxVins[it][iv]
+			vinDbID := dbTransactions[it].VinDbIds[iv]
+			// skip coinbase inputs
+			if bytes.Equal(zeroHashStringBytes, []byte(vin.PrevTxHash)) {
+				continue
+			}
+			var numAddressRowsSet int64
+			numAddressRowsSet, err = SetMutilchainSpendingForFundingOP(pgb.db,
+				vin.PrevTxHash, vin.PrevTxIndex, // funding
+				txDbID, vin.TxID, vin.TxIndex, vinDbID, mutilchain.TYPEBTC) // spending
+			if err != nil {
+				log.Errorf("BTC: SetSpendingForFundingOP: %v", err)
+			}
+			txRes.numAddresses += numAddressRowsSet
+		}
+	}
+	// set address synced flag
+	txRes.addressesSynced = true
 	return txRes
 }
 
-func (pgb *ChainDB) storeLTCWholeTxns(client *ltcClient.Client, block *dbtypes.Block, msgBlock *wire.MsgBlock,
+func (pgb *ChainDB) storeLTCWholeTxns(client *ltcClient.Client, block *dbtypes.Block, msgBlock *wire.MsgBlock, addressSpendingUpdateInfo bool,
 	chainParams *chaincfg.Params) storeTxnsResult {
 	dbTransactions, dbTxVouts, dbTxVins := dbtypes.ExtractLTCBlockTransactions(client, block,
 		msgBlock, chainParams)
@@ -1127,6 +1152,32 @@ func (pgb *ChainDB) storeLTCWholeTxns(client *ltcClient.Client, block *dbtypes.B
 		txRes.err = err
 		return txRes
 	}
+
+	if !addressSpendingUpdateInfo {
+		return txRes
+	}
+	// Check the new vins and update sending tx data in Addresses table
+	for it, txDbID := range TxDbIDs {
+		for iv := range dbTxVins[it] {
+			// Transaction that spends an outpoint paying to >=0 addresses
+			vin := &dbTxVins[it][iv]
+			vinDbID := dbTransactions[it].VinDbIds[iv]
+			// skip coinbase inputs
+			if bytes.Equal(zeroHashStringBytes, []byte(vin.PrevTxHash)) {
+				continue
+			}
+			var numAddressRowsSet int64
+			numAddressRowsSet, err = SetMutilchainSpendingForFundingOP(pgb.db,
+				vin.PrevTxHash, vin.PrevTxIndex, // funding
+				txDbID, vin.TxID, vin.TxIndex, vinDbID, mutilchain.TYPELTC) // spending
+			if err != nil {
+				log.Errorf("LTC: SetSpendingForFundingOP: %v", err)
+			}
+			txRes.numAddresses += numAddressRowsSet
+		}
+	}
+	// set address synced flag
+	txRes.addressesSynced = true
 	return txRes
 }
 

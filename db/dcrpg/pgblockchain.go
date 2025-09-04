@@ -6711,6 +6711,7 @@ type storeTxnsResult struct {
 	err                                              error
 	addresses                                        map[string]struct{}
 	mixSetDelta                                      int64
+	addressesSynced                                  bool
 }
 
 func (r *storeTxnsResult) Error() string {
