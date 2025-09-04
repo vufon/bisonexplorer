@@ -5997,7 +5997,7 @@ func (pgb *ChainDB) anonymitySet(charts *cache.ChartData) (*sql.Rows, func(), er
 	targetDataHeight := uint32(len(charts.Blocks.Height) - 1)
 
 	// parent ctx: if timeout outer, all downstream receive cancel
-	ctx, cancel := context.WithTimeout(pgb.ctx, 7*time.Minute)
+	ctx, cancel := context.WithTimeout(pgb.ctx, 12*time.Minute)
 	defer cancel()
 
 	type result struct {
