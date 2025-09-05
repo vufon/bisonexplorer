@@ -384,6 +384,24 @@ func _main(ctx context.Context) error {
 		chainDB.BtcBestBlock = bestBlock
 	}
 
+	xmrNotifier := notify.NewXmrNotifier(cfg.XmrServ, 10*time.Second)
+	go xmrNotifier.Start()
+
+	// new Blocks
+	go func() {
+		for blk := range xmrNotifier.NewBlocks {
+			fmt.Printf("XMR New block: height=%d, hash=%s\n", blk.Height, blk.Hash)
+			fmt.Printf("  txs: %v\n", blk.TxHashes)
+		}
+	}()
+
+	// new Txs
+	go func() {
+		for tx := range xmrNotifier.NewTxs {
+			fmt.Println("XMR New tx:", tx)
+		}
+	}()
+
 	defer func() {
 		if dcrdClient != nil {
 			log.Infof("Closing connection to dcrd.")
