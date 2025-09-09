@@ -98,6 +98,7 @@ var (
 	defaultChartsCacheDump    = "chartscache.gob"
 	defaultLTCChartsCacheDump = "ltcchartscache.gob"
 	defaultBTCChartsCacheDump = "btcchartscache.gob"
+	defaultXMRChartsCacheDump = "xmrchartscache.gob"
 
 	defaultPGHost           = "127.0.0.1:5432"
 	defaultPGUser           = "dcrdata"
@@ -171,6 +172,7 @@ type config struct {
 	ChartsCacheDump    string `long:"chartscache" description:"Defines the file name that holds the charts cache data on system exit." env:"DCRDATA_CHARTS_CACHE"`
 	LTCChartsCacheDump string `long:"ltcchartscache" description:"Defines the file name that holds the ltc charts cache data on system exit." env:"DCRDATA_LTC_CHARTS_CACHE"`
 	BTCChartsCacheDump string `long:"btcchartscache" description:"Defines the file name that holds the btc charts cache data on system exit." env:"DCRDATA_BTC_CHARTS_CACHE"`
+	XMRChartsCacheDump string `long:"xmrchartscache" description:"Defines the file name that holds the xmr charts cache data on system exit." env:"DCRDATA_XMR_CHARTS_CACHE"`
 	// DB backend
 	PGDBName         string        `long:"pgdbname" description:"PostgreSQL DB name." env:"DCRDATA_PG_DB_NAME"`
 	PGUser           string        `long:"pguser" description:"PostgreSQL DB user." env:"DCRDATA_POSTGRES_USER"`
@@ -236,6 +238,7 @@ var (
 		ChartsCacheDump:     defaultChartsCacheDump,
 		LTCChartsCacheDump:  defaultLTCChartsCacheDump,
 		BTCChartsCacheDump:  defaultBTCChartsCacheDump,
+		XMRChartsCacheDump:  defaultXMRChartsCacheDump,
 		DebugLevel:          defaultLogLevel,
 		HTTPProfPath:        defaultHTTPProfPath,
 		APIProto:            defaultAPIProto,

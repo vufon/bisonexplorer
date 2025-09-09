@@ -35,6 +35,7 @@ import (
 	"github.com/decred/dcrdata/v8/blockdata"
 	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
 	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataxmr"
 	"github.com/decred/dcrdata/v8/db/cache"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mempool"
@@ -48,6 +49,7 @@ import (
 	"github.com/decred/dcrdata/v8/rpcutils"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/stakedb"
+	"github.com/decred/dcrdata/v8/xmr/xmrclient"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/gops/agent"
@@ -287,14 +289,19 @@ func _main(ctx context.Context) error {
 	var btcdClient *btcClient.Client
 	var ltcNotifier *notify.LTCNotifier
 	var btcNotifier *notify.BTCNotifier
+	var xmrNotifier *notify.XmrNotifier
+	var xmrClient *xmrclient.XMRClient
 	var ltcHeight int32
 	var btcHeight int32
+	var xmrHeight uint64
 	var ltcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPELTC)
 	var btcDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEBTC)
 	var dcrDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEDCR)
+	var xmrDisabled = mutilchain.IsDisabledChain(cfg.DisabledChain, mutilchain.TYPEXMR)
 	chainDB.ChainDisabledMap[mutilchain.TYPEBTC] = btcDisabled
 	chainDB.ChainDisabledMap[mutilchain.TYPELTC] = ltcDisabled
 	chainDB.ChainDisabledMap[mutilchain.TYPEDCR] = dcrDisabled
+	chainDB.ChainDisabledMap[mutilchain.TYPEXMR] = xmrDisabled
 
 	//init mutilchain rpc client and set to chainDB
 	if !ltcDisabled {
@@ -384,23 +391,27 @@ func _main(ctx context.Context) error {
 		chainDB.BtcBestBlock = bestBlock
 	}
 
-	xmrNotifier := notify.NewXmrNotifier(cfg.XmrServ, 10*time.Second)
-	go xmrNotifier.Start()
+	if !xmrDisabled {
+		xmrClient = xmrclient.NewXMRClient(cfg.XmrServ)
+		chainDB.XmrClient = xmrClient
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		xmrNotifier = notify.NewXmrNotifier(cfg.XmrServ, 10*time.Second)
+		go xmrNotifier.Start(ctx, xmrClient)
 
-	// new Blocks
-	go func() {
-		for blk := range xmrNotifier.NewBlocks {
-			fmt.Printf("XMR New block: height=%d, hash=%s\n", blk.Height, blk.Hash)
-			fmt.Printf("  txs: %v\n", blk.TxHashes)
+		// get last block
+		xmrLastBlock, err := xmrClient.GetLastBlockHeader()
+		if err != nil {
+			return fmt.Errorf("XMR: Unable to get last block: %v", err)
 		}
-	}()
-
-	// new Txs
-	go func() {
-		for tx := range xmrNotifier.NewTxs {
-			fmt.Println("XMR New tx:", tx)
+		xmrBestBlock := &dcrpg.MutilchainBestBlock{
+			Height: int64(xmrLastBlock.Height),
+			Hash:   xmrLastBlock.Hash,
+			Time:   int64(xmrLastBlock.Timestamp),
 		}
-	}()
+		xmrHeight = xmrLastBlock.Height
+		chainDB.XmrBestBlock = xmrBestBlock
+	}
 
 	defer func() {
 		if dcrdClient != nil {
@@ -658,6 +669,7 @@ func _main(ctx context.Context) error {
 	chainDisabledMap[mutilchain.TYPEBTC] = btcDisabled
 	chainDisabledMap[mutilchain.TYPELTC] = ltcDisabled
 	chainDisabledMap[mutilchain.TYPEDCR] = dcrDisabled
+	chainDisabledMap[mutilchain.TYPEXMR] = xmrDisabled
 
 	coinCapArr := strings.Split(cfg.CoincapActive, ",")
 	coinCaps := make([]string, 0)
@@ -1633,8 +1645,147 @@ func _main(ctx context.Context) error {
 
 	var btcCollector *blockdatabtc.Collector
 	var ltcCollector *blockdataltc.Collector
+	var xmrCollector *blockdataxmr.Collector
 	var ltcNewPGIndexes, ltcUpdateAllAddresses bool
 	var btcNewPGIndexes, btcUpdateAllAddresses bool
+	// var xmrNewPGIndexes bool
+	//start - init rpcclient for all blockchain
+	if !xmrDisabled {
+		//Check and init table of database
+		checkErr := chainDB.MutilchainCheckAndCreateTable(mutilchain.TYPEXMR)
+		if checkErr != nil {
+			return fmt.Errorf("Check and create table for blockchain %s errors: %w", mutilchain.TYPEXMR, checkErr)
+		}
+		//Start - XMR Sync handler
+		xmrHeightFromDB, err := chainDB.MutilchainHeightDB(mutilchain.TYPEXMR)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				return fmt.Errorf("Unable to get xmr height from PostgreSQL DB: %v", err)
+			}
+			xmrHeightFromDB = 0
+		}
+		//start handler ltc chart data
+		// ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain, int64(ltcHeight), chainDB.ChainDBDisabled)
+		// chainDB.RegisterMutilchainCharts(ltcCharts)
+
+		// explore.LtcChartSource = ltcCharts
+		// app.LtcCharts = ltcCharts
+		// psHub.LtcCharts = ltcCharts
+		// xmrDumpPath := filepath.Join(cfg.DataDir, cfg.XMRChartsCacheDump)
+		// if err = ltcCharts.Load(xmrDumpPath); err != nil {
+		// 	log.Warnf("XMR: Failed to load charts data cache: %v", err)
+		// }
+		// Dump the cache charts data into a file for future use on system exit.
+		// defer ltcCharts.Dump(ltcDumpPath)
+		if !chainDB.ChainDBDisabled {
+			//finish handler xmr chart data
+			xmrBlocksBehind := int64(xmrHeight) - int64(xmrHeightFromDB)
+			if xmrBlocksBehind < 0 {
+				return fmt.Errorf("XMR: Node is still syncing. Node height = %d, "+
+					"DB height = %d", xmrHeight, xmrHeightFromDB)
+			}
+
+			// Check for missing indexes.
+			xmrMissingIndexes, xmrDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPEXMR)
+			if err != nil {
+				return err
+			}
+			// If any indexes are missing, forcibly drop any existing indexes, and
+			// create them all after block sync.
+			if len(xmrMissingIndexes) > 0 {
+				// TODO: xmrNewPGIndexes = true
+				// Warn if this is not a fresh sync.
+				if chainDB.MutilchainHeight(mutilchain.TYPEXMR) > 0 {
+					log.Warnf("Some table indexes not found on %s!", mutilchain.TYPEXMR)
+					for im, mi := range xmrMissingIndexes {
+						log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPEXMR, mi, xmrDescs[im])
+					}
+					log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPEXMR)
+				}
+			}
+		}
+
+		//start init collector for xmr
+		xmrCollector = blockdataxmr.NewCollector(xmrClient)
+		if xmrCollector == nil {
+			return fmt.Errorf("Failed to create XMR block data collector")
+		}
+		var xmrLatestBlockHash = make(chan string, 2)
+		// The BlockConnected handler should not be started until after sync.
+		go func() {
+			// Keep receiving updates until the channel is closed, or a nil Hash
+			// pointer received.
+			for xmrHash := range xmrLatestBlockHash {
+				if xmrHash == "" {
+					return
+				}
+				// Fetch the blockdata by block hash.
+				xmrBlockData, err := xmrCollector.CollectHash(xmrHash)
+				if err != nil {
+					log.Warnf("XMR: failed to fetch blockdata for (%s) hash. error: %v",
+						xmrHash, err)
+					continue
+				}
+
+				// Store the blockdata for the explorer pages.
+				if err = explore.XMRStore(xmrBlockData); err != nil {
+					log.Warnf("XMR: failed to store (%s) hash's blockdata for the explorer pages error: %v",
+						xmrHash, err)
+				}
+			}
+		}()
+		// Before starting the DB sync, trigger the explorer to display data for
+		// the current best block.
+		// Retrieve the hash of the best block across every DB.
+		xmrBlockHeader, bestErr := xmrClient.GetLastBlockHeader()
+		if bestErr != nil {
+			return fmt.Errorf("XMR: failed to fetch the last block: %v", bestErr)
+		}
+
+		// Signal to load this block's data into the explorer. Future signals
+		// will come from the sync methods of ChainDB.
+		xmrLatestBlockHash <- xmrBlockHeader.Hash
+
+		if xmrCollector != nil {
+			xmrBlockData, err := xmrCollector.CollectBest()
+			if err != nil {
+				return fmt.Errorf("XMR: Block data collection for initial summary failed: %w", err)
+			}
+
+			// Update the current chain state in the ChainDB.
+			chainDB.UpdateXMRChainState(&xmrBlockData.BlockchainInfo)
+
+			if err = explore.XMRStore(xmrBlockData); err != nil {
+				return fmt.Errorf("XMR: Failed to store initial block data for explorer pages: %w", err)
+			}
+		}
+		//start - handler notifier for ltc
+		xmrBlockDataSavers := []blockdataxmr.BlockDataSaver{}
+		xmrBlockDataSavers = append(xmrBlockDataSavers, chainDB)
+		xmrBlockDataSavers = append(xmrBlockDataSavers, psHub)
+		xmrBlockDataSavers = append(xmrBlockDataSavers, explore)
+		// Add charts saver method after explorer and database stores. This may run
+		// asynchronously.
+		xmrBlockDataSavers = append(xmrBlockDataSavers, blockdataxmr.BlockTrigger{
+			Async: true,
+			Saver: func(hash string, height uint32) error {
+				// TODO: Handler for xmr charts
+				return nil
+				// return xmrCharts.TriggerUpdate(hash, height)
+			},
+		})
+		xmrBdChainMonitor := blockdataxmr.NewChainMonitor(ctx, xmrCollector, xmrBlockDataSavers)
+
+		xmrNotifier.RegisterBlockHandlerGroup(xmrBdChainMonitor.ConnectBlock)
+		// Register for notifications from dcrd. This also sets the daemon RPC
+		// client used by other functions in the notify/notification package (i.e.
+		// common ancestor identification in processReorg).
+		cerr := xmrNotifier.Listen(ctx)
+		if cerr != nil {
+			return fmt.Errorf("XMR RPC client error: %v", cerr)
+		}
+	}
+
 	//start - init rpcclient for all blockchain
 	if !ltcDisabled {
 		//Check and init table of database

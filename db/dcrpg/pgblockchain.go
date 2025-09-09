@@ -69,6 +69,8 @@ import (
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/utils"
+	"github.com/decred/dcrdata/v8/xmr/xmrclient"
+	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 )
 
 var (
@@ -288,9 +290,11 @@ type ChainDB struct {
 	bestBlock          *BestBlock
 	LtcBestBlock       *MutilchainBestBlock
 	BtcBestBlock       *MutilchainBestBlock
+	XmrBestBlock       *MutilchainBestBlock
 	lastBlock          map[chainhash.Hash]uint64
 	ltcLastBlock       map[ltc_chainhash.Hash]uint64
 	btcLastBlock       map[btc_chainhash.Hash]uint64
+	xmrLastBlock       map[string]uint64
 	ChainDisabledMap   map[string]bool
 	stakeDB            *stakedb.StakeDatabase
 	unspentTicketCache *TicketTxnIDGetter
@@ -319,6 +323,7 @@ type ChainDB struct {
 	Client                 *rpcclient.Client
 	LtcClient              *ltcClient.Client
 	BtcClient              *btcClient.Client
+	XmrClient              *xmrclient.XMRClient
 	tipMtx                 sync.Mutex
 	tipSummary             *apitypes.BlockDataBasic
 	ChainDBDisabled        bool
@@ -369,6 +374,7 @@ type ChainDeployments struct {
 	chainInfo    *dbtypes.BlockChainData
 	btcChainInfo *dbtypes.BlockChainData
 	ltcChainInfo *dbtypes.BlockChainData
+	xmrChainInfo *xmrutil.BlockchainInfo
 }
 
 // BestBlock is mutex-protected block hash and height.
@@ -1415,6 +1421,8 @@ func (pgb *ChainDB) MutilchainHeight(chainType string) int64 {
 		return pgb.LtcBestBlock.MutilchainHeight()
 	case mutilchain.TYPEBTC:
 		return pgb.BtcBestBlock.MutilchainHeight()
+	case mutilchain.TYPEXMR:
+		return pgb.XmrBestBlock.MutilchainHeight()
 	default:
 		return pgb.bestBlock.Height()
 	}
@@ -5462,6 +5470,20 @@ func (pgb *ChainDB) UpdateLTCChainState(blockChainInfo *ltcjson.GetBlockChainInf
 	pgb.deployments.mtx.Unlock()
 }
 
+func (pgb *ChainDB) UpdateXMRChainState(blockChainInfo *xmrutil.BlockchainInfo) {
+	if pgb == nil {
+		return
+	}
+	if blockChainInfo == nil {
+		log.Errorf("XMR: xmrutil.BlockchainInfo data passed is empty")
+		return
+	}
+
+	pgb.deployments.mtx.Lock()
+	pgb.deployments.xmrChainInfo = blockChainInfo
+	pgb.deployments.mtx.Unlock()
+}
+
 // ChainInfo guarantees thread-safe access of the deployment data.
 func (pgb *ChainDB) ChainInfo() *dbtypes.BlockChainData {
 	pgb.deployments.mtx.RLock()
@@ -5504,6 +5526,12 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	pgb.SignalHeight(msgBlock.Header.Height)
 	log.Infof("Start syncing coin age bands/mean coin age data in the background. Height: %d.", msgBlock.Header.Height)
 	go pgb.SyncCoinAgeDataAllSet(int64(msgBlock.Header.Height))
+	return nil
+}
+
+func (pgb *ChainDB) XMRStore(blockData *xmrutil.BlockData) error {
+	// handler store xmr block data in here
+	log.Infof("Handler xmr store in pgblockchain")
 	return nil
 }
 
