@@ -603,6 +603,7 @@ func _main(ctx context.Context) error {
 		botCfg := exchanges.ExchangeBotConfig{
 			BtcIndex:       cfg.ExchangeCurrency,
 			LTCIndex:       cfg.ExchangeCurrency,
+			XmrIndex:       cfg.ExchangeCurrency,
 			MasterBot:      cfg.RateMaster,
 			MasterCertFile: cfg.RateCertificate,
 			BinanceAPIURL:  cfg.BinanceAPI,
@@ -622,6 +623,11 @@ func _main(ctx context.Context) error {
 				}
 			}
 			for k := range xcBot.LTCExchanges {
+				if !slices.Contains(tokenList, k) {
+					tokenList = append(tokenList, k)
+				}
+			}
+			for k := range xcBot.XMRExchanges {
 				if !slices.Contains(tokenList, k) {
 					tokenList = append(tokenList, k)
 				}

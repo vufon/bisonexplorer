@@ -32,6 +32,7 @@ type ExchangeSubscription struct {
 	Exchanges    []string `protobuf:"bytes,2,rep,name=exchanges,proto3" json:"exchanges,omitempty"`
 	LtcExchanges []string `protobuf:"bytes,3,rep,name=ltcExchanges,proto3" json:"ltcExchanges,omitempty"`
 	BtcExchanges []string `protobuf:"bytes,4,rep,name=btcExchanges,proto3" json:"btcExchanges,omitempty"`
+	XmrExchanges []string `protobuf:"bytes,4,rep,name=xmrExchanges,proto3" json:"xmrExchanges,omitempty"`
 }
 
 func (x *ExchangeSubscription) Reset() {
@@ -90,6 +91,13 @@ func (x *ExchangeSubscription) GetLtcExchanges() []string {
 func (x *ExchangeSubscription) GetBtcExchanges() []string {
 	if x != nil {
 		return x.BtcExchanges
+	}
+	return nil
+}
+
+func (x *ExchangeSubscription) GetXmrExchanges() []string {
+	if x != nil {
+		return x.XmrExchanges
 	}
 	return nil
 }

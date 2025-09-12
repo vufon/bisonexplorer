@@ -46,6 +46,8 @@ const (
 	Hotcoin      = "hotcoin"
 	Xt           = "xt"
 	Pionex       = "pionex"
+	Bitfinex     = "bitfinex"
+	Kraken       = "kraken"
 )
 
 // A few candlestick bin sizes.
@@ -352,6 +354,35 @@ var (
 			dayKey:  "https://api.gemini.com/v2/candles/%susd/1day",
 		},
 	}
+
+	BitfinexXMRURLs = URLs{
+		Price: "https://api-pub.bitfinex.com/v2/ticker/tXMRUST",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api-pub.bitfinex.com/v2/book/tXMRUST/P0?len=100",
+		Candlesticks: map[candlestickKey]string{
+			fiveMinKey:  "https://api-pub.bitfinex.com/v2/candles/trade:5m:tXMRUST/hist?limit=10000",
+			halfHourKey: "https://api-pub.bitfinex.com/v2/candles/trade:30m:tXMRUST/hist?limit=10000",
+			hourKey:     "https://api-pub.bitfinex.com/v2/candles/trade:1h:tXMRUST/hist?limit=10000",
+			dayKey:      "https://api-pub.bitfinex.com/v2/candles/trade:1D:tXMRUST/hist?limit=5000",
+			weekKey:     "https://api-pub.bitfinex.com/v2/candles/trade:1W:tXMRUST/hist?limit=2000",
+			monthKey:    "https://api-pub.bitfinex.com/v2/candles/trade:1M:tXMRUST/hist?limit=1000",
+		},
+	}
+
+	KrakenXMRURLs = URLs{
+		Price: "https://api.kraken.com/0/public/Ticker?pair=XMRUSD",
+		// Binance returns a maximum of 5000 depth chart points. This seems like it
+		// is the entire order book at least sometimes.
+		Depth: "https://api.kraken.com/0/public/Depth?pair=XMRUSD&count=500",
+		Candlesticks: map[candlestickKey]string{
+			fiveMinKey:  "https://api.kraken.com/0/public/OHLC?pair=XMRUSD&interval=5",
+			halfHourKey: "https://api.kraken.com/0/public/OHLC?pair=XMRUSD&interval=30",
+			hourKey:     "https://api.kraken.com/0/public/OHLC?pair=XMRUSD&interval=60",
+			dayKey:      "https://api.kraken.com/0/public/OHLC?pair=XMRUSD&interval=1440",
+			weekKey:     "https://api.kraken.com/0/public/OHLC?pair=XMRUSD&interval=10080",
+		},
+	}
 )
 
 // BtcIndices maps tokens to constructors for BTC-fiat exchanges.
@@ -410,6 +441,22 @@ var BTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (
 	DexDotDecred: nil,
 }
 
+// add: BitFinex, Kraken
+var XMRExchanges = map[string]func(*http.Client, *BotChannels, string, string) (Exchange, error){
+	Mexc:     MutilchainNewMexc,
+	KuCoin:   MutilchainNewKucoin,
+	Huobi:    MutilchainNewHuobi,
+	Xt:       MutilchainNewXt,
+	Binance:  MutilchainNewBinance,
+	Coinex:   MutilchainNewCoinex,
+	DragonEx: nil,
+	Poloniex: MutilchainNewPoloniex,
+	Bitfinex: MutilchainNewBitfinex,
+	Kraken:   MutilchainNewKraken,
+	// Gemini:       MutilchainNewGemini,
+	DexDotDecred: nil,
+}
+
 // IsBtcIndex checks whether the given token is a known Bitcoin index, as
 // opposed to a Decred-to-Bitcoin Exchange.
 func IsBtcIndex(token string) bool {
@@ -442,6 +489,17 @@ func IsBTCExchange(token string, symbol string) bool {
 		return false
 	}
 	exchange, ok := BTCExchanges[token]
+	if !ok {
+		return ok
+	}
+	return exchange != nil
+}
+
+func IsXMRExchange(token string, symbol string) bool {
+	if symbol != XMRSYMBOL {
+		return false
+	}
+	exchange, ok := XMRExchanges[token]
 	if !ok {
 		return ok
 	}
@@ -1233,6 +1291,14 @@ type MexcExchange struct {
 	*CommonExchange
 }
 
+type BitfinexExchange struct {
+	*CommonExchange
+}
+
+type KrakenExchange struct {
+	*CommonExchange
+}
+
 // CoinexExchange is a high-volume and well-respected crypto exchange.
 type CoinexExchange struct {
 	*CommonExchange
@@ -1360,6 +1426,60 @@ func MutilchainNewHotcoin(client *http.Client, channels *BotChannels, chainType 
 	commonExchange.Symbol = GetSymbolFromChainType(chainType)
 	commonExchange.mainCoin = chainType
 	hotcoin = &HotcoinExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+func MutilchainNewBitfinex(client *http.Client, channels *BotChannels, chainType string, apiUrl string) (bitfinex Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, BitfinexXMRURLs.Price, nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, BitfinexXMRURLs.Depth, nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range BitfinexXMRURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(Bitfinex, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
+	bitfinex = &BitfinexExchange{
+		CommonExchange: commonExchange,
+	}
+	return
+}
+
+func MutilchainNewKraken(client *http.Client, channels *BotChannels, chainType string, apiUrl string) (kraken Exchange, err error) {
+	reqs := newRequests()
+	reqs.price, err = http.NewRequest(http.MethodGet, KrakenXMRURLs.Price, nil)
+	if err != nil {
+		return
+	}
+
+	reqs.depth, err = http.NewRequest(http.MethodGet, KrakenXMRURLs.Depth, nil)
+	if err != nil {
+		return
+	}
+
+	for dur, url := range KrakenXMRURLs.Candlesticks {
+		reqs.candlesticks[dur], err = http.NewRequest(http.MethodGet, url, nil)
+		if err != nil {
+			return
+		}
+	}
+
+	commonExchange := newCommonExchange(Kraken, client, reqs, channels)
+	commonExchange.Symbol = GetSymbolFromChainType(chainType)
+	kraken = &KrakenExchange{
 		CommonExchange: commonExchange,
 	}
 	return
@@ -1730,6 +1850,50 @@ type CoinexCandlestickDetailData struct {
 	Volume    string `json:"volume"`
 }
 
+type KrakenResponseData struct {
+	XXMRZUSD KrakenResponseDetail `json:"XXMRZUSD"`
+}
+
+type KrakenResponseDetail struct {
+	A []string `json:"a"`
+	B []string `json:"b"`
+	C []string `json:"c"`
+	V []string `json:"v"`
+	P []string `json:"p"`
+	T []int    `json:"t"`
+	L []string `json:"l"`
+	H []string `json:"h"`
+	O string   `json:"o"`
+}
+
+type KrakenPriceResponse struct {
+	Error  []string           `json:"error"`
+	Result KrakenResponseData `json:"result"`
+}
+
+type KrakenDepthResponse struct {
+	Error  []string                `json:"error"`
+	Result KrakenDepthResponseData `json:"result"`
+}
+
+type KrakenDepthResponseData struct {
+	XXMRZUSD KrakenDepthResponseDetail `json:"XXMRZUSD"`
+}
+
+type KrakenDepthResponseDetail struct {
+	Asks [][]interface{} `json:"asks"`
+	Bids [][]interface{} `json:"bids"`
+}
+
+type KrakenCandlesticksResponse struct {
+	Error  []string                       `json:"error"`
+	Result KrakenCandlesticksResponseData `json:"result"`
+}
+
+type KrakenCandlesticksResponseData struct {
+	XXMRZUSD [][]interface{} `json:"XXMRZUSD"`
+}
+
 // BinancePriceResponse models the JSON price data returned from the Binance API.
 type BinancePriceResponse struct {
 	Symbol             string `json:"symbol"`
@@ -1954,6 +2118,11 @@ func badGeminiStickElement(key string, element interface{}) Candlesticks {
 	return Candlesticks{}
 }
 
+func badKrakenStickElement(key string, element interface{}) Candlesticks {
+	log.Errorf("Unable to decode %s from Kraken candlestick: %T: %v", key, element, element)
+	return Candlesticks{}
+}
+
 func (r GeminiCandlestickResponse) translate() Candlesticks {
 	sticks := make(Candlesticks, 0, len(r))
 	for _, rawStick := range r {
@@ -1993,6 +2162,90 @@ func (r GeminiCandlestickResponse) translate() Candlesticks {
 		sticks = append(sticks, Candlestick{
 			High:   highestPrice,
 			Low:    lowestPrice,
+			Open:   openPrice,
+			Close:  closePrice,
+			Volume: volume,
+			Start:  startTime,
+		})
+	}
+	return sticks
+}
+
+func (r *KrakenCandlesticksResponse) translate() Candlesticks {
+	sticks := make(Candlesticks, 0)
+	if r == nil || len(r.Error) > 0 {
+		return sticks
+	}
+	for _, rawStick := range r.Result.XXMRZUSD {
+		if len(rawStick) < 8 {
+			log.Error("Unable to decode Kraken candlestick response. Not enough elements.")
+			return Candlesticks{}
+		}
+		//parse Start time
+		startTimeFloat64, ok := rawStick[0].(float64)
+		if !ok {
+			return badKrakenStickElement("Start time", rawStick[0])
+		}
+		startTime := time.Unix(int64(math.Floor(startTimeFloat64)), 0)
+
+		//parse open price
+		openPriceStr, ok := rawStick[1].(string)
+		if !ok {
+			return badKrakenStickElement("Open price", rawStick[1])
+		}
+		openPrice, err := strconv.ParseFloat(openPriceStr, 64)
+		if err != nil {
+			log.Warnf("parse open price to float64 failed. %v", err)
+			return sticks
+		}
+
+		//parse high price
+		highPriceStr, ok := rawStick[2].(string)
+		if !ok {
+			return badKrakenStickElement("High price", rawStick[2])
+		}
+		highPrice, err := strconv.ParseFloat(highPriceStr, 64)
+		if err != nil {
+			log.Warnf("parse high price to float64 failed. %v", err)
+			return sticks
+		}
+
+		//parse low price
+		lowPriceStr, ok := rawStick[3].(string)
+		if !ok {
+			return badKrakenStickElement("Low price", rawStick[3])
+		}
+		lowPrice, err := strconv.ParseFloat(lowPriceStr, 64)
+		if err != nil {
+			log.Warnf("parse low price to float64 failed. %v", err)
+			return sticks
+		}
+
+		//parse close price
+		closePriceStr, ok := rawStick[4].(string)
+		if !ok {
+			return badKrakenStickElement("Close price", rawStick[4])
+		}
+		closePrice, err := strconv.ParseFloat(closePriceStr, 64)
+		if err != nil {
+			log.Warnf("parse close price to float64 failed. %v", err)
+			return sticks
+		}
+
+		//parse volume
+		volumeStr, ok := rawStick[6].(string)
+		if !ok {
+			return badKrakenStickElement("Volume", rawStick[6])
+		}
+		volume, err := strconv.ParseFloat(volumeStr, 64)
+		if err != nil {
+			log.Warnf("parse volume to float64 failed. %v", err)
+			return sticks
+		}
+
+		sticks = append(sticks, Candlestick{
+			High:   highPrice,
+			Low:    lowPrice,
 			Open:   openPrice,
 			Close:  closePrice,
 			Volume: volume,
@@ -2359,6 +2612,34 @@ type HotcoinKlineResponse struct {
 	Data [][]interface{} `json:"data"`
 }
 
+func parseKrakenDepthPoints(pts [][]interface{}) ([]DepthPoint, error) {
+	outPts := make([]DepthPoint, 0, len(pts))
+	for _, pt := range pts {
+		var price float64
+		var quantity float64
+		var err error
+		if len(pt) >= 3 {
+			if v, ok := pt[0].(string); ok {
+				price, err = strconv.ParseFloat(v, 64)
+				if err != nil {
+					return outPts, err
+				}
+			}
+			if v, ok := pt[1].(string); ok {
+				quantity, err = strconv.ParseFloat(v, 64)
+				if err != nil {
+					return outPts, err
+				}
+			}
+		}
+		outPts = append(outPts, DepthPoint{
+			Quantity: quantity,
+			Price:    price,
+		})
+	}
+	return outPts, nil
+}
+
 func parseBinanceDepthPoints(pts [][2]string) ([]DepthPoint, error) {
 	outPts := make([]DepthPoint, 0, len(pts))
 	for _, pt := range pts {
@@ -2414,6 +2695,26 @@ func (pts *HotcoinFullResponse) translate() *DepthData {
 		return nil
 	}
 	depth.Bids, err = parseHotcoinDepthPoints(pts.Data.Depth.Bids)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	return depth
+}
+
+func (r *KrakenDepthResponse) translate() *DepthData {
+	if r == nil || len(r.Error) > 0 {
+		return nil
+	}
+	depth := new(DepthData)
+	depth.Time = time.Now().Unix()
+	var err error
+	depth.Asks, err = parseKrakenDepthPoints(r.Result.XXMRZUSD.Asks)
+	if err != nil {
+		log.Errorf("%v", err)
+		return nil
+	}
+	depth.Bids, err = parseKrakenDepthPoints(r.Result.XXMRZUSD.Bids)
 	if err != nil {
 		log.Errorf("%v", err)
 		return nil
@@ -2631,6 +2932,191 @@ func (r CoinexCandlestickResponse) translate() Candlesticks {
 		})
 	}
 	return sticks
+}
+
+// Refresh retrieves and parses API data from Coinex.
+func (kraken *KrakenExchange) Refresh() {
+	kraken.LogRequest()
+	priceResponse := new(KrakenPriceResponse)
+	err := kraken.fetch(kraken.requests.price, priceResponse)
+	if err != nil || len(priceResponse.Error) > 0 {
+		kraken.fail("Fetch price", err)
+		return
+	}
+	// get price
+	priceStr := priceResponse.Result.XXMRZUSD.C[0]
+	price, err := strconv.ParseFloat(priceStr, 64)
+	if err != nil {
+		kraken.fail(fmt.Sprintf("Failed to parse float from LastPrice=%s", priceStr), err)
+		return
+	}
+	lowPrice, err := strconv.ParseFloat(priceResponse.Result.XXMRZUSD.L[0], 64)
+	if err != nil {
+		kraken.fail(fmt.Sprintf("Failed to parse float from Low=%s", priceResponse.Result.XXMRZUSD.L[0]), err)
+		return
+	}
+	highPrice, err := strconv.ParseFloat(priceResponse.Result.XXMRZUSD.H[0], 64)
+	if err != nil {
+		kraken.fail(fmt.Sprintf("Failed to parse float from High=%s", priceResponse.Result.XXMRZUSD.H[0]), err)
+		return
+	}
+	volume, err := strconv.ParseFloat(priceResponse.Result.XXMRZUSD.V[0], 64)
+	if err != nil {
+		kraken.fail(fmt.Sprintf("Failed to parse float from Volume=%s", priceResponse.Result.XXMRZUSD.V[0]), err)
+		return
+	}
+	quoteVolume := volume * price
+	openPrice, err := strconv.ParseFloat(priceResponse.Result.XXMRZUSD.O, 64)
+	if err != nil {
+		kraken.fail(fmt.Sprintf("Failed to parse float from Open Price=%s", priceResponse.Result.XXMRZUSD.O), err)
+		return
+	}
+	priceChange := price - openPrice
+
+	// Get the depth chart
+	depthResponse := new(KrakenDepthResponse)
+	err = kraken.fetch(kraken.requests.depth, depthResponse)
+	if err != nil {
+		log.Errorf("Error retrieving depth chart data from Kraken: %v", err)
+	}
+	depth := depthResponse.translate()
+	// Grab the current state to check if candlesticks need updating
+	state := kraken.state()
+
+	candlesticks := map[candlestickKey]Candlesticks{}
+	for bin, req := range kraken.requests.candlesticks {
+		oldSticks, found := state.Candlesticks[bin]
+		if !found || oldSticks.needsUpdate(bin) {
+			log.Tracef("Signalling candlestick update for %s, bin size %s", kraken.token, bin)
+			response := new(KrakenCandlesticksResponse)
+			err := kraken.fetch(req, response)
+			if err != nil {
+				log.Errorf("Error retrieving candlestick data from kraken for bin size %s: %v", string(bin), err)
+				continue
+			}
+			sticks := response.translate()
+
+			if !found || sticks.time().After(oldSticks.time()) {
+				candlesticks[bin] = sticks
+			}
+		}
+	}
+	kraken.Update(&ExchangeState{
+		BaseState: BaseState{
+			Symbol:     kraken.Symbol,
+			Price:      price,
+			Low:        lowPrice,
+			High:       highPrice,
+			BaseVolume: volume,
+			Volume:     quoteVolume,
+			Change:     priceChange,
+			Stamp:      time.Now().Unix(),
+		},
+		Candlesticks: candlesticks,
+		Depth:        depth,
+	})
+}
+
+// Refresh retrieves and parses API data from Coinex.
+func (bitfinex *BitfinexExchange) Refresh() {
+	bitfinex.LogRequest()
+	var tickerResponse []float64
+	err := bitfinex.fetch(bitfinex.requests.price, &tickerResponse)
+	if err != nil || len(tickerResponse) == 0 {
+		bitfinex.fail("Fetch price", err)
+		return
+	}
+	if len(tickerResponse) < 10 {
+		bitfinex.fail("Ticker response length failed", fmt.Errorf("ticker response length failed"))
+		return
+	}
+	price := tickerResponse[6]
+	lowPrice := tickerResponse[9]
+	highPrice := tickerResponse[8]
+	volume := tickerResponse[7]
+	quoteVolume := volume * price
+	priceChange := tickerResponse[4]
+
+	// Get the depth chart
+	var depthResponse [][]float64
+	err = bitfinex.fetch(bitfinex.requests.depth, &depthResponse)
+	if err != nil {
+		log.Errorf("Error retrieving depth chart data from bitfinex: %v", err)
+	}
+	depth := new(DepthData)
+	depth.Time = time.Now().Unix()
+	asks := make([]DepthPoint, 0)
+	bids := make([]DepthPoint, 0)
+	for _, depthItem := range depthResponse {
+		if len(depthItem) < 3 {
+			continue
+		}
+		if depthItem[2] > 0 {
+			bids = append(bids, DepthPoint{
+				Quantity: depthItem[2],
+				Price:    depthItem[0],
+			})
+		} else {
+			asks = append(asks, DepthPoint{
+				Quantity: 0 - depthItem[2],
+				Price:    depthItem[0],
+			})
+		}
+	}
+	depth.Asks = asks
+	depth.Bids = bids
+
+	// Grab the current state to check if candlesticks need updating
+	state := bitfinex.state()
+
+	candlesticks := map[candlestickKey]Candlesticks{}
+	for bin, req := range bitfinex.requests.candlesticks {
+		oldSticks, found := state.Candlesticks[bin]
+		if !found || oldSticks.needsUpdate(bin) {
+			log.Tracef("Signalling candlestick update for %s, bin size %s", bitfinex.token, bin)
+			var response [][]float64
+			err := bitfinex.fetch(req, &response)
+			if err != nil {
+				log.Errorf("Error retrieving candlestick data from bitfinex for bin size %s: %v", string(bin), err)
+				continue
+			}
+			sticks := make(Candlesticks, 0)
+			for i := len(response) - 1; i >= 0; i-- {
+				candleData := response[i]
+				if len(candleData) < 6 {
+					continue
+				}
+				timeSecond := int64(math.Floor(candleData[0])) / 1000
+				candleTime := time.Unix(timeSecond, 0)
+				sticks = append(sticks, Candlestick{
+					Start:  candleTime,
+					High:   candleData[3],
+					Low:    candleData[4],
+					Open:   candleData[1],
+					Close:  candleData[2],
+					Volume: candleData[5],
+				})
+			}
+
+			if !found || sticks.time().After(oldSticks.time()) {
+				candlesticks[bin] = sticks
+			}
+		}
+	}
+	bitfinex.Update(&ExchangeState{
+		BaseState: BaseState{
+			Symbol:     bitfinex.Symbol,
+			Price:      price,
+			Low:        lowPrice,
+			High:       highPrice,
+			BaseVolume: volume,
+			Volume:     quoteVolume,
+			Change:     priceChange,
+			Stamp:      time.Now().Unix(),
+		},
+		Candlesticks: candlesticks,
+		Depth:        depth,
+	})
 }
 
 // Refresh retrieves and parses API data from Coinex.
@@ -3752,6 +4238,8 @@ func GetSymbolFromChainType(chainType string) string {
 		return BTCSYMBOL
 	case TYPELTC:
 		return LTCSYMBOL
+	case TYPEXMR:
+		return XMRSYMBOL
 	default:
 		return DCRUSDSYMBOL
 	}
