@@ -105,26 +105,10 @@ func GetCreateTypeStatements() map[string]string {
 	return result
 }
 
-func GetCreateTypeAllStatements() map[string]string {
-	result := make(map[string]string)
-	for _, chainType := range dbtypes.MutilchainList {
-		result[fmt.Sprintf("%svin_all_t", chainType)] = mutilchainquery.CreateVinAllTypeFunc(chainType)
-		result[fmt.Sprintf("%svout_all_t", chainType)] = mutilchainquery.CreateVoutAllTypeFunc(chainType)
-	}
-	return result
-}
-
 func GetMutilchainCreateTypeStatements(chainType string) map[string]string {
 	result := make(map[string]string)
 	result[fmt.Sprintf("%svin_t", chainType)] = mutilchainquery.CreateVinTypeFunc(chainType)
 	result[fmt.Sprintf("%svout_t", chainType)] = mutilchainquery.CreateVoutTypeFunc(chainType)
-	return result
-}
-
-func GetMutilchainCreateTypeAllStatements(chainType string) map[string]string {
-	result := make(map[string]string)
-	result[fmt.Sprintf("%svin_all_t", chainType)] = mutilchainquery.CreateVinAllTypeFunc(chainType)
-	result[fmt.Sprintf("%svout_all_t", chainType)] = mutilchainquery.CreateVoutAllTypeFunc(chainType)
 	return result
 }
 

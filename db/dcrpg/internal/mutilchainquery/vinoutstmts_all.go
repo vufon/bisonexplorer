@@ -6,7 +6,6 @@ import (
 
 const (
 	// vins
-
 	CreateVinAllTable = `CREATE TABLE IF NOT EXISTS %svins_all (
 		id SERIAL8 PRIMARY KEY,
 		tx_hash TEXT,
@@ -15,8 +14,7 @@ const (
 		prev_tx_hash TEXT,
 		prev_tx_index INT8,
 		prev_tx_tree INT2,
-		value_in INT8,
-		CONSTRAINT ux_%svin_all_txhash_txindex UNIQUE (tx_hash,tx_index)
+		value_in INT8
 	);`
 
 	InsertVinAllRow0 = `INSERT INTO %svins_all (tx_hash, tx_index, tx_tree, prev_tx_hash, prev_tx_index, prev_tx_tree, value_in)
@@ -25,13 +23,13 @@ const (
 	InsertVinAllRowChecked = InsertVinAllRow0 +
 		`ON CONFLICT (tx_hash, tx_index) DO NOTHING RETURNING id;`
 
-	IndexVinAllTableOnVins = `CREATE INDEX uix_%svin_all
+	IndexVinAllTableOnVins = `CREATE INDEX uix_%svin_all_txhash_txindex
 		ON %svins_all(tx_hash, tx_index)
 		;` // STORING (prev_tx_hash, prev_tx_index)
 	IndexVinAllTableOnPrevOuts = `CREATE INDEX uix_%svin_all_prevout
 		ON %svins_all(prev_tx_hash, prev_tx_index)
 		;` // STORING (tx_hash, tx_index)
-	DeindexVinAllTableOnVins     = `DROP INDEX uix_%svin_all;`
+	DeindexVinAllTableOnVins     = `DROP INDEX uix_%svin_all_txhash_txindex;`
 	DeindexVinAllTableOnPrevOuts = `DROP INDEX uix_%svin_all_prevout;`
 
 	SelectVinAllIDsALL = `SELECT id FROM %svins_all;`
@@ -52,14 +50,7 @@ const (
 		JOIN %svins_all ON %svouts_all.tx_hash=%svins_all.prev_tx_hash and %svouts_all.tx_index=%svins_all.prev_tx_index
 		WHERE %svins_all.id=$1;`
 
-	CreateVinAllType = `CREATE TYPE %svin_all_t AS (
-		prev_tx_hash TEXT,
-		prev_tx_index INTEGER,
-		prev_tx_tree SMALLINT,
-		htlc_seq_VAL INTEGER,
-		value_in DOUBLE PRECISION,
-		script_hex BYTEA
-	);`
+	DeleteVinAllWithTxHashArray = `DELETE FROM %svins_all WHERE tx_hash = ANY($1)`
 
 	// vouts
 
@@ -74,8 +65,7 @@ const (
 		script_req_sigs INT4,
 		script_type TEXT,
 		monero_output_id INT8,
-		script_addresses TEXT[],
-		CONSTRAINT ux_%svout_all_txhash_txindex UNIQUE (tx_hash,tx_index)
+		script_addresses TEXT[]
 	);`
 
 	insertVoutAllRow0 = `INSERT INTO %svouts_all (tx_hash, tx_index, tx_tree, value, 
@@ -98,15 +88,6 @@ const (
 	IndexVoutAllTableOnTxHash = `CREATE INDEX uix_%svout_all_txhash
 		ON %svouts_all(tx_hash);`
 	DeindexVoutAllTableOnTxHash = `DROP INDEX uix_%svout_all_txhash;`
-
-	CreateVoutAllType = `CREATE TYPE %svout_all_t AS (
-		value INT8,
-		version INT2,
-		pkscript BYTEA,
-		script_req_sigs INT4,
-		script_type TEXT,
-		script_addresses TEXT[]
-	);`
 )
 
 func MakeCountTotalVoutsAll(chainType string) string {
@@ -141,19 +122,11 @@ func MakeVoutAllInsertStatement(checked bool, chainType string) string {
 }
 
 func CreateVinAllTableFunc(chainType string) string {
-	return fmt.Sprintf(CreateVinAllTable, chainType, chainType)
+	return fmt.Sprintf(CreateVinAllTable, chainType)
 }
 
 func CreateVoutAllTableFunc(chainType string) string {
-	return fmt.Sprintf(CreateVoutAllTable, chainType, chainType)
-}
-
-func CreateVinAllTypeFunc(chainType string) string {
-	return fmt.Sprintf(CreateVinAllType, chainType)
-}
-
-func CreateVoutAllTypeFunc(chainType string) string {
-	return fmt.Sprintf(CreateVoutAllType, chainType)
+	return fmt.Sprintf(CreateVoutAllTable, chainType)
 }
 
 func InsertVinAllRowFunc(chainType string) string {
@@ -205,4 +178,8 @@ func MakeIndexVoutAllTableOnTxHash(chainType string) string {
 
 func MakeDeindexVoutAllTableOnTxHash(chainType string) string {
 	return fmt.Sprintf(DeindexVoutAllTableOnTxHash, chainType)
+}
+
+func MakeDeleteVinAllWithTxHashArrayQuery(chainType string) string {
+	return fmt.Sprintf(DeleteVinAllWithTxHashArray, chainType)
 }

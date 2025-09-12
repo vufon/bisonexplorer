@@ -86,10 +86,10 @@ func (n *XmrNotifier) startInternal(ctx context.Context, client *xmrclient.XMRCl
 		}
 		// set LastHeight to tip; we will only process blocks with height > LastHeight
 		n.setLastHeight(hdr.Height)
-		fmt.Printf("XmrNotifier: starting at tip height %d (will process new blocks only)\n", hdr.Height)
+		log.Infof("XmrNotifier: starting at tip height %d (will process new blocks only)", hdr.Height)
 	case "fromheight":
 		n.setLastHeight(startHeight - 1) // so first processed is startHeight
-		fmt.Printf("XmrNotifier: starting from height %d\n", startHeight)
+		log.Infof("XmrNotifier: starting from height %d", startHeight)
 	default:
 		return fmt.Errorf("unknown start mode: %s", mode)
 	}

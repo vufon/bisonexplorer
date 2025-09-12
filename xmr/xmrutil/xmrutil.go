@@ -1,5 +1,7 @@
 package xmrutil
 
+import "encoding/json"
+
 type BlockCountResult struct {
 	Count uint64 `json:"count"`
 }
@@ -23,17 +25,22 @@ type BlockResult struct {
 }
 
 type BlockHeader struct {
-	Depth        uint64 `json:"depth"`
-	Difficulty   uint64 `json:"difficulty"`
-	Hash         string `json:"hash"`
-	Height       uint64 `json:"height"`
-	MajorVersion uint32 `json:"major_version"`
-	MinorVersion uint32 `json:"minor_version"`
-	Nonce        uint64 `json:"nonce"`
-	OrphanStatus bool   `json:"orphan_status"`
-	PrevHash     string `json:"prev_hash"`
-	Reward       uint64 `json:"reward"`
-	Timestamp    uint64 `json:"timestamp"`
+	Depth                uint64      `json:"depth"`
+	Difficulty           json.Number `json:"difficulty"`                      // may be number or string in JSON
+	CumulativeDifficulty json.Number `json:"cumulative_difficulty,omitempty"` // often very large -> string
+	Hash                 string      `json:"hash"`
+	Height               uint64      `json:"height"`
+	MajorVersion         uint32      `json:"major_version"`
+	MinorVersion         uint32      `json:"minor_version"`
+	Nonce                uint64      `json:"nonce"`
+	OrphanStatus         bool        `json:"orphan_status"`
+	PrevHash             string      `json:"prev_hash"`
+	Reward               uint64      `json:"reward"`
+	Timestamp            uint64      `json:"timestamp"`
+
+	// Optional / variant fields (may appear depending on monerod version)
+	PowAlgo       string `json:"pow_algo,omitempty"`
+	DifficultyNum string `json:"difficulty_num,omitempty"` // sometimes present as string (precise)
 }
 
 type BlockData struct {

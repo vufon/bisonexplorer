@@ -222,6 +222,7 @@ type config struct {
 	OnionAddress   string `long:"onion-address" description:"Hidden service address" env:"DCRDATA_ONION_ADDRESS"`
 	DisableChainDB bool   `long:"disablechaindb" description:"Disable mutilchain sync to DB" env:"DISABLED_CHAIN_DB"`
 	SyncChainDB    bool   `long:"syncchaindb" description:"Flag for syncing mutilchain to DB" env:"SYNC_CHAIN_DB"`
+	XmrSyncDB      bool   `long:"xmrsyncdb" description:"Flag for syncing Monero to DB" env:"XMR_SYNC_DB"`
 	OkLinkKey      string `long:"oklinkkey" description:"Setting up oklink api key" env:"OKLINK_KEY"`
 }
 

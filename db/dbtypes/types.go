@@ -2164,35 +2164,38 @@ type Tx struct {
 
 // Block models a Decred block.
 type Block struct {
-	Hash         string `json:"hash"`
-	Size         uint32 `json:"size"`
-	Height       uint32 `json:"height"`
-	Version      uint32 `json:"version"`
-	NumTx        uint32
-	NumVins      uint32
-	NumVouts     uint32
-	Fees         uint64
-	TotalSent    uint64
-	NumRegTx     uint32
-	Tx           []string `json:"tx"`
-	TxDbIDs      []uint64
-	NumStakeTx   uint32
-	STx          []string `json:"stx"`
-	STxDbIDs     []uint64
-	Time         TimeDef  `json:"time"`
-	Nonce        uint64   `json:"nonce"`
-	VoteBits     uint16   `json:"votebits"`
-	Voters       uint16   `json:"voters"`
-	FreshStake   uint8    `json:"freshstake"`
-	Revocations  uint8    `json:"revocations"`
-	PoolSize     uint32   `json:"poolsize"`
-	Bits         uint32   `json:"bits"`
-	SBits        uint64   `json:"sbits"`
-	Difficulty   float64  `json:"difficulty"`
-	StakeVersion uint32   `json:"stakeversion"`
-	PreviousHash string   `json:"previousblockhash"`
-	ChainWork    string   `json:"chainwork"`
-	Winners      []string `json:"winners"`
+	Hash                 string `json:"hash"`
+	Size                 uint32 `json:"size"`
+	Height               uint32 `json:"height"`
+	Version              uint32 `json:"version"`
+	NumTx                uint32
+	NumVins              uint32
+	NumVouts             uint32
+	Fees                 uint64
+	TotalSent            uint64
+	NumRegTx             uint32
+	Tx                   []string `json:"tx"`
+	TxDbIDs              []uint64
+	NumStakeTx           uint32
+	STx                  []string `json:"stx"`
+	STxDbIDs             []uint64
+	Time                 TimeDef     `json:"time"`
+	Nonce                uint64      `json:"nonce"`
+	VoteBits             uint16      `json:"votebits"`
+	Voters               uint16      `json:"voters"`
+	FreshStake           uint8       `json:"freshstake"`
+	Revocations          uint8       `json:"revocations"`
+	PoolSize             uint32      `json:"poolsize"`
+	Bits                 uint32      `json:"bits"`
+	SBits                uint64      `json:"sbits"`
+	Difficulty           float64     `json:"difficulty"`
+	DifficultyNum        interface{} `json:"difficulty_num"`
+	CumulativeDifficulty interface{} `json:"cumulative_difficulty"`
+	StakeVersion         uint32      `json:"stakeversion"`
+	PreviousHash         string      `json:"previousblockhash"`
+	ChainWork            string      `json:"chainwork"`
+	Winners              []string    `json:"winners"`
+	PowAlgo              string      `json:"powAlgo"`
 }
 
 type BlockDataBasic struct {

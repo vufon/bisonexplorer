@@ -1,6 +1,10 @@
 package mutilchainquery
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/decred/dcrdata/v8/mutilchain"
+)
 
 const (
 	// Insert
@@ -16,21 +20,23 @@ const (
 		$10, $11, $12, $13, $14, $15,
 		$16, $17, $18,
 		$19, $20, $21) `
-	insertTxRow        = insertTxRow0 + `RETURNING id;`
-	insertTxRowChecked = insertTxRow0 + `ON CONFLICT (tx_hash, block_hash) DO NOTHING RETURNING id;`
-	upsertTxRow        = insertTxRow0 + `ON CONFLICT (tx_hash, block_hash) DO UPDATE 
-		SET block_hash = $1, block_index = $2, tree = $3 RETURNING id;`
-	insertTxRowReturnId = `WITH ins AS (` +
-		insertTxRow0 +
-		`ON CONFLICT (tx_hash, block_hash) DO UPDATE
-		SET tx_hash = NULL WHERE FALSE
-		RETURNING id
-		)
-	SELECT id FROM ins
-	UNION  ALL
-	SELECT id FROM %sblocks
-	WHERE  tx_hash = $3 AND block_hash = $1
-	LIMIT  1;`
+	insertXmrTxRow0 = `INSERT INTO xmrtransactions (
+		block_hash, block_height, block_time, time,
+		tx_type, version, tree, tx_hash, tx_blob,
+		tx_extra, block_index, is_ringct, rct_type,
+		tx_public_key, prunable_size,
+		lock_time, expiry, size, spent, sent, fees, 
+		num_vin, vins, num_vout)
+	VALUES (
+		$1, $2, $3, $4, 
+		$5, $6, $7, $8, $9,
+		$10, $11, $12, $13, $14, $15,
+		$16, $17, $18,
+		$19, $20, $21, $22, $23, $24)`
+	insertTxRow           = insertTxRow0 + ` RETURNING id;`
+	insertTxRowChecked    = insertTxRow0 + ` ON CONFLICT (tx_hash, block_hash) DO NOTHING RETURNING id;`
+	insertXmrTxRow        = insertXmrTxRow0 + ` RETURNING id;`
+	insertXmrTxRowChecked = insertXmrTxRow0 + ` ON CONFLICT (tx_hash, block_hash) DO NOTHING RETURNING id;`
 
 	CreateTransactionTable = `CREATE TABLE IF NOT EXISTS %stransactions (
 		id SERIAL8 PRIMARY KEY,
@@ -61,8 +67,7 @@ const (
 		vin_db_ids INT8[],
 		num_vout INT4,
 		vouts %svout_t[],
-		vout_db_ids INT8[],
-		CONSTRAINT ux_%stransaction_txhash_blockhash UNIQUE (block_hash, tx_hash)
+		vout_db_ids INT8[]
 	);`
 	SelectTotalTransaction = `SELECT count(*) FROM %stransactions;`
 	SelectTxByHash         = `SELECT id, block_hash, block_index, tree FROM %stransactions WHERE tx_hash = $1;`
@@ -80,18 +85,20 @@ const (
 		FROM %stransactions
 		WHERE tx_hash = $1 ORDER BY block_height DESC;`
 
-	IndexTransactionTableOnBlockIn = `CREATE UNIQUE INDEX uix_%stx_block_in
-		ON %stransactions(block_hash, block_index)
-		;` // STORING (tx_hash, block_hash)
-	DeindexTransactionTableOnBlockIn = `DROP INDEX uix_%stx_block_in;`
+	SelectTxHashsWithMinHeight = `SELECT tx_hash FROM %stransactions WHERE block_height > $1;`
 
-	IndexTransactionTableOnHashes = `CREATE UNIQUE INDEX uix_%stx_hashes
+	DeleteTxsWithMinBlockHeight = `DELETE FROM %stransactions WHERE block_height > $1`
+
+	IndexTransactionTableOnHashes = `CREATE UNIQUE INDEX uix_%stx_hash_blhash
 		 ON %stransactions(tx_hash, block_hash)
 		 ;` // STORING (block_hash, block_index, tree)
-	DeindexTransactionTableOnHashes = `DROP INDEX uix_%stx_hashes;`
+	DeindexTransactionTableOnHashes = `DROP INDEX uix_%stx_hash_blhash;`
 
 	IndexTransactionTableOnBlockHeight   = `CREATE INDEX ix_%stx_block_height ON %stransactions(block_height);`
 	DeindexTransactionTableOnBlockHeight = `DROP INDEX ix_%stx_block_height CASCADE;`
+
+	IndexTransactionTableOnTxHash   = `CREATE INDEX ix_%stx_txhash ON %stransactions(tx_hash);`
+	DeindexTransactionTableOnTxHash = `DROP INDEX ix_%stx_txhash CASCADE;`
 
 	//SelectTxByPrevOut = `SELECT * FROM transactions WHERE vins @> json_build_array(json_build_object('prevtxhash',$1)::jsonb)::jsonb;`
 	//SelectTxByPrevOut = `SELECT * FROM transactions WHERE vins #>> '{"prevtxhash"}' = '$1';`
@@ -137,12 +144,12 @@ func MakeSelectTxsBlocks(chainType string) string {
 func MakeSelectFullTxByHash(chainType string) string {
 	return fmt.Sprintf(SelectFullTxByHash, chainType)
 }
-func MakeIndexTransactionTableOnBlockIn(chainType string) string {
-	return fmt.Sprintf(IndexTransactionTableOnBlockIn, chainType, chainType)
+func MakeIndexTransactionTableOnTxHash(chainType string) string {
+	return fmt.Sprintf(IndexTransactionTableOnTxHash, chainType, chainType)
 }
 
-func MakeDeindexTransactionTableOnBlockIn(chainType string) string {
-	return fmt.Sprintf(DeindexTransactionTableOnBlockIn, chainType)
+func MakeDeindexTransactionTableOnTxHash(chainType string) string {
+	return fmt.Sprintf(DeindexTransactionTableOnTxHash, chainType)
 }
 
 func MakeIndexTransactionTableOnHashes(chainType string) string {
@@ -176,11 +183,27 @@ func MakeDeindexTransactionTableOnBlockHeight(chainType string) string {
 
 func MakeTxInsertStatement(checked bool, chainType string) string {
 	if checked {
-		return fmt.Sprintf(insertTxRowChecked, chainType)
+		if chainType == mutilchain.TYPEXMR {
+			return insertXmrTxRowChecked
+		} else {
+			return fmt.Sprintf(insertTxRowChecked, chainType)
+		}
 	}
-	return fmt.Sprintf(insertTxRow, chainType)
+	if chainType == mutilchain.TYPEXMR {
+		return insertXmrTxRow
+	} else {
+		return fmt.Sprintf(insertTxRow, chainType)
+	}
 }
 
 func CreateTransactionTableFunc(chainType string) string {
-	return fmt.Sprintf(CreateTransactionTable, chainType, chainType, chainType)
+	return fmt.Sprintf(CreateTransactionTable, chainType, chainType)
+}
+
+func CreateSelectTxHashsWithMinHeightQuery(chainType string) string {
+	return fmt.Sprintf(SelectTxHashsWithMinHeight, chainType)
+}
+
+func CreateDeleteTxsWithMinBlockHeightQuery(chainType string) string {
+	return fmt.Sprintf(DeleteTxsWithMinBlockHeight, chainType)
 }

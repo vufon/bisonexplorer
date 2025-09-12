@@ -4,10 +4,15 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
+	"github.com/decred/dcrdata/v8/xmr/xmrhelper"
 	"github.com/lib/pq"
 )
 
@@ -229,6 +234,392 @@ func InsertMutilchainTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked bool, chainT
 	return ids, dbtx.Commit()
 }
 
+func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSONStr string, checked bool) (int64, int64, int64, error) {
+	// parse into map
+	var txMap map[string]interface{}
+	if err := json.Unmarshal([]byte(txJSONStr), &txMap); err != nil {
+		return 0, 0, 0, fmt.Errorf("unmarshal tx json: %v", err)
+	}
+	voutstmt, err := dbtx.Prepare(mutilchainquery.MakeInsertMoneroVoutsAllRowQuery(checked))
+	if err != nil {
+		log.Errorf("%s: monero_outputs INSERT prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, 0, 0, err
+	}
+
+	voutAddrStmt, err := dbtx.Prepare(mutilchainquery.MakeInsertXmrAddressRowQuery(checked))
+	if err != nil {
+		voutstmt.Close()
+		log.Errorf("%s: xmraddresses INSERT initialization prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, 0, 0, err
+	}
+
+	ringMemberStmt, err := dbtx.Prepare(mutilchainquery.MakeInsertMoneroRingMemberQuery(checked))
+	if err != nil {
+		voutstmt.Close()
+		voutAddrStmt.Close()
+		log.Errorf("%s: monero_ring_members INSERT prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, 0, 0, err
+	}
+
+	keyImgStmt, err := dbtx.Prepare(mutilchainquery.MakeInsertMoneroKeyImagesQuery(checked))
+	if err != nil {
+		voutstmt.Close()
+		voutAddrStmt.Close()
+		ringMemberStmt.Close()
+		log.Errorf("%s: monero_key_images INSERT prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, 0, 0, err
+	}
+
+	vinstmt, err := dbtx.Prepare(mutilchainquery.InsertVinAllRowFuncCheck(checked, mutilchain.TYPEXMR))
+	if err != nil {
+		voutstmt.Close()
+		voutAddrStmt.Close()
+		ringMemberStmt.Close()
+		keyImgStmt.Close()
+		log.Errorf("%s: xmrvin_all INSERT prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, 0, 0, err
+	}
+
+	rctDataStmt, err := dbtx.Prepare(mutilchainquery.MakeInsertMoneroRctDataQuery(checked))
+	if err != nil {
+		voutstmt.Close()
+		voutAddrStmt.Close()
+		ringMemberStmt.Close()
+		keyImgStmt.Close()
+		vinstmt.Close()
+		log.Errorf("%s: monero_rct_data INSERT prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, 0, 0, err
+	}
+
+	defer func() {
+		voutstmt.Close()
+		voutAddrStmt.Close()
+		ringMemberStmt.Close()
+		keyImgStmt.Close()
+		vinstmt.Close()
+		rctDataStmt.Close()
+	}()
+
+	var numVins, numVouts, totalSent int64
+	// 1) vout parsing -> monero_outputs
+	if voutIf, ok := txMap["vout"].([]interface{}); ok {
+		numVouts += int64(len(voutIf))
+		for idx, vo := range voutIf {
+			if voMap, ok := vo.(map[string]interface{}); ok {
+				// target may be under "target" -> "key"
+				outPk := ""
+				globalIndex := int64(-1)
+				amount := int64(0)
+				amountKnown := false
+				if target, ok2 := voMap["target"].(map[string]interface{}); ok2 {
+					if k, ok3 := target["key"].(string); ok3 {
+						outPk = k
+					}
+					// some monero versions include "global_index" in vout
+					if gi, ok4 := voMap["global_index"]; ok4 {
+						switch v := gi.(type) {
+						case float64:
+							globalIndex = int64(v)
+						case string:
+							// sometimes it's string
+							if parsed, err := xmrhelper.ParseInt64FromString(v); err == nil {
+								globalIndex = parsed
+							}
+						}
+					}
+				}
+				// amount may be present (non-ringct)
+				if amt, ok := voMap["amount"]; ok {
+					switch v := amt.(type) {
+					case float64:
+						amount = int64(v)
+						amountKnown = true
+					case string:
+						if parsed, err := xmrhelper.ParseInt64FromString(v); err == nil {
+							amount = parsed
+							amountKnown = true
+						}
+					}
+				}
+				totalSent += amount
+				var mvoutid uint64
+				err := voutstmt.QueryRow(txHash, idx, xmrhelper.NullInt64ToInterface(globalIndex), outPk, nil, amountKnown, xmrhelper.NullInt64ToInterface(amount)).Scan(&mvoutid)
+				// insert into monero_outputs
+				if err != nil {
+					return 0, 0, 0, fmt.Errorf("XMR: insertMoneroOutput failed: %v", err)
+				}
+				txPubKey := ""
+				// Prepare parameter values: convert sentinels to nil
+				var gv interface{}
+				if globalIndex >= 0 {
+					gv = globalIndex
+				} else {
+					gv = nil
+				}
+				var voutIDVal interface{}
+				if mvoutid > 0 {
+					voutIDVal = mvoutid
+				} else {
+					voutIDVal = nil
+				}
+				var outPkVal interface{}
+				if outPk != "" {
+					outPkVal = outPk
+				} else {
+					outPkVal = nil
+				}
+				var amountVal interface{}
+				if amountKnown {
+					amountVal = amount
+				} else {
+					amountVal = nil
+				}
+				var firstSeenVal interface{}
+				if blockHeight > 0 {
+					firstSeenVal = blockHeight
+				} else {
+					firstSeenVal = nil
+				}
+				var txPubKeyVal interface{}
+				if txPubKey != "" {
+					txPubKeyVal = txPubKey
+				} else {
+					txPubKeyVal = nil
+				}
+				var fundingTxHashVal interface{}
+				if txHash != "" {
+					fundingTxHashVal = txHash
+				} else {
+					fundingTxHashVal = nil
+				}
+				var fundingVoutIdxVal interface{}
+				if idx >= 0 {
+					fundingVoutIdxVal = idx
+				} else {
+					fundingVoutIdxVal = nil
+				}
+				var addroutid sql.NullInt64
+				err = voutAddrStmt.QueryRow(outPkVal, gv, amountKnown, amountVal, fundingTxHashVal, fundingVoutIdxVal,
+					voutIDVal, txPubKeyVal, firstSeenVal).Scan(&addroutid)
+				// insert into xmr addresses row
+				if err != nil {
+					return 0, 0, 0, fmt.Errorf("XMR: UpsertAddressForOutput exec failed: %v", err)
+				}
+				if !addroutid.Valid {
+					return 0, 0, 0, fmt.Errorf("XMR: UpsertAddressForOutput: no id returned")
+				}
+			}
+		}
+	}
+
+	// 2) vin parsing -> vins_all, key_images, ring members
+	if vinIf, ok := txMap["vin"].([]interface{}); ok {
+		numVins += int64(len(vinIf))
+		for vinIdx, vinItem := range vinIf {
+			if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
+				// Key input style (most typical for Monero)
+				if keyObj, ok3 := vinMap["key"].(map[string]interface{}); ok3 {
+					// key_offsets: [] numbers (relative offsets)
+					if offsIf, ok4 := keyObj["key_offsets"].([]interface{}); ok4 {
+						offsets := make([]uint64, 0, len(offsIf))
+						for _, oi := range offsIf {
+							switch v := oi.(type) {
+							case float64:
+								offsets = append(offsets, uint64(v))
+							case string:
+								if parsed, err := xmrhelper.ParseUint64FromString(v); err == nil {
+									offsets = append(offsets, parsed)
+								}
+							}
+						}
+						globalIdxs := xmrhelper.OffsetsToGlobalIndices(offsets)
+						// insert ring members
+						for pos, gi := range globalIdxs {
+							var id uint64
+							err = ringMemberStmt.QueryRow(txHash, vinIdx, pos, gi).Scan(&id)
+							if err != nil {
+								return 0, 0, 0, fmt.Errorf("XMR: insertRingMember failed: %v", err)
+							}
+						}
+					}
+					// key image k_image
+					if ki, ok5 := keyObj["k_image"].(string); ok5 && ki != "" {
+						var id uint64
+						err = keyImgStmt.QueryRow(ki, nil, nil, txHash, blockHeight, time.Now().Unix()).Scan(&id)
+						if err != nil {
+							return 0, 0, 0, fmt.Errorf("XMR: insertKeyImage failed: %v", err)
+						}
+					}
+				}
+				// prev_tx stuff (older style)
+				if prevHash, ok6 := vinMap["prev_tx_hash"].(string); ok6 {
+					// may insert into vins_all with prev fields (best-effort)
+					var prevIndex int64 = -1
+					if pi, ok7 := vinMap["prev_out_index"]; ok7 {
+						switch v := pi.(type) {
+						case float64:
+							prevIndex = int64(v)
+						case string:
+							if parsed, err := xmrhelper.ParseInt64FromString(v); err == nil {
+								prevIndex = parsed
+							}
+						}
+					}
+					var mvinid uint64
+					err = vinstmt.QueryRow(txHash, vinIdx, 0, prevHash, prevIndex, -1, 0).Scan(&mvinid)
+					// insert into monero_outputs
+					if err != nil {
+						return 0, 0, 0, fmt.Errorf("XMR: insertVinAll(prev) failed: %v", err)
+					}
+				}
+			}
+		}
+	}
+
+	// 3) rct data
+	if rctIf, ok := txMap["rct_signatures"]; ok {
+		// store rct blob as raw JSON of rct_signatures or hex if available.
+		rctJSON, _ := json.Marshal(rctIf)
+		var rctType int = -1
+		if rct, ok := txMap["rct_signatures"].(map[string]interface{}); ok {
+			if t, ok2 := rct["type"].(float64); ok2 {
+				rctType = int(t)
+			}
+		}
+		var rctPrunableHash sql.NullString
+		// sometimes prunable hash in txMap under "rct_signatures" or "rct_prunable_hash"
+		if rp, ok := txMap["rct_prunable_hash"].(string); ok {
+			rctPrunableHash = sql.NullString{String: rp, Valid: true}
+		}
+
+		var rctId uint64
+		err = rctDataStmt.QueryRow(txHash, rctJSON, xmrhelper.NullStringToInterface(rctPrunableHash), xmrhelper.NullIntToInterfaceInt(rctType)).Scan(&rctId)
+		// insert into monero_outputs
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("XMR: insertRctData failed: %v", err)
+		}
+	}
+	// done
+	return numVins, numVouts, totalSent, nil
+}
+
+func InsertXMRTxn(dbtx *sql.Tx, height uint32, blockTime int64, txHash, txHex, txJSONStr string, checked bool) (uint64, int64, error) {
+	stmt, err := dbtx.Prepare(mutilchainquery.MakeTxInsertStatement(checked, mutilchain.TYPEXMR))
+	if err != nil {
+		log.Errorf("%s: Txns INSERT prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, 0, err
+	}
+	defer stmt.Close()
+	var txBlob []byte
+	if txHex != "" {
+		b, err := hex.DecodeString(txHex)
+		if err == nil {
+			txBlob = b
+		}
+	}
+	var txExtra interface{}
+	if txJSONStr != "" {
+		// store parsed JSONB for easier queries
+		var tmp map[string]interface{}
+		if err := json.Unmarshal([]byte(txJSONStr), &tmp); err == nil {
+			txExtra = tmp
+		} else {
+			// fallback: store raw string
+			txExtra = txJSONStr
+		}
+	}
+	timeField := int64(0)
+	version := 0
+	tree := int16(0)
+	blockIndex := 0
+	isRingCT := false
+	rctType := sql.NullInt64{}
+	txPubKey := sql.NullString{}
+	prunableSize := sql.NullInt64{}
+	lockTime := int64(0)
+	expiry := int64(0)
+	size := 0
+	spent := int64(0)
+	sent := int64(0)
+	fees := int64(0)
+	numVin := 0
+	vins := []string{}
+	numVout := 0
+
+	// parse some common fields from txExtra (tx JSON)
+	if txExtra != nil {
+		switch v := txExtra.(type) {
+		case map[string]interface{}:
+			if t, ok := v["version"].(float64); ok {
+				version = int(t)
+			}
+			if tm, ok := v["unlock_time"].(float64); ok {
+				timeField = int64(tm)
+			}
+			if txSize, ok := v["size"].(float64); ok {
+				size = int(txSize)
+			}
+			// RingCT presence
+			if _, ok := v["rct_signatures"]; ok {
+				isRingCT = true
+			}
+			if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
+				if rt, ok2 := rct["type"].(float64); ok2 {
+					rctType = sql.NullInt64{Int64: int64(rt), Valid: true}
+				}
+			}
+			// vins/vouts length
+			if vinsIf, ok := v["vin"].([]interface{}); ok {
+				numVin = len(vinsIf)
+				// store raw vin JSONs as strings for reference
+				for _, vi := range vinsIf {
+					bs, _ := json.Marshal(vi)
+					vins = append(vins, string(bs))
+				}
+			}
+			if voutsIf, ok := v["vout"].([]interface{}); ok {
+				numVout = len(voutsIf)
+			}
+			// tx public key may be in extra field inside tx JSON; exact path may vary
+			if extraField, ok := v["extra"].([]interface{}); ok {
+				// search for pubkey hex in extra entries (heuristic)
+				for _, e := range extraField {
+					// typical extra entry may be string or map
+					switch ee := e.(type) {
+					case string:
+						// ignore
+					case map[string]interface{}:
+						// maybe "tx_pub_key": "..."
+						if pk, ok := ee["tx_pub_key"].(string); ok {
+							txPubKey = sql.NullString{String: pk, Valid: true}
+						}
+					}
+				}
+			}
+			// fees / outputs / total sent: sometimes present in tx JSON
+			if feeIf, ok := v["fee"].(float64); ok {
+				fees = int64(feeIf)
+			}
+		}
+	}
+
+	var txExtraJSON []byte
+	if txJSONStr != "" {
+		txExtraJSON = []byte(txJSONStr)
+	}
+	var id uint64
+	err = stmt.QueryRow(
+		xmrhelper.HdrSafe(txExtraJSON, "block_hash"), height, blockTime, timeField,
+		0, version, tree, txHash, txBlob, txExtraJSON, blockIndex, isRingCT,
+		xmrhelper.NullIntToInterface(rctType), xmrhelper.NullStringToInterface(txPubKey),
+		prunableSize, lockTime, expiry, size, spent, sent, fees, numVin, pq.Array(vins), numVout).Scan(&id)
+	if err != nil {
+		log.Errorf("XMR: Insert to transactions table unsuccessfully. Txhash: %s", txHash)
+		return 0, 0, err
+	}
+	return id, fees, nil
+}
+
 func InsertMutilchainAddressOuts(db *sql.DB, dbAs []*dbtypes.MutilchainAddressRow, chainType string, checked bool) ([]uint64, error) {
 	// Create the address table if it does not exist
 	tableName := fmt.Sprintf("%saddresses", chainType)
@@ -303,13 +694,28 @@ func InsertMutilchainBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, checked 
 	return id, err
 }
 
+// for btc/ltc (with xmr, use other function)
 func InsertMutilchainWholeBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, checked bool, chainType string) (uint64, error) {
-	insertStatement := mutilchainquery.MakeBlockAllInsertStatement(dbBlock, checked, chainType)
+	insertStatement := mutilchainquery.MakeBlockAllInsertStatement(checked, chainType)
 	var id uint64
 	err := db.QueryRow(insertStatement,
 		dbBlock.Hash, dbBlock.Height, dbBlock.Size, isValid, dbBlock.Version,
 		dbBlock.NumTx, dbBlock.Time.UNIX(), dbBlock.Nonce, dbBlock.PoolSize, dbBlock.Bits,
 		dbBlock.Difficulty, dbBlock.PreviousHash, dbBlock.NumVins, dbBlock.NumVouts, dbBlock.Fees, dbBlock.TotalSent).Scan(&id)
+	return id, err
+}
+
+func InsertXMRWholeBlock(db *sql.DB, dbBlock *dbtypes.Block, blobBytes []byte, isValid, checked bool) (uint64, error) {
+	insertStatement := mutilchainquery.MakeBlockAllInsertStatement(checked, mutilchain.TYPEXMR)
+	var id uint64
+	err := db.QueryRow(insertStatement,
+		dbBlock.Hash, dbBlock.Height, blobBytes,
+		dbBlock.Size, isValid, dbBlock.Version,
+		dbBlock.NumTx, dbBlock.Time.UNIX(),
+		dbBlock.Nonce, dbBlock.PoolSize, dbBlock.Bits,
+		dbBlock.Difficulty, dbBlock.DifficultyNum, dbBlock.CumulativeDifficulty,
+		dbBlock.PowAlgo, dbBlock.PreviousHash, dbBlock.NumVins, dbBlock.NumVouts,
+		dbBlock.Fees, dbBlock.TotalSent).Scan(&id)
 	return id, err
 }
 

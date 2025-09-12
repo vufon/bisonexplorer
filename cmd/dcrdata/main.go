@@ -214,6 +214,7 @@ func _main(ctx context.Context) error {
 		AddrCacheUTXOByteCap: cfg.AddrCacheUXTOCap,
 		ChainDBDisabled:      cfg.DisableChainDB,
 		SyncChainDBFlag:      cfg.SyncChainDB,
+		XmrSyncFlag:          cfg.XmrSyncDB,
 		OkLinkAPIKey:         cfg.OkLinkKey,
 	}
 
@@ -1784,6 +1785,11 @@ func _main(ctx context.Context) error {
 		if cerr != nil {
 			return fmt.Errorf("XMR RPC client error: %v", cerr)
 		}
+	}
+
+	// handler syncing for XMR blockchain on background
+	if !xmrDisabled && xmrClient != nil && chainDB.XmrSyncFlag {
+		go chainDB.SyncXMRWholeChain()
 	}
 
 	//start - init rpcclient for all blockchain
