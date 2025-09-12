@@ -899,20 +899,33 @@ func (pgb *ChainDB) StoreXMRWholeBlock(client *xmrclient.XMRClient, checked, upd
 		log.Errorf("XMR: Get block data failed: Height: %d. Error: %v", height, err)
 		return
 	}
-	// regular transactions
-	resChanReg := make(chan storeTxnsResult)
-	go func() {
-		resChanReg <- pgb.storeXMRWholeTxns(client, dbBlock, checked, updateAddressesSpendingInfo)
+	dbtx, err := pgb.db.Begin()
+	if err != nil {
+		err = fmt.Errorf("XMR: Begin sql tx: %v", err)
+		log.Error(err)
+		return
+	}
+	committed := false
+	defer func() {
+		if !committed {
+			_ = dbtx.Rollback()
+		}
 	}()
 
-	errReg := <-resChanReg
-	numVins = errReg.numVins
-	numVouts = errReg.numVouts
+	txRes := pgb.storeXMRWholeTxns(dbtx, client, dbBlock, checked, updateAddressesSpendingInfo)
+	if txRes.err != nil {
+		err = txRes.err
+		log.Errorf("XMR: storeXMRWholeTxns failed: %v", err)
+		return
+	}
+
+	numVins = txRes.numVins
+	numVouts = txRes.numVouts
 	numTxs = int64(dbBlock.NumTx)
 	dbBlock.NumVins = uint32(numVins)
 	dbBlock.NumVouts = uint32(numVouts)
-	dbBlock.Fees = uint64(errReg.fees)
-	dbBlock.TotalSent = uint64(errReg.totalSent)
+	dbBlock.Fees = uint64(txRes.fees)
+	dbBlock.TotalSent = uint64(txRes.totalSent)
 	var blobBytes []byte
 	if br.Blob != "" {
 		b, err := hex.DecodeString(br.Blob)
@@ -922,7 +935,7 @@ func (pgb *ChainDB) StoreXMRWholeBlock(client *xmrclient.XMRClient, checked, upd
 	}
 
 	// Store the block now that it has all it's transaction PK IDs
-	_, err = InsertXMRWholeBlock(pgb.db, dbBlock, blobBytes, true, checked)
+	_, err = InsertXMRWholeBlock(dbtx, dbBlock, blobBytes, true, checked)
 	if err != nil {
 		log.Error("XMR: InsertBlock:", err)
 		return
@@ -930,11 +943,19 @@ func (pgb *ChainDB) StoreXMRWholeBlock(client *xmrclient.XMRClient, checked, upd
 
 	// update synced flag for block
 	// log.Infof("LTC: Set synced flag for height: %d", dbBlock.Height)
-	err = UpdateMutilchainSyncedStatus(pgb.db, uint64(dbBlock.Height), mutilchain.TYPEXMR)
+	err = UpdateXMRBlockSyncedStatus(dbtx, uint64(dbBlock.Height), mutilchain.TYPEXMR)
 	if err != nil {
 		log.Error("XMR: UpdateLastBlock:", err)
 		return
 	}
+
+	// 7) Commit the tx
+	if cerr := dbtx.Commit(); cerr != nil {
+		err = fmt.Errorf("commit tx: %v", cerr)
+		log.Error(err)
+		return
+	}
+	committed = true
 	return
 }
 
@@ -1150,7 +1171,7 @@ func (pgb *ChainDB) storeBTCWholeTxns(client *btcClient.Client, block *dbtypes.B
 	return txRes
 }
 
-func (pgb *ChainDB) storeXMRWholeTxns(client *xmrclient.XMRClient, block *dbtypes.Block, checked, addressSpendingUpdateInfo bool) storeTxnsResult {
+func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient, block *dbtypes.Block, checked, addressSpendingUpdateInfo bool) storeTxnsResult {
 	var txRes storeTxnsResult
 	// insert to txs
 	// fetch decoded txs JSON (batch)
@@ -1158,12 +1179,6 @@ func (pgb *ChainDB) storeXMRWholeTxns(client *xmrclient.XMRClient, block *dbtype
 	if blTxserr != nil {
 		log.Errorf("XMR: GetTransactions failed: %v", blTxserr)
 		txRes.err = blTxserr
-		return txRes
-	}
-
-	dbtx, err := pgb.db.Begin()
-	if err != nil {
-		txRes.err = fmt.Errorf("begin tx: %v", err)
 		return txRes
 	}
 
@@ -1181,7 +1196,6 @@ func (pgb *ChainDB) storeXMRWholeTxns(client *xmrclient.XMRClient, block *dbtype
 		_, fees, err := InsertXMRTxn(dbtx, block.Height, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked)
 		if err != nil && err != sql.ErrNoRows {
 			log.Error("XMR: InsertTxn:", err)
-			_ = dbtx.Rollback()
 			txRes.err = err
 			return txRes
 		}
@@ -1190,7 +1204,6 @@ func (pgb *ChainDB) storeXMRWholeTxns(client *xmrclient.XMRClient, block *dbtype
 			numVins, numVouts, totalSent, err := ParseAndStoreTxJSON(dbtx, txHash, uint64(block.Height), txJSONStr, checked)
 			if err != nil {
 				log.Error("XMR: ParseAndStoreTxJSON:", err)
-				_ = dbtx.Rollback()
 				txRes.err = err
 				return txRes
 			}
@@ -1198,10 +1211,6 @@ func (pgb *ChainDB) storeXMRWholeTxns(client *xmrclient.XMRClient, block *dbtype
 			txRes.numVouts += numVouts
 			txRes.totalSent += totalSent
 		}
-	}
-	if err := dbtx.Commit(); err != nil {
-		txRes.err = err
-		return txRes
 	}
 	// set address synced flag
 	// txRes.addressesSynced = true

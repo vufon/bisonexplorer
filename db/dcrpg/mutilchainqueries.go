@@ -417,11 +417,12 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 		numVins += int64(len(vinIf))
 		for vinIdx, vinItem := range vinIf {
 			if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
-				// Key input style (most typical for Monero)
+				// --- Key input style (most typical for modern Monero) ---
 				if keyObj, ok3 := vinMap["key"].(map[string]interface{}); ok3 {
-					// key_offsets: [] numbers (relative offsets)
+					// collect offsets (may be absent)
+					var offsets []uint64
 					if offsIf, ok4 := keyObj["key_offsets"].([]interface{}); ok4 {
-						offsets := make([]uint64, 0, len(offsIf))
+						offsets = make([]uint64, 0, len(offsIf))
 						for _, oi := range offsIf {
 							switch v := oi.(type) {
 							case float64:
@@ -432,17 +433,20 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 								}
 							}
 						}
-						globalIdxs := xmrhelper.OffsetsToGlobalIndices(offsets)
-						// insert ring members
-						for pos, gi := range globalIdxs {
-							var id uint64
-							err = ringMemberStmt.QueryRow(txHash, vinIdx, pos, gi).Scan(&id)
-							if err != nil {
-								return 0, 0, 0, fmt.Errorf("XMR: insertRingMember failed: %v", err)
-							}
+					}
+					// convert to global indices if we have offsets (safe with empty slice)
+					globalIdxs := xmrhelper.OffsetsToGlobalIndices(offsets)
+
+					// insert ring members (if any)
+					for pos, gi := range globalIdxs {
+						var id uint64
+						err = ringMemberStmt.QueryRow(txHash, vinIdx, pos, gi).Scan(&id)
+						if err != nil {
+							return 0, 0, 0, fmt.Errorf("XMR: insertRingMember failed: %v", err)
 						}
 					}
-					// key image k_image
+
+					// key image k_image (if present)
 					if ki, ok5 := keyObj["k_image"].(string); ok5 && ki != "" {
 						var id uint64
 						err = keyImgStmt.QueryRow(ki, nil, nil, txHash, blockHeight, time.Now().Unix()).Scan(&id)
@@ -450,8 +454,18 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 							return 0, 0, 0, fmt.Errorf("XMR: insertKeyImage failed: %v", err)
 						}
 					}
+					// **Insert a vin row for this key-style input**
+					// params: tx_hash, tx_index, tx_tree, prev_tx_hash, prev_tx_index, prev_tx_tree, value_in
+					// Use nil for prev_tx_hash/prev_tx_index since key-style has no explicit prev out.
+					// Use -1 for prev_tx_tree (same as prev-tx branch), 0 for value_in (unknown for ringCT).
+					var mvinid uint64
+					err = vinstmt.QueryRow(txHash, vinIdx, 0, nil, nil, -1, 0).Scan(&mvinid)
+					if err != nil {
+						return 0, 0, 0, fmt.Errorf("XMR: insertVinAll(key-style) failed: %v", err)
+					}
 				}
-				// prev_tx stuff (older style)
+
+				// --- prev_tx stuff (older style) ---
 				if prevHash, ok6 := vinMap["prev_tx_hash"].(string); ok6 {
 					// may insert into vins_all with prev fields (best-effort)
 					var prevIndex int64 = -1
@@ -467,7 +481,6 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 					}
 					var mvinid uint64
 					err = vinstmt.QueryRow(txHash, vinIdx, 0, prevHash, prevIndex, -1, 0).Scan(&mvinid)
-					// insert into monero_outputs
 					if err != nil {
 						return 0, 0, 0, fmt.Errorf("XMR: insertVinAll(prev) failed: %v", err)
 					}
@@ -705,11 +718,15 @@ func InsertMutilchainWholeBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, che
 	return id, err
 }
 
-func InsertXMRWholeBlock(db *sql.DB, dbBlock *dbtypes.Block, blobBytes []byte, isValid, checked bool) (uint64, error) {
+func InsertXMRWholeBlock(dbtx *sql.Tx, dbBlock *dbtypes.Block, blobBytes []byte, isValid, checked bool) (uint64, error) {
 	insertStatement := mutilchainquery.MakeBlockAllInsertStatement(checked, mutilchain.TYPEXMR)
+	stmt, err := dbtx.Prepare(insertStatement)
+	if err != nil {
+		log.Errorf("%s: Block INSERT prepare: %v", mutilchain.TYPEXMR, err)
+		return 0, err
+	}
 	var id uint64
-	err := db.QueryRow(insertStatement,
-		dbBlock.Hash, dbBlock.Height, blobBytes,
+	err = stmt.QueryRow(dbBlock.Hash, dbBlock.Height, blobBytes,
 		dbBlock.Size, isValid, dbBlock.Version,
 		dbBlock.NumTx, dbBlock.Time.UNIX(),
 		dbBlock.Nonce, dbBlock.PoolSize, dbBlock.Bits,
@@ -746,6 +763,26 @@ func UpdateMutilchainLastBlock(db *sql.DB, blockDbID uint64, isValid bool, chain
 
 func UpdateMutilchainSyncedStatus(db *sql.DB, height uint64, chainType string) error {
 	res, err := db.Exec(mutilchainquery.MakeUpdateBlockAllSynced(chainType), height)
+	if err != nil {
+		return err
+	}
+	numRows, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if numRows != 1 {
+		return fmt.Errorf("%s: UpdateLastBlock failed to update exactly 1 row (%d)", chainType, numRows)
+	}
+	return nil
+}
+
+func UpdateXMRBlockSyncedStatus(dbtx *sql.Tx, height uint64, chainType string) error {
+	stmt, err := dbtx.Prepare(mutilchainquery.MakeUpdateBlockAllSynced(chainType))
+	if err != nil {
+		log.Errorf("%s: Block synced flag update prepare: %v", mutilchain.TYPEXMR, err)
+		return err
+	}
+	res, err := stmt.Exec(height)
 	if err != nil {
 		return err
 	}

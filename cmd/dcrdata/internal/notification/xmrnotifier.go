@@ -82,7 +82,7 @@ func (n *XmrNotifier) startInternal(ctx context.Context, client *xmrclient.XMRCl
 	case "tip":
 		hdr, err := client.GetLastBlockHeader()
 		if err != nil {
-			return fmt.Errorf("Start: GetLastBlockHeader failed: %v", err)
+			return fmt.Errorf("XMR: Start: GetLastBlockHeader failed: %v", err)
 		}
 		// set LastHeight to tip; we will only process blocks with height > LastHeight
 		n.setLastHeight(hdr.Height)
@@ -91,7 +91,7 @@ func (n *XmrNotifier) startInternal(ctx context.Context, client *xmrclient.XMRCl
 		n.setLastHeight(startHeight - 1) // so first processed is startHeight
 		log.Infof("XmrNotifier: starting from height %d", startHeight)
 	default:
-		return fmt.Errorf("unknown start mode: %s", mode)
+		return fmt.Errorf("XMR: unknown start mode: %s", mode)
 	}
 
 	ticker := time.NewTicker(n.Interval)
@@ -176,7 +176,7 @@ func (n *XmrNotifier) startInternal(ctx context.Context, client *xmrclient.XMRCl
 						case n.NewTxs <- tx:
 						case <-time.After(200 * time.Millisecond):
 							// if consumer slow, skip after small wait to avoid blocking forever
-							fmt.Printf("XmrNotifier: skipping tx enqueue for tx %s due to slow consumer\n", tx)
+							log.Infof("XmrNotifier: skipping tx enqueue for tx %s due to slow consumer", tx)
 						}
 					}
 
