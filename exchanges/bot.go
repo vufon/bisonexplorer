@@ -40,8 +40,10 @@ const (
 	TYPEDCR                   = "dcr"
 	TYPELTC                   = "ltc"
 	TYPEBTC                   = "btc"
+	TYPEXMR                   = "xmr"
 	LTCSYMBOL                 = "LTCUSDT"
 	BTCSYMBOL                 = "BTCUSDT"
+	XMRSYMBOL                 = "XMRUSDT"
 	DCRBTCSYMBOL              = "DCRBTC"
 	DCRUSDSYMBOL              = "DCRUSD"
 )
@@ -56,6 +58,7 @@ type ExchangeBotConfig struct {
 	RequestExpiry  string
 	BtcIndex       string
 	LTCIndex       string
+	XmrIndex       string
 	Indent         bool
 	MasterBot      string
 	MasterCertFile string
@@ -70,10 +73,12 @@ type ExchangeBot struct {
 	DcrBtcExchanges map[string]Exchange
 	LTCUSDExchanges map[string]Exchange
 	BTCUSDExchanges map[string]Exchange
+	XMRUSDExchanges map[string]Exchange
 	IndexExchanges  map[string]Exchange
 	Exchanges       map[string]Exchange
 	LTCExchanges    map[string]Exchange
 	BTCExchanges    map[string]Exchange
+	XMRExchanges    map[string]Exchange
 	versionedCharts map[string]*versionedChart
 	chartVersions   map[string]int
 	// BtcIndex is the (typically fiat) currency to which the DCR price should be
@@ -83,6 +88,7 @@ type ExchangeBot struct {
 	BtcIndex     string
 	BTCIndex     string
 	LTCIndex     string
+	XMRIndex     string
 	indexMap     map[string]FiatIndices
 	currentState ExchangeBotState
 	// Both currentState and stateCopy hold the same information. currentState
@@ -115,30 +121,37 @@ type ExchangeBot struct {
 // ExchangeBotState is the current known state of all exchanges, in a certain
 // base currency, and a volume-averaged price and total volume in DCR.
 type ExchangeBotState struct {
-	BtcIndex          string                    `json:"btc_index"`
-	BtcPrice          float64                   `json:"btc_fiat_price"`
-	Price             float64                   `json:"price"`
-	DCRUSD24hChange   float64                   `json:"dcr_usd_24h_change"`
-	LowPrice          float64                   `json:"low_price"`
-	HighPrice         float64                   `json:"high_price"`
-	DCRBTCPrice       float64                   `json:"dcr_btc_price"`
-	DCRBTC24hChange   float64                   `json:"dcr_btc_24h_change"`
-	Volume            float64                   `json:"volume"`
-	DCRBTCVolume      float64                   `json:"dcr_btc_volume"`
-	LTCPrice          float64                   `json:"ltc_price"`
-	LTCPriceChange    float64                   `json:"ltc_price_change"`
-	LTCLowPrice       float64                   `json:"ltc_low_price"`
-	LTCHighPrice      float64                   `json:"ltc_high_price"`
-	LTCVolume         float64                   `json:"ltc_volume"`
-	BTCPrice          float64                   `json:"btc_price"`
-	BTCPriceChange    float64                   `json:"btc_price_change"`
-	BTCUSDPriceChange float64                   `json:"btc_usd_price_change"`
-	BTCLowPrice       float64                   `json:"btc_low_price"`
-	BTCHighPrice      float64                   `json:"btc_high_price"`
-	BTCVolume         float64                   `json:"btc_volume"`
-	DcrBtc            map[string]*ExchangeState `json:"dcr_btc_exchanges"`
-	LtcUsd            map[string]*ExchangeState `json:"ltc_usd_exchanges"`
-	BtcUsd            map[string]*ExchangeState `json:"btc_usd_exchanges"`
+	BtcIndex          string  `json:"btc_index"`
+	BtcPrice          float64 `json:"btc_fiat_price"`
+	Price             float64 `json:"price"`
+	DCRUSD24hChange   float64 `json:"dcr_usd_24h_change"`
+	LowPrice          float64 `json:"low_price"`
+	HighPrice         float64 `json:"high_price"`
+	DCRBTCPrice       float64 `json:"dcr_btc_price"`
+	DCRBTC24hChange   float64 `json:"dcr_btc_24h_change"`
+	Volume            float64 `json:"volume"`
+	DCRBTCVolume      float64 `json:"dcr_btc_volume"`
+	LTCPrice          float64 `json:"ltc_price"`
+	LTCPriceChange    float64 `json:"ltc_price_change"`
+	LTCLowPrice       float64 `json:"ltc_low_price"`
+	LTCHighPrice      float64 `json:"ltc_high_price"`
+	LTCVolume         float64 `json:"ltc_volume"`
+	BTCPrice          float64 `json:"btc_price"`
+	BTCPriceChange    float64 `json:"btc_price_change"`
+	BTCUSDPriceChange float64 `json:"btc_usd_price_change"`
+	BTCLowPrice       float64 `json:"btc_low_price"`
+	BTCHighPrice      float64 `json:"btc_high_price"`
+	BTCVolume         float64 `json:"btc_volume"`
+	XMRPrice          float64 `json:"xmr_price"`
+	XMRPriceChange    float64 `json:"xmr_price_change"`
+	XMRLowPrice       float64 `json:"xmr_low_price"`
+	XMRHighPrice      float64 `json:"xmr_high_price"`
+	XMRVolume         float64 `json:"xmr_volume"`
+
+	DcrBtc map[string]*ExchangeState `json:"dcr_btc_exchanges"`
+	LtcUsd map[string]*ExchangeState `json:"ltc_usd_exchanges"`
+	BtcUsd map[string]*ExchangeState `json:"btc_usd_exchanges"`
+	XmrUsd map[string]*ExchangeState `json:"xmr_usd_exchanges"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
 	FiatIndices   map[string]*ExchangeState `json:"btc_indices"`
@@ -178,6 +191,7 @@ func (state ExchangeBotState) copy() *ExchangeBotState {
 	state.DcrBtc = copyStates(state.DcrBtc)
 	state.LtcUsd = copyStates(state.LtcUsd)
 	state.BtcUsd = copyStates(state.BtcUsd)
+	state.XmrUsd = copyStates(state.XmrUsd)
 	state.FiatIndices = copyStates(state.FiatIndices)
 	return &state
 }
@@ -254,6 +268,8 @@ func (state *ExchangeBotState) GetMutilchainPrice(chainType string) float64 {
 		return state.BTCPrice
 	case TYPELTC:
 		return state.LTCPrice
+	case TYPEXMR:
+		return state.XMRPrice
 	default:
 		return state.Price
 	}
@@ -265,6 +281,8 @@ func (state *ExchangeBotState) GetMutilchainLowHighPrice(chainType string) (floa
 		return state.BTCLowPrice, state.BTCHighPrice
 	case TYPELTC:
 		return state.LTCLowPrice, state.LTCHighPrice
+	case TYPEXMR:
+		return state.XMRLowPrice, state.XMRHighPrice
 	default:
 		return state.LowPrice, state.HighPrice
 	}
@@ -276,6 +294,8 @@ func (state *ExchangeBotState) GetMutilchainPriceChange(chainType string) float6
 		return state.BTCPriceChange
 	case TYPELTC:
 		return state.LTCPriceChange
+	case TYPEXMR:
+		return state.XMRPriceChange
 	default:
 		return state.DCRUSD24hChange
 	}
@@ -287,6 +307,8 @@ func (state *ExchangeBotState) GetMutilchainVolumn(chainType string) float64 {
 		return state.BTCVolume
 	case TYPELTC:
 		return state.LTCVolume
+	case TYPEXMR:
+		return state.XMRVolume
 	default:
 		return state.Volume
 	}
@@ -298,6 +320,8 @@ func (state *ExchangeBotState) GetMutilchainExchangeState(chainType string) map[
 		return state.BtcUsd
 	case TYPELTC:
 		return state.LtcUsd
+	case TYPEXMR:
+		return state.XmrUsd
 	default:
 		return state.DcrBtc
 	}
@@ -352,6 +376,7 @@ type BotChannels struct {
 	exchange    chan *ExchangeUpdate
 	ltcExchange chan *ExchangeUpdate
 	btcExchange chan *ExchangeUpdate
+	xmrExchange chan *ExchangeUpdate
 	done        chan struct{}
 }
 
@@ -425,10 +450,12 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 		DcrBtcExchanges: make(map[string]Exchange),
 		LTCUSDExchanges: make(map[string]Exchange),
 		BTCUSDExchanges: make(map[string]Exchange),
+		XMRUSDExchanges: make(map[string]Exchange),
 		IndexExchanges:  make(map[string]Exchange),
 		Exchanges:       make(map[string]Exchange),
 		LTCExchanges:    make(map[string]Exchange),
 		BTCExchanges:    make(map[string]Exchange),
+		XMRExchanges:    make(map[string]Exchange),
 		versionedCharts: make(map[string]*versionedChart),
 		chartVersions:   make(map[string]int),
 		BtcIndex:        config.BtcIndex,
@@ -438,12 +465,15 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 			Price:       0,
 			LTCPrice:    0,
 			BTCPrice:    0,
+			XMRPrice:    0,
 			Volume:      0,
 			LTCVolume:   0,
 			BTCVolume:   0,
+			XMRVolume:   0,
 			DcrBtc:      make(map[string]*ExchangeState),
 			LtcUsd:      make(map[string]*ExchangeState),
 			BtcUsd:      make(map[string]*ExchangeState),
+			XmrUsd:      make(map[string]*ExchangeState),
 			FiatIndices: make(map[string]*ExchangeState),
 		},
 		currentStateBytes: []byte{},
@@ -522,6 +552,8 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 			bot.LTCExchanges[token] = xc
 		case TYPEBTC:
 			bot.BTCExchanges[token] = xc
+		case TYPEXMR:
+			bot.XMRExchanges[token] = xc
 		default:
 			return
 		}
@@ -558,6 +590,10 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 		buildMutilchainExchange(token, constructor, bot.BTCUSDExchanges, TYPEBTC, config.BinanceAPIURL)
 	}
 
+	for token, constructor := range XMRExchanges {
+		buildMutilchainExchange(token, constructor, bot.XMRUSDExchanges, TYPEXMR, config.BinanceAPIURL)
+	}
+
 	if len(bot.DcrBtcExchanges) == 0 {
 		return nil, fmt.Errorf("no DCR-BTC exchanges were initialized")
 	}
@@ -568,6 +604,10 @@ func NewExchangeBot(config *ExchangeBotConfig) (*ExchangeBot, error) {
 
 	if len(bot.LTCUSDExchanges) == 0 {
 		return nil, fmt.Errorf("no LTC-USD exchanges were initialized")
+	}
+
+	if len(bot.XMRUSDExchanges) == 0 {
+		return nil, fmt.Errorf("no XMR-USD exchanges were initialized")
 	}
 
 	if len(bot.IndexExchanges) == 0 {
@@ -640,6 +680,10 @@ func (bot *ExchangeBot) Start(ctx context.Context, wg *sync.WaitGroup) {
 						state := exchangeStateFromProto(update)
 						bot.BTCExchanges[update.Token].Update(state)
 					}
+					if IsXMRExchange(update.Token, update.Symbol) {
+						state := exchangeStateFromProto(update)
+						bot.XMRExchanges[update.Token].Update(state)
+					}
 				}
 			}()
 		}
@@ -651,6 +695,7 @@ func (bot *ExchangeBot) Start(ctx context.Context, wg *sync.WaitGroup) {
 		idx := 0
 		ltcIdx := 0
 		btcIdx := 0
+		xmrIdx := 0
 		for _, xc := range bot.Exchanges {
 			go func(xc Exchange, d int) {
 				xc.Refresh()
@@ -660,7 +705,6 @@ func (bot *ExchangeBot) Start(ctx context.Context, wg *sync.WaitGroup) {
 			}(xc, idx)
 			idx++
 		}
-
 		for _, xc := range bot.LTCExchanges {
 			go func(xc Exchange, d int) {
 				xc.Refresh()
@@ -678,6 +722,15 @@ func (bot *ExchangeBot) Start(ctx context.Context, wg *sync.WaitGroup) {
 				}
 			}(xc, btcIdx)
 			btcIdx++
+		}
+		for _, xc := range bot.XMRExchanges {
+			go func(xc Exchange, d int) {
+				xc.Refresh()
+				if !xc.IsFailed() {
+					xc.Hurry(timeBetween * time.Duration(d))
+				}
+			}(xc, xmrIdx)
+			xmrIdx++
 		}
 	}
 
@@ -750,6 +803,7 @@ func (bot *ExchangeBot) connectMasterBot(ctx context.Context, delay time.Duratio
 		Exchanges:    bot.subscribedExchanges(),
 		LtcExchanges: bot.subscribedMutilchainExchanges(TYPELTC),
 		BtcExchanges: bot.subscribedMutilchainExchanges(TYPEBTC),
+		XmrExchanges: bot.subscribedMutilchainExchanges(TYPEXMR),
 	})
 	if err != nil {
 		return nil, err
@@ -763,6 +817,8 @@ func (bot *ExchangeBot) getMutilchainExchanges(chainType string) map[string]Exch
 		return bot.BTCExchanges
 	case TYPELTC:
 		return bot.LTCExchanges
+	case TYPEXMR:
+		return bot.XMRExchanges
 	default:
 		return make(map[string]Exchange)
 	}
@@ -853,8 +909,9 @@ func (bot *ExchangeBot) ConvertedState(code string) (*ExchangeBotState, error) {
 
 	dcrPrice, dcrChange, volume, low, high := bot.processState(bot.currentState.DcrBtc, true)
 	dcrBtcPrice, dcrBtcChange, dcrBtcvolume := bot.processDCRBTCState(bot.currentState.DcrBtc, true)
-	ltcPrice, ltcChange, ltcVolumn, ltcLow, ltcHigh := bot.processState(bot.currentState.LtcUsd, true)
-	btcExchangePrice, btcUsdChange, btcVolumn, btcLow, btcHigh := bot.processState(bot.currentState.BtcUsd, true)
+	ltcPrice, ltcChange, ltcVolumn, ltcLow, ltcHigh := bot.processMutilchainState(bot.currentState.LtcUsd, bot.LTCExchanges, true)
+	btcExchangePrice, btcUsdChange, btcVolumn, btcLow, btcHigh := bot.processMutilchainState(bot.currentState.BtcUsd, bot.BTCExchanges, true)
+	xmrPrice, xmrChange, xmrVolumn, xmrLow, xmrHigh := bot.processMutilchainState(bot.currentState.XmrUsd, bot.XMRExchanges, true)
 	btcPrice, _, _, _, _ := bot.processState(fiatIndices, false)
 	if dcrPrice == 0 || btcPrice == 0 {
 		bot.failed = true
@@ -874,10 +931,16 @@ func (bot *ExchangeBot) ConvertedState(code string) (*ExchangeBotState, error) {
 		BTCLowPrice:       btcLow,
 		BTCHighPrice:      btcHigh,
 		BTCVolume:         btcVolumn * btcExchangePrice,
+		XMRPrice:          xmrPrice,
+		XMRLowPrice:       xmrLow,
+		XMRHighPrice:      xmrHigh,
+		XMRVolume:         xmrVolumn * xmrPrice,
+		XMRPriceChange:    xmrChange,
 		BtcPrice:          btcPrice,
 		DcrBtc:            bot.currentState.DcrBtc,
 		LtcUsd:            bot.currentState.LtcUsd,
 		BtcUsd:            bot.currentState.BtcUsd,
+		XmrUsd:            bot.currentState.XmrUsd,
 		BTCUSDPriceChange: btcUsdChange,
 		FiatIndices:       fiatIndices,
 		DCRBTCPrice:       dcrBtcPrice,
@@ -1151,6 +1214,9 @@ func (bot *ExchangeBot) updateExchange(update *ExchangeUpdate) error {
 	case BTCSYMBOL:
 		bot.currentState.BtcUsd[update.Token] = update.State
 		chainType = TYPEBTC
+	case XMRSYMBOL:
+		bot.currentState.XmrUsd[update.Token] = update.State
+		chainType = TYPEXMR
 	default:
 		bot.currentState.DcrBtc[update.Token] = update.State
 		chainType = TYPEDCR
@@ -1203,6 +1269,18 @@ func (bot *ExchangeBot) updateMutilchainState(chainType string) error {
 			bot.currentState.BTCLowPrice = btcLow
 			bot.currentState.BTCHighPrice = btcHigh
 			bot.currentState.BTCPriceChange = btcChange
+		}
+	case TYPEXMR:
+		xmrPrice, xmrChange, xmrVolumn, xmrLow, xmrHigh := bot.processMutilchainState(bot.currentState.XmrUsd, bot.XMRExchanges, true)
+		if xmrPrice == 0 {
+			bot.failed = true
+		} else {
+			bot.failed = false
+			bot.currentState.XMRPrice = xmrPrice
+			bot.currentState.XMRVolume = xmrVolumn
+			bot.currentState.XMRLowPrice = xmrLow
+			bot.currentState.XMRHighPrice = xmrHigh
+			bot.currentState.XMRPriceChange = xmrChange
 		}
 	default:
 		dcrPrice, dcrChange, volume, lowPrice, highPrice := bot.processState(bot.currentState.DcrBtc, true)
@@ -1324,6 +1402,11 @@ func (bot *ExchangeBot) Cycle() {
 			go xc.Refresh()
 		}
 	}
+	for _, xc := range bot.XMRExchanges {
+		if tNow.Sub(xc.LastTry()) > bot.DataExpiry {
+			go xc.Refresh()
+		}
+	}
 }
 
 // Price gets the lastest Price in the default currency (BtcIndex).
@@ -1342,6 +1425,8 @@ func (bot *ExchangeBot) MutilchainPrice(chainSymbol string) float64 {
 		return bot.currentState.BTCPrice
 	case LTCSYMBOL:
 		return bot.currentState.LTCPrice
+	case XMRSYMBOL:
+		return bot.currentState.XMRPrice
 	default:
 		return bot.currentState.Price
 	}

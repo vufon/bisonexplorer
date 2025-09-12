@@ -176,7 +176,7 @@ func (n *XmrNotifier) startInternal(ctx context.Context, client *xmrclient.XMRCl
 						case n.NewTxs <- tx:
 						case <-time.After(200 * time.Millisecond):
 							// if consumer slow, skip after small wait to avoid blocking forever
-							log.Infof("XmrNotifier: skipping tx enqueue for tx %s due to slow consumer", tx)
+							log.Warnf("XmrNotifier: skipping tx enqueue for tx %s due to slow consumer", tx)
 						}
 					}
 
