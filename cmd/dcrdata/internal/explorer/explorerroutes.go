@@ -4488,6 +4488,12 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 		coinValueSupply = exp.LtcPageData.HomeInfo.CoinValueSupply
 		volume = xcState.Volume // since data from blockchair failed
 		exp.LtcPageData.RUnlock()
+	case mutilchain.TYPEXMR:
+		exp.XmrPageData.RLock()
+		// Get fiat conversions if available
+		coinValueSupply = exp.XmrPageData.HomeInfo.CoinValueSupply
+		volume = xcState.Volume // since data from blockchair failed
+		exp.XmrPageData.RUnlock()
 	default:
 		exp.pageData.RLock()
 		coinValueSupply = exp.pageData.HomeInfo.CoinValueSupply

@@ -325,6 +325,7 @@ type ExplorerUI struct {
 	chartSource      ChartDataSource
 	BtcChartSource   *cache.MutilchainChartData
 	LtcChartSource   *cache.MutilchainChartData
+	XmrChartSource   *cache.MutilchainChartData
 	agendasSource    agendaBackend
 	voteTracker      *agendas.VoteTracker
 	proposals        PoliteiaBackend
@@ -335,6 +336,7 @@ type ExplorerUI struct {
 	pageData         *pageData
 	BtcPageData      *BtcPageData
 	LtcPageData      *LtcPageData
+	XmrPageData      *LtcPageData
 	ChainParams      *chaincfg.Params
 	BtcChainParams   *btcchaincfg.Params
 	LtcChainParams   *ltcchaincfg.Params
