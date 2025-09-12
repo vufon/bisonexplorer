@@ -28,6 +28,9 @@ import (
 	"github.com/decred/dcrdata/gov/v6/politeia"
 
 	"github.com/decred/dcrdata/v8/blockdata"
+	"github.com/decred/dcrdata/v8/blockdata/blockdatabtc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataltc"
+	"github.com/decred/dcrdata/v8/blockdata/blockdataxmr"
 	"github.com/decred/dcrdata/v8/mempool"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/pubsub"
@@ -41,21 +44,24 @@ var (
 	backendLog   *splitBackend
 
 	// subsystem loggers (initialized in initLogRotators)
-	notifyLog     slog.Logger
-	postgresqlLog slog.Logger
-	stakedbLog    slog.Logger
-	BlockdataLog  slog.Logger
-	clientLog     slog.Logger
-	mempoolLog    slog.Logger
-	expLog        slog.Logger
-	apiLog        slog.Logger
-	log           slog.Logger
-	iapiLog       slog.Logger
-	pubsubLog     slog.Logger
-	xcBotLog      slog.Logger
-	agendasLog    slog.Logger
-	proposalsLog  slog.Logger
-	externalLog   slog.Logger
+	notifyLog       slog.Logger
+	postgresqlLog   slog.Logger
+	stakedbLog      slog.Logger
+	BlockdataLog    slog.Logger
+	clientLog       slog.Logger
+	mempoolLog      slog.Logger
+	expLog          slog.Logger
+	apiLog          slog.Logger
+	log             slog.Logger
+	iapiLog         slog.Logger
+	pubsubLog       slog.Logger
+	xcBotLog        slog.Logger
+	agendasLog      slog.Logger
+	proposalsLog    slog.Logger
+	externalLog     slog.Logger
+	btcBlockdataLog slog.Logger
+	ltcBlockdataLog slog.Logger
+	xmrBlockdataLog slog.Logger
 	// filled after init so setLogLevels works
 	subsystemLoggers map[string]slog.Logger
 )
@@ -237,10 +243,14 @@ func initLogRotators(logPath, debugLogPath string, maxRolls int) {
 	agendasLog = backendLog.Logger("AGDB")
 	proposalsLog = backendLog.Logger("PRDB")
 	externalLog = backendLog.Logger("PRDB")
+	btcBlockdataLog = backendLog.Logger("BTCBLKD")
+	ltcBlockdataLog = backendLog.Logger("LTCBLKD")
+	xmrBlockdataLog = backendLog.Logger("XMRBLKD")
 	all := []slog.Logger{
 		notifyLog, postgresqlLog, stakedbLog, BlockdataLog, clientLog,
 		mempoolLog, expLog, apiLog, log, iapiLog, pubsubLog,
-		xcBotLog, agendasLog, proposalsLog, externalLog,
+		xcBotLog, agendasLog, proposalsLog, externalLog, btcBlockdataLog,
+		ltcBlockdataLog, xmrBlockdataLog,
 	}
 	for _, lg := range all {
 		lg.SetLevel(slog.LevelDebug)
@@ -263,24 +273,30 @@ func initLogRotators(logPath, debugLogPath string, maxRolls int) {
 	agendas.UseLogger(agendasLog)
 	politeia.UseLogger(proposalsLog)
 	externalapi.UseLogger(externalLog)
+	blockdatabtc.UseLogger(btcBlockdataLog)
+	blockdataltc.UseLogger(ltcBlockdataLog)
+	blockdataxmr.UseLogger(xmrBlockdataLog)
 
 	// Save map to use setLogLevels laters
 	subsystemLoggers = map[string]slog.Logger{
-		"NTFN":   notifyLog,
-		"PSQL":   postgresqlLog,
-		"SKDB":   stakedbLog,
-		"BLKD":   BlockdataLog,
-		"RPCC":   clientLog,
-		"MEMP":   mempoolLog,
-		"EXPR":   expLog,
-		"JAPI":   apiLog,
-		"IAPI":   iapiLog,
-		"DATD":   log,
-		"PUBS":   pubsubLog,
-		"XBOT":   xcBotLog,
-		"AGDB":   agendasLog,
-		"PRDB":   proposalsLog,
-		"EXTAPI": externalLog,
+		"NTFN":    notifyLog,
+		"PSQL":    postgresqlLog,
+		"SKDB":    stakedbLog,
+		"BLKD":    BlockdataLog,
+		"RPCC":    clientLog,
+		"MEMP":    mempoolLog,
+		"EXPR":    expLog,
+		"JAPI":    apiLog,
+		"IAPI":    iapiLog,
+		"DATD":    log,
+		"PUBS":    pubsubLog,
+		"XBOT":    xcBotLog,
+		"AGDB":    agendasLog,
+		"PRDB":    proposalsLog,
+		"EXTAPI":  externalLog,
+		"BTCBLKD": btcBlockdataLog,
+		"LTCBLKD": ltcBlockdataLog,
+		"XMRBLKD": xmrBlockdataLog,
 	}
 }
 

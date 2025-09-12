@@ -3,19 +3,27 @@ package mutilchainquery
 import (
 	"fmt"
 
-	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 )
 
 const (
 	// Block insert
 	insertBlockAllRow0 = `INSERT INTO %sblocks_all (
 		hash, height, size, is_valid, version,
-		numtx, tx, txDbIDs, time, nonce, pool_size, bits, 
+		numtx, time, nonce, pool_size, bits, 
 		difficulty, previous_hash, num_vins, num_vouts, fees, total_sent)
-	VALUES ($1, $2, $3, $4, $5, $6, %s, %s, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
-	insertBlockAllRow         = insertBlockAllRow0 + `RETURNING id;`
-	insertBlockAllRowChecked  = insertBlockAllRow0 + `ON CONFLICT (hash) DO NOTHING RETURNING id;`
-	insertBlockAllRowReturnId = `WITH ins AS (` +
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
+	insertXmrBlockAllRow0 = `INSERT INTO xmrblocks_all (
+		hash, height, block_blob, size, is_valid, version,
+		numtx, time, nonce, pool_size, bits, 
+		difficulty, difficulty_num, cumulative_difficulty, pow_algo, previous_hash, num_vins, num_vouts, fees, total_sent)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`
+
+	insertBlockAllRow           = insertBlockAllRow0 + ` RETURNING id;`
+	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (hash) DO NOTHING RETURNING id;`
+	insertXmrBlockAllRow        = insertXmrBlockAllRow0 + ` RETURNING id;`
+	insertXmrBlockAllRowChecked = insertXmrBlockAllRow0 + ` ON CONFLICT (hash) DO NOTHING RETURNING id;`
+	insertBlockAllRowReturnId   = `WITH ins AS (` +
 		insertBlockAllRow0 +
 		`ON CONFLICT (hash) DO UPDATE
 		SET hash = NULL WHERE FALSE
@@ -33,25 +41,26 @@ const (
 		id SERIAL PRIMARY KEY,
 		hash TEXT NOT NULL, -- UNIQUE
 		height INT4,
+		block_blob BYTEA,
 		size INT4,
 		is_valid BOOLEAN,
 		version INT4,
 		numtx INT4,
-		tx TEXT[],
-		txDbIDs INT8[],
 		time INT8,
 		nonce INT8,
 		pool_size INT4,
 		bits INT4,
 		difficulty FLOAT8,
+		difficulty_num NUMERIC(40,0), -- For monero
+		cumulative_difficulty NUMERIC(40,0),
+		pow_algo TEXT,
 		previous_hash TEXT,
 		num_vins INT4,
 		num_vouts INT4,
 		fees INT8,
 		total_sent INT8,
 		address_updated BOOLEAN DEFAULT FALSE,
-		synced BOOLEAN DEFAULT FALSE,
-		CONSTRAINT ux_%sblock_all_hash UNIQUE (hash)
+		synced BOOLEAN DEFAULT FALSE
 	);`
 
 	// SelectBlocksAllWithTimeRange = `SELECT height FROM %sblocks_all WHERE time >= $1 AND time <= $2`
@@ -107,9 +116,10 @@ ORDER BY a.height ASC;`
 		ORDER BY height;`
 
 	CheckExistBLockAll         = `SELECT EXISTS(SELECT 1 FROM %sblocks_all WHERE height = $1);`
-	SelectBlockAllHeightByHash = `SELECT height FROM %sblocks_all WHERE hash = $1;`
+	SelectBlockAllHeightByHash = `SELECT height FROM %sblocks_all WHERE hash = $1 LIMIT 1;`
 	SelectBlockAllHashByHeight = `SELECT hash FROM %sblocks_all WHERE height = $1;`
 	SelectMinBlockAllHeight    = `SELECT min(height) FROM %sblocks_all;`
+	DeleteBlocksWithMinHeight  = `DELETE FROM %sblocks_all WHERE height > $1`
 )
 
 func MakeSelectBlockAllStats(chainType string) string {
@@ -188,25 +198,28 @@ func MakeDeindexBlocksAllTableOnTime(chainType string) string {
 	return fmt.Sprintf(DeindexBlocksAllTableOnTime, chainType)
 }
 
-func MakeBlockAllInsertStatement(block *dbtypes.Block, checked bool, chainType string) string {
-	return makeBlockAllInsertStatement(block.TxDbIDs,
-		block.Tx, checked, chainType)
+func MakeBlockAllInsertStatement(checked bool, chainType string) string {
+	return makeBlockAllInsertStatement(checked, chainType)
 }
 
-func makeBlockAllInsertStatement(txDbIDs []uint64, rtxs []string, checked bool, chainType string) string {
-	rtxDbIDsARRAY := makeARRAYOfBIGINTs(txDbIDs)
-	rtxTEXTARRAY := makeARRAYOfTEXT(rtxs)
-	var insert string
+func makeBlockAllInsertStatement(checked bool, chainType string) string {
 	if checked {
-		insert = insertBlockAllRowChecked
+		if chainType == mutilchain.TYPEXMR {
+			return insertXmrBlockAllRowChecked
+		} else {
+			return fmt.Sprintf(insertBlockAllRowChecked, chainType)
+		}
 	} else {
-		insert = insertBlockAllRow
+		if chainType == mutilchain.TYPEXMR {
+			return insertXmrBlockAllRow
+		} else {
+			return fmt.Sprintf(insertBlockAllRow, chainType)
+		}
 	}
-	return fmt.Sprintf(insert, chainType, rtxTEXTARRAY, rtxDbIDsARRAY)
 }
 
 func CreateBlockAllTableFunc(chainType string) string {
-	return fmt.Sprintf(CreateBlockAllTable, chainType, chainType)
+	return fmt.Sprintf(CreateBlockAllTable, chainType)
 }
 
 func RetrieveBestBlockAllHeightStatement(chainType string) string {
@@ -219,4 +232,8 @@ func UpdateLastBlockAllValidStatement(chainType string) string {
 
 func CreateSelectRemainingNotSyncedHeights(chainType string) string {
 	return fmt.Sprintf(SelectRemainingNotSyncedHeights, chainType)
+}
+
+func CreateDeleteBlocksWithMinHeightQuery(chainType string) string {
+	return fmt.Sprintf(DeleteBlocksWithMinHeight, chainType)
 }

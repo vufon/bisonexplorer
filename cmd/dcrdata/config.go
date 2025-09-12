@@ -77,10 +77,11 @@ var (
 	defaultLTCSimnetPort  = "19335"
 	defaultLTCIndentJSON  = "   "
 	//Bitcoin: btcd: 8334, 18334
-	defaultBTCMainnetPort = "8334"
-	defaultBTCTestnetPort = "18334"
-	defaultBTCSimnetPort  = "18335"
-	defaultBTCIndentJSON  = "   "
+	defaultBTCMainnetPort   = "8334"
+	defaultXMRMainnetServer = "http://127.0.0.1:18081/json_rpc"
+	defaultBTCTestnetPort   = "18334"
+	defaultBTCSimnetPort    = "18335"
+	defaultBTCIndentJSON    = "   "
 
 	defaultCacheControlMaxAge  = 86400
 	defaultInsightReqRateLimit = 20.0
@@ -97,6 +98,7 @@ var (
 	defaultChartsCacheDump    = "chartscache.gob"
 	defaultLTCChartsCacheDump = "ltcchartscache.gob"
 	defaultBTCChartsCacheDump = "btcchartscache.gob"
+	defaultXMRChartsCacheDump = "xmrchartscache.gob"
 
 	defaultPGHost           = "127.0.0.1:5432"
 	defaultPGUser           = "dcrdata"
@@ -170,6 +172,7 @@ type config struct {
 	ChartsCacheDump    string `long:"chartscache" description:"Defines the file name that holds the charts cache data on system exit." env:"DCRDATA_CHARTS_CACHE"`
 	LTCChartsCacheDump string `long:"ltcchartscache" description:"Defines the file name that holds the ltc charts cache data on system exit." env:"DCRDATA_LTC_CHARTS_CACHE"`
 	BTCChartsCacheDump string `long:"btcchartscache" description:"Defines the file name that holds the btc charts cache data on system exit." env:"DCRDATA_BTC_CHARTS_CACHE"`
+	XMRChartsCacheDump string `long:"xmrchartscache" description:"Defines the file name that holds the xmr charts cache data on system exit." env:"DCRDATA_XMR_CHARTS_CACHE"`
 	// DB backend
 	PGDBName         string        `long:"pgdbname" description:"PostgreSQL DB name." env:"DCRDATA_PG_DB_NAME"`
 	PGUser           string        `long:"pguser" description:"PostgreSQL DB user." env:"DCRDATA_POSTGRES_USER"`
@@ -205,7 +208,7 @@ type config struct {
 	BtcdPass string `long:"btcdpass" description:"Daemon RPC password" env:"DCRDATA_BTCD_PASS"`
 	BtcdServ string `long:"btcdserv" description:"Hostname/IP and port of btcd RPC server to connect to (default localhost:8334, testnet: localhost:18334, simnet: localhost:???)" env:"DCRDATA_BTCD_URL"`
 	BtcdCert string `long:"btcdcert" description:"File containing the btcd certificate file" env:"DCRDATA_BTCD_CERT"`
-
+	XmrServ  string `long:"xmrserv" description:"Endpoint of monerod RPC server to connect to (default localhost:18081/json_rpc)" env:"DCRDATA_MONEROD_URL"`
 	// ExchangeBot settings
 	EnableExchangeBot bool   `long:"exchange-monitor" description:"Enable the exchange monitor" env:"DCRDATA_MONITOR_EXCHANGES"`
 	DisabledExchanges string `long:"disable-exchange" description:"Exchanges to disable. See /exchanges/exchanges.go for available exchanges. Use a comma to separate multiple exchanges" env:"DCRDATA_DISABLE_EXCHANGES"`
@@ -219,6 +222,7 @@ type config struct {
 	OnionAddress   string `long:"onion-address" description:"Hidden service address" env:"DCRDATA_ONION_ADDRESS"`
 	DisableChainDB bool   `long:"disablechaindb" description:"Disable mutilchain sync to DB" env:"DISABLED_CHAIN_DB"`
 	SyncChainDB    bool   `long:"syncchaindb" description:"Flag for syncing mutilchain to DB" env:"SYNC_CHAIN_DB"`
+	XmrSyncDB      bool   `long:"xmrsyncdb" description:"Flag for syncing Monero to DB" env:"XMR_SYNC_DB"`
 	OkLinkKey      string `long:"oklinkkey" description:"Setting up oklink api key" env:"OKLINK_KEY"`
 }
 
@@ -235,6 +239,7 @@ var (
 		ChartsCacheDump:     defaultChartsCacheDump,
 		LTCChartsCacheDump:  defaultLTCChartsCacheDump,
 		BTCChartsCacheDump:  defaultBTCChartsCacheDump,
+		XMRChartsCacheDump:  defaultXMRChartsCacheDump,
 		DebugLevel:          defaultLogLevel,
 		HTTPProfPath:        defaultHTTPProfPath,
 		APIProto:            defaultAPIProto,
@@ -246,6 +251,7 @@ var (
 		DcrdCert:            defaultDaemonRPCCertFile,
 		LtcdCert:            defaultLTCDaemonRPCCertFile,
 		BtcdCert:            defaultBTCDaemonRPCCertFile,
+		XmrServ:             defaultXMRMainnetServer,
 		MempoolMinInterval:  defaultMempoolMinInterval,
 		MempoolMaxInterval:  defaultMempoolMaxInterval,
 		MPTriggerTickets:    defaultMPTriggerTickets,

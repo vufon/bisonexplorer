@@ -35,6 +35,7 @@ import (
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/semver"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 	ltcjson "github.com/ltcsuite/ltcd/btcjson"
 	ltcchaincfg "github.com/ltcsuite/ltcd/chaincfg"
 	"github.com/ltcsuite/ltcd/ltcutil"
@@ -938,6 +939,12 @@ func (psh *PubSubHub) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcw
 	}()
 
 	log.Debugf("Got new BTC block %d for the pubsubhub.", newBlockData.Height)
+	return nil
+}
+
+func (psh *PubSubHub) XMRStore(blockData *xmrutil.BlockData) error {
+	// handler store xmr block data in here
+	log.Infof("handler xmr store in pubsubhub")
 	return nil
 }
 

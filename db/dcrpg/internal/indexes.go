@@ -3,8 +3,8 @@ package internal
 import (
 	"fmt"
 
-	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/db/dbtypes"
+	"github.com/decred/dcrdata/v8/mutilchain"
 )
 
 // The names of table column indexes are defined in this block.
@@ -90,73 +90,123 @@ var AddressesIndexNames = []string{IndexOfAddressTableOnAddress,
 
 func GetMutilchainAddressesIndexNames(chainType string) []string {
 	res := make([]string, 0)
-	res = append(res, mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType))
-	res = append(res, mutilchainquery.IndexAddressTableOnAddressStmt(chainType))
-	res = append(res, mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType))
+	if chainType == mutilchain.TYPEXMR {
+		res = append(res, "idx_xmraddresses_global_index")
+		res = append(res, "idx_xmraddresses_key_image")
+		res = append(res, "idx_xmraddresses_address_idx")
+	} else {
+		res = append(res, fmt.Sprintf("uix_%saddresses_funding_tx", chainType))
+		res = append(res, fmt.Sprintf("uix_%saddresses_vout_id", chainType))
+		res = append(res, fmt.Sprintf("uix_%saddresses_address", chainType))
+	}
 	return res
 }
 
 func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 	result := make(map[string]string)
-	tempIndex := mutilchainquery.MakeIndexBlockTableOnHash(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex := fmt.Sprintf("uix_%sblock_hash", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexBlockAllTableOnHash(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%sblock_all_hash", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexBlocksTableOnHeight(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%sblock_height", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnHeight(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%sblock_all_height", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexBlocksTableOnTime(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%sblock_time", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnTime(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%sblock_all_time", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("ix_%stx_block_height", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockIn(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%stx_txhash", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexTransactionTableOnHashes(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%stx_hash_blhash", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVinTableOnPrevOuts(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svin_prevout", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVinAllTableOnPrevOuts(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svin_all_prevout", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVinTableOnVins(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svin", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVinAllTableOnVins(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svin_all_txhash_txindex", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHash(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svout_txhash", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHash(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svout_all_txhash", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHashIdx(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svout_txhash_ind", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHashIdx(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	tempIndex = fmt.Sprintf("uix_%svout_all_txhash_ind", chainType)
+	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+	if chainType == mutilchain.TYPEXMR {
+		tempIndex = "uix_monero_outputs_txhash"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
-	tempIndex = mutilchainquery.IndexAddressTableOnAddressStmt(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = "uix_monero_outputs_global_index"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
-	tempIndex = mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType)
-	result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = "uix_monero_outputs_out_pk"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "uix_monero_key_images_block_height"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "uix_monero_ring_members_txhash_txinput_idx"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "uix_monero_ring_members_member_global_idx"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "idx_xmraddresses_global_index"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "idx_xmraddresses_key_image"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "idx_xmraddresses_address_idx"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "idx_xmraddresses_out_pk"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "idx_xmraddresses_amount_known"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "idx_xmraddresses_vout_row_id"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "idx_xmraddresses_funding_tx"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+	} else {
+		tempIndex = fmt.Sprintf("uix_%saddresses_addr_vout_row_id", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = fmt.Sprintf("uix_%saddresses_funding_tx", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = fmt.Sprintf("uix_%saddresses_address", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = fmt.Sprintf("uix_%saddresses_vout_id", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+	}
 	return result
 }
 
@@ -167,65 +217,109 @@ func GetIndexDescriptionsMap() map[string]string {
 	}
 	//add mutilchain index description
 	for _, chainType := range dbtypes.MutilchainList {
-		tempIndex := mutilchainquery.MakeIndexBlockTableOnHash(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex := fmt.Sprintf("uix_%sblock_hash", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexBlockAllTableOnHash(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%sblock_all_hash", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexBlocksTableOnHeight(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%sblock_height", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnHeight(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%sblock_all_height", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexBlocksTableOnTime(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%sblock_time", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexBlocksAllTableOnTime(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%sblock_all_time", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("ix_%stx_block_height", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexTransactionTableOnBlockIn(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%stx_txhash", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexTransactionTableOnHashes(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%stx_hash_blhash", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVinTableOnPrevOuts(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svin_prevout", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVinAllTableOnPrevOuts(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svin_all_prevout", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVinTableOnVins(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svin", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVinAllTableOnVins(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svin_all_txhash_txindex", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHash(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svout_txhash", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHash(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svout_all_txhash", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVoutTableOnTxHashIdx(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svout_txhash_ind", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.MakeIndexVoutAllTableOnTxHashIdx(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		tempIndex = fmt.Sprintf("uix_%svout_all_txhash_ind", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+		if chainType == mutilchain.TYPEXMR {
+			tempIndex = "uix_monero_outputs_txhash"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
-		tempIndex = mutilchainquery.IndexAddressTableOnAddressStmt(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+			tempIndex = "uix_monero_outputs_global_index"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
-		tempIndex = mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType)
-		result[tempIndex] = fmt.Sprintln("create %s index on %s", tempIndex, chainType)
+			tempIndex = "uix_monero_outputs_out_pk"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "uix_monero_key_images_block_height"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "uix_monero_ring_members_txhash_txinput_idx"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "uix_monero_ring_members_member_global_idx"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "idx_xmraddresses_global_index"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "idx_xmraddresses_key_image"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "idx_xmraddresses_address_idx"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "idx_xmraddresses_out_pk"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "idx_xmraddresses_amount_known"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "idx_xmraddresses_vout_row_id"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "idx_xmraddresses_funding_tx"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+		} else {
+			tempIndex = fmt.Sprintf("uix_%saddresses_addr_vout_row_id", chainType)
+			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+			tempIndex = fmt.Sprintf("uix_%saddresses_funding_tx", chainType)
+			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+			tempIndex = fmt.Sprintf("uix_%saddresses_address", chainType)
+			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+			tempIndex = fmt.Sprintf("uix_%saddresses_vout_id", chainType)
+			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+		}
 	}
 	return result
 }

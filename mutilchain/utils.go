@@ -16,6 +16,7 @@ const (
 	TYPEDCR = "dcr"
 	TYPELTC = "ltc"
 	TYPEBTC = "btc"
+	TYPEXMR = "xmr"
 )
 
 func IsEmpty(x interface{}) bool {

@@ -43,6 +43,7 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -1121,6 +1122,12 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 		p.Syncing24h = false
 		p.Unlock()
 	}(int64(blockData.Header.Height))
+	return nil
+}
+
+func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
+	// handler store xmr block data in here
+	log.Infof("handler xmr store in explorer")
 	return nil
 }
 

@@ -69,6 +69,8 @@ import (
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal"
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/utils"
+	"github.com/decred/dcrdata/v8/xmr/xmrclient"
+	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 )
 
 var (
@@ -288,9 +290,11 @@ type ChainDB struct {
 	bestBlock          *BestBlock
 	LtcBestBlock       *MutilchainBestBlock
 	BtcBestBlock       *MutilchainBestBlock
+	XmrBestBlock       *MutilchainBestBlock
 	lastBlock          map[chainhash.Hash]uint64
 	ltcLastBlock       map[ltc_chainhash.Hash]uint64
 	btcLastBlock       map[btc_chainhash.Hash]uint64
+	xmrLastBlock       map[string]uint64
 	ChainDisabledMap   map[string]bool
 	stakeDB            *stakedb.StakeDatabase
 	unspentTicketCache *TicketTxnIDGetter
@@ -319,10 +323,12 @@ type ChainDB struct {
 	Client                 *rpcclient.Client
 	LtcClient              *ltcClient.Client
 	BtcClient              *btcClient.Client
+	XmrClient              *xmrclient.XMRClient
 	tipMtx                 sync.Mutex
 	tipSummary             *apitypes.BlockDataBasic
 	ChainDBDisabled        bool
 	SyncChainDBFlag        bool
+	XmrSyncFlag            bool
 	OkLinkAPIKey           string
 	BTC20BlocksSyncing     bool
 	LTC20BlocksSyncing     bool
@@ -361,6 +367,7 @@ type ChainDB struct {
 	multichainLtcMetaInfoSync sync.Mutex
 	btcWholeSyncMtx           sync.Mutex
 	ltcWholeSyncMtx           sync.Mutex
+	xmrWholeSyncMtx           sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -369,6 +376,7 @@ type ChainDeployments struct {
 	chainInfo    *dbtypes.BlockChainData
 	btcChainInfo *dbtypes.BlockChainData
 	ltcChainInfo *dbtypes.BlockChainData
+	xmrChainInfo *xmrutil.BlockchainInfo
 }
 
 // BestBlock is mutex-protected block hash and height.
@@ -550,6 +558,7 @@ type ChainDBCfg struct {
 	AddrCacheUTXOByteCap              int
 	ChainDBDisabled                   bool
 	SyncChainDBFlag                   bool
+	XmrSyncFlag                       bool
 	OkLinkAPIKey                      string
 }
 
@@ -838,6 +847,7 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		Client:             client,
 		ChainDBDisabled:    cfg.ChainDBDisabled,
 		SyncChainDBFlag:    cfg.SyncChainDBFlag,
+		XmrSyncFlag:        cfg.XmrSyncFlag,
 		OkLinkAPIKey:       cfg.OkLinkAPIKey,
 	}
 	chainDB.lastExplorerBlock.difficulties = make(map[int64]float64)
@@ -1415,6 +1425,8 @@ func (pgb *ChainDB) MutilchainHeight(chainType string) int64 {
 		return pgb.LtcBestBlock.MutilchainHeight()
 	case mutilchain.TYPEBTC:
 		return pgb.BtcBestBlock.MutilchainHeight()
+	case mutilchain.TYPEXMR:
+		return pgb.XmrBestBlock.MutilchainHeight()
 	default:
 		return pgb.bestBlock.Height()
 	}
@@ -5462,6 +5474,20 @@ func (pgb *ChainDB) UpdateLTCChainState(blockChainInfo *ltcjson.GetBlockChainInf
 	pgb.deployments.mtx.Unlock()
 }
 
+func (pgb *ChainDB) UpdateXMRChainState(blockChainInfo *xmrutil.BlockchainInfo) {
+	if pgb == nil {
+		return
+	}
+	if blockChainInfo == nil {
+		log.Errorf("XMR: xmrutil.BlockchainInfo data passed is empty")
+		return
+	}
+
+	pgb.deployments.mtx.Lock()
+	pgb.deployments.xmrChainInfo = blockChainInfo
+	pgb.deployments.mtx.Unlock()
+}
+
 // ChainInfo guarantees thread-safe access of the deployment data.
 func (pgb *ChainDB) ChainInfo() *dbtypes.BlockChainData {
 	pgb.deployments.mtx.RLock()
@@ -5505,6 +5531,189 @@ func (pgb *ChainDB) Store(blockData *blockdata.BlockData, msgBlock *wire.MsgBloc
 	log.Infof("Start syncing coin age bands/mean coin age data in the background. Height: %d.", msgBlock.Header.Height)
 	go pgb.SyncCoinAgeDataAllSet(int64(msgBlock.Header.Height))
 	return nil
+}
+
+func (pgb *ChainDB) XMRStore(blockData *xmrutil.BlockData) error {
+	if pgb == nil || pgb.XmrBestBlock == nil {
+		return nil
+	}
+	pgb.UpdateXMRChainState(&blockData.BlockchainInfo)
+
+	go pgb.SyncXMROneBlock(blockData)
+	// handler store xmr block data in here
+	log.Infof("XMR: Complete sync block data. Height: %d", blockData.Header.Height)
+	return nil
+}
+
+func (pgb *ChainDB) SyncXMROneBlock(blockData *xmrutil.BlockData) (err error) {
+	pgb.xmrWholeSyncMtx.Lock()
+	defer pgb.xmrWholeSyncMtx.Unlock()
+	// assume newHdr is obtained from RPC (header of block we are about to store)
+	forkHeight, err := pgb.EnsureChainContinuity(pgb.ctx, blockData)
+	if err != nil {
+		// handle error: cannot find fork, or DB/daemon error
+		fmt.Printf("Error ensuring continuity: %v\n", err)
+		// decide: skip storing for now or restart sync; here we skip this block
+		return err
+	}
+	if forkHeight >= int64(blockData.Header.Height) {
+		return fmt.Errorf("xmr: fork height greater than needed block")
+	}
+	for handlerHeight := forkHeight + 1; handlerHeight <= int64(blockData.Header.Height); handlerHeight++ {
+		log.Infof("XMR: (After reorg) Start sync block data. Height: %d", blockData.Header.Height)
+		_, _, _, err = pgb.StoreXMRWholeBlock(pgb.XmrClient, true, true, handlerHeight)
+	}
+	return
+}
+
+func (pgb *ChainDB) findForkHeight(startHash string, maxDepth int) (int64, error) {
+	curHash := startHash
+	depth := 0
+	for {
+		// check if curHash exists in DB
+		var height sql.NullInt64
+		err := pgb.db.QueryRow(mutilchainquery.MakeSelectBlockAllHeightByHash(mutilchain.TYPEXMR), curHash).Scan(&height)
+		if err == nil {
+			if height.Valid {
+				return height.Int64, nil
+			}
+			// not found, continue
+		} else {
+			if err != sql.ErrNoRows {
+				// non-empty error
+				// if it's sql.ErrNoRows we'll handle by retrieving header
+			}
+		}
+
+		// not found in DB -> fetch header from daemon to get prev_hash and iterate
+		hdr, err := pgb.XmrClient.GetBlockHeaderByHash(curHash)
+		if err != nil {
+			// if daemon doesn't know this hash, we cannot proceed further reliably
+			return -1, fmt.Errorf("GetBlockHeaderByHash(%s) error: %v", curHash, err)
+		}
+		prev := hdr.PrevHash
+		if prev == "" {
+			// reached genesis or unreachable
+			return -1, fmt.Errorf("reached genesis or no prev hash while finding fork")
+		}
+		curHash = prev
+
+		depth++
+		if depth > maxDepth {
+			return -1, fmt.Errorf("exceeded maxDepth (%d) while finding fork", maxDepth)
+		}
+	}
+}
+
+func (pgb *ChainDB) rollbackToHeight(keepHeight int64) error {
+	// We perform the deletion inside a DB transaction for atomicity.
+	tx, err := pgb.db.BeginTx(pgb.ctx, &sql.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("XMR: rollbackToHeight: BeginTx failed: %v", err)
+	}
+	rollbackDone := false
+	defer func() {
+		if !rollbackDone {
+			_ = tx.Rollback()
+		}
+	}()
+
+	// 1) collect tx hashes to delete (all transactions with block_height > keepHeight)
+	rows, err := tx.QueryContext(pgb.ctx, mutilchainquery.CreateSelectTxHashsWithMinHeightQuery(mutilchain.TYPEXMR), keepHeight)
+	if err != nil {
+		return fmt.Errorf("XMR: rollbackToHeight: select tx_hash failed: %v", err)
+	}
+	var toDeleteTxs []string
+	for rows.Next() {
+		var th sql.NullString
+		if err := rows.Scan(&th); err != nil {
+			rows.Close()
+			return fmt.Errorf("XMR: rollbackToHeight: scan tx_hash failed: %v", err)
+		}
+		if th.Valid {
+			toDeleteTxs = append(toDeleteTxs, th.String)
+		}
+	}
+	rows.Close()
+
+	// If no txs to delete, still delete blocks
+	// 2) delete dependent rows that reference tx_hash
+	if len(toDeleteTxs) > 0 {
+		// Use ANY($1) with pq.Array
+		// Delete ring members
+		if _, err := tx.ExecContext(pgb.ctx, mutilchainquery.DeleteRingMembersWithTxhashArray, pq.Array(toDeleteTxs)); err != nil {
+			return fmt.Errorf("XMR: rollbackToHeight: delete monero_ring_members failed: %v", err)
+		}
+		// Delete rct data
+		if _, err := tx.ExecContext(pgb.ctx, mutilchainquery.DeleteRctDataWithTxhashArray, pq.Array(toDeleteTxs)); err != nil {
+			return fmt.Errorf("XMR: rollbackToHeight: delete monero_rct_data failed: %v", err)
+		}
+		// Delete monero_outputs for those txs
+		if _, err := tx.ExecContext(pgb.ctx, mutilchainquery.DeleteMoneroOutputWithTxhashArray, pq.Array(toDeleteTxs)); err != nil {
+			return fmt.Errorf("XMR: rollbackToHeight: delete monero_outputs failed: %v", err)
+		}
+		// Delete vins_all for those txs
+		if _, err := tx.ExecContext(pgb.ctx, mutilchainquery.MakeDeleteVinAllWithTxHashArrayQuery(mutilchain.TYPEXMR), pq.Array(toDeleteTxs)); err != nil {
+			return fmt.Errorf("XMR: rollbackToHeight: delete vins_all failed: %v", err)
+		}
+		// Finally delete transactions rows
+		if _, err := tx.ExecContext(pgb.ctx, mutilchainquery.CreateDeleteTxsWithMinBlockHeightQuery(mutilchain.TYPEXMR), keepHeight); err != nil {
+			return fmt.Errorf("XMR: rollbackToHeight: delete transactions failed: %v", err)
+		}
+	}
+
+	// 3) delete monero_key_images seen in deleted blocks (first_seen_block_height > keepHeight)
+	if _, err := tx.ExecContext(pgb.ctx, mutilchainquery.DeleteMoneroKeyImagesWithMinFirstSeenBlHeight, keepHeight); err != nil {
+		return fmt.Errorf("XMR: rollbackToHeight: delete monero_key_images failed: %v", err)
+	}
+
+	// 4) delete blocks > keepHeight
+	if _, err := tx.ExecContext(pgb.ctx, mutilchainquery.CreateDeleteBlocksWithMinHeightQuery(mutilchain.TYPEXMR), keepHeight); err != nil {
+		return fmt.Errorf("XMR: rollbackToHeight: delete blocks_all failed: %v", err)
+	}
+
+	// commit
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("XMR: rollbackToHeight: commit failed: %v", err)
+	}
+	rollbackDone = true
+	return nil
+}
+
+func (pgb *ChainDB) EnsureChainContinuity(ctx context.Context, newBlockdata *xmrutil.BlockData) (int64, error) {
+	storedHash := pgb.XmrBestBlock.Hash
+	storedHeight := pgb.XmrBestBlock.Height
+	// If DB empty, nothing to do
+	if storedHeight < 0 {
+		log.Errorf("XMR: EnsureChainContinuity: Data empty")
+		return -1, nil
+	}
+
+	// If newHdr prev hash matches stored tip, chain continues normally
+	if storedHash == newBlockdata.Header.PrevHash {
+		// contiguous, ok
+		return storedHeight, nil
+	}
+
+	log.Infof("XMR: EnsureChainContinuity: Detected possible reorg. storedTip=%s@%d new.prev=%s\n", storedHash, storedHeight, newBlockdata.Header.PrevHash)
+
+	// Find fork height (where new chain meets stored chain)
+	forkHeight, err := pgb.findForkHeight(newBlockdata.Header.PrevHash, int(storedHeight)+10000) // maxDepth heuristic
+	if err != nil {
+		return -1, fmt.Errorf("XMR: findForkHeight failed: %v", err)
+	}
+	if forkHeight < 0 {
+		return -1, fmt.Errorf("XMR: fork height not found (chain does not meet stored chain within limit)")
+	}
+
+	log.Infof("XMR: EnsureChainContinuity: Fork detected at height %d. Rolling back blocks > %d\n", forkHeight, forkHeight)
+
+	// Rollback DB to forkHeight
+	if err := pgb.rollbackToHeight(forkHeight); err != nil {
+		return -1, fmt.Errorf("rollbackToHeight failed: %v", err)
+	}
+	fmt.Printf("EnsureChainContinuity: Rollback to height %d completed\n", forkHeight)
+	return forkHeight, nil
 }
 
 // Store satisfies BlockDataSaver. Blocks stored this way are considered valid
