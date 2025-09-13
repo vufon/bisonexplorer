@@ -4294,6 +4294,9 @@ func appendMutilchainChartBlocks(charts *cache.MutilchainChartData, rows *sql.Ro
 	//if lastest db height less than lastblock height, use external api to display chart
 	if !charts.UseSyncDB {
 		charts.UseAPI = true
+		if charts.ChainType == mutilchain.TYPEXMR {
+			return nil
+		}
 		//handler api data for charts
 		apiErr := HandlerMutilchainAPIDataForCharts(charts)
 		if apiErr == nil {

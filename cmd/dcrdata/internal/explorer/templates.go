@@ -622,6 +622,8 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 				return "Bitcoin"
 			case mutilchain.TYPELTC:
 				return "Litecoin"
+			case mutilchain.TYPEXMR:
+				return "Monero"
 			default:
 				return "Decred"
 			}

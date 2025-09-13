@@ -552,6 +552,9 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, blockTime int64, txHash, txHex, t
 	lockTime := int64(0)
 	expiry := int64(0)
 	size := 0
+	if txHex != "" {
+		size = len(txHex) / 2
+	}
 	spent := int64(0)
 	sent := int64(0)
 	fees := int64(0)
@@ -568,9 +571,6 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, blockTime int64, txHash, txHex, t
 			}
 			if tm, ok := v["unlock_time"].(float64); ok {
 				timeField = int64(tm)
-			}
-			if txSize, ok := v["size"].(float64); ok {
-				size = int(txSize)
 			}
 			// RingCT presence
 			if _, ok := v["rct_signatures"]; ok {

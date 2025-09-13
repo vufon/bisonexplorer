@@ -9772,15 +9772,44 @@ func (pgb *ChainDB) GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error) {
 	return pgb.XmrClient.GetInfo()
 }
 
+func (pgb *ChainDB) GetXMRBasicBlock(height int64) *exptypes.BlockBasic {
+	br, berr := pgb.XmrClient.GetBlock(uint64(height))
+	if berr != nil {
+		log.Errorf("XMR: GetBlock(%d) failed: %v", height, berr)
+		return nil
+	}
+	// Convert the wire.MsgBlock to a dbtypes.Block
+	clientBlock, err := xmrhelper.MsgXMRBlockToDBBlock(pgb.XmrClient, br, uint64(height))
+	if err != nil {
+		log.Errorf("XMR: Get block data failed: Height: %d. Error: %v", height, err)
+		return nil
+	}
+
+	blockData := &exptypes.BlockBasic{
+		Height:         int64(clientBlock.Height),
+		Hash:           clientBlock.Hash,
+		Version:        int32(clientBlock.Version),
+		Size:           int32(clientBlock.Size),
+		Valid:          true, // we do not know this, TODO with DB v2
+		MainChain:      true,
+		Transactions:   int(clientBlock.NumTx),
+		TxCount:        clientBlock.NumTx,
+		BlockTime:      exptypes.NewTimeDefFromUNIX(clientBlock.Time.UNIX()),
+		BlockTimeUnix:  clientBlock.Time.UNIX(),
+		FormattedBytes: humanize.Bytes(uint64(clientBlock.Size)),
+	}
+	return blockData
+}
+
 // GetXMRExplorerBlock gets a *exptypes.Blockinfo for the specified ltc block.
 func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 	pgb.xmrLastExplorerBlock.Lock()
-	if pgb.xmrLastExplorerBlock.blockInfo.Height == height {
+	if pgb.xmrLastExplorerBlock.blockInfo != nil && pgb.xmrLastExplorerBlock.blockInfo.Height == height {
 		res := pgb.xmrLastExplorerBlock.blockInfo
 		pgb.xmrLastExplorerBlock.Unlock()
 		return res
 	}
-
+	pgb.xmrLastExplorerBlock.Unlock()
 	// thanhnp:TODO: in the future, will select from db (if have) first. If not exist on db, select from daemon
 	br, berr := pgb.XmrClient.GetBlock(uint64(height))
 	if berr != nil {
@@ -9818,6 +9847,7 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 		nextHeight := height + 1
 		blheader, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(nextHeight))
 		if err != nil {
+			log.Errorf("XMR: GetBlockHeaderByHeight failed: Height: %d. %v", height, err)
 			return nil
 		}
 		nextHash = blheader.Hash
@@ -9867,6 +9897,9 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 		version := 0
 		lockTime := int64(0)
 		size := 0
+		if txHex != "" {
+			size = len(txHex) / 2
+		}
 		fees := int64(0)
 		numVin := 0
 		numVout := 0
@@ -9889,9 +9922,6 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 				}
 				if tm, ok := v["unlock_time"].(float64); ok {
 					timeField = int64(tm)
-				}
-				if txSize, ok := v["size"].(float64); ok {
-					size = int(txSize)
 				}
 				// RingCT presence
 				// if _, ok := v["rct_signatures"]; ok {
@@ -10051,6 +10081,10 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 		isCoinbase := txHash == br.MinerTxHash
 		isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
 		totalSent += txSent
+		feePerKB := float64(0)
+		if size > 0 {
+			feePerKB = float64(fees / (int64(size) / 1024.0))
+		}
 		txFull := &exptypes.XmrTxFull{
 			TxHash:       txHash,
 			BlockHeight:  int64(clientBlock.Height),
@@ -10061,7 +10095,7 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 			IsCoinbase:   txHash == br.MinerTxHash,
 			Confirmed:    isConfirmed,
 			Fee:          fees,
-			FeePerKB:     float64(fees / (int64(size) / 1024.0)),
+			FeePerKB:     feePerKB,
 			InputsCount:  numVin,
 			OutputsCount: numVout,
 			TotalInputs:  0, // TODO: handler this
@@ -10096,7 +10130,7 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 	pgb.xmrLastExplorerBlock.blockInfo = block
 	pgb.xmrLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
 	pgb.xmrLastExplorerBlock.Unlock()
-	return nil
+	return block
 }
 
 func ParseTxExtra(hexExtra string) (*exptypes.XmrTxExtra, error) {

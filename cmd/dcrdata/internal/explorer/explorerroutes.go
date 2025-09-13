@@ -434,21 +434,24 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 				ExpStatusError)
 			return
 		}
+		var bestBlock *types.BlockBasic
 		var blocks []*types.BlockBasic
 		switch chainType {
 		case mutilchain.TYPEBTC:
 			blocks = exp.dataSource.GetBTCExplorerBlocks(int(height), int(height)-8)
 		case mutilchain.TYPELTC:
 			blocks = exp.dataSource.GetLTCExplorerBlocks(int(height), int(height)-8)
+		case mutilchain.TYPEXMR:
+			bestBlock = exp.dataSource.GetXMRBasicBlock(height)
 		default:
 			blocks = exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
 		}
-
-		var bestBlock *types.BlockBasic
-		if blocks == nil {
-			bestBlock = new(types.BlockBasic)
-		} else {
-			bestBlock = blocks[0]
+		if chainType != mutilchain.TYPEXMR {
+			if blocks == nil {
+				bestBlock = new(types.BlockBasic)
+			} else {
+				bestBlock = blocks[0]
+			}
 		}
 		var homeInfo *types.HomeInfo
 		var volume24h float64
@@ -466,6 +469,12 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			homeInfo = exp.LtcPageData.HomeInfo
 			volume24h = allXcState.LTCVolume
 			exp.LtcPageData.RUnlock()
+		case mutilchain.TYPEXMR:
+			exp.XmrPageData.RLock()
+			// Get fiat conversions if available
+			homeInfo = exp.XmrPageData.HomeInfo
+			volume24h = allXcState.XMRVolume
+			exp.XmrPageData.RUnlock()
 		default:
 			exp.pageData.RLock()
 			homeInfo = exp.pageData.HomeInfo
@@ -3443,6 +3452,11 @@ func (exp *ExplorerUI) GetTargetTimePerBlock(chainType string) float64 {
 		return exp.BtcChainParams.TargetTimePerBlock.Seconds()
 	case mutilchain.TYPELTC:
 		return exp.LtcChainParams.TargetTimePerBlock.Seconds()
+	case mutilchain.TYPEXMR:
+		if exp.XmrPageData.BlockchainInfo != nil {
+			return float64(exp.XmrPageData.BlockchainInfo.Target)
+		}
+		return 0
 	default:
 		return exp.ChainParams.TargetTimePerBlock.Seconds()
 	}
@@ -3457,7 +3471,9 @@ func (exp *ExplorerUI) CreateMutilchainParameters(chainType string) *types.Chain
 	case mutilchain.TYPEBTC:
 		return exp.GetBitcoinParamsData()
 	}
-	return &types.ChainParamData{}
+	return &types.ChainParamData{
+		ChainType: mutilchain.TYPEXMR,
+	}
 }
 
 func (exp *ExplorerUI) GetLitecoinParamsData() *types.ChainParamData {

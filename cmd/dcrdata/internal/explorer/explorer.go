@@ -203,6 +203,7 @@ type explorerDataSource interface {
 	GetMultichainStats(chainType string) (*externalapi.ChainStatsData, error)
 	GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error)
 	GetXMRTotalOutputs() int64
+	GetXMRBasicBlock(height int64) *types.BlockBasic
 }
 
 type PoliteiaBackend interface {
@@ -1148,6 +1149,9 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	// // Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetXMRExplorerBlock(int64(blockData.Header.Height))
+	if newBlockData == nil {
+		return fmt.Errorf("XMR: Get explorer block data failed")
+	}
 	// // Use the latest block's blocktime to get the last 24hr timestamp.
 	// // day := 24 * time.Hour
 	blockchainInfo, err := exp.dataSource.GetXMRBlockchainInfo()
