@@ -2,11 +2,14 @@ package utils
 
 const (
 	// swap type
-	CONTRACT_TYPE   = "contract"
-	REDEMPTION_TYPE = "redemption"
-	REFUND_TYPE     = "refund"
-
-	TimeFmt = "2006-01-02 15:04:05 (MST)"
+	CONTRACT_TYPE        = "contract"
+	REDEMPTION_TYPE      = "redemption"
+	REFUND_TYPE          = "refund"
+	AtomicUnit           = 1e12
+	InitialEmission      = 17640000 * AtomicUnit
+	TailStartHeight      = 2641623
+	TailEmissionPerBlock = 60 * 1e10
+	TimeFmt              = "2006-01-02 15:04:05 (MST)"
 )
 
 var AgendasDetail = map[string][]string{

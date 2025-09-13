@@ -20,6 +20,8 @@ const (
 	InsertMoneroVoutsChecked = InsertMoneroVoutsAllRow0 +
 		` ON CONFLICT (tx_hash, tx_index) DO NOTHING RETURNING id;`
 
+	SelectTotalXmrOutputs = `SELECT COUNT(*) FROM monero_outputs;`
+
 	IndexMoneroVoutsTableOnTxHashTxIndex   = `CREATE UNIQUE INDEX IF NOT EXISTS uix_monero_outputs_txhash_txindex ON monero_outputs(tx_hash, tx_index);`
 	DeindexMoneroVoutsTableOnTxHashTxIndex = `DROP INDEX uix_monero_outputs_txhash_txindex;`
 

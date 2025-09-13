@@ -531,6 +531,8 @@ func (sk *MutilchainInfoSocket) UpdateMutilchainHomeInfo(homeInfo *types.HomeInf
 		sk.Exp.LtcPageData.HomeInfo = homeInfo
 	case mutilchain.TYPEBTC:
 		sk.Exp.BtcPageData.HomeInfo = homeInfo
+	case mutilchain.TYPEXMR:
+		sk.Exp.XmrPageData.HomeInfo = homeInfo
 	default:
 		return
 	}

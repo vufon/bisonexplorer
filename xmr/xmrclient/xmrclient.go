@@ -2,7 +2,9 @@ package xmrclient
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -15,46 +17,56 @@ import (
 
 // XMRClient is a simple JSON-RPC + direct-endpoint client for monerod.
 type XMRClient struct {
-	endpoint string
-	httpCli  *http.Client
-	// baseURL is endpoint without trailing "/json_rpc", used for direct endpoints.
-	baseURL  string
-	Username string // nếu daemon yêu cầu basic auth (thường không)
-	Password string
+	endpoint   string
+	baseURL    string
+	httpCli    *http.Client
+	Username   string
+	Password   string
+	Timeout    time.Duration // per-request timeout use in postCore
+	MaxBatch   int           // optional: batch size when prune mode
+	MaxRetries int           // optional: retry num
 }
 
 // NewXMRClient preserves previous signature and uses 60s timeout.
 func NewXMRClient(endpoint string) *XMRClient {
-	return NewXMRClientWithTimeout(endpoint, 60*time.Second)
+	return NewXMRClientWithTimeout(endpoint, 360*time.Second)
 }
 
-// NewXMRClientWithTimeout allows custom http timeout.
-func NewXMRClientWithTimeout(endpoint string, timeout time.Duration) *XMRClient {
-	// normalize endpoint
+func NewXMRClientWithTimeout(endpoint string, perRequestTimeout time.Duration) *XMRClient {
 	ep := strings.TrimSpace(endpoint)
-	// create a transport with reasonable defaults
-	tr := &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		DialContext:           (&net.Dialer{Timeout: 10 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		DisableCompression:    true,
-	}
-	cli := &http.Client{
-		Timeout:   timeout,
-		Transport: tr,
-	}
+
 	base := ep
-	// If endpoint ends with /json_rpc, remove it to get base for direct endpoints
 	if strings.HasSuffix(strings.ToLower(base), "/json_rpc") {
 		base = base[:len(base)-len("/json_rpc")]
 	}
+
+	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          256,
+		MaxIdleConnsPerHost:   64,
+		IdleConnTimeout:       120 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		ResponseHeaderTimeout: 120 * time.Second,
+		DisableCompression:    false,
+	}
+
+	cli := &http.Client{
+		Timeout:   360 * time.Second,
+		Transport: tr,
+	}
+
 	return &XMRClient{
-		endpoint: ep,
-		httpCli:  cli,
-		baseURL:  strings.TrimRight(base, "/"),
+		endpoint:   ep,
+		httpCli:    cli,
+		baseURL:    strings.TrimRight(base, "/"),
+		Timeout:    perRequestTimeout,
+		MaxBatch:   50,
+		MaxRetries: 3,
 	}
 }
 
@@ -167,30 +179,90 @@ func (c *XMRClient) GetInfo() (*xmrutil.BlockchainInfo, error) {
 
 // GetTransactionsResult models the common fields returned by get_transactions.
 type GetTransactionsResult struct {
-	TxsHashes  []string `json:"txs_hashes,omitempty"`
-	TxsAsHex   []string `json:"txs_as_hex,omitempty"`  // raw tx hex per tx
-	TxsAsJSON  []string `json:"txs_as_json,omitempty"` // decoded tx JSON per tx (if decode_as_json = true)
-	MissedTx   []string `json:"missed_tx,omitempty"`
-	Status     string   `json:"status,omitempty"`
-	InvalidTxs []string `json:"invalid_txids,omitempty"`
-	// note: different monero versions may use slightly different field names;
-	// keep this struct tolerant (we use json.Unmarshal which will fill matching fields).
+	// Transaction payload
+	TxsHashes   []string          `json:"txs_hashes,omitempty"`
+	TxsAsHex    []string          `json:"txs_as_hex,omitempty"`
+	TxsAsJSON   []string          `json:"txs_as_json,omitempty"`
+	MissedTx    []string          `json:"missed_tx,omitempty"`
+	MissedTxIDs []string          `json:"missed_txids,omitempty"`
+	InvalidTxs  []string          `json:"invalid_txids,omitempty"`
+	Status      string            `json:"status,omitempty"`
+	TopHash     string            `json:"top_hash,omitempty"`
+	Credits     uint64            `json:"credits,omitempty"`
+	Txs         []json.RawMessage `json:"txs,omitempty"`
 }
 
-// helper: POST tới core endpoint (non-json-rpc)
+type truncatedJSONError struct {
+	msg string
+}
+
+func (e *truncatedJSONError) Error() string { return e.msg }
+
+type httpStatusError struct {
+	Code       int
+	BodySample string
+}
+
+func (e *httpStatusError) Error() string {
+	if len(e.BodySample) > 0 {
+		return fmt.Sprintf("daemon returned status %d: %s", e.Code, e.BodySample)
+	}
+	return fmt.Sprintf("daemon returned status %d", e.Code)
+}
+
+func isRecoverableStatus(code int) bool {
+	if code == 408 || code == 413 || code == 429 {
+		return true
+	}
+	if code >= 500 && code <= 599 {
+		return true
+	}
+	return false
+}
+
+func backoff(attempt int) time.Duration {
+	// 250ms, 500ms, 1s, 2s (cap ~2s)
+	d := 250 * time.Millisecond
+	for i := 0; i < attempt; i++ {
+		d *= 2
+		if d > 2*time.Second {
+			return 2 * time.Second
+		}
+	}
+	return d
+}
+
 func (c *XMRClient) postCore(endpoint string, params interface{}, out interface{}) error {
 	client := c.httpCli
 	if client == nil {
-		client = &http.Client{Timeout: 15 * time.Second}
+		tr := &http.Transport{
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			DisableCompression:    false,
+		}
+		client = &http.Client{
+			Timeout:   0,
+			Transport: tr,
+		}
 	}
 
 	url := strings.TrimRight(c.baseURL, "/") + "/" + strings.TrimLeft(endpoint, "/")
+
 	bodyBytes, err := json.Marshal(params)
 	if err != nil {
 		return fmt.Errorf("marshal params: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(bodyBytes))
+	reqTimeout := 120 * time.Second
+	if c.Timeout > 0 {
+		reqTimeout = c.Timeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), reqTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(bodyBytes))
 	if err != nil {
 		return fmt.Errorf("new request: %w", err)
 	}
@@ -201,32 +273,188 @@ func (c *XMRClient) postCore(endpoint string, params interface{}, out interface{
 
 	resp, err := client.Do(req)
 	if err != nil {
+		// timeouts, conn reset, etc.
 		return fmt.Errorf("http post: %w", err)
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("daemon returned status %d: %s", resp.StatusCode, string(respBody))
+		limited := io.LimitReader(resp.Body, 1024)
+		sample, _ := io.ReadAll(limited)
+		return &httpStatusError{Code: resp.StatusCode, BodySample: string(sample)}
 	}
 
-	if err := json.Unmarshal(respBody, out); err != nil {
-		return fmt.Errorf("decode response: %w — body: %s", err, string(respBody))
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(out); err != nil {
+		if errors.Is(err, io.ErrUnexpectedEOF) ||
+			strings.Contains(err.Error(), "unexpected end of JSON") {
+			return &truncatedJSONError{msg: "truncated JSON response"}
+		}
+		return fmt.Errorf("decode response: %w", err)
 	}
 	return nil
 }
 
 // GetTransactions calls get_transactions with given hashes. If decodeAsJSON true it will request txs_as_json.
 func (c *XMRClient) GetTransactions(hashes []string, decodeAsJSON bool) (*GetTransactionsResult, error) {
-	params := map[string]interface{}{
-		"txs_hashes":     hashes,
-		"decode_as_json": decodeAsJSON,
+	if len(hashes) == 0 {
+		return &GetTransactionsResult{Status: "OK"}, nil
 	}
-	var res GetTransactionsResult
-	if err := c.postCore("get_transactions", params, &res); err != nil {
-		return nil, err
+
+	const (
+		maxRetriesPerCall  = 3
+		batchPrunedDefault = 50
+		batchAsJSONDefault = 1
+	)
+
+	batchSize := batchPrunedDefault
+	prune := !decodeAsJSON
+	if decodeAsJSON {
+		batchSize = batchAsJSONDefault
 	}
-	return &res, nil
+
+	if c.MaxBatch > 0 {
+		batchSize = c.MaxBatch
+	}
+	if decodeAsJSON && batchSize != 1 {
+		batchSize = 1
+	}
+
+	agg := &GetTransactionsResult{Status: "OK"}
+
+	for start := 0; start < len(hashes); start += batchSize {
+		end := start + batchSize
+		if end > len(hashes) {
+			end = len(hashes)
+		}
+		batch := hashes[start:end]
+
+		// Call with retry/backoff + fallback
+		var lastErr error
+
+		// attempt loop for batch
+		for attempt := 0; attempt < maxRetriesPerCall; attempt++ {
+			params := map[string]interface{}{
+				"txs_hashes":     batch,
+				"decode_as_json": decodeAsJSON,
+			}
+			if !decodeAsJSON {
+				params["prune"] = prune
+			}
+
+			var tmp GetTransactionsResult
+			err := c.postCore("get_transactions", params, &tmp)
+			if err == nil {
+				agg.Credits += tmp.Credits
+				if tmp.TopHash != "" {
+					agg.TopHash = tmp.TopHash
+				}
+				agg.Txs = append(agg.Txs, tmp.Txs...)
+				agg.MissedTx = append(agg.MissedTx, tmp.MissedTx...)
+				agg.MissedTx = append(agg.MissedTx, tmp.MissedTxIDs...)
+				agg.TxsAsJSON = append(agg.TxsAsJSON, tmp.TxsAsJSON...)
+				agg.TxsAsHex = append(agg.TxsAsHex, tmp.TxsAsHex...)
+				agg.TxsHashes = append(agg.TxsHashes, tmp.TxsHashes...)
+				lastErr = nil
+				break
+			}
+
+			lastErr = err
+
+			var tje *truncatedJSONError
+			var hse *httpStatusError
+
+			switch {
+			case errors.As(err, &tje):
+				if len(batch) > 1 {
+					if e := c.fetchEachIndividually(batch, decodeAsJSON, prune, agg); e != nil {
+						lastErr = e
+					} else {
+						lastErr = nil
+					}
+					attempt = maxRetriesPerCall
+					break
+				}
+				if decodeAsJSON {
+					decodeAsJSON = false
+					prune = true
+					continue
+				}
+
+			case errors.As(err, &hse):
+				if isRecoverableStatus(hse.Code) {
+					if len(batch) > 1 {
+						if e := c.fetchEachIndividually(batch, decodeAsJSON, prune, agg); e != nil {
+							lastErr = e
+						} else {
+							lastErr = nil
+						}
+						attempt = maxRetriesPerCall
+						break
+					}
+					if decodeAsJSON {
+						decodeAsJSON = false
+						prune = true
+						continue
+					}
+				}
+			default:
+			}
+
+			// backoff trước khi thử lại (nếu còn lượt)
+			if attempt < maxRetriesPerCall-1 {
+				time.Sleep(backoff(attempt))
+			}
+		}
+
+		if lastErr != nil {
+			return nil, fmt.Errorf("get_transactions batch [%d:%d] failed: %w", start, end, lastErr)
+		}
+	}
+
+	return agg, nil
+}
+
+func (c *XMRClient) fetchEachIndividually(batch []string, decodeAsJSON bool, prune bool, agg *GetTransactionsResult) error {
+	for _, h := range batch {
+		for step := 0; step < 2; step++ {
+			params := map[string]interface{}{
+				"txs_hashes":     []string{h},
+				"decode_as_json": decodeAsJSON,
+			}
+			if !decodeAsJSON {
+				params["prune"] = prune
+			}
+
+			var single GetTransactionsResult
+			err := c.postCore("get_transactions", params, &single)
+			if err == nil {
+				agg.Credits += single.Credits
+				if single.TopHash != "" {
+					agg.TopHash = single.TopHash
+				}
+				agg.Txs = append(agg.Txs, single.Txs...)
+				agg.MissedTx = append(agg.MissedTx, single.MissedTx...)
+				agg.MissedTx = append(agg.MissedTx, single.MissedTxIDs...)
+				agg.TxsAsJSON = append(agg.TxsAsJSON, single.TxsAsJSON...)
+				agg.TxsAsHex = append(agg.TxsAsHex, single.TxsAsHex...)
+				agg.TxsHashes = append(agg.TxsHashes, single.TxsHashes...)
+				break
+			}
+
+			var tje *truncatedJSONError
+			var hse *httpStatusError
+			if step == 0 && decodeAsJSON &&
+				(errors.As(err, &tje) || (errors.As(err, &hse) && isRecoverableStatus(hse.Code))) {
+				decodeAsJSON = false
+				prune = true
+				continue
+			}
+
+			return fmt.Errorf("get_transactions failed for %s: %w", h, err)
+		}
+	}
+	return nil
 }
 
 // ----------------- Direct (non-json_rpc) endpoints for mempool -----------------

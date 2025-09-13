@@ -1823,6 +1823,11 @@ func retrieveTotalTransactions(ctx context.Context, db *sql.DB) (txcount int64, 
 	return
 }
 
+func retrieveXMROutputsCount(ctx context.Context, db *sql.DB) (outputsCount int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectTotalXmrOutputs).Scan(&outputsCount)
+	return
+}
+
 func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
 	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }
