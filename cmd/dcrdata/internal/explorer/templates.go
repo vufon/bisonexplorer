@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrdata/v8/explorer/types"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/utils"
 	humanize "github.com/dustin/go-humanize"
 )
 
@@ -196,7 +197,7 @@ func hashratePostfix(v float64) string {
 }
 
 func difficultyDisp(d float64) string {
-	if d < 1e5 {
+	if d < 1e4 {
 		return float64Formatting(d, 0, true)[0]
 	}
 	if d < 1e6 {
@@ -209,9 +210,56 @@ func difficultyDisp(d float64) string {
 		format := float64Formatting(diff, 2, true)
 		return fmt.Sprintf("%s.%sM", format[0], format[1])
 	}
-	diff := float64(d / 1e9)
+	if d < 1e12 {
+		diff := float64(d / 1e9)
+		format := float64Formatting(diff, 2, true)
+		return fmt.Sprintf("%s.%sG", format[0], format[1])
+	}
+
+	diff := float64(d / 1e12)
 	format := float64Formatting(diff, 2, true)
-	return fmt.Sprintf("%s.%sB", format[0], format[1])
+	return fmt.Sprintf("%s.%sT", format[0], format[1])
+}
+
+func simpleHashrateDisp(hashrate float64) string {
+	if hashrate < 1e4 {
+		return float64Formatting(hashrate, 0, true)[0]
+	}
+	var hash float64
+	if hashrate < 1e6 {
+		hash = float64(hashrate / 1e3)
+	} else if hashrate < 1e9 {
+		hash = float64(hashrate / 1e6)
+	} else if hashrate < 1e12 {
+		hash = float64(hashrate / 1e9)
+	} else if hashrate < 1e15 {
+		hash = float64(hashrate / 1e12)
+	} else if hashrate < 1e18 {
+		hash = float64(hashrate / 1e15)
+	} else {
+		hash = float64(hashrate / 1e18)
+	}
+	format := float64Formatting(hash, 2, true)
+	return fmt.Sprintf("%s.%s", format[0], format[1])
+}
+
+func simpleHashratePostfix(hashrate float64) string {
+	if hashrate < 1e4 {
+		return "H/s"
+	}
+	if hashrate < 1e6 {
+		return "kH/s"
+	} else if hashrate < 1e9 {
+		return "MH/s"
+	} else if hashrate < 1e12 {
+		return "GH/s"
+	} else if hashrate < 1e15 {
+		return "TH/s"
+	} else if hashrate < 1e18 {
+		return "PH/s"
+	} else {
+		return "EH/s"
+	}
 }
 
 func amountAsDecimalPartsTrimmed(v, numPlaces int64, useCommas bool) []string {
@@ -471,6 +519,8 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"hashrateDecimalParts":  hashrateFormatting,
 		"hashratePostfix":       hashratePostfix,
 		"difficultyDisp":        difficultyDisp,
+		"simpleHashrateDisp":    simpleHashrateDisp,
+		"simpleHashratePostfix": simpleHashratePostfix,
 		"normalFloat": func(n float64) string {
 			return strconv.FormatFloat(n, 'f', 7, 64)
 		},
@@ -482,6 +532,26 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		},
 		"toFloat64Amount": func(intAmount int64) float64 {
 			return dcrutil.Amount(intAmount).ToCoin()
+		},
+		"toMulFloat64Amount": func(intAmount int64, chainType string) float64 {
+			switch chainType {
+			case mutilchain.TYPEXMR:
+				return float64(intAmount) / float64(utils.AtomicUnit)
+			default:
+				return dcrutil.Amount(intAmount).ToCoin()
+			}
+		},
+		"mulPowAlgorithm": func(chainType string) string {
+			switch chainType {
+			case mutilchain.TYPEBTC:
+				return "SHA-256"
+			case mutilchain.TYPELTC:
+				return "Scrypt"
+			case mutilchain.TYPEXMR:
+				return "RandomX"
+			default:
+				return "N/A"
+			}
 		},
 		"dcrPerKbToAtomsPerByte": func(amt dcrutil.Amount) int64 {
 			return int64(math.Round(float64(amt) / 1e3))
@@ -622,6 +692,8 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 				return "Bitcoin"
 			case mutilchain.TYPELTC:
 				return "Litecoin"
+			case mutilchain.TYPEXMR:
+				return "Monero"
 			default:
 				return "Decred"
 			}

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/big"
 	"strings"
 	"sync"
 	"time"
@@ -40,6 +41,8 @@ const (
 type TimeDef struct {
 	T time.Time
 }
+
+var atomicPerXMR = big.NewInt(1_000_000_000_000)
 
 const (
 	timeDefFmtHuman        = "2006-01-02 15:04:05 (MST)"
@@ -179,6 +182,141 @@ type TrimmedTxInfo struct {
 	VinCount         int
 	VoutCount        int
 	VoteValid        bool
+}
+
+type XmrTxFull struct {
+	// Basic / Indexing info (maps -> transactions table)
+	TxHash      string `json:"tx_hash"`      // tx hash
+	BlockHeight int64  `json:"block_height"` // -1 if unconfirmed (mempool)
+	Timestamp   int64  `json:"timestamp"`    // unix seconds (from block or mempool)
+	Size        int64  `json:"size"`         // bytes
+	Version     int32  `json:"version"`
+	UnlockTime  uint64 `json:"unlock_time"`
+	IsCoinbase  bool   `json:"is_coinbase"` // miner tx
+	Confirmed   bool   `json:"confirmed"`   // true if in chain
+	Sent        int64  `json:"sent"`
+	// Fees & totals (maps -> rct_data / transactions)
+	Fee          int64   `json:"fee"`           // atomic units (0 if unknown)
+	FeePerKB     float64 `json:"fee_per_kb"`    // optional derived
+	TotalInputs  uint64  `json:"total_inputs"`  // atomic; may be 0 if not known
+	TotalOutputs uint64  `json:"total_outputs"` // atomic; may be 0 if not known
+
+	// counts & ring info
+	InputsCount  int   `json:"inputs_count"`
+	OutputsCount int   `json:"outputs_count"`
+	Mixin        int   `json:"mixin"`      // typical mixin (ring size-1), if consistent
+	RingSizes    []int `json:"ring_sizes"` // per-input ring size (optional)
+
+	// Inputs (maps -> vins + key_images)
+	Vins      []XmrVinInfo      `json:"vins"`
+	KeyImages []XmrKeyImageInfo `json:"key_images"` // separate table mapping
+
+	// Outputs (maps -> monero_outputs)
+	Outputs []XmrOutputInfo `json:"outputs"`
+
+	// Ring members (maps -> ring_members) — optional: flattened for display
+	// if you store ring members separately, you can not duplicate huge arrays here
+	RingMembers []XmrRingMemberInfo `json:"ring_members,omitempty"`
+
+	// RCT / signature metadata (maps -> rct_data)
+	Rct *XmrRctData `json:"rct,omitempty"`
+
+	// Extra & parsed data
+	ExtraRaw    string      `json:"extra_raw,omitempty"`    // hex
+	ExtraParsed *XmrTxExtra `json:"extra_parsed,omitempty"` // parsed fields: tx pubkey, short/long pid, tx notes
+
+	// Derived / view-key related
+	// NOTE: decoded outputs only available if you have wallet view-key scanning done.
+	DecodedOutputs map[int]uint64 `json:"decoded_outputs,omitempty"` // map[out_index]amount (atomic) available only in view-key mode
+
+	// Misc / an explorer might store
+	ReceivedTime int64  `json:"received_time,omitempty"` // mempool receive time
+	RawHex       string `json:"raw_hex,omitempty"`       // optional, raw tx hex
+}
+
+type XmrVinInfo struct {
+	InputIndex      int    `json:"input_index"`                 // ordinal input index in tx
+	KeyImage        string `json:"key_image"`                   // key image hex/string (maps -> key_images table)
+	Amount          uint64 `json:"amount"`                      // atomic (0 if hidden / not decoded)
+	RealOutputTx    string `json:"real_output_tx,omitempty"`    // if indexer resolved real output (sensitive), optional
+	RealOutputIndex int64  `json:"real_output_index,omitempty"` // global index, optional
+}
+
+type XmrOutputInfo struct {
+	OutIndex    int    `json:"out_index"`             // index in tx outputs
+	GlobalIndex int64  `json:"global_index"`          // global output index (maps -> monero_outputs)
+	Key         string `json:"key"`                   // tx_out_key / stealth pubkey
+	Amount      uint64 `json:"amount"`                // atomic, 0 if hidden
+	Owned       bool   `json:"owned"`                 // true if belongs to a scanned view-key
+	ReceivedBy  string `json:"received_by,omitempty"` // optional: derived address label when decoded
+}
+
+// RingMemberInfo: stores ring members for inputs
+type XmrRingMemberInfo struct {
+	InputIndex        int    `json:"input_index"` // which input this ring member belongs to
+	MemberGlobalIndex int64  `json:"member_global_index"`
+	MemberTxHash      string `json:"member_tx_hash,omitempty"`
+	MemberOutIndex    int64  `json:"member_out_index,omitempty"`
+}
+
+// KeyImageInfo: table key_images mapping
+type XmrKeyImageInfo struct {
+	KeyImage  string `json:"key_image"`
+	SeenAtTx  string `json:"seen_at_tx,omitempty"` // tx hash where first seen
+	SpentAtTx string `json:"spent_at_tx,omitempty"`
+	Spent     bool   `json:"spent"`
+}
+
+// RctData minimal wrapper for rct metadata (store raw or parsed)
+type XmrRctData struct {
+	RctType      int    `json:"rct_type"`                // e.g. "RCTTypeFull"
+	TxSignatures string `json:"tx_signatures,omitempty"` // raw hex or prunable part
+	Bulletproof  bool   `json:"bulletproof"`             // did use bulletproofs
+	RangeProofs  string `json:"range_proofs,omitempty"`  // optional raw
+	PrunableHash string `json:"prunable_hash,omitempty"`
+}
+
+type XmrTxExtra struct {
+	RawHex             string
+	TxPublicKey        string
+	AdditionalPubkeys  []string           // []hex (each 32 bytes) (tag 0x04)
+	ExtraNonce         []byte             // raw bytes (tag 0x02)
+	PaymentID          string             // decrypted/unencrypted payment id (hex) if found inside extra nonce
+	EncryptedPaymentID string             // short (8B) encrypted payment id (hex) if present
+	MergeMining        *XmrMergeMiningTag // optional struct
+	UnknownFields      map[byte][]byte    // store other tag => raw bytes
+}
+
+type XmrMergeMiningTag struct {
+	Depth      uint8
+	MerkleRoot []byte
+}
+
+func AtomicToXMRString(a uint64) string {
+	ai := new(big.Int).SetUint64(a)
+	intPart := new(big.Int).Div(ai, atomicPerXMR)
+	rem := new(big.Int).Mod(ai, atomicPerXMR)
+
+	// rem with leading zeros upto 12 digits
+	remStr := fmt.Sprintf("%012s", rem.String())
+	// strip trailing zeros if you want shorter representation:
+	remStr = trimTrailingZeros(remStr)
+	if remStr == "" {
+		return intPart.String()
+	}
+	return fmt.Sprintf("%s.%s", intPart.String(), remStr)
+}
+
+func trimTrailingZeros(s string) string {
+	i := len(s)
+	for i > 0 && s[i-1] == '0' {
+		i--
+	}
+	return s[:i]
+}
+
+func AtomicToXMR(v int64) float64 {
+	return float64(v) / 1e12
 }
 
 // TxInfo models data needed for display on the tx page
@@ -516,6 +654,7 @@ type BlockInfo struct {
 	Tickets               []*TrimmedTxInfo
 	Revs                  []*TrimmedTxInfo
 	Votes                 []*TrimmedTxInfo
+	XmrTx                 []*XmrTxFull
 	Misses                []string
 	Txids                 []string
 	Nonce                 uint32
@@ -525,6 +664,8 @@ type BlockInfo struct {
 	Bits                  string
 	SBits                 float64
 	Difficulty            float64
+	DifficultyNum         string
+	CumulativeDifficulty  string
 	ExtraData             string
 	StakeVersion          uint32
 	PreviousHash          string

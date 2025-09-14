@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -70,6 +71,7 @@ import (
 	"github.com/decred/dcrdata/db/dcrpg/v8/internal/mutilchainquery"
 	"github.com/decred/dcrdata/v8/utils"
 	"github.com/decred/dcrdata/v8/xmr/xmrclient"
+	"github.com/decred/dcrdata/v8/xmr/xmrhelper"
 	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 )
 
@@ -353,6 +355,15 @@ type ChainDB struct {
 		difficulties map[int64]float64
 	}
 	ltcLastExplorerBlock struct {
+		sync.Mutex
+		hash      string
+		blockInfo *exptypes.BlockInfo
+		// Somewhat unrelated, difficulties is a map of timestamps to mining
+		// difficulties. It is in this cache struct since these values are
+		// commonly retrieved when the explorer block is updated.
+		difficulties map[int64]float64
+	}
+	xmrLastExplorerBlock struct {
 		sync.Mutex
 		hash      string
 		blockInfo *exptypes.BlockInfo
@@ -5540,8 +5551,6 @@ func (pgb *ChainDB) XMRStore(blockData *xmrutil.BlockData) error {
 	pgb.UpdateXMRChainState(&blockData.BlockchainInfo)
 
 	go pgb.SyncXMROneBlock(blockData)
-	// handler store xmr block data in here
-	log.Infof("XMR: Complete sync block data. Height: %d", blockData.Header.Height)
 	return nil
 }
 
@@ -5563,6 +5572,7 @@ func (pgb *ChainDB) SyncXMROneBlock(blockData *xmrutil.BlockData) (err error) {
 		log.Infof("XMR: (After reorg) Start sync block data. Height: %d", blockData.Header.Height)
 		_, _, _, err = pgb.StoreXMRWholeBlock(pgb.XmrClient, true, true, handlerHeight)
 	}
+	log.Infof("XMR: Complete sync block data. Height: %d", blockData.Header.Height)
 	return
 }
 
@@ -9758,6 +9768,454 @@ func (pgb *ChainDB) GetSwapType(txid string) string {
 	return utils.REDEMPTION_TYPE
 }
 
+func (pgb *ChainDB) GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error) {
+	return pgb.XmrClient.GetInfo()
+}
+
+func (pgb *ChainDB) GetXMRBasicBlock(height int64) *exptypes.BlockBasic {
+	br, berr := pgb.XmrClient.GetBlock(uint64(height))
+	if berr != nil {
+		log.Errorf("XMR: GetBlock(%d) failed: %v", height, berr)
+		return nil
+	}
+	// Convert the wire.MsgBlock to a dbtypes.Block
+	clientBlock, err := xmrhelper.MsgXMRBlockToDBBlock(pgb.XmrClient, br, uint64(height))
+	if err != nil {
+		log.Errorf("XMR: Get block data failed: Height: %d. Error: %v", height, err)
+		return nil
+	}
+
+	blockData := &exptypes.BlockBasic{
+		Height:         int64(clientBlock.Height),
+		Hash:           clientBlock.Hash,
+		Version:        int32(clientBlock.Version),
+		Size:           int32(clientBlock.Size),
+		Valid:          true, // we do not know this, TODO with DB v2
+		MainChain:      true,
+		Transactions:   int(clientBlock.NumTx),
+		TxCount:        clientBlock.NumTx,
+		BlockTime:      exptypes.NewTimeDefFromUNIX(clientBlock.Time.UNIX()),
+		BlockTimeUnix:  clientBlock.Time.UNIX(),
+		FormattedBytes: humanize.Bytes(uint64(clientBlock.Size)),
+	}
+	return blockData
+}
+
+// GetXMRExplorerBlock gets a *exptypes.Blockinfo for the specified ltc block.
+func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
+	pgb.xmrLastExplorerBlock.Lock()
+	if pgb.xmrLastExplorerBlock.blockInfo != nil && pgb.xmrLastExplorerBlock.blockInfo.Height == height {
+		res := pgb.xmrLastExplorerBlock.blockInfo
+		pgb.xmrLastExplorerBlock.Unlock()
+		return res
+	}
+	pgb.xmrLastExplorerBlock.Unlock()
+	// thanhnp:TODO: in the future, will select from db (if have) first. If not exist on db, select from daemon
+	br, berr := pgb.XmrClient.GetBlock(uint64(height))
+	if berr != nil {
+		log.Errorf("XMR: GetBlock(%d) failed: %v", height, berr)
+		return nil
+	}
+	// Convert the wire.MsgBlock to a dbtypes.Block
+	clientBlock, err := xmrhelper.MsgXMRBlockToDBBlock(pgb.XmrClient, br, uint64(height))
+	if err != nil {
+		log.Errorf("XMR: Get block data failed: Height: %d. Error: %v", height, err)
+		return nil
+	}
+
+	blockData := &exptypes.BlockBasic{
+		Height:         int64(clientBlock.Height),
+		Hash:           clientBlock.Hash,
+		Version:        int32(clientBlock.Version),
+		Size:           int32(clientBlock.Size),
+		Valid:          true, // we do not know this, TODO with DB v2
+		MainChain:      true,
+		Transactions:   int(clientBlock.NumTx),
+		TxCount:        clientBlock.NumTx,
+		BlockTime:      exptypes.NewTimeDefFromUNIX(clientBlock.Time.UNIX()),
+		BlockTimeUnix:  clientBlock.Time.UNIX(),
+		FormattedBytes: humanize.Bytes(uint64(clientBlock.Size)),
+	}
+	// b := makeLTCExplorerBlockBasicFromTxResult(data, pgb.ltcChainParams)
+	// Explorer Block Info
+	confirmations := int64(0)
+	if pgb.XmrBestBlock.Height >= height {
+		confirmations = pgb.XmrBestBlock.Height - height + 1
+	}
+	nextHash := ""
+	if pgb.XmrBestBlock.Height > height {
+		nextHeight := height + 1
+		blheader, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(nextHeight))
+		if err != nil {
+			log.Errorf("XMR: GetBlockHeaderByHeight failed: Height: %d. %v", height, err)
+			return nil
+		}
+		nextHash = blheader.Hash
+	}
+	block := &exptypes.BlockInfo{
+		BlockBasic:    blockData,
+		Confirmations: confirmations,
+		// PoWHash:       b.Hash,
+		Nonce:                uint32(clientBlock.Nonce),
+		Difficulty:           clientBlock.Difficulty,
+		DifficultyNum:        utils.IfaceToString(clientBlock.DifficultyNum),
+		CumulativeDifficulty: utils.IfaceToString(clientBlock.CumulativeDifficulty),
+		PreviousHash:         clientBlock.PreviousHash,
+		NextHash:             nextHash,
+	}
+
+	txs := make([]*exptypes.XmrTxFull, 0, block.Transactions)
+	txids := make([]string, 0)
+	// get transaction details
+	blTxsData, blTxserr := pgb.XmrClient.GetTransactions(clientBlock.Tx, true)
+	if blTxserr != nil {
+		log.Errorf("XMR: GetTransactions for getting explorer block failed: %v", blTxserr)
+		return nil
+	}
+	totalSent := int64(0)
+	for i, txHash := range clientBlock.Tx {
+		var txJSONStr string
+		if i < len(blTxsData.TxsAsJSON) {
+			txJSONStr = blTxsData.TxsAsJSON[i]
+		}
+		var txHex string
+		if i < len(blTxsData.TxsAsHex) {
+			txHex = blTxsData.TxsAsHex[i]
+		}
+		var txExtra interface{}
+		if txJSONStr != "" {
+			// store parsed JSONB for easier queries
+			var tmp map[string]interface{}
+			if err := json.Unmarshal([]byte(txJSONStr), &tmp); err == nil {
+				txExtra = tmp
+			} else {
+				// fallback: store raw string
+				txExtra = txJSONStr
+			}
+		}
+		timeField := int64(0)
+		version := 0
+		lockTime := int64(0)
+		size := 0
+		if txHex != "" {
+			size = len(txHex) / 2
+		}
+		fees := int64(0)
+		numVin := 0
+		numVout := 0
+		txSent := int64(0)
+		var ringSizes []int
+		var ringSize int
+		var parsedExtra *exptypes.XmrTxExtra
+		var hexExtra string
+		outputs := make([]exptypes.XmrOutputInfo, 0)
+		// vinsObjects := make([]exptypes.XmrVinInfo, 0)
+		keyImages := make([]exptypes.XmrKeyImageInfo, 0)
+		ringMembers := make([]exptypes.XmrRingMemberInfo, 0)
+		var rctData *exptypes.XmrRctData
+		// parse some common fields from txExtra (tx JSON)
+		if txExtra != nil {
+			switch v := txExtra.(type) {
+			case map[string]interface{}:
+				if t, ok := v["version"].(float64); ok {
+					version = int(t)
+				}
+				if tm, ok := v["unlock_time"].(float64); ok {
+					timeField = int64(tm)
+				}
+				// RingCT presence
+				// if _, ok := v["rct_signatures"]; ok {
+				// 	isRingCT = true
+				// }
+				// if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
+				// 	if rt, ok2 := rct["type"].(float64); ok2 {
+				// 		rctType = sql.NullInt64{Int64: int64(rt), Valid: true}
+				// 	}
+				// }
+				// vins/vouts length
+				if vinsIf, ok := v["vin"].([]interface{}); ok {
+					numVin = len(vinsIf)
+					for vinIdx, vinItem := range vinsIf {
+						if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
+							// --- Key input style (most typical for modern Monero) ---
+							if keyObj, ok3 := vinMap["key"].(map[string]interface{}); ok3 {
+								// collect offsets (may be absent)
+								var offsets []uint64
+								if offsIf, ok4 := keyObj["key_offsets"].([]interface{}); ok4 {
+									offsets = make([]uint64, 0, len(offsIf))
+									ringSize := len(offsIf)
+									ringSizes = append(ringSizes, ringSize)
+									for _, oi := range offsIf {
+										switch v := oi.(type) {
+										case float64:
+											offsets = append(offsets, uint64(v))
+										case string:
+											if parsed, err := xmrhelper.ParseUint64FromString(v); err == nil {
+												offsets = append(offsets, parsed)
+											}
+										}
+									}
+								}
+								// convert to global indices if we have offsets (safe with empty slice)
+								globalIdxs := xmrhelper.OffsetsToGlobalIndices(offsets)
+
+								// insert ring members (if any)
+								for _, gi := range globalIdxs {
+									ringMembers = append(ringMembers, exptypes.XmrRingMemberInfo{
+										InputIndex:        vinIdx,
+										MemberGlobalIndex: int64(gi),
+										MemberTxHash:      txHash,
+									})
+								}
+
+								// key image k_image (if present)
+								if ki, ok5 := keyObj["k_image"].(string); ok5 && ki != "" {
+									keyImages = append(keyImages, exptypes.XmrKeyImageInfo{
+										KeyImage: ki,
+										SeenAtTx: txHash,
+										Spent:    true,
+									})
+								}
+							}
+						}
+					}
+				}
+				if voutsIf, ok := v["vout"].([]interface{}); ok {
+					numVout = len(voutsIf)
+					for idx, vo := range voutsIf {
+						if voMap, ok := vo.(map[string]interface{}); ok {
+							// target may be under "target" -> "key"
+							outPk := ""
+							globalIndex := int64(-1)
+							amount := int64(0)
+							amountKnown := false
+							if target, ok2 := voMap["target"].(map[string]interface{}); ok2 {
+								if k, ok3 := target["key"].(string); ok3 {
+									outPk = k
+								}
+								// some monero versions include "global_index" in vout
+								if gi, ok4 := voMap["global_index"]; ok4 {
+									switch v := gi.(type) {
+									case float64:
+										globalIndex = int64(v)
+									case string:
+										// sometimes it's string
+										if parsed, err := xmrhelper.ParseInt64FromString(v); err == nil {
+											globalIndex = parsed
+										}
+									}
+								}
+							}
+							// amount may be present (non-ringct)
+							if amt, ok := voMap["amount"]; ok {
+								switch v := amt.(type) {
+								case float64:
+									amount = int64(v)
+									amountKnown = true
+								case string:
+									if parsed, err := xmrhelper.ParseInt64FromString(v); err == nil {
+										amount = parsed
+										amountKnown = true
+									}
+								}
+							}
+							txSent += amount
+							outputs = append(outputs, exptypes.XmrOutputInfo{
+								OutIndex:    idx,
+								GlobalIndex: globalIndex,
+								Key:         outPk,
+								Amount:      uint64(amount),
+								Owned:       amountKnown,
+							})
+						}
+					}
+				}
+				// fees / outputs / total sent: sometimes present in tx JSON
+				if feeIf, ok := v["fee"].(float64); ok {
+					fees = int64(feeIf)
+				}
+				if extraHex, ok := v["extra"].(string); ok {
+					parsedExtra, _ = ParseTxExtra(extraHex)
+					hexExtra = extraHex
+				}
+				// store rct blob as raw JSON of rct_signatures or hex if available.
+				// rctJSON, _ := json.Marshal(rctIf)
+				var rctType int = -1
+				if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
+					if t, ok2 := rct["type"].(float64); ok2 {
+						rctType = int(t)
+					}
+				}
+				var rctPrunableHash string
+				// sometimes prunable hash in txMap under "rct_signatures" or "rct_prunable_hash"
+				if rp, ok := v["rct_prunable_hash"].(string); ok {
+					rctPrunableHash = rp
+				}
+				var bulletproof bool
+				var rangeProofs string
+				if prun, ok := v["rctsig_prunable"].(map[string]interface{}); ok {
+					if rp, ok := prun["rangeSigs"]; ok {
+						rpJSON, _ := json.Marshal(rp)
+						rangeProofs = string(rpJSON)
+					} else if bp, ok := prun["bp"]; ok {
+						bpJSON, _ := json.Marshal(bp)
+						rangeProofs = string(bpJSON)
+						bulletproof = true
+					}
+				}
+				var txSignatures string
+				if sigs, ok := v["signatures"]; ok {
+					bs, _ := json.Marshal(sigs)
+					txSignatures = string(bs)
+				}
+				rctData = &exptypes.XmrRctData{
+					RctType:      rctType,
+					PrunableHash: rctPrunableHash,
+					Bulletproof:  bulletproof,
+					RangeProofs:  rangeProofs,
+					TxSignatures: txSignatures,
+				}
+			}
+		}
+
+		isCoinbase := txHash == br.MinerTxHash
+		isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
+		totalSent += txSent
+		feePerKB := float64(0)
+		if size > 0 {
+			feePerKB = float64(fees / (int64(size) / 1024.0))
+		}
+		txFull := &exptypes.XmrTxFull{
+			TxHash:       txHash,
+			BlockHeight:  int64(clientBlock.Height),
+			Timestamp:    timeField,
+			Size:         int64(size),
+			Version:      int32(version),
+			UnlockTime:   uint64(lockTime),
+			IsCoinbase:   txHash == br.MinerTxHash,
+			Confirmed:    isConfirmed,
+			Fee:          fees,
+			FeePerKB:     feePerKB,
+			InputsCount:  numVin,
+			OutputsCount: numVout,
+			TotalInputs:  0, // TODO: handler this
+			TotalOutputs: 0, // TODO: handler this
+			RingSizes:    ringSizes,
+			Mixin:        ringSize - 1,
+			ExtraParsed:  parsedExtra,
+			ExtraRaw:     hexExtra,
+			RawHex:       txHex,
+			Outputs:      outputs,
+			KeyImages:    keyImages,
+			RingMembers:  ringMembers,
+			Rct:          rctData,
+			Sent:         txSent,
+		}
+		txs = append(txs, txFull)
+		txids = append(txids, txHash)
+	}
+	block.TotalSent = exptypes.AtomicToXMR(totalSent)
+	block.XmrTx = txs
+	block.Txids = txids
+
+	sortTx := func(txs []*exptypes.XmrTxFull) {
+		sort.Slice(txs, func(i, j int) bool {
+			return txs[i].Sent > txs[j].Sent
+		})
+	}
+	sortTx(block.XmrTx)
+
+	pgb.xmrLastExplorerBlock.Lock()
+	pgb.xmrLastExplorerBlock.hash = clientBlock.Hash
+	pgb.xmrLastExplorerBlock.blockInfo = block
+	pgb.xmrLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
+	pgb.xmrLastExplorerBlock.Unlock()
+	return block
+}
+
+func ParseTxExtra(hexExtra string) (*exptypes.XmrTxExtra, error) {
+	b, err := hex.DecodeString(hexExtra)
+	if err != nil {
+		return nil, err
+	}
+	te := &exptypes.XmrTxExtra{
+		RawHex:        hexExtra,
+		UnknownFields: make(map[byte][]byte),
+	}
+
+	i := 0
+	n := len(b)
+	for i < n {
+		tag := b[i]
+		i++
+		switch tag {
+		case 0x00: // padding: skip single byte (or consecutive padding bytes)
+			// do nothing (padding may be many 0x00 bytes)
+		case 0x01: // tx pubkey (32 bytes)
+			if i+32 > n {
+				return nil, errors.New("tx extra: pubkey truncated")
+			}
+			te.TxPublicKey = hex.EncodeToString(b[i : i+32])
+			i += 32
+		case 0x02: // extra nonce: next byte is length
+			if i >= n {
+				return nil, errors.New("tx extra: nonce length missing")
+			}
+			L := int(b[i])
+			i++
+			if i+L > n {
+				return nil, errors.New("tx extra: nonce truncated")
+			}
+			nonce := b[i : i+L]
+			te.ExtraNonce = nonce
+			// parse inner nonce tags (simple parse: check first byte)
+			if L > 0 {
+				subtag := nonce[0]
+				switch subtag {
+				case 0x00: // long payment id (32 bytes) deprecated
+					if len(nonce) >= 1+32 {
+						te.PaymentID = hex.EncodeToString(nonce[1 : 1+32])
+					}
+				case 0x01: // encrypted short payment id (8 bytes)
+					if len(nonce) >= 1+8 {
+						te.EncryptedPaymentID = hex.EncodeToString(nonce[1 : 1+8])
+					}
+				default:
+					// could be miner pool nonce etc — store raw
+					te.UnknownFields[0x02] = nonce
+				}
+			}
+			i += L
+		case 0x04: // additional pubkeys: next byte = count
+			if i >= n {
+				return nil, errors.New("tx extra: additional pubkeys count missing")
+			}
+			cnt := int(b[i])
+			i++
+			needed := cnt * 32
+			if i+needed > n {
+				return nil, fmt.Errorf("tx extra: additional pubkeys truncated (need %d bytes)", needed)
+			}
+			arr := make([]string, 0, cnt)
+			for k := 0; k < cnt; k++ {
+				arr = append(arr, hex.EncodeToString(b[i:i+32]))
+				i += 32
+			}
+			te.AdditionalPubkeys = arr
+		case 0x03: // merge-mining tag (implementation-dependent)
+			// simple approach: store raw — real parsing needs format knowledge
+			// read next byte len? (core code uses structured tag)
+			te.UnknownFields[0x03] = nil // placeholder
+		default:
+			// unknown tag: it's safer to try to skip if next byte indicates length (but not all tags follow same rule)
+			// store single-byte unknown for visibility
+			te.UnknownFields[tag] = nil
+		}
+	}
+
+	return te, nil
+}
+
 // GetLTCExplorerBlock gets a *exptypes.Blockinfo for the specified ltc block.
 func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	pgb.ltcLastExplorerBlock.Lock()
@@ -10956,6 +11414,14 @@ func (pgb *ChainDB) GetDecredTotalTransactions() int64 {
 		return 0
 	}
 	return txcount
+}
+
+func (pgb *ChainDB) GetXMRTotalOutputs() int64 {
+	outputsCount, err := retrieveXMROutputsCount(pgb.ctx, pgb.db)
+	if err != nil {
+		return 0
+	}
+	return outputsCount
 }
 
 func (pgb *ChainDB) MutilchainDifficulty(timestamp int64, chainType string) float64 {

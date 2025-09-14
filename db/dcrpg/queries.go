@@ -1823,6 +1823,11 @@ func retrieveTotalTransactions(ctx context.Context, db *sql.DB) (txcount int64, 
 	return
 }
 
+func retrieveXMROutputsCount(ctx context.Context, db *sql.DB) (outputsCount int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectTotalXmrOutputs).Scan(&outputsCount)
+	return
+}
+
 func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
 	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }
@@ -4289,6 +4294,9 @@ func appendMutilchainChartBlocks(charts *cache.MutilchainChartData, rows *sql.Ro
 	//if lastest db height less than lastblock height, use external api to display chart
 	if !charts.UseSyncDB {
 		charts.UseAPI = true
+		if charts.ChainType == mutilchain.TYPEXMR {
+			return nil
+		}
 		//handler api data for charts
 		apiErr := HandlerMutilchainAPIDataForCharts(charts)
 		if apiErr == nil {

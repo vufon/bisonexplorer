@@ -1,8 +1,11 @@
 package utils
 
 import (
+	"database/sql"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -209,4 +212,64 @@ func DateTimeWithoutTimeZone(timeInt int64) string {
 	}
 	dateTime := time.Unix(int64(timeInt), 0).UTC()
 	return dateTime.Format("2006-01-02 15:04:05")
+}
+
+func IfaceToString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	switch x := v.(type) {
+	case string:
+		return x
+	case *string:
+		if x == nil {
+			return ""
+		}
+		return *x
+	case sql.NullString:
+		if x.Valid {
+			return x.String
+		}
+		return ""
+	case *sql.NullString:
+		if x != nil && x.Valid {
+			return x.String
+		}
+		return ""
+	case fmt.Stringer:
+		return x.String()
+	case *big.Int:
+		return x.String()
+	case big.Int:
+		return x.String()
+	case int:
+		return strconv.Itoa(x)
+	case int64:
+		return strconv.FormatInt(x, 10)
+	case uint64:
+		return strconv.FormatUint(x, 10)
+	case float64:
+		return strconv.FormatFloat(x, 'f', -1, 64)
+	case json.Number:
+		return x.String()
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+// GetCirculatingSupply returns estimated circulating supply in atomic units (1 XMR = 1e12)
+func GetCirculatingSupply(height uint64) uint64 {
+	if height <= TailStartHeight {
+		return InitialEmission
+	}
+	extraBlocks := height - TailStartHeight
+	return InitialEmission + extraBlocks*TailEmissionPerBlock
+}
+
+func AtomicToXMR(atomic uint64) float64 {
+	return float64(atomic) / float64(AtomicUnit)
+}
+
+func GetCirculatingSupplyXMR(height uint64) float64 {
+	return float64(GetCirculatingSupply(height)) / float64(AtomicUnit)
 }

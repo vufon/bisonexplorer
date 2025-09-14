@@ -443,11 +443,11 @@ var BTCExchanges = map[string]func(*http.Client, *BotChannels, string, string) (
 
 // add: BitFinex, Kraken
 var XMRExchanges = map[string]func(*http.Client, *BotChannels, string, string) (Exchange, error){
-	Mexc:     MutilchainNewMexc,
-	KuCoin:   MutilchainNewKucoin,
-	Huobi:    MutilchainNewHuobi,
-	Xt:       MutilchainNewXt,
-	Binance:  MutilchainNewBinance,
+	Mexc:   MutilchainNewMexc,
+	KuCoin: MutilchainNewKucoin,
+	Huobi:  MutilchainNewHuobi,
+	Xt:     MutilchainNewXt,
+	// Binance:  MutilchainNewBinance,
 	Coinex:   MutilchainNewCoinex,
 	DragonEx: nil,
 	Poloniex: MutilchainNewPoloniex,

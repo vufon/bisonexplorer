@@ -36,6 +36,7 @@ var (
 	sigNewBlock         = pstypes.SigNewBlock
 	sigNewLTCBlock      = pstypes.SigNewLTCBlock
 	sigNewBTCBlock      = pstypes.SigNewBTCBlock
+	sigNewXMRBlock      = pstypes.SigNewXMRBlock
 	sigMempoolUpdate    = pstypes.SigMempoolUpdate
 	sigPingAndUserCount = pstypes.SigPingAndUserCount
 	sigNewTx            = pstypes.SigNewTx
@@ -240,6 +241,11 @@ func (wsh *WebsocketHub) run() {
 				// Do not log when explorer update status is active.
 				if !wsh.AreDBsSyncing() && clientsCount > 0 /* TODO put clientsCount first after testing */ {
 					log.Infof("Signaling new BTC block to %d websocket clients.", clientsCount)
+				}
+			case sigNewXMRBlock:
+				// Do not log when explorer update status is active.
+				if clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling new XMR block to %d websocket clients.", clientsCount)
 				}
 			case sigSummaryInfo:
 				// Do not log when explorer update status is active.

@@ -19,7 +19,7 @@ $(window).on('resize', function (event) {
   $('#menu').css('width', 'auto')
 })
 
-const multichainList = ['btc', 'ltc']
+const multichainList = ['btc', 'ltc', 'xmr']
 
 function isMutilchainUrl (url) {
   let isMultichain = false

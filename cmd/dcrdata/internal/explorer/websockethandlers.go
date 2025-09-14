@@ -313,6 +313,19 @@ func (exp *ExplorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 					} else {
 						log.Errorf("json.Encode(WebsocketLTCBlock) failed: %v", err)
 					}
+				case sigNewXMRBlock:
+					exp.XmrPageData.RLock()
+					err := enc.Encode(types.WebsocketBlock{
+						Block:  exp.XmrPageData.BlockInfo,
+						Extra:  exp.XmrPageData.HomeInfo,
+						Blocks: exp.XmrPageData.BlockDetails,
+					})
+					exp.XmrPageData.RUnlock()
+					if err == nil {
+						webData.Message = buff.String()
+					} else {
+						log.Errorf("json.Encode(WebsocketXMRBlock) failed: %v", err)
+					}
 				case sigNewBTCBlock:
 					exp.BtcPageData.RLock()
 					err := enc.Encode(types.WebsocketBlock{

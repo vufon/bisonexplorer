@@ -101,6 +101,7 @@ const (
 	SigNewBlock
 	SigNewLTCBlock
 	SigNewBTCBlock
+	SigNewXMRBlock
 	SigMempoolUpdate
 	SigPingAndUserCount
 	SigNewTx
@@ -117,6 +118,7 @@ var Subscriptions = map[string]HubSignal{
 	"newblock":       SigNewBlock,
 	"newltcblock":    SigNewLTCBlock,
 	"newbtcblock":    SigNewBTCBlock,
+	"newxmrblock":    SigNewXMRBlock,
 	"mempool":        SigMempoolUpdate,
 	"ping":           SigPingAndUserCount,
 	"newtxs":         SigNewTxs,

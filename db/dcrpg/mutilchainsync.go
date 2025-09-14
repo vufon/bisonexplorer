@@ -2049,7 +2049,7 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 	pgb.xmrWholeSyncMtx.Lock()
 	defer pgb.xmrWholeSyncMtx.Unlock()
 
-	const maxWorkers = 2
+	const maxWorkers = 5
 
 	// atomic counters
 	var totalTxs int64

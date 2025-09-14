@@ -43,6 +43,7 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/utils"
 	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
@@ -131,6 +132,7 @@ type explorerDataSource interface {
 	GetMutilchainExplorerBlock(hash, chainType string) *types.BlockInfo
 	GetBTCExplorerBlock(hash string) *types.BlockInfo
 	GetLTCExplorerBlock(hash string) *types.BlockInfo
+	GetXMRExplorerBlock(height int64) *types.BlockInfo
 	GetExplorerBlocks(start int, end int) []*types.BlockBasic
 	GetLTCExplorerBlocks(start int, end int) []*types.BlockBasic
 	GetBTCExplorerBlocks(start int, end int) []*types.BlockBasic
@@ -199,6 +201,9 @@ type explorerDataSource interface {
 	GetBlockSwapGroupFullData(blockTxs []string) ([]*dbtypes.AtomicSwapFullData, error)
 	GetLastMultichainPoolDataList(chainType string, startHeight int64) ([]*dbtypes.MultichainPoolDataItem, error)
 	GetMultichainStats(chainType string) (*externalapi.ChainStatsData, error)
+	GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error)
+	GetXMRTotalOutputs() int64
+	GetXMRBasicBlock(height int64) *types.BlockBasic
 }
 
 type PoliteiaBackend interface {
@@ -319,6 +324,15 @@ type LtcPageData struct {
 	Syncing24h     bool
 }
 
+type XmrPageData struct {
+	sync.RWMutex
+	BlockInfo      *types.BlockInfo
+	BlockDetails   []*types.BlockInfo
+	BlockchainInfo *xmrutil.BlockchainInfo
+	HomeInfo       *types.HomeInfo
+	Syncing24h     bool
+}
+
 type ExplorerUI struct {
 	Mux              *chi.Mux
 	dataSource       explorerDataSource
@@ -336,7 +350,7 @@ type ExplorerUI struct {
 	pageData         *pageData
 	BtcPageData      *BtcPageData
 	LtcPageData      *LtcPageData
-	XmrPageData      *LtcPageData
+	XmrPageData      *XmrPageData
 	ChainParams      *chaincfg.Params
 	BtcChainParams   *btcchaincfg.Params
 	LtcChainParams   *ltcchaincfg.Params
@@ -519,6 +533,11 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 				BlockTime:        exp.LtcChainParams.TargetTimePerBlock.Nanoseconds(),
 			},
 		},
+	}
+
+	exp.XmrPageData = &XmrPageData{
+		BlockInfo: new(types.BlockInfo),
+		HomeInfo:  &types.HomeInfo{},
 	}
 
 	log.Infof("Mean Voting Blocks calculated: %d", exp.pageData.HomeInfo.Params.MeanVotingBlocks)
@@ -1128,8 +1147,59 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 }
 
 func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
-	// handler store xmr block data in here
-	log.Infof("handler xmr store in explorer")
+	// // Retrieve block data for the passed block hash.
+	newBlockData := exp.dataSource.GetXMRExplorerBlock(int64(blockData.Header.Height))
+	if newBlockData == nil {
+		return fmt.Errorf("XMR: Get explorer block data failed")
+	}
+	// // Use the latest block's blocktime to get the last 24hr timestamp.
+	// // day := 24 * time.Hour
+	blockchainInfo, err := exp.dataSource.GetXMRBlockchainInfo()
+	if err != nil {
+		return err
+	}
+	targetTimePerBlock := float64(blockchainInfo.Target)
+	difficulty := float64(blockchainInfo.Difficulty)
+	chainSize := blockchainInfo.DatabaseSize
+	coinSupply := utils.GetCirculatingSupply(blockData.Header.Height)
+	coinValueSupply := utils.AtomicToXMR(coinSupply)
+	hashrate := difficulty / targetTimePerBlock
+	totalTransactionCount := blockchainInfo.TxCount
+	outputCounts := exp.dataSource.GetXMRTotalOutputs()
+	p := exp.XmrPageData
+	p.Lock()
+	p.BlockInfo = newBlockData
+	p.BlockchainInfo = blockchainInfo
+
+	// Update HomeInfo.
+	p.HomeInfo.HashRate = hashrate
+	// p.HomeInfo.HashRateChangeDay = 100 * (hashrate - last24HrHashRate) / last24HrHashRate
+	// p.HomeInfo.HashRateChangeMonth = 100 * (hashrate - lastMonthHashRate) / lastMonthHashRate
+	p.HomeInfo.CoinSupply = int64(coinSupply)
+	p.HomeInfo.CoinValueSupply = coinValueSupply
+	p.HomeInfo.Difficulty = difficulty
+	p.HomeInfo.TotalTransactions = int64(totalTransactionCount)
+	//p.HomeInfo.TotalOutputs = totalVoutsCount
+	//p.HomeInfo.TotalAddresses = totalAddressesCount
+	p.HomeInfo.TotalSize = int64(chainSize)
+	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
+
+	// p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
+	p.HomeInfo.BlockReward = int64(blockData.Header.Reward)
+	// p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
+	// p.HomeInfo.TotalAddresses = totalAddresses
+	p.HomeInfo.TotalOutputs = outputCounts
+	// p.HomeInfo.Nodes = nodes
+	// p.HomeInfo.Volume24h = volume24h
+	// p.HomeInfo.TxFeeAvg24h = avgTxFees24h
+	p.Unlock()
+	go func() {
+		select {
+		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewXMRBlock}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigNewXMRBlock send failed: Timeout waiting for WebsocketHub.")
+		}
+	}()
 	return nil
 }
 
