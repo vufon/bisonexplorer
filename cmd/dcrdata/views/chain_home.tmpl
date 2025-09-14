@@ -353,6 +353,7 @@
                                  </div>
                               </div>
                            </div>
+                           {{if ne $ChainType "xmr"}}
                            <div class="col-12 col-sm-8 card-content-box">
                               <div class="new-network-stats-block flex-column-card">
                                  <span class="new-network-stats-title">
@@ -368,6 +369,7 @@
                                  </div>
                               </div>
                            </div>
+                           {{end}}
                            <div class="col-12 col-sm-8 card-content-box">
                               <div class="new-network-stats-block flex-column-card">
                                  <span class="new-network-stats-title">
@@ -383,6 +385,7 @@
                                  </div>
                               </div>
                            </div>
+                            {{if ne $ChainType "xmr"}}
                            <div class="col-12 col-sm-8 card-content-box">
                               <div class="new-network-stats-block flex-column-card">
                                  <span class="new-network-stats-title">
@@ -398,6 +401,7 @@
                                  </div>
                               </div>
                            </div>
+                           {{end}}
                         </div>
                         {{end}}
                      </div>
@@ -681,7 +685,7 @@
       <div class="container px-0 snap-page-content">
          <section class="h-100 py-2">
             <div class="d-flex ai-center h-100">
-               <div class="row">
+               <div class="row w-100">
                   <div class="col-24 p-2">
                      <div class="new-home-card-container h-100">
                         <div class="py-2 px-3 new-home-card-header d-flex ai-center">
@@ -695,7 +699,7 @@
                               <div class="row flex-1">
                                  <div class="col-24 col-md-9">
                                     <p>PoW hash algorithm: <span class="subdata-card fw-600 fs-18">
-                                          {{if eq $ChainType "btc"}}SHA-256{{else}}Scrypt{{end}}</span></p>
+                                          {{mulPowAlgorithm $ChainType}}</span></p>
                                     <div class="row">
                                        <div class="col-12 card-content-box">
                                           <div class="new-network-stats-block flex-column-card">
@@ -726,12 +730,9 @@
                                                 <div>
                                                    <span class="new-network-stats-content d-inline-block">
                                                       <span data-chainhome-target="hashrate">
-                                                         {{template "decimalParts" (hashrateDecimalParts .HashRate 3
-                                                         true
-                                                         3)}}
+                                                         {{simpleHashrateDisp .HashRate}}
                                                       </span>
-                                                      <span class="new-info-line-2-sub">{{hashratePostfix
-                                                         .HashRate}}</span>
+                                                      <span class="new-info-line-2-sub">{{simpleHashratePostfix .HashRate}}</span>
                                                    </span>
                                                 </div>
                                              </div>
@@ -746,9 +747,9 @@
                                                 <div>
                                                    <span class="new-network-stats-content d-inline-block">
                                                       <span data-chainhome-target="blockReward">
-                                                         {{toFloat64Amount .BlockReward}}
+                                                         {{toMulFloat64Amount .BlockReward $ChainType}}
                                                       </span>
-                                                      <span class="new-info-line-2-sub">DCR</span>
+                                                      <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                                    </span>
                                                    {{if $conv -}}
                                                    <span class="stats-subinfo"
@@ -761,6 +762,7 @@
                                              </div>
                                           </div>
                                        </div>
+                                       {{if ne $ChainType "xmr"}}
                                        <div class="col-12 card-content-box">
                                           <div class="new-network-stats-block flex-column-card">
                                              <span class="new-network-stats-title">
@@ -770,9 +772,9 @@
                                                 <div>
                                                    <span class="new-network-stats-content d-inline-block">
                                                       <span data-chainhome-target="nextBlockReward">
-                                                         {{toFloat64Amount .NBlockSubsidy.Total}}
+                                                         {{toMulFloat64Amount .NBlockSubsidy.Total $ChainType}}
                                                       </span>
-                                                      <span class="new-info-line-2-sub">DCR</span>
+                                                      <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                                    </span>
                                                    {{if $conv -}}
                                                    <span class="stats-subinfo"
@@ -861,6 +863,7 @@
                                              </div>
                                           </div>
                                        </div>
+                                       {{end}}
                                     </div>
                                  </div>
                                  <div class="col-24 col-md-15">
@@ -939,7 +942,7 @@
                      <div class="col-24 col-md-10 col-lg-8 col-xl-7 col-xxl-5 p-0 flex-column-card">
                         {{- /* PRICE */ -}}
                         <div class="mx-0 mx-md-2 my-2 px-3 px-lg-4 pt-2 pb-3 bg-white new-home-card-container flex-1">
-                           <div class="fs22 text-center pb-1"><img src="/images/{{$ChainType}}-icon.png" width="25"
+                           <div class="fs22 text-center pb-1"><img src="/images/{{$ChainType}}-icons.png" width="25"
                                  height="25" class="me-2">Market Information</div>
                            <table class="w-100 mx-0">
                               <tbody>

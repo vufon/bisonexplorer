@@ -567,21 +567,28 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 			ExpStatusError)
 		return
 	}
+	var bestBlock *types.BlockBasic
 	var blocks []*types.BlockBasic
 	switch chainType {
 	case mutilchain.TYPEBTC:
 		blocks = exp.dataSource.GetBTCExplorerBlocks(int(height), int(height)-8)
 	case mutilchain.TYPELTC:
 		blocks = exp.dataSource.GetLTCExplorerBlocks(int(height), int(height)-8)
+	case mutilchain.TYPEXMR:
+		blockInfo := exp.dataSource.GetXMRExplorerBlock(height)
+		if blockInfo != nil {
+			bestBlock = blockInfo.BlockBasic
+			bestBlock.Total = blockInfo.TotalSent
+		}
 	default:
 		blocks = exp.dataSource.GetExplorerBlocks(int(height), int(height)-8)
 	}
-
-	var bestBlock *types.BlockBasic
-	if blocks == nil {
-		bestBlock = new(types.BlockBasic)
-	} else {
-		bestBlock = blocks[0]
+	if chainType != mutilchain.TYPEXMR {
+		if blocks == nil {
+			bestBlock = new(types.BlockBasic)
+		} else {
+			bestBlock = blocks[0]
+		}
 	}
 	var homeInfo *types.HomeInfo
 	var poolDataList []*dbtypes.MultichainPoolDataItem
@@ -598,6 +605,12 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		homeInfo = exp.LtcPageData.HomeInfo
 		poolDataList = exp.LtcPageData.BlockInfo.PoolDataList
 		exp.LtcPageData.RUnlock()
+	case mutilchain.TYPEXMR:
+		exp.XmrPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.XmrPageData.HomeInfo
+		// poolDataList = exp.XmrPageData.BlockInfo.PoolDataList
+		exp.XmrPageData.RUnlock()
 	default:
 		exp.pageData.RLock()
 		homeInfo = exp.pageData.HomeInfo

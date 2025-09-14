@@ -144,29 +144,31 @@ export default class extends Controller {
         })
       })
     }
-    this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
-    const rateStr = this.data.get('exchangeRate')
-    this.exchangeRate = 0.0
-    if (rateStr && rateStr !== '') {
-      this.exchangeRate = parseFloat(rateStr)
+    if (this.chainType !== 'xmr') {
+      this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
+      const rateStr = this.data.get('exchangeRate')
+      this.exchangeRate = 0.0
+      if (rateStr && rateStr !== '') {
+        this.exchangeRate = parseFloat(rateStr)
+      }
+      this.processBlock = this._processBlock.bind(this)
+      switch (this.chainType) {
+        case 'ltc':
+          globalEventBus.on('LTC_BLOCK_RECEIVED', this.processBlock)
+          break
+        case 'btc':
+          globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBlock)
+      }
+      this.processXcUpdate = this._processXcUpdate.bind(this)
+      globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
+      const { bitcoin: { websocket } } = mempoolJS({
+        hostname: this.wsHostName
+      })
+      this.ws = websocket.initClient({
+        options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
+      })
+      this.mempoolSocketInit()
     }
-    this.processBlock = this._processBlock.bind(this)
-    switch (this.chainType) {
-      case 'ltc':
-        globalEventBus.on('LTC_BLOCK_RECEIVED', this.processBlock)
-        break
-      case 'btc':
-        globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBlock)
-    }
-    this.processXcUpdate = this._processXcUpdate.bind(this)
-    globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
-    const { bitcoin: { websocket } } = mempoolJS({
-      hostname: this.wsHostName
-    })
-    this.ws = websocket.initClient({
-      options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
-    })
-    this.mempoolSocketInit()
   }
 
   handlerResizeEvent () {
