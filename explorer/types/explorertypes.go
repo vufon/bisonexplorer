@@ -186,15 +186,16 @@ type TrimmedTxInfo struct {
 
 type XmrTxFull struct {
 	// Basic / Indexing info (maps -> transactions table)
-	TxHash      string `json:"tx_hash"`      // tx hash
-	BlockHeight int64  `json:"block_height"` // -1 if unconfirmed (mempool)
-	Timestamp   int64  `json:"timestamp"`    // unix seconds (from block or mempool)
-	Size        int64  `json:"size"`         // bytes
-	Version     int32  `json:"version"`
-	UnlockTime  uint64 `json:"unlock_time"`
-	IsCoinbase  bool   `json:"is_coinbase"` // miner tx
-	Confirmed   bool   `json:"confirmed"`   // true if in chain
-	Sent        int64  `json:"sent"`
+	TxHash        string `json:"tx_hash"`      // tx hash
+	BlockHeight   int64  `json:"block_height"` // -1 if unconfirmed (mempool)
+	Timestamp     int64  `json:"timestamp"`    // unix seconds (from block or mempool)
+	FormattedSize string
+	Size          int64  `json:"size"` // bytes
+	Version       int32  `json:"version"`
+	UnlockTime    uint64 `json:"unlock_time"`
+	IsCoinbase    bool   `json:"is_coinbase"` // miner tx
+	Confirmed     bool   `json:"confirmed"`   // true if in chain
+	Sent          int64  `json:"sent"`
 	// Fees & totals (maps -> rct_data / transactions)
 	Fee          int64   `json:"fee"`           // atomic units (0 if unknown)
 	FeePerKB     float64 `json:"fee_per_kb"`    // optional derived
