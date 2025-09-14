@@ -9772,6 +9772,17 @@ func (pgb *ChainDB) GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error) {
 	return pgb.XmrClient.GetInfo()
 }
 
+func (pgb *ChainDB) GetXMRExplorerBlocks(from, to int64) []*exptypes.BlockBasic {
+	result := make([]*exptypes.BlockBasic, 0)
+	for height := from; height <= to; height++ {
+		blockInfo := pgb.GetXMRExplorerBlock(height)
+		if blockInfo != nil {
+			result = append(result, blockInfo.BlockBasic)
+		}
+	}
+	return result
+}
+
 func (pgb *ChainDB) GetXMRBasicBlock(height int64) *exptypes.BlockBasic {
 	br, berr := pgb.XmrClient.GetBlock(uint64(height))
 	if berr != nil {
@@ -10115,6 +10126,7 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 		txids = append(txids, txHash)
 	}
 	block.TotalSent = exptypes.AtomicToXMR(totalSent)
+	block.Total = block.TotalSent
 	block.XmrTx = txs
 	block.Txids = txids
 

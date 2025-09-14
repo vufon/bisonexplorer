@@ -1173,6 +1173,8 @@ func (exp *ExplorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) 
 		summaries = exp.dataSource.GetBTCExplorerBlocks(int(height), end)
 	case mutilchain.TYPELTC:
 		summaries = exp.dataSource.GetLTCExplorerBlocks(int(height), end)
+	case mutilchain.TYPEXMR:
+		summaries = exp.dataSource.GetXMRExplorerBlocks(height, int64(end))
 	default:
 		summaries = exp.dataSource.GetExplorerBlocks(int(height), end)
 	}
