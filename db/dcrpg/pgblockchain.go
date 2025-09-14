@@ -9027,6 +9027,12 @@ func (pgb *ChainDB) GetDaemonMutilchainBlockHash(idx int64, chainType string) (s
 			return "", err
 		}
 		return hashObj.String(), nil
+	case mutilchain.TYPEXMR:
+		bh, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(idx))
+		if err != nil {
+			return "", err
+		}
+		return bh.Hash, nil
 	default:
 		return pgb.GetBlockHash(idx)
 	}
@@ -9774,7 +9780,8 @@ func (pgb *ChainDB) GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error) {
 
 func (pgb *ChainDB) GetXMRExplorerBlocks(from, to int64) []*exptypes.BlockBasic {
 	result := make([]*exptypes.BlockBasic, 0)
-	for height := from; height <= to; height++ {
+	// from > to
+	for height := from; height >= to; height-- {
 		blockInfo := pgb.GetXMRExplorerBlock(height)
 		if blockInfo != nil {
 			result = append(result, blockInfo.BlockBasic)
@@ -9812,21 +9819,44 @@ func (pgb *ChainDB) GetXMRBasicBlock(height int64) *exptypes.BlockBasic {
 	return blockData
 }
 
-// GetXMRExplorerBlock gets a *exptypes.Blockinfo for the specified ltc block.
-func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
-	pgb.xmrLastExplorerBlock.Lock()
-	if pgb.xmrLastExplorerBlock.blockInfo != nil && pgb.xmrLastExplorerBlock.blockInfo.Height == height {
-		res := pgb.xmrLastExplorerBlock.blockInfo
-		pgb.xmrLastExplorerBlock.Unlock()
-		return res
+func (pgb *ChainDB) GetXMRExplorerBlockByHash(hash string) *exptypes.BlockInfo {
+	br, berr := pgb.XmrClient.GetBlockByHash(hash)
+	if berr != nil {
+		log.Errorf("XMR: GetBlockByHash(%s) failed: %v", hash, berr)
+		return nil
 	}
-	pgb.xmrLastExplorerBlock.Unlock()
-	// thanhnp:TODO: in the future, will select from db (if have) first. If not exist on db, select from daemon
+	bh, err := pgb.XmrClient.GetBlockHeaderByHash(hash)
+	if err != nil {
+		log.Errorf("XMR: GetBlockHeaderByHash(%s) failed: %v", hash, err)
+		return nil
+	}
+	return pgb.GetXMRExplorerBlockWithBlockResult(br, bh)
+}
+
+func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 	br, berr := pgb.XmrClient.GetBlock(uint64(height))
 	if berr != nil {
 		log.Errorf("XMR: GetBlock(%d) failed: %v", height, berr)
 		return nil
 	}
+	bh, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(height))
+	if err != nil {
+		log.Errorf("XMR: GetBlockHeaderByHeight(%d) failed: %v", err, err)
+		return nil
+	}
+	return pgb.GetXMRExplorerBlockWithBlockResult(br, bh)
+}
+
+// GetXMRExplorerBlock gets a *exptypes.Blockinfo for the specified ltc block.
+func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, bh *xmrutil.BlockHeader) *exptypes.BlockInfo {
+	height := int64(bh.Height)
+	pgb.xmrLastExplorerBlock.Lock()
+	if pgb.xmrLastExplorerBlock.blockInfo != nil && pgb.xmrLastExplorerBlock.blockInfo.Height == int64(height) {
+		res := pgb.xmrLastExplorerBlock.blockInfo
+		pgb.xmrLastExplorerBlock.Unlock()
+		return res
+	}
+	pgb.xmrLastExplorerBlock.Unlock()
 	// Convert the wire.MsgBlock to a dbtypes.Block
 	clientBlock, err := xmrhelper.MsgXMRBlockToDBBlock(pgb.XmrClient, br, uint64(height))
 	if err != nil {
@@ -9875,7 +9905,7 @@ func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 		NextHash:             nextHash,
 	}
 
-	txs := make([]*exptypes.XmrTxFull, 0, block.Transactions)
+	txs := make([]*exptypes.XmrTxFull, 0)
 	txids := make([]string, 0)
 	// get transaction details
 	blTxsData, blTxserr := pgb.XmrClient.GetTransactions(clientBlock.Tx, true)
@@ -10315,6 +10345,8 @@ func (pgb *ChainDB) GetMutilchainExplorerBlock(hash, chainType string) *exptypes
 		blockInfo = pgb.GetBTCExplorerBlock(hash)
 	case mutilchain.TYPELTC:
 		blockInfo = pgb.GetLTCExplorerBlock(hash)
+	case mutilchain.TYPEXMR:
+		blockInfo = pgb.GetXMRExplorerBlockByHash(hash)
 	default:
 		return &exptypes.BlockInfo{}
 	}

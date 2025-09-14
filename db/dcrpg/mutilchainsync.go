@@ -2092,16 +2092,17 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 	}
 	log.Infof("XMR: Start sync for %d blocks. Minimum height: %d, Maximum height: %d", len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
 
-	reindexing := int64(len(remaingHeights)) > pgb.XmrBestBlock.Height/30
-	if reindexing {
-		log.Info("XMR: Large bulk load: Removing indexes")
-		if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil &&
-			!strings.Contains(err.Error(), "does not exist") &&
-			!strings.Contains(err.Error(), "不存在") {
-			log.Errorf("XMR: Deindex for multichain whole table: %v", err)
-			return
-		}
-	}
+	// TODO
+	// reindexing := int64(len(remaingHeights)) > pgb.XmrBestBlock.Height/30
+	// if reindexing {
+	// 	log.Info("XMR: Large bulk load: Removing indexes")
+	// 	if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil &&
+	// 		!strings.Contains(err.Error(), "does not exist") &&
+	// 		!strings.Contains(err.Error(), "不存在") {
+	// 		log.Errorf("XMR: Deindex for multichain whole table: %v", err)
+	// 		return
+	// 	}
+	// }
 
 	// context to cancel on first error
 	ctx, cancel := context.WithCancel(pgb.ctx)
@@ -2237,13 +2238,13 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 	// final speed report
 	once.Do(speedReporter)
 
-	// reindex if needed
-	if reindexing {
-		if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil {
-			log.Errorf("XMR: Re-index failed: %v", err)
-			return
-		}
-	}
+	// TODO: reindex if needed
+	// if reindexing {
+	// 	if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil {
+	// 		log.Errorf("XMR: Re-index failed: %v", err)
+	// 		return
+	// 	}
+	// }
 
 	log.Infof("XMR: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
 		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],

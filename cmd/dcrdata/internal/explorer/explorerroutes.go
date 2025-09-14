@@ -1687,23 +1687,39 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 	}
 
 	txRows := make([]*types.TrimmedTxInfo, 0)
-	if len(data.Tx) > 0 {
-		if len(data.Tx) > int(offset) {
-			if len(data.Tx) < int(offset+limitN) {
-				txRows = data.Tx[offset : len(data.Tx)-1]
-			} else {
-				txRows = data.Tx[offset : offset+limitN-1]
+	xmrRows := make([]*types.XmrTxFull, 0)
+	if chainType != mutilchain.TYPEXMR {
+		if len(data.Tx) > 0 {
+			if len(data.Tx) > int(offset) {
+				if len(data.Tx) < int(offset+limitN) {
+					txRows = data.Tx[offset:len(data.Tx)]
+				} else {
+					txRows = data.Tx[offset : offset+limitN]
+				}
+			}
+		}
+	} else {
+		if len(data.XmrTx) > 0 {
+			if len(data.XmrTx) > int(offset) {
+				if len(data.XmrTx) < int(offset+limitN) {
+					xmrRows = data.XmrTx[offset:len(data.XmrTx)]
+				} else {
+					xmrRows = data.XmrTx[offset : offset+limitN]
+				}
 			}
 		}
 	}
 	linkTemplate := fmt.Sprintf("/block/%s?rows=%d&start=%%d", hash, limitN)
 	linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
-
+	txLength := len(data.Tx)
+	if chainType == mutilchain.TYPEXMR {
+		txLength = len(data.XmrTx)
+	}
 	// Check if there are any regular non-coinbase transactions in the block.
-	data.TxAvailable = len(data.Tx) > 1
-	pages := calcPages(len(data.Tx), int(limitN), int(offset), linkTemplate)
-	lastPageStart := (len(data.Tx) / int(limitN)) * int(limitN)
-	if len(data.Tx)%int(limitN) == 0 {
+	data.TxAvailable = txLength > 0
+	pages := calcPages(txLength, int(limitN), int(offset), linkTemplate)
+	lastPageStart := (txLength / int(limitN)) * int(limitN)
+	if txLength%int(limitN) == 0 {
 		lastPageStart -= int(limitN)
 	}
 	pageData := struct {
@@ -1716,14 +1732,16 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 		TotalRows int64
 		LastStart int64
 		Txs       []*types.TrimmedTxInfo
+		XmrTxs    []*types.XmrTxFull
 	}{
 		CommonPageData: exp.commonData(r),
 		Data:           data,
 		ChainType:      chainType,
 		Txs:            txRows,
+		XmrTxs:         xmrRows,
 		Rows:           int(limitN),
 		Offset:         offset,
-		TotalRows:      int64(len(data.Tx)),
+		TotalRows:      int64(txLength),
 		LastStart:      int64(lastPageStart),
 		Pages:          pages,
 	}
