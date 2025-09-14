@@ -197,6 +197,25 @@ func hashratePostfix(v float64) string {
 }
 
 func difficultyDisp(d float64) string {
+	if d < 1e5 {
+		return float64Formatting(d, 0, true)[0]
+	}
+	if d < 1e6 {
+		diff := float64(d / 1e3)
+		format := float64Formatting(diff, 2, true)
+		return fmt.Sprintf("%s.%sK", format[0], format[1])
+	}
+	if d < 1e9 {
+		diff := float64(d / 1e6)
+		format := float64Formatting(diff, 2, true)
+		return fmt.Sprintf("%s.%sM", format[0], format[1])
+	}
+	diff := float64(d / 1e9)
+	format := float64Formatting(diff, 2, true)
+	return fmt.Sprintf("%s.%sB", format[0], format[1])
+}
+
+func diffFormat(d float64) string {
 	if d < 1e4 {
 		return float64Formatting(d, 0, true)[0]
 	}
@@ -519,6 +538,7 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"hashrateDecimalParts":  hashrateFormatting,
 		"hashratePostfix":       hashratePostfix,
 		"difficultyDisp":        difficultyDisp,
+		"diffFormat":            diffFormat,
 		"simpleHashrateDisp":    simpleHashrateDisp,
 		"simpleHashratePostfix": simpleHashratePostfix,
 		"normalFloat": func(n float64) string {
