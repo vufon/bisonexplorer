@@ -5549,7 +5549,10 @@ func (pgb *ChainDB) XMRStore(blockData *xmrutil.BlockData) error {
 		return nil
 	}
 	pgb.UpdateXMRChainState(&blockData.BlockchainInfo)
-
+	// update best block
+	pgb.XmrBestBlock.Hash = blockData.Header.Hash
+	pgb.XmrBestBlock.Height = int64(blockData.Header.Height)
+	pgb.XmrBestBlock.Time = int64(blockData.Header.Timestamp)
 	go pgb.SyncXMROneBlock(blockData)
 	return nil
 }
