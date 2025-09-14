@@ -2193,24 +2193,33 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 				return
 			}
 
-			// store block (wrap with mutex if needed)
-			// storeBlockMu.Lock()
-			numVins, numVouts, totalTxs, err := pgb.StoreXMRWholeBlock(pgb.XmrClient, false, false, h)
-			// storeBlockMu.Unlock()
-			if err != nil {
-				if firstErr.Load() == nil {
-					firstErr.Store(err)
-					cancel()
+			retryCount := 0
+			for retryCount < 50 {
+				// store block (wrap with mutex if needed)
+				// storeBlockMu.Lock()
+				numVins, numVouts, totalTxs, err := pgb.StoreXMRWholeBlock(pgb.XmrClient, false, false, h)
+				// storeBlockMu.Unlock()
+				// if error, retry after 2 minute
+				if err != nil {
+					time.Sleep(2 * time.Minute)
+					retryCount++
+					log.Errorf("XMR StoreBlock failed (height %d): %v. Retry after 2 minutes", h, err)
+					continue
 				}
-				log.Errorf("XMR StoreBlock failed (height %d): %v", h, err)
-				return
+				atomic.AddInt64(&totalVins, numVins)
+				atomic.AddInt64(&totalVouts, numVouts)
+				atomic.AddInt64(&totalTxs, totalTxs)
+				atomic.AddInt64(&processedBlocks, 1)
+				break
 			}
-
-			// update counters
-			atomic.AddInt64(&totalVins, numVins)
-			atomic.AddInt64(&totalVouts, numVouts)
-			atomic.AddInt64(&totalTxs, totalTxs)
-			atomic.AddInt64(&processedBlocks, 1)
+			// if err != nil {
+			// 	if firstErr.Load() == nil {
+			// 		firstErr.Store(err)
+			// 		cancel()
+			// 	}
+			// 	log.Errorf("XMR StoreBlock failed (height %d): %v", h, err)
+			// 	return
+			// }
 		}(height)
 	}
 

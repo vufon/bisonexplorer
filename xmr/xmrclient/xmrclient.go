@@ -29,7 +29,7 @@ type XMRClient struct {
 
 // NewXMRClient preserves previous signature and uses 60s timeout.
 func NewXMRClient(endpoint string) *XMRClient {
-	return NewXMRClientWithTimeout(endpoint, 360*time.Second)
+	return NewXMRClientWithTimeout(endpoint, 10*time.Minute)
 }
 
 func NewXMRClientWithTimeout(endpoint string, perRequestTimeout time.Duration) *XMRClient {
@@ -48,7 +48,7 @@ func NewXMRClientWithTimeout(endpoint string, perRequestTimeout time.Duration) *
 		}).DialContext,
 		MaxIdleConns:          256,
 		MaxIdleConnsPerHost:   64,
-		IdleConnTimeout:       120 * time.Second,
+		IdleConnTimeout:       240 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 		ResponseHeaderTimeout: 120 * time.Second,
@@ -56,7 +56,7 @@ func NewXMRClientWithTimeout(endpoint string, perRequestTimeout time.Duration) *
 	}
 
 	cli := &http.Client{
-		Timeout:   360 * time.Second,
+		Timeout:   10 * time.Minute,
 		Transport: tr,
 	}
 
@@ -66,7 +66,7 @@ func NewXMRClientWithTimeout(endpoint string, perRequestTimeout time.Duration) *
 		baseURL:    strings.TrimRight(base, "/"),
 		Timeout:    perRequestTimeout,
 		MaxBatch:   50,
-		MaxRetries: 3,
+		MaxRetries: 8,
 	}
 }
 
