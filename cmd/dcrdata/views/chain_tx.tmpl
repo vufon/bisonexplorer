@@ -21,7 +21,7 @@
          <div class="card-pointer pointer-right d-none d-xl-block"></div>
          <div class="card-pointer pointer-bottom d-xl-none"></div>
          <div class="pb-1 ps-1 d-flex ai-center">
-            <img src="/images/{{$ChainType}}-icon.png" width="20" height="20">
+            <img src="/images/{{$ChainType}}-icons.png" width="20" height="20">
             <div class="d-inline-block confirmations-box mx-2 fs14" data-controller="newblock"
                data-newblock-target="confirmations" data-tx-target="confirmations"
                data-confirmations="{{.Confirmations}}" data-yes="# confirmation@" data-no="unconfirmed"
@@ -33,7 +33,7 @@
             <div class="d-inline-block text-white br-10 {{.SwapsType}}-bg px-2 mx-2 fs14">
                <div class="d-flex ai-center">
                   <div class="p-relative d-flex ai-center pair-icons">
-                     <img src="/images/{{$ChainType}}-icon.png" width="20" height="20">
+                     <img src="/images/{{$ChainType}}-icons.png" width="20" height="20">
                      <img src="/images/dcr-icon-notran.png" width="20" height="20" class="second-pair">
                   </div>
                   <p>{{toUpperCase $ChainType}}/DCR&nbsp;{{$.SwapsFound}}</p>
@@ -249,7 +249,7 @@
      <div class="br-8 b--def bgc-plain-bright pb-10">
        <div class="d-flex ai-center pt-3 pb-1 ps-3">
          <div class="p-relative d-flex ai-center pair-icons">
-           <img src="/images/{{$ChainType}}-icon.png" width="20" height="20">
+           <img src="/images/{{$ChainType}}-icons.png" width="20" height="20">
            <img src="/images/dcr-icon-notran.png" width="20" height="20" class="second-pair">
          </div>
          <h5>Swap Details</h5><span class="common-label px-2 text-white ms-2 {{if $.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if $.IsRefund}}Refund{{else}}Redemption{{end}}</span>
