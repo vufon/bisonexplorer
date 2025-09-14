@@ -2092,16 +2092,17 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 	}
 	log.Infof("XMR: Start sync for %d blocks. Minimum height: %d, Maximum height: %d", len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
 
-	reindexing := int64(len(remaingHeights)) > pgb.XmrBestBlock.Height/30
-	if reindexing {
-		log.Info("XMR: Large bulk load: Removing indexes")
-		if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil &&
-			!strings.Contains(err.Error(), "does not exist") &&
-			!strings.Contains(err.Error(), "不存在") {
-			log.Errorf("XMR: Deindex for multichain whole table: %v", err)
-			return
-		}
-	}
+	// TODO
+	// reindexing := int64(len(remaingHeights)) > pgb.XmrBestBlock.Height/30
+	// if reindexing {
+	// 	log.Info("XMR: Large bulk load: Removing indexes")
+	// 	if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil &&
+	// 		!strings.Contains(err.Error(), "does not exist") &&
+	// 		!strings.Contains(err.Error(), "不存在") {
+	// 		log.Errorf("XMR: Deindex for multichain whole table: %v", err)
+	// 		return
+	// 	}
+	// }
 
 	// context to cancel on first error
 	ctx, cancel := context.WithCancel(pgb.ctx)
@@ -2193,24 +2194,33 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 				return
 			}
 
-			// store block (wrap with mutex if needed)
-			// storeBlockMu.Lock()
-			numVins, numVouts, totalTxs, err := pgb.StoreXMRWholeBlock(pgb.XmrClient, false, false, h)
-			// storeBlockMu.Unlock()
-			if err != nil {
-				if firstErr.Load() == nil {
-					firstErr.Store(err)
-					cancel()
+			retryCount := 0
+			for retryCount < 50 {
+				// store block (wrap with mutex if needed)
+				// storeBlockMu.Lock()
+				numVins, numVouts, totalTxs, err := pgb.StoreXMRWholeBlock(pgb.XmrClient, false, false, h)
+				// storeBlockMu.Unlock()
+				// if error, retry after 2 minute
+				if err != nil {
+					time.Sleep(2 * time.Minute)
+					retryCount++
+					log.Errorf("XMR StoreBlock failed (height %d): %v. Retry after 2 minutes", h, err)
+					continue
 				}
-				log.Errorf("XMR StoreBlock failed (height %d): %v", h, err)
-				return
+				atomic.AddInt64(&totalVins, numVins)
+				atomic.AddInt64(&totalVouts, numVouts)
+				atomic.AddInt64(&totalTxs, totalTxs)
+				atomic.AddInt64(&processedBlocks, 1)
+				break
 			}
-
-			// update counters
-			atomic.AddInt64(&totalVins, numVins)
-			atomic.AddInt64(&totalVouts, numVouts)
-			atomic.AddInt64(&totalTxs, totalTxs)
-			atomic.AddInt64(&processedBlocks, 1)
+			// if err != nil {
+			// 	if firstErr.Load() == nil {
+			// 		firstErr.Store(err)
+			// 		cancel()
+			// 	}
+			// 	log.Errorf("XMR StoreBlock failed (height %d): %v", h, err)
+			// 	return
+			// }
 		}(height)
 	}
 
@@ -2228,13 +2238,13 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 	// final speed report
 	once.Do(speedReporter)
 
-	// reindex if needed
-	if reindexing {
-		if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil {
-			log.Errorf("XMR: Re-index failed: %v", err)
-			return
-		}
-	}
+	// TODO: reindex if needed
+	// if reindexing {
+	// 	if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil {
+	// 		log.Errorf("XMR: Re-index failed: %v", err)
+	// 		return
+	// 	}
+	// }
 
 	log.Infof("XMR: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
 		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],

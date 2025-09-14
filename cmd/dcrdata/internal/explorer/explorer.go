@@ -204,6 +204,7 @@ type explorerDataSource interface {
 	GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error)
 	GetXMRTotalOutputs() int64
 	GetXMRBasicBlock(height int64) *types.BlockBasic
+	GetXMRExplorerBlocks(from, to int64) []*types.BlockBasic
 }
 
 type PoliteiaBackend interface {

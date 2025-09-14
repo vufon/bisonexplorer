@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 {{$ChainType := .ChainType}}
 {{$Txs := .Txs}}
+{{$XmrTxs := .XmrTxs}}
 {{$Offset := .Offset}}
 {{$Rows := .Rows}}
 {{$TotalRows := .TotalRows}}
@@ -11,15 +12,15 @@
 {{template "html-head" headData .CommonPageData (printf "%s Block - %d" (chainName $ChainType) .Data.Height)}}
 {{ template "mutilchain_navbar" . }}
 <div class="container mt-3" data-controller="time pagenavigation">
-			<nav class="breadcrumbs mt-0">
-				<a href="/" class="breadcrumbs__item no-underline ps-2">
-					<span class="homeicon-tags me-1"></span>
-					<span class="link-underline">Homepage</span>
-				 </a>
-				<a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
-				<a href="/{{$ChainType}}/blocks" class="breadcrumbs__item item-link">Blocks</a>
-				<span class="breadcrumbs__item is-active">Block</span>
-			 </nav>
+	<nav class="breadcrumbs mt-0">
+		<a href="/" class="breadcrumbs__item no-underline ps-2">
+			<span class="homeicon-tags me-1"></span>
+			<span class="link-underline">Homepage</span>
+		</a>
+		<a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
+		<a href="/{{$ChainType}}/blocks" class="breadcrumbs__item item-link">Blocks</a>
+		<span class="breadcrumbs__item is-active">Block</span>
+	</nav>
 	{{- with .Data -}}
 	{{- $Hash := .Hash -}}
 	<div class="row px-1 my-2">
@@ -113,30 +114,28 @@
 			</span>
 			<div class="pb-1 d-flex justify-content-end align-items-center flex-wrap">
 				<span class="fs12 nowrap text-secondary px-2 my-2">
-					{{intComma (add $Offset 1)}} &ndash; {{intComma (add $Offset (int64 $Rows))}} of {{intComma $TotalRows}} rows
+					{{intComma (add $Offset 1)}} &ndash; {{intComma (add $Offset (int64 $Rows))}} of {{intComma
+					$TotalRows}} rows
 				</span>
-                {{$pending := (subtract $TotalRows $Offset)}}
+				{{$pending := (subtract $TotalRows $Offset)}}
 				<div class="d-inline-block text-end">
 					<label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
-					<select
-                                id="tbPagesize"
-                                data-pagenavigation-target="pagesize"
-                                data-action="change->pagenavigation#setPageSize"
-                                data-offset="{{$Offset}}"
-                                data-offsetkey="start"
-                                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $Rows 20}}disabled{{end}}"
-                                {{if lt $Rows 20}}disabled="disabled"{{end}}
-                            >
-							{{if ge $pending 20}}<option {{if eq $Rows 20}}selected{{end}} value="20">20</option>{{end}}
-                            {{if ge $pending 30}}<option {{if eq $Rows 30}}selected{{end}} value="30">30</option>{{end}}
-                            {{if ge $pending 50}}<option {{if eq $Rows 50}}selected{{end}} value="50">50</option>{{end}}
-							{{- if lt $TotalRows 160}}
-								<option {{if eq $Rows $TotalRows}}selected {{end}}value="{{$TotalRows}}" {{if le $TotalRows 160}} disabled{{end}}>{{$TotalRows}}</option>
-							{{- else}}
-					  			<option {{if ge $Rows 160}}selected {{end}}value="160">160</option>
-							{{- end}}
-                            </select>
-				  </div>
+					<select id="tbPagesize" data-pagenavigation-target="pagesize"
+						data-action="change->pagenavigation#setPageSize" data-offset="{{$Offset}}"
+						data-offsetkey="start"
+						class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $Rows 20}}disabled{{end}}"
+						{{if lt $Rows 20}}disabled="disabled" {{end}}>
+						{{if ge $pending 20}}<option {{if eq $Rows 20}}selected{{end}} value="20">20</option>{{end}}
+						{{if ge $pending 30}}<option {{if eq $Rows 30}}selected{{end}} value="30">30</option>{{end}}
+						{{if ge $pending 50}}<option {{if eq $Rows 50}}selected{{end}} value="50">50</option>{{end}}
+						{{- if lt $TotalRows 160}}
+						<option {{if eq $Rows $TotalRows}}selected {{end}}value="{{$TotalRows}}" {{if le $TotalRows
+							160}} disabled{{end}}>{{$TotalRows}}</option>
+						{{- else}}
+						<option {{if ge $Rows 160}}selected {{end}}value="160">160</option>
+						{{- end}}
+					</select>
+				</div>
 			</div>
 		</div>
 		{{if not .TxAvailable -}}
@@ -156,24 +155,49 @@
 					<thead>
 						<tr class="bg-none">
 							<th>Transaction ID</th>
+							<th>Type</th>
 							<th class="text-end">Total {{toUpperCase $ChainType}}</th>
 							<th class="text-end">Size</th>
 						</tr>
 					</thead>
 					<tbody class="bgc-white">
-						{{- range $Txs -}}
-						{{- if eq .Coinbase false}}
+						{{if eq $ChainType "xmr"}}
+						{{- range $XmrTxs -}}
 						<tr>
 							<td class="break-word">
-								<span><a class="hash" href="/{{$ChainType}}/tx/{{.TxID}}">{{.TxID}}</a></span>
+								<span><a class="hash"
+										href="/{{$ChainType}}/tx/{{.TxHash}}">{{.TxHash}}</a></span>
+							</td>
+							<td class="break-word">
+								<span>
+									{{- if eq .IsCoinbase true}}Coinbase{{else}}Regular{{end}}
+								</span>
+							</td>
+							<td class="mono fs15 text-end">
+								{{- template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount .Sent $ChainType) 8 false) -}}
+							</td>
+							<td class="mono fs15 text-end">{{.FormattedSize}}</td>
+						</tr>
+						{{end}}
+						{{else}}
+						{{- range $Txs -}}
+						<tr>
+							<td class="break-word">
+								<span><a class="hash"
+										href="/{{$ChainType}}/tx/{{.TxID}}">{{.TxID}}</a></span>
+							</td>
+							<td class="break-word">
+								<span>
+									{{- if eq .Coinbase false}}Coinbase{{else}}Regular{{end}}
+								</span>
 							</td>
 							<td class="mono fs15 text-end">
 								{{- template "decimalParts" (float64AsDecimalParts .Total 8 false) -}}
 							</td>
 							<td class="mono fs15 text-end">{{.FormattedSize}}</td>
 						</tr>
-						{{- end}}
-						{{- end}}
+						{{end}}
+						{{end}}
 					</tbody>
 				</table>
 			</div>
@@ -187,7 +211,8 @@
 				{{if eq $page.Link ""}}
 				<span>{{$page.Str}}</span>
 				{{else}}
-				<a href="{{$page.Link}}" class="fs18 pager pagination-number {{if $page.Active}} active{{end}}">{{.Str}}</a>
+				<a href="{{$page.Link}}"
+					class="fs18 pager pagination-number {{if $page.Active}} active{{end}}">{{.Str}}</a>
 				{{end}}
 				{{end}}
 				{{if lt (add $Offset (int64 $Rows)) $TotalRows}}
