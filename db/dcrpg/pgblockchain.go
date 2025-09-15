@@ -1463,6 +1463,15 @@ func (pgb *ChainDB) GetMutilchainBestBlock(chainType string) (int64, string) {
 			return 0, ""
 		}
 		return pgb.BtcBestBlock.MutilchainHeightHash()
+	case mutilchain.TYPEXMR:
+		if pgb.XmrBestBlock != nil {
+			return pgb.XmrBestBlock.MutilchainHeightHash()
+		}
+		err := pgb.GetXMRBestBlock()
+		if err != nil {
+			return 0, ""
+		}
+		return pgb.XmrBestBlock.MutilchainHeightHash()
 	default:
 		if pgb.bestBlock != nil {
 			return pgb.bestBlock.HeightHash()
@@ -1980,6 +1989,9 @@ func (pgb *ChainDB) SyncAndGet24hMetricsInfo(bestBlockHeight int64, chainType st
 	pgb.Sync24hMetricsByChainType(chainType)
 
 	//check and sync new block
+	if chainType == mutilchain.TYPEXMR {
+		return retrieveXMR24hMetricsData(pgb.ctx, pgb.db)
+	}
 	return retrieve24hMetricsData(pgb.ctx, pgb.db, chainType)
 }
 
@@ -9917,6 +9929,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 		return nil
 	}
 	totalSent := int64(0)
+	totalFees := int64(0)
+	totalVinsNum := int64(0)
+	totalOutputsNum := int64(0)
 	for i, txHash := range clientBlock.Tx {
 		var txJSONStr string
 		if i < len(blTxsData.TxsAsJSON) {
@@ -10129,6 +10144,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 		if size > 0 {
 			feePerKB = float64(fees / (int64(size) / 1024.0))
 		}
+		totalFees += fees
+		totalVinsNum += int64(numVin)
+		totalOutputsNum += int64(numVout)
 		txFull := &exptypes.XmrTxFull{
 			TxHash:        txHash,
 			BlockHeight:   int64(clientBlock.Height),
@@ -10163,7 +10181,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 	block.Total = block.TotalSent
 	block.XmrTx = txs
 	block.Txids = txids
-
+	block.Fees = totalFees
+	block.TotalNumVins = totalVinsNum
+	block.TotalNumOutputs = totalOutputsNum
 	sortTx := func(txs []*exptypes.XmrTxFull) {
 		sort.Slice(txs, func(i, j int) bool {
 			return txs[i].Sent > txs[j].Sent
@@ -11749,6 +11769,21 @@ func (pgb *ChainDB) GetLTCBestBlock() error {
 		Time:   ltcTime,
 	}
 	pgb.LtcBestBlock = bestBlock
+	return nil
+}
+
+func (pgb *ChainDB) GetXMRBestBlock() error {
+	lastBlockHeader, err := pgb.XmrClient.GetLastBlockHeader()
+	if err != nil {
+		return fmt.Errorf("Unable to get block from xmr daemon: %v", err)
+	}
+	//create bestblock object
+	bestBlock := &MutilchainBestBlock{
+		Height: int64(lastBlockHeader.Height),
+		Hash:   lastBlockHeader.Hash,
+		Time:   int64(lastBlockHeader.Timestamp),
+	}
+	pgb.XmrBestBlock = bestBlock
 	return nil
 }
 

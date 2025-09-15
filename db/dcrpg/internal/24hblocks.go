@@ -31,6 +31,16 @@ const (
 
 	CheckExist24Blocks      = `SELECT EXISTS(SELECT 1 FROM blocks24h WHERE chain_type=$1 AND block_height=$2);`
 	DeleteInvalidBlocks     = `DELETE FROM blocks24h WHERE block_time < (SELECT NOW() - INTERVAL '1 DAY');`
-	Select24hMetricsSummary = `SELECT COUNT(*),SUM(b24h.spent),SUM(b24h.sent),SUM(b24h.fees),SUM(b24h.num_tx),SUM(b24h.num_vin),SUM(b24h.num_vout)
-						FROM (SELECT DISTINCT spent,sent,fees,num_tx,num_vin,num_vout FROM blocks24h WHERE chain_type=$1) AS b24h;`
+	Select24hMetricsSummary = `SELECT COUNT(*),
+       COALESCE(SUM(b24h.spent),0),
+       COALESCE(SUM(b24h.sent),0),
+       COALESCE(SUM(b24h.fees),0),
+       COALESCE(SUM(b24h.num_tx),0),
+       COALESCE(SUM(b24h.num_vin),0),
+       COALESCE(SUM(b24h.num_vout),0)
+FROM (
+    SELECT DISTINCT spent,sent,fees,num_tx,num_vin,num_vout 
+    FROM blocks24h 
+    WHERE chain_type=$1
+) AS b24h;`
 )

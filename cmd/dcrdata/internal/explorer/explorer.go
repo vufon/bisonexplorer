@@ -313,7 +313,8 @@ type BtcPageData struct {
 	BlockDetails   []*types.BlockInfo
 	BlockchainInfo *btcjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
-	Syncing24h     bool
+	// Syncing24h     bool
+	sync24hMtx sync.Mutex
 }
 
 type LtcPageData struct {
@@ -322,7 +323,8 @@ type LtcPageData struct {
 	BlockDetails   []*types.BlockInfo
 	BlockchainInfo *ltcjson.GetBlockChainInfoResult
 	HomeInfo       *types.HomeInfo
-	Syncing24h     bool
+	// Syncing24h     bool
+	sync24hMtx sync.Mutex
 }
 
 type XmrPageData struct {
@@ -331,7 +333,7 @@ type XmrPageData struct {
 	BlockDetails   []*types.BlockInfo
 	BlockchainInfo *xmrutil.BlockchainInfo
 	HomeInfo       *types.HomeInfo
-	Syncing24h     bool
+	sync24hMtx     sync.Mutex
 }
 
 type ExplorerUI struct {
@@ -1126,14 +1128,7 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	}()
 
 	go func(height int64) {
-		//Get 24h metrics summary info
-		p.Lock()
-		//if syncing, ignore
-		if p.Syncing24h {
-			p.Unlock()
-			return
-		}
-		p.Unlock()
+		p.sync24hMtx.Lock()
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEBTC)
 		p.Lock()
 		if err24h == nil {
@@ -1141,8 +1136,8 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 		} else {
 			log.Errorf("Sync BTC 24h Metrics Failed: %v", err24h)
 		}
-		p.Syncing24h = false
 		p.Unlock()
+		p.sync24hMtx.Unlock()
 	}(int64(blockData.Header.Height))
 	return nil
 }
@@ -1166,7 +1161,25 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	coinValueSupply := utils.AtomicToXMR(coinSupply)
 	hashrate := difficulty / targetTimePerBlock
 	totalTransactionCount := blockchainInfo.TxCount
-	outputCounts := exp.dataSource.GetXMRTotalOutputs()
+	// outputCounts := exp.dataSource.GetXMRTotalOutputs()
+
+	// get multichain stats from blockchair
+	totalAddresses := int64(0)
+	totalOutputs := int64(0)
+	volume24h := int64(0)
+	nodes := int64(0)
+	avgTxFees24h := int64(0)
+	chainStats, err := exp.dataSource.GetMultichainStats(mutilchain.TYPELTC)
+	if err != nil {
+		log.Warnf("LTC: Get multichain stats failed. %v", err)
+	} else {
+		totalAddresses = chainStats.HodlingAddresses
+		totalOutputs = chainStats.Outputs
+		volume24h = chainStats.Volume24h
+		nodes = chainStats.Nodes
+		avgTxFees24h = chainStats.AverageTransactionFee24h
+		log.Debugf("LTC: Get Multichain stats successfully")
+	}
 	p := exp.XmrPageData
 	p.Lock()
 	p.BlockInfo = newBlockData
@@ -1180,7 +1193,7 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.CoinValueSupply = coinValueSupply
 	p.HomeInfo.Difficulty = difficulty
 	p.HomeInfo.TotalTransactions = int64(totalTransactionCount)
-	//p.HomeInfo.TotalOutputs = totalVoutsCount
+	// p.HomeInfo.TotalOutputs = totalVoutsCount
 	//p.HomeInfo.TotalAddresses = totalAddressesCount
 	p.HomeInfo.TotalSize = int64(chainSize)
 	p.HomeInfo.FormattedSize = humanize.Bytes(uint64(chainSize))
@@ -1188,11 +1201,11 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	// p.HomeInfo.NBlockSubsidy.Total = blockData.ExtraInfo.NextBlockReward
 	p.HomeInfo.BlockReward = int64(blockData.Header.Reward)
 	// p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
-	// p.HomeInfo.TotalAddresses = totalAddresses
-	p.HomeInfo.TotalOutputs = outputCounts
-	// p.HomeInfo.Nodes = nodes
-	// p.HomeInfo.Volume24h = volume24h
-	// p.HomeInfo.TxFeeAvg24h = avgTxFees24h
+	p.HomeInfo.TotalAddresses = totalAddresses
+	p.HomeInfo.TotalOutputs = totalOutputs
+	p.HomeInfo.Nodes = nodes
+	p.HomeInfo.Volume24h = volume24h
+	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
 	p.Unlock()
 	go func() {
 		select {
@@ -1201,6 +1214,19 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 			log.Errorf("sigNewXMRBlock send failed: Timeout waiting for WebsocketHub.")
 		}
 	}()
+	go func(height int64) {
+		p.sync24hMtx.Lock()
+		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEXMR)
+		p.Lock()
+		if err24h == nil {
+			p.HomeInfo.Block24hInfo = summary24h
+		} else {
+			log.Errorf("Sync XMR 24h Metrics Failed: %v", err24h)
+		}
+		log.Infof("XMR: Sync 24h metrics completed for height: %d", blockData.Header.Height)
+		p.Unlock()
+		p.sync24hMtx.Unlock()
+	}(int64(blockData.Header.Height))
 	return nil
 }
 
@@ -1331,14 +1357,7 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		}
 	}()
 	go func(height int64) {
-		//Get 24h metrics summary info
-		p.Lock()
-		//if syncing, ignore
-		if p.Syncing24h {
-			p.Unlock()
-			return
-		}
-		p.Unlock()
+		p.sync24hMtx.Lock()
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPELTC)
 		p.Lock()
 		if err24h == nil {
@@ -1346,8 +1365,8 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		} else {
 			log.Errorf("Sync LTC 24h Metrics Failed: %v", err24h)
 		}
-		p.Syncing24h = false
 		p.Unlock()
+		p.sync24hMtx.Unlock()
 	}(int64(blockData.Header.Height))
 	return nil
 }

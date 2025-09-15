@@ -680,6 +680,9 @@ type BlockInfo struct {
 	FeesSats              int64
 	BlockReward           int64
 	StakeValidationHeight int64
+	Fees                  int64
+	TotalNumVins          int64
+	TotalNumOutputs       int64
 	Subsidy               *chainjson.GetBlockSubsidyResult
 	GroupSwaps            []*dbtypes.AtomicSwapFullData
 	PoolDataList          []*dbtypes.MultichainPoolDataItem // last 5 block pools
