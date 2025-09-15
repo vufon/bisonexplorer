@@ -2511,6 +2511,12 @@ func retrieve24hMetricsData(ctx context.Context, db *sql.DB, chainType string) (
 	return &res, err
 }
 
+func retrieveXMR24hMetricsData(ctx context.Context, db *sql.DB) (*dbtypes.Block24hInfo, error) {
+	res := dbtypes.Block24hInfo{}
+	err := db.QueryRowContext(ctx, internal.Select24hMetricsSummary, mutilchain.TYPEXMR).Scan(&res.Blocks, &res.Spent24h, &res.Sent24h, &res.Fees24h, &res.NumTx24h, &res.NumVin24h, &res.NumVout24h)
+	return &res, err
+}
+
 // retrieveTxHistoryByType fetches the transaction types count for all the
 // transactions associated with a given address for the given time interval.
 // The time interval is grouping records by week, month, year, day and all.

@@ -45,6 +45,7 @@ var (
 	sigSyncStatus       = pstypes.SigSyncStatus
 	sigSummaryInfo      = pstypes.SigSummaryInfo
 	sigSummary24h       = pstypes.SigSummary24h
+	sigXmrMempoolStatus = pstypes.SigXmrMempoolStatus
 )
 
 // WebSocketMessage represents the JSON object used to send and received typed
@@ -246,6 +247,11 @@ func (wsh *WebsocketHub) run() {
 				// Do not log when explorer update status is active.
 				if clientsCount > 0 /* TODO put clientsCount first after testing */ {
 					log.Infof("Signaling new XMR block to %d websocket clients.", clientsCount)
+				}
+			case sigXmrMempoolStatus:
+				// Do not log when explorer update status is active.
+				if clientsCount > 0 /* TODO put clientsCount first after testing */ {
+					log.Infof("Signaling XMR mempool to %d websocket clients.", clientsCount)
 				}
 			case sigSummaryInfo:
 				// Do not log when explorer update status is active.

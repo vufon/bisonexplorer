@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 )
 
 // Types of votes
@@ -680,6 +681,9 @@ type BlockInfo struct {
 	FeesSats              int64
 	BlockReward           int64
 	StakeValidationHeight int64
+	Fees                  int64
+	TotalNumVins          int64
+	TotalNumOutputs       int64
 	Subsidy               *chainjson.GetBlockSubsidyResult
 	GroupSwaps            []*dbtypes.AtomicSwapFullData
 	PoolDataList          []*dbtypes.MultichainPoolDataItem // last 5 block pools
@@ -808,22 +812,23 @@ type MempoolInfo struct {
 
 type MutilchainMempoolInfo struct {
 	sync.RWMutex
-	LastBlockHeight    int64       `json:"block_height"`
-	LastBlockHash      string      `json:"block_hash"`
-	LastBlockTime      int64       `json:"block_time"`
-	FormattedBlockTime string      `json:"formatted_block_time"`
-	Time               int64       `json:"time"`
-	TotalOut           float64     `json:"total"`
-	TotalSize          int32       `json:"size"`
-	TotalFee           float64     `json:"total_fee"`
-	MinFeeRatevB       float64     `json:"minFeeRatevB"`
-	MaxFeeRatevB       float64     `json:"maxFeeRatevB"`
-	FormattedTotalSize string      `json:"formatted_size"`
-	Transactions       []MempoolTx `json:"tx"`
-	OutputsCount       int64       `json:"outputsCount"`
-	InputsCount        int64       `json:"inputsCount"`
-	BlockReward        int64       `json:"blockReward"`
-	TotalTransactions  int64       `json:"totalTransactions"`
+	LastBlockHeight    int64               `json:"block_height"`
+	LastBlockHash      string              `json:"block_hash"`
+	LastBlockTime      int64               `json:"block_time"`
+	FormattedBlockTime string              `json:"formatted_block_time"`
+	Time               int64               `json:"time"`
+	TotalOut           float64             `json:"total"`
+	TotalSize          int32               `json:"size"`
+	TotalFee           float64             `json:"total_fee"`
+	MinFeeRatevB       float64             `json:"minFeeRatevB"`
+	MaxFeeRatevB       float64             `json:"maxFeeRatevB"`
+	FormattedTotalSize string              `json:"formatted_size"`
+	Transactions       []MempoolTx         `json:"tx"`
+	XmrTxs             []xmrutil.MempoolTx `json:"xmr_tx"`
+	OutputsCount       int64               `json:"outputsCount"`
+	InputsCount        int64               `json:"inputsCount"`
+	BlockReward        int64               `json:"blockReward"`
+	TotalTransactions  int64               `json:"totalTransactions"`
 }
 
 // DeepCopy makes a deep copy of MempoolInfo, where all the slice and map data
@@ -1259,6 +1264,10 @@ type WebsocketBlock struct {
 type WebsocketSummary struct {
 	SummaryInfo *SummaryInfo          `json:"summary_info"`
 	Summary24h  *dbtypes.Block24hInfo `json:"summary_24h"`
+}
+
+type WebsocketXmrMempool struct {
+	XmrMempool *xmrutil.Mempool `json:"xmr_mempool"`
 }
 
 // BlockID provides basic identifying information about a block.

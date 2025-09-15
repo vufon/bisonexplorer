@@ -463,12 +463,13 @@ func (c *XMRClient) fetchEachIndividually(batch []string, decodeAsJSON bool, pru
 type TxPoolEntry struct {
 	IDHash      string `json:"id_hash,omitempty"`
 	Blob        string `json:"tx_blob,omitempty"`
+	BlobSize    int64  `json:"blob_size,omitempty"`
+	Fee         uint64 `json:"fee,omitempty"` // fee atomic units
 	TxJSON      string `json:"tx_json,omitempty"`
 	ReceiveTime uint64 `json:"receive_time,omitempty"`
 	Relayed     bool   `json:"relayed,omitempty"`
-	KeptByBlock string `json:"kept_by_block,omitempty"`
+	KeptByBlock bool   `json:"kept_by_block,omitempty"`
 	FailReason  string `json:"last_failed_reason,omitempty"`
-	// There are other fields; add as needed.
 }
 
 type TxPoolResult struct {
@@ -528,10 +529,10 @@ func (c *XMRClient) GetTransactionPoolHashes() ([]string, error) {
 }
 
 // GetTransactionPoolStats returns pool stats (count/bytes/fees)
-func (c *XMRClient) GetTransactionPoolStats() (map[string]interface{}, error) {
-	var res map[string]interface{}
+func (c *XMRClient) GetTransactionPoolStats() (*xmrutil.GetTransactionPoolStatsResponse, error) {
+	var res xmrutil.GetTransactionPoolStatsResponse
 	if err := c.postDirect("/get_transaction_pool_stats", nil, &res); err != nil {
 		return nil, err
 	}
-	return res, nil
+	return &res, nil
 }

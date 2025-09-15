@@ -101,7 +101,6 @@ const (
 	SigNewBlock
 	SigNewLTCBlock
 	SigNewBTCBlock
-	SigNewXMRBlock
 	SigMempoolUpdate
 	SigPingAndUserCount
 	SigNewTx
@@ -112,20 +111,23 @@ const (
 	SigUnknown
 	SigSummaryInfo
 	SigSummary24h
+	SigNewXMRBlock
+	SigXmrMempoolStatus
 )
 
 var Subscriptions = map[string]HubSignal{
-	"newblock":       SigNewBlock,
-	"newltcblock":    SigNewLTCBlock,
-	"newbtcblock":    SigNewBTCBlock,
-	"newxmrblock":    SigNewXMRBlock,
-	"mempool":        SigMempoolUpdate,
-	"ping":           SigPingAndUserCount,
-	"newtxs":         SigNewTxs,
-	"address":        SigAddressTx,
-	"blockchainSync": SigSyncStatus,
-	"summaryinfo":    SigSummaryInfo,
-	"summary24h":     SigSummary24h,
+	"newblock":         SigNewBlock,
+	"newltcblock":      SigNewLTCBlock,
+	"newbtcblock":      SigNewBTCBlock,
+	"mempool":          SigMempoolUpdate,
+	"ping":             SigPingAndUserCount,
+	"newtxs":           SigNewTxs,
+	"address":          SigAddressTx,
+	"blockchainSync":   SigSyncStatus,
+	"summaryinfo":      SigSummaryInfo,
+	"summary24h":       SigSummary24h,
+	"xmrMempoolStatus": SigXmrMempoolStatus,
+	"newxmrblock":      SigNewXMRBlock,
 }
 
 // Event type field for an event.
@@ -149,6 +151,8 @@ var eventIDs = map[HubSignal]string{
 	SigUnknown:          "unknown",
 	SigSummaryInfo:      "summaryinfo",
 	SigSummary24h:       "summary24h",
+	SigNewXMRBlock:      "newxmrblock",
+	SigXmrMempoolStatus: "xmrMempoolStatus",
 }
 
 func ValidateSubscription(event string) (sub HubSignal, msg interface{}, valid bool) {

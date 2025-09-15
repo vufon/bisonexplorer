@@ -216,7 +216,7 @@
                <div class="row">
                   <div class="col-24 col-md-12 col-lg-8 p-2">
                      <div class="new-home-card-container h-100">
-                        <a href='/blocks' data-turbolinks="false" class="link-to-subpage">
+                        <a href='/{{$ChainType}}/blocks' data-turbolinks="false" class="link-to-subpage">
                            <div class="py-2 px-3 new-home-card-header d-flex ai-center">
                               <span class="homeicon-block explore-card__header__logo" alt="bitcoin logo"
                                  loading="lazy"></span>
@@ -453,6 +453,7 @@
                                     </div>
                                  </div>
                               </div>
+                              {{if ne $ChainType "xmr"}}
                               <div class="col-12 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
                                     <span class="new-network-stats-title">Total Sent</span>
@@ -476,6 +477,7 @@
                                     </div>
                                  </div>
                               </div>
+                              {{end}}
                               <div class="col-12 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
                                     <span class="new-network-stats-title">Total Fees</span>

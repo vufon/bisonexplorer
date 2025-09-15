@@ -1411,7 +1411,70 @@ func (pgb *ChainDB) GetDecredBlockFees(blockHash string) (int64, error) {
 	return totalFees, nil
 }
 
+func (pgb *ChainDB) SyncXMR24hBlockInfo(height int64) {
+	log.Infof("XMR: Start syncing for 24hblocks info.")
+	dbTx, err := pgb.db.BeginTx(pgb.ctx, nil)
+	if err != nil {
+		log.Errorf("failed to start new DB transaction: %v", err)
+		return
+	}
+	//prepare query
+	stmt, err := dbTx.Prepare(internal.Insert24hBlocksRow)
+	if err != nil {
+		log.Errorf("XMR: Prepare insert block info to 24hblocks table failed: %v", err)
+		_ = dbTx.Rollback()
+		return
+	}
+	yeserDayTimeInt := time.Now().Add(-24 * time.Hour).Unix()
+	for {
+		var exist bool
+		//check exist on DB
+		err := pgb.db.QueryRowContext(pgb.ctx, internal.CheckExist24Blocks, mutilchain.TYPEXMR, height).Scan(&exist)
+		if err != nil {
+			log.Errorf("XMR: Check block exist in 24hblocks table failed: %v", err)
+			_ = stmt.Close()
+			_ = dbTx.Rollback()
+			return
+		}
+
+		if exist {
+			height--
+			continue
+		}
+		blockData := pgb.GetXMRExplorerBlock(height)
+		if blockData == nil {
+			height--
+			continue
+		}
+		if blockData.BlockTimeUnix < yeserDayTimeInt {
+			break
+		}
+		//insert to db
+		var id uint64
+		err = stmt.QueryRow(mutilchain.TYPEXMR, blockData.Hash, blockData.Height, blockData.BlockTime,
+			0, blockData.TotalSent, blockData.Fees, blockData.TxCount, blockData.TotalNumVins, blockData.TotalNumOutputs).Scan(&id)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				continue
+			}
+			_ = stmt.Close() // try, but we want the QueryRow error back
+			if errRoll := dbTx.Rollback(); errRoll != nil {
+				log.Errorf("Rollback failed: %v", errRoll)
+			}
+			return
+		}
+		height--
+	}
+	stmt.Close()
+	dbTx.Commit()
+	log.Infof("XMR: Finish syncing for 24hblocks info")
+}
+
 func (pgb *ChainDB) SyncMutilchain24hBlocks(height int64, chainType string) {
+	if chainType == mutilchain.TYPEXMR {
+		pgb.SyncXMR24hBlockInfo(height)
+		return
+	}
 	log.Infof("Start syncing for 24hblocks info. ChainType: %s", chainType)
 	dbTx, err := pgb.db.BeginTx(pgb.ctx, nil)
 	if err != nil {
