@@ -372,6 +372,17 @@ func (exp *ExplorerUI) RootWebsocket(w http.ResponseWriter, r *http.Request) {
 					} else {
 						log.Errorf("json.Encode([]SyncStatusInfo) failed: %v", err)
 					}
+				case sigXmrMempoolStatus:
+					exp.XmrPageData.RLock()
+					err := enc.Encode(types.WebsocketXmrMempool{
+						XmrMempool: exp.XmrPageData.MempoolData,
+					})
+					exp.XmrPageData.RUnlock()
+					if err == nil {
+						webData.Message = buff.String()
+					} else {
+						log.Errorf("json.Encode(WebsocketXMRMempool) failed: %v", err)
+					}
 
 				default:
 					log.Errorf("RootWebsocket: Unhandled signal: %v", sig)

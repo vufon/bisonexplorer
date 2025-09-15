@@ -44,6 +44,7 @@ import (
 	pstypes "github.com/decred/dcrdata/v8/pubsub/types"
 	"github.com/decred/dcrdata/v8/txhelpers"
 	"github.com/decred/dcrdata/v8/utils"
+	"github.com/decred/dcrdata/v8/xmr/xmrclient"
 	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/go-chi/chi/v5"
@@ -333,6 +334,7 @@ type XmrPageData struct {
 	BlockDetails   []*types.BlockInfo
 	BlockchainInfo *xmrutil.BlockchainInfo
 	HomeInfo       *types.HomeInfo
+	MempoolData    *xmrutil.Mempool
 	sync24hMtx     sync.Mutex
 }
 
@@ -623,6 +625,27 @@ func (exp *ExplorerUI) MutilchainMempoolInfo(chainType string) *types.Mutilchain
 		return exp.BtcMempoolInfo
 	case mutilchain.TYPELTC:
 		return exp.LtcMempoolInfo
+	case mutilchain.TYPEXMR:
+		// get mempoolInfo from exp
+		memInfo := exp.XmrPageData.MempoolData
+		if memInfo != nil && exp.XmrPageData.BlockInfo != nil {
+			return &types.MutilchainMempoolInfo{
+				LastBlockHeight:    exp.XmrPageData.BlockInfo.Height,
+				LastBlockHash:      exp.XmrPageData.BlockInfo.Hash,
+				LastBlockTime:      exp.XmrPageData.BlockInfo.BlockTimeUnix,
+				FormattedBlockTime: (types.TimeDef{T: time.Unix(exp.XmrPageData.BlockInfo.BlockTimeUnix, 0)}).String(),
+				TotalTransactions:  int64(memInfo.TxCount),
+				MinFeeRatevB:       memInfo.MinFeeRate,
+				MaxFeeRatevB:       memInfo.MaxFeeRate,
+				FormattedTotalSize: types.BytesString(uint64(memInfo.BytesTotal)),
+				XmrTxs:             memInfo.Transactions,
+				TotalSize:          int32(memInfo.BytesTotal),
+				TotalFee:           utils.AtomicToXMR(memInfo.TotalFee),
+				OutputsCount:       int64(memInfo.OutputsCount),
+				BlockReward:        exp.XmrPageData.BlockInfo.BlockReward,
+			}
+		}
+		return &types.MutilchainMempoolInfo{}
 	default:
 		return nil
 	}
@@ -1369,6 +1392,94 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		p.sync24hMtx.Unlock()
 	}(int64(blockData.Header.Height))
 	return nil
+}
+
+// Generate xmr updates for mempool data
+func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop <-chan struct{}) error {
+	xmrMempoolUpdateInterval := 15 * time.Second
+	ticker := time.NewTicker(xmrMempoolUpdateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			// call RPC to get mempool
+			res, err := xmrClient.GetTransactionPool()
+			if err != nil {
+				log.Errorf("Error fetching mempool: %v", err)
+				continue
+			}
+
+			// call RPC to get pool stats
+			stats, err := xmrClient.GetTransactionPoolStats()
+			if err != nil {
+				log.Errorf("Error fetching mempool stats: %v", err)
+				continue
+			}
+
+			// build struct Mempool
+			mp := xmrutil.Mempool{
+				TxCount:      len(res.Transactions),
+				Transactions: make([]xmrutil.MempoolTx, 0, len(res.Transactions)),
+				Status:       res.Status,
+				BytesTotal:   uint64(stats.PoolStats.BytesTotal),
+				OldestTx:     uint64(stats.PoolStats.Oldest),
+			}
+
+			totalOutputs := uint64(0)
+			totalFee := uint64(0)
+			minFeeRate := math.MaxFloat64
+			maxFeeRate := float64(0)
+			for _, tx := range res.Transactions {
+				var txDetail xmrutil.Transaction
+				if err := json.Unmarshal([]byte(tx.TxJSON), &txDetail); err != nil {
+					log.Errorf("XMR: parse tx detail failed: %v", err)
+					continue
+				}
+				totalOutputs += uint64(len(txDetail.Vout))
+				totalFee += txDetail.RctSignatures.TxnFee
+				feeRate := float64(tx.Fee) / float64(tx.BlobSize) // au/vB
+				if feeRate < minFeeRate {
+					minFeeRate = feeRate
+				}
+				if feeRate > maxFeeRate {
+					maxFeeRate = feeRate
+				}
+				mp.Transactions = append(mp.Transactions, xmrutil.MempoolTx{
+					IDHash:      tx.IDHash,
+					TxJSON:      tx.TxJSON,
+					ReceiveTime: tx.ReceiveTime,
+					Relayed:     tx.Relayed,
+					KeptByBlock: tx.KeptByBlock,
+					LastFailed:  tx.FailReason,
+				})
+			}
+			mp.TotalFee = totalFee
+			mp.OutputsCount = totalOutputs
+			mp.MinFeeRate = minFeeRate
+			mp.MaxFeeRate = maxFeeRate
+			log.Infof("Mempool status: %s, txs: %d",
+				mp.Status, mp.TxCount)
+
+			// set to explorer
+			exp.XmrPageData.Lock()
+			exp.XmrPageData.MempoolData = &mp
+			exp.XmrPageData.Unlock()
+
+			// send to websocket
+			go func() {
+				select {
+				case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewLTCBlock}:
+				case <-time.After(time.Second * 20):
+					log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
+				}
+			}()
+
+		case <-stop:
+			log.Infof("XMR: Stop polling mempool")
+			return nil
+		}
+	}
 }
 
 func (exp *ExplorerUI) GetMultichainBlockchainSize(chainType string) int64 {

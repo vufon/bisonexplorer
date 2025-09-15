@@ -1791,6 +1791,7 @@ func _main(ctx context.Context) error {
 		if cerr != nil {
 			return fmt.Errorf("XMR RPC client error: %v", cerr)
 		}
+		go explore.UpdateXMRMempoolData(xmrClient, make(chan struct{}))
 	}
 
 	// handler syncing for XMR blockchain on background
