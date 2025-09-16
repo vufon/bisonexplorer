@@ -1291,8 +1291,18 @@ func (pgb *ChainDB) RegisterCharts(charts *cache.ChartData) {
 }
 
 func (pgb *ChainDB) RegisterMutilchainCharts(charts *cache.MutilchainChartData) {
+	if charts.ChainType != mutilchain.TYPEXMR {
+		charts.AddUpdater(cache.ChartMutilchainUpdater{
+			Tag:      fmt.Sprintf("%s basic blocks", charts.ChainType),
+			Fetcher:  pgb.chartMutilchainBlocks,
+			Appender: appendMutilchainChartBlocks,
+		})
+		return
+	}
+
+	// handler for monero
 	charts.AddUpdater(cache.ChartMutilchainUpdater{
-		Tag:      "basic blocks",
+		Tag:      "Monero basic blocks",
 		Fetcher:  pgb.chartMutilchainBlocks,
 		Appender: appendMutilchainChartBlocks,
 	})
@@ -6101,6 +6111,20 @@ func (pgb *ChainDB) chartMutilchainBlocks(charts *cache.MutilchainChartData) (*s
 	return nil, cancel, nil
 }
 
+// func (pgb *ChainDB) chartXmrMutilchainBlocks(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+// 	// TODO when handler sync all blockchain data to DB, uncomment
+// 	_, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+// 	rows, err := retrieveMutilchainChartBlocks(ctx, pgb.db, charts, charts.ChainType)
+// 	if err != nil {
+// 		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
+// 	}
+// 	lastBlockHeight, blockErr := pgb.GetMutilchainHeight(charts.ChainType)
+// 	if blockErr == nil {
+// 		charts.LastBlockHeight = lastBlockHeight
+// 	}
+// 	return nil, cancel, nil
+// }
+
 // coinSupply fetches the coin supply chart data from retrieveCoinSupply.
 // This is the Fetcher half of a pair that make up a cache.ChartUpdater. The
 // Appender half is appendCoinSupply.
@@ -10090,9 +10114,6 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 					}
 				}
 				// fees / outputs / total sent: sometimes present in tx JSON
-				if feeIf, ok := v["fee"].(float64); ok {
-					fees = int64(feeIf)
-				}
 				if extraHex, ok := v["extra"].(string); ok {
 					parsedExtra, _ = ParseTxExtra(extraHex)
 					hexExtra = extraHex
@@ -10103,6 +10124,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 				if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
 					if t, ok2 := rct["type"].(float64); ok2 {
 						rctType = int(t)
+					}
+					if feeIf, ok := rct["txnFee"].(float64); ok {
+						fees = int64(feeIf)
 					}
 				}
 				var rctPrunableHash string

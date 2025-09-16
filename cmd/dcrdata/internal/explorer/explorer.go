@@ -1458,8 +1458,6 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 			mp.OutputsCount = totalOutputs
 			mp.MinFeeRate = minFeeRate
 			mp.MaxFeeRate = maxFeeRate
-			log.Infof("Mempool status: %s, txs: %d",
-				mp.Status, mp.TxCount)
 
 			// set to explorer
 			exp.XmrPageData.Lock()

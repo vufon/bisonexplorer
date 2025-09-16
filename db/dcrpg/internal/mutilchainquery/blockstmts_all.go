@@ -115,6 +115,11 @@ ORDER BY a.height ASC;`
 		WHERE height > $1
 		ORDER BY height;`
 
+	SelectXmrBlockAllStats = `SELECT height, size, time, numtx, difficulty, fees
+		FROM %sblocks_all
+		WHERE height > $1
+		ORDER BY height;`
+
 	CheckExistBLockAll         = `SELECT EXISTS(SELECT 1 FROM %sblocks_all WHERE height = $1);`
 	SelectBlockAllHeightByHash = `SELECT height FROM %sblocks_all WHERE hash = $1 LIMIT 1;`
 	SelectBlockAllHashByHeight = `SELECT hash FROM %sblocks_all WHERE height = $1;`
