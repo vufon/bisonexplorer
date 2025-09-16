@@ -17,7 +17,7 @@ import (
 )
 
 func RetrieveMutilchainBestBlockHeight(db *sql.DB, chainType string) (height uint64, hash string, id uint64, err error) {
-	err = db.QueryRow(mutilchainquery.RetrieveBestBlockHeightStatement(chainType)).Scan(&id, &hash, &height)
+	err = db.QueryRow(mutilchainquery.RetrieveBestBlockAllHeightStatement(chainType)).Scan(&id, &hash, &height)
 	return
 }
 
@@ -728,7 +728,7 @@ func InsertXMRWholeBlock(dbtx *sql.Tx, dbBlock *dbtypes.Block, blobBytes []byte,
 		dbBlock.Nonce, dbBlock.PoolSize, dbBlock.Bits,
 		dbBlock.Difficulty, dbBlock.DifficultyNum, dbBlock.CumulativeDifficulty,
 		dbBlock.PowAlgo, dbBlock.PreviousHash, dbBlock.NumVins, dbBlock.NumVouts,
-		dbBlock.Fees, dbBlock.TotalSent).Scan(&id)
+		dbBlock.Fees, dbBlock.TotalSent, dbBlock.Reward).Scan(&id)
 	return id, err
 }
 

@@ -2197,6 +2197,7 @@ type Block struct {
 	Winners              []string    `json:"winners"`
 	PowAlgo              string      `json:"powAlgo"`
 	MinnerTxhash         string      `json:"minnerTxhash"`
+	Reward               uint64      `json:"reward"`
 }
 
 type BlockDataBasic struct {

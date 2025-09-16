@@ -82,6 +82,7 @@ func MsgXMRBlockToDBBlock(client *xmrclient.XMRClient, bldata *xmrutil.BlockResu
 		PreviousHash:         blheader.PrevHash,
 		PowAlgo:              blheader.PowAlgo,
 		MinnerTxhash:         bldata.MinerTxHash,
+		Reward:               blheader.Reward,
 	}, nil
 }
 

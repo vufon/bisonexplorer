@@ -120,6 +120,7 @@ type PubSubHub struct {
 	ver        pstypes.Ver
 	LtcCharts  *cache.MutilchainChartData
 	BtcCharts  *cache.MutilchainChartData
+	XmrCharts  *cache.MutilchainChartData
 }
 
 // NewPubSubHub constructs a PubSubHub given a data source. The WebSocketHub is

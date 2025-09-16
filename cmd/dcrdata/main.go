@@ -1671,6 +1671,17 @@ func _main(ctx context.Context) error {
 			}
 			xmrHeightFromDB = 0
 		}
+		xmrCharts := cache.NewXMRChartData(ctx, xmrClient, uint32(xmrHeightFromDB), int64(xmrHeight))
+		chainDB.RegisterMutilchainCharts(xmrCharts)
+		explore.XmrChartSource = xmrCharts
+		app.XmrCharts = xmrCharts
+		psHub.XmrCharts = xmrCharts
+		xmrDumpPath := filepath.Join(cfg.DataDir, cfg.XMRChartsCacheDump)
+		if err = xmrCharts.Load(xmrDumpPath); err != nil {
+			log.Warnf("XMR: Failed to load charts data cache: %v", err)
+		}
+		defer xmrCharts.Dump(xmrDumpPath)
+
 		//start handler ltc chart data
 		// ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain, int64(ltcHeight), chainDB.ChainDBDisabled)
 		// chainDB.RegisterMutilchainCharts(ltcCharts)
@@ -1776,9 +1787,7 @@ func _main(ctx context.Context) error {
 		xmrBlockDataSavers = append(xmrBlockDataSavers, blockdataxmr.BlockTrigger{
 			Async: true,
 			Saver: func(hash string, height uint32) error {
-				// TODO: Handler for xmr charts
-				return nil
-				// return xmrCharts.TriggerUpdate(hash, height)
+				return xmrCharts.TriggerUpdate(hash, height)
 			},
 		})
 		xmrBdChainMonitor := blockdataxmr.NewChainMonitor(ctx, xmrCollector, xmrBlockDataSavers)

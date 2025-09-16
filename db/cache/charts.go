@@ -345,6 +345,7 @@ type ZoomSet struct {
 	Fees              ChartUints
 	TotalMixed        ChartUints
 	AnonymitySet      ChartUints
+	Reward            ChartUints
 	Difficulty        ChartFloats
 	Hashrate          ChartFloats
 	MarketPrice       ChartFloats
@@ -461,6 +462,7 @@ type ChartGobject struct {
 	TxCount           ChartUints
 	NewAtoms          ChartUints
 	Chainwork         ChartUints
+	Reward            ChartUints
 	Difficulty        ChartFloats
 	Fees              ChartUints
 	WindowTime        ChartUints
