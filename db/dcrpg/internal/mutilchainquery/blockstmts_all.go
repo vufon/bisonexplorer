@@ -116,7 +116,7 @@ ORDER BY a.height ASC;`
 		ORDER BY height;`
 
 	SelectXmrBlockAllStats = `SELECT height, size, time, numtx, difficulty, fees
-		FROM %sblocks_all
+		FROM xmrblocks_all
 		WHERE height > $1
 		ORDER BY height;`
 

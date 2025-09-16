@@ -4202,6 +4202,14 @@ func retrieveMutilchainChartBlocks(ctx context.Context, db *sql.DB, charts *cach
 	return rows, nil
 }
 
+func retrieveXmrMutilchainChartBlocks(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, mutilchainquery.SelectXmrBlockAllStats, charts.Height())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // Append the results from retrieveChartBlocks to the provided ChartData.
 // This is the Appender half of a pair that make up a cache.ChartUpdater.
 func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
@@ -4266,6 +4274,35 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 	}
 	if len(blocks.Difficulty) != chainLen {
 		return fmt.Errorf("appendChartBlocks: data length misalignment. len(chainwork) = %d, len(difficulty) = %d", chainLen, len(blocks.Difficulty))
+	}
+	return nil
+}
+
+func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	var timeDef dbtypes.TimeDef
+	var count, size, height uint64
+	var difficult float64
+	var rowCount int32
+	var fees uint64
+	blocks := charts.Blocks
+	for rows.Next() {
+		rowCount++
+		// Get the chainwork.
+		err := rows.Scan(&height, &size, &timeDef, &count, &difficult, &fees)
+		if err != nil {
+			return err
+		}
+		blocks.Height = append(blocks.Height, height)
+		blocks.BlockSize = append(blocks.BlockSize, size)
+		blocks.TxCount = append(blocks.TxCount, count)
+		blocks.Time = append(blocks.Time, uint64(timeDef.T.Unix()))
+		blocks.BlockSize = append(blocks.BlockSize, size)
+		blocks.Difficulty = append(blocks.Difficulty, difficult)
+		blocks.Fees = append(blocks.Fees, fees)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
 	}
 	return nil
 }

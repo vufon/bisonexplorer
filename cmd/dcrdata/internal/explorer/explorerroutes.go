@@ -874,7 +874,8 @@ func (exp *ExplorerUI) VisualBlocks(w http.ResponseWriter, r *http.Request) {
 
 	exp.pageData.RLock()
 	mempoolInfo.Subsidy = exp.pageData.HomeInfo.NBlockSubsidy
-
+	homeInfo := exp.pageData.HomeInfo
+	exp.pageData.RUnlock()
 	str, err := exp.templates.exec("visualblocks", struct {
 		*CommonPageData
 		Info    *types.HomeInfo
@@ -882,12 +883,10 @@ func (exp *ExplorerUI) VisualBlocks(w http.ResponseWriter, r *http.Request) {
 		Blocks  []*types.TrimmedBlockInfo
 	}{
 		CommonPageData: exp.commonData(r),
-		Info:           exp.pageData.HomeInfo,
+		Info:           homeInfo,
 		Mempool:        mempoolInfo,
 		Blocks:         trimmedBlocks,
 	})
-
-	exp.pageData.RUnlock()
 
 	if err != nil {
 		log.Errorf("Template execute failure: %v", err)
@@ -2635,18 +2634,19 @@ func (exp *ExplorerUI) TreasuryPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exp.pageData.RLock()
 	var treasuryBalance *dbtypes.TreasuryBalance
 	var balanceErr error
+	exp.pageData.RLock()
+	infoTBalance := exp.pageData.HomeInfo.TreasuryBalance
+	exp.pageData.RUnlock()
 	if txTime != "" {
 		treasuryBalance, balanceErr = exp.dataSource.TreasuryBalanceWithPeriod(year, month)
 		if balanceErr != nil {
-			treasuryBalance = exp.pageData.HomeInfo.TreasuryBalance
+			treasuryBalance = infoTBalance
 		}
 	} else {
-		treasuryBalance = exp.pageData.HomeInfo.TreasuryBalance
+		treasuryBalance = infoTBalance
 	}
-	exp.pageData.RUnlock()
 
 	typeCount := treasuryTypeCount(treasuryBalance, txType)
 	treasuryData := &TreasuryInfo{
@@ -3164,18 +3164,19 @@ func (exp *ExplorerUI) TreasuryTable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exp.pageData.RLock()
 	var bal *dbtypes.TreasuryBalance
 	var balanceErr error
+	exp.pageData.RLock()
+	homeInfoTBalance := exp.pageData.HomeInfo.TreasuryBalance
+	exp.pageData.RUnlock()
 	if time != "" {
 		bal, balanceErr = exp.dataSource.TreasuryBalanceWithPeriod(year, month)
 		if balanceErr != nil {
-			bal = exp.pageData.HomeInfo.TreasuryBalance
+			bal = homeInfoTBalance
 		}
 	} else {
-		bal = exp.pageData.HomeInfo.TreasuryBalance
+		bal = homeInfoTBalance
 	}
-	exp.pageData.RUnlock()
 
 	linkTemplate := "/treasury" + "?start=%d&n=" + strconv.FormatInt(limitN, 10) + "&txntype=" + txnTypeToTreasuryType(txType)
 	if time != "" {
@@ -4547,6 +4548,7 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 		exp.pageData.RLock()
 		coinValueSupply = exp.pageData.HomeInfo.CoinValueSupply
 		volume = xcState.Volume
+		exp.pageData.RUnlock()
 	}
 	if xcBot != nil {
 		conversions = &MutilchainHomeConversions{
@@ -4851,7 +4853,6 @@ func (exp *ExplorerUI) HomeReportPage(w http.ResponseWriter, r *http.Request) {
 
 // FinanceReportPage is the page handler for the "/finance-report" path.
 func (exp *ExplorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request) {
-	exp.pageData.RLock()
 	//Get all proposal token to check sync
 	allProposals, err := exp.proposals.GetAllProposals()
 	if err == nil {
@@ -4877,6 +4878,7 @@ func (exp *ExplorerUI) FinanceReportPage(w http.ResponseWriter, r *http.Request)
 			}
 		}
 	}
+	exp.pageData.RLock()
 	treasuryBalance := exp.pageData.HomeInfo.TreasuryBalance
 	//End sync Data
 	exp.pageData.RUnlock()
@@ -4997,11 +4999,11 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPELTC)
 		exp.LtcPageData.RUnlock()
 	default:
+		blockSubsidy := exp.dataSource.BlockSubsidy(blockHeight, exp.ChainParams.TicketsPerBlock)
+		blockReward = blockSubsidy.Total
 		exp.pageData.RLock()
 		homeInfo = exp.pageData.HomeInfo
 		blockHeight = exp.pageData.BlockInfo.Height
-		blockSubsidy := exp.dataSource.BlockSubsidy(blockHeight, exp.ChainParams.TicketsPerBlock)
-		blockReward = blockSubsidy.Total
 		blockTime = exp.pageData.BlockInfo.BlockTime.UNIX()
 		exp.pageData.RUnlock()
 		ticketDuration := (int64(homeInfo.Params.WindowSize) - int64(homeInfo.IdxBlockInWindow)) * homeInfo.Params.BlockTime

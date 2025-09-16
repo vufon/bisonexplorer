@@ -1303,8 +1303,8 @@ func (pgb *ChainDB) RegisterMutilchainCharts(charts *cache.MutilchainChartData) 
 	// handler for monero
 	charts.AddUpdater(cache.ChartMutilchainUpdater{
 		Tag:      "Monero basic blocks",
-		Fetcher:  pgb.chartMutilchainBlocks,
-		Appender: appendMutilchainChartBlocks,
+		Fetcher:  pgb.chartXmrMutilchainBlocks,
+		Appender: appendXmrChartBlocks,
 	})
 
 	// TODO, uncomment in the future
@@ -6111,19 +6111,15 @@ func (pgb *ChainDB) chartMutilchainBlocks(charts *cache.MutilchainChartData) (*s
 	return nil, cancel, nil
 }
 
-// func (pgb *ChainDB) chartXmrMutilchainBlocks(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
-// 	// TODO when handler sync all blockchain data to DB, uncomment
-// 	_, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
-// 	rows, err := retrieveMutilchainChartBlocks(ctx, pgb.db, charts, charts.ChainType)
-// 	if err != nil {
-// 		return nil, cancel, fmt.Errorf("chartBlocks: %w", pgb.replaceCancelError(err))
-// 	}
-// 	lastBlockHeight, blockErr := pgb.GetMutilchainHeight(charts.ChainType)
-// 	if blockErr == nil {
-// 		charts.LastBlockHeight = lastBlockHeight
-// 	}
-// 	return nil, cancel, nil
-// }
+func (pgb *ChainDB) chartXmrMutilchainBlocks(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	// TODO when handler sync all blockchain data to DB, uncomment
+	_, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	rows, err := retrieveXmrMutilchainChartBlocks(pgb.ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("XMR: chartBlocks: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
 
 // coinSupply fetches the coin supply chart data from retrieveCoinSupply.
 // This is the Fetcher half of a pair that make up a cache.ChartUpdater. The

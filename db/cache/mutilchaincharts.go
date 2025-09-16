@@ -338,7 +338,7 @@ func (charts *MutilchainChartData) validState(stateID uint64) bool {
 func (charts *MutilchainChartData) Height() int32 {
 	charts.mtx.RLock()
 	defer charts.mtx.RUnlock()
-	return int32(len(charts.Blocks.Time)) - 1
+	return int32(len(charts.Blocks.Height)) - 1
 }
 
 // FeesTip is the height of the Fees data.
