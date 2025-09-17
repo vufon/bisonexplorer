@@ -26,14 +26,20 @@
                         <option value="blockchain-size">Blockchain Size</option>
                         <option value="tx-count">Transaction Count</option>
                         <option value="tx-per-block">TXs Per Blocks</option>
+                        {{if ne .ChainType "xmr"}}
                         <option value="address-number">Active Addresses</option>
+                        {{else}}
+                        <option value="duration-btw-blocks">Duration Between Blocks</option>
+                        {{end}}
                      </optgroup>
                      <optgroup label="Mining">
                         <option value="pow-difficulty">Difficulty</option>
                         <option value="hashrate">Hashrate</option>
+                        {{if ne .ChainType "xmr"}}
                         <option value="mined-blocks">Mined Blocks</option>
                         <option value="mempool-size">Mempool Size</option>
                         <option value="mempool-txs">Mempool TXs</option>
+                        {{end}}
                      </optgroup>
                      <optgroup label="Distribution">
                         <option value="coin-supply">Coin Supply</option>
@@ -105,14 +111,20 @@
                         <option value="blockchain-size">Blockchain Size</option>
                         <option value="tx-count">Transaction Count</option>
                         <option value="tx-per-block">TXs Per Blocks</option>
+                        {{if ne .ChainType "xmr"}}
                         <option value="address-number">Active Addresses</option>
+                        {{else}}
+                        <option value="duration-btw-blocks">Duration Between Blocks</option>
+                        {{end}}
                      </optgroup>
                      <optgroup label="Mining">
                         <option value="pow-difficulty">Difficulty</option>
                         <option value="hashrate">Hashrate</option>
+                        {{if ne .ChainType "xmr"}}
                         <option value="mined-blocks">Mined Blocks</option>
                         <option value="mempool-size">Mempool Size</option>
                         <option value="mempool-txs">Mempool TXs</option>
+                        {{end}}
                      </optgroup>
                      <optgroup label="Distribution">
                         <option value="coin-supply">Coin Supply</option>

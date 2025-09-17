@@ -1193,7 +1193,7 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 		}
 		// insert transaction row
 		// Get the tx PK IDs for storage in the blocks table
-		_, fees, err := InsertXMRTxn(dbtx, block.Height, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked)
+		_, fees, err := InsertXMRTxn(dbtx, block.Height, block.Hash, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked)
 		if err != nil && err != sql.ErrNoRows {
 			log.Error("XMR: InsertTxn:", err)
 			txRes.err = err

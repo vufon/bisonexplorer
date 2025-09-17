@@ -1153,6 +1153,7 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	go func(height int64) {
 		p.sync24hMtx.Lock()
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEBTC)
+		p.sync24hMtx.Unlock()
 		p.Lock()
 		if err24h == nil {
 			p.HomeInfo.Block24hInfo = summary24h
@@ -1160,7 +1161,6 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 			log.Errorf("Sync BTC 24h Metrics Failed: %v", err24h)
 		}
 		p.Unlock()
-		p.sync24hMtx.Unlock()
 	}(int64(blockData.Header.Height))
 	return nil
 }
@@ -1382,6 +1382,7 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	go func(height int64) {
 		p.sync24hMtx.Lock()
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPELTC)
+		p.sync24hMtx.Unlock()
 		p.Lock()
 		if err24h == nil {
 			p.HomeInfo.Block24hInfo = summary24h
@@ -1389,7 +1390,6 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 			log.Errorf("Sync LTC 24h Metrics Failed: %v", err24h)
 		}
 		p.Unlock()
-		p.sync24hMtx.Unlock()
 	}(int64(blockData.Header.Height))
 	return nil
 }
@@ -1458,8 +1458,6 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 			mp.OutputsCount = totalOutputs
 			mp.MinFeeRate = minFeeRate
 			mp.MaxFeeRate = maxFeeRate
-			log.Infof("Mempool status: %s, txs: %d",
-				mp.Status, mp.TxCount)
 
 			// set to explorer
 			exp.XmrPageData.Lock()

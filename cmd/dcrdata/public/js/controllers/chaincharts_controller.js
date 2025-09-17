@@ -34,6 +34,7 @@ const yAxisLabelWidth = {
     'blockchain-size': 50,
     'tx-count': 45,
     'tx-per-block': 50,
+    'duration-btw-blocks': 40,
     'address-number': 45,
     'pow-difficulty': 40,
     hashrate: 50,

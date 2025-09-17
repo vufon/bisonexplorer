@@ -16,8 +16,8 @@ const (
 	insertXmrBlockAllRow0 = `INSERT INTO xmrblocks_all (
 		hash, height, block_blob, size, is_valid, version,
 		numtx, time, nonce, pool_size, bits, 
-		difficulty, difficulty_num, cumulative_difficulty, pow_algo, previous_hash, num_vins, num_vouts, fees, total_sent)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)`
+		difficulty, difficulty_num, cumulative_difficulty, pow_algo, previous_hash, num_vins, num_vouts, fees, total_sent, reward)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`
 
 	insertBlockAllRow           = insertBlockAllRow0 + ` RETURNING id;`
 	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (hash) DO NOTHING RETURNING id;`
@@ -59,6 +59,7 @@ const (
 		num_vouts INT4,
 		fees INT8,
 		total_sent INT8,
+		reward INT8,
 		address_updated BOOLEAN DEFAULT FALSE,
 		synced BOOLEAN DEFAULT FALSE
 	);`
@@ -112,6 +113,11 @@ ORDER BY a.height ASC;`
 
 	SelectBlockAllStats = `SELECT height, size, time, numtx, difficulty
 		FROM %sblocks_all
+		WHERE height > $1
+		ORDER BY height;`
+
+	SelectXmrBlockAllStats = `SELECT height, size, time, numtx, difficulty, fees, reward
+		FROM xmrblocks_all
 		WHERE height > $1
 		ORDER BY height;`
 

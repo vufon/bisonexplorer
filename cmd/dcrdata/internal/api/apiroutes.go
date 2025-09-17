@@ -172,6 +172,7 @@ type appContext struct {
 	charts           *cache.ChartData
 	LtcCharts        *cache.MutilchainChartData
 	BtcCharts        *cache.MutilchainChartData
+	XmrCharts        *cache.MutilchainChartData
 	ChainDisabledMap map[string]bool
 	CoinCaps         []string
 	CoinCapDataList  []*dbtypes.MarketCapData
@@ -3524,6 +3525,8 @@ func (c *appContext) GetMutilchainChartData(chainType string) *cache.MutilchainC
 		return c.BtcCharts
 	case mutilchain.TYPELTC:
 		return c.LtcCharts
+	case mutilchain.TYPEXMR:
+		return c.XmrCharts
 	default:
 		return nil
 	}

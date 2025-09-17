@@ -17,6 +17,7 @@ import (
 
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/xmr/xmrclient"
 )
 
 type ChartMutilchainUpdater struct {
@@ -66,11 +67,11 @@ func (charts *MutilchainChartData) Lengthen() error {
 	// Make sure the database has set an equal number of blocks in each data set.
 	blocks := charts.Blocks
 	shortest, err := ValidateLengths(blocks.Height, blocks.Time,
-		blocks.BlockSize, blocks.TxCount,
-		blocks.NewAtoms, blocks.Fees, blocks.Difficulty, blocks.Hashrate)
+		blocks.BlockSize, blocks.TxCount, blocks.Fees, blocks.Difficulty,
+		blocks.Hashrate, blocks.Reward)
 	if err != nil {
-		log.Warnf("MultiChartData.Lengthen: multichain block data length mismatch detected. "+
-			"Truncating blocks length to %d", shortest)
+		log.Warnf("%s: MultiChartData.Lengthen: multichain block data length mismatch detected. "+
+			"Truncating blocks length to %d", charts.ChainType, shortest)
 		blocks.Snip(shortest)
 	}
 	if shortest == 0 {
@@ -130,20 +131,20 @@ func (charts *MutilchainChartData) Lengthen() error {
 			days.Height = append(days.Height, uint64(interval[1]-1))
 			days.BlockSize = append(days.BlockSize, blocks.BlockSize.Sum(interval[0], interval[1]))
 			days.TxCount = append(days.TxCount, blocks.TxCount.Sum(interval[0], interval[1]))
-			days.NewAtoms = append(days.NewAtoms, blocks.NewAtoms.Sum(interval[0], interval[1]))
+			days.Reward = append(days.Reward, blocks.Reward.Sum(interval[0], interval[1]))
 			days.Fees = append(days.Fees, blocks.Fees.Sum(interval[0], interval[1]))
-			days.Difficulty = append(days.Difficulty, blocks.Difficulty.Sum(interval[0], interval[1]))
-			days.Hashrate = append(days.Hashrate, blocks.Hashrate.Sum(interval[0], interval[1]))
+			days.Difficulty = append(days.Difficulty, blocks.Difficulty.Avg(interval[0], interval[1]))
+			days.Hashrate = append(days.Hashrate, blocks.Hashrate.Avg(interval[0], interval[1]))
 		}
 	}
 
 	// Check that all relevant datasets have been updated to the same length.
 	daysLen, err := ValidateLengths(days.Height, days.Time,
-		days.BlockSize, days.TxCount, days.NewAtoms, days.Fees)
+		days.BlockSize, days.TxCount, days.Reward, days.Fees, days.Difficulty, days.Hashrate)
 	if err != nil {
 		return fmt.Errorf("day bin: %v", err)
 	} else if daysLen == 0 {
-		log.Warnf("(*ChartData).Lengthen: Zero-length day-binned data!")
+		log.Warnf("%s: (*ChartData).Lengthen: Zero-length day-binned data!", charts.ChainType)
 	}
 
 	charts.cacheMtx.Lock()
@@ -231,7 +232,7 @@ func (charts *MutilchainChartData) readCacheFile(filePath string) error {
 	charts.Blocks.Time = gobject.Time
 	charts.Blocks.BlockSize = gobject.BlockSize
 	charts.Blocks.TxCount = gobject.TxCount
-	charts.Blocks.NewAtoms = gobject.NewAtoms
+	charts.Blocks.Reward = gobject.Reward
 	charts.Blocks.Fees = gobject.Fees
 	charts.Blocks.Difficulty = gobject.PowDiff
 	charts.Blocks.Hashrate = gobject.Hashrate
@@ -264,7 +265,7 @@ func (charts *MutilchainChartData) Load(cacheDumpPath string) error {
 	}
 
 	// Bring the charts up to date.
-	log.Infof("Updating multicharts data...")
+	log.Infof("%s: Updating multicharts data...", charts.ChainType)
 	return charts.Update()
 }
 
@@ -300,7 +301,7 @@ func (charts *MutilchainChartData) gobject() *ChartGobject {
 		Time:      charts.Blocks.Time,
 		BlockSize: charts.Blocks.BlockSize,
 		TxCount:   charts.Blocks.TxCount,
-		NewAtoms:  charts.Blocks.NewAtoms,
+		Reward:    charts.Blocks.Reward,
 		Fees:      charts.Blocks.Fees,
 		PowDiff:   charts.Blocks.Difficulty,
 		Hashrate:  charts.Blocks.Hashrate,
@@ -338,7 +339,7 @@ func (charts *MutilchainChartData) validState(stateID uint64) bool {
 func (charts *MutilchainChartData) Height() int32 {
 	charts.mtx.RLock()
 	defer charts.mtx.RUnlock()
-	return int32(len(charts.Blocks.Time)) - 1
+	return int32(len(charts.Blocks.Height)) - 1
 }
 
 // FeesTip is the height of the Fees data.
@@ -461,6 +462,33 @@ func NewBTCChartData(ctx context.Context, height uint32, chainParams *btcchaincf
 	}
 }
 
+func NewXMRChartData(ctx context.Context, xmrClient *xmrclient.XMRClient, height uint32, lastBlockHeight int64) *MutilchainChartData {
+	genesisBl, err := xmrClient.GetBlockHeaderByHeight(uint64(1))
+	if err != nil {
+		log.Errorf("XMR: Get genesis block failed: %v", err)
+		return nil
+	}
+	info, err := xmrClient.GetInfo()
+	if err != nil {
+		log.Errorf("XMR: Get blockchain info failed: %v", err)
+		return nil
+	}
+	size := int(height * 5 / 4)
+	days := int(time.Since(time.Unix(int64(genesisBl.Timestamp), 0))/time.Hour/24)*5/4 + 1 // at least one day
+
+	return &MutilchainChartData{
+		ctx:             ctx,
+		Blocks:          newBlockSet(size),
+		Days:            newDaySet(days),
+		cache:           make(map[string]*cachedChart),
+		updaters:        make([]ChartMutilchainUpdater, 0),
+		TimePerBlocks:   float64(info.Target),
+		ChainType:       mutilchain.TYPEXMR,
+		LastBlockHeight: lastBlockHeight,
+		// UseSyncDB:       !disabledDBSync,
+	}
+}
+
 // Grabs the cacheID associated with the provided BinLevel. Should
 // be called under at least a (ChartData).cacheMtx.RLock.
 func (charts *MutilchainChartData) cacheID(bin binLevel) uint64 {
@@ -518,6 +546,18 @@ var mutilchainChartMaker = map[string]MutilchainChartMaker{
 	AddressNumber:  MutilchainAddressNumber,
 }
 
+var xmrChartMaker = map[string]MutilchainChartMaker{
+	BlockSize:      xmrBlockSizeChart,
+	BlockChainSize: xmrBlockchainSizeChart,
+	CoinSupply:     xmrCoinSupplyChart,
+	DurationBTW:    xmrDurationBTWChart,
+	HashRate:       xmrHashrateChart,
+	POWDifficulty:  xmrDifficultyChart,
+	TxCount:        xmrTxCountChart,
+	Fees:           xmrFeesChart,
+	TxNumPerBlock:  xmrTxsPerBlockChart,
+}
+
 // Chart will return a JSON-encoded chartResponse of the provided chart,
 // binLevel, and axis (TimeAxis, HeightAxis). binString is ignored for
 // window-binned charts.
@@ -528,7 +568,13 @@ func (charts *MutilchainChartData) Chart(chartID, binString, axisString string) 
 	if found && cache.cacheID == cacheID {
 		return cache.data, nil
 	}
-	maker, hasMaker := mutilchainChartMaker[chartID]
+	var maker MutilchainChartMaker
+	var hasMaker bool
+	if charts.ChainType == mutilchain.TYPEXMR {
+		maker, hasMaker = xmrChartMaker[chartID]
+	} else {
+		maker, hasMaker = mutilchainChartMaker[chartID]
+	}
 	if !hasMaker {
 		return nil, UnknownChartErr
 	}
@@ -542,6 +588,301 @@ func (charts *MutilchainChartData) Chart(chartID, binString, axisString string) 
 	}
 	charts.cacheChart(chartID, bin, axis, data)
 	return data, nil
+}
+
+func xmrCoinSupplyChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				supplyKey: accumulateFloat(charts.Blocks.Reward),
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:   charts.Blocks.Time,
+				supplyKey: accumulateFloat(charts.Blocks.Reward),
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Reward,
+				supplyKey: accumulateFloat(charts.Days.Reward),
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:   charts.Days.Time,
+				supplyKey: accumulateFloat(charts.Days.Reward),
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrBlockSizeChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				sizeKey: charts.Blocks.BlockSize,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Blocks.Time,
+				sizeKey: charts.Blocks.BlockSize,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				sizeKey:   charts.Days.BlockSize,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Days.Time,
+				sizeKey: charts.Days.BlockSize,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrBlockchainSizeChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				sizeKey: accumulate(charts.Blocks.BlockSize),
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Blocks.Time,
+				sizeKey: accumulate(charts.Blocks.BlockSize),
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				sizeKey:   accumulate(charts.Days.BlockSize),
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Days.Time,
+				sizeKey: accumulate(charts.Days.BlockSize),
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrFeesChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				feesKey: charts.Blocks.Fees,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Blocks.Time,
+				feesKey: charts.Blocks.Fees,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				feesKey:   charts.Days.Fees,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Days.Time,
+				feesKey: charts.Days.Fees,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrTxCountChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				countKey: accumulate(charts.Blocks.TxCount),
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:  charts.Blocks.Time,
+				countKey: accumulate(charts.Blocks.TxCount),
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				countKey:  accumulate(charts.Days.TxCount),
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:  charts.Days.Time,
+				countKey: accumulate(charts.Days.TxCount),
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrTxsPerBlockChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				countKey: charts.Blocks.TxCount,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:  charts.Blocks.Time,
+				countKey: charts.Blocks.TxCount,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				countKey:  charts.Days.TxCount,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:  charts.Days.Time,
+				countKey: charts.Days.TxCount,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrDifficultyChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				diffKey: charts.Blocks.Difficulty,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Blocks.Time,
+				diffKey: charts.Blocks.Difficulty,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				diffKey:   charts.Days.Difficulty,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Days.Time,
+				diffKey: charts.Days.Difficulty,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrHashrateChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				rateKey: charts.Blocks.Hashrate,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Blocks.Time,
+				rateKey: charts.Blocks.Hashrate,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey: charts.Days.Height,
+				rateKey:   charts.Days.Hashrate,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey: charts.Days.Time,
+				rateKey: charts.Days.Hashrate,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrDurationBTWChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			_, diffs := blockTimes(charts.Blocks.Time)
+			return encode(lengtherMap{
+				durationKey: diffs,
+			}, seed)
+		default:
+			times, diffs := blockTimes(charts.Blocks.Time)
+			return encode(lengtherMap{
+				timeKey:     times,
+				durationKey: diffs,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			if len(charts.Days.Height) < 2 {
+				return nil, fmt.Errorf("found the length of charts.Days.Height slice to be less than 2")
+			}
+			_, diffs := avgBlockTimes(charts.Days.Time, charts.Blocks.Time)
+			return encode(lengtherMap{
+				heightKey:   charts.Days.Height[:len(charts.Days.Height)-1],
+				durationKey: diffs,
+			}, seed)
+		default:
+			times, diffs := avgBlockTimes(charts.Days.Time, charts.Blocks.Time)
+			return encode(lengtherMap{
+				timeKey:     times,
+				durationKey: diffs,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
 }
 
 func MutilchainBlockSizeChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {

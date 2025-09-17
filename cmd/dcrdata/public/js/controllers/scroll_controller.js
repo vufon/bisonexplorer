@@ -237,7 +237,7 @@ export default class extends Controller {
   }
 
   isSameChainChart (chartType, oldCoin, newCoin) {
-    const sameChart = ['block-size', 'blockchain-size', 'tx-count', 'pow-difficulty', 'coin-supply', 'fees', 'duration-btw-blocks', 'hashrate']
+    const sameChart = ['block-size', 'blockchain-size', 'tx-count', 'pow-difficulty', 'coin-supply', 'fees', 'hashrate']
     if (oldCoin !== 'dcr' && newCoin !== 'dcr') {
       return true
     }
