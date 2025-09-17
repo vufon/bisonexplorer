@@ -47,6 +47,8 @@ const decredChartOpts = ['ticket-price', 'ticket-pool-size', 'ticket-pool-value'
   'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const mutilchainChartOpts = ['block-size', 'blockchain-size', 'tx-count', 'tx-per-block', 'address-number',
   'pow-difficulty', 'hashrate', 'mined-blocks', 'mempool-size', 'mempool-txs', 'coin-supply', 'fees']
+const xmrChartOpts = ['block-size', 'blockchain-size', 'tx-count', 'tx-per-block',
+  'pow-difficulty', 'hashrate', 'coin-supply', 'fees', 'duration-btw-blocks']
 let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
@@ -1614,7 +1616,7 @@ export default class extends Controller {
     }
     const _this = this
     let reinitChartType = false
-    reinitChartType = this.chainType === 'dcr' || chain === 'dcr'
+    reinitChartType = this.chainType === 'dcr' || chain === 'dcr' || this.chainType === 'xmr' || chain === 'xmr'
     this.chainType = chain
     // reinit
     if (reinitChartType) {
@@ -1767,7 +1769,7 @@ export default class extends Controller {
 
   getSelectedChart () {
     let hasChart = false
-    const chartOpts = this.chainType === 'dcr' ? decredChartOpts : mutilchainChartOpts
+    const chartOpts = this.chainType === 'dcr' ? decredChartOpts : (this.chainType === 'xmr' ? xmrChartOpts : mutilchainChartOpts)
     const _this = this
     chartOpts.forEach((opt) => {
       if (_this.settings.chart === opt) {
@@ -1816,24 +1818,26 @@ export default class extends Controller {
   }
 
   getMutilchainChartOptsHtml () {
-    return '<optgroup label="Chain">' +
-      '<option value="block-size">Block Size</option>' +
-      '<option value="blockchain-size">Blockchain Size</option>' +
-      '<option value="tx-count">Transaction Count</option>' +
-      '<option value="tx-per-block">TXs Per Blocks</option>' +
-      '<option value="address-number">Active Addresses</option>' +
-      '</optgroup>' +
-      '<optgroup label="Mining">' +
-      '<option value="pow-difficulty">Difficulty</option>' +
-      '<option value="hashrate">Hashrate</option>' +
-      '<option value="mined-blocks">Mined Blocks</option>' +
-      '<option value="mempool-size">Mempool Size</option>' +
-      '<option value="mempool-txs">Mempool TXs</option>' +
-      '</optgroup>' +
-      '<optgroup label="Distribution">' +
-      '<option value="coin-supply">Coin Supply</option>' +
-      '<option value="fees">Fees</option>' +
-      '</optgroup>'
+    return `<optgroup label="Chain">
+      <option value="block-size">Block Size</option>
+      <option value="blockchain-size">Blockchain Size</option>
+      <option value="tx-count">Transaction Count</option>
+      <option value="tx-per-block">TXs Per Blocks</option>
+      ${this.chainType === 'xmr' ? '<option value="duration-btw-blocks">Duration Between Blocks</option>' : '<option value="address-number">Active Addresses</option>'}
+      </optgroup>
+      <optgroup label="Mining">
+      <option value="pow-difficulty">Difficulty</option>
+      <option value="hashrate">Hashrate</option>
+      ${this.chainType === 'xmr'
+? ''
+: `<option value="mined-blocks">Mined Blocks</option>
+      <option value="mempool-size">Mempool Size</option>
+      <option value="mempool-txs">Mempool TXs</option>`}
+      </optgroup>
+      <optgroup label="Distribution">
+      <option value="coin-supply">Coin Supply</option>
+      <option value="fees">Fees</option>
+      </optgroup>`
   }
 
   async selectChart () {

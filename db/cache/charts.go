@@ -345,7 +345,7 @@ type ZoomSet struct {
 	Fees              ChartUints
 	TotalMixed        ChartUints
 	AnonymitySet      ChartUints
-	Reward            ChartUints
+	Reward            ChartFloats
 	Difficulty        ChartFloats
 	Hashrate          ChartFloats
 	MarketPrice       ChartFloats
@@ -404,6 +404,7 @@ func newBlockSet(size int) *ZoomSet {
 		CoinAgeBands:      newChartAgeCoinBands(size),
 		MeanCoinAge:       newChartFloats(size),
 		TotalCoinDays:     newChartFloats(size),
+		Reward:            newChartFloats(size),
 	}
 }
 
@@ -462,7 +463,7 @@ type ChartGobject struct {
 	TxCount           ChartUints
 	NewAtoms          ChartUints
 	Chainwork         ChartUints
-	Reward            ChartUints
+	Reward            ChartFloats
 	Difficulty        ChartFloats
 	Fees              ChartUints
 	WindowTime        ChartUints
@@ -1279,6 +1280,16 @@ func encode(sets lengtherMap, seed chartResponse) ([]byte, error) {
 func accumulate(data ChartUints) ChartUints {
 	d := make(ChartUints, 0, len(data))
 	var accumulator uint64
+	for _, v := range data {
+		accumulator += v
+		d = append(d, accumulator)
+	}
+	return d
+}
+
+func accumulateFloat(data ChartFloats) ChartFloats {
+	d := make(ChartFloats, 0, len(data))
+	var accumulator float64
 	for _, v := range data {
 		accumulator += v
 		d = append(d, accumulator)

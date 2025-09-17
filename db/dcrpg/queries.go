@@ -29,6 +29,7 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/utils"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/lib/pq"
 
@@ -4280,7 +4281,7 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 
 func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) error {
 	defer closeRows(rows)
-	var timeDef dbtypes.TimeDef
+	var timeInt uint64
 	var count, size, height, reward, fees uint64
 	var difficult float64
 	var rowCount int32
@@ -4288,14 +4289,17 @@ func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 	for rows.Next() {
 		rowCount++
 		// Get the chainwork.
-		err := rows.Scan(&height, &size, &timeDef, &count, &difficult, &fees, &reward)
+		err := rows.Scan(&height, &size, &timeInt, &count, &difficult, &fees, &reward)
 		if err != nil {
 			return err
+		}
+		if timeInt == 0 {
+			continue
 		}
 		blocks.Height = append(blocks.Height, height)
 		blocks.BlockSize = append(blocks.BlockSize, size)
 		blocks.TxCount = append(blocks.TxCount, count)
-		blocks.Time = append(blocks.Time, uint64(timeDef.T.Unix()))
+		blocks.Time = append(blocks.Time, timeInt)
 		blocks.BlockSize = append(blocks.BlockSize, size)
 		blocks.Difficulty = append(blocks.Difficulty, difficult)
 		hashrate := float64(0)
@@ -4304,7 +4308,8 @@ func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 		}
 		blocks.Hashrate = append(blocks.Hashrate, hashrate)
 		blocks.Fees = append(blocks.Fees, fees)
-		blocks.Reward = append(blocks.Reward, reward)
+		rewardFloat := utils.AtomicToXMR(reward)
+		blocks.Reward = append(blocks.Reward, rewardFloat)
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)

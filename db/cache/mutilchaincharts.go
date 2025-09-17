@@ -265,7 +265,7 @@ func (charts *MutilchainChartData) Load(cacheDumpPath string) error {
 	}
 
 	// Bring the charts up to date.
-	log.Infof("Updating multicharts data...")
+	log.Infof("%s: Updating multicharts data...", charts.ChainType)
 	return charts.Update()
 }
 
@@ -597,12 +597,12 @@ func xmrCoinSupplyChart(charts *MutilchainChartData, bin binLevel, axis axisType
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				supplyKey: accumulate(charts.Blocks.Reward),
+				supplyKey: accumulateFloat(charts.Blocks.Reward),
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey:   charts.Blocks.Time,
-				supplyKey: accumulate(charts.Blocks.Reward),
+				supplyKey: accumulateFloat(charts.Blocks.Reward),
 			}, seed)
 		}
 	case DayBin:
@@ -610,12 +610,12 @@ func xmrCoinSupplyChart(charts *MutilchainChartData, bin binLevel, axis axisType
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey: charts.Days.Reward,
-				supplyKey: accumulate(charts.Days.Reward),
+				supplyKey: accumulateFloat(charts.Days.Reward),
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey:   charts.Days.Time,
-				supplyKey: accumulate(charts.Days.Reward),
+				supplyKey: accumulateFloat(charts.Days.Reward),
 			}, seed)
 		}
 	}
@@ -693,12 +693,12 @@ func xmrFeesChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]b
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				diffKey: charts.Blocks.Fees,
+				feesKey: charts.Blocks.Fees,
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey: charts.Blocks.Time,
-				diffKey: charts.Blocks.Fees,
+				feesKey: charts.Blocks.Fees,
 			}, seed)
 		}
 	case DayBin:
@@ -706,12 +706,12 @@ func xmrFeesChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]b
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey: charts.Days.Height,
-				diffKey:   charts.Days.Fees,
+				feesKey:   charts.Days.Fees,
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
-				diffKey: charts.Days.Fees,
+				feesKey: charts.Days.Fees,
 			}, seed)
 		}
 	}
@@ -725,12 +725,12 @@ func xmrTxCountChart(charts *MutilchainChartData, bin binLevel, axis axisType) (
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				diffKey: accumulate(charts.Blocks.TxCount),
+				countKey: accumulate(charts.Blocks.TxCount),
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey: charts.Blocks.Time,
-				diffKey: accumulate(charts.Blocks.TxCount),
+				timeKey:  charts.Blocks.Time,
+				countKey: accumulate(charts.Blocks.TxCount),
 			}, seed)
 		}
 	case DayBin:
@@ -738,12 +738,12 @@ func xmrTxCountChart(charts *MutilchainChartData, bin binLevel, axis axisType) (
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey: charts.Days.Height,
-				diffKey:   accumulate(charts.Days.TxCount),
+				countKey:  accumulate(charts.Days.TxCount),
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey: charts.Days.Time,
-				diffKey: accumulate(charts.Days.TxCount),
+				timeKey:  charts.Days.Time,
+				countKey: accumulate(charts.Days.TxCount),
 			}, seed)
 		}
 	}
@@ -757,12 +757,12 @@ func xmrTxsPerBlockChart(charts *MutilchainChartData, bin binLevel, axis axisTyp
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				diffKey: charts.Blocks.TxCount,
+				countKey: charts.Blocks.TxCount,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey: charts.Blocks.Time,
-				diffKey: charts.Blocks.TxCount,
+				timeKey:  charts.Blocks.Time,
+				countKey: charts.Blocks.TxCount,
 			}, seed)
 		}
 	case DayBin:
@@ -770,12 +770,12 @@ func xmrTxsPerBlockChart(charts *MutilchainChartData, bin binLevel, axis axisTyp
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey: charts.Days.Height,
-				diffKey:   charts.Days.TxCount,
+				countKey:  charts.Days.TxCount,
 			}, seed)
 		default:
 			return encode(lengtherMap{
-				timeKey: charts.Days.Time,
-				diffKey: charts.Days.TxCount,
+				timeKey:  charts.Days.Time,
+				countKey: charts.Days.TxCount,
 			}, seed)
 		}
 	}
