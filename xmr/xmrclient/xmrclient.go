@@ -180,16 +180,31 @@ func (c *XMRClient) GetInfo() (*xmrutil.BlockchainInfo, error) {
 // GetTransactionsResult models the common fields returned by get_transactions.
 type GetTransactionsResult struct {
 	// Transaction payload
-	TxsHashes   []string          `json:"txs_hashes,omitempty"`
-	TxsAsHex    []string          `json:"txs_as_hex,omitempty"`
-	TxsAsJSON   []string          `json:"txs_as_json,omitempty"`
-	MissedTx    []string          `json:"missed_tx,omitempty"`
-	MissedTxIDs []string          `json:"missed_txids,omitempty"`
-	InvalidTxs  []string          `json:"invalid_txids,omitempty"`
-	Status      string            `json:"status,omitempty"`
-	TopHash     string            `json:"top_hash,omitempty"`
-	Credits     uint64            `json:"credits,omitempty"`
-	Txs         []json.RawMessage `json:"txs,omitempty"`
+	TxsHashes   []string `json:"txs_hashes,omitempty"`
+	TxsAsHex    []string `json:"txs_as_hex,omitempty"`
+	TxsAsJSON   []string `json:"txs_as_json,omitempty"`
+	MissedTx    []string `json:"missed_tx,omitempty"`
+	MissedTxIDs []string `json:"missed_txids,omitempty"`
+	InvalidTxs  []string `json:"invalid_txids,omitempty"`
+	Status      string   `json:"status,omitempty"`
+	TopHash     string   `json:"top_hash,omitempty"`
+	Credits     uint64   `json:"credits,omitempty"`
+	Txs         []TxInfo `json:"txs,omitempty"`
+}
+
+type TxInfo struct {
+	AsHex           string   `json:"as_hex"`
+	AsJSON          string   `json:"as_json"`
+	BlockHeight     int64    `json:"block_height"`
+	BlockTimestamp  uint64   `json:"block_timestamp"`
+	Confirmations   uint64   `json:"confirmations"`
+	DoubleSpendSeen bool     `json:"double_spend_seen"`
+	InPool          bool     `json:"in_pool"`
+	OutputIndices   []uint64 `json:"output_indices"`
+	PrunableAsHex   string   `json:"prunable_as_hex"`
+	PrunableHash    string   `json:"prunable_hash"`
+	PrunedAsHex     string   `json:"pruned_as_hex"`
+	TxHash          string   `json:"tx_hash"`
 }
 
 type truncatedJSONError struct {
@@ -534,5 +549,33 @@ func (c *XMRClient) GetTransactionPoolStats() (*xmrutil.GetTransactionPoolStatsR
 	if err := c.postDirect("/get_transaction_pool_stats", nil, &res); err != nil {
 		return nil, err
 	}
+	return &res, nil
+}
+
+func (c *XMRClient) GetOuts(globalIndices []uint64) (*xmrutil.GetOutsResult, error) {
+	// prepare params
+	outputs := make([]map[string]interface{}, len(globalIndices))
+	for i, index := range globalIndices {
+		outputs[i] = map[string]interface{}{
+			"index": index,
+		}
+	}
+	params := map[string]interface{}{
+		"get_txid": true,
+		"outputs":  outputs,
+	}
+
+	// Call endpoint /get_outs
+	var res xmrutil.GetOutsResult
+	err := c.postCore("get_outs", params, &res)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call get_outs: %w", err)
+	}
+
+	// Check status
+	if res.Status != "OK" {
+		return nil, fmt.Errorf("get_outs returned non-OK status: %s", res.Status)
+	}
+
 	return &res, nil
 }

@@ -198,11 +198,11 @@ type XmrTxFull struct {
 	Confirmed     bool   `json:"confirmed"`   // true if in chain
 	Sent          int64  `json:"sent"`
 	// Fees & totals (maps -> rct_data / transactions)
-	Fee          int64   `json:"fee"`           // atomic units (0 if unknown)
-	FeePerKB     float64 `json:"fee_per_kb"`    // optional derived
-	TotalInputs  uint64  `json:"total_inputs"`  // atomic; may be 0 if not known
-	TotalOutputs uint64  `json:"total_outputs"` // atomic; may be 0 if not known
-
+	Fee           int64   `json:"fee"`           // atomic units (0 if unknown)
+	FeePerKB      float64 `json:"fee_per_kb"`    // optional derived
+	TotalInputs   uint64  `json:"total_inputs"`  // atomic; may be 0 if not known
+	TotalOutputs  uint64  `json:"total_outputs"` // atomic; may be 0 if not known
+	Confirmations uint64  `json:"confirmations"`
 	// counts & ring info
 	InputsCount  int   `json:"inputs_count"`
 	OutputsCount int   `json:"outputs_count"`
@@ -263,10 +263,14 @@ type XmrRingMemberInfo struct {
 
 // KeyImageInfo: table key_images mapping
 type XmrKeyImageInfo struct {
-	KeyImage  string `json:"key_image"`
-	SeenAtTx  string `json:"seen_at_tx,omitempty"` // tx hash where first seen
-	SpentAtTx string `json:"spent_at_tx,omitempty"`
-	Spent     bool   `json:"spent"`
+	KeyImage    string               `json:"key_image"`
+	SeenAtTx    string               `json:"seen_at_tx,omitempty"` // tx hash where first seen
+	SpentAtTx   string               `json:"spent_at_tx,omitempty"`
+	Spent       bool                 `json:"spent"`
+	TextIsHash  bool                 `json:"text_is_hash"`
+	DisplayText string               `json:"display_text"`
+	RingMembers []uint64             `json:"ring_members"`
+	RingCtOuts  []xmrutil.OutputInfo `json:"ring_ct_outs"`
 }
 
 // RctData minimal wrapper for rct metadata (store raw or parsed)
@@ -321,9 +325,30 @@ func AtomicToXMR(v int64) float64 {
 	return float64(v) / 1e12
 }
 
+type XmrTxBasic struct {
+	TxPublicKey    string
+	XmrFee         uint64
+	XmrFeeRate     float64
+	InputsCount    uint64
+	OutputsCount   uint64
+	RingSizes      []int
+	KeyImages      []XmrKeyImageInfo
+	Outputs        []XmrOutputInfo
+	RingMembers    []XmrRingMemberInfo
+	MaxGlobalIndex uint64
+	Rct            *XmrRctData
+	ExtraParsed    *XmrTxExtra
+	UnlockTime     uint64
+	Mixin          int
+	ExtraRaw       string
+	RawHex         string
+	RingCT         bool
+}
+
 // TxInfo models data needed for display on the tx page
 type TxInfo struct {
 	*TxBasic
+	*XmrTxBasic
 	SpendingTxns       []TxInID
 	Vin                []Vin
 	MutilchainVin      []MutilchainVin
@@ -344,6 +369,8 @@ type TxInfo struct {
 	SwapsList          []*dbtypes.AtomicSwapFullData
 	SwapsType          string
 	SimpleListMode     bool
+	Confirmed          bool
+	InPool             bool
 	TicketInfo
 }
 

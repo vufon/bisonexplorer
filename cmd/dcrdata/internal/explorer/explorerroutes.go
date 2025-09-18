@@ -1398,18 +1398,19 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	if chainType == "" {
 		return
 	}
-
-	validTransaction := exp.IsValidTransaction(hash, chainType)
-	if !validTransaction {
-		exp.StatusPage(w, defaultErrorCode, "Invalid transaction ID", "", ExpStatusError)
-		return
+	if chainType != mutilchain.TYPEXMR {
+		validTransaction := exp.IsValidTransaction(hash, chainType)
+		if !validTransaction {
+			exp.StatusPage(w, defaultErrorCode, "Invalid transaction ID", "", ExpStatusError)
+			return
+		}
 	}
 
 	tx := exp.dataSource.GetMutilchainExplorerTx(hash, chainType)
-
-	// If dcrd has no information about the transaction, pull the transaction
-	// details from the auxiliary DB database.
-	if tx == nil {
+	if chainType == mutilchain.TYPEXMR && tx == nil {
+		exp.StatusPage(w, defaultErrorCode, "XMR: Get transaction by ID failed", "", ExpStatusError)
+		return
+	} else if tx == nil {
 		log.Warnf("No transaction information for %v. Trying tables in case this is an orphaned txn.", hash)
 		// Search for occurrences of the transaction in the database.
 		dbTxs, err := exp.dataSource.MutilchainTransaction(hash, chainType)
@@ -1523,82 +1524,89 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 			})
 		}
 		tx.FeeCoin = totalVin - totalVout
-	} // tx == nil (not found by dcrd)
-	// For each output of this transaction, look up any spending transactions,
-	// and the index of the spending transaction input.
-	spendingTxHashes, spendingTxVinInds, voutInds, err := exp.dataSource.MutilchainSpendingTransactions(hash, chainType)
-	if exp.timeoutErrorPage(w, err, "SpendingTransactions") {
-		return
 	}
-	if err != nil {
-		log.Errorf("Unable to retrieve spending transactions for %s: %v", hash, err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, hash, ExpStatusError)
-		return
-	}
-	for i, vout := range voutInds {
-		if int(vout) >= len(tx.SpendingTxns) {
-			log.Errorf("Invalid spending transaction data (%s:%d)", hash, vout)
-			continue
-		}
-		tx.SpendingTxns[vout] = types.TxInID{
-			Hash:  spendingTxHashes[i],
-			Index: spendingTxVinInds[i],
-		}
-	}
-	// For an unconfirmed tx, get the time it was received in explorer's mempool.
-	if tx.BlockHeight == 0 {
-		tx.Time = types.NewTimeDefFromUNIX(exp.dataSource.GetMutilchainMempoolTxTime(tx.TxID, chainType))
-	}
-
-	for index, _ := range tx.MutilchainVin {
-		tx.MutilchainVin[index].TextIsHash = true
-		tx.MutilchainVin[index].DisplayText = tx.TxID
-	}
-	// Find atomic swaps related to this tx
 	swapsInfo := txhelpers.MultichainTxSwapResults{}
 	var swapFirstSource *dbtypes.AtomicSwapForTokenData
 	var isRefund bool
-	relatedContract, swapType, err := exp.dataSource.GetMultichainSwapFullData(tx.TxID, "", chainType)
-	if err == nil {
-		swapsInfo.Found = utils.GetSwapTypeDisplay(swapType)
-		swapFirstSource = relatedContract.Source
-		isRefund = relatedContract.IsRefund
-		tx.SimpleListMode = true
-		tx.SwapsType = swapType
-		tx.SwapsList = make([]*dbtypes.AtomicSwapFullData, 0)
-		tx.SwapsList = append(tx.SwapsList, relatedContract)
-		// Prepare the string to display for previous outpoint.
-		if relatedContract.Target != nil && len(relatedContract.Target.Results) > 0 {
-			for _, contractData := range relatedContract.Target.Contracts {
-				// if tx is contract. check vout
-				if contractData.Txid == tx.TxID {
-					voutIndexs, err := exp.dataSource.GetMutilchainVoutIndexsOfContract(contractData.Txid, chainType)
-					if err == nil {
-						for _, voutIndex := range voutIndexs {
-							if len(tx.Vout) > voutIndex {
-								if isRefund {
-									tx.Vout[voutIndex].Type = "swap refund"
-									continue
+	if chainType != mutilchain.TYPEXMR {
+		// For each output of this transaction, look up any spending transactions,
+		// and the index of the spending transaction input.
+		spendingTxHashes, spendingTxVinInds, voutInds, err := exp.dataSource.MutilchainSpendingTransactions(hash, chainType)
+		if exp.timeoutErrorPage(w, err, "SpendingTransactions") {
+			return
+		}
+		if err != nil {
+			log.Errorf("Unable to retrieve spending transactions for %s: %v", hash, err)
+			exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, hash, ExpStatusError)
+			return
+		}
+		for i, vout := range voutInds {
+			if int(vout) >= len(tx.SpendingTxns) {
+				log.Errorf("Invalid spending transaction data (%s:%d)", hash, vout)
+				continue
+			}
+			tx.SpendingTxns[vout] = types.TxInID{
+				Hash:  spendingTxHashes[i],
+				Index: spendingTxVinInds[i],
+			}
+		}
+		// For an unconfirmed tx, get the time it was received in explorer's mempool.
+		if tx.BlockHeight == 0 {
+			tx.Time = types.NewTimeDefFromUNIX(exp.dataSource.GetMutilchainMempoolTxTime(tx.TxID, chainType))
+		}
+
+		for index, _ := range tx.MutilchainVin {
+			tx.MutilchainVin[index].TextIsHash = true
+			tx.MutilchainVin[index].DisplayText = tx.TxID
+		}
+		// Find atomic swaps related to this tx
+		relatedContract, swapType, err := exp.dataSource.GetMultichainSwapFullData(tx.TxID, "", chainType)
+		if err == nil {
+			swapsInfo.Found = utils.GetSwapTypeDisplay(swapType)
+			swapFirstSource = relatedContract.Source
+			isRefund = relatedContract.IsRefund
+			tx.SimpleListMode = true
+			tx.SwapsType = swapType
+			tx.SwapsList = make([]*dbtypes.AtomicSwapFullData, 0)
+			tx.SwapsList = append(tx.SwapsList, relatedContract)
+			// Prepare the string to display for previous outpoint.
+			if relatedContract.Target != nil && len(relatedContract.Target.Results) > 0 {
+				for _, contractData := range relatedContract.Target.Contracts {
+					// if tx is contract. check vout
+					if contractData.Txid == tx.TxID {
+						voutIndexs, err := exp.dataSource.GetMutilchainVoutIndexsOfContract(contractData.Txid, chainType)
+						if err == nil {
+							for _, voutIndex := range voutIndexs {
+								if len(tx.Vout) > voutIndex {
+									if isRefund {
+										tx.Vout[voutIndex].Type = "swap refund"
+										continue
+									}
+									tx.Vout[voutIndex].Type = "swap redemption"
 								}
-								tx.Vout[voutIndex].Type = "swap redemption"
+							}
+						}
+					}
+				}
+				for _, targetSpend := range relatedContract.Target.Results {
+					// if tx is redemption/refund, check vin
+					if targetSpend.Txid == tx.TxID {
+						vinIndexs, err := exp.dataSource.GetMutilchainVinIndexsOfRedeem(targetSpend.Txid, chainType)
+						if err == nil {
+							for _, vinIndex := range vinIndexs {
+								if len(tx.MutilchainVin) > vinIndex {
+									tx.MutilchainVin[vinIndex].DisplayText = "swap contract"
+								}
 							}
 						}
 					}
 				}
 			}
-			for _, targetSpend := range relatedContract.Target.Results {
-				// if tx is redemption/refund, check vin
-				if targetSpend.Txid == tx.TxID {
-					vinIndexs, err := exp.dataSource.GetMutilchainVinIndexsOfRedeem(targetSpend.Txid, chainType)
-					if err == nil {
-						for _, vinIndex := range vinIndexs {
-							if len(tx.MutilchainVin) > vinIndex {
-								tx.MutilchainVin[vinIndex].DisplayText = "swap contract"
-							}
-						}
-					}
-				}
-			}
+		}
+	} else {
+		for index, ki := range tx.KeyImages {
+			tx.KeyImages[index].TextIsHash = true
+			tx.KeyImages[index].DisplayText = ki.KeyImage
 		}
 	}
 

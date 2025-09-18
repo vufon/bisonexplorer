@@ -15,17 +15,20 @@
       <a href="/{{$ChainType}}" class="breadcrumbs__item item-link">{{chainName $ChainType}}</a>
       <span class="breadcrumbs__item is-active">Transaction</span>
    </nav>
-   {{$isMempool := (eq .BlockHeight 0)}}
+   {{$isMempool := .InPool}}
    <div class="row px-1 my-2">
       <div class="col-24 col-xl-12 bg-green-3 p-3 p-sm-4 position-relative common-card">
          <div class="card-pointer pointer-right d-none d-xl-block"></div>
          <div class="card-pointer pointer-bottom d-xl-none"></div>
          <div class="pb-1 ps-1 d-flex ai-center">
             <img src="/images/{{$ChainType}}-icons.png" width="20" height="20">
-            <div class="d-inline-block confirmations-box mx-2 fs14" data-controller="newblock"
-               data-newblock-target="confirmations" data-tx-target="confirmations"
-               data-confirmations="{{.Confirmations}}" data-yes="# confirmation@" data-no="unconfirmed"
-               data-confirmation-block-height="{{if eq .Confirmations 0}}-1{{else}}{{.BlockHeight}}{{end}}">
+            <div class="d-inline-block confirmations-box mx-2 fs14" 
+               {{if ne $ChainType "xmr"}}
+                  data-controller="newblock"
+                  data-newblock-target="confirmations" data-tx-target="confirmations"
+                  data-confirmations="{{.Confirmations}}" data-yes="# confirmation@" data-no="unconfirmed"
+                  data-confirmation-block-height="{{if eq .Confirmations 0}}-1{{else}}{{.BlockHeight}}{{end}}"
+               {{end}}>
                {{.Confirmations}} confirmations
             </div>
             {{if $.SwapsFound}}
@@ -49,7 +52,15 @@
             <div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.TxID}}{{template
                "copyTextIcon"}}</div>
          </div>
+         {{if eq $ChainType "xmr"}}
+         <div class="text-start lh1rem py-2">
+            <div class="fs13 text-secondary pb-1">Tx public key</div>
+            <div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.TxPublicKey}}{{template
+               "copyTextIcon"}}</div>
+         </div>
+         {{end}}
          <div class="row py-2">
+            {{if ne $ChainType "xmr"}}
             <div class="col-8 text-start">
                <span class="text-secondary fs13">Total Sent</span>
                <br>
@@ -67,6 +78,7 @@
                </div>
                {{end}}
             </div>
+            {{end}}
             <div class="col-8 tx-block-num">
                <span class="text-secondary fs13"><span class="d-none d-sm-inline">Included in Block</span><span
                      class="d-sm-none">Block #</span></span>
@@ -108,12 +120,20 @@
          <table class="w-100 fs14 my-1 mb-xl-3">
             <tbody>
                <tr>
+                  {{if ne $ChainType "xmr"}}
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Raw Tx:</td>
                   <td class="text-start py-1">
-                     <a href="/api/tx/decoded/{{$ChainType}}/{{.TxID}}?indent=true" class="c-green" data-turbolinks="false">decoded</a>
+                     <a href="/api/tx/decoded/{{$ChainType}}/{{.TxID}}?indent=true" class="c-green"
+                        data-turbolinks="false">decoded</a>
                      &middot;
                      <a href="/api/tx/hex/{{$ChainType}}/{{.TxID}}" class="c-green" data-turbolinks="false">hex</a>
                   </td>
+                  {{else}}
+                  <td class="text-end medium-sans text-nowrap pe-2 py-2">RingCT/type:</td>
+                  <td class="text-start py-1">
+                     {{.RingCT}}{{if .RingCT}}/{{.Rct.RctType}}{{end}}
+                  </td>
+                  {{end}}
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Time:</td>
                   <td class="text-start py-1" data-tx-target="formattedAge">{{.Time.String}}</td>
                </tr>
@@ -129,13 +149,19 @@
                   <td class="text-start py-1" colspan="3">{{.BlockHash}}</td>
                </tr>
                {{end}}
+               {{if eq $ChainType "xmr"}}
+               <tr>
+                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Extra:</td>
+                  <td class="text-start break-word py-1" colspan="3">{{.ExtraRaw}}</td>
+               </tr>
+               {{end}}
                {{if $.SwapsFound}}
                <tr>
-                 <td class="text-end medium-sans text-nowrap pe-2 py-2">Swaps Info:
-                 </td>
-                 <td class="text-start py-1 text-secondary"><a class="c-green" href="/api/tx/swaps/{{$ChainType}}/{{.TxID}}?indent=true"
-                     data-turbolinks="false">swaps</a>
-                 </td>
+                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Swaps Info:
+                  </td>
+                  <td class="text-start py-1 text-secondary"><a class="c-green"
+                        href="/api/tx/swaps/{{$ChainType}}/{{.TxID}}?indent=true" data-turbolinks="false">swaps</a>
+                  </td>
                </tr>
                {{end}}
             </tbody>
@@ -143,6 +169,7 @@
          <span></span>{{/* dummy for flex alignment */}}
       </div>
    </div>
+   {{if ne $ChainType "xmr"}}
    <div class="row mb-3">
       <div class="col-lg-12 mt-4 mb-2">
          <h5 class="pb-2">{{len .MutilchainVin}} Input{{if gt (len .MutilchainVin) 1}}s{{end}} Consumed</h5>
@@ -244,21 +271,117 @@
          </div>
       </div>
    </div>
+   {{else}}
+   <div class="row mb-3">
+      <div class="col-lg-12 mt-4 mb-2">
+         <h5 class="pb-2">{{len .KeyImages}} Input{{if gt (len .KeyImages) 1}}s{{end}} Consumed</h5>
+         <div class="br-8 b--def bgc-plain-bright pb-10">
+            <div class="btable-table-wrap maxh-none">
+               <table class="btable-table w-100">
+                  <thead>
+                     <tr class="bg-none">
+                        <th class="shrink-to-fit">#</th>
+                        <th class="text-nowrap">Key Image (click row to expand)</th>
+                        <th class="addr-hash-column">Amount (XMR)</th>
+                     </tr>
+                  </thead>
+                  <tbody class="bgc-white">
+                     {{range $i, $v := .KeyImages}}
+                     <tr class="row-hover cursor-pointer" data-idx="{{$i}}" data-action="click->tx#keyImageRowClick">
+                        <td class="shrink-to-fit">{{$i}}</td>
+                        <td class="position-relative clipboard">
+                           {{$v.DisplayText}}
+                        </td>
+                        <td class="mono fs13 text-end shrink-to-fit">N/A</td>
+                     </tr>
+                     {{if gt (len $v.RingCtOuts) 0}}
+                     <tr class="d-none" id="ringctOutsTable_{{$i}}">
+                        <td colspan="3" class="pt-1">
+                           <table class="btable-table">
+                              <thead>
+                                 <tr class="subtable-header-row">
+                                    <th class="shrink-to-fit">#</th>
+                                    <th class="text-start shrink-to-fit">block</th>
+                                    <th class="text-start shrink-to-fit">stealth address</th>
+                                 </tr>
+                              </thead>
+                              <tbody class="bgc-white">
+                                 {{range $ctIdx, $ctout := $v.RingCtOuts}}
+                                 <tr class="subtable-data-row">
+                                    <td>{{$ctIdx}}</td>
+                                    <td class="shrink-to-fit">
+                                       <a href="/xmr/block/{{$ctout.Height}}"
+                                          data-turbolinks="false">{{$ctout.Height}}</a>
+                                    </td>
+                                    <td class="shrink-to-fit">
+                                       <a href="/xmr/tx/{{$ctout.TxID}}" data-turbolinks="false">{{$ctout.Key}}</a>
+                                    </td>
+                                 </tr>
+                                 {{end}}
+                              </tbody>
+                           </table>
+                        </td>
+                     </tr>
+                     {{end}}
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </div>
+      <div class="col-lg-12 mt-4">
+         <h5 class="pb-2">{{len .Outputs}} Output{{if gt (len .Outputs) 1}}s{{end}} Created</h5>
+         <div class="br-8 b--def bgc-plain-bright pb-10">
+            <div class="btable-table-wrap maxh-none">
+               <table class="btable-table w-100">
+                  <thead>
+                     <tr class="bg-none">
+                        <th class="shrink-to-fit">#</th>
+                        <th class="addr-hash-column">Stealth address</th>
+                        <th class="text-start shrink-to-fit">Amount (XMR)</th>
+                        <th class="text-start shrink-to-fit">Global Index</th>
+                     </tr>
+                  </thead>
+                  <tbody class="bgc-white">
+                     {{$maxGlobalIdx := .MaxGlobalIndex}}
+                     {{range $i, $v := .Outputs}}
+                     <tr>
+                        <td class="shrink-to-fit">{{$i}}</td>
+                        <td class="position-relative clipboard">
+                           {{$v.Key}}
+                        </td>
+                        <td class="fs13 break-word shrink-to-fit">
+                           {{if gt $v.Amount 0}}{{$v.Amount}}{{else}}N/A{{end}}
+                        </td>
+                        <td class="text-end mono fs13">
+                           {{$v.GlobalIndex}} of {{$maxGlobalIdx}}
+                        </td>
+                     </tr>
+                     {{end}}
+                  </tbody>
+               </table>
+            </div>
+         </div>
+      </div>
+   </div>
+   {{end}}
    {{if $.SwapsFound}}
    <div>
-     <div class="br-8 b--def bgc-plain-bright pb-10">
-       <div class="d-flex ai-center pt-3 pb-1 ps-3">
-         <div class="p-relative d-flex ai-center pair-icons">
-           <img src="/images/{{$ChainType}}-icons.png" width="20" height="20">
-           <img src="/images/dcr-icon-notran.png" width="20" height="20" class="second-pair">
+      <div class="br-8 b--def bgc-plain-bright pb-10">
+         <div class="d-flex ai-center pt-3 pb-1 ps-3">
+            <div class="p-relative d-flex ai-center pair-icons">
+               <img src="/images/{{$ChainType}}-icons.png" width="20" height="20">
+               <img src="/images/dcr-icon-notran.png" width="20" height="20" class="second-pair">
+            </div>
+            <h5>Swap Details</h5><span
+               class="common-label px-2 text-white ms-2 {{if $.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if
+               $.IsRefund}}Refund{{else}}Redemption{{end}}</span>
          </div>
-         <h5>Swap Details</h5><span class="common-label px-2 text-white ms-2 {{if $.IsRefund}}refund{{else}}redemption{{end}}-bg fw-400 fs13">{{if $.IsRefund}}Refund{{else}}Redemption{{end}}</span>
-       </div>
-       <a href="/decred/atomic-swaps" class="link-underline fs14 ms-5">All Atomic Swaps</a>
-       <div class="position-relative">
-         {{template "atomicSwapsTable" .}}
-       </div>
-     </div>
+         <a href="/decred/atomic-swaps" class="link-underline fs14 ms-5">All Atomic Swaps</a>
+         <div class="position-relative">
+            {{template "atomicSwapsTable" .}}
+         </div>
+      </div>
    </div>
    {{end}}
 </div>

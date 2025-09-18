@@ -319,4 +319,16 @@ export default class extends Controller {
       this.approvalMeter.setDarkMode(state.nightMode)
     }
   }
+
+  keyImageRowClick (e) {
+    const tr = e.target.closest('tr[data-idx]')
+    if (!tr) return
+    const idx = tr.dataset.idx
+    const ringCtRow = document.querySelector('#ringctOutsTable_' + idx)
+    if (ringCtRow) {
+      ringCtRow.classList.toggle('d-none')
+    } else {
+      console.warn('Cannot find row with id:', '#ringctOutsTable_' + idx)
+    }
+  }
 }
