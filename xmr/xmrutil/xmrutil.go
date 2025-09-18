@@ -174,3 +174,19 @@ type GetTransactionPoolStatsResponse struct {
 	TopHash   string    `json:"top_hash"`
 	Untrusted bool      `json:"untrusted"`
 }
+
+type GetOutsResult struct {
+	Credits   uint64       `json:"credits"`
+	Outs      []OutputInfo `json:"outs"`
+	Status    string       `json:"status"`
+	TopHash   string       `json:"top_hash"`
+	Untrusted bool         `json:"untrusted"`
+}
+
+type OutputInfo struct {
+	Height   int64  `json:"height"`
+	Key      string `json:"key"`  // Stealth address
+	Mask     string `json:"mask"` // Commitment mask (RingCT)
+	TxID     string `json:"txid"` // Transaction hash
+	Unlocked bool   `json:"unlocked"`
+}

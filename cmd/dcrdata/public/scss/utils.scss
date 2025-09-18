@@ -392,3 +392,15 @@ body.darkBG [data-tooltip]:hover::after {
     margin-top: 10px;
   }
 }
+
+.row-hover:hover {
+  background-color: #d8d8d8;
+}
+
+.subtable-header-row {
+  background-color: #d1e5f3 !important;
+}
+
+.subtable-data-row {
+  background-color: #fffcf5 !important;
+}
