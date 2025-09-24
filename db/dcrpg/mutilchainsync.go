@@ -2207,9 +2207,9 @@ func (pgb *ChainDB) SyncXMRWholeChain(newIndexes bool) {
 				txPerSec := float64(curTxs-lastTxs) / tickTime.Seconds()
 				vinsPerSec := float64(curVins-lastVins) / tickTime.Seconds()
 				voutPerSec := float64(curVouts-lastVouts) / tickTime.Seconds()
-
-				log.Infof("XMR: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
-
+				if blocksPerSec != 0 || txPerSec != 0 || vinsPerSec != 0 || voutPerSec != 0 {
+					log.Infof("XMR: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
+				}
 				lastProcessed = curProcessed
 				lastTxs = curTxs
 				lastVins = curVins
