@@ -5747,7 +5747,7 @@ func (pgb *ChainDB) EnsureChainContinuity(ctx context.Context, newBlockdata *xmr
 	if err := pgb.rollbackToHeight(forkHeight); err != nil {
 		return -1, fmt.Errorf("rollbackToHeight failed: %v", err)
 	}
-	fmt.Printf("EnsureChainContinuity: Rollback to height %d completed\n", forkHeight)
+	log.Infof("EnsureChainContinuity: Rollback to height %d completed", forkHeight)
 	return forkHeight, nil
 }
 
@@ -12284,6 +12284,12 @@ func (pgb *ChainDB) CheckOnBlackList(agent, ip string) (bool, error) {
 	var onBlacklist bool
 	err := pgb.db.QueryRow(internal.CheckExistOnBlackList, agent, ip).Scan(&onBlacklist)
 	return onBlacklist, err
+}
+
+func (pgb *ChainDB) GetMultichain24hSumAndAvgTxFee(chainType string) (int64, int64, error) {
+	var txFeeSum, txFeeAvg int64
+	err := pgb.db.QueryRow(mutilchainquery.CreateSelect24hAvgAndSumTxFee(chainType)).Scan(&txFeeSum, &txFeeAvg)
+	return txFeeSum, txFeeAvg, err
 }
 
 func (pgb *ChainDB) GetMultichainStats(chainType string) (*externalapi.ChainStatsData, error) {

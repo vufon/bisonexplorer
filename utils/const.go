@@ -5,8 +5,9 @@ const (
 	CONTRACT_TYPE        = "contract"
 	REDEMPTION_TYPE      = "redemption"
 	REFUND_TYPE          = "refund"
-	AtomicUnit           = 1e12
-	InitialEmission      = 17640000 * AtomicUnit
+	XmrAtomicUnit        = 1e12
+	BtcSatoshiUnit       = 1e8
+	InitialEmission      = 17640000 * XmrAtomicUnit
 	TailStartHeight      = 2641623
 	TailEmissionPerBlock = 60 * 1e10
 	TimeFmt              = "2006-01-02 15:04:05 (MST)"

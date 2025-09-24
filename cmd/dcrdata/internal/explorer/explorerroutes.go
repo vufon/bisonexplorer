@@ -461,19 +461,19 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			exp.BtcPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.BtcPageData.HomeInfo
-			volume24h = btcutil.Amount(homeInfo.Volume24h).ToBTC()
+			volume24h = homeInfo.Volume24hFloat
 			exp.BtcPageData.RUnlock()
 		case mutilchain.TYPELTC:
 			exp.LtcPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.LtcPageData.HomeInfo
-			volume24h = allXcState.LTCVolume
+			volume24h = homeInfo.Volume24hFloat
 			exp.LtcPageData.RUnlock()
 		case mutilchain.TYPEXMR:
 			exp.XmrPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.XmrPageData.HomeInfo
-			volume24h = allXcState.XMRVolume
+			volume24h = homeInfo.Volume24hFloat
 			exp.XmrPageData.RUnlock()
 		default:
 			exp.pageData.RLock()
@@ -665,6 +665,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		conversions.MempoolSent = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalOut).ToBTC(), chainType)
 		conversions.MempoolFees = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalFee).ToBTC(), chainType)
 	}
+	volume24h := homeInfo.Volume24hFloat
 	str, err := exp.templates.exec("chain_home", struct {
 		*CommonPageData
 		Info               *types.HomeInfo
@@ -691,7 +692,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
 		MarketCap:          marketCap,
 		PoolDataList:       poolDataList,
-		Volume24h:          btcutil.Amount(homeInfo.Volume24h).ToBTC(),
+		Volume24h:          volume24h,
 	})
 
 	if err != nil {
@@ -4538,19 +4539,19 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 		exp.BtcPageData.RLock()
 		// Get fiat conversions if available
 		coinValueSupply = exp.BtcPageData.HomeInfo.CoinValueSupply
-		volume = btcutil.Amount(exp.BtcPageData.HomeInfo.Volume24h).ToBTC()
+		volume = exp.BtcPageData.HomeInfo.Volume24hFloat
 		exp.BtcPageData.RUnlock()
 	case mutilchain.TYPELTC:
 		exp.LtcPageData.RLock()
 		// Get fiat conversions if available
 		coinValueSupply = exp.LtcPageData.HomeInfo.CoinValueSupply
-		volume = xcState.Volume // since data from blockchair failed
+		volume = exp.LtcPageData.HomeInfo.Volume24hFloat
 		exp.LtcPageData.RUnlock()
 	case mutilchain.TYPEXMR:
 		exp.XmrPageData.RLock()
 		// Get fiat conversions if available
 		coinValueSupply = exp.XmrPageData.HomeInfo.CoinValueSupply
-		volume = xcState.Volume // since data from blockchair failed
+		volume = exp.XmrPageData.HomeInfo.Volume24hFloat
 		exp.XmrPageData.RUnlock()
 	default:
 		exp.pageData.RLock()

@@ -556,7 +556,7 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"toMulFloat64Amount": func(intAmount int64, chainType string) float64 {
 			switch chainType {
 			case mutilchain.TYPEXMR:
-				return float64(intAmount) / float64(utils.AtomicUnit)
+				return float64(intAmount) / float64(utils.XmrAtomicUnit)
 			default:
 				return dcrutil.Amount(intAmount).ToCoin()
 			}

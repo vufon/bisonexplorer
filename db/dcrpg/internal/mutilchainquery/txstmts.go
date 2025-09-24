@@ -123,6 +123,8 @@ const (
 	GROUP BY block_height
 	ORDER BY block_height;`
 	DeleteTxsOfOlderThan20Blocks = `DELETE FROM %stransactions WHERE block_height < $1;`
+	Select24hAvgAndSumTxFee      = `SELECT COALESCE(SUM(fees)::bigint, 0) AS sum_fees_last_24h, COALESCE(ROUND(AVG(fees))::bigint, 0) AS avg_fees_last_24h
+	FROM %stransactions WHERE time >= EXTRACT(EPOCH FROM now()) - 24*3600;`
 )
 
 func MakeSelectFeesPerBlockAboveHeight(chainType string) string {
@@ -206,4 +208,8 @@ func CreateSelectTxHashsWithMinHeightQuery(chainType string) string {
 
 func CreateDeleteTxsWithMinBlockHeightQuery(chainType string) string {
 	return fmt.Sprintf(DeleteTxsWithMinBlockHeight, chainType)
+}
+
+func CreateSelect24hAvgAndSumTxFee(chainType string) string {
+	return fmt.Sprintf(Select24hAvgAndSumTxFee, chainType)
 }

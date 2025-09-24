@@ -790,7 +790,9 @@ type HomeInfo struct {
 	TicketsSummary        *dbtypes.TicketsSummaryInfo `json:"ticketsSummary"`
 	Nodes                 int64                       `json:"nodes"`
 	Volume24h             int64                       `json:"volume24h"`
+	Volume24hFloat        float64                     `json:"volume24hFloat"`
 	TxFeeAvg24h           int64                       `json:"txFeeAvg24h"`
+	TxFeeSum24h           int64                       `json:"txFeeSum24h"`
 }
 
 type MutilchainHomeInfo struct {
