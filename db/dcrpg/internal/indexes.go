@@ -122,7 +122,7 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 	tempIndex = fmt.Sprintf("uix_%sblock_all_time", chainType)
 	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = fmt.Sprintf("ix_%stx_block_height", chainType)
+	tempIndex = fmt.Sprintf("uix_%stx_block_height", chainType)
 	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
 	tempIndex = fmt.Sprintf("uix_%stx_txhash", chainType)
@@ -163,6 +163,9 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
 		tempIndex = "uix_monero_outputs_out_pk"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "uix_monero_key_images_key_image"
 		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
 		tempIndex = "uix_monero_key_images_block_height"
@@ -235,7 +238,7 @@ func GetIndexDescriptionsMap() map[string]string {
 		tempIndex = fmt.Sprintf("uix_%sblock_all_time", chainType)
 		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-		tempIndex = fmt.Sprintf("ix_%stx_block_height", chainType)
+		tempIndex = fmt.Sprintf("uix_%stx_block_height", chainType)
 		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
 		tempIndex = fmt.Sprintf("uix_%stx_txhash", chainType)
@@ -276,6 +279,9 @@ func GetIndexDescriptionsMap() map[string]string {
 			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
 			tempIndex = "uix_monero_outputs_out_pk"
+			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+			tempIndex = "uix_monero_key_images_key_image"
 			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
 			tempIndex = "uix_monero_key_images_block_height"

@@ -176,7 +176,7 @@ LIMIT 1;`
 		WHERE funding_tx_hash=$1 and funding_tx_vout_index=$2;`
 
 	// for normal multichain
-	IndexAddressTableOnAddrVoutRowId = `CREATE INDEX uix_%saddresses_addr_vout_row_id
+	IndexAddressTableOnAddrVoutRowId = `CREATE UNIQUE INDEX uix_%saddresses_addr_vout_row_id
 		ON %saddresses(address, vout_row_id);`
 	DeindexAddressTableOnAddrVoutRowId = `DROP INDEX uix_%saddresses_addr_vout_row_id;`
 
@@ -210,6 +210,14 @@ LIMIT 1;`
 	DeindexXmrAddressTableOnAmountKnown = `DROP INDEX idx_xmraddresses_amount_known;`
 	DeindexXmrAddressTableOnVoutRowId   = `DROP INDEX idx_xmraddresses_vout_row_id;`
 	DeindexXmrAddressTableOnFundingInfo = `DROP INDEX idx_xmraddresses_funding_tx;`
+	CheckAndRemoveDuplicateAddressRows  = `WITH duplicates AS (
+  		SELECT id, row_number() OVER (PARTITION BY address, vout_row_id ORDER BY id) AS rn
+  		FROM public.%saddresses
+  		WHERE address IS NOT NULL AND vout_row_id IS NOT NULL)
+		DELETE FROM public.%saddresses a
+		USING duplicates d
+		WHERE a.id = d.id
+  		AND d.rn > 1;`
 )
 
 func MakeSelectCountTotalAddress(chainType string) string {
@@ -289,4 +297,8 @@ func MakeInsertXmrAddressRowQuery(checked bool) string {
 	} else {
 		return InsertXmrAddressRow
 	}
+}
+
+func CreateCheckAndRemoveDuplicateAddressRowsQuery(chainType string) string {
+	return fmt.Sprintf(CheckAndRemoveDuplicateAddressRows, chainType, chainType)
 }

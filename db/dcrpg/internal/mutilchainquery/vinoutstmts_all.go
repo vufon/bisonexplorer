@@ -23,9 +23,8 @@ const (
 	InsertVinAllRowChecked = InsertVinAllRow0 +
 		`ON CONFLICT (tx_hash, tx_index) DO NOTHING RETURNING id;`
 
-	IndexVinAllTableOnVins = `CREATE INDEX uix_%svin_all_txhash_txindex
-		ON %svins_all(tx_hash, tx_index)
-		;` // STORING (prev_tx_hash, prev_tx_index)
+	IndexVinAllTableOnVins = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_%svin_all_txhash_txindex
+		ON %svins_all(tx_hash, tx_index);` // STORING (prev_tx_hash, prev_tx_index)
 	IndexVinAllTableOnPrevOuts = `CREATE INDEX uix_%svin_all_prevout
 		ON %svins_all(prev_tx_hash, prev_tx_index)
 		;` // STORING (tx_hash, tx_index)
@@ -50,7 +49,15 @@ const (
 		JOIN %svins_all ON %svouts_all.tx_hash=%svins_all.prev_tx_hash and %svouts_all.tx_index=%svins_all.prev_tx_index
 		WHERE %svins_all.id=$1;`
 
-	DeleteVinAllWithTxHashArray = `DELETE FROM %svins_all WHERE tx_hash = ANY($1)`
+	DeleteVinAllWithTxHashArray     = `DELETE FROM %svins_all WHERE tx_hash = ANY($1)`
+	CheckAndRemoveDuplicateVinsRows = `WITH duplicates AS (
+		SELECT id, row_number() OVER (PARTITION BY tx_hash, tx_index ORDER BY id) AS rn
+		FROM public.%svins_all
+		WHERE tx_hash IS NOT NULL AND tx_index IS NOT NULL)
+		DELETE FROM public.%svins_all v
+		USING duplicates d
+		WHERE v.id = d.id
+		AND d.rn > 1;`
 
 	// vouts
 
@@ -81,13 +88,21 @@ const (
 	RetrieveVoutAllValue  = `SELECT value FROM %svouts_all WHERE tx_hash=$1 and tx_index=$2;`
 	RetrieveVoutAllValues = `SELECT value, tx_index, tx_tree FROM %svouts_all WHERE tx_hash=$1;`
 
-	IndexVoutAllTableOnTxHashIdx = `CREATE INDEX uix_%svout_all_txhash_ind
+	IndexVoutAllTableOnTxHashIdx = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_%svout_all_txhash_ind
 		ON %svouts_all(tx_hash, tx_index);`
 	DeindexVoutAllTableOnTxHashIdx = `DROP INDEX uix_%svout_all_txhash_ind;`
 
 	IndexVoutAllTableOnTxHash = `CREATE INDEX uix_%svout_all_txhash
 		ON %svouts_all(tx_hash);`
-	DeindexVoutAllTableOnTxHash = `DROP INDEX uix_%svout_all_txhash;`
+	DeindexVoutAllTableOnTxHash      = `DROP INDEX uix_%svout_all_txhash;`
+	CheckAndRemoveDuplicateVoutsRows = `WITH duplicates AS (
+		SELECT id, row_number() OVER (PARTITION BY tx_hash, tx_index ORDER BY id) AS rn
+		FROM public.%svouts_all
+		WHERE tx_hash IS NOT NULL AND tx_index IS NOT NULL)
+		DELETE FROM public.%svouts_all v
+		USING duplicates d
+		WHERE v.id = d.id
+		AND d.rn > 1;`
 )
 
 func MakeCountTotalVoutsAll(chainType string) string {
@@ -182,4 +197,12 @@ func MakeDeindexVoutAllTableOnTxHash(chainType string) string {
 
 func MakeDeleteVinAllWithTxHashArrayQuery(chainType string) string {
 	return fmt.Sprintf(DeleteVinAllWithTxHashArray, chainType)
+}
+
+func CreateCheckAndRemoveDuplicateVinsRowsQuery(chainType string) string {
+	return fmt.Sprintf(CheckAndRemoveDuplicateVinsRows, chainType, chainType)
+}
+
+func CreateCheckAndRemoveDuplicateVoutsRowsQuery(chainType string) string {
+	return fmt.Sprintf(CheckAndRemoveDuplicateVoutsRows, chainType, chainType)
 }

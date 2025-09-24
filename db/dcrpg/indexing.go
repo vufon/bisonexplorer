@@ -590,6 +590,10 @@ func (pgb *ChainDB) DeindexMutilchainWholeTable(chainType string) error {
 		}
 
 		// monero_key_images
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroKeyImagesOnKeyImage)
+		if err != nil {
+			return err
+		}
 		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroKeyImagesOnBlockHeight)
 		if err != nil {
 			return err
@@ -882,6 +886,9 @@ func (pgb *ChainDB) IndexMutilchainWholeTable(chainType string) error {
 		}
 
 		// monero_key_images
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_key_images on key_image", mutilchainquery.IndexMoneroKeyImagesOnKeyImage); err != nil {
+			return err
+		}
 		if err = HandlerMultichainIndexFunc(pgb.db, "monero_key_images on spent_block_height", mutilchainquery.IndexMoneroKeyImagesOnBlockHeight); err != nil {
 			return err
 		}
