@@ -66,9 +66,17 @@ func (charts *MutilchainChartData) Lengthen() error {
 
 	// Make sure the database has set an equal number of blocks in each data set.
 	blocks := charts.Blocks
-	shortest, err := ValidateLengths(blocks.Height, blocks.Time,
-		blocks.BlockSize, blocks.TxCount, blocks.Fees, blocks.Difficulty,
-		blocks.Hashrate, blocks.Reward)
+	var shortest int
+	var err error
+	if charts.ChainType == mutilchain.TYPEXMR {
+		shortest, err = ValidateLengths(blocks.Height, blocks.Time,
+			blocks.BlockSize, blocks.TotalSize, blocks.TxCount, blocks.Fees, blocks.Difficulty,
+			blocks.Hashrate, blocks.Reward)
+	} else {
+		shortest, err = ValidateLengths(blocks.Height, blocks.Time,
+			blocks.BlockSize, blocks.TxCount, blocks.Fees, blocks.Difficulty,
+			blocks.Hashrate, blocks.Reward)
+	}
 	if err != nil {
 		log.Warnf("%s: MultiChartData.Lengthen: multichain block data length mismatch detected. "+
 			"Truncating blocks length to %d", charts.ChainType, shortest)
@@ -130,6 +138,9 @@ func (charts *MutilchainChartData) Lengthen() error {
 			// some use averages, and some use the last value of the day.
 			days.Height = append(days.Height, uint64(interval[1]-1))
 			days.BlockSize = append(days.BlockSize, blocks.BlockSize.Sum(interval[0], interval[1]))
+			if charts.ChainType == mutilchain.TYPEXMR {
+				days.TotalSize = append(days.TotalSize, blocks.TotalSize.Sum(interval[0], interval[1]))
+			}
 			days.TxCount = append(days.TxCount, blocks.TxCount.Sum(interval[0], interval[1]))
 			days.Reward = append(days.Reward, blocks.Reward.Sum(interval[0], interval[1]))
 			days.Fees = append(days.Fees, blocks.Fees.Sum(interval[0], interval[1]))
@@ -139,8 +150,15 @@ func (charts *MutilchainChartData) Lengthen() error {
 	}
 
 	// Check that all relevant datasets have been updated to the same length.
-	daysLen, err := ValidateLengths(days.Height, days.Time,
-		days.BlockSize, days.TxCount, days.Reward, days.Fees, days.Difficulty, days.Hashrate)
+	var daysLen int
+	if charts.ChainType == mutilchain.TYPEXMR {
+		daysLen, err = ValidateLengths(days.Height, days.Time,
+			days.BlockSize, days.TotalSize, days.TxCount, days.Reward, days.Fees, days.Difficulty, days.Hashrate)
+	} else {
+		daysLen, err = ValidateLengths(days.Height, days.Time,
+			days.BlockSize, days.TxCount, days.Reward, days.Fees, days.Difficulty, days.Hashrate)
+	}
+
 	if err != nil {
 		return fmt.Errorf("day bin: %v", err)
 	} else if daysLen == 0 {
@@ -231,6 +249,7 @@ func (charts *MutilchainChartData) readCacheFile(filePath string) error {
 	charts.Blocks.Height = gobject.Height
 	charts.Blocks.Time = gobject.Time
 	charts.Blocks.BlockSize = gobject.BlockSize
+	charts.Blocks.TotalSize = gobject.TotalSize
 	charts.Blocks.TxCount = gobject.TxCount
 	charts.Blocks.Reward = gobject.Reward
 	charts.Blocks.Fees = gobject.Fees
@@ -300,6 +319,7 @@ func (charts *MutilchainChartData) gobject() *ChartGobject {
 		Height:    charts.Blocks.Height,
 		Time:      charts.Blocks.Time,
 		BlockSize: charts.Blocks.BlockSize,
+		TotalSize: charts.Blocks.TotalSize,
 		TxCount:   charts.Blocks.TxCount,
 		Reward:    charts.Blocks.Reward,
 		Fees:      charts.Blocks.Fees,
@@ -661,12 +681,12 @@ func xmrBlockchainSizeChart(charts *MutilchainChartData, bin binLevel, axis axis
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				sizeKey: accumulate(charts.Blocks.BlockSize),
+				sizeKey: accumulate(charts.Blocks.TotalSize),
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey: charts.Blocks.Time,
-				sizeKey: accumulate(charts.Blocks.BlockSize),
+				sizeKey: accumulate(charts.Blocks.TotalSize),
 			}, seed)
 		}
 	case DayBin:
@@ -674,12 +694,12 @@ func xmrBlockchainSizeChart(charts *MutilchainChartData, bin binLevel, axis axis
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey: charts.Days.Height,
-				sizeKey:   accumulate(charts.Days.BlockSize),
+				sizeKey:   accumulate(charts.Days.TotalSize),
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
-				sizeKey: accumulate(charts.Days.BlockSize),
+				sizeKey: accumulate(charts.Days.TotalSize),
 			}, seed)
 		}
 	}

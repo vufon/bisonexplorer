@@ -126,6 +126,7 @@ ORDER BY a.height ASC;`
 		)
 	SELECT
     	b.height,
+		b.size,
     	b.size + COALESCE(t.tx_total_size, 0) AS total_size,
     	b.time,
     	b.numtx,
