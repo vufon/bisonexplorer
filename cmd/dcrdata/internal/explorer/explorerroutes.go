@@ -4995,18 +4995,26 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		exp.BtcPageData.RLock()
 		// Get fiat conversions if available
 		homeInfo = exp.BtcPageData.HomeInfo
+		exp.BtcPageData.RUnlock()
 		blockReward = homeInfo.BlockReward
 		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPEBTC)
 		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPEBTC)
-		exp.BtcPageData.RUnlock()
 	case mutilchain.TYPELTC:
 		exp.LtcPageData.RLock()
 		// Get fiat conversions if available
 		homeInfo = exp.LtcPageData.HomeInfo
+		exp.LtcPageData.RUnlock()
 		blockReward = homeInfo.BlockReward
 		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPELTC)
 		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPELTC)
-		exp.LtcPageData.RUnlock()
+	case mutilchain.TYPEXMR:
+		exp.XmrPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.XmrPageData.HomeInfo
+		exp.XmrPageData.RUnlock()
+		blockReward = homeInfo.BlockReward
+		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPEXMR)
+		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPEXMR)
 	default:
 		blockSubsidy := exp.dataSource.BlockSubsidy(blockHeight, exp.ChainParams.TicketsPerBlock)
 		blockReward = blockSubsidy.Total
@@ -5019,11 +5027,23 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		ticketAllsecs := int64(time.Duration(ticketDuration).Seconds())
 		nextTicketTime = blockTime + ticketAllsecs
 	}
-	x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
-	allsecs := int64(time.Duration(x).Seconds())
-	targetTime := blockTime + allsecs
-	nextBlockReward := homeInfo.NBlockSubsidy.Total
+	var targetTime uint64
+	var nextBlockReward int64
+	if chainType != mutilchain.TYPEXMR {
+		x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
+		allsecs := int64(time.Duration(x).Seconds())
+		targetTime = uint64(blockTime + allsecs)
+		nextBlockReward = homeInfo.NBlockSubsidy.Total
+	}
 
+	// estimate coin supply per year
+	var coinSupplyPerYear float64
+	if chainType == mutilchain.TYPEXMR {
+		blockRewardXmr := utils.AtomicToXMR(uint64(blockReward))
+		if targetTimePerBlock > 0 {
+			coinSupplyPerYear = blockRewardXmr * (365 * 24 * 60 * 60) / targetTimePerBlock
+		}
+	}
 	str, err := exp.templates.execTemplateToString("supply", struct {
 		*CommonPageData
 		Info               *types.HomeInfo
@@ -5034,17 +5054,19 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		BlockReward        int64
 		NextBlockReward    int64
 		TargetTimePerBlock float64
+		CoinSupplyPerYear  float64
 		Premine            int64
 	}{
 		CommonPageData:     exp.commonData(r),
 		ChainType:          chainType,
 		Info:               homeInfo,
-		TargetTime:         uint64(targetTime),
+		TargetTime:         targetTime,
 		BlockHeight:        blockHeight,
 		BlockReward:        blockReward,
 		NextBlockReward:    nextBlockReward,
 		TicketTargetTime:   uint64(nextTicketTime),
 		TargetTimePerBlock: targetTimePerBlock,
+		CoinSupplyPerYear:  coinSupplyPerYear,
 		Premine:            exp.premine,
 	})
 	if err != nil {

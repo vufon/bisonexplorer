@@ -1245,6 +1245,7 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.Volume24h = volume24hInt
 	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
 	p.HomeInfo.TxFeeSum24h = sumTxFees24h
+	p.HomeInfo.TargetTimePerBlock = targetTimePerBlock
 	p.Unlock()
 	go func() {
 		select {
