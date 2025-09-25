@@ -206,6 +206,7 @@ type explorerDataSource interface {
 	GetXMRTotalOutputs() int64
 	GetXMRBasicBlock(height int64) *types.BlockBasic
 	GetXMRExplorerBlocks(from, to int64) []*types.BlockBasic
+	GetMultichain24hSumAndAvgTxFee(chainType string) (int64, int64, error)
 }
 
 type PoliteiaBackend interface {
@@ -1092,7 +1093,8 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	// get multichain stats from blockchair
 	totalAddresses := int64(0)
 	totalOutputs := int64(0)
-	volume24h := int64(0)
+	volume24h := float64(0)
+	volume24hInt := int64(0)
 	nodes := int64(0)
 	avgTxFees24h := int64(0)
 	chainStats, err := exp.dataSource.GetMultichainStats(mutilchain.TYPEBTC)
@@ -1101,10 +1103,17 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	} else {
 		totalAddresses = chainStats.HodlingAddresses
 		totalOutputs = chainStats.Outputs
-		volume24h = chainStats.Volume24h
 		nodes = chainStats.Nodes
 		avgTxFees24h = chainStats.AverageTransactionFee24h
 		log.Debugf("BTC: Get Multichain stats successfully")
+	}
+	if exp.xcBot != nil && exp.xcBot.State() != nil {
+		volumeUSDFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPEBTC)
+		price24h := exp.xcBot.State().BTCPrice
+		if price24h > 0 {
+			volume24h = volumeUSDFloat / price24h
+			volume24hInt = utils.BTCToSatoshi(volume24h)
+		}
 	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.BtcPageData
@@ -1133,7 +1142,8 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	p.HomeInfo.TotalAddresses = totalAddresses
 	p.HomeInfo.TotalOutputs = totalOutputs
 	p.HomeInfo.Nodes = nodes
-	p.HomeInfo.Volume24h = volume24h
+	p.HomeInfo.Volume24hFloat = volume24h
+	p.HomeInfo.Volume24h = volume24hInt
 	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
 	if hasSwapData {
 		p.HomeInfo.SwapsTotalContract = swapsTotalContract
@@ -1184,25 +1194,29 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	coinValueSupply := utils.AtomicToXMR(coinSupply)
 	hashrate := difficulty / targetTimePerBlock
 	totalTransactionCount := blockchainInfo.TxCount
-	// outputCounts := exp.dataSource.GetXMRTotalOutputs()
+	totalOutputs := exp.dataSource.GetXMRTotalOutputs()
 
 	// get multichain stats from blockchair
 	totalAddresses := int64(0)
-	totalOutputs := int64(0)
-	volume24h := int64(0)
+	volume24h := float64(0)
+	volume24hInt := int64(0)
 	nodes := int64(0)
 	avgTxFees24h := int64(0)
-	chainStats, err := exp.dataSource.GetMultichainStats(mutilchain.TYPELTC)
-	if err != nil {
-		log.Warnf("LTC: Get multichain stats failed. %v", err)
-	} else {
-		totalAddresses = chainStats.HodlingAddresses
-		totalOutputs = chainStats.Outputs
-		volume24h = chainStats.Volume24h
-		nodes = chainStats.Nodes
-		avgTxFees24h = chainStats.AverageTransactionFee24h
-		log.Debugf("LTC: Get Multichain stats successfully")
+	if exp.xcBot != nil && exp.xcBot.State() != nil {
+		volumeUSDFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPEXMR)
+		price24h := exp.xcBot.State().XMRPrice
+		if price24h > 0 {
+			volume24h = volumeUSDFloat / price24h
+			volume24hInt = utils.XMRToAtomic(volume24h)
+		}
 	}
+	sumTxFees24h, avgTxFees24h, err := exp.dataSource.GetMultichain24hSumAndAvgTxFee(mutilchain.TYPEXMR)
+	if err != nil {
+		log.Warnf("XMR: Get 24h tx fees SUM/AVG failed. Error: %v", err)
+	}
+	// nodes = chainStats.Nodes
+	// avgTxFees24h = chainStats.AverageTransactionFee24h
+	log.Debugf("XMR: Get Multichain stats successfully")
 	p := exp.XmrPageData
 	p.Lock()
 	p.BlockInfo = newBlockData
@@ -1227,8 +1241,11 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.TotalAddresses = totalAddresses
 	p.HomeInfo.TotalOutputs = totalOutputs
 	p.HomeInfo.Nodes = nodes
-	p.HomeInfo.Volume24h = volume24h
+	p.HomeInfo.Volume24hFloat = volume24h
+	p.HomeInfo.Volume24h = volume24hInt
 	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
+	p.HomeInfo.TxFeeSum24h = sumTxFees24h
+	p.HomeInfo.TargetTimePerBlock = targetTimePerBlock
 	p.Unlock()
 	go func() {
 		select {
@@ -1322,7 +1339,8 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	// get multichain stats from blockchair
 	totalAddresses := int64(0)
 	totalOutputs := int64(0)
-	volume24h := int64(0)
+	volume24h := float64(0)
+	volume24hInt := int64(0)
 	nodes := int64(0)
 	avgTxFees24h := int64(0)
 	chainStats, err := exp.dataSource.GetMultichainStats(mutilchain.TYPELTC)
@@ -1331,10 +1349,17 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	} else {
 		totalAddresses = chainStats.HodlingAddresses
 		totalOutputs = chainStats.Outputs
-		volume24h = chainStats.Volume24h
 		nodes = chainStats.Nodes
 		avgTxFees24h = chainStats.AverageTransactionFee24h
 		log.Debugf("LTC: Get Multichain stats successfully")
+	}
+	if exp.xcBot != nil && exp.xcBot.State() != nil {
+		volumeUSDFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPELTC)
+		price24h := exp.xcBot.State().LTCPrice
+		if price24h > 0 {
+			volume24h = volumeUSDFloat / price24h
+			volume24hInt = utils.BTCToSatoshi(volume24h)
+		}
 	}
 	// Update pageData with block data and chain (home) info.
 	p := exp.LtcPageData
@@ -1363,7 +1388,8 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	p.HomeInfo.TotalAddresses = totalAddresses
 	p.HomeInfo.TotalOutputs = totalOutputs
 	p.HomeInfo.Nodes = nodes
-	p.HomeInfo.Volume24h = volume24h
+	p.HomeInfo.Volume24hFloat = volume24h
+	p.HomeInfo.Volume24h = volume24hInt
 	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
 	if hasSwapData {
 		p.HomeInfo.SwapsTotalContract = swapsTotalContract

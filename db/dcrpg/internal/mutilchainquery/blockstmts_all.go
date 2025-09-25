@@ -20,9 +20,9 @@ const (
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`
 
 	insertBlockAllRow           = insertBlockAllRow0 + ` RETURNING id;`
-	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (hash) DO NOTHING RETURNING id;`
+	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (height) DO NOTHING RETURNING id;`
 	insertXmrBlockAllRow        = insertXmrBlockAllRow0 + ` RETURNING id;`
-	insertXmrBlockAllRowChecked = insertXmrBlockAllRow0 + ` ON CONFLICT (hash) DO NOTHING RETURNING id;`
+	insertXmrBlockAllRowChecked = insertXmrBlockAllRow0 + ` ON CONFLICT (height) DO NOTHING RETURNING id;`
 	insertBlockAllRowReturnId   = `WITH ins AS (` +
 		insertBlockAllRow0 +
 		`ON CONFLICT (hash) DO UPDATE
@@ -87,13 +87,13 @@ ORDER BY a.height ASC;`
 	// UpsertBlockAllSimpleInfo = insertBlockAllSimpleInfo + `ON CONFLICT (hash) DO UPDATE
 	// 	SET synced = $4 RETURNING id;`
 
-	IndexBlockAllTableOnHash = `CREATE UNIQUE INDEX uix_%sblock_all_hash
+	IndexBlockAllTableOnHash = `CREATE INDEX uix_%sblock_all_hash
 		ON %sblocks_all(hash);`
 	DeindexBlockAllTableOnHash = `DROP INDEX uix_%sblock_all_hash;`
 
 	// IndexBlocksTableOnHeight creates the index uix_block_height on (height).
 	// This is not unique because of side chains.
-	IndexBlocksAllTableOnHeight   = `CREATE INDEX uix_%sblock_all_height ON %sblocks_all(height);`
+	IndexBlocksAllTableOnHeight   = `CREATE UNIQUE INDEX uix_%sblock_all_height ON %sblocks_all(height);`
 	DeindexBlocksAllTableOnHeight = `DROP INDEX uix_%sblock_all_height CASCADE;`
 
 	// IndexBlocksTableOnHeight creates the index uix_block_time on (time).
@@ -116,16 +116,42 @@ ORDER BY a.height ASC;`
 		WHERE height > $1
 		ORDER BY height;`
 
-	SelectXmrBlockAllStats = `SELECT height, size, time, numtx, difficulty, fees, reward
-		FROM xmrblocks_all
-		WHERE height > $1
-		ORDER BY height;`
+	SelectXmrBlockAllStats = `WITH tx_sizes AS (
+    	SELECT 
+        	block_height, 
+        SUM(size) AS tx_total_size
+    	FROM xmrtransactions
+    	WHERE block_height > $1
+    	GROUP BY block_height
+		)
+	SELECT
+    	b.height,
+		b.size,
+    	b.size + COALESCE(t.tx_total_size, 0) AS total_size,
+    	b.time,
+    	b.numtx,
+    	b.difficulty,
+    	b.fees,
+    	b.reward
+	FROM xmrblocks_all b
+	LEFT JOIN tx_sizes t
+    ON b.height = t.block_height
+	WHERE b.height > $1
+	ORDER BY b.height;`
 
 	CheckExistBLockAll         = `SELECT EXISTS(SELECT 1 FROM %sblocks_all WHERE height = $1);`
 	SelectBlockAllHeightByHash = `SELECT height FROM %sblocks_all WHERE hash = $1 LIMIT 1;`
 	SelectBlockAllHashByHeight = `SELECT hash FROM %sblocks_all WHERE height = $1;`
 	SelectMinBlockAllHeight    = `SELECT min(height) FROM %sblocks_all;`
 	DeleteBlocksWithMinHeight  = `DELETE FROM %sblocks_all WHERE height > $1`
+	CheckAndRemoveDuplicateRow = `WITH duplicates AS (
+  		SELECT id, row_number() OVER (PARTITION BY height ORDER BY id) AS rn
+  		FROM public.%sblocks_all  
+  		WHERE height IS NOT NULL)
+		DELETE FROM public.%sblocks_all t 
+		USING duplicates d
+		WHERE t.id = d.id
+  		AND d.rn > 1;`
 )
 
 func MakeSelectBlockAllStats(chainType string) string {
@@ -242,4 +268,8 @@ func CreateSelectRemainingNotSyncedHeights(chainType string) string {
 
 func CreateDeleteBlocksWithMinHeightQuery(chainType string) string {
 	return fmt.Sprintf(DeleteBlocksWithMinHeight, chainType)
+}
+
+func CreateCheckAndRemoveDuplicateRowQuery(chainType string) string {
+	return fmt.Sprintf(CheckAndRemoveDuplicateRow, chainType, chainType)
 }

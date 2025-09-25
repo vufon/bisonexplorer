@@ -1655,7 +1655,7 @@ func _main(ctx context.Context) error {
 	var xmrCollector *blockdataxmr.Collector
 	var ltcNewPGIndexes, ltcUpdateAllAddresses bool
 	var btcNewPGIndexes, btcUpdateAllAddresses bool
-	// var xmrNewPGIndexes bool
+	var xmrNewPGIndexes bool
 	//start - init rpcclient for all blockchain
 	if !xmrDisabled {
 		//Check and init table of database
@@ -1695,31 +1695,29 @@ func _main(ctx context.Context) error {
 		// }
 		// Dump the cache charts data into a file for future use on system exit.
 		// defer ltcCharts.Dump(ltcDumpPath)
-		if !chainDB.ChainDBDisabled {
-			//finish handler xmr chart data
-			xmrBlocksBehind := int64(xmrHeight) - int64(xmrHeightFromDB)
-			if xmrBlocksBehind < 0 {
-				return fmt.Errorf("XMR: Node is still syncing. Node height = %d, "+
-					"DB height = %d", xmrHeight, xmrHeightFromDB)
-			}
+		//finish handler xmr chart data
+		xmrBlocksBehind := int64(xmrHeight) - int64(xmrHeightFromDB)
+		if xmrBlocksBehind < 0 {
+			return fmt.Errorf("XMR: Node is still syncing. Node height = %d, "+
+				"DB height = %d", xmrHeight, xmrHeightFromDB)
+		}
 
-			// Check for missing indexes.
-			xmrMissingIndexes, xmrDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPEXMR)
-			if err != nil {
-				return err
-			}
-			// If any indexes are missing, forcibly drop any existing indexes, and
-			// create them all after block sync.
-			if len(xmrMissingIndexes) > 0 {
-				// TODO: xmrNewPGIndexes = true
-				// Warn if this is not a fresh sync.
-				if chainDB.MutilchainHeight(mutilchain.TYPEXMR) > 0 {
-					log.Warnf("Some table indexes not found on %s!", mutilchain.TYPEXMR)
-					for im, mi := range xmrMissingIndexes {
-						log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPEXMR, mi, xmrDescs[im])
-					}
-					log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPEXMR)
+		// Check for missing indexes.
+		xmrMissingIndexes, xmrDescs, err := chainDB.MutilchainMissingIndexes(mutilchain.TYPEXMR)
+		if err != nil {
+			return err
+		}
+		// If any indexes are missing, forcibly drop any existing indexes, and
+		// create them all after block sync.
+		if len(xmrMissingIndexes) > 0 {
+			xmrNewPGIndexes = true
+			// Warn if this is not a fresh sync.
+			if chainDB.MutilchainHeight(mutilchain.TYPEXMR) > 0 {
+				log.Warnf("Some table indexes not found on %s!", mutilchain.TYPEXMR)
+				for im, mi := range xmrMissingIndexes {
+					log.Warnf(`%s - Missing Index "%s": "%s"`, mutilchain.TYPEXMR, mi, xmrDescs[im])
 				}
+				log.Warnf("%s: Forcing new index creation and addresses table spending info update.", mutilchain.TYPEXMR)
 			}
 		}
 
@@ -1805,7 +1803,7 @@ func _main(ctx context.Context) error {
 
 	// handler syncing for XMR blockchain on background
 	if !xmrDisabled && xmrClient != nil && chainDB.XmrSyncFlag {
-		go chainDB.SyncXMRWholeChain()
+		go chainDB.SyncXMRWholeChain(xmrNewPGIndexes)
 	}
 
 	//start - init rpcclient for all blockchain

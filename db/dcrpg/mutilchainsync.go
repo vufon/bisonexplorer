@@ -2108,7 +2108,7 @@ func (pgb *ChainDB) SyncLTCWholeChain() {
 		atomic.LoadInt64(&processedBlocks), atomic.LoadInt64(&totalTxs), atomic.LoadInt64(&totalVins), atomic.LoadInt64(&totalVouts))
 }
 
-func (pgb *ChainDB) SyncXMRWholeChain() {
+func (pgb *ChainDB) SyncXMRWholeChain(newIndexes bool) {
 	pgb.xmrWholeSyncMtx.Lock()
 	defer pgb.xmrWholeSyncMtx.Unlock()
 
@@ -2155,17 +2155,19 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 	}
 	log.Infof("XMR: Start sync for %d blocks. Minimum height: %d, Maximum height: %d", len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
 
-	// TODO
-	// reindexing := int64(len(remaingHeights)) > pgb.XmrBestBlock.Height/30
-	// if reindexing {
-	// 	log.Info("XMR: Large bulk load: Removing indexes")
-	// 	if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil &&
-	// 		!strings.Contains(err.Error(), "does not exist") &&
-	// 		!strings.Contains(err.Error(), "不存在") {
-	// 		log.Errorf("XMR: Deindex for multichain whole table: %v", err)
-	// 		return
-	// 	}
-	// }
+	// Check if reindexing is performed?
+	reindexing := newIndexes || (int64(len(remaingHeights)) > pgb.XmrBestBlock.Height/20)
+	checkDuplicate := true
+	if reindexing {
+		checkDuplicate = false
+		log.Info("XMR: Large bulk load: Removing indexes")
+		if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil &&
+			!strings.Contains(err.Error(), "does not exist") &&
+			!strings.Contains(err.Error(), "不存在") {
+			log.Errorf("XMR: Deindex for multichain whole table: %v", err)
+			return
+		}
+	}
 
 	// context to cancel on first error
 	ctx, cancel := context.WithCancel(pgb.ctx)
@@ -2204,9 +2206,9 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 				txPerSec := float64(curTxs-lastTxs) / tickTime.Seconds()
 				vinsPerSec := float64(curVins-lastVins) / tickTime.Seconds()
 				voutPerSec := float64(curVouts-lastVouts) / tickTime.Seconds()
-
-				log.Infof("XMR: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
-
+				if blocksPerSec != 0 || txPerSec != 0 || vinsPerSec != 0 || voutPerSec != 0 {
+					log.Infof("XMR: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
+				}
 				lastProcessed = curProcessed
 				lastTxs = curTxs
 				lastVins = curVins
@@ -2261,7 +2263,7 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 			for retryCount < 50 {
 				// store block (wrap with mutex if needed)
 				// storeBlockMu.Lock()
-				numVins, numVouts, totalTxs, err := pgb.StoreXMRWholeBlock(pgb.XmrClient, false, false, h)
+				numVins, numVouts, totalTxs, err := pgb.StoreXMRWholeBlock(pgb.XmrClient, checkDuplicate, false, h)
 				// storeBlockMu.Unlock()
 				// if error, retry after 2 minute
 				if err != nil {
@@ -2301,15 +2303,99 @@ func (pgb *ChainDB) SyncXMRWholeChain() {
 	// final speed report
 	once.Do(speedReporter)
 
-	// TODO: reindex if needed
-	// if reindexing {
-	// 	if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil {
-	// 		log.Errorf("XMR: Re-index failed: %v", err)
-	// 		return
-	// 	}
-	// }
-
+	// recreate index
+	if reindexing {
+		// Check and remove duplicate rows if any before recreating index
+		err = pgb.MultichainCheckAndRemoveDupplicate(mutilchain.TYPEXMR)
+		if err != nil {
+			log.Errorf("XMR: Check and remove dupplicate rows on all table failed: %v", err)
+			return
+		}
+		if err = pgb.IndexMutilchainWholeTable(mutilchain.TYPEXMR); err != nil {
+			log.Errorf("XMR: Re-index failed: %v", err)
+			return
+		}
+	}
 	log.Infof("XMR: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
 		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
 		atomic.LoadInt64(&processedBlocks), atomic.LoadInt64(&totalTxs), atomic.LoadInt64(&totalVins), atomic.LoadInt64(&totalVouts))
+}
+
+func (pgb *ChainDB) MultichainCheckAndRemoveDupplicate(chainType string) error {
+	// check and remove dupplicate row on blocks table
+	log.Infof("%s: Check and remove duplicate rows for %sblocks_all table", chainType, chainType)
+	_, err := pgb.db.Exec(mutilchainquery.CreateCheckAndRemoveDuplicateRowQuery(chainType))
+	if err != nil {
+		log.Errorf("%s: Check and remove duplicate rows for %sblocks_all table error: %v", chainType, chainType, err)
+		return err
+	}
+	log.Infof("%s: Finish check and remove duplicate rows for %sblocks_all table", chainType, chainType)
+	// check and remove dupplicate row on transactions table
+	log.Infof("%s: Check and remove duplicate rows for %stransactions table", chainType, chainType)
+	_, err = pgb.db.Exec(mutilchainquery.CreateCheckAndRemoveDupplicateTxsRowQuery(chainType))
+	if err != nil {
+		log.Errorf("%s: Check and remove duplicate rows for %stransactions table error: %v", chainType, chainType, err)
+		return err
+	}
+	log.Infof("%s: Finish check and remove duplicate rows for %stransactions table", chainType, chainType)
+	if chainType == mutilchain.TYPEXMR {
+		// check and remove dupplicate for monero_outputs table
+		log.Infof("%s: Check and remove duplicate rows for monero_outputs table", chainType)
+		_, err = pgb.db.Exec(mutilchainquery.CheckAndRemoveDuplicateMoneroOutputsRows)
+		if err != nil {
+			log.Errorf("%s: Check and remove duplicate rows for monero_outputs table error: %v", chainType, err)
+			return err
+		}
+		log.Infof("%s: Finish check and remove duplicate rows for monero_outputs table", chainType)
+		// check and remove dupplicate for monero_key_images table
+		log.Infof("%s: Check and remove duplicate rows for monero_key_images table", chainType)
+		_, err = pgb.db.Exec(mutilchainquery.CheckAndRemoveDuplicateMoneroKeyImageRows)
+		if err != nil {
+			log.Errorf("%s: Check and remove duplicate rows for monero_key_images table error: %v", chainType, err)
+			return err
+		}
+		log.Infof("%s: Finish check and remove duplicate rows for monero_key_images table", chainType)
+		// check and remove dupplicate for monero_ring_members table
+		log.Infof("%s: Check and remove duplicate rows for monero_ring_members table", chainType)
+		_, err = pgb.db.Exec(mutilchainquery.CheckAndRemoveDuplicateMoneroRingMembers)
+		if err != nil {
+			log.Errorf("%s: Check and remove duplicate rows for monero_ring_members table error: %v", chainType, err)
+			return err
+		}
+		log.Infof("%s: Finish check and remove duplicate rows for monero_ring_members table", chainType)
+		// check and remove dupplicate for monero_rct_data table
+		log.Infof("%s: Check and remove duplicate rows for monero_rct_data table", chainType)
+		_, err = pgb.db.Exec(mutilchainquery.CheckAndRemoveDuplicateMoneroRctDataRows)
+		if err != nil {
+			log.Errorf("%s: Check and remove duplicate rows for monero_rct_data table error: %v", chainType, err)
+			return err
+		}
+		log.Infof("%s: Finish check and remove duplicate rows for monero_rct_data table", chainType)
+	} else {
+		// check and remove dupplicate for addresses table
+		log.Infof("%s: Check and remove duplicate rows for %saddresses table", chainType, chainType)
+		_, err = pgb.db.Exec(mutilchainquery.CreateCheckAndRemoveDuplicateAddressRowsQuery(chainType))
+		if err != nil {
+			log.Errorf("%s: Check and remove duplicate rows for %saddresses table error: %v", chainType, chainType, err)
+			return err
+		}
+		log.Infof("%s: Finish check and remove duplicate rows for %saddresses table", chainType, chainType)
+		// check and remove dupplicate for vins_all table
+		log.Infof("%s: Check and remove duplicate rows for %svins_all table", chainType, chainType)
+		_, err = pgb.db.Exec(mutilchainquery.CreateCheckAndRemoveDuplicateVinsRowsQuery(chainType))
+		if err != nil {
+			log.Errorf("%s: Check and remove duplicate rows for %svins_all table error: %v", chainType, chainType, err)
+			return err
+		}
+		log.Infof("%s: Finish check and remove duplicate rows for %svins_all table", chainType, chainType)
+		// check and remove dupplicate for vouts_all table
+		log.Infof("%s: Check and remove duplicate rows for %svouts_all table", chainType, chainType)
+		_, err = pgb.db.Exec(mutilchainquery.CreateCheckAndRemoveDuplicateVoutsRowsQuery(chainType))
+		if err != nil {
+			log.Errorf("%s: Check and remove duplicate rows for %svouts_all table error: %v", chainType, chainType, err)
+			return err
+		}
+		log.Infof("%s: Finish check and remove duplicate rows for %svouts_all table", chainType, chainType)
+	}
+	return nil
 }

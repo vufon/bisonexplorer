@@ -13,7 +13,10 @@
 {{$ChainParams := .ChainParams}}
 {{$Premine := .Premine}}
 <div class="container" data-controller="supply" data-supply-chain-type="{{$ChainType}}"
-   data-supply-target-time="{{.TargetTime}}" data-supply-ticket-time="{{.TicketTargetTime}}">
+   {{if ne $ChainType "xmr"}}
+   data-supply-target-time="{{.TargetTime}}" 
+   data-supply-ticket-time="{{.TicketTargetTime}}"
+   {{end}}>
    {{if ne $ChainType "dcr"}}
    <nav class="breadcrumbs mt-0">
       {{else}}
@@ -30,6 +33,7 @@
          {{end}}
          <span class="breadcrumbs__item is-active">Supply</span>
       </nav>
+      {{if ne $ChainType "xmr"}}
       <div class="mt-2">
          <h2 style="text-align: center; margin-top: 0px">Live {{chainName $ChainType}} {{if eq $ChainType
             "dcr"}}Reduction{{else}}Halving{{end}} Countdown</h2>
@@ -50,6 +54,7 @@
             </div>
          </div>
       </div>
+      {{end}}
       <div class="row">
          <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
             <div class="supply-stats-block">
@@ -66,11 +71,12 @@
                   {{if eq $ChainType "dcr"}}
                   {{template "decimalParts" (amountAsDecimalParts .BlockReward true)}} {{toUpperCase $ChainType}}
                   {{else}}
-                  {{toFloat64Amount .BlockReward}} {{toUpperCase $ChainType}}
+                  {{toMulFloat64Amount .BlockReward $ChainType}} {{toUpperCase $ChainType}}
                   {{end}}
                </div>
             </div>
          </div>
+         {{if ne $ChainType "xmr"}}
          <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
             <div class="supply-stats-block">
                <span class="supply-stats-title">Next Block Reward (Est)</span>
@@ -99,15 +105,31 @@
                </span>
             </div>
          </div>
+         {{end}}
          <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
             <div class="supply-stats-block">
                <span class="supply-stats-title">Total Coin Supply</span>
                <div class="supply-stats-content d-inline-block mt-2">
+                  {{if eq $ChainType "xmr"}}
+                  {{template "decimalParts" (float64AsDecimalParts $HomeInfo.CoinValueSupply 2 true)}}
+                  {{else}}
                   {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount $HomeInfo.CoinSupply) 0 true)}}
+                  {{end}}
                   {{toUpperCase $ChainType}}
                </div>
             </div>
          </div>
+         {{if eq $ChainType "xmr"}}
+          <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
+            <div class="supply-stats-block">
+               <span class="supply-stats-title">Annual coin supply (est)</span>
+               <div class="supply-stats-content d-inline-block mt-2">
+                  {{template "decimalParts" (float64AsDecimalParts .CoinSupplyPerYear 2 true)}}
+                  {{toUpperCase $ChainType}}
+               </div>
+            </div>
+         </div>
+         {{end}}
          {{if eq $ChainType "dcr"}}
          <div class="col-24 col-sm-12 col-md-8 col-lg-6 mt-2">
             <div class="supply-stats-block">
@@ -632,6 +654,14 @@
                               <div class="col-md-3 col-lg-3 col-xl-4"></div>
                               <div class="col-md-10 col-lg-11 col-xl-11 ta-center chart-title-name pt-15">
                                  <span class="fs-22 fw-600 d-hide" data-chaincharts-target="chartTitleName"></span>
+                                 <div data-chaincharts-target="chartDescription" data-ctooltip=""
+                                    class="d-hide d-flex ai-center cursor-pointer info-label position-relative ms-2">
+                                    <span>
+                                       <span class="dcricon-info fs15" style="color: #e6ad2b;">
+                                       </span>
+                                    </span>
+                                    <span class="ms-2 fs13" style="color: #97772e;">About</span>
+                                 </div>
                               </div>
                               <div class="col-md-3 col-lg-3 col-xl-4 ta-right p-relative">
                                  <span class="explore-card__header__arrow">

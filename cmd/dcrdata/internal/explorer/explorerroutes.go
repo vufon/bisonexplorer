@@ -461,19 +461,19 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			exp.BtcPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.BtcPageData.HomeInfo
-			volume24h = btcutil.Amount(homeInfo.Volume24h).ToBTC()
+			volume24h = homeInfo.Volume24hFloat
 			exp.BtcPageData.RUnlock()
 		case mutilchain.TYPELTC:
 			exp.LtcPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.LtcPageData.HomeInfo
-			volume24h = allXcState.LTCVolume
+			volume24h = homeInfo.Volume24hFloat
 			exp.LtcPageData.RUnlock()
 		case mutilchain.TYPEXMR:
 			exp.XmrPageData.RLock()
 			// Get fiat conversions if available
 			homeInfo = exp.XmrPageData.HomeInfo
-			volume24h = allXcState.XMRVolume
+			volume24h = homeInfo.Volume24hFloat
 			exp.XmrPageData.RUnlock()
 		default:
 			exp.pageData.RLock()
@@ -665,6 +665,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		conversions.MempoolSent = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalOut).ToBTC(), chainType)
 		conversions.MempoolFees = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalFee).ToBTC(), chainType)
 	}
+	volume24h := homeInfo.Volume24hFloat
 	str, err := exp.templates.exec("chain_home", struct {
 		*CommonPageData
 		Info               *types.HomeInfo
@@ -691,7 +692,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		TargetTimePerBlock: exp.GetTargetTimePerBlock(chainType),
 		MarketCap:          marketCap,
 		PoolDataList:       poolDataList,
-		Volume24h:          btcutil.Amount(homeInfo.Volume24h).ToBTC(),
+		Volume24h:          volume24h,
 	})
 
 	if err != nil {
@@ -4538,19 +4539,19 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 		exp.BtcPageData.RLock()
 		// Get fiat conversions if available
 		coinValueSupply = exp.BtcPageData.HomeInfo.CoinValueSupply
-		volume = btcutil.Amount(exp.BtcPageData.HomeInfo.Volume24h).ToBTC()
+		volume = exp.BtcPageData.HomeInfo.Volume24hFloat
 		exp.BtcPageData.RUnlock()
 	case mutilchain.TYPELTC:
 		exp.LtcPageData.RLock()
 		// Get fiat conversions if available
 		coinValueSupply = exp.LtcPageData.HomeInfo.CoinValueSupply
-		volume = xcState.Volume // since data from blockchair failed
+		volume = exp.LtcPageData.HomeInfo.Volume24hFloat
 		exp.LtcPageData.RUnlock()
 	case mutilchain.TYPEXMR:
 		exp.XmrPageData.RLock()
 		// Get fiat conversions if available
 		coinValueSupply = exp.XmrPageData.HomeInfo.CoinValueSupply
-		volume = xcState.Volume // since data from blockchair failed
+		volume = exp.XmrPageData.HomeInfo.Volume24hFloat
 		exp.XmrPageData.RUnlock()
 	default:
 		exp.pageData.RLock()
@@ -4994,18 +4995,26 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		exp.BtcPageData.RLock()
 		// Get fiat conversions if available
 		homeInfo = exp.BtcPageData.HomeInfo
+		exp.BtcPageData.RUnlock()
 		blockReward = homeInfo.BlockReward
 		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPEBTC)
 		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPEBTC)
-		exp.BtcPageData.RUnlock()
 	case mutilchain.TYPELTC:
 		exp.LtcPageData.RLock()
 		// Get fiat conversions if available
 		homeInfo = exp.LtcPageData.HomeInfo
+		exp.LtcPageData.RUnlock()
 		blockReward = homeInfo.BlockReward
 		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPELTC)
 		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPELTC)
-		exp.LtcPageData.RUnlock()
+	case mutilchain.TYPEXMR:
+		exp.XmrPageData.RLock()
+		// Get fiat conversions if available
+		homeInfo = exp.XmrPageData.HomeInfo
+		exp.XmrPageData.RUnlock()
+		blockReward = homeInfo.BlockReward
+		blockHeight = exp.dataSource.MutilchainHeight(mutilchain.TYPEXMR)
+		blockTime = exp.dataSource.MutilchainBestBlockTime(mutilchain.TYPEXMR)
 	default:
 		blockSubsidy := exp.dataSource.BlockSubsidy(blockHeight, exp.ChainParams.TicketsPerBlock)
 		blockReward = blockSubsidy.Total
@@ -5018,11 +5027,23 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		ticketAllsecs := int64(time.Duration(ticketDuration).Seconds())
 		nextTicketTime = blockTime + ticketAllsecs
 	}
-	x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
-	allsecs := int64(time.Duration(x).Seconds())
-	targetTime := blockTime + allsecs
-	nextBlockReward := homeInfo.NBlockSubsidy.Total
+	var targetTime uint64
+	var nextBlockReward int64
+	if chainType != mutilchain.TYPEXMR {
+		x := (int64(homeInfo.Params.RewardWindowSize) - int64(homeInfo.IdxInRewardWindow)) * homeInfo.Params.BlockTime
+		allsecs := int64(time.Duration(x).Seconds())
+		targetTime = uint64(blockTime + allsecs)
+		nextBlockReward = homeInfo.NBlockSubsidy.Total
+	}
 
+	// estimate coin supply per year
+	var coinSupplyPerYear float64
+	if chainType == mutilchain.TYPEXMR {
+		blockRewardXmr := utils.AtomicToXMR(uint64(blockReward))
+		if targetTimePerBlock > 0 {
+			coinSupplyPerYear = blockRewardXmr * (365 * 24 * 60 * 60) / targetTimePerBlock
+		}
+	}
 	str, err := exp.templates.execTemplateToString("supply", struct {
 		*CommonPageData
 		Info               *types.HomeInfo
@@ -5033,17 +5054,19 @@ func (exp *ExplorerUI) SupplyPage(w http.ResponseWriter, r *http.Request) {
 		BlockReward        int64
 		NextBlockReward    int64
 		TargetTimePerBlock float64
+		CoinSupplyPerYear  float64
 		Premine            int64
 	}{
 		CommonPageData:     exp.commonData(r),
 		ChainType:          chainType,
 		Info:               homeInfo,
-		TargetTime:         uint64(targetTime),
+		TargetTime:         targetTime,
 		BlockHeight:        blockHeight,
 		BlockReward:        blockReward,
 		NextBlockReward:    nextBlockReward,
 		TicketTargetTime:   uint64(nextTicketTime),
 		TargetTimePerBlock: targetTimePerBlock,
+		CoinSupplyPerYear:  coinSupplyPerYear,
 		Premine:            exp.premine,
 	})
 	if err != nil {

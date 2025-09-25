@@ -332,6 +332,7 @@ type ZoomSet struct {
 	PoolSize          ChartUints
 	PoolValue         ChartUints
 	BlockSize         ChartUints
+	TotalSize         ChartUints
 	TxCount           ChartUints
 	APIBlockchainSize ChartUints
 	APITxAverage      ChartUints
@@ -460,6 +461,7 @@ type ChartGobject struct {
 	PoolSize          ChartUints
 	PoolValue         ChartUints
 	BlockSize         ChartUints
+	TotalSize         ChartUints
 	TxCount           ChartUints
 	NewAtoms          ChartUints
 	Chainwork         ChartUints

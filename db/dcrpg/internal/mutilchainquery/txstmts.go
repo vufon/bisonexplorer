@@ -34,9 +34,9 @@ const (
 		$16, $17, $18,
 		$19, $20, $21, $22, $23, $24)`
 	insertTxRow           = insertTxRow0 + ` RETURNING id;`
-	insertTxRowChecked    = insertTxRow0 + ` ON CONFLICT (tx_hash, block_hash) DO NOTHING RETURNING id;`
+	insertTxRowChecked    = insertTxRow0 + ` ON CONFLICT (tx_hash) DO NOTHING RETURNING id;`
 	insertXmrTxRow        = insertXmrTxRow0 + ` RETURNING id;`
-	insertXmrTxRowChecked = insertXmrTxRow0 + ` ON CONFLICT (tx_hash, block_hash) DO NOTHING RETURNING id;`
+	insertXmrTxRowChecked = insertXmrTxRow0 + ` ON CONFLICT (tx_hash) DO NOTHING RETURNING id;`
 
 	CreateTransactionTable = `CREATE TABLE IF NOT EXISTS %stransactions (
 		id SERIAL8 PRIMARY KEY,
@@ -89,16 +89,16 @@ const (
 
 	DeleteTxsWithMinBlockHeight = `DELETE FROM %stransactions WHERE block_height > $1`
 
-	IndexTransactionTableOnHashes = `CREATE UNIQUE INDEX uix_%stx_hash_blhash
+	IndexTransactionTableOnHashes = `CREATE INDEX uix_%stx_hash_blhash
 		 ON %stransactions(tx_hash, block_hash)
 		 ;` // STORING (block_hash, block_index, tree)
 	DeindexTransactionTableOnHashes = `DROP INDEX uix_%stx_hash_blhash;`
 
-	IndexTransactionTableOnBlockHeight   = `CREATE INDEX ix_%stx_block_height ON %stransactions(block_height);`
-	DeindexTransactionTableOnBlockHeight = `DROP INDEX ix_%stx_block_height CASCADE;`
+	IndexTransactionTableOnBlockHeight   = `CREATE INDEX uix_%stx_block_height ON %stransactions(block_height);`
+	DeindexTransactionTableOnBlockHeight = `DROP INDEX uix_%stx_block_height CASCADE;`
 
-	IndexTransactionTableOnTxHash   = `CREATE INDEX ix_%stx_txhash ON %stransactions(tx_hash);`
-	DeindexTransactionTableOnTxHash = `DROP INDEX ix_%stx_txhash CASCADE;`
+	IndexTransactionTableOnTxHash   = `CREATE UNIQUE INDEX uix_%stx_txhash ON %stransactions(tx_hash);`
+	DeindexTransactionTableOnTxHash = `DROP INDEX uix_%stx_txhash CASCADE;`
 
 	//SelectTxByPrevOut = `SELECT * FROM transactions WHERE vins @> json_build_array(json_build_object('prevtxhash',$1)::jsonb)::jsonb;`
 	//SelectTxByPrevOut = `SELECT * FROM transactions WHERE vins #>> '{"prevtxhash"}' = '$1';`
@@ -123,6 +123,16 @@ const (
 	GROUP BY block_height
 	ORDER BY block_height;`
 	DeleteTxsOfOlderThan20Blocks = `DELETE FROM %stransactions WHERE block_height < $1;`
+	Select24hAvgAndSumTxFee      = `SELECT COALESCE(SUM(fees)::bigint, 0) AS sum_fees_last_24h, COALESCE(ROUND(AVG(fees))::bigint, 0) AS avg_fees_last_24h
+	FROM %stransactions WHERE time >= EXTRACT(EPOCH FROM now()) - 24*3600;`
+	CheckAndRemoveDupplicateTxsRow = `WITH duplicates AS (
+  		SELECT id, row_number() OVER (PARTITION BY tx_hash ORDER BY id) AS rn
+  		FROM public.%stransactions
+  		WHERE tx_hash IS NOT NULL)
+		DELETE FROM public.%stransactions t
+		USING duplicates d
+		WHERE t.id = d.id
+  		AND d.rn > 1;`
 )
 
 func MakeSelectFeesPerBlockAboveHeight(chainType string) string {
@@ -206,4 +216,12 @@ func CreateSelectTxHashsWithMinHeightQuery(chainType string) string {
 
 func CreateDeleteTxsWithMinBlockHeightQuery(chainType string) string {
 	return fmt.Sprintf(DeleteTxsWithMinBlockHeight, chainType)
+}
+
+func CreateSelect24hAvgAndSumTxFee(chainType string) string {
+	return fmt.Sprintf(Select24hAvgAndSumTxFee, chainType)
+}
+
+func CreateCheckAndRemoveDupplicateTxsRowQuery(chainType string) string {
+	return fmt.Sprintf(CheckAndRemoveDupplicateTxsRow, chainType, chainType)
 }

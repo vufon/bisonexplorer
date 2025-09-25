@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -267,9 +268,17 @@ func GetCirculatingSupply(height uint64) uint64 {
 }
 
 func AtomicToXMR(atomic uint64) float64 {
-	return float64(atomic) / float64(AtomicUnit)
+	return float64(atomic) / float64(XmrAtomicUnit)
+}
+
+func XMRToAtomic(xmrAmount float64) int64 {
+	return int64(math.Round(xmrAmount * XmrAtomicUnit))
+}
+
+func BTCToSatoshi(btcAmount float64) int64 {
+	return int64(math.Round(btcAmount * BtcSatoshiUnit))
 }
 
 func GetCirculatingSupplyXMR(height uint64) float64 {
-	return float64(GetCirculatingSupply(height)) / float64(AtomicUnit)
+	return float64(GetCirculatingSupply(height)) / float64(XmrAtomicUnit)
 }

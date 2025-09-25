@@ -8,6 +8,7 @@ import (
 var chainMap = map[string]string{
 	"btc": "bitcoin",
 	"ltc": "litecoin",
+	"xmr": "monero",
 }
 
 var blockchairChainStatsURL = "https://api.blockchair.com/%s/stats"

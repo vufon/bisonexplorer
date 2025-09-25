@@ -553,22 +553,6 @@ func (pgb *ChainDB) DeindexMutilchainWholeTable(chainType string) error {
 	if err != nil {
 		return err
 	}
-	err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVinAllTableOnPrevOuts(chainType))
-	if err != nil {
-		return err
-	}
-	err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVinAllTableOnVins(chainType))
-	if err != nil {
-		return err
-	}
-	err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVoutAllTableOnTxHash(chainType))
-	if err != nil {
-		return err
-	}
-	err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVoutAllTableOnTxHashIdx(chainType))
-	if err != nil {
-		return err
-	}
 
 	if chainType == mutilchain.TYPEXMR {
 		// monero_outputs table
@@ -590,6 +574,10 @@ func (pgb *ChainDB) DeindexMutilchainWholeTable(chainType string) error {
 		}
 
 		// monero_key_images
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroKeyImagesOnKeyImage)
+		if err != nil {
+			return err
+		}
 		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexMoneroKeyImagesOnBlockHeight)
 		if err != nil {
 			return err
@@ -614,6 +602,39 @@ func (pgb *ChainDB) DeindexMutilchainWholeTable(chainType string) error {
 		if err != nil {
 			return err
 		}
+	} else {
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnAddrVoutRowIdStmt(chainType))
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnFundingTxStmt(chainType))
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnAddressStmt(chainType))
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnVoutIDStmt(chainType))
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVinAllTableOnPrevOuts(chainType))
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVinAllTableOnVins(chainType))
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVoutAllTableOnTxHash(chainType))
+		if err != nil {
+			return err
+		}
+		err = HandlerDeindexFunc(pgb.db, mutilchainquery.MakeDeindexVoutAllTableOnTxHashIdx(chainType))
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -621,31 +642,7 @@ func (pgb *ChainDB) DeindexMutilchainWholeTable(chainType string) error {
 func (pgb *ChainDB) DeindexMutilchainAddressesTable(chainType string) error {
 	var err error
 	if chainType == mutilchain.TYPEXMR {
-		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexXmrAddressTableOnOutPk)
-		if err != nil {
-			return err
-		}
-		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexXmrAddressTableOnAmountKnown)
-		if err != nil {
-			return err
-		}
-		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexXmrAddressTableOnVoutRowId)
-		if err != nil {
-			return err
-		}
-		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexXmrAddressTableOnFundingInfo)
-		if err != nil {
-			return err
-		}
-		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexXmrAddressTableOnGlobalIndex)
-		if err != nil {
-			return err
-		}
-		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexXmrAddressTableOnKeyImage)
-		if err != nil {
-			return err
-		}
-		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexXmrAddressTableOnAccIdxAddrIdx)
+		return nil
 	} else {
 		err = HandlerDeindexFunc(pgb.db, mutilchainquery.DeindexAddressTableOnAddrVoutRowIdStmt(chainType))
 		if err != nil {
@@ -844,25 +841,13 @@ func (pgb *ChainDB) IndexMutilchainWholeTable(chainType string) error {
 	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%sblock_all on time", chainType), mutilchainquery.MakeIndexBlocksAllTableOnTime(chainType)); err != nil {
 		return err
 	}
-	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%stransaction on block height", chainType), mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)); err != nil {
+	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%stransactions on block height", chainType), mutilchainquery.MakeIndexTransactionTableOnBlockHeight(chainType)); err != nil {
 		return err
 	}
-	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%stransaction on txhash", chainType), mutilchainquery.MakeIndexTransactionTableOnTxHash(chainType)); err != nil {
+	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%stransactions on txhash", chainType), mutilchainquery.MakeIndexTransactionTableOnTxHash(chainType)); err != nil {
 		return err
 	}
-	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%stransaction on tx/block hashs", chainType), mutilchainquery.MakeIndexTransactionTableOnHashes(chainType)); err != nil {
-		return err
-	}
-	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svin_all on prev outs", chainType), mutilchainquery.MakeIndexVinAllTableOnPrevOuts(chainType)); err != nil {
-		return err
-	}
-	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svin_all on vins", chainType), mutilchainquery.MakeIndexVinAllTableOnVins(chainType)); err != nil {
-		return err
-	}
-	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svout_all on tx hash", chainType), mutilchainquery.MakeIndexVoutAllTableOnTxHash(chainType)); err != nil {
-		return err
-	}
-	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svout_all on tx hash idx", chainType), mutilchainquery.MakeIndexVoutAllTableOnTxHashIdx(chainType)); err != nil {
+	if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%stransactions on tx/block hashs", chainType), mutilchainquery.MakeIndexTransactionTableOnHashes(chainType)); err != nil {
 		return err
 	}
 
@@ -882,6 +867,9 @@ func (pgb *ChainDB) IndexMutilchainWholeTable(chainType string) error {
 		}
 
 		// monero_key_images
+		if err = HandlerMultichainIndexFunc(pgb.db, "monero_key_images on key_image", mutilchainquery.IndexMoneroKeyImagesOnKeyImage); err != nil {
+			return err
+		}
 		if err = HandlerMultichainIndexFunc(pgb.db, "monero_key_images on spent_block_height", mutilchainquery.IndexMoneroKeyImagesOnBlockHeight); err != nil {
 			return err
 		}
@@ -899,6 +887,31 @@ func (pgb *ChainDB) IndexMutilchainWholeTable(chainType string) error {
 
 		// monero_rct_data
 		if err = HandlerMultichainIndexFunc(pgb.db, "monero_rct_data on tx_hash", mutilchainquery.IndexMoneroRctDataOnTxHash); err != nil {
+			return err
+		}
+	} else {
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%saddress on address/vout_row_id", chainType), mutilchainquery.IndexAddressTableOnAddrVoutRowIdStmt(chainType)); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%saddress on funding txStmt", chainType), mutilchainquery.IndexAddressTableOnFundingTxStmt(chainType)); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%saddress on address", chainType), mutilchainquery.IndexAddressTableOnAddressStmt(chainType)); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%saddress on vout ids", chainType), mutilchainquery.IndexAddressTableOnVoutIDStmt(chainType)); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svin_all on prev outs", chainType), mutilchainquery.MakeIndexVinAllTableOnPrevOuts(chainType)); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svin_all on vins", chainType), mutilchainquery.MakeIndexVinAllTableOnVins(chainType)); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svout_all on tx hash", chainType), mutilchainquery.MakeIndexVoutAllTableOnTxHash(chainType)); err != nil {
+			return err
+		}
+		if err = HandlerMultichainIndexFunc(pgb.db, fmt.Sprintf("%svout_all on tx hash idx", chainType), mutilchainquery.MakeIndexVoutAllTableOnTxHashIdx(chainType)); err != nil {
 			return err
 		}
 	}

@@ -104,25 +104,19 @@ func GetMutilchainAddressesIndexNames(chainType string) []string {
 
 func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 	result := make(map[string]string)
-	tempIndex := fmt.Sprintf("uix_%sblock_hash", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = fmt.Sprintf("uix_%sblock_all_hash", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%sblock_height", chainType)
+	// %sblocks_all table
+	tempIndex := fmt.Sprintf("uix_%sblock_all_hash", chainType)
 	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
 	tempIndex = fmt.Sprintf("uix_%sblock_all_height", chainType)
 	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = fmt.Sprintf("uix_%sblock_time", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
 	tempIndex = fmt.Sprintf("uix_%sblock_all_time", chainType)
 	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = fmt.Sprintf("ix_%stx_block_height", chainType)
+	// %stransactions table
+	tempIndex = fmt.Sprintf("uix_%stx_block_height", chainType)
 	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
 	tempIndex = fmt.Sprintf("uix_%stx_txhash", chainType)
@@ -131,32 +125,9 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 	tempIndex = fmt.Sprintf("uix_%stx_hash_blhash", chainType)
 	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 
-	tempIndex = fmt.Sprintf("uix_%svin_prevout", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%svin_all_prevout", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%svin", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%svin_all_txhash_txindex", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%svout_txhash", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%svout_all_txhash", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%svout_txhash_ind", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-	tempIndex = fmt.Sprintf("uix_%svout_all_txhash_ind", chainType)
-	result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
+	// for monero
 	if chainType == mutilchain.TYPEXMR {
-		tempIndex = "uix_monero_outputs_txhash"
+		tempIndex = "uix_monero_outputs_txhash_txindex"
 		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
 		tempIndex = "uix_monero_outputs_global_index"
@@ -165,7 +136,16 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 		tempIndex = "uix_monero_outputs_out_pk"
 		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
+		tempIndex = "uix_monero_outputs_spent"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "uix_monero_key_images_key_image"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
 		tempIndex = "uix_monero_key_images_block_height"
+		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+
+		tempIndex = "uix_monero_key_images_first_seen_bl_height"
 		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
 		tempIndex = "uix_monero_ring_members_txhash_txinput_idx"
@@ -174,26 +154,9 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 		tempIndex = "uix_monero_ring_members_member_global_idx"
 		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
 
-		tempIndex = "idx_xmraddresses_global_index"
+		tempIndex = "uix_monero_rct_data_txhash"
 		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-		tempIndex = "idx_xmraddresses_key_image"
-		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-		tempIndex = "idx_xmraddresses_address_idx"
-		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-		tempIndex = "idx_xmraddresses_out_pk"
-		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-		tempIndex = "idx_xmraddresses_amount_known"
-		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-		tempIndex = "idx_xmraddresses_vout_row_id"
-		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-		tempIndex = "idx_xmraddresses_funding_tx"
-		result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+		// for others
 	} else {
 		tempIndex = fmt.Sprintf("uix_%saddresses_addr_vout_row_id", chainType)
 		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
@@ -206,6 +169,18 @@ func GetMutilchainIndexDescriptionsMap(chainType string) map[string]string {
 
 		tempIndex = fmt.Sprintf("uix_%saddresses_vout_id", chainType)
 		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = fmt.Sprintf("uix_%svin_all_prevout", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = fmt.Sprintf("uix_%svin_all_txhash_txindex", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = fmt.Sprintf("uix_%svout_all_txhash", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+
+		tempIndex = fmt.Sprintf("uix_%svout_all_txhash_ind", chainType)
+		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
 	}
 	return result
 }
@@ -217,108 +192,82 @@ func GetIndexDescriptionsMap() map[string]string {
 	}
 	//add mutilchain index description
 	for _, chainType := range dbtypes.MutilchainList {
-		tempIndex := fmt.Sprintf("uix_%sblock_hash", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%sblock_all_hash", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%sblock_height", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+		// %sblocks_all table
+		tempIndex := fmt.Sprintf("uix_%sblock_all_hash", chainType)
+		result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
 		tempIndex = fmt.Sprintf("uix_%sblock_all_height", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%sblock_time", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+		result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
 		tempIndex = fmt.Sprintf("uix_%sblock_all_time", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+		result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
-		tempIndex = fmt.Sprintf("ix_%stx_block_height", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+		// %stransactions table
+		tempIndex = fmt.Sprintf("uix_%stx_block_height", chainType)
+		result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
 		tempIndex = fmt.Sprintf("uix_%stx_txhash", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+		result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
 		tempIndex = fmt.Sprintf("uix_%stx_hash_blhash", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+		result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
-		tempIndex = fmt.Sprintf("uix_%svin_prevout", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%svin_all_prevout", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%svin", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%svin_all_txhash_txindex", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%svout_txhash", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%svout_all_txhash", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%svout_txhash_ind", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
-		tempIndex = fmt.Sprintf("uix_%svout_all_txhash_ind", chainType)
-		result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
-
+		// for monero
 		if chainType == mutilchain.TYPEXMR {
-			tempIndex = "uix_monero_outputs_txhash"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+			tempIndex = "uix_monero_outputs_txhash_txindex"
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
 
 			tempIndex = "uix_monero_outputs_global_index"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
 
 			tempIndex = "uix_monero_outputs_out_pk"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
+
+			tempIndex = "uix_monero_outputs_spent"
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
+
+			tempIndex = "uix_monero_key_images_key_image"
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
 
 			tempIndex = "uix_monero_key_images_block_height"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
+
+			tempIndex = "uix_monero_key_images_first_seen_bl_height"
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
 
 			tempIndex = "uix_monero_ring_members_txhash_txinput_idx"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
 
 			tempIndex = "uix_monero_ring_members_member_global_idx"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
 
-			tempIndex = "idx_xmraddresses_global_index"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-			tempIndex = "idx_xmraddresses_key_image"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-			tempIndex = "idx_xmraddresses_address_idx"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-			tempIndex = "idx_xmraddresses_out_pk"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-			tempIndex = "idx_xmraddresses_amount_known"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-			tempIndex = "idx_xmraddresses_vout_row_id"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
-
-			tempIndex = "idx_xmraddresses_funding_tx"
-			result[tempIndex] = fmt.Sprintf("create %s index on monero", tempIndex)
+			tempIndex = "uix_monero_rct_data_txhash"
+			result[tempIndex] = fmt.Sprintf("%s index on monero", tempIndex)
+			// for others
 		} else {
 			tempIndex = fmt.Sprintf("uix_%saddresses_addr_vout_row_id", chainType)
-			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
 			tempIndex = fmt.Sprintf("uix_%saddresses_funding_tx", chainType)
-			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
 			tempIndex = fmt.Sprintf("uix_%saddresses_address", chainType)
-			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 
 			tempIndex = fmt.Sprintf("uix_%saddresses_vout_id", chainType)
-			result[tempIndex] = fmt.Sprintf("create %s index on %s", tempIndex, chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
+
+			tempIndex = fmt.Sprintf("uix_%svin_all_prevout", chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
+
+			tempIndex = fmt.Sprintf("uix_%svin_all_txhash_txindex", chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
+
+			tempIndex = fmt.Sprintf("uix_%svout_all_txhash", chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
+
+			tempIndex = fmt.Sprintf("uix_%svout_all_txhash_ind", chainType)
+			result[tempIndex] = fmt.Sprintf("%s index on %s", tempIndex, chainType)
 		}
 	}
 	return result

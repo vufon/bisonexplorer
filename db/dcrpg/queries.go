@@ -4282,14 +4282,14 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) error {
 	defer closeRows(rows)
 	var timeInt uint64
-	var count, size, height, reward, fees uint64
+	var count, size, totalSize, height, reward, fees uint64
 	var difficult float64
 	var rowCount int32
 	blocks := charts.Blocks
 	for rows.Next() {
 		rowCount++
 		// Get the chainwork.
-		err := rows.Scan(&height, &size, &timeInt, &count, &difficult, &fees, &reward)
+		err := rows.Scan(&height, &size, &totalSize, &timeInt, &count, &difficult, &fees, &reward)
 		if err != nil {
 			return err
 		}
@@ -4298,9 +4298,9 @@ func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 		}
 		blocks.Height = append(blocks.Height, height)
 		blocks.BlockSize = append(blocks.BlockSize, size)
+		blocks.TotalSize = append(blocks.TotalSize, totalSize)
 		blocks.TxCount = append(blocks.TxCount, count)
 		blocks.Time = append(blocks.Time, timeInt)
-		blocks.BlockSize = append(blocks.BlockSize, size)
 		blocks.Difficulty = append(blocks.Difficulty, difficult)
 		hashrate := float64(0)
 		if charts.TimePerBlocks > 0 {
