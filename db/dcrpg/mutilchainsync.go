@@ -2157,7 +2157,6 @@ func (pgb *ChainDB) SyncXMRWholeChain(newIndexes bool) {
 
 	// Check if reindexing is performed?
 	reindexing := newIndexes || (int64(len(remaingHeights)) > pgb.XmrBestBlock.Height/20)
-	fmt.Println("XMR: Check new Index: ", reindexing)
 	checkDuplicate := true
 	if reindexing {
 		checkDuplicate = false
