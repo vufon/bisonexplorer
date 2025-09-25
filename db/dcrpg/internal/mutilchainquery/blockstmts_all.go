@@ -22,7 +22,7 @@ const (
 	insertBlockAllRow           = insertBlockAllRow0 + ` RETURNING id;`
 	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (height) DO NOTHING RETURNING id;`
 	insertXmrBlockAllRow        = insertXmrBlockAllRow0 + ` RETURNING id;`
-	insertXmrBlockAllRowChecked = insertXmrBlockAllRow0 + ` ON CONFLICT (hash) DO NOTHING RETURNING id;`
+	insertXmrBlockAllRowChecked = insertXmrBlockAllRow0 + ` ON CONFLICT (height) DO NOTHING RETURNING id;`
 	insertBlockAllRowReturnId   = `WITH ins AS (` +
 		insertBlockAllRow0 +
 		`ON CONFLICT (hash) DO UPDATE
@@ -116,19 +116,26 @@ ORDER BY a.height ASC;`
 		WHERE height > $1
 		ORDER BY height;`
 
-	SelectXmrBlockAllStats = `SELECT
+	SelectXmrBlockAllStats = `WITH tx_sizes AS (
+    	SELECT 
+        	block_height, 
+        SUM(size) AS tx_total_size
+    	FROM xmrtransactions
+    	WHERE block_height > $1
+    	GROUP BY block_height
+		)
+	SELECT
     	b.height,
-    	b.size + COALESCE(SUM(t.size), 0) AS total_size,
+    	b.size + COALESCE(t.tx_total_size, 0) AS total_size,
     	b.time,
     	b.numtx,
     	b.difficulty,
     	b.fees,
     	b.reward
 	FROM xmrblocks_all b
-	LEFT JOIN xmrtransactions t
+	LEFT JOIN tx_sizes t
     ON b.height = t.block_height
 	WHERE b.height > $1
-	GROUP BY b.height, b.size, b.time, b.numtx, b.difficulty, b.fees, b.reward
 	ORDER BY b.height;`
 
 	CheckExistBLockAll         = `SELECT EXISTS(SELECT 1 FROM %sblocks_all WHERE height = $1);`
