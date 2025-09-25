@@ -23,7 +23,7 @@ const (
 	InsertVinAllRowChecked = InsertVinAllRow0 +
 		`ON CONFLICT (tx_hash, tx_index) DO NOTHING RETURNING id;`
 
-	IndexVinAllTableOnVins = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_%svin_all_txhash_txindex
+	IndexVinAllTableOnVins = `CREATE UNIQUE INDEX uix_%svin_all_txhash_txindex
 		ON %svins_all(tx_hash, tx_index);` // STORING (prev_tx_hash, prev_tx_index)
 	IndexVinAllTableOnPrevOuts = `CREATE INDEX uix_%svin_all_prevout
 		ON %svins_all(prev_tx_hash, prev_tx_index)
@@ -88,7 +88,7 @@ const (
 	RetrieveVoutAllValue  = `SELECT value FROM %svouts_all WHERE tx_hash=$1 and tx_index=$2;`
 	RetrieveVoutAllValues = `SELECT value, tx_index, tx_tree FROM %svouts_all WHERE tx_hash=$1;`
 
-	IndexVoutAllTableOnTxHashIdx = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_%svout_all_txhash_ind
+	IndexVoutAllTableOnTxHashIdx = `CREATE UNIQUE INDEX uix_%svout_all_txhash_ind
 		ON %svouts_all(tx_hash, tx_index);`
 	DeindexVoutAllTableOnTxHashIdx = `DROP INDEX uix_%svout_all_txhash_ind;`
 

@@ -22,7 +22,7 @@ const (
 
 	SelectTotalXmrOutputs = `SELECT COUNT(*) FROM monero_outputs;`
 
-	IndexMoneroVoutsTableOnTxHashTxIndex   = `CREATE UNIQUE INDEX IF NOT EXISTS uix_monero_outputs_txhash_txindex ON monero_outputs(tx_hash, tx_index);`
+	IndexMoneroVoutsTableOnTxHashTxIndex   = `CREATE UNIQUE INDEX uix_monero_outputs_txhash_txindex ON monero_outputs(tx_hash, tx_index);`
 	DeindexMoneroVoutsTableOnTxHashTxIndex = `DROP INDEX uix_monero_outputs_txhash_txindex;`
 
 	IndexMoneroVoutTableOnGlobalIndex = `CREATE INDEX uix_monero_outputs_global_index
@@ -50,7 +50,7 @@ const (
 
 	CreateMoneroKeyImagesTable = `CREATE TABLE IF NOT EXISTS monero_key_images (
   		id SERIAL8 PRIMARY KEY,
-  		key_image TEXT NOT NULL UNIQUE,   -- hex
+  		key_image TEXT NOT NULL,   -- hex
   		spent_tx_hash TEXT,               -- tx hash that spent this key image (if known)
   		spent_block_height BIGINT,
   		first_seen_tx_hash TEXT,          -- tx where this key image appeared
@@ -64,7 +64,7 @@ const (
 	InsertMoneroKeyImages = InsertMoneroKeyImagesV0 + ` RETURNING id;`
 	UpsertMoneroKeyImages = InsertMoneroKeyImagesV0 + ` ON CONFLICT (key_image) DO UPDATE SET first_seen_tx_hash = COALESCE(monero_key_images.first_seen_tx_hash, EXCLUDED.first_seen_tx_hash) RETURNING id;`
 
-	IndexMoneroKeyImagesOnKeyImage = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_monero_key_images_key_image
+	IndexMoneroKeyImagesOnKeyImage = `CREATE UNIQUE INDEX uix_monero_key_images_key_image
 		ON monero_key_images(key_image);`
 	DeindexMoneroKeyImagesOnKeyImage = `DROP INDEX uix_monero_key_images_key_image;`
 
@@ -100,7 +100,7 @@ const (
 	VALUES ($1,$2,$3,$4)`
 	InsertMoneroRingMemberAllRow    = InsertMoneroRingMemberV0 + ` RETURNING id;`
 	InsertMoneroRingMemberWithCheck = InsertMoneroRingMemberV0 + ` ON CONFLICT (tx_hash, tx_input_index, ring_position) DO NOTHING RETURNING id`
-	IndexMoneroRingMembersOnTxHash  = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_monero_ring_members_txhash_txinput_idx
+	IndexMoneroRingMembersOnTxHash  = `CREATE UNIQUE INDEX uix_monero_ring_members_txhash_txinput_idx
 		ON monero_ring_members(tx_hash, tx_input_index, ring_position);`
 	DeindexMoneroRingMembersOnTxHash = `DROP INDEX uix_monero_ring_members_txhash_txinput_idx;`
 
@@ -133,7 +133,7 @@ const (
 	InsertMoneroRctDataAllRows = InsertMoneroRctDataV0 + ` RETURNING id;`
 	InsertMoneroRctDataChecked = InsertMoneroRctDataV0 + ` ON CONFLICT (tx_hash) DO NOTHING RETURNING id;`
 
-	IndexMoneroRctDataOnTxHash = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_monero_rct_data_txhash
+	IndexMoneroRctDataOnTxHash = `CREATE UNIQUE INDEX uix_monero_rct_data_txhash
 		ON monero_rct_data(tx_hash);`
 	DeindexMoneroRctDataOnTxHash = `DROP INDEX uix_monero_rct_data_txhash;`
 

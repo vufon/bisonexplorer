@@ -93,7 +93,7 @@ ORDER BY a.height ASC;`
 
 	// IndexBlocksTableOnHeight creates the index uix_block_height on (height).
 	// This is not unique because of side chains.
-	IndexBlocksAllTableOnHeight   = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_%sblock_all_height ON %sblocks_all(height);`
+	IndexBlocksAllTableOnHeight   = `CREATE UNIQUE INDEX uix_%sblock_all_height ON %sblocks_all(height);`
 	DeindexBlocksAllTableOnHeight = `DROP INDEX uix_%sblock_all_height CASCADE;`
 
 	// IndexBlocksTableOnHeight creates the index uix_block_time on (time).

@@ -89,7 +89,7 @@ const (
 
 	DeleteTxsWithMinBlockHeight = `DELETE FROM %stransactions WHERE block_height > $1`
 
-	IndexTransactionTableOnHashes = `CREATE UNIQUE INDEX uix_%stx_hash_blhash
+	IndexTransactionTableOnHashes = `CREATE INDEX uix_%stx_hash_blhash
 		 ON %stransactions(tx_hash, block_hash)
 		 ;` // STORING (block_hash, block_index, tree)
 	DeindexTransactionTableOnHashes = `DROP INDEX uix_%stx_hash_blhash;`
@@ -97,7 +97,7 @@ const (
 	IndexTransactionTableOnBlockHeight   = `CREATE INDEX uix_%stx_block_height ON %stransactions(block_height);`
 	DeindexTransactionTableOnBlockHeight = `DROP INDEX uix_%stx_block_height CASCADE;`
 
-	IndexTransactionTableOnTxHash   = `CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS uix_%stx_txhash ON %stransactions(tx_hash);`
+	IndexTransactionTableOnTxHash   = `CREATE UNIQUE INDEX uix_%stx_txhash ON %stransactions(tx_hash);`
 	DeindexTransactionTableOnTxHash = `DROP INDEX uix_%stx_txhash CASCADE;`
 
 	//SelectTxByPrevOut = `SELECT * FROM transactions WHERE vins @> json_build_array(json_build_object('prevtxhash',$1)::jsonb)::jsonb;`

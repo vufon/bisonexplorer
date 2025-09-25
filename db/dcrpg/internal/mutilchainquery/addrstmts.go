@@ -184,7 +184,7 @@ LIMIT 1;`
 		ON %saddresses(address);`
 	DeindexAddressTableOnAddress = `DROP INDEX uix_%saddresses_address;`
 
-	IndexAddressTableOnVoutID = `CREATE UNIQUE INDEX uix_%saddresses_vout_id
+	IndexAddressTableOnVoutID = `CREATE INDEX uix_%saddresses_vout_id
 		ON %saddresses(vout_row_id);`
 	DeindexAddressTableOnVoutID = `DROP INDEX uix_%saddresses_vout_id;`
 
