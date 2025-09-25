@@ -116,10 +116,20 @@ ORDER BY a.height ASC;`
 		WHERE height > $1
 		ORDER BY height;`
 
-	SelectXmrBlockAllStats = `SELECT height, size, time, numtx, difficulty, fees, reward
-		FROM xmrblocks_all
-		WHERE height > $1
-		ORDER BY height;`
+	SelectXmrBlockAllStats = `SELECT
+    	b.height,
+    	b.size + COALESCE(SUM(t.size), 0) AS total_size,
+    	b.time,
+    	b.numtx,
+    	b.difficulty,
+    	b.fees,
+    	b.reward
+	FROM xmrblocks_all b
+	LEFT JOIN xmrtransactions t
+    ON b.height = t.block_height
+	WHERE b.height > $1
+	GROUP BY b.height, b.size, b.time, b.numtx, b.difficulty, b.fees, b.reward
+	ORDER BY b.height;`
 
 	CheckExistBLockAll         = `SELECT EXISTS(SELECT 1 FROM %sblocks_all WHERE height = $1);`
 	SelectBlockAllHeightByHash = `SELECT height FROM %sblocks_all WHERE hash = $1 LIMIT 1;`
