@@ -878,8 +878,11 @@
                                                    <tr class="bg-none">
                                                       <th class="text-start">Block</th>
                                                       <th class="text-center">Pool Name</th>
-                                                      <th class="text-center">Health</th>
+                                                      <th class="text-center">{{if eq $ChainType "xmr"}}Effort{{else}}Health{{end}}</th>
                                                       <th class="text-center">Reward</th>
+                                                      {{if eq $ChainType "xmr"}}
+                                                      <th class="text-center">Mined By</th>
+                                                      {{end}}
                                                    </tr>
                                                 </thead>
                                                 <tbody class="bgc-white" data-chainhome-target="poolsTable">
@@ -892,19 +895,40 @@
                                                       </td>
                                                       <td class="d-flex justify-content-center ai-center">
                                                          <div class="tooltip1 me-1">
+                                                            {{if eq $ChainType "xmr"}}
+                                                            <img src="/images/{{.PoolSlug}}-logo.png" width="24" height="24" alt="pool icon">
+                                                            {{else}}
                                                             <img src="https://{{if eq $ChainType "btc"}}mempool.space{{else}}litecoinspace.org{{end}}/resources/mining-pools/{{.PoolSlug}}.svg"
                                                                width="24" height="24" alt="pool icon">
+                                                            {{end}}
                                                          </div>
                                                          <a href="{{.Link}}" target="_blank">
                                                             {{.PoolName}}
                                                          </a>
                                                       </td>
                                                       <td class="text-center">
+                                                         {{if gt .Health 0.0}}
+                                                         {{if eq $ChainType "xmr"}}
+                                                         {{printf "%.2f" .Health}}%
+                                                         {{else}}
                                                          {{printf "%.2f" (x100 .Health)}}%
+                                                         {{end}}
+                                                         {{else}}
+                                                         N/A
+                                                         {{end}}
                                                       </td>
                                                       <td class="text-center">
+                                                         {{if gt .Reward 0.0}}
                                                          {{.Reward}} {{toUpperCase $ChainType}}
+                                                         {{else}}
+                                                         N/A
+                                                         {{end}}
                                                       </td>
+                                                      {{if eq $ChainType "xmr"}}
+                                                      <td class="text-center">
+                                                         {{shortenHash .Miner 8}}
+                                                      </td>
+                                                      {{end}}
                                                    </tr>
                                                    {{end}}
                                                    {{end}}

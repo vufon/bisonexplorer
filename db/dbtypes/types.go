@@ -2695,6 +2695,7 @@ type MultichainPoolDataItem struct {
 	Pool24hBlocks int     `json:"pool24hBlocks"`
 	Reward        float64 `json:"reward"`
 	Health        float64 `json:"health"`
+	Miner         string  `json:"miner"`
 }
 
 type MarketCapData struct {

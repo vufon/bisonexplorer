@@ -1451,12 +1451,13 @@ func (pgb *ChainDB) SyncXMR24hBlockInfo(height int64) {
 		}
 		//insert to db
 		var id uint64
-		err = stmt.QueryRow(mutilchain.TYPEXMR, blockData.Hash, blockData.Height, blockData.BlockTime,
-			0, blockData.TotalSent, blockData.Fees, blockData.TxCount, blockData.TotalNumVins, blockData.TotalNumOutputs).Scan(&id)
+		err = stmt.QueryRow(mutilchain.TYPEXMR, blockData.Hash, blockData.Height, dbtypes.NewTimeDef(blockData.BlockTime.T),
+			0, 0, blockData.Fees, blockData.TxCount, blockData.TotalNumVins, blockData.TotalNumOutputs).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				continue
 			}
+			log.Errorf("XMR: Insert to blocks24h failed: %v", err)
 			_ = stmt.Close() // try, but we want the QueryRow error back
 			if errRoll := dbTx.Rollback(); errRoll != nil {
 				log.Errorf("Rollback failed: %v", errRoll)
@@ -1536,6 +1537,7 @@ func (pgb *ChainDB) SyncMutilchain24hBlocks(height int64, chainType string) {
 			if err == sql.ErrNoRows {
 				continue
 			}
+			log.Errorf("%s: Insert to blocks24h failed: %v", chainType, err)
 			_ = stmt.Close() // try, but we want the QueryRow error back
 			if errRoll := dbTx.Rollback(); errRoll != nil {
 				log.Errorf("Rollback failed: %v", errRoll)

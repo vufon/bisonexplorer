@@ -435,6 +435,17 @@ func formattedDuration(duration time.Duration, str *periodMap) string {
 	return i(durationsec) + pl(str.s, durationsec)
 }
 
+func shortenString(s string, keep int) string {
+	if len(s) <= 2*keep {
+		return s
+	}
+
+	start := s[:keep]
+	end := s[len(s)-keep:]
+
+	return start + "..." + end
+}
+
 func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 	netTheme := "theme-" + strings.ToLower(netName(params))
 
@@ -860,6 +871,7 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 				Title: title,
 			}
 		},
+		"shortenHash": shortenString,
 	}
 }
 

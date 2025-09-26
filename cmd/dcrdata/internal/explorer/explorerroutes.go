@@ -609,7 +609,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		exp.XmrPageData.RLock()
 		// Get fiat conversions if available
 		homeInfo = exp.XmrPageData.HomeInfo
-		// poolDataList = exp.XmrPageData.BlockInfo.PoolDataList
+		poolDataList = exp.XmrPageData.BlockInfo.PoolDataList
 		exp.XmrPageData.RUnlock()
 	default:
 		exp.pageData.RLock()
