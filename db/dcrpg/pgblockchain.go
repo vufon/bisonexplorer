@@ -4033,13 +4033,15 @@ func (pgb *ChainDB) GetLast5PoolDataList() (last5PoolData []*dbtypes.PoolDataIte
 	return
 }
 
-// GetLast5PoolDataList return last 5 block pool info
+// GetLastMultichainPoolDataList return last 10 block pools info
 func (pgb *ChainDB) GetLastMultichainPoolDataList(chainType string, startHeight int64) ([]*dbtypes.MultichainPoolDataItem, error) {
 	switch chainType {
 	case mutilchain.TYPEBTC:
 		return externalapi.GetBitcoinLastBlocksPool(startHeight)
 	case mutilchain.TYPELTC:
 		return externalapi.GetLitecoinLastBlocksPool(startHeight)
+	case mutilchain.TYPEXMR:
+		return externalapi.GetXMRLastBlocksPool()
 	default:
 		return make([]*dbtypes.MultichainPoolDataItem, 0), nil
 	}
@@ -9823,6 +9825,11 @@ func (pgb *ChainDB) GetXMRExplorerBlocks(from, to int64) []*exptypes.BlockBasic 
 		}
 	}
 	return result
+}
+
+func (pgb *ChainDB) GetXMRBlockHeader(height int64) (*xmrutil.BlockHeader, error) {
+	blheader, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(height))
+	return blheader, err
 }
 
 func (pgb *ChainDB) GetXMRBasicBlock(height int64) *exptypes.BlockBasic {

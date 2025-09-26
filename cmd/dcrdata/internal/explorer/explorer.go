@@ -207,6 +207,7 @@ type explorerDataSource interface {
 	GetXMRBasicBlock(height int64) *types.BlockBasic
 	GetXMRExplorerBlocks(from, to int64) []*types.BlockBasic
 	GetMultichain24hSumAndAvgTxFee(chainType string) (int64, int64, error)
+	GetXMRBlockHeader(height int64) (*xmrutil.BlockHeader, error)
 }
 
 type PoliteiaBackend interface {
@@ -1181,6 +1182,22 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	if newBlockData == nil {
 		return fmt.Errorf("XMR: Get explorer block data failed")
 	}
+	last5BlockPools, err := exp.dataSource.GetLastMultichainPoolDataList(mutilchain.TYPEXMR, newBlockData.Height)
+	if err != nil {
+		log.Errorf("Get XMR last 10 block pools failed: ", err)
+	}
+	// check and handler for rewards
+	for idx, blPool := range last5BlockPools {
+		if blPool.Reward <= 0 {
+			// get blocks
+			blHeader, err := exp.dataSource.GetXMRBlockHeader(blPool.BlockHeight)
+			if err != nil {
+				continue
+			}
+			last5BlockPools[idx].Reward = utils.AtomicToXMR(blHeader.Reward)
+		}
+	}
+	newBlockData.PoolDataList = last5BlockPools
 	// // Use the latest block's blocktime to get the last 24hr timestamp.
 	// // day := 24 * time.Hour
 	blockchainInfo, err := exp.dataSource.GetXMRBlockchainInfo()
@@ -1263,7 +1280,7 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 		} else {
 			log.Errorf("Sync XMR 24h Metrics Failed: %v", err24h)
 		}
-		log.Infof("XMR: Sync 24h metrics completed for height: %d", blockData.Header.Height)
+		log.Infof("XMR: Sync 24h metrics completed for height: %d", height)
 		p.Unlock()
 		p.sync24hMtx.Unlock()
 	}(int64(blockData.Header.Height))
