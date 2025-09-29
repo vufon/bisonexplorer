@@ -15,6 +15,7 @@ const (
 		spent INT8,
 		sent INT8,
 		fees INT8,
+		reward INT8,
 		num_tx INT4,
 		num_vin INT4,
 		num_vout INT4
