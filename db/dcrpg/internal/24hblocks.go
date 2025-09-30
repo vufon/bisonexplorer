@@ -28,8 +28,13 @@ const (
 		$1, $2, $3, $4,
 		$5, $6, $7, $8, $9, $10) `
 
-	Insert24hBlocksRow = insert24hBlockRow + `RETURNING id;`
-
+	Insert24hBlocksRow    = insert24hBlockRow + `RETURNING id;`
+	InsertXMR24hBlocksRow = `INSERT INTO blocks24h (
+		chain_type, block_hash, block_height,block_time,spent,
+		sent,fees,num_tx,num_vin,num_vout,reward)
+	VALUES (
+		$1, $2, $3, $4,
+		$5, $6, $7, $8, $9, $10, $11) RETURNING id;`
 	CheckExist24Blocks      = `SELECT EXISTS(SELECT 1 FROM blocks24h WHERE chain_type=$1 AND block_height=$2);`
 	DeleteInvalidBlocks     = `DELETE FROM blocks24h WHERE block_time < (SELECT NOW() - INTERVAL '1 DAY');`
 	Select24hMetricsSummary = `SELECT COUNT(*),
@@ -38,9 +43,10 @@ const (
        COALESCE(SUM(b24h.fees),0),
        COALESCE(SUM(b24h.num_tx),0),
        COALESCE(SUM(b24h.num_vin),0),
-       COALESCE(SUM(b24h.num_vout),0)
+       COALESCE(SUM(b24h.num_vout),0),
+	   COALESCE(SUM(b24h.reward),0)
 FROM (
-    SELECT DISTINCT spent,sent,fees,num_tx,num_vin,num_vout 
+    SELECT DISTINCT spent,sent,fees,num_tx,num_vin,num_vout,reward 
     FROM blocks24h 
     WHERE chain_type=$1
 ) AS b24h;`

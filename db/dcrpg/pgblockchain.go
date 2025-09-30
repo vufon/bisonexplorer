@@ -10275,6 +10275,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 		CumulativeDifficulty: utils.IfaceToString(clientBlock.CumulativeDifficulty),
 		PreviousHash:         clientBlock.PreviousHash,
 		NextHash:             nextHash,
+		BlockReward:          int64(clientBlock.Reward),
 	}
 
 	txs := make([]*exptypes.XmrTxFull, 0)

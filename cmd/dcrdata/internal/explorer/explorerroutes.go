@@ -209,6 +209,7 @@ type MutilchainHomeConversions struct {
 	Sent24h      *exchanges.Conversion
 	Fees24h      *exchanges.Conversion
 	TxFeeAvg24h  *exchanges.Conversion
+	Reward24h    *exchanges.Conversion
 	MempoolSent  *exchanges.Conversion
 	MempoolFees  *exchanges.Conversion
 	PoWReward    *exchanges.Conversion
@@ -638,13 +639,16 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 
 		if homeInfo.Block24hInfo != nil {
 			feesFloat := float64(0)
+			rewardFloat := float64(0)
 			if chainType == mutilchain.TYPEXMR {
 				feesFloat = utils.AtomicToXMR(uint64(homeInfo.Block24hInfo.Fees24h))
+				rewardFloat = utils.AtomicToXMR(uint64(homeInfo.Block24hInfo.TotalPowReward))
 			} else {
 				feesFloat = btcutil.Amount(homeInfo.Block24hInfo.Fees24h).ToBTC()
 			}
 			conversions.Sent24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Sent24h).ToBTC(), chainType)
 			conversions.Fees24h = xcBot.MutilchainConversion(feesFloat, chainType)
+			conversions.Reward24h = xcBot.MutilchainConversion(rewardFloat, chainType)
 		}
 	}
 	allXcState := exp.getExchangeState()

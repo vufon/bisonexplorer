@@ -511,7 +511,7 @@
                                                 (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> -
                                              <span data-chainhome-target="maxFeeRate">{{template "decimalParts"
                                                 (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
-                                             {{if eq $ChainType "ltc"}}lit{{else}}sat{{end}}/vB
+                                             {{if eq $ChainType "ltc"}}lit{{else}}{{if eq $ChainType "xmr"}}pico{{else}}sat{{end}}{{end}}/vB
                                           </span>
                                        </div>
                                     </div>
@@ -608,6 +608,30 @@
                                  </div>
                               </div>
                            </div>
+                           {{else}}
+                           <div class="col-12 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">
+                                    Total Reward
+                                 </span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block">
+                                          <span data-chainhome-target="reward24h">
+                                             {{template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount .TotalPowReward $ChainType) 8 true)}}
+                                          </span>
+                                          <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                       </span>
+                                       {{if $conv -}}
+                                       <span class="stats-subinfo">
+                                          {{threeSigFigs $conv.Reward24h.Value}}
+                                          {{$conv.Reward24h.Index}}
+                                       </span>
+                                       {{end}}
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
                            {{end}}
                            <div class="col-12 card-content-box">
                               <div class="new-network-stats-block flex-column-card">
@@ -618,7 +642,7 @@
                                     <div>
                                        <span class="new-network-stats-content d-inline-block">
                                           <span data-chainhome-target="fees24h">
-                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount .Fees24h)
+                                             {{template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount .Fees24h $ChainType)
                                              2
                                              true)}}
                                           </span>
@@ -659,9 +683,7 @@
                                     <div>
                                        <span class="new-network-stats-content d-inline-block">
                                           <span data-chainhome-target="feeAvg24h">
-                                             {{template "decimalParts" (float64AsDecimalParts (toFloat64Amount
-                                             $.Info.TxFeeAvg24h) 8
-                                             true)}}
+                                             {{template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount $.Info.TxFeeAvg24h $ChainType) 8 true)}}
                                           </span>
                                           <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                        </span>

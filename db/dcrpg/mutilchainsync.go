@@ -1419,7 +1419,7 @@ func (pgb *ChainDB) SyncXMR24hBlockInfo(height int64) {
 		return
 	}
 	//prepare query
-	stmt, err := dbTx.Prepare(internal.Insert24hBlocksRow)
+	stmt, err := dbTx.Prepare(internal.InsertXMR24hBlocksRow)
 	if err != nil {
 		log.Errorf("XMR: Prepare insert block info to 24hblocks table failed: %v", err)
 		_ = dbTx.Rollback()
@@ -1452,7 +1452,7 @@ func (pgb *ChainDB) SyncXMR24hBlockInfo(height int64) {
 		//insert to db
 		var id uint64
 		err = stmt.QueryRow(mutilchain.TYPEXMR, blockData.Hash, blockData.Height, dbtypes.NewTimeDef(blockData.BlockTime.T),
-			0, 0, blockData.Fees, blockData.TxCount, blockData.TotalNumVins, blockData.TotalNumOutputs).Scan(&id)
+			0, 0, blockData.Fees, blockData.TxCount, blockData.TotalNumVins, blockData.TotalNumOutputs, blockData.BlockReward).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				continue
