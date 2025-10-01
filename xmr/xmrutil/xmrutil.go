@@ -107,24 +107,25 @@ type ExtraInfo struct {
 }
 
 type MempoolTx struct {
-	IDHash      string `json:"id_hash,omitempty"`
-	BlobSize    int64  `json:"blob_size,omitempty"`
-	Fee         uint64 `json:"fee,omitempty"`
-	TxJSON      string `json:"tx_json,omitempty"`
-	ReceiveTime uint64 `json:"receive_time,omitempty"`
-	Relayed     bool   `json:"relayed,omitempty"`
-	KeptByBlock bool   `json:"kept_by_block,omitempty"`
-	DoubleSpend bool   `json:"double_spend_seen,omitempty"`
-	LastFailed  string `json:"last_failed_reason,omitempty"`
+	IDHash        string `json:"id_hash,omitempty"`
+	BlobSize      int64  `json:"blob_size,omitempty"`
+	FormattedSize string `json:"formattedSize,omitempty"`
+	Fee           int64  `json:"fee,omitempty"`
+	TxJSON        string `json:"tx_json,omitempty"`
+	ReceiveTime   uint64 `json:"receive_time,omitempty"`
+	Relayed       bool   `json:"relayed,omitempty"`
+	KeptByBlock   bool   `json:"kept_by_block,omitempty"`
+	DoubleSpend   bool   `json:"double_spend_seen,omitempty"`
+	LastFailed    string `json:"last_failed_reason,omitempty"`
 }
 
 type Mempool struct {
 	TxCount      int         `json:"tx_count"`
-	BytesTotal   uint64      `json:"bytes_total"`
+	BytesTotal   int64       `json:"bytes_total"`
 	OldestTx     uint64      `json:"oldest_tx"`
 	Transactions []MempoolTx `json:"transactions"`
-	TotalFee     uint64      `json:"total_fee"`
-	OutputsCount uint64      `json:"outputs_count"`
+	TotalFee     int64       `json:"total_fee"`
+	OutputsCount int64       `json:"outputs_count"`
 	MinFeeRate   float64     `json:"min_fee_rate"`
 	MaxFeeRate   float64     `json:"max_fee_rate"`
 	Status       string      `json:"status"`

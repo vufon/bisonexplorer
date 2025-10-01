@@ -1910,7 +1910,11 @@ func (exp *ExplorerUI) MutilchainMempool(w http.ResponseWriter, r *http.Request)
 	// Prevent modifications to the shared inventory struct (e.g. in the
 	// MempoolMonitor) while marshaling the inventory.
 	mempoolInfo.RLock()
-	str, err := exp.templates.exec("chain_mempool", struct {
+	template := "chain_mempool"
+	if chainType == mutilchain.TYPEXMR {
+		template = "xmr_mempool"
+	}
+	str, err := exp.templates.exec(template, struct {
 		*CommonPageData
 		Mempool   *types.MutilchainMempoolInfo
 		ChainType string

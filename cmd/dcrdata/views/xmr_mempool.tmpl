@@ -1,0 +1,136 @@
+{{define "xmr_mempool" -}}
+<!DOCTYPE html>
+<html lang="en">
+   {{template "html-head" headData .CommonPageData (printf "Monero Mempool")}}
+   {{ template "mutilchain_navbar" . }}
+   {{with .Mempool -}}
+   <div class="container mt-3"
+      data-controller="time">
+      <nav class="breadcrumbs mt-0">
+         <a href="/" class="breadcrumbs__item no-underline ps-2">
+            <span class="homeicon-tags me-1"></span>
+            <span class="link-underline">Homepage</span>
+         </a>
+         <a href="/xmr" class="breadcrumbs__item item-link">Monero</a>
+         <span class="breadcrumbs__item is-active">Mempool</span>
+      </nav>
+      <div class="pt-2 h4">Mempool</div>
+      <div class="row mx-0 my-2">
+         <div class="col-24 col-sm-12 col-md-24 col-lg-12 bg-green-3 py-3 px-3 position-relative common-card">
+            <div class="card-pointer pointer-right d-none d-sm-block d-md-none d-lg-block"></div>
+            <div class="card-pointer pointer-bottom d-sm-none d-md-block d-lg-none"></div>
+            <div class="ps-1">
+               <span class="dcricon-stack h5"></span>
+               <span class="h6 d-inline-block ps-2">Current Mempool</span>
+            </div>
+            <div class="row mt-2">
+               <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pt-2 pt-md-0 pt-lg-2 pt-xl-0">
+                  <div class="col-12 text-center">
+                     <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                        <span class="text-secondary fs13">Last Block</span>
+                        <br>
+                        <span class="h4">{{.LastBlockHeight}}</span>
+                     </div>
+                  </div>
+                  <div class="col-12 text-center">
+                     <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                        <span class="text-secondary fs13">Total Transactions</span>
+                        <br>
+                        <span class="h4">{{.TotalTransactions}}</span>
+                     </div>
+                  </div>
+               </div>
+               <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pt-2 pt-md-0 pt-lg-2 pt-xl-0">
+                  <div class="col-12 text-center">
+                     <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                        <span class="text-secondary fs13" data-time-target="header" data-jstitle="Since Last Block">Last Block</span>
+                        <br>
+                        <span class="h4" data-time-target="age" data-age="{{.LastBlockTime}}"><span class="fs13">{{.FormattedBlockTime}}</span></span>
+                     </div>
+                  </div>
+                  <div class="col-12 text-center">
+                     <div class="d-inline-block text-center text-md-start text-lg-center text-xl-start">
+                        <span class="text-secondary fs13">Size</span>
+                        <br>
+                        <span class="h4">{{.FormattedTotalSize}}</span>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="col-24 col-sm-12 col-md-24 col-lg-12 blue-card pt-3 pb-3 px-3">
+            <div class="ps-1">
+               <!-- <span class="dcricon-stack h5"></span> -->
+               <span class="h6 d-inline-block ps-2">Details</span>
+            </div>
+            <div class="row mt-1">
+               <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pb-3">
+                  <div class="col-12">
+                     <div class="text-center fs13">Fee Total (XMR)</div>
+                     <div class="text-center h4 mb-0">
+                        <span>{{template "decimalParts" (float64AsDecimalParts .TotalFee 8 false)}}</span>
+                     </div>
+                  </div>
+                  <div class="col-12">
+                     <div class="text-center fs13">Processing Outputs</div>
+                     <div class="text-center h4 mb-0"><div>{{.OutputsCount}}</div></div>
+                  </div>
+               </div>
+               <div class="col-24 col-md-12 col-lg-24 col-xl-12 row pb-3">
+                    <div class="col-12">
+                     <div class="text-center fs13">Fee Rate (pico/vB)</div>
+                     <div class="text-center h4 mb-0"><div class="network-stats-content d-inline-block" style="color: white !important;">
+                        <span>{{template "decimalParts" (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> - 
+                        <span>{{template "decimalParts" (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
+                     </div></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+      <div>
+         <div class="row">
+            <div class="col-sm-24">
+               <h4 class="pt-5 pb-2"><span>Transactions</span></h4>
+               <div class="br-8 b--def bgc-plain-bright pb-10">
+                  <div class="btable-table-wrap maxh-none">
+                     <table class="btable-table w-100">
+                        <thead>
+                           <tr class="bg-none">
+                              <th>Transaction ID</th>
+                              <th class="text-end">Fees (XMR)</th>
+                              <th class="text-end">Size</th>
+                           </tr>
+                        </thead>
+                        <tbody class="bgc-white">
+                           {{if gt .TotalTransactions 0 -}}
+                           {{- range .XmrTxs -}}
+                           <tr>
+                              <td class="break-word clipboard">
+                                 <a class="hash lh1rem" href="/xmr/tx/{{.IDHash}}">{{.IDHash}}</a>
+                                 {{template "copyTextIcon"}}
+                              </td>
+                              <td class="mono fs15 text-end">
+                                 {{template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount .Fee "xmr") 8 false)}}
+                              </td>
+                              <td class="mono fs15 text-end">{{.FormattedSize}}</td>
+                           </tr>
+                           {{- end -}}
+                           {{- else -}}
+                           <tr class="no-tx-tr">
+                              <td colspan="5">No regular transactions in mempool.</td>
+                           </tr>
+                           {{- end}}
+                        </tbody>
+                     </table>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+   {{- end}}
+   {{ template "footer" . }}
+   </body>
+</html>
+{{- end}}
