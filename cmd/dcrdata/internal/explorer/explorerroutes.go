@@ -209,6 +209,7 @@ type MutilchainHomeConversions struct {
 	Sent24h      *exchanges.Conversion
 	Fees24h      *exchanges.Conversion
 	TxFeeAvg24h  *exchanges.Conversion
+	Reward24h    *exchanges.Conversion
 	MempoolSent  *exchanges.Conversion
 	MempoolFees  *exchanges.Conversion
 	PoWReward    *exchanges.Conversion
@@ -619,17 +620,35 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	var conversions *MutilchainHomeConversions
 	xcBot := exp.xcBot
 	if xcBot != nil {
+		txFeeAvg24h := float64(0)
+		blockReward := float64(0)
+		if chainType == mutilchain.TYPEXMR {
+			txFeeAvg24h = utils.AtomicToXMR(uint64(homeInfo.TxFeeAvg24h))
+			blockReward = utils.AtomicToXMR(uint64(homeInfo.BlockReward))
+		} else {
+			txFeeAvg24h = btcutil.Amount(homeInfo.TxFeeAvg24h).ToBTC()
+			blockReward = btcutil.Amount(homeInfo.BlockReward).ToBTC()
+		}
 		conversions = &MutilchainHomeConversions{
 			ExchangeRate: xcBot.MutilchainConversion(1.0, chainType),
 			CoinSupply:   xcBot.MutilchainConversion(homeInfo.CoinValueSupply, chainType),
-			TxFeeAvg24h:  xcBot.MutilchainConversion(btcutil.Amount(homeInfo.TxFeeAvg24h).ToBTC(), chainType),
-			PoWReward:    xcBot.MutilchainConversion(btcutil.Amount(homeInfo.BlockReward).ToBTC(), chainType),
+			TxFeeAvg24h:  xcBot.MutilchainConversion(txFeeAvg24h, chainType),
+			PoWReward:    xcBot.MutilchainConversion(blockReward, chainType),
 			NextReward:   xcBot.MutilchainConversion(btcutil.Amount(homeInfo.NBlockSubsidy.Total).ToBTC(), chainType),
 		}
 
 		if homeInfo.Block24hInfo != nil {
+			feesFloat := float64(0)
+			rewardFloat := float64(0)
+			if chainType == mutilchain.TYPEXMR {
+				feesFloat = utils.AtomicToXMR(uint64(homeInfo.Block24hInfo.Fees24h))
+				rewardFloat = utils.AtomicToXMR(uint64(homeInfo.Block24hInfo.TotalPowReward))
+			} else {
+				feesFloat = btcutil.Amount(homeInfo.Block24hInfo.Fees24h).ToBTC()
+			}
 			conversions.Sent24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Sent24h).ToBTC(), chainType)
-			conversions.Fees24h = xcBot.MutilchainConversion(btcutil.Amount(homeInfo.Block24hInfo.Fees24h).ToBTC(), chainType)
+			conversions.Fees24h = xcBot.MutilchainConversion(feesFloat, chainType)
+			conversions.Reward24h = xcBot.MutilchainConversion(rewardFloat, chainType)
 		}
 	}
 	allXcState := exp.getExchangeState()
@@ -1891,7 +1910,11 @@ func (exp *ExplorerUI) MutilchainMempool(w http.ResponseWriter, r *http.Request)
 	// Prevent modifications to the shared inventory struct (e.g. in the
 	// MempoolMonitor) while marshaling the inventory.
 	mempoolInfo.RLock()
-	str, err := exp.templates.exec("chain_mempool", struct {
+	template := "chain_mempool"
+	if chainType == mutilchain.TYPEXMR {
+		template = "xmr_mempool"
+	}
+	str, err := exp.templates.exec(template, struct {
 		*CommonPageData
 		Mempool   *types.MutilchainMempoolInfo
 		ChainType string

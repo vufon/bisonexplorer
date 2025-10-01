@@ -793,7 +793,7 @@ type HomeInfo struct {
 	Volume24hFloat        float64                     `json:"volume24hFloat"`
 	TxFeeAvg24h           int64                       `json:"txFeeAvg24h"`
 	TxFeeSum24h           int64                       `json:"txFeeSum24h"`
-	TargetTimePerBlock float64   `json:"targetTimePerBlock"`
+	TargetTimePerBlock    float64                     `json:"targetTimePerBlock"`
 }
 
 type MutilchainHomeInfo struct {

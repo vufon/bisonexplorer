@@ -562,7 +562,7 @@ func New(cfg *ExplorerConfig) *ExplorerUI {
 		"chain_address", "chain_mempool", "chain_charts", "chain_market",
 		"chain_addresstable", "supply", "marketlist", "chain_parameters",
 		"whatsnew", "chain_visualblocks", "bwdash", "atomicswaps", "atomicswaps_table",
-		"about"}
+		"about", "xmr_mempool"}
 
 	for _, name := range tmpls {
 		if err := exp.templates.addTemplate(name); err != nil {
@@ -642,7 +642,7 @@ func (exp *ExplorerUI) MutilchainMempoolInfo(chainType string) *types.Mutilchain
 				FormattedTotalSize: types.BytesString(uint64(memInfo.BytesTotal)),
 				XmrTxs:             memInfo.Transactions,
 				TotalSize:          int32(memInfo.BytesTotal),
-				TotalFee:           utils.AtomicToXMR(memInfo.TotalFee),
+				TotalFee:           utils.AtomicToXMR(uint64(memInfo.TotalFee)),
 				OutputsCount:       int64(memInfo.OutputsCount),
 				BlockReward:        exp.XmrPageData.BlockInfo.BlockReward,
 			}
@@ -1465,7 +1465,7 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 				TxCount:      len(res.Transactions),
 				Transactions: make([]xmrutil.MempoolTx, 0, len(res.Transactions)),
 				Status:       res.Status,
-				BytesTotal:   uint64(stats.PoolStats.BytesTotal),
+				BytesTotal:   stats.PoolStats.BytesTotal,
 				OldestTx:     uint64(stats.PoolStats.Oldest),
 			}
 
@@ -1489,16 +1489,19 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 					maxFeeRate = feeRate
 				}
 				mp.Transactions = append(mp.Transactions, xmrutil.MempoolTx{
-					IDHash:      tx.IDHash,
-					TxJSON:      tx.TxJSON,
-					ReceiveTime: tx.ReceiveTime,
-					Relayed:     tx.Relayed,
-					KeptByBlock: tx.KeptByBlock,
-					LastFailed:  tx.FailReason,
+					IDHash:        tx.IDHash,
+					TxJSON:        tx.TxJSON,
+					ReceiveTime:   tx.ReceiveTime,
+					Relayed:       tx.Relayed,
+					KeptByBlock:   tx.KeptByBlock,
+					LastFailed:    tx.FailReason,
+					BlobSize:      tx.BlobSize,
+					Fee:           int64(tx.Fee),
+					FormattedSize: types.BytesString(uint64(tx.BlobSize)),
 				})
 			}
-			mp.TotalFee = totalFee
-			mp.OutputsCount = totalOutputs
+			mp.TotalFee = int64(totalFee)
+			mp.OutputsCount = int64(totalOutputs)
 			mp.MinFeeRate = minFeeRate
 			mp.MaxFeeRate = maxFeeRate
 

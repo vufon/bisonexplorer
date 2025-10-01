@@ -350,6 +350,13 @@ export default class extends Controller {
     ctrl.tablePaginationParams = tableResponse.pages
     ctrl.setTablePaginationLinks()
     ctrl.listLoaderTarget.classList.remove('loading')
+    // handler for enable/disabled option for pagesize selector
+    if (ctrl.hasPagesizeTarget && ctrl.pagesizeTarget.options && ctrl.pagesizeTarget.options !== null && ctrl.pagesizeTarget.options.length > 0) {
+      const v = String(count)
+      Array.from(ctrl.pagesizeTarget.options).forEach(option => {
+        option.disabled = (String(option.value) === v)
+      })
+    }
   }
 
   async fetchTable (txType, count, offset) {

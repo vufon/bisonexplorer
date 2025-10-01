@@ -2504,7 +2504,7 @@ func retrieveOldestTxBlockTime(ctx context.Context, db *sql.DB, addr string) (bl
 
 func retrieve24hMetricsData(ctx context.Context, db *sql.DB, chainType string) (*dbtypes.Block24hInfo, error) {
 	res := dbtypes.Block24hInfo{}
-	err := db.QueryRowContext(ctx, internal.Select24hMetricsSummary, chainType).Scan(&res.Blocks, &res.Spent24h, &res.Sent24h, &res.Fees24h, &res.NumTx24h, &res.NumVin24h, &res.NumVout24h)
+	err := db.QueryRowContext(ctx, internal.Select24hMetricsSummary, chainType).Scan(&res.Blocks, &res.Spent24h, &res.Sent24h, &res.Fees24h, &res.NumTx24h, &res.NumVin24h, &res.NumVout24h, &res.TotalPowReward)
 	if err != nil {
 		return nil, err
 	}
@@ -2514,7 +2514,7 @@ func retrieve24hMetricsData(ctx context.Context, db *sql.DB, chainType string) (
 
 func retrieveXMR24hMetricsData(ctx context.Context, db *sql.DB) (*dbtypes.Block24hInfo, error) {
 	res := dbtypes.Block24hInfo{}
-	err := db.QueryRowContext(ctx, internal.Select24hMetricsSummary, mutilchain.TYPEXMR).Scan(&res.Blocks, &res.Spent24h, &res.Sent24h, &res.Fees24h, &res.NumTx24h, &res.NumVin24h, &res.NumVout24h)
+	err := db.QueryRowContext(ctx, internal.Select24hMetricsSummary, mutilchain.TYPEXMR).Scan(&res.Blocks, &res.Spent24h, &res.Sent24h, &res.Fees24h, &res.NumTx24h, &res.NumVin24h, &res.NumVout24h, &res.TotalPowReward)
 	return &res, err
 }
 
