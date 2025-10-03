@@ -45,6 +45,12 @@
                         <option value="coin-supply">Coin Supply</option>
                         <option value="fees">Fees</option>
                      </optgroup>
+                     {{if eq .ChainType "xmr"}}
+                     <optgroup label="Privacy">
+                        <option value="total-ring-size">Total Ring Size</option>
+                        <option value="avg-ring-size">Avg Ring Size / Input</option>
+                     </optgroup>
+                     {{end}}
                   </select>
                </div>
                <div class="btn-set bg-white d-inline-flex flex-nowrap mx-2 mx-lg-4 mobile-mode"

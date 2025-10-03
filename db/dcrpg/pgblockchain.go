@@ -1307,6 +1307,12 @@ func (pgb *ChainDB) RegisterMutilchainCharts(charts *cache.MutilchainChartData) 
 		Appender: appendXmrChartBlocks,
 	})
 
+	// charts.AddUpdater(cache.ChartMutilchainUpdater{
+	// 	Tag:      "Monero ring members",
+	// 	Fetcher:  pgb.chartXmrMutilchainRingMembers,
+	// 	Appender: appendXmrChartRingMembers,
+	// })
+
 	// TODO, uncomment in the future
 	// charts.AddUpdater(cache.ChartMutilchainUpdater{
 	// 	Tag:      "coin supply",
@@ -6119,6 +6125,15 @@ func (pgb *ChainDB) chartXmrMutilchainBlocks(charts *cache.MutilchainChartData) 
 	rows, err := retrieveXmrMutilchainChartBlocks(pgb.ctx, pgb.db, charts)
 	if err != nil {
 		return nil, cancel, fmt.Errorf("XMR: chartBlocks: %w", pgb.replaceCancelError(err))
+	}
+	return rows, cancel, nil
+}
+
+func (pgb *ChainDB) chartXmrMutilchainRingMembers(charts *cache.MutilchainChartData) (*sql.Rows, func(), error) {
+	_, cancel := context.WithTimeout(pgb.ctx, pgb.queryTimeout)
+	rows, err := retrieveXmrMutilchainChartRingMembers(pgb.ctx, pgb.db, charts)
+	if err != nil {
+		return nil, cancel, fmt.Errorf("XMR: chartRingMembers: %w", pgb.replaceCancelError(err))
 	}
 	return rows, cancel, nil
 }

@@ -119,6 +119,26 @@ const (
 		WHERE m.id = d.id
   		AND d.rn > 1;`
 
+	SelectRingMemberSummary = `WITH per_input AS (
+  		SELECT
+    		m.tx_hash,
+    		m.tx_input_index,
+    		COUNT(DISTINCT m.ring_position) AS ring_size
+  			FROM monero_ring_members m
+  			GROUP BY m.tx_hash, m.tx_input_index)
+		SELECT
+  			b.height,
+  			COALESCE(SUM(pi.ring_size), 0)          AS sumring,   -- sum of all ring_size in block
+  			COALESCE((AVG(pi.ring_size))::int, 0)   AS avgring    -- average ring_size each input in block
+		FROM xmrblocks_all b
+		LEFT JOIN xmrtransactions t
+  		ON t.block_height = b.height
+		LEFT JOIN per_input pi
+  		ON pi.tx_hash = t.tx_hash
+		WHERE b.height > $1
+		GROUP BY b.height
+		ORDER BY b.height ASC;`
+
 	CreateMoneroRctData = `CREATE TABLE IF NOT EXISTS monero_rct_data (
   		id SERIAL8 PRIMARY KEY,
   		tx_hash TEXT NOT NULL,

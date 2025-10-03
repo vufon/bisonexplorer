@@ -42,6 +42,8 @@ const yAxisLabelWidth = {
     'mempool-size': 40,
     'mempool-txs': 50,
     'coin-supply': 30,
+    'total-ring-size': 40,
+    'avg-ring-size': 30,
     fees: 50
   }
 }
@@ -692,6 +694,16 @@ export default class extends Controller {
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
         break
+      case 'total-ring-size': // total ring-size for monero
+        d = zip2D(data, data.ringSize)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Ring Size'], false,
+          'Total Ring Size', true, false))
+        break
+      case 'avg-ring-size': // total ring-size for monero
+        d = zip2D(data, data.ringSize)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg Ring Size / Input'], false,
+          'Avg Ring Size / Input', true, false))
+        break
     }
     gOptions.axes.y = {
       axisLabelWidth: isMobile() ? yAxisLabelWidth.y1[chartName] : yAxisLabelWidth.y1[chartName] + 5
@@ -775,6 +787,8 @@ export default class extends Controller {
         return 'Litecoin'
       case 'dcr':
         return 'Decred'
+      case 'xmr':
+        return 'Monero'
       default:
         return 'Unknown'
     }
@@ -808,6 +822,10 @@ export default class extends Controller {
         return `Shows the average time interval between consecutive ${this.getChainName()} blocks over time.`
       case 'hashrate':
         return `Total computational power securing the ${this.getChainName()} network over time.`
+      case 'total-ring-size':
+        return 'Sum of all ring members (real + decoys) used across inputs in a block or time window — a measure of on-chain anonymity volume.'
+      case 'avg-ring-size':
+        return 'Average number of ring members per input over time — indicates the typical anonymity level per transaction input (higher = greater anonymity).'
       default:
         return ''
     }
@@ -841,6 +859,10 @@ export default class extends Controller {
         return 'Mempool Size'
       case 'address-number':
         return 'Active Addresses'
+      case 'total-ring-size':
+        return 'Total Ring Size'
+      case 'avg-ring-size':
+        return 'Avg Ring Size / Input'
       default:
         return ''
     }

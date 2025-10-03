@@ -1705,6 +1705,8 @@ export default class extends Controller {
         return 'Litecoin'
       case 'dcr':
         return 'Decred'
+      case 'xmr':
+        return 'Monero'
       default:
         return 'Unknown'
     }

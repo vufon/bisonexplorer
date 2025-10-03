@@ -4211,6 +4211,14 @@ func retrieveXmrMutilchainChartBlocks(ctx context.Context, db *sql.DB, charts *c
 	return rows, nil
 }
 
+func retrieveXmrMutilchainChartRingMembers(ctx context.Context, db *sql.DB, charts *cache.MutilchainChartData) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, mutilchainquery.SelectRingMemberSummary, charts.RingMembers())
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // Append the results from retrieveChartBlocks to the provided ChartData.
 // This is the Appender half of a pair that make up a cache.ChartUpdater.
 func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
@@ -4275,6 +4283,24 @@ func appendChartBlocks(charts *cache.ChartData, rows *sql.Rows) error {
 	}
 	if len(blocks.Difficulty) != chainLen {
 		return fmt.Errorf("appendChartBlocks: data length misalignment. len(chainwork) = %d, len(difficulty) = %d", chainLen, len(blocks.Difficulty))
+	}
+	return nil
+}
+
+func appendXmrChartRingMembers(charts *cache.MutilchainChartData, rows *sql.Rows) error {
+	defer closeRows(rows)
+	var height, ringSizeSum, ringSizeAvg uint64
+	blocks := charts.Blocks
+	for rows.Next() {
+		err := rows.Scan(&height, &ringSizeSum, &ringSizeAvg)
+		if err != nil {
+			return err
+		}
+		blocks.TotalRingSize = append(blocks.TotalRingSize, ringSizeSum)
+		blocks.AverageRingSize = append(blocks.AverageRingSize, ringSizeAvg)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("appendXmrChartRingMembers: iteration error: %w", err)
 	}
 	return nil
 }

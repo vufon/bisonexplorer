@@ -48,6 +48,8 @@ const (
 	CoinAgeBands      = "coin-age-bands"
 	MeanCoinAge       = "mean-coin-age"
 	TotalCoinDays     = "total-coin-days"
+	TotalRingSize     = "total-ring-size"
+	AvgRingSize       = "avg-ring-size"
 
 	// Some chartResponse keys
 	heightKey        = "h"
@@ -75,6 +77,7 @@ const (
 	meanCoinAgeKey   = "meanCoinAge"
 	totalCoinDaysKey = "totalCoinDays"
 	marketPriceKey   = "marketPrice"
+	ringSizeKey      = "ringSize"
 )
 
 // binLevel specifies the granularity of data.
@@ -355,6 +358,8 @@ type ZoomSet struct {
 	CoinAgeBands      ChartCoinAgeBands
 	MeanCoinAge       ChartFloats
 	TotalCoinDays     ChartFloats // Sum Coin Age
+	TotalRingSize     ChartUints
+	AverageRingSize   ChartUints
 }
 
 // Snip truncates the zoomSet to a provided length.
@@ -482,6 +487,8 @@ type ChartGobject struct {
 	MeanCoinAge       ChartFloats
 	TotalCoinDays     ChartFloats // Sum Coin Age
 	MarketPrice       ChartFloats
+	TotalRingSize     ChartUints
+	AverageRingSize   ChartUints
 }
 
 // The chart data is cached with the current cacheID of the zoomSet or windowSet.

@@ -64,6 +64,43 @@ const (
 		synced BOOLEAN DEFAULT FALSE
 	);`
 
+	CreateXmrBlockAllTable = `CREATE TABLE IF NOT EXISTS xmrblocks_all (  
+		id SERIAL PRIMARY KEY,
+		hash TEXT NOT NULL, -- UNIQUE
+		height INT4,
+		block_blob BYTEA,
+		size INT4,
+		is_valid BOOLEAN,
+		version INT4,
+		numtx INT4,
+		time INT8,
+		nonce INT8,
+		pool_size INT4,
+		bits INT4,
+		difficulty FLOAT8,
+		difficulty_num NUMERIC(40,0), -- For monero
+		cumulative_difficulty NUMERIC(40,0),
+		pow_algo TEXT,
+		previous_hash TEXT,
+		num_vins INT4,
+		num_vouts INT4,
+		fees INT8,
+		total_sent INT8,
+		reward INT8,
+		address_updated BOOLEAN DEFAULT FALSE,
+		synced BOOLEAN DEFAULT FALSE,
+		ring_size INT8,
+		avg_ring_size INT8,
+		fee_per_kb INT8,
+		avg_tx_size INT8,
+		decoy_03 FLOAT8,
+		decoy_47 FLOAT8,
+		decoy_811 FLOAT8,
+		decoy_1214 FLOAT8,
+		decoy_gt15 FLOAT8,
+		chart_synced BOOLEAN DEFAULT FALSE
+	);`
+
 	// SelectBlocksAllWithTimeRange = `SELECT height FROM %sblocks_all WHERE time >= $1 AND time <= $2`
 
 	SelectBlocksAllUnsynchoronized = `SELECT height FROM %sblocks_all WHERE synced IS NOT TRUE ORDER BY height`
@@ -251,6 +288,9 @@ func makeBlockAllInsertStatement(checked bool, chainType string) string {
 }
 
 func CreateBlockAllTableFunc(chainType string) string {
+	if chainType == mutilchain.TYPEXMR {
+		return CreateXmrBlockAllTable
+	}
 	return fmt.Sprintf(CreateBlockAllTable, chainType)
 }
 
