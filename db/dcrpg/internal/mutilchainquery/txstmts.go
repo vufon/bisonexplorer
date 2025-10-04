@@ -69,9 +69,10 @@ const (
 		vouts %svout_t[],
 		vout_db_ids INT8[]
 	);`
-	SelectTotalTransaction = `SELECT count(*) FROM %stransactions;`
-	SelectTxByHash         = `SELECT id, block_hash, block_index, tree FROM %stransactions WHERE tx_hash = $1;`
-	SelectTxsByBlockHash   = `SELECT id, tx_hash, block_index, tree FROM %stransactions WHERE block_hash = $1;`
+	SelectTotalTransaction    = `SELECT count(*) FROM %stransactions;`
+	SelectTxByHash            = `SELECT id, block_hash, block_index, tree FROM %stransactions WHERE tx_hash = $1;`
+	SelectTxsByBlockHash      = `SELECT id, tx_hash, block_index, tree FROM %stransactions WHERE block_hash = $1;`
+	SelectXMRTxsByBlockHeight = `SELECT tx_hash, fees, size FROM xmrtransactions WHERE block_height = $1;`
 
 	SelectFullTxByHash = `SELECT id, block_hash, block_height, block_time, 
 		time, tx_type, version, tree, tx_hash, block_index, lock_time, expiry, 

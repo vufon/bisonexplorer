@@ -7004,11 +7004,26 @@ func (pgb *ChainDB) UpdateLastBlock(msgBlock *wire.MsgBlock, isMainchain bool) e
 // storeBlockTxnTree in StoreBlock.
 type storeTxnsResult struct {
 	numVins, numVouts, numAddresses, fees, totalSent int64
+	ringSize, avgRingSize, feePerKb, avgTxSize       int64
+	decoy03, decoy47, decoy811, decoy1214, decoyGe15 float64
 	txDbIDs                                          []uint64
 	err                                              error
 	addresses                                        map[string]struct{}
 	mixSetDelta                                      int64
 	addressesSynced                                  bool
+}
+
+type xmrParseTxResult struct {
+	fees         int64
+	ringSize     int
+	numVins      int
+	numVouts     int
+	totalSent    int64
+	decoy03Num   int
+	decoy47Num   int
+	decoy811Num  int
+	decoy1214Num int
+	decoyGe15Num int
 }
 
 func (r *storeTxnsResult) Error() string {
@@ -9939,6 +9954,21 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			if t, ok := v["version"].(float64); ok {
 				version = int(t)
 			}
+			// store rct blob as raw JSON of rct_signatures or hex if available.
+			// rctJSON, _ := json.Marshal(rctIf)
+			var rctType int = -1
+			isRingCt := false
+			sumIn := int64(0)
+			sumOut := int64(0)
+			if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
+				isRingCt = true
+				if t, ok2 := rct["type"].(float64); ok2 {
+					rctType = int(t)
+				}
+				if feeIf, ok := rct["txnFee"].(float64); ok {
+					fees = int64(feeIf)
+				}
+			}
 			// RingCT presence
 			// vins/vouts length
 			if vinsIf, ok := v["vin"].([]interface{}); ok {
@@ -9947,6 +9977,9 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 					if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
 						// --- Key input style (most typical for modern Monero) ---
 						if keyObj, ok3 := vinMap["key"].(map[string]interface{}); ok3 {
+							if a, ok31 := keyObj["amount"].(float64); ok31 {
+								sumIn += int64(a)
+							}
 							// collect offsets (may be absent)
 							var offsets []uint64
 							if offsIf, ok4 := keyObj["key_offsets"].([]interface{}); ok4 {
@@ -10060,6 +10093,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 								}
 							}
 						}
+						sumOut += amount
 						txSent += amount
 						outputs = append(outputs, exptypes.XmrOutputInfo{
 							OutIndex:    idx,
@@ -10070,6 +10104,9 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 						})
 					}
 				}
+			}
+			if fees == 0 && !isRingCt {
+				fees = sumIn - sumOut
 			}
 			// fees / outputs / total sent: sometimes present in tx JSON
 			var extraHex string
@@ -10105,17 +10142,6 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			}
 			if parsedExtra == nil {
 				return nil, fmt.Errorf("parsed extra data failed")
-			}
-			// store rct blob as raw JSON of rct_signatures or hex if available.
-			// rctJSON, _ := json.Marshal(rctIf)
-			var rctType int = -1
-			if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
-				if t, ok2 := rct["type"].(float64); ok2 {
-					rctType = int(t)
-				}
-				if feeIf, ok := rct["txnFee"].(float64); ok {
-					fees = int64(feeIf)
-				}
 			}
 			var rctPrunableHash string
 			// sometimes prunable hash in txMap under "rct_signatures" or "rct_prunable_hash"
@@ -10355,15 +10381,21 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 				if tm, ok := v["unlock_time"].(float64); ok {
 					timeField = int64(tm)
 				}
-				// RingCT presence
-				// if _, ok := v["rct_signatures"]; ok {
-				// 	isRingCT = true
-				// }
-				// if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
-				// 	if rt, ok2 := rct["type"].(float64); ok2 {
-				// 		rctType = sql.NullInt64{Int64: int64(rt), Valid: true}
-				// 	}
-				// }
+				// store rct blob as raw JSON of rct_signatures or hex if available.
+				// rctJSON, _ := json.Marshal(rctIf)
+				var rctType int = -1
+				isRingCT := false
+				var sumIn int64 = 0
+				var sumOut int64 = 0
+				if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
+					isRingCT = true
+					if t, ok2 := rct["type"].(float64); ok2 {
+						rctType = int(t)
+					}
+					if feeIf, ok := rct["txnFee"].(float64); ok {
+						fees = int64(feeIf)
+					}
+				}
 				// vins/vouts length
 				if vinsIf, ok := v["vin"].([]interface{}); ok {
 					numVin = len(vinsIf)
@@ -10371,6 +10403,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 						if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
 							// --- Key input style (most typical for modern Monero) ---
 							if keyObj, ok3 := vinMap["key"].(map[string]interface{}); ok3 {
+								if a, ok31 := keyObj["amount"].(float64); ok31 {
+									sumIn += int64(a)
+								}
 								// collect offsets (may be absent)
 								var offsets []uint64
 								if offsIf, ok4 := keyObj["key_offsets"].([]interface{}); ok4 {
@@ -10451,6 +10486,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 									}
 								}
 							}
+							sumOut += amount
 							txSent += amount
 							outputs = append(outputs, exptypes.XmrOutputInfo{
 								OutIndex:    idx,
@@ -10462,21 +10498,13 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 						}
 					}
 				}
+				if fees == 0 && !isRingCT {
+					fees = sumIn - sumOut
+				}
 				// fees / outputs / total sent: sometimes present in tx JSON
 				if extraHex, ok := v["extra"].(string); ok {
 					parsedExtra, _ = ParseTxExtra(extraHex)
 					hexExtra = extraHex
-				}
-				// store rct blob as raw JSON of rct_signatures or hex if available.
-				// rctJSON, _ := json.Marshal(rctIf)
-				var rctType int = -1
-				if rct, ok := v["rct_signatures"].(map[string]interface{}); ok {
-					if t, ok2 := rct["type"].(float64); ok2 {
-						rctType = int(t)
-					}
-					if feeIf, ok := rct["txnFee"].(float64); ok {
-						fees = int64(feeIf)
-					}
 				}
 				var rctPrunableHash string
 				// sometimes prunable hash in txMap under "rct_signatures" or "rct_prunable_hash"

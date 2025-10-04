@@ -1948,6 +1948,12 @@ type AtomicSwapTxData struct {
 	Vout         int64  `json:"vout"`
 }
 
+type XmrTxSummaryInfo struct {
+	Txid string `json:"txid"`
+	Fees int64  `json:"fees"`
+	Size int64  `json:"size"`
+}
+
 type AtomicSwapContractData struct {
 	ContractTx       string
 	ContractFees     int64

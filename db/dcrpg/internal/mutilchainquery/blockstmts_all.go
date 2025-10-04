@@ -16,8 +16,12 @@ const (
 	insertXmrBlockAllRow0 = `INSERT INTO xmrblocks_all (
 		hash, height, block_blob, size, is_valid, version,
 		numtx, time, nonce, pool_size, bits, 
-		difficulty, difficulty_num, cumulative_difficulty, pow_algo, previous_hash, num_vins, num_vouts, fees, total_sent, reward)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`
+		difficulty, difficulty_num, cumulative_difficulty, 
+		pow_algo, previous_hash, num_vins, num_vouts, fees, 
+		total_sent, reward, 
+		ring_size, avg_ring_size, fee_per_kb, avg_tx_size, 
+		decoy_03, decoy_47, decoy_811, decoy_1214, decoy_gt15, chart_synced)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)`
 
 	insertBlockAllRow           = insertBlockAllRow0 + ` RETURNING id;`
 	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (height) DO NOTHING RETURNING id;`
@@ -36,6 +40,9 @@ const (
 	LIMIT  1;`
 
 	UpdateLastBlockAllValid = `UPDATE %sblocks_all SET is_valid = $2 WHERE id = $1;`
+
+	UpdateXMRBlockSummaryWithHeight = `UPDATE xmrblocks_all SET ring_size = $1, avg_ring_size = $2, fee_per_kb = $3, avg_tx_size = $4,
+		decoy_03 = $5, decoy_47 = $6, decoy_811 = $7, decoy_1214 = $8, decoy_gt15 = $9, chart_synced = $10  WHERE height = $11;`
 
 	CreateBlockAllTable = `CREATE TABLE IF NOT EXISTS %sblocks_all (  
 		id SERIAL PRIMARY KEY,
@@ -175,6 +182,12 @@ ORDER BY a.height ASC;`
     ON b.height = t.block_height
 	WHERE b.height > $1
 	ORDER BY b.height;`
+
+	SelectRemainingNotSyncedChartSummary = `SELECT height
+		FROM xmrblocks_all
+		WHERE is_valid = true
+  		AND chart_synced = false
+		ORDER BY height ASC;`
 
 	CheckExistBLockAll         = `SELECT EXISTS(SELECT 1 FROM %sblocks_all WHERE height = $1);`
 	SelectBlockAllHeightByHash = `SELECT height FROM %sblocks_all WHERE hash = $1 LIMIT 1;`

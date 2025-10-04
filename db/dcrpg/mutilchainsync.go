@@ -10,6 +10,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -885,6 +886,33 @@ func (pgb *ChainDB) storeLTCTxns(client *ltcClient.Client, block *dbtypes.Block,
 	return txRes
 }
 
+func (pgb *ChainDB) SaveXMRBlockSummaryData(height int64) error {
+	// get all tx with height
+	txRes, err := pgb.retrieveXmrTxsWithHeight(height)
+	if err != nil {
+		log.Errorf("XMR: retrieveXmrTxsWithHeight failed: Height: %d, %v", height, err)
+		return err
+	}
+	err = pgb.updateXMRBlockSummary(height, txRes)
+	if err != nil {
+		log.Errorf("XMR: updateXMRBlockSummary failed: Height: %d, %v", height, err)
+		return err
+	}
+	return nil
+}
+
+func (pgb *ChainDB) updateXMRBlockSummary(height int64, txsParseRes storeTxnsResult) error {
+	_, err := pgb.db.Exec(mutilchainquery.UpdateXMRBlockSummaryWithHeight, txsParseRes.ringSize,
+		txsParseRes.avgRingSize, txsParseRes.feePerKb, txsParseRes.avgTxSize,
+		txsParseRes.decoy03, txsParseRes.decoy47, txsParseRes.decoy811,
+		txsParseRes.decoy1214, txsParseRes.decoyGe15, true, height)
+	if err != nil {
+		log.Errorf("XMR: Update xmr block summary failed: %v", err)
+		return err
+	}
+	return nil
+}
+
 func (pgb *ChainDB) StoreXMRWholeBlock(client *xmrclient.XMRClient, checked, updateAddressesSpendingInfo bool, height int64) (numVins int64, numVouts int64, numTxs int64, err error) {
 	br, berr := client.GetBlock(uint64(height))
 	if berr != nil {
@@ -935,7 +963,7 @@ func (pgb *ChainDB) StoreXMRWholeBlock(client *xmrclient.XMRClient, checked, upd
 	}
 
 	// Store the block now that it has all it's transaction PK IDs
-	_, err = InsertXMRWholeBlock(dbtx, dbBlock, blobBytes, true, checked)
+	_, err = InsertXMRWholeBlock(dbtx, dbBlock, blobBytes, true, checked, txRes)
 	if err != nil {
 		log.Error("XMR: InsertBlock:", err)
 		return
@@ -1171,6 +1199,96 @@ func (pgb *ChainDB) storeBTCWholeTxns(client *btcClient.Client, block *dbtypes.B
 	return txRes
 }
 
+func (pgb *ChainDB) retrieveXmrTxsWithHeight(blockHeight int64) (storeTxnsResult, error) {
+	var txRes storeTxnsResult
+	// rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.SelectXMRTxsByBlockHeight, blockHeight)
+	// if err != nil {
+	// 	return txRes, err
+	// }
+	// defer rows.Close()
+	// txs := make([]*dbtypes.XmrTxSummaryInfo, 0)
+	// for rows.Next() {
+	// 	var txHash string
+	// 	var fees, size int64
+	// 	if err = rows.Scan(&txHash, &fees, &size); err != nil {
+	// 		log.Errorf("retrieveXmrTxsWithHeight failed: %v", err)
+	// 		return txRes, err
+	// 	}
+	// 	txs = append(txs, &dbtypes.XmrTxSummaryInfo{
+	// 		Txid: txHash,
+	// 		Fees: fees,
+	// 		Size: size,
+	// 	})
+	// 	txids = append(txids, txHash)
+	// }
+
+	br, berr := pgb.XmrClient.GetBlock(uint64(blockHeight))
+	if berr != nil {
+		log.Errorf("XMR: GetBlock(%d) failed: %v", blockHeight, berr)
+		return txRes, berr
+	}
+
+	txids := br.TxHashes
+	var totalTxSize, totalRingSize, totalDecoy03, totalDecoy47, totalDecoy811, totalDecoy1214, totalDecoyGe15 int64
+	if len(txids) > 0 {
+		blTxsData, blTxserr := pgb.XmrClient.GetTransactions(txids, true)
+		if blTxserr != nil {
+			log.Errorf("XMR: GetTransactions failed: %v", blTxserr)
+			return txRes, blTxserr
+		}
+		for i, _ := range txids {
+			var txJSONStr string
+			if i < len(blTxsData.TxsAsJSON) {
+				txJSONStr = blTxsData.TxsAsJSON[i]
+			}
+			var txHex string
+			if i < len(blTxsData.TxsAsHex) {
+				txHex = blTxsData.TxsAsHex[i]
+			}
+			if txHex != "" {
+				totalTxSize += int64(len(txHex) / 2)
+			}
+			// txRes.fees += tx.Fees
+			// totalTxSize += tx.Size
+			if txJSONStr != "" {
+				parseResult, err := GetXmrTxParseJSONSimpleData(txJSONStr)
+				if err != nil {
+					log.Error("XMR: GetXmrTxParseJSONSimpleData failed: %v", err)
+					return txRes, err
+				}
+				txRes.fees += parseResult.fees
+				txRes.numVins += int64(parseResult.numVins)
+				txRes.numVouts += int64(parseResult.numVouts)
+				txRes.totalSent += parseResult.totalSent
+				totalRingSize += int64(parseResult.ringSize)
+				totalDecoy03 += int64(parseResult.decoy03Num)
+				totalDecoy47 += int64(parseResult.decoy47Num)
+				totalDecoy811 += int64(parseResult.decoy811Num)
+				totalDecoy1214 += int64(parseResult.decoy1214Num)
+				totalDecoyGe15 += int64(parseResult.decoyGe15Num)
+			}
+		}
+	}
+	// calculate for final
+	txRes.ringSize = totalRingSize
+	if txRes.numVins > 0 {
+		txRes.avgRingSize = int64(math.Round(float64(totalRingSize) / float64(txRes.numVins)))
+		txRes.decoy47 = 100 * (float64(totalDecoy47) / float64(txRes.numVins))
+		txRes.decoy811 = 100 * (float64(totalDecoy811) / float64(txRes.numVins))
+		txRes.decoy1214 = 100 * (float64(totalDecoy1214) / float64(txRes.numVins))
+		txRes.decoyGe15 = 100 * (float64(totalDecoyGe15) / float64(txRes.numVins))
+		txRes.decoy03 = 100 - txRes.decoy47 - txRes.decoy811 - txRes.decoy1214 - txRes.decoyGe15
+	}
+	txSizeKb := totalTxSize / 1024
+	if txSizeKb > 0 {
+		txRes.feePerKb = int64(math.Round(float64(txRes.fees) / float64(txSizeKb)))
+	}
+	if len(txids) > 0 {
+		txRes.avgTxSize = totalTxSize / int64(len(txids))
+	}
+	return txRes, nil
+}
+
 func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient, block *dbtypes.Block, checked, addressSpendingUpdateInfo bool) storeTxnsResult {
 	var txRes storeTxnsResult
 	// insert to txs
@@ -1181,7 +1299,7 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 		txRes.err = blTxserr
 		return txRes
 	}
-
+	var totalTxSize, totalRingSize, totalDecoy03, totalDecoy47, totalDecoy811, totalDecoy1214, totalDecoyGe15 int64
 	for i, txHash := range block.Tx {
 		var txJSONStr string
 		if i < len(blTxsData.TxsAsJSON) {
@@ -1193,24 +1311,48 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 		}
 		// insert transaction row
 		// Get the tx PK IDs for storage in the blocks table
-		_, fees, err := InsertXMRTxn(dbtx, block.Height, block.Hash, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked)
+		_, fees, txSize, err := InsertXMRTxn(dbtx, block.Height, block.Hash, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked)
 		if err != nil && err != sql.ErrNoRows {
-			log.Error("XMR: InsertTxn:", err)
+			log.Error("XMR: InsertTxn: %v", err)
 			txRes.err = err
 			return txRes
 		}
 		txRes.fees += fees
+		totalTxSize += int64(txSize)
 		if txJSONStr != "" {
-			numVins, numVouts, totalSent, err := ParseAndStoreTxJSON(dbtx, txHash, uint64(block.Height), txJSONStr, checked)
+			parseResult, err := ParseAndStoreTxJSON(dbtx, txHash, uint64(block.Height), txJSONStr, checked)
 			if err != nil {
-				log.Error("XMR: ParseAndStoreTxJSON:", err)
+				log.Error("XMR: ParseAndStoreTxJSON: %v", err)
 				txRes.err = err
 				return txRes
 			}
-			txRes.numVins += numVins
-			txRes.numVouts += numVouts
-			txRes.totalSent += totalSent
+			txRes.numVins += int64(parseResult.numVins)
+			txRes.numVouts += int64(parseResult.numVouts)
+			txRes.totalSent += parseResult.totalSent
+			totalRingSize += int64(parseResult.ringSize)
+			totalDecoy03 += int64(parseResult.decoy03Num)
+			totalDecoy47 += int64(parseResult.decoy47Num)
+			totalDecoy811 += int64(parseResult.decoy811Num)
+			totalDecoy1214 += int64(parseResult.decoy1214Num)
+			totalDecoyGe15 += int64(parseResult.decoyGe15Num)
 		}
+	}
+	// calculate for final
+	txRes.ringSize = totalRingSize
+	if txRes.numVins > 0 {
+		txRes.avgRingSize = int64(math.Floor(float64(totalRingSize) / float64(txRes.numVins)))
+		txRes.decoy03 = 100 * (float64(totalDecoy03) / float64(txRes.numVins))
+		txRes.decoy47 = 100 * (float64(totalDecoy47) / float64(txRes.numVins))
+		txRes.decoy811 = 100 * (float64(totalDecoy811) / float64(txRes.numVins))
+		txRes.decoy1214 = 100 * (float64(totalDecoy1214) / float64(txRes.numVins))
+		txRes.decoyGe15 = 100 * (float64(totalDecoyGe15) / float64(txRes.numVins))
+	}
+	txSizeKb := totalTxSize / 1024
+	if txSizeKb > 0 {
+		txRes.feePerKb = txRes.fees / txSizeKb
+	}
+	if len(block.Tx) > 0 {
+		txRes.avgTxSize = totalTxSize / int64(len(block.Tx))
 	}
 	// set address synced flag
 	// txRes.addressesSynced = true
@@ -2108,6 +2250,33 @@ func (pgb *ChainDB) SyncLTCWholeChain() {
 	log.Infof("LTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
 		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
 		atomic.LoadInt64(&processedBlocks), atomic.LoadInt64(&totalTxs), atomic.LoadInt64(&totalVins), atomic.LoadInt64(&totalVouts))
+}
+
+func (pgb *ChainDB) SyncBulkXMRBlockSummaryData() {
+	// Check which blocks have not been updated with the summary data sync status
+	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.SelectRemainingNotSyncedChartSummary)
+	if err != nil {
+		log.Errorf("XMR: Query remaining not synced chart summary block height list failed: %v", err)
+		return
+	}
+	remaingHeights, err := getRemainingHeightsFromSqlRows(rows)
+	if err != nil {
+		log.Errorf("XMR: Get remaining blocks height list for sync block summary failed: %v", err)
+		return
+	}
+	currentHeight := remaingHeights[0]
+	// handler for each block
+	for _, syncHeight := range remaingHeights {
+		err = pgb.SaveXMRBlockSummaryData(syncHeight)
+		if err != nil {
+			log.Errorf("XMR: SaveXMRBlockSummaryData failed. %v", err)
+			return
+		}
+		if syncHeight%1000 == 0 || syncHeight == remaingHeights[len(remaingHeights)-1] {
+			log.Infof("XMR: Sync bulk block summary from: %d to %d", currentHeight, syncHeight)
+			currentHeight = syncHeight
+		}
+	}
 }
 
 func (pgb *ChainDB) SyncXMRWholeChain(newIndexes bool) {
