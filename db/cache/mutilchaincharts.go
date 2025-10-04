@@ -605,6 +605,7 @@ var xmrChartMaker = map[string]MutilchainChartMaker{
 	AvgRingSize:    xmrRingSizeAvg,
 	FeeRate:        xmrFeeRate,
 	AvgTxSize:      xmrAvgTxSize,
+	DecoyBands:     xmrDecoyBands,
 }
 
 // Chart will return a JSON-encoded chartResponse of the provided chart,
@@ -825,6 +826,38 @@ func xmrFeeRate(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byt
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
 				feesKey: charts.Days.FeeRate,
+			}, seed)
+		}
+	}
+	return nil, InvalidBinErr
+}
+
+func xmrDecoyBands(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
+	seed := binAxisSeed(bin, axis)
+	switch bin {
+	case BlockBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				xmrDecoyKey: charts.Blocks.MoneroDecoyBands,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:     charts.Blocks.Time,
+				xmrDecoyKey: charts.Blocks.MoneroDecoyBands,
+			}, seed)
+		}
+	case DayBin:
+		switch axis {
+		case HeightAxis:
+			return encode(lengtherMap{
+				heightKey:   charts.Days.Height,
+				xmrDecoyKey: charts.Days.MoneroDecoyBands,
+			}, seed)
+		default:
+			return encode(lengtherMap{
+				timeKey:     charts.Days.Time,
+				xmrDecoyKey: charts.Days.MoneroDecoyBands,
 			}, seed)
 		}
 	}

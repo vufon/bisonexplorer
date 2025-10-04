@@ -52,6 +52,7 @@ const (
 	AvgRingSize       = "avg-ring-size"
 	FeeRate           = "fee-rate"
 	AvgTxSize         = "avg-tx-size"
+	DecoyBands        = "decoy-bands"
 
 	// Some chartResponse keys
 	heightKey        = "h"
@@ -80,6 +81,7 @@ const (
 	totalCoinDaysKey = "totalCoinDays"
 	marketPriceKey   = "marketPrice"
 	ringSizeKey      = "ringSize"
+	xmrDecoyKey      = "decoy"
 )
 
 // binLevel specifies the granularity of data.
