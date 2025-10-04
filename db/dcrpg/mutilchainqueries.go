@@ -234,7 +234,7 @@ func InsertMutilchainTxns(db *sql.DB, dbTxns []*dbtypes.Tx, checked bool, chainT
 	return ids, dbtx.Commit()
 }
 
-func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSONStr string, checked bool) (*xmrParseTxResult, error) {
+func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSONStr string, checked, isCoinbase bool) (*xmrParseTxResult, error) {
 	// parse into map
 	var txMap map[string]interface{}
 	if err := json.Unmarshal([]byte(txJSONStr), &txMap); err != nil {
@@ -303,7 +303,9 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 	parseRes := &xmrParseTxResult{}
 	// 1) vout parsing -> monero_outputs
 	if voutIf, ok := txMap["vout"].([]interface{}); ok {
-		parseRes.numVouts += len(voutIf)
+		if !isCoinbase {
+			parseRes.numVouts += len(voutIf)
+		}
 		for idx, vo := range voutIf {
 			if voMap, ok := vo.(map[string]interface{}); ok {
 				// target may be under "target" -> "key"
@@ -341,80 +343,24 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 						}
 					}
 				}
-				parseRes.totalSent += amount
+				if !isCoinbase {
+					parseRes.totalSent += amount
+				}
 				var mvoutid uint64
 				err := voutstmt.QueryRow(txHash, idx, xmrhelper.NullInt64ToInterface(globalIndex), outPk, nil, amountKnown, xmrhelper.NullInt64ToInterface(amount)).Scan(&mvoutid)
 				// insert into monero_outputs
 				if err != nil {
 					return nil, fmt.Errorf("XMR: insertMoneroOutput failed: %v", err)
 				}
-				// txPubKey := ""
-				// // Prepare parameter values: convert sentinels to nil
-				// var gv interface{}
-				// if globalIndex >= 0 {
-				// 	gv = globalIndex
-				// } else {
-				// 	gv = nil
-				// }
-				// var voutIDVal interface{}
-				// if mvoutid > 0 {
-				// 	voutIDVal = mvoutid
-				// } else {
-				// 	voutIDVal = nil
-				// }
-				// var outPkVal interface{}
-				// if outPk != "" {
-				// 	outPkVal = outPk
-				// } else {
-				// 	outPkVal = nil
-				// }
-				// var amountVal interface{}
-				// if amountKnown {
-				// 	amountVal = amount
-				// } else {
-				// 	amountVal = nil
-				// }
-				// var firstSeenVal interface{}
-				// if blockHeight > 0 {
-				// 	firstSeenVal = blockHeight
-				// } else {
-				// 	firstSeenVal = nil
-				// }
-				// var txPubKeyVal interface{}
-				// if txPubKey != "" {
-				// 	txPubKeyVal = txPubKey
-				// } else {
-				// 	txPubKeyVal = nil
-				// }
-				// var fundingTxHashVal interface{}
-				// if txHash != "" {
-				// 	fundingTxHashVal = txHash
-				// } else {
-				// 	fundingTxHashVal = nil
-				// }
-				// var fundingVoutIdxVal interface{}
-				// if idx >= 0 {
-				// 	fundingVoutIdxVal = idx
-				// } else {
-				// 	fundingVoutIdxVal = nil
-				// }
-				// var addroutid sql.NullInt64
-				// err = voutAddrStmt.QueryRow(outPkVal, gv, amountKnown, amountVal, fundingTxHashVal, fundingVoutIdxVal,
-				// 	voutIDVal, txPubKeyVal, firstSeenVal).Scan(&addroutid)
-				// insert into xmr addresses row
-				// if err != nil {
-				// 	return 0, 0, 0, fmt.Errorf("XMR: UpsertAddressForOutput exec failed: %v", err)
-				// }
-				// if !addroutid.Valid {
-				// 	return 0, 0, 0, fmt.Errorf("XMR: UpsertAddressForOutput: no id returned")
-				// }
 			}
 		}
 	}
 
 	// 2) vin parsing -> vins_all, key_images, ring members
 	if vinIf, ok := txMap["vin"].([]interface{}); ok {
-		parseRes.numVins += len(vinIf)
+		if !isCoinbase {
+			parseRes.numVins += len(vinIf)
+		}
 		for vinIdx, vinItem := range vinIf {
 			if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
 				// --- Key input style (most typical for modern Monero) ---
@@ -445,17 +391,20 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 							return nil, fmt.Errorf("XMR: insertRingMember failed: %v", err)
 						}
 					}
-					parseRes.ringSize += len(globalIdxs)
-					if parseRes.ringSize >= 15 {
-						parseRes.decoyGe15Num++
-					} else if parseRes.ringSize >= 12 {
-						parseRes.decoy1214Num++
-					} else if parseRes.ringSize >= 8 {
-						parseRes.decoy811Num++
-					} else if parseRes.ringSize >= 4 {
-						parseRes.decoy47Num++
-					} else {
-						parseRes.decoy03Num++
+					if !isCoinbase {
+						ringSize := len(globalIdxs)
+						parseRes.ringSize += ringSize
+						if ringSize >= 15 {
+							parseRes.decoyGe15Num++
+						} else if ringSize >= 12 {
+							parseRes.decoy1214Num++
+						} else if ringSize >= 8 {
+							parseRes.decoy811Num++
+						} else if ringSize >= 4 {
+							parseRes.decoy47Num++
+						} else {
+							parseRes.decoy03Num++
+						}
 					}
 					// key image k_image (if present)
 					if ki, ok5 := keyObj["k_image"].(string); ok5 && ki != "" {
@@ -465,37 +414,7 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 							return nil, fmt.Errorf("XMR: insertKeyImage failed: %v", err)
 						}
 					}
-					// **Insert a vin row for this key-style input**
-					// params: tx_hash, tx_index, tx_tree, prev_tx_hash, prev_tx_index, prev_tx_tree, value_in
-					// Use nil for prev_tx_hash/prev_tx_index since key-style has no explicit prev out.
-					// Use -1 for prev_tx_tree (same as prev-tx branch), 0 for value_in (unknown for ringCT).
-					// var mvinid uint64
-					// err = vinstmt.QueryRow(txHash, vinIdx, 0, nil, nil, -1, 0).Scan(&mvinid)
-					// if err != nil {
-					// 	return 0, 0, 0, fmt.Errorf("XMR: insertVinAll(key-style) failed: %v", err)
-					// }
 				}
-
-				// --- prev_tx stuff (older style) ---
-				// if prevHash, ok6 := vinMap["prev_tx_hash"].(string); ok6 {
-				// 	// may insert into vins_all with prev fields (best-effort)
-				// 	var prevIndex int64 = -1
-				// 	if pi, ok7 := vinMap["prev_out_index"]; ok7 {
-				// 		switch v := pi.(type) {
-				// 		case float64:
-				// 			prevIndex = int64(v)
-				// 		case string:
-				// 			if parsed, err := xmrhelper.ParseInt64FromString(v); err == nil {
-				// 				prevIndex = parsed
-				// 			}
-				// 		}
-				// 	}
-				// 	// var mvinid uint64
-				// 	// err = vinstmt.QueryRow(txHash, vinIdx, 0, prevHash, prevIndex, -1, 0).Scan(&mvinid)
-				// 	// if err != nil {
-				// 	// 	return 0, 0, 0, fmt.Errorf("XMR: insertVinAll(prev) failed: %v", err)
-				// 	// }
-				// }
 			}
 		}
 	}
@@ -591,15 +510,15 @@ func GetXmrTxParseJSONSimpleData(txJSONStr string) (xmrParseTxResult, error) {
 					}
 					// convert to global indices if we have offsets (safe with empty slice)
 					globalIdxs := xmrhelper.OffsetsToGlobalIndices(offsets)
-					parseRes.ringSize += len(globalIdxs)
-					parseRes.ringSize += len(globalIdxs)
-					if parseRes.ringSize >= 15 {
+					ringSize := len(globalIdxs)
+					parseRes.ringSize += ringSize
+					if ringSize >= 15 {
 						parseRes.decoyGe15Num++
-					} else if parseRes.ringSize >= 12 {
+					} else if ringSize >= 12 {
 						parseRes.decoy1214Num++
-					} else if parseRes.ringSize >= 8 {
+					} else if ringSize >= 8 {
 						parseRes.decoy811Num++
-					} else if parseRes.ringSize >= 4 {
+					} else if ringSize >= 4 {
 						parseRes.decoy47Num++
 					} else {
 						parseRes.decoy03Num++

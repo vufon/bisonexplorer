@@ -1301,6 +1301,7 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 	}
 	var totalTxSize, totalRingSize, totalDecoy03, totalDecoy47, totalDecoy811, totalDecoy1214, totalDecoyGe15 int64
 	for i, txHash := range block.Tx {
+		isCoinbaseTx := txHash == block.MinnerTxhash
 		var txJSONStr string
 		if i < len(blTxsData.TxsAsJSON) {
 			txJSONStr = blTxsData.TxsAsJSON[i]
@@ -1317,42 +1318,52 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 			txRes.err = err
 			return txRes
 		}
-		txRes.fees += fees
-		totalTxSize += int64(txSize)
+		if !isCoinbaseTx {
+			txRes.fees += fees
+			totalTxSize += int64(txSize)
+		}
 		if txJSONStr != "" {
-			parseResult, err := ParseAndStoreTxJSON(dbtx, txHash, uint64(block.Height), txJSONStr, checked)
+			parseResult, err := ParseAndStoreTxJSON(dbtx, txHash, uint64(block.Height), txJSONStr, checked, isCoinbaseTx)
 			if err != nil {
 				log.Error("XMR: ParseAndStoreTxJSON: %v", err)
 				txRes.err = err
 				return txRes
 			}
-			txRes.numVins += int64(parseResult.numVins)
-			txRes.numVouts += int64(parseResult.numVouts)
-			txRes.totalSent += parseResult.totalSent
-			totalRingSize += int64(parseResult.ringSize)
-			totalDecoy03 += int64(parseResult.decoy03Num)
-			totalDecoy47 += int64(parseResult.decoy47Num)
-			totalDecoy811 += int64(parseResult.decoy811Num)
-			totalDecoy1214 += int64(parseResult.decoy1214Num)
-			totalDecoyGe15 += int64(parseResult.decoyGe15Num)
+			if !isCoinbaseTx {
+				txRes.numVins += int64(parseResult.numVins)
+				txRes.numVouts += int64(parseResult.numVouts)
+				txRes.totalSent += parseResult.totalSent
+				totalRingSize += int64(parseResult.ringSize)
+				totalDecoy03 += int64(parseResult.decoy03Num)
+				totalDecoy47 += int64(parseResult.decoy47Num)
+				totalDecoy811 += int64(parseResult.decoy811Num)
+				totalDecoy1214 += int64(parseResult.decoy1214Num)
+				totalDecoyGe15 += int64(parseResult.decoyGe15Num)
+			}
 		}
 	}
 	// calculate for final
 	txRes.ringSize = totalRingSize
 	if txRes.numVins > 0 {
 		txRes.avgRingSize = int64(math.Floor(float64(totalRingSize) / float64(txRes.numVins)))
-		txRes.decoy03 = 100 * (float64(totalDecoy03) / float64(txRes.numVins))
 		txRes.decoy47 = 100 * (float64(totalDecoy47) / float64(txRes.numVins))
 		txRes.decoy811 = 100 * (float64(totalDecoy811) / float64(txRes.numVins))
 		txRes.decoy1214 = 100 * (float64(totalDecoy1214) / float64(txRes.numVins))
 		txRes.decoyGe15 = 100 * (float64(totalDecoyGe15) / float64(txRes.numVins))
+		txRes.decoy03 = 100 - txRes.decoy47 - txRes.decoy811 - txRes.decoy1214 - txRes.decoyGe15
 	}
 	txSizeKb := totalTxSize / 1024
 	if txSizeKb > 0 {
-		txRes.feePerKb = txRes.fees / txSizeKb
+		txRes.feePerKb = int64(math.Round(float64(txRes.fees) / float64(txSizeKb)))
 	}
 	if len(block.Tx) > 0 {
-		txRes.avgTxSize = totalTxSize / int64(len(block.Tx))
+		txsLength := len(block.Tx)
+		if block.MinnerTxhash != "" {
+			txsLength--
+		}
+		if txsLength > 0 {
+			txRes.avgTxSize = totalTxSize / int64(txsLength)
+		}
 	}
 	// set address synced flag
 	// txRes.addressesSynced = true
