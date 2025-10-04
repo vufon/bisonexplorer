@@ -176,7 +176,16 @@ ORDER BY a.height ASC;`
     	b.numtx,
     	b.difficulty,
     	b.fees,
-    	b.reward
+    	b.reward,
+		b.ring_size,
+		b.avg_ring_size,
+		b.fee_per_kb,
+		b.avg_tx_size,
+		b.decoy_03,
+		b.decoy_47,
+		b.decoy_811,
+		b.decoy_1214,
+		b.decoy_gt15
 	FROM xmrblocks_all b
 	LEFT JOIN tx_sizes t
     ON b.height = t.block_height

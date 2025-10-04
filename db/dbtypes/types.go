@@ -1057,6 +1057,14 @@ type AgeBandData struct {
 	GreaterThan7Year float64 `json:"greaterThan7Year"`
 }
 
+type MoneroDecoyData struct {
+	Decoy03   float64 `json:"decoy03"`
+	Decoy47   float64 `json:"decoy47"`
+	Decoy811  float64 `json:"decoy811"`
+	Decoy1214 float64 `json:"decoy1214"`
+	DecoyGt15 float64 `json:"decoyGt15"`
+}
+
 type MeanCoinAgeData struct {
 	MeanCoinAge float64 `json:"meanCoinAge"`
 }

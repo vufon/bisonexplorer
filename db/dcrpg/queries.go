@@ -4309,13 +4309,16 @@ func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 	defer closeRows(rows)
 	var timeInt uint64
 	var count, size, totalSize, height, reward, fees uint64
+	var ringSize, avgRingSize, feePerKb, avgTxSize uint64
+	var decoy03, decoy47, decoy811, decoy1214, decoygt15 float64
 	var difficult float64
 	var rowCount int32
 	blocks := charts.Blocks
 	for rows.Next() {
 		rowCount++
 		// Get the chainwork.
-		err := rows.Scan(&height, &size, &totalSize, &timeInt, &count, &difficult, &fees, &reward)
+		err := rows.Scan(&height, &size, &totalSize, &timeInt, &count, &difficult, &fees, &reward, &ringSize, &avgRingSize,
+			&feePerKb, &avgTxSize, &decoy03, &decoy47, &decoy811, &decoy1214, &decoygt15)
 		if err != nil {
 			return err
 		}
@@ -4336,6 +4339,17 @@ func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 		blocks.Fees = append(blocks.Fees, fees)
 		rewardFloat := utils.AtomicToXMR(reward)
 		blocks.Reward = append(blocks.Reward, rewardFloat)
+		blocks.TotalRingSize = append(blocks.TotalRingSize, ringSize)
+		blocks.AverageRingSize = append(blocks.AverageRingSize, avgRingSize)
+		blocks.FeeRate = append(blocks.FeeRate, feePerKb)
+		blocks.AverageTxSize = append(blocks.AverageTxSize, avgTxSize)
+		blocks.MoneroDecoyBands = append(blocks.MoneroDecoyBands, &dbtypes.MoneroDecoyData{
+			Decoy03:   decoy03,
+			Decoy47:   decoy47,
+			Decoy811:  decoy811,
+			Decoy1214: decoy1214,
+			DecoyGt15: decoygt15,
+		})
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("appendChartBlocks: iteration error: %w", err)
