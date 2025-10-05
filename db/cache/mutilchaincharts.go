@@ -640,6 +640,15 @@ func (charts *MutilchainChartData) Chart(chartID, binString, axisString string) 
 	return data, nil
 }
 
+func decoybands(data MoneroDecoyBands) MoneroDecoyBands {
+	for idx, v := range data {
+		if v.Decoy03 == 0 && v.Decoy47 == 0 && v.Decoy811 == 0 && v.Decoy1214 == 0 && v.DecoyGt15 == 0 {
+			data[idx].Decoy03 = 100
+		}
+	}
+	return data
+}
+
 func xmrCoinSupplyChart(charts *MutilchainChartData, bin binLevel, axis axisType) ([]byte, error) {
 	seed := binAxisSeed(bin, axis)
 	switch bin {
@@ -839,12 +848,14 @@ func xmrDecoyBands(charts *MutilchainChartData, bin binLevel, axis axisType) ([]
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				xmrDecoyKey: charts.Blocks.MoneroDecoyBands,
+				xmrDecoyKey: decoybands(charts.Blocks.MoneroDecoyBands),
+				ringSizeKey: charts.Blocks.TotalRingSize,
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey:     charts.Blocks.Time,
-				xmrDecoyKey: charts.Blocks.MoneroDecoyBands,
+				xmrDecoyKey: decoybands(charts.Blocks.MoneroDecoyBands),
+				ringSizeKey: charts.Blocks.TotalRingSize,
 			}, seed)
 		}
 	case DayBin:
@@ -852,12 +863,14 @@ func xmrDecoyBands(charts *MutilchainChartData, bin binLevel, axis axisType) ([]
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey:   charts.Days.Height,
-				xmrDecoyKey: charts.Days.MoneroDecoyBands,
+				xmrDecoyKey: decoybands(charts.Days.MoneroDecoyBands),
+				ringSizeKey: charts.Days.TotalRingSize,
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey:     charts.Days.Time,
-				xmrDecoyKey: charts.Days.MoneroDecoyBands,
+				xmrDecoyKey: decoybands(charts.Days.MoneroDecoyBands),
+				ringSizeKey: charts.Days.TotalRingSize,
 			}, seed)
 		}
 	}

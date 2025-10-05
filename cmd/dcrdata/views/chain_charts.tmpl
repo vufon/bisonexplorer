@@ -126,6 +126,7 @@
                         <option value="address-number">Active Addresses</option>
                         {{else}}
                         <option value="duration-btw-blocks">Duration Between Blocks</option>
+                        <option value="avg-tx-size">Average Tx Size</option>
                         {{end}}
                      </optgroup>
                      <optgroup label="Mining">
@@ -140,7 +141,17 @@
                      <optgroup label="Distribution">
                         <option value="coin-supply">Coin Supply</option>
                         <option value="fees">Fees</option>
+                         {{if eq .ChainType "xmr"}}
+                        <option value="fee-rate">Fee Rate</option>
+                        {{end}}
                      </optgroup>
+                     {{if eq .ChainType "xmr"}}
+                     <optgroup label="Privacy">
+                        <option value="total-ring-size">Total Ring Size</option>
+                        <option value="avg-ring-size">Avg Ring Size / Input</option>
+                        <option value="decoy-bands">Monero Decoys Bands</option>
+                     </optgroup>
+                     {{end}}
                   </select>
                </div>
             </div>

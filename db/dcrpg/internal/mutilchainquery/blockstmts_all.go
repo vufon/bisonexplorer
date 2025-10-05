@@ -177,15 +177,15 @@ ORDER BY a.height ASC;`
     	b.difficulty,
     	b.fees,
     	b.reward,
-		b.ring_size,
-		b.avg_ring_size,
-		b.fee_per_kb,
-		b.avg_tx_size,
-		b.decoy_03,
-		b.decoy_47,
-		b.decoy_811,
-		b.decoy_1214,
-		b.decoy_gt15
+  		COALESCE(b.ring_size, 0)       AS ring_size,
+  		COALESCE(b.avg_ring_size, 0)   AS avg_ring_size,
+  		COALESCE(b.fee_per_kb, 0)      AS fee_per_kb,
+  		COALESCE(b.avg_tx_size, 0)     AS avg_tx_size,
+  		COALESCE(b.decoy_03, 0.0)        AS decoy_03,
+  		COALESCE(b.decoy_47, 0.0)        AS decoy_47,
+  		COALESCE(b.decoy_811, 0.0)       AS decoy_811,
+  		COALESCE(b.decoy_1214, 0.0)      AS decoy_1214,
+  		COALESCE(b.decoy_gt15, 0.0)      AS decoy_gt15
 	FROM xmrblocks_all b
 	LEFT JOIN tx_sizes t
     ON b.height = t.block_height
