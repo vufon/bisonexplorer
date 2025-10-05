@@ -2007,6 +2007,7 @@ export default class extends Controller {
     let reinitChartType = false
     reinitChartType = this.chainType === 'dcr' || chain === 'dcr' || this.chainType === 'xmr' || chain === 'xmr'
     this.chainType = chain
+    globalChainType = chain
     // reinit
     if (reinitChartType) {
       this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
