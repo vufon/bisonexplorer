@@ -18,6 +18,7 @@ let Dygraph // lazy loaded on connect
 const aDay = 86400 * 1000 // in milliseconds
 const aMonth = 30 // in days
 const atomsToDCR = 1e-8
+const picoToXmr = 1e-12
 const windowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
 const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
@@ -26,7 +27,6 @@ const modeScales = ['ticket-price']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
-// const coinAgeBandsLabels = ['<1D', '1D-1W', '1W-1M', '1-6M', '6M-1Y', '1-2Y', '2-3Y', '3-5Y', '5-7Y', '>7Y', 'Decred Price']
 const coinAgeBandsColors = [
   '#e9baa6',
   '#152b83',
@@ -41,6 +41,17 @@ const coinAgeBandsColors = [
   '#576812ff',
   '#4c4c4cff'
 ]
+const decoyBandsLabels = ['none', 'No Tx', 'Decoys 0-3', 'Decoys 4-7', 'Decoys 8-11', 'Decoys 12-14', 'Decoys > 15', 'Mixin']
+const decoyBandsColors = [
+  '#e9baa6',
+  '#576812ff',
+  '#152b83',
+  '#dc3912',
+  '#ff9900',
+  '#109618',
+  '#990099',
+  '#4c4c4cff'
+]
 const decredChartOpts = ['ticket-price', 'ticket-pool-size', 'ticket-pool-value', 'stake-participation',
   'privacy-participation', 'missed-votes', 'block-size', 'blockchain-size', 'tx-count', 'duration-btw-blocks',
   'pow-difficulty', 'chainwork', 'hashrate', 'coin-supply', 'fees', 'avg-age-days', 'coin-days-destroyed',
@@ -48,7 +59,8 @@ const decredChartOpts = ['ticket-price', 'ticket-pool-size', 'ticket-pool-value'
 const mutilchainChartOpts = ['block-size', 'blockchain-size', 'tx-count', 'tx-per-block', 'address-number',
   'pow-difficulty', 'hashrate', 'mined-blocks', 'mempool-size', 'mempool-txs', 'coin-supply', 'fees']
 const xmrChartOpts = ['block-size', 'blockchain-size', 'tx-count', 'tx-per-block',
-  'pow-difficulty', 'hashrate', 'coin-supply', 'fees', 'duration-btw-blocks']
+  'pow-difficulty', 'hashrate', 'coin-supply', 'fees', 'duration-btw-blocks', 'avg-tx-size',
+  'fee-rate', 'total-ring-size', 'avg-ring-size', 'decoy-bands']
 let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
@@ -83,7 +95,12 @@ const yAxisLabelWidth = {
     'coin-days-destroyed': 50,
     'coin-age-bands': 30,
     'mean-coin-age': 50,
-    'total-coin-days': 50
+    'total-coin-days': 50,
+    'total-ring-size': 40,
+    'avg-ring-size': 30,
+    'fee-rate': 50,
+    'avg-tx-size': 40,
+    'decoy-bands': 30
   },
   y2: {
     'ticket-price': 40,
@@ -91,8 +108,16 @@ const yAxisLabelWidth = {
     'coin-days-destroyed': 30,
     'coin-age-bands': 30,
     'mean-coin-age': 30,
-    'total-coin-days': 30
+    'total-coin-days': 30,
+    'decoy-bands': 50
   }
+}
+
+function unitToCoin (chainType) {
+  if (chainType === 'xmr') {
+    return picoToXmr
+  }
+  return atomsToDCR
 }
 
 function missedVotesFunc (data) {
@@ -703,6 +728,297 @@ function zip2D (data, ys, yMult, offset) {
     return zipHvY(data.h, ys, yMult, offset)
   }
   return zipTvY(data.t, ys, yMult)
+}
+
+function decoyBandsFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipDecoyBandsIvY(data.decoy, data.ringSize)
+    } else {
+      return zipDecoyBandsHvY(data.h, data.decoy, data.ringSize)
+    }
+  } else {
+    return zipDecoyBandsTvY(data.t, data.decoy, data.ringSize)
+  }
+}
+
+function zipDecoyBandsTvY (times, ys, zs, yMult, zMult) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  return times.map((t, i) => {
+    const y = ys[i]
+    let decoyNoTx = Number(y.noTx)
+    let decoy03Percent = Number(y.decoy03)
+    let decoy47Percent = Number(y.decoy47)
+    let decoy811Percent = Number(y.decoy811)
+    let decoy1214Percent = Number(y.decoy1214)
+    let decoyGe15Percent = Number(y.decoyGt15)
+
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
+    if (decoy03Percent < 100) {
+      decoy03Percent += 0.00001
+    }
+    if (decoy47Percent < 100) {
+      decoy47Percent += 0.00001
+    }
+    if (decoy811Percent < 100) {
+      decoy811Percent += 0.00001
+    }
+    if (decoy1214Percent < 100) {
+      decoy1214Percent += 0.00001
+    }
+    if (decoyGe15Percent < 100) {
+      decoyGe15Percent += 0.00001
+    }
+    const noneValue = 0.00001
+
+    if (decoy03Percent === 100) {
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy47Percent === 100) {
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy811Percent === 100) {
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy1214Percent === 100) {
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoyGe15Percent === 100) {
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+      if (decoy03Percent > 0.1) {
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      } else {
+        if (decoy47Percent > 0.1) {
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        } else {
+          if (decoy811Percent > 0.1) {
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          } else {
+            if (decoy1214Percent > 0.1) {
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+            } else {
+              if (decoyGe15Percent > 0.1) {
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return [
+      new Date(t * 1000),
+      noneValue,
+      decoyNoTx * yMult,
+      decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+function zipDecoyBandsHvY (heights, ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    let decoyNoTx = Number(y.noTx)
+    let decoy03Percent = Number(y.decoy03)
+    let decoy47Percent = Number(y.decoy47)
+    let decoy811Percent = Number(y.decoy811)
+    let decoy1214Percent = Number(y.decoy1214)
+    let decoyGe15Percent = Number(y.decoyGt15)
+
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
+    if (decoy03Percent < 100) {
+      decoy03Percent += 0.00001
+    }
+    if (decoy47Percent < 100) {
+      decoy47Percent += 0.00001
+    }
+    if (decoy811Percent < 100) {
+      decoy811Percent += 0.00001
+    }
+    if (decoy1214Percent < 100) {
+      decoy1214Percent += 0.00001
+    }
+    if (decoyGe15Percent < 100) {
+      decoyGe15Percent += 0.00001
+    }
+    const noneValue = 0.00001
+
+    if (decoy03Percent === 100) {
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy47Percent === 100) {
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy811Percent === 100) {
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy1214Percent === 100) {
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoyGe15Percent === 100) {
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+      if (decoy03Percent > 0.1) {
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      } else {
+        if (decoy47Percent > 0.1) {
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        } else {
+          if (decoy811Percent > 0.1) {
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          } else {
+            if (decoy1214Percent > 0.1) {
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+            } else {
+              if (decoyGe15Percent > 0.1) {
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return [
+      offset + heights[i],
+      noneValue,
+      decoyNoTx * yMult,
+      decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+function zipDecoyBandsIvY (ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    let decoyNoTx = Number(y.noTx)
+    let decoy03Percent = Number(y.decoy03)
+    let decoy47Percent = Number(y.decoy47)
+    let decoy811Percent = Number(y.decoy811)
+    let decoy1214Percent = Number(y.decoy1214)
+    let decoyGe15Percent = Number(y.decoyGt15)
+
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
+    if (decoy03Percent < 100) {
+      decoy03Percent += 0.00001
+    }
+    if (decoy47Percent < 100) {
+      decoy47Percent += 0.00001
+    }
+    if (decoy811Percent < 100) {
+      decoy811Percent += 0.00001
+    }
+    if (decoy1214Percent < 100) {
+      decoy1214Percent += 0.00001
+    }
+    if (decoyGe15Percent < 100) {
+      decoyGe15Percent += 0.00001
+    }
+    const noneValue = 0.00001
+
+    if (decoy03Percent === 100) {
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy47Percent === 100) {
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy811Percent === 100) {
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy1214Percent === 100) {
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoyGe15Percent === 100) {
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+      if (decoy03Percent > 0.1) {
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      } else {
+        if (decoy47Percent > 0.1) {
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        } else {
+          if (decoy811Percent > 0.1) {
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          } else {
+            if (decoy1214Percent > 0.1) {
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+            } else {
+              if (decoyGe15Percent > 0.1) {
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return [
+      offset + i,
+      noneValue,
+      decoyNoTx * yMult,
+      decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
+      zs[i] * zMult]
+  })
 }
 
 function powDiffFunc (data) {
@@ -1391,7 +1707,7 @@ export default class extends Controller {
         break
 
       case 'fees': // block fee graph
-        d = zip2D(data, data.fees, atomsToDCR)
+        d = zip2D(data, data.fees, unitToCoin(this.chainType))
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (' + globalChainType.toUpperCase() + ')', true, false))
         yFormatter = customYFormatter(y => {
           if (y == null || isNaN(y)) return '–'
@@ -1556,6 +1872,79 @@ export default class extends Controller {
           if (this.marketPriceTarget.checked) {
             addLegendEntryFmt(div, data.series[data.series.length - 1], y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' USD')
           }
+          data.series.forEach((serie, idx) => {
+            if (idx === 0 || idx === data.series.length - 1) {
+              return
+            }
+            addLegendEntryFmt(div, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
+          })
+        }
+        break
+      case 'total-ring-size': // total ring-size for monero
+        d = zip2D(data, data.ringSize)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Ring Size'], false,
+          'Total Ring Size', true, false))
+        break
+      case 'avg-ring-size': // total ring-size for monero
+        d = zip2D(data, data.ringSize)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg Ring Size / Input'], false,
+          'Avg Ring Size / Input', true, false))
+        break
+      case 'fee-rate':
+        d = zip2D(data, data.fees, unitToCoin(this.chainType))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Fee Rate (XMR/kB)'], false,
+          'Fee Rate (XMR/kB)', true, false))
+        break
+      case 'avg-tx-size':
+        d = zip2D(data, data.size)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Average Tx Size'], true,
+          'Average Tx Size', false, true))
+        break
+      case 'decoy-bands':
+        d = decoyBandsFunc(data)
+        labels.push(xlabel)
+        labels.push(...decoyBandsLabels)
+        decoyBandsColors.forEach((item) => {
+          stackVisibility.push(true)
+        })
+        gOptions = {
+          labels: labels,
+          file: d,
+          colors: decoyBandsColors,
+          ylabel: 'Decoys (%)',
+          y2label: 'Mixin',
+          valueRange: [0, 100],
+          fillGraph: true,
+          stackedGraph: true,
+          visibility: stackVisibility,
+          series: {
+            none: { fillGraph: true },
+            'No Tx': { fillGraph: true },
+            'Decoys 0-3': { fillGraph: true },
+            'Decoys 4-7': { fillGraph: true },
+            'Decoys 8-11': { fillGraph: true },
+            'Decoys 12-14': { fillGraph: true },
+            'Decoys >15': { fillGraph: true },
+            Mixin: {
+              axis: 'y2',
+              strokeWidth: 1,
+              fillGraph: false
+            }
+          },
+          legend: 'always',
+          includeZero: true,
+          // zoomCallback: this.depthZoomCallback,
+          axes: {
+            y2: {
+              valueRange: [0, 1000000],
+              axisLabelFormatter: (y) => Math.round(y),
+              axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['decoy-bands'] : yAxisLabelWidth.y2['decoy-bands'] + 15
+            }
+          }
+        }
+        yFormatter = (div, data, i) => {
+          if (!data.series || data.series.length === 0) return
+          addLegendEntryFmt(div, data.series[data.series.length - 1], y => y)
           data.series.forEach((serie, idx) => {
             if (idx === 0 || idx === data.series.length - 1) {
               return
@@ -1764,6 +2153,16 @@ export default class extends Controller {
         return `Total size of unconfirmed ${this.getChainName()} transactions in the mempool over time.`
       case 'address-number':
         return `Total number of unique ${this.getChainName()} addresses over time.`
+      case 'total-ring-size':
+        return 'Sum of all ring members (real + decoys) used across inputs in a block or time window — a measure of on-chain anonymity volume.'
+      case 'avg-ring-size':
+        return 'Average number of ring members per input over time — indicates the typical anonymity level per transaction input (higher = greater anonymity).'
+      case 'fee-rate':
+        return 'Fee-rate (XMR/kB): total fees paid per kilobyte of transactions — a measure of network fee pressure.'
+      case 'avg-tx-size':
+        return 'Average Transaction Size — mean transaction size'
+      case 'decoy-bands':
+        return 'Monero Decoys Bands — distribution of transactions by ring size (decoy / mixin bands), shown as percent of total (100% stacked).'
       default:
         return ''
     }
@@ -1825,7 +2224,7 @@ export default class extends Controller {
       <option value="blockchain-size">Blockchain Size</option>
       <option value="tx-count">Transaction Count</option>
       <option value="tx-per-block">TXs Per Blocks</option>
-      ${this.chainType === 'xmr' ? '<option value="duration-btw-blocks">Duration Between Blocks</option>' : '<option value="address-number">Active Addresses</option>'}
+      ${this.chainType === 'xmr' ? '<option value="duration-btw-blocks">Duration Between Blocks</option><option value="avg-tx-size">Average Tx Size</option>' : '<option value="address-number">Active Addresses</option>'}
       </optgroup>
       <optgroup label="Mining">
       <option value="pow-difficulty">Difficulty</option>
@@ -1839,7 +2238,16 @@ export default class extends Controller {
       <optgroup label="Distribution">
       <option value="coin-supply">Coin Supply</option>
       <option value="fees">Fees</option>
-      </optgroup>`
+      ${this.chainType === 'xmr' ? '<option value="fee-rate">Fee Rate</option>' : ''}
+      </optgroup>
+      ${this.chainType === 'xmr'
+? `<optgroup label="Privacy">
+                        <option value="total-ring-size">Total Ring Size</option>
+                        <option value="avg-ring-size">Avg Ring Size / Input</option>
+                        <option value="decoy-bands">Monero Decoys Bands</option>
+                     </optgroup>`
+: ''}
+      `
   }
 
   async selectChart () {
@@ -1970,6 +2378,16 @@ export default class extends Controller {
         return 'Mean Coin Age'
       case 'total-coin-days':
         return 'Total Coin Days'
+      case 'total-ring-size':
+        return 'Total Ring Size'
+      case 'avg-ring-size':
+        return 'Avg Ring Size / Input'
+      case 'fee-rate':
+        return 'Fee Rate'
+      case 'avg-tx-size':
+        return 'Average Tx Size'
+      case 'decoy-bands':
+        return 'Monero Decoys Bands'
       default:
         return ''
     }

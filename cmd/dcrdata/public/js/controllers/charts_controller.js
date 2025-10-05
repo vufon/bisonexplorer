@@ -25,7 +25,6 @@ const modeScales = ['ticket-price']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
-// const coinAgeBandsLabels = ['<1D', '1D-1W', '1W-1M', '1-6M', '6M-1Y', '1-2Y', '2-3Y', '3-5Y', '5-7Y', '>7Y', 'Decred Price']
 const coinAgeBandsColors = [
   '#e9baa6',
   '#152b83',
