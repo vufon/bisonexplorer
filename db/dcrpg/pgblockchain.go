@@ -11702,6 +11702,10 @@ func (pgb *ChainDB) GetMutilchainExplorerFullBlocks(chainType string, start, end
 		return result
 	}
 	for _, blockInfo := range blockInfos {
+		blReward := blockInfo.Reward
+		if chainType != mutilchain.TYPEXMR {
+			blReward = mutilchain.GetCurrentBlockReward(chainType, pgb.GetSubsidyReductionInterval(chainType), int32(blockInfo.Height))
+		}
 		resItem := &exptypes.BlockInfo{
 			BlockBasic: &exptypes.BlockBasic{
 				Height:        blockInfo.Height,
@@ -11713,7 +11717,7 @@ func (pgb *ChainDB) GetMutilchainExplorerFullBlocks(chainType string, start, end
 			FeesSats:      blockInfo.Fees,
 			TotalInputs:   blockInfo.Inputs,
 			TotalOutputs:  blockInfo.Outputs,
-			BlockReward:   mutilchain.GetCurrentBlockReward(chainType, pgb.GetSubsidyReductionInterval(chainType), int32(blockInfo.Height)),
+			BlockReward:   blReward,
 		}
 		result = append(result, resItem)
 	}

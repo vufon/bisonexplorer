@@ -17,16 +17,14 @@
         </nav>
         <br />
         <a class="no-underline title fw-bold my-2" href="/blocks" data-chainvisualBlocks-target="title"
-            href="/blocks">Latest
-            Blocks</a>
+            href="/blocks">Latest Blocks</a>
         <div class="blocks-holder" data-chainvisualBlocks-target="box">
-            <!-- add mempool element -->
             {{with .Mempool}}
             <div class="block visible" data-chainvisualBlocks-target="block" id="memblocks">
                 <div class="block-info">
                     <a class="color-code" href="/{{$ChainType}}/mempool">Mempool</a>
                     <div class="mono amount" style="line-height: 1;">
-                        <span data-chainvisualBlocks-target="memTotalSent" data-value="{{.TotalOut}}">{{threeSigFigs .TotalOut}}</span>
+                        <span data-chainvisualBlocks-target="memTotalSent" data-value="{{.TotalOut}}">{{if eq $ChainType "xmr"}}?{{else}}{{threeSigFigs .TotalOut}}{{end}}</span>
                         <span class="unit"> {{toUpperCase $ChainType}}</span>
                     </div>
                     <span class="timespan">now</span>
@@ -34,8 +32,8 @@
                 <div class="block-rows chain-block-rows">
                     <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
                         <span id="memBlockReward" class="pow chain-pow left-vs-block-data"
-                            style="flex-grow: {{toFloat64Amount .BlockReward}}"
-                            title='{"object": "Block Reward","total": "{{toFloat64Amount .BlockReward}}"}'
+                            style="flex-grow: {{toMulFloat64Amount .BlockReward $ChainType}}"
+                            title='{"object": "Block Reward","total": "{{toMulFloat64Amount .BlockReward $ChainType}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <span class="block-element-link">
                             </span>
@@ -73,7 +71,7 @@
                 <div class="block-info">
                     <a class="color-code" href="/{{$ChainType}}/block/{{.Height}}">{{.Height}}</a>
                     <div class="mono amount" style="line-height: 1;">
-                        <span>{{threeSigFigs (toFloat64Amount .TotalSentSats)}}</span>
+                        <span>{{if eq $ChainType "xmr"}}?{{else}}{{threeSigFigs (toFloat64Amount .TotalSentSats)}}{{end}}</span>
                         <span class="unit"> {{toUpperCase $ChainType}}</span>
                     </div>
                     <span class="timespan">
@@ -82,13 +80,13 @@
                 </div>
                 <div class="block-rows chain-block-rows">
                     <div class="block-rewards px-1 mt-1" style="flex-grow: 1">
-                        <span class="pow chain-pow left-vs-block-data" style="flex-grow: {{toFloat64Amount .BlockReward}}"
-                            title='{"object": "Block Reward", "total": "{{toFloat64Amount .BlockReward}}"}'
+                        <span class="pow chain-pow left-vs-block-data" style="flex-grow: {{toMulFloat64Amount .BlockReward $ChainType}}"
+                            title='{"object": "Block Reward", "total": "{{toMulFloat64Amount .BlockReward $ChainType}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <span class="block-element-link"></span>
                         </span>
-                        <span class="fees right-vs-block-data" style="flex-grow: {{toFloat64Amount .FeesSats}}"
-                            title='{"object": "Tx Fees", "total": "{{toFloat64Amount .FeesSats}}"}'
+                        <span class="fees right-vs-block-data" style="flex-grow: {{toMulFloat64Amount .FeesSats $ChainType}}"
+                            title='{"object": "Tx Fees", "total": "{{toMulFloat64Amount .FeesSats $ChainType}}"}'
                             data-chainvisualBlocks-target="tooltip">
                             <span class="block-element-link"></span>
                         </span>

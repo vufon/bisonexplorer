@@ -643,7 +643,8 @@ func (exp *ExplorerUI) MutilchainMempoolInfo(chainType string) *types.Mutilchain
 				XmrTxs:             memInfo.Transactions,
 				TotalSize:          int32(memInfo.BytesTotal),
 				TotalFee:           utils.AtomicToXMR(uint64(memInfo.TotalFee)),
-				OutputsCount:       int64(memInfo.OutputsCount),
+				OutputsCount:       memInfo.OutputsCount,
+				InputsCount:        memInfo.InputsCount,
 				BlockReward:        exp.XmrPageData.BlockInfo.BlockReward,
 			}
 		}
@@ -1231,6 +1232,7 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	if err != nil {
 		log.Warnf("XMR: Get 24h tx fees SUM/AVG failed. Error: %v", err)
 	}
+	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEXMR, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 	// nodes = chainStats.Nodes
 	// avgTxFees24h = chainStats.AverageTransactionFee24h
 	log.Debugf("XMR: Get Multichain stats successfully")
@@ -1263,6 +1265,7 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
 	p.HomeInfo.TxFeeSum24h = sumTxFees24h
 	p.HomeInfo.TargetTimePerBlock = targetTimePerBlock
+	p.BlockDetails = blocks
 	p.Unlock()
 	go func() {
 		select {
@@ -1470,6 +1473,7 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 			}
 
 			totalOutputs := uint64(0)
+			totalInputs := uint64(0)
 			totalFee := uint64(0)
 			minFeeRate := math.MaxFloat64
 			maxFeeRate := float64(0)
@@ -1480,6 +1484,7 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 					continue
 				}
 				totalOutputs += uint64(len(txDetail.Vout))
+				totalInputs += uint64(len(txDetail.Vin))
 				totalFee += txDetail.RctSignatures.TxnFee
 				feeRate := float64(tx.Fee) / float64(tx.BlobSize) // au/vB
 				if feeRate < minFeeRate {
@@ -1502,6 +1507,7 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 			}
 			mp.TotalFee = int64(totalFee)
 			mp.OutputsCount = int64(totalOutputs)
+			mp.InputsCount = int64(totalInputs)
 			mp.MinFeeRate = minFeeRate
 			mp.MaxFeeRate = maxFeeRate
 

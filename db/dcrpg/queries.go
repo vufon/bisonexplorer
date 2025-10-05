@@ -6182,14 +6182,22 @@ func RetrieveLatestBlockSummary(ctx context.Context, db *sql.DB) (*apitypes.Bloc
 
 func RetrieveLastestBlocksInfo(ctx context.Context, db *sql.DB, chainType string, startHeight, endHeight int64) ([]*dbtypes.MutilchainDBBlockInfo, error) {
 	var infoList []*dbtypes.MutilchainDBBlockInfo
-	rows, err := db.QueryContext(ctx, mutilchainquery.MakeRetrieveBlockInfoData(chainType), startHeight, endHeight)
+	queryStmt := mutilchainquery.MakeRetrieveBlockInfoData(chainType)
+	if chainType == mutilchain.TYPEXMR {
+		queryStmt = mutilchainquery.RetrieveXmrBlockSimpleInfo
+	}
+	rows, err := db.QueryContext(ctx, queryStmt, startHeight, endHeight)
 	if err != nil {
 		return infoList, err
 	}
 	defer closeRows(rows)
 	for rows.Next() {
 		var blockInfo dbtypes.MutilchainDBBlockInfo
-		err := rows.Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs)
+		if chainType == mutilchain.TYPEXMR {
+			err = rows.Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs, &blockInfo.Reward)
+		} else {
+			err = rows.Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs)
+		}
 		if err != nil {
 			return infoList, err
 		}

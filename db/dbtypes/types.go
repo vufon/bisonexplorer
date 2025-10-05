@@ -2758,6 +2758,7 @@ type MutilchainDBBlockInfo struct {
 	TxCount int64
 	Inputs  int64
 	Outputs int64
+	Reward  int64
 }
 
 type APITxStatus struct {

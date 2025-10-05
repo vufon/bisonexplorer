@@ -90,6 +90,15 @@ async function createWebSocket (loc) {
     globalEventBus.publish('BTC_BLOCK_RECEIVED', newBlock)
   }
 
+  const updateXmrBlockData = function (event) {
+    const newBlock = JSON.parse(event)
+    if (window.loggingDebug) {
+      console.log('XMR Block received:', newBlock)
+    }
+    newBlock.block.unixStamp = new Date(newBlock.block.time).getTime() / 1000
+    globalEventBus.publish('XMR_BLOCK_RECEIVED', newBlock)
+  }
+
   const updateLtcMempoolData = function (event) {
     const newMempool = JSON.parse(event)
     if (window.loggingDebug) {
@@ -109,6 +118,7 @@ async function createWebSocket (loc) {
   ws.registerEvtHandler('newblock', updateBlockData)
   ws.registerEvtHandler('newltcblock', updateLtcBlockData)
   ws.registerEvtHandler('newbtcblock', updateBtcBlockData)
+  ws.registerEvtHandler('newxmrblock', updateXmrBlockData)
   ws.registerEvtHandler('newltcmempool', updateLtcMempoolData)
   ws.registerEvtHandler('newbtcmempool', updateBtcMempoolData)
   ws.registerEvtHandler('summaryinfo', updateSummaryData)

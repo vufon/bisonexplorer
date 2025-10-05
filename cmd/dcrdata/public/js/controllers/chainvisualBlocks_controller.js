@@ -3,6 +3,13 @@ import globalEventBus from '../services/event_bus_service'
 import mempoolJS from '../vendor/mempool'
 import humanize from '../helpers/humanize_helper'
 
+function getAtomsRate (chainType) {
+  if (chainType === 'xmr') {
+    return 1e12
+  }
+  return 1e8
+}
+
 export default class extends Controller {
   static get targets () {
     return ['box', 'title', 'showmore', 'root', 'txs', 'tooltip', 'block',
@@ -11,7 +18,6 @@ export default class extends Controller {
 
   connect () {
     this.chainType = this.data.get('chainType')
-    this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
     this.processBlock = this._processBlock.bind(this)
     switch (this.chainType) {
       case 'ltc':
@@ -19,14 +25,23 @@ export default class extends Controller {
         break
       case 'btc':
         globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBlock)
+        break
+      case 'xmr':
+        globalEventBus.on('XMR_BLOCK_RECEIVED', this.processBlock)
+        break
     }
-    const { bitcoin: { websocket } } = mempoolJS({
-      hostname: this.wsHostName
-    })
-    this.ws = websocket.initClient({
-      options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
-    })
-    this.mempoolSocketInit()
+    if (this.chainType !== 'xmr') {
+      this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
+      const { bitcoin: { websocket } } = mempoolJS({
+        hostname: this.wsHostName
+      })
+      this.ws = websocket.initClient({
+        options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
+      })
+      this.mempoolSocketInit()
+    } else {
+      this.setupTooltips()
+    }
   }
 
   disconnect () {
@@ -38,13 +53,15 @@ export default class extends Controller {
         globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBlock)
     }
     // close websocket for mempool
-    this.ws.close()
+    if (this.chainType !== 'xmr') {
+      this.ws.close()
+    }
   }
 
   _processBlock (blockData) {
     const blocks = blockData.blocks
     const newBlock = blockData.block
-    if (!blocks || !newBlock) {
+    if (!blocks || !newBlock || blocks.length <= 0) {
       return
     }
     // get last block (oldest block) target
@@ -101,15 +118,15 @@ export default class extends Controller {
         const bestBlockTarget = '<div class="block-info">' +
         `<a class="color-code" href="/${_this.chainType}/block/${block.height}">${block.height}</a>` +
         '<div class="mono amount" style="line-height: 1;">' +
-        `<span>${humanize.threeSigFigs(block.TotalSentSats / 1e8)}</span>` +
+        `<span>${_this.chainType === 'xmr' ? '?' : humanize.threeSigFigs(block.TotalSentSats / 1e8)}</span>` +
         `<span class="unit">${_this.chainType.toUpperCase()}</span>` +
         `</div><span class="timespan"><span data-time-target="age" data-age="${block.blocktime_unix}"></span>&nbsp;ago</span></div>` +
         '<div class="block-rows chain-block-rows"><div class="block-rewards px-1 mt-1" style="flex-grow: 1">' +
-        `<span class="pow chain-pow left-vs-block-data" style="flex-grow: ${block.BlockReward / 1e8}" ` +
-        `title='{"object": "Block Reward", "total": "${block.BlockReward / 1e8}"}' ` +
+        `<span class="pow chain-pow left-vs-block-data" style="flex-grow: ${block.BlockReward / getAtomsRate(_this.chainType)}" ` +
+        `title='{"object": "Block Reward", "total": "${block.BlockReward / getAtomsRate(_this.chainType)}"}' ` +
         'data-chainvisualBlocks-target="tooltip"><span class="block-element-link"></span>' +
-        `</span><span class="fees right-vs-block-data" style="flex-grow: ${block.FeesSats / 1e8}" ` +
-        `title='{"object": "Tx Fees", "total": "${block.FeesSats / 1e8}"}' data-chainvisualBlocks-target="tooltip">` +
+        `</span><span class="fees right-vs-block-data" style="flex-grow: ${block.FeesSats / getAtomsRate(_this.chainType)}" ` +
+        `title='{"object": "Tx Fees", "total": "${block.FeesSats / getAtomsRate(_this.chainType)}"}' data-chainvisualBlocks-target="tooltip">` +
         '<span class="block-element-link"></span></span></div><div class="block-transactions px-1 my-1" style="flex-grow: 1">' +
         `<span class="chain-block-tx left-vs-block-data" style="flex-grow: ${block.tx_count}" data-chainvisualBlocks-target="tooltip" title='{"object": "Tx Count", "count": "${block.tx_count}"}'>` +
         '<span class="block-element-link"></span></span>' +

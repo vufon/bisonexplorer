@@ -106,8 +106,16 @@ const (
 
 	RetrieveBestBlock       = `SELECT * FROM %sblocks ORDER BY height DESC LIMIT 0, 1;`
 	RetrieveBestBlockHeight = `SELECT id, hash, height FROM %sblocks ORDER BY height DESC LIMIT 1;`
-	RetrieveBlockInfoData   = `SELECT time,height,total_sent,fees,numtx,num_vins,num_vouts FROM %sblocks WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
-	RetrieveBlockDetail     = `SELECT 
+	RetrieveBlockInfoData   = `SELECT 
+		time,
+		height,
+		COALESCE(total_sent, 0)		AS amount_sent,
+		COALESCE(fees, 0) 			AS total_fees,
+		COALESCE(numtx, 0) 			AS total_tx_count,
+		COALESCE(num_vins, 0) 		AS total_num_vins,
+		COALESCE(num_vouts, 0) 		AS total_num_vouts
+	FROM %sblocks WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
+	RetrieveBlockDetail = `SELECT 
 		time,
 		height,
 		COALESCE(total_sent, 0)		AS amount_sent,

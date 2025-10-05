@@ -552,8 +552,8 @@ func (pgb *ChainDB) StoreBTCBlockInfo(client *btcClient.Client, msgBlock *btcwir
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeBTCTxns(client, dbBlock, msgBlock,
-			pgb.btcChainParams, &dbBlock.TxDbIDs, false, false, allSync)
+		resChanReg <- pgb.getBTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.btcChainParams)
 	}()
 	errReg := <-resChanReg
 	dbBlock.NumVins = uint32(errReg.numVins)
@@ -568,6 +568,7 @@ func (pgb *ChainDB) StoreBTCBlockInfo(client *btcClient.Client, msgBlock *btcwir
 		log.Error("BTC: InsertBlock:", err)
 		return
 	}
+	log.Infof("BTC: Finish sync block info. Height: %d", height)
 	return
 }
 
@@ -578,8 +579,8 @@ func (pgb *ChainDB) UpdateStoreBTCBlockInfo(client *btcClient.Client, msgBlock *
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeBTCTxns(client, dbBlock, msgBlock,
-			pgb.btcChainParams, &dbBlock.TxDbIDs, false, false, allSync)
+		resChanReg <- pgb.getBTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.btcChainParams)
 	}()
 
 	errReg := <-resChanReg
@@ -595,6 +596,7 @@ func (pgb *ChainDB) UpdateStoreBTCBlockInfo(client *btcClient.Client, msgBlock *
 		log.Errorf("BTC: UpdateBlock failed: %v", err)
 		return
 	}
+	log.Infof("BTC: Finish update sync block info. Height: %d", height)
 	return
 }
 
@@ -605,8 +607,8 @@ func (pgb *ChainDB) UpdateStoreLTCBlockInfo(client *ltcClient.Client, msgBlock *
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeLTCTxns(client, dbBlock, msgBlock,
-			pgb.ltcChainParams, &dbBlock.TxDbIDs, false, false, allSync)
+		resChanReg <- pgb.getLTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.ltcChainParams)
 	}()
 
 	errReg := <-resChanReg
@@ -622,6 +624,7 @@ func (pgb *ChainDB) UpdateStoreLTCBlockInfo(client *ltcClient.Client, msgBlock *
 		log.Errorf("LTC: UpdateBlock failed: %v", err)
 		return
 	}
+	log.Infof("LTC: Finish update sync block info. Height: %d", height)
 	return
 }
 
@@ -633,8 +636,8 @@ func (pgb *ChainDB) StoreLTCBlockInfo(client *ltcClient.Client, msgBlock *wire.M
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeLTCTxns(client, dbBlock, msgBlock,
-			pgb.ltcChainParams, &dbBlock.TxDbIDs, false, false, allSync)
+		resChanReg <- pgb.getLTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.ltcChainParams)
 	}()
 
 	errReg := <-resChanReg
@@ -650,6 +653,7 @@ func (pgb *ChainDB) StoreLTCBlockInfo(client *ltcClient.Client, msgBlock *wire.M
 		log.Error("LTC: InsertBlock:", err)
 		return
 	}
+	log.Infof("LTC: Finish sync block info. Height: %d", height)
 	return
 }
 
@@ -1080,6 +1084,34 @@ func (pgb *ChainDB) storeBTCTxns(client *btcClient.Client, block *dbtypes.Block,
 				txRes.numAddresses += numAddressRowsSet
 			}
 		}
+	}
+	return txRes
+}
+
+func (pgb *ChainDB) getBTCTxnsInfo(client *btcClient.Client, block *dbtypes.Block, msgBlock *btcwire.MsgBlock,
+	chainParams *btcchaincfg.Params) storeTxnsResult {
+	dbTransactions := dbtypes.ExtractBTCBlockTransactionsSimpleInfo(client, block,
+		msgBlock, chainParams)
+	var txRes storeTxnsResult
+	for _, dbtx := range dbTransactions {
+		txRes.numVouts += int64(dbtx.NumVout)
+		txRes.totalSent += dbtx.Sent
+		txRes.numVins += int64(dbtx.NumVin)
+		txRes.fees += dbtx.Fees
+	}
+	return txRes
+}
+
+func (pgb *ChainDB) getLTCTxnsInfo(client *ltcClient.Client, block *dbtypes.Block, msgBlock *wire.MsgBlock,
+	chainParams *chaincfg.Params) storeTxnsResult {
+	dbTransactions := dbtypes.ExtractLTCBlockTransactionsSimpleInfo(client, block,
+		msgBlock, chainParams)
+	var txRes storeTxnsResult
+	for _, dbtx := range dbTransactions {
+		txRes.numVouts += int64(dbtx.NumVout)
+		txRes.totalSent += dbtx.Sent
+		txRes.numVins += int64(dbtx.NumVin)
+		txRes.fees += dbtx.Fees
 	}
 	return txRes
 }

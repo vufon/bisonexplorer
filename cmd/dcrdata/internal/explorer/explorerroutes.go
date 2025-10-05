@@ -821,7 +821,13 @@ func (exp *ExplorerUI) MultichainVisualBlocks(w http.ResponseWriter, r *http.Req
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(chainType, int(height)-MultichainHomepageBlocksMaxCount, int(height))
 	// Safely retrieve the inventory pointer, which can be reset in StoreMPData.
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
-	mempoolInfo.BlockReward = mutilchain.GetCurrentBlockReward(chainType, exp.GetSubsidyReductionInterval(chainType), int32(height+1))
+	if chainType == mutilchain.TYPEXMR {
+		if exp.XmrPageData.HomeInfo != nil {
+			mempoolInfo.BlockReward = exp.XmrPageData.HomeInfo.BlockReward
+		}
+	} else {
+		mempoolInfo.BlockReward = mutilchain.GetCurrentBlockReward(chainType, exp.GetSubsidyReductionInterval(chainType), int32(height+1))
+	}
 	mempoolInfo.RLock()
 	str, err := exp.templates.exec("chain_visualblocks", struct {
 		*CommonPageData

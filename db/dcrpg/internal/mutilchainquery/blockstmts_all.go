@@ -108,6 +108,17 @@ const (
 		chart_synced BOOLEAN DEFAULT FALSE
 	);`
 
+	RetrieveXmrBlockSimpleInfo = `SELECT 
+		time,
+		height,
+		COALESCE(total_sent, 0)		AS amount_sent,
+		COALESCE(fees, 0) 			AS total_fees,
+		COALESCE(numtx, 0) 			AS total_tx_count,
+		COALESCE(num_vins, 0) 		AS total_num_vins,
+		COALESCE(num_vouts, 0) 		AS total_num_vouts,
+		COALESCE(reward, 0) 		AS bl_reward
+		FROM xmrblocks_all WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
+
 	// SelectBlocksAllWithTimeRange = `SELECT height FROM %sblocks_all WHERE time >= $1 AND time <= $2`
 
 	SelectBlocksAllUnsynchoronized = `SELECT height FROM %sblocks_all WHERE synced IS NOT TRUE ORDER BY height`

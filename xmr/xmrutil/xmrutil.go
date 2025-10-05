@@ -126,6 +126,7 @@ type Mempool struct {
 	Transactions []MempoolTx `json:"transactions"`
 	TotalFee     int64       `json:"total_fee"`
 	OutputsCount int64       `json:"outputs_count"`
+	InputsCount  int64       `json:"inputs_count"`
 	MinFeeRate   float64     `json:"min_fee_rate"`
 	MaxFeeRate   float64     `json:"max_fee_rate"`
 	Status       string      `json:"status"`
@@ -138,6 +139,8 @@ type Transaction struct {
 			Key string `json:"key"`
 		} `json:"target"`
 	} `json:"vout"`
+
+	Vin []interface{} `json:"vin"`
 
 	RctSignatures struct {
 		Type   int    `json:"type"`

@@ -49,6 +49,12 @@ func ExtractLTCBlockTransactions(client *ltcClient.Client, block *Block, msgBloc
 	return dbTxs, dbTxVouts, dbTxVins
 }
 
+func ExtractLTCBlockTransactionsSimpleInfo(client *ltcClient.Client, block *Block, msgBlock *wire.MsgBlock,
+	chainParams *chaincfg.Params) []*Tx {
+	dbTxs := processLTCTransactionsSimpleInfo(client, block, msgBlock, chainParams)
+	return dbTxs
+}
+
 func GetValueInOfTransaction(client *ltcClient.Client, vin *wire.TxIn) int64 {
 	prevTransaction, err := ltcrpcutils.GetRawTransactionByTxidStr(client, vin.PreviousOutPoint.Hash.String())
 	if err != nil {
@@ -169,4 +175,55 @@ func processLTCTransactions(client *ltcClient.Client, block *Block, msgBlock *wi
 	}
 
 	return dbTransactions, dbTxVouts, dbTxVins
+}
+
+func processLTCTransactionsSimpleInfo(client *ltcClient.Client, block *Block, msgBlock *wire.MsgBlock, chainParams *chaincfg.Params) []*Tx {
+	var txs = msgBlock.Transactions
+	blockHash := msgBlock.BlockHash()
+	dbTransactions := make([]*Tx, 0, len(txs))
+
+	for txIndex, tx := range txs {
+		var sent int64
+		var spent int64
+		for _, txout := range tx.TxOut {
+			sent += txout.Value
+		}
+		dbTx := &Tx{
+			BlockHash:   blockHash.String(),
+			BlockHeight: int64(block.Height),
+			BlockTime:   block.Time,
+			Time:        block.Time,
+			Version:     uint16(tx.Version),
+			TxID:        tx.TxHash().String(),
+			BlockIndex:  uint32(txIndex),
+			Locktime:    tx.LockTime,
+			Size:        uint32(tx.SerializeSize()),
+			Sent:        sent,
+			NumVin:      uint32(len(tx.TxIn)),
+			NumVout:     uint32(len(tx.TxOut)),
+		}
+		var isCoinbase = false
+		//Get rawtransaction
+		txRawResult, rawErr := ltcrpcutils.GetRawTransactionByTxidStr(client, tx.TxHash().String())
+		if rawErr == nil {
+			isCoinbase = len(txRawResult.Vin) > 0 && txRawResult.Vin[0].IsCoinBase()
+		}
+		if !isCoinbase {
+			for _, txin := range tx.TxIn {
+				unitAmount := int64(0)
+				//Get transaction by txin
+				txInResult, txinErr := ltcrpcutils.GetRawTransactionByTxidStr(client, txin.PreviousOutPoint.Hash.String())
+				if txinErr == nil {
+					unitAmount = GetLTCValueInFromRawTransction(txInResult, txin)
+					spent += unitAmount
+				}
+			}
+		}
+		dbTx.Spent = spent
+		if !isCoinbase {
+			dbTx.Fees = dbTx.Spent - dbTx.Sent
+		}
+		dbTransactions = append(dbTransactions, dbTx)
+	}
+	return dbTransactions
 }
