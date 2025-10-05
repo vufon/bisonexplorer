@@ -17,10 +17,22 @@ let Dygraph // lazy loaded on connect
 const aDay = 86400 * 1000 // in milliseconds
 const aMonth = 30 // in days
 const atomsToDCR = 1e-8
+const picoToXmr = 1e-12
 const windowScales = ['ticket-price', 'missed-votes']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
+const decoyBandsLabels = ['none', 'No Tx', 'Decoys 0-3', 'Decoys 4-7', 'Decoys 8-11', 'Decoys 12-14', 'Decoys > 15', 'Mixin']
+const decoyBandsColors = [
+  '#e9baa6',
+  '#576812ff',
+  '#152b83',
+  '#dc3912',
+  '#ff9900',
+  '#109618',
+  '#990099',
+  '#4c4c4cff'
+]
 let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
@@ -42,8 +54,23 @@ const yAxisLabelWidth = {
     'mempool-size': 40,
     'mempool-txs': 50,
     'coin-supply': 30,
-    fees: 50
+    'total-ring-size': 40,
+    'avg-ring-size': 30,
+    'fee-rate': 50,
+    'avg-tx-size': 40,
+    fees: 50,
+    'decoy-bands': 30
+  },
+  y2: {
+    'decoy-bands': 50
   }
+}
+
+function unitToCoin (chainType) {
+  if (chainType === 'xmr') {
+    return picoToXmr
+  }
+  return atomsToDCR
 }
 
 function isMobile () {
@@ -211,13 +238,13 @@ function powDiffFunc (data) {
   return zipWindowHvY(data.diff, data.window)
 }
 
-function circulationFunc (chartData) {
+function circulationFunc (chartData, chainType) {
   let yMax = 0
   let h = -1
   const addDough = (newHeight) => {
     while (h < newHeight) {
       h++
-      yMax += blockReward(h) * atomsToDCR
+      yMax += blockReward(h) * unitToCoin(chainType)
     }
   }
   const heights = chartData.h
@@ -238,7 +265,7 @@ function circulationFunc (chartData) {
     const height = hFunc(i)
     addDough(height)
     inflation.push(yMax)
-    return [xFunc(i), supplies[i] * atomsToDCR, null, 0]
+    return [xFunc(i), supplies[i] * unitToCoin(chainType), null, 0]
   })
 
   const dailyBlocks = aDay / avgBlockTime
@@ -257,6 +284,298 @@ function circulationFunc (chartData) {
     data.push([xFunc(x), null, yMax, null])
   }
   return { data, inflation }
+}
+
+// handler func for decoy bands
+function decoyBandsFunc (data) {
+  if (data.axis === 'height') {
+    if (data.bin === 'block') {
+      return zipDecoyBandsIvY(data.decoy, data.ringSize)
+    } else {
+      return zipDecoyBandsHvY(data.h, data.decoy, data.ringSize)
+    }
+  } else {
+    return zipDecoyBandsTvY(data.t, data.decoy, data.ringSize)
+  }
+}
+
+function zipDecoyBandsTvY (times, ys, zs, yMult, zMult) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  return times.map((t, i) => {
+    const y = ys[i]
+    let decoyNoTx = Number(y.noTx)
+    let decoy03Percent = Number(y.decoy03)
+    let decoy47Percent = Number(y.decoy47)
+    let decoy811Percent = Number(y.decoy811)
+    let decoy1214Percent = Number(y.decoy1214)
+    let decoyGe15Percent = Number(y.decoyGt15)
+
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
+    if (decoy03Percent < 100) {
+      decoy03Percent += 0.00001
+    }
+    if (decoy47Percent < 100) {
+      decoy47Percent += 0.00001
+    }
+    if (decoy811Percent < 100) {
+      decoy811Percent += 0.00001
+    }
+    if (decoy1214Percent < 100) {
+      decoy1214Percent += 0.00001
+    }
+    if (decoyGe15Percent < 100) {
+      decoyGe15Percent += 0.00001
+    }
+    const noneValue = 0.00001
+
+    if (decoy03Percent === 100) {
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy47Percent === 100) {
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy811Percent === 100) {
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy1214Percent === 100) {
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoyGe15Percent === 100) {
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+      if (decoy03Percent > 0.1) {
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      } else {
+        if (decoy47Percent > 0.1) {
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        } else {
+          if (decoy811Percent > 0.1) {
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          } else {
+            if (decoy1214Percent > 0.1) {
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+            } else {
+              if (decoyGe15Percent > 0.1) {
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return [
+      new Date(t * 1000),
+      noneValue,
+      decoyNoTx * yMult,
+      decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+function zipDecoyBandsHvY (heights, ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    let decoyNoTx = Number(y.noTx)
+    let decoy03Percent = Number(y.decoy03)
+    let decoy47Percent = Number(y.decoy47)
+    let decoy811Percent = Number(y.decoy811)
+    let decoy1214Percent = Number(y.decoy1214)
+    let decoyGe15Percent = Number(y.decoyGt15)
+
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
+    if (decoy03Percent < 100) {
+      decoy03Percent += 0.00001
+    }
+    if (decoy47Percent < 100) {
+      decoy47Percent += 0.00001
+    }
+    if (decoy811Percent < 100) {
+      decoy811Percent += 0.00001
+    }
+    if (decoy1214Percent < 100) {
+      decoy1214Percent += 0.00001
+    }
+    if (decoyGe15Percent < 100) {
+      decoyGe15Percent += 0.00001
+    }
+    const noneValue = 0.00001
+
+    if (decoy03Percent === 100) {
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy47Percent === 100) {
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy811Percent === 100) {
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy1214Percent === 100) {
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoyGe15Percent === 100) {
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+      if (decoy03Percent > 0.1) {
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      } else {
+        if (decoy47Percent > 0.1) {
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        } else {
+          if (decoy811Percent > 0.1) {
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          } else {
+            if (decoy1214Percent > 0.1) {
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+            } else {
+              if (decoyGe15Percent > 0.1) {
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return [
+      offset + heights[i],
+      noneValue,
+      decoyNoTx * yMult,
+      decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
+      zs[i] * zMult]
+  })
+}
+
+function zipDecoyBandsIvY (ys, zs, yMult, zMult, offset) {
+  yMult = yMult || 1
+  zMult = zMult || 1
+  offset = offset || 1
+  return ys.map((y, i) => {
+    let decoyNoTx = Number(y.noTx)
+    let decoy03Percent = Number(y.decoy03)
+    let decoy47Percent = Number(y.decoy47)
+    let decoy811Percent = Number(y.decoy811)
+    let decoy1214Percent = Number(y.decoy1214)
+    let decoyGe15Percent = Number(y.decoyGt15)
+
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
+    if (decoy03Percent < 100) {
+      decoy03Percent += 0.00001
+    }
+    if (decoy47Percent < 100) {
+      decoy47Percent += 0.00001
+    }
+    if (decoy811Percent < 100) {
+      decoy811Percent += 0.00001
+    }
+    if (decoy1214Percent < 100) {
+      decoy1214Percent += 0.00001
+    }
+    if (decoyGe15Percent < 100) {
+      decoyGe15Percent += 0.00001
+    }
+    const noneValue = 0.00001
+
+    if (decoy03Percent === 100) {
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy47Percent === 100) {
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy811Percent === 100) {
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoy1214Percent === 100) {
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+    }
+
+    if (decoyGe15Percent === 100) {
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+      if (decoy03Percent > 0.1) {
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      } else {
+        if (decoy47Percent > 0.1) {
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        } else {
+          if (decoy811Percent > 0.1) {
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          } else {
+            if (decoy1214Percent > 0.1) {
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+            } else {
+              if (decoyGe15Percent > 0.1) {
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return [
+      offset + i,
+      noneValue,
+      decoyNoTx * yMult,
+      decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
+      zs[i] * zMult]
+  })
 }
 
 function mapDygraphOptions (data, labelsVal, isDrawPoint, yLabel, labelsMG, labelsMG2) {
@@ -574,7 +893,7 @@ export default class extends Controller {
 
   plotGraph (chartName, data) {
     let d = []
-    const gOptions = {
+    let gOptions = {
       zoomCallback: null,
       drawCallback: null,
       logscale: this.settings.scale === 'log',
@@ -584,12 +903,15 @@ export default class extends Controller {
       stepPlot: this.settings.mode === 'stepped',
       axes: {},
       series: null,
-      inflation: null
+      inflation: null,
+      fillGraph: false,
+      stackedGraph: false
     }
 
     yFormatter = defaultYFormatter
     const xlabel = data.t ? 'Date' : 'Block Height'
-
+    const labels = []
+    const stackVisibility = []
     switch (chartName) {
       case 'block-size': // block size graph
         d = zip2D(data, data.size)
@@ -644,7 +966,7 @@ export default class extends Controller {
           }
           break
         }
-        d = circulationFunc(data)
+        d = circulationFunc(data, this.chainType)
         assign(gOptions, mapDygraphOptions(d.data, [xlabel, 'Coin Supply', 'Inflation Limit', 'Mix Rate'],
           true, 'Coin Supply (' + this.chainType.toUpperCase() + ')', true, false))
         gOptions.y2label = 'Inflation Limit'
@@ -676,7 +998,7 @@ export default class extends Controller {
         break
 
       case 'fees': // block fee graph
-        d = zip2D(data, data.fees, atomsToDCR)
+        d = zip2D(data, data.fees, unitToCoin(this.chainType))
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (' + globalChainType.toUpperCase() + ')', true, false))
         break
 
@@ -691,6 +1013,79 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate (petahash/s)'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
+        break
+      case 'total-ring-size': // total ring-size for monero
+        d = zip2D(data, data.ringSize)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Ring Size'], false,
+          'Total Ring Size', true, false))
+        break
+      case 'avg-ring-size': // total ring-size for monero
+        d = zip2D(data, data.ringSize)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg Ring Size / Input'], false,
+          'Avg Ring Size / Input', true, false))
+        break
+      case 'fee-rate':
+        d = zip2D(data, data.fees, unitToCoin(this.chainType))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Fee Rate (XMR/kB)'], false,
+          'Fee Rate (XMR/kB)', true, false))
+        break
+      case 'avg-tx-size':
+        d = zip2D(data, data.size)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Average Tx Size'], true,
+          'Average Tx Size', false, true))
+        break
+      case 'decoy-bands':
+        d = decoyBandsFunc(data)
+        labels.push(xlabel)
+        labels.push(...decoyBandsLabels)
+        decoyBandsColors.forEach((item) => {
+          stackVisibility.push(true)
+        })
+        gOptions = {
+          labels: labels,
+          file: d,
+          colors: decoyBandsColors,
+          ylabel: 'Decoys (%)',
+          y2label: 'Mixin',
+          valueRange: [0, 100],
+          fillGraph: true,
+          stackedGraph: true,
+          visibility: stackVisibility,
+          series: {
+            none: { fillGraph: true },
+            'No Tx': { fillGraph: true },
+            'Decoys 0-3': { fillGraph: true },
+            'Decoys 4-7': { fillGraph: true },
+            'Decoys 8-11': { fillGraph: true },
+            'Decoys 12-14': { fillGraph: true },
+            'Decoys >15': { fillGraph: true },
+            Mixin: {
+              axis: 'y2',
+              strokeWidth: 1,
+              fillGraph: false
+            }
+          },
+          legend: 'always',
+          includeZero: true,
+          // zoomCallback: this.depthZoomCallback,
+          axes: {
+            y2: {
+              valueRange: [0, 1000000],
+              axisLabelFormatter: (y) => Math.round(y),
+              axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['decoy-bands'] : yAxisLabelWidth.y2['decoy-bands'] + 15
+            }
+          }
+        }
+        yFormatter = (div, data, i) => {
+          if (!data.series || data.series.length === 0) return
+          addLegendEntryFmt(div, data.series[data.series.length - 1], y => y)
+          data.series.forEach((serie, idx) => {
+            if (idx === 0 || idx === data.series.length - 1) {
+              return
+            }
+            addLegendEntryFmt(div, serie, y => (y > 0 ? humanize.formatNumber(y, 2, true) : '0') + ' %')
+          })
+        }
         break
     }
     gOptions.axes.y = {
@@ -775,6 +1170,8 @@ export default class extends Controller {
         return 'Litecoin'
       case 'dcr':
         return 'Decred'
+      case 'xmr':
+        return 'Monero'
       default:
         return 'Unknown'
     }
@@ -808,6 +1205,16 @@ export default class extends Controller {
         return `Shows the average time interval between consecutive ${this.getChainName()} blocks over time.`
       case 'hashrate':
         return `Total computational power securing the ${this.getChainName()} network over time.`
+      case 'total-ring-size':
+        return 'Sum of all ring members (real + decoys) used across inputs in a block or time window — a measure of on-chain anonymity volume.'
+      case 'avg-ring-size':
+        return 'Average number of ring members per input over time — indicates the typical anonymity level per transaction input (higher = greater anonymity).'
+      case 'fee-rate':
+        return 'Fee-rate (XMR/kB): total fees paid per kilobyte of transactions — a measure of network fee pressure.'
+      case 'avg-tx-size':
+        return 'Average Transaction Size — mean transaction size'
+      case 'decoy-bands':
+        return 'Monero Decoys Bands — distribution of transactions by ring size (decoy / mixin bands), shown as percent of total (100% stacked).'
       default:
         return ''
     }
@@ -841,6 +1248,16 @@ export default class extends Controller {
         return 'Mempool Size'
       case 'address-number':
         return 'Active Addresses'
+      case 'total-ring-size':
+        return 'Total Ring Size'
+      case 'avg-ring-size':
+        return 'Avg Ring Size / Input'
+      case 'fee-rate':
+        return 'Fee Rate'
+      case 'avg-tx-size':
+        return 'Average Tx Size'
+      case 'decoy-bands':
+        return 'Monero Decoys Bands'
       default:
         return ''
     }

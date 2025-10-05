@@ -1803,6 +1803,7 @@ func _main(ctx context.Context) error {
 
 	// handler syncing for XMR blockchain on background
 	if !xmrDisabled && xmrClient != nil && chainDB.XmrSyncFlag {
+		go chainDB.SyncBulkXMRBlockSummaryData()
 		go chainDB.SyncXMRWholeChain(xmrNewPGIndexes)
 	}
 

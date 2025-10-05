@@ -48,6 +48,11 @@ const (
 	CoinAgeBands      = "coin-age-bands"
 	MeanCoinAge       = "mean-coin-age"
 	TotalCoinDays     = "total-coin-days"
+	TotalRingSize     = "total-ring-size"
+	AvgRingSize       = "avg-ring-size"
+	FeeRate           = "fee-rate"
+	AvgTxSize         = "avg-tx-size"
+	DecoyBands        = "decoy-bands"
 
 	// Some chartResponse keys
 	heightKey        = "h"
@@ -75,6 +80,8 @@ const (
 	meanCoinAgeKey   = "meanCoinAge"
 	totalCoinDaysKey = "totalCoinDays"
 	marketPriceKey   = "marketPrice"
+	ringSizeKey      = "ringSize"
+	xmrDecoyKey      = "decoy"
 )
 
 // binLevel specifies the granularity of data.
@@ -264,6 +271,55 @@ func (data ChartCoinAgeBands) Sum(s, e int) *dbtypes.AgeBandData {
 	return &sumBand
 }
 
+type MoneroDecoyBands []*dbtypes.MoneroDecoyData
+
+func newChartMoneroDecoy(size int) MoneroDecoyBands {
+	return make([]*dbtypes.MoneroDecoyData, 0, size)
+}
+
+// Length returns the length of data. Satisfies the lengther interface.
+func (data MoneroDecoyBands) Length() int {
+	return len(data)
+}
+
+// Truncate makes a subset of the underlying dataset. It satisfies the lengther
+// interface.
+func (data MoneroDecoyBands) Truncate(l int) lengther {
+	return data[:l]
+}
+
+// If the data is longer than max, return a subset of length max.
+func (data MoneroDecoyBands) snip(max int) MoneroDecoyBands {
+	if len(data) < max {
+		max = len(data)
+	}
+	return data[:max]
+}
+
+// Sum is the accumulation of a segment of the dataset.
+func (data MoneroDecoyBands) Avg(s, e int) *dbtypes.MoneroDecoyData {
+	if e <= s {
+		return &dbtypes.MoneroDecoyData{}
+	}
+	avgBand := dbtypes.MoneroDecoyData{}
+	for _, v := range data[s:e] {
+		avgBand.Decoy03 += v.Decoy03
+		avgBand.Decoy47 += v.Decoy47
+		avgBand.Decoy811 += v.Decoy811
+		avgBand.Decoy1214 += v.Decoy1214
+		avgBand.DecoyGt15 += v.DecoyGt15
+		avgBand.NoTx += v.NoTx
+	}
+	avgBand.Decoy03 = avgBand.Decoy03 / float64(e-s)
+	avgBand.Decoy47 = avgBand.Decoy47 / float64(e-s)
+	avgBand.Decoy811 = avgBand.Decoy811 / float64(e-s)
+	avgBand.Decoy1214 = avgBand.Decoy1214 / float64(e-s)
+	avgBand.DecoyGt15 = avgBand.DecoyGt15 / float64(e-s)
+	avgBand.NoTx = avgBand.NoTx / float64(e-s)
+
+	return &avgBand
+}
+
 // A constructor for a sized ChartFloats.
 func newChartFloats(size int) ChartFloats {
 	return make([]float64, 0, size)
@@ -353,8 +409,13 @@ type ZoomSet struct {
 	CoinDaysDestroyed ChartFloats
 	AvgCoinAge        ChartFloats
 	CoinAgeBands      ChartCoinAgeBands
+	MoneroDecoyBands  MoneroDecoyBands
 	MeanCoinAge       ChartFloats
 	TotalCoinDays     ChartFloats // Sum Coin Age
+	TotalRingSize     ChartUints
+	AverageRingSize   ChartUints
+	FeeRate           ChartUints
+	AverageTxSize     ChartUints
 }
 
 // Snip truncates the zoomSet to a provided length.
@@ -482,6 +543,11 @@ type ChartGobject struct {
 	MeanCoinAge       ChartFloats
 	TotalCoinDays     ChartFloats // Sum Coin Age
 	MarketPrice       ChartFloats
+	TotalRingSize     ChartUints
+	AverageRingSize   ChartUints
+	FeeRate           ChartUints
+	AverageTxSize     ChartUints
+	MoneroDecoyBands  MoneroDecoyBands
 }
 
 // The chart data is cached with the current cacheID of the zoomSet or windowSet.

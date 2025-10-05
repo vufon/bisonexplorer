@@ -16,8 +16,12 @@ const (
 	insertXmrBlockAllRow0 = `INSERT INTO xmrblocks_all (
 		hash, height, block_blob, size, is_valid, version,
 		numtx, time, nonce, pool_size, bits, 
-		difficulty, difficulty_num, cumulative_difficulty, pow_algo, previous_hash, num_vins, num_vouts, fees, total_sent, reward)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)`
+		difficulty, difficulty_num, cumulative_difficulty, 
+		pow_algo, previous_hash, num_vins, num_vouts, fees, 
+		total_sent, reward, 
+		ring_size, avg_ring_size, fee_per_kb, avg_tx_size, 
+		decoy_03, decoy_47, decoy_811, decoy_1214, decoy_gt15, chart_synced)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)`
 
 	insertBlockAllRow           = insertBlockAllRow0 + ` RETURNING id;`
 	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (height) DO NOTHING RETURNING id;`
@@ -36,6 +40,9 @@ const (
 	LIMIT  1;`
 
 	UpdateLastBlockAllValid = `UPDATE %sblocks_all SET is_valid = $2 WHERE id = $1;`
+
+	UpdateXMRBlockSummaryWithHeight = `UPDATE xmrblocks_all SET ring_size = $1, avg_ring_size = $2, fee_per_kb = $3, avg_tx_size = $4,
+		decoy_03 = $5, decoy_47 = $6, decoy_811 = $7, decoy_1214 = $8, decoy_gt15 = $9, chart_synced = $10  WHERE height = $11;`
 
 	CreateBlockAllTable = `CREATE TABLE IF NOT EXISTS %sblocks_all (  
 		id SERIAL PRIMARY KEY,
@@ -62,6 +69,43 @@ const (
 		reward INT8,
 		address_updated BOOLEAN DEFAULT FALSE,
 		synced BOOLEAN DEFAULT FALSE
+	);`
+
+	CreateXmrBlockAllTable = `CREATE TABLE IF NOT EXISTS xmrblocks_all (  
+		id SERIAL PRIMARY KEY,
+		hash TEXT NOT NULL, -- UNIQUE
+		height INT4,
+		block_blob BYTEA,
+		size INT4,
+		is_valid BOOLEAN,
+		version INT4,
+		numtx INT4,
+		time INT8,
+		nonce INT8,
+		pool_size INT4,
+		bits INT4,
+		difficulty FLOAT8,
+		difficulty_num NUMERIC(40,0), -- For monero
+		cumulative_difficulty NUMERIC(40,0),
+		pow_algo TEXT,
+		previous_hash TEXT,
+		num_vins INT4,
+		num_vouts INT4,
+		fees INT8,
+		total_sent INT8,
+		reward INT8,
+		address_updated BOOLEAN DEFAULT FALSE,
+		synced BOOLEAN DEFAULT FALSE,
+		ring_size INT8,
+		avg_ring_size INT8,
+		fee_per_kb INT8,
+		avg_tx_size INT8,
+		decoy_03 FLOAT8,
+		decoy_47 FLOAT8,
+		decoy_811 FLOAT8,
+		decoy_1214 FLOAT8,
+		decoy_gt15 FLOAT8,
+		chart_synced BOOLEAN DEFAULT FALSE
 	);`
 
 	// SelectBlocksAllWithTimeRange = `SELECT height FROM %sblocks_all WHERE time >= $1 AND time <= $2`
@@ -132,12 +176,27 @@ ORDER BY a.height ASC;`
     	b.numtx,
     	b.difficulty,
     	b.fees,
-    	b.reward
+    	b.reward,
+  		COALESCE(b.ring_size, 0)       AS ring_size,
+  		COALESCE(b.avg_ring_size, 0)   AS avg_ring_size,
+  		COALESCE(b.fee_per_kb, 0)      AS fee_per_kb,
+  		COALESCE(b.avg_tx_size, 0)     AS avg_tx_size,
+  		COALESCE(b.decoy_03, 0.0)        AS decoy_03,
+  		COALESCE(b.decoy_47, 0.0)        AS decoy_47,
+  		COALESCE(b.decoy_811, 0.0)       AS decoy_811,
+  		COALESCE(b.decoy_1214, 0.0)      AS decoy_1214,
+  		COALESCE(b.decoy_gt15, 0.0)      AS decoy_gt15
 	FROM xmrblocks_all b
 	LEFT JOIN tx_sizes t
     ON b.height = t.block_height
 	WHERE b.height > $1
 	ORDER BY b.height;`
+
+	SelectRemainingNotSyncedChartSummary = `SELECT height
+		FROM xmrblocks_all
+		WHERE is_valid = true
+  		AND chart_synced = false
+		ORDER BY height ASC;`
 
 	CheckExistBLockAll         = `SELECT EXISTS(SELECT 1 FROM %sblocks_all WHERE height = $1);`
 	SelectBlockAllHeightByHash = `SELECT height FROM %sblocks_all WHERE hash = $1 LIMIT 1;`
@@ -251,6 +310,9 @@ func makeBlockAllInsertStatement(checked bool, chainType string) string {
 }
 
 func CreateBlockAllTableFunc(chainType string) string {
+	if chainType == mutilchain.TYPEXMR {
+		return CreateXmrBlockAllTable
+	}
 	return fmt.Sprintf(CreateBlockAllTable, chainType)
 }
 
