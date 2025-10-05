@@ -1340,10 +1340,10 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 	//TODO: Open later
 	//totalVoutsCount := exp.dataSource.MutilchainGetTotalVoutsCount(mutilchain.TYPELTC)
 	//totalAddressesCount := exp.dataSource.MutilchainGetTotalAddressesCount(mutilchain.TYPELTC)
-	err = exp.dataSource.SyncLast20LTCBlocks(blockData.Header.Height)
-	if err != nil {
-		log.Error(err)
-	}
+	// err = exp.dataSource.SyncLast20LTCBlocks(blockData.Header.Height)
+	// if err != nil {
+	// 	log.Error(err)
+	// }
 	//get and set 25 last block
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPELTC, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 	// get last 5 block pools

@@ -5786,6 +5786,15 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 		// 	log.Errorf("LTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
 		// 	return err
 		// }
+	} else {
+		go func() {
+			err := pgb.SyncLast20LTCBlocks(blockData.Header.Height)
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Infof("Sync last 20 LTC Blocks successfully")
+			}
+		}()
 	}
 	//update best ltc block
 	pgb.LtcBestBlock.Hash = blockData.Header.Hash
@@ -5834,17 +5843,14 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 		// 	return err
 		// }
 	} else {
-		if !pgb.BTC20BlocksSyncing {
-			go func() {
-				err := pgb.SyncLast20BTCBlocks(blockData.Header.Height)
-				if err != nil {
-					log.Error(err)
-				} else {
-					log.Infof("Sync last 20 BTC Blocks successfully")
-				}
-				pgb.BTC20BlocksSyncing = false
-			}()
-		}
+		go func() {
+			err := pgb.SyncLast20BTCBlocks(blockData.Header.Height)
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Infof("Sync last 20 BTC Blocks successfully")
+			}
+		}()
 	}
 
 	//update best ltc block
