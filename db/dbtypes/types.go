@@ -1058,6 +1058,7 @@ type AgeBandData struct {
 }
 
 type MoneroDecoyData struct {
+	NoTx      float64 `json:"noTx"`
 	Decoy03   float64 `json:"decoy03"`
 	Decoy47   float64 `json:"decoy47"`
 	Decoy811  float64 `json:"decoy811"`

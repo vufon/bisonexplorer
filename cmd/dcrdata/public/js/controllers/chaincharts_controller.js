@@ -22,15 +22,16 @@ const windowScales = ['ticket-price', 'missed-votes']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation']
 const modeScales = ['ticket-price']
-const decoyBandsLabels = ['none', 'Decoys 0-3', 'Decoys 4-7', 'Decoys 8-11', 'Decoys 12-14', 'Decoys > 15', 'Mixin']
+const decoyBandsLabels = ['none', 'No Tx', 'Decoys 0-3', 'Decoys 4-7', 'Decoys 8-11', 'Decoys 12-14', 'Decoys > 15', 'Mixin']
 const decoyBandsColors = [
   '#e9baa6',
+  '#576812ff',
   '#152b83',
   '#dc3912',
   '#ff9900',
   '#109618',
   '#990099',
-  '#0099c6'
+  '#4c4c4cff'
 ]
 let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
@@ -61,7 +62,7 @@ const yAxisLabelWidth = {
     'decoy-bands': 30
   },
   y2: {
-    'decoy-bands': 30
+    'decoy-bands': 50
   }
 }
 
@@ -303,12 +304,16 @@ function zipDecoyBandsTvY (times, ys, zs, yMult, zMult) {
   zMult = zMult || 1
   return times.map((t, i) => {
     const y = ys[i]
+    let decoyNoTx = Number(y.noTx)
     let decoy03Percent = Number(y.decoy03)
     let decoy47Percent = Number(y.decoy47)
     let decoy811Percent = Number(y.decoy811)
     let decoy1214Percent = Number(y.decoy1214)
     let decoyGe15Percent = Number(y.decoyGt15)
 
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
     if (decoy03Percent < 100) {
       decoy03Percent += 0.00001
     }
@@ -327,40 +332,46 @@ function zipDecoyBandsTvY (times, ys, zs, yMult, zMult) {
     const noneValue = 0.00001
 
     if (decoy03Percent === 100) {
-      decoy03Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy47Percent === 100) {
-      decoy47Percent = 100 - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy811Percent === 100) {
-      decoy811Percent = 100 - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy1214Percent === 100) {
-      decoy1214Percent = 100 - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
     }
 
     if (decoyGe15Percent === 100) {
-      decoyGe15Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
     }
 
-    if (decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
       if (decoy03Percent > 0.1) {
-        decoy03Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
       } else {
         if (decoy47Percent > 0.1) {
-          decoy47Percent = 100 - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
         } else {
           if (decoy811Percent > 0.1) {
-            decoy811Percent = 100 - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
           } else {
             if (decoy1214Percent > 0.1) {
-              decoy1214Percent = 100 - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
             } else {
               if (decoyGe15Percent > 0.1) {
-                decoyGe15Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
               }
             }
           }
@@ -371,11 +382,12 @@ function zipDecoyBandsTvY (times, ys, zs, yMult, zMult) {
     return [
       new Date(t * 1000),
       noneValue,
-      decoyGe15Percent * yMult,
-      decoy1214Percent * yMult,
-      decoy811Percent * yMult,
-      decoy47Percent * yMult,
+      decoyNoTx * yMult,
       decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
       zs[i] * zMult]
   })
 }
@@ -385,12 +397,16 @@ function zipDecoyBandsHvY (heights, ys, zs, yMult, zMult, offset) {
   zMult = zMult || 1
   offset = offset || 1
   return ys.map((y, i) => {
+    let decoyNoTx = Number(y.noTx)
     let decoy03Percent = Number(y.decoy03)
     let decoy47Percent = Number(y.decoy47)
     let decoy811Percent = Number(y.decoy811)
     let decoy1214Percent = Number(y.decoy1214)
     let decoyGe15Percent = Number(y.decoyGt15)
 
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
     if (decoy03Percent < 100) {
       decoy03Percent += 0.00001
     }
@@ -409,40 +425,46 @@ function zipDecoyBandsHvY (heights, ys, zs, yMult, zMult, offset) {
     const noneValue = 0.00001
 
     if (decoy03Percent === 100) {
-      decoy03Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy47Percent === 100) {
-      decoy47Percent = 100 - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy811Percent === 100) {
-      decoy811Percent = 100 - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy1214Percent === 100) {
-      decoy1214Percent = 100 - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
     }
 
     if (decoyGe15Percent === 100) {
-      decoyGe15Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
     }
 
-    if (decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
       if (decoy03Percent > 0.1) {
-        decoy03Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
       } else {
         if (decoy47Percent > 0.1) {
-          decoy47Percent = 100 - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
         } else {
           if (decoy811Percent > 0.1) {
-            decoy811Percent = 100 - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
           } else {
             if (decoy1214Percent > 0.1) {
-              decoy1214Percent = 100 - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
             } else {
               if (decoyGe15Percent > 0.1) {
-                decoyGe15Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
               }
             }
           }
@@ -453,11 +475,12 @@ function zipDecoyBandsHvY (heights, ys, zs, yMult, zMult, offset) {
     return [
       offset + heights[i],
       noneValue,
-      decoyGe15Percent * yMult,
-      decoy1214Percent * yMult,
-      decoy811Percent * yMult,
-      decoy47Percent * yMult,
+      decoyNoTx * yMult,
       decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
       zs[i] * zMult]
   })
 }
@@ -467,12 +490,16 @@ function zipDecoyBandsIvY (ys, zs, yMult, zMult, offset) {
   zMult = zMult || 1
   offset = offset || 1
   return ys.map((y, i) => {
+    let decoyNoTx = Number(y.noTx)
     let decoy03Percent = Number(y.decoy03)
     let decoy47Percent = Number(y.decoy47)
     let decoy811Percent = Number(y.decoy811)
     let decoy1214Percent = Number(y.decoy1214)
     let decoyGe15Percent = Number(y.decoyGt15)
 
+    if (decoyNoTx < 100) {
+      decoyNoTx += 0.00001
+    }
     if (decoy03Percent < 100) {
       decoy03Percent += 0.00001
     }
@@ -491,40 +518,46 @@ function zipDecoyBandsIvY (ys, zs, yMult, zMult, offset) {
     const noneValue = 0.00001
 
     if (decoy03Percent === 100) {
-      decoy03Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy47Percent === 100) {
-      decoy47Percent = 100 - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy811Percent === 100) {
-      decoy811Percent = 100 - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+      decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
     }
 
     if (decoy1214Percent === 100) {
-      decoy1214Percent = 100 - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+      decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
     }
 
     if (decoyGe15Percent === 100) {
-      decoyGe15Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+      decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
     }
 
-    if (decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
+    if (decoyNoTx === 100) {
+      decoyNoTx = 100 - decoyGe15Percent - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+    }
+
+    if (decoyNoTx + decoy03Percent + decoy47Percent + decoy811Percent + decoy1214Percent + decoyGe15Percent + noneValue > 100) {
       if (decoy03Percent > 0.1) {
-        decoy03Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+        decoy03Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
       } else {
         if (decoy47Percent > 0.1) {
-          decoy47Percent = 100 - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
+          decoy47Percent = 100 - decoyNoTx - decoy03Percent - decoy811Percent - decoy1214Percent - decoyGe15Percent - noneValue
         } else {
           if (decoy811Percent > 0.1) {
-            decoy811Percent = 100 - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
+            decoy811Percent = 100 - decoyNoTx - decoy47Percent - decoy03Percent - decoy1214Percent - decoyGe15Percent - noneValue
           } else {
             if (decoy1214Percent > 0.1) {
-              decoy1214Percent = 100 - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
+              decoy1214Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy03Percent - decoyGe15Percent - noneValue
             } else {
               if (decoyGe15Percent > 0.1) {
-                decoyGe15Percent = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+                decoyGe15Percent = 100 - decoyNoTx - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - noneValue
+              } else if (decoyNoTx > 0.1) {
+                decoyNoTx = 100 - decoy47Percent - decoy811Percent - decoy1214Percent - decoy03Percent - decoyGe15Percent - noneValue
               }
             }
           }
@@ -535,11 +568,12 @@ function zipDecoyBandsIvY (ys, zs, yMult, zMult, offset) {
     return [
       offset + i,
       noneValue,
-      decoyGe15Percent * yMult,
-      decoy1214Percent * yMult,
-      decoy811Percent * yMult,
-      decoy47Percent * yMult,
+      decoyNoTx * yMult,
       decoy03Percent * yMult,
+      decoy47Percent * yMult,
+      decoy811Percent * yMult,
+      decoy1214Percent * yMult,
+      decoyGe15Percent * yMult,
       zs[i] * zMult]
   })
 }
@@ -1019,6 +1053,7 @@ export default class extends Controller {
           visibility: stackVisibility,
           series: {
             none: { fillGraph: true },
+            'No Tx': { fillGraph: true },
             'Decoys 0-3': { fillGraph: true },
             'Decoys 4-7': { fillGraph: true },
             'Decoys 8-11': { fillGraph: true },
@@ -1035,7 +1070,7 @@ export default class extends Controller {
           // zoomCallback: this.depthZoomCallback,
           axes: {
             y2: {
-              valueRange: [0, 200000],
+              valueRange: [0, 1000000],
               axisLabelFormatter: (y) => Math.round(y),
               axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['decoy-bands'] : yAxisLabelWidth.y2['decoy-bands'] + 15
             }

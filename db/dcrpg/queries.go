@@ -4343,7 +4343,12 @@ func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 		blocks.AverageRingSize = append(blocks.AverageRingSize, avgRingSize)
 		blocks.FeeRate = append(blocks.FeeRate, feePerKb)
 		blocks.AverageTxSize = append(blocks.AverageTxSize, avgTxSize)
+		noTx := float64(0)
+		if decoy03 == 0 && decoy47 == 0 && decoy811 == 0 && decoy1214 == 0 && decoygt15 == 0 {
+			noTx = 100
+		}
 		blocks.MoneroDecoyBands = append(blocks.MoneroDecoyBands, &dbtypes.MoneroDecoyData{
+			NoTx:      noTx,
 			Decoy03:   decoy03,
 			Decoy47:   decoy47,
 			Decoy811:  decoy811,

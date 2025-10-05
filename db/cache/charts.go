@@ -308,12 +308,14 @@ func (data MoneroDecoyBands) Avg(s, e int) *dbtypes.MoneroDecoyData {
 		avgBand.Decoy811 += v.Decoy811
 		avgBand.Decoy1214 += v.Decoy1214
 		avgBand.DecoyGt15 += v.DecoyGt15
+		avgBand.NoTx += v.NoTx
 	}
 	avgBand.Decoy03 = avgBand.Decoy03 / float64(e-s)
 	avgBand.Decoy47 = avgBand.Decoy47 / float64(e-s)
 	avgBand.Decoy811 = avgBand.Decoy811 / float64(e-s)
 	avgBand.Decoy1214 = avgBand.Decoy1214 / float64(e-s)
 	avgBand.DecoyGt15 = avgBand.DecoyGt15 / float64(e-s)
+	avgBand.NoTx = avgBand.NoTx / float64(e-s)
 
 	return &avgBand
 }
