@@ -745,6 +745,15 @@ func InsertMutilchainBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, checked 
 	return id, err
 }
 
+func UpdateMutilchainBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid bool, chainType string) (uint64, error) {
+	updateStatement := mutilchainquery.MakeUpdateBlockRowStatement(chainType)
+	var id uint64
+	err := db.QueryRow(updateStatement,
+		dbBlock.Height, dbBlock.Size, isValid, dbBlock.Version,
+		dbBlock.NumTx, dbBlock.Nonce, dbBlock.Difficulty, dbBlock.NumVins, dbBlock.NumVouts, dbBlock.Fees, dbBlock.TotalSent).Scan(&id)
+	return id, err
+}
+
 // for btc/ltc (with xmr, use other function)
 func InsertMutilchainWholeBlock(db *sql.DB, dbBlock *dbtypes.Block, isValid, checked bool, chainType string) (uint64, error) {
 	insertStatement := mutilchainquery.MakeBlockAllInsertStatement(checked, chainType)

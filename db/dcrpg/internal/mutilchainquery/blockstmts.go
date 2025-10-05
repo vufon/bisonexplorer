@@ -33,6 +33,8 @@ const (
 	WHERE  hash = $1
 	LIMIT  1;`
 
+	updateBlockRow = `UPDATE %sblocks SET size = $2, is_valid = $3, version = $4, numtx = $5, nonce = $6, difficulty = $7, num_vins = $8, num_vouts = $9, fees = $10, total_sent = $11 WHERE height = $1 RETURNING id;`
+
 	UpdateLastBlockValid = `UPDATE %sblocks SET is_valid = $2 WHERE id = $1;`
 
 	CreateBlockTable = `CREATE TABLE IF NOT EXISTS %sblocks (  
@@ -266,4 +268,8 @@ func UpdateLastBlockValidStatement(chainType string) string {
 
 func UpdateBlockNextStatement(chainType string) string {
 	return fmt.Sprintf(UpdateBlockNext, chainType)
+}
+
+func MakeUpdateBlockRowStatement(chainType string) string {
+	return fmt.Sprintf(updateBlockRow, chainType)
 }

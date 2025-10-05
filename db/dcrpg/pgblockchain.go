@@ -332,8 +332,6 @@ type ChainDB struct {
 	SyncChainDBFlag        bool
 	XmrSyncFlag            bool
 	OkLinkAPIKey           string
-	BTC20BlocksSyncing     bool
-	LTC20BlocksSyncing     bool
 	AddressSummarySyncing  bool
 	TreasurySummarySyncing bool
 	lastExplorerBlock      struct {
@@ -379,6 +377,8 @@ type ChainDB struct {
 	btcWholeSyncMtx           sync.Mutex
 	ltcWholeSyncMtx           sync.Mutex
 	xmrWholeSyncMtx           sync.Mutex
+	btc20BlocksSyncMtx        sync.Mutex
+	ltc20BlocksSyncMtx        sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
