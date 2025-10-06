@@ -203,7 +203,7 @@ type explorerDataSource interface {
 	GetLastMultichainPoolDataList(chainType string, startHeight int64) ([]*dbtypes.MultichainPoolDataItem, error)
 	GetMultichainStats(chainType string) (*externalapi.ChainStatsData, error)
 	GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error)
-	GetXMRTotalOutputs() int64
+	GetXMRSummaryInfo() (*types.MoneroSimpleSummaryInfo, error)
 	GetXMRBasicBlock(height int64) *types.BlockBasic
 	GetXMRExplorerBlocks(from, to int64) []*types.BlockBasic
 	GetMultichain24hSumAndAvgTxFee(chainType string) (int64, int64, error)
@@ -1212,8 +1212,10 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	coinValueSupply := utils.AtomicToXMR(coinSupply)
 	hashrate := difficulty / targetTimePerBlock
 	totalTransactionCount := blockchainInfo.TxCount
-	totalOutputs := exp.dataSource.GetXMRTotalOutputs()
-
+	simpleSummaryInfo, err := exp.dataSource.GetXMRSummaryInfo()
+	if err != nil {
+		return err
+	}
 	// get multichain stats from blockchair
 	totalAddresses := int64(0)
 	volume24h := float64(0)
@@ -1258,7 +1260,10 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.BlockReward = int64(blockData.Header.Reward)
 	// p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
 	p.HomeInfo.TotalAddresses = totalAddresses
-	p.HomeInfo.TotalOutputs = totalOutputs
+	p.HomeInfo.TotalOutputs = simpleSummaryInfo.TotalOutputs
+	p.HomeInfo.TotalInputs = simpleSummaryInfo.TotalInputs
+	p.HomeInfo.UseRingctRate = simpleSummaryInfo.UseRingCtRate
+	p.HomeInfo.TotalRingSize = simpleSummaryInfo.TotalRingMembers
 	p.HomeInfo.Nodes = nodes
 	p.HomeInfo.Volume24hFloat = volume24h
 	p.HomeInfo.Volume24h = volume24hInt

@@ -54,7 +54,8 @@ export default class extends Controller {
       'diffChange', 'prevRetarget', 'blockTimeAvg', 'homeContent', 'homeThumbs',
       'totalFeesExchange', 'totalSentExchange', 'convertedTxFeesAvg', 'powRewardConverted',
       'nextRewardConverted', 'minedBlock', 'numTx24h', 'sent24h', 'fees24h', 'numVout24h',
-      'feeAvg24h', 'blockReward', 'nextBlockReward', 'exchangeRateBottom', 'reward24h']
+      'feeAvg24h', 'blockReward', 'nextBlockReward', 'exchangeRateBottom', 'reward24h',
+      'totalInputs', 'totalRingMembers', 'memInputCount']
   }
 
   async connect () {

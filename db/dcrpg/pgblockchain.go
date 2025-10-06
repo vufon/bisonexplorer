@@ -11902,12 +11902,33 @@ func (pgb *ChainDB) GetDecredTotalTransactions() int64 {
 	return txcount
 }
 
-func (pgb *ChainDB) GetXMRTotalOutputs() int64 {
+func (pgb *ChainDB) GetXMRSummaryInfo() (*exptypes.MoneroSimpleSummaryInfo, error) {
+	// get total outputs count
 	outputsCount, err := retrieveXMROutputsCount(pgb.ctx, pgb.db)
 	if err != nil {
-		return 0
+		return nil, err
 	}
-	return outputsCount
+	// get useRingctRate
+	useRingctRate, err := retrieveXMRUseRingCtRate(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
+	// get total inputs count
+	inputsCount, err := retrieveXMRInputsCount(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
+	// get total ring members count
+	ringMembersCount, err := retrieveXMRRingMembersCount(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
+	return &exptypes.MoneroSimpleSummaryInfo{
+		TotalOutputs:     outputsCount,
+		TotalInputs:      inputsCount,
+		UseRingCtRate:    useRingctRate,
+		TotalRingMembers: ringMembersCount,
+	}, nil
 }
 
 func (pgb *ChainDB) MutilchainDifficulty(timestamp int64, chainType string) float64 {

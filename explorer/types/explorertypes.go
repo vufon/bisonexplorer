@@ -762,7 +762,10 @@ type HomeInfo struct {
 	TotalLockedDCR        float64                     `json:"total_locked_dcr"`
 	HashRate              float64                     `json:"hash_rate"`
 	TotalTransactions     int64                       `json:"total_transactions"`
+	UseRingctRate         float64                     `json:"use_ringct_rate"`
 	TotalOutputs          int64                       `json:"total_outputs"`
+	TotalInputs           int64                       `json:"total_inputs"`
+	TotalRingSize         int64                       `json:"total_ring_size"`
 	TotalSize             int64                       `json:"total_size"`
 	FormattedSize         string                      `json:"formatted_size"`
 	TotalAddresses        int64                       `json:"total_addresses"`
@@ -1338,6 +1341,13 @@ type MempoolTx struct {
 	Type     string    `json:"Type"`
 	TypeID   int       `json:"typeID"` // stake package types
 	VoteInfo *VoteInfo `json:"vote_info,omitempty"`
+}
+
+type MoneroSimpleSummaryInfo struct {
+	TotalOutputs     int64   `json:"totalOutputs"`
+	UseRingCtRate    float64 `json:"useRingCtRate"`
+	TotalInputs      int64   `json:"totalInputs"`
+	TotalRingMembers int64   `json:"totalRingMembers"`
 }
 
 func (mpt *MempoolTx) DeepCopy() *MempoolTx {

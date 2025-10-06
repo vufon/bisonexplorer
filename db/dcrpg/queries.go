@@ -1829,6 +1829,21 @@ func retrieveXMROutputsCount(ctx context.Context, db *sql.DB) (outputsCount int6
 	return
 }
 
+func retrieveXMRUseRingCtRate(ctx context.Context, db *sql.DB) (rate float64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectXmrUseRingCtTxsRate).Scan(&rate)
+	return
+}
+
+func retrieveXMRInputsCount(ctx context.Context, db *sql.DB) (inputsCount int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectTotalXmrInputs).Scan(&inputsCount)
+	return
+}
+
+func retrieveXMRRingMembersCount(ctx context.Context, db *sql.DB) (ringMemberCount int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectTotalXmrRingMembers).Scan(&ringMemberCount)
+	return
+}
+
 func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
 	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }

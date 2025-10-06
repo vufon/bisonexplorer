@@ -134,6 +134,10 @@ const (
 		USING duplicates d
 		WHERE t.id = d.id
   		AND d.rn > 1;`
+
+	SelectXmrUseRingCtTxsRate = `SELECT 
+  		100.0 * SUM(CASE WHEN is_ringct THEN 1 ELSE 0 END) / COUNT(*) AS ringct_ratio
+		FROM xmrtransactions;`
 )
 
 func MakeSelectFeesPerBlockAboveHeight(chainType string) string {

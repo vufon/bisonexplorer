@@ -296,7 +296,7 @@
                                  <span class="new-network-stats-title">
                                     <a class="link-hover-underline" data-turbolinks="false"
                                        href="/{{$ChainType}}/charts?chart=coin-supply">
-                                       Coin Supply
+                                       Coin Supply (of 21 mil)
                                     </a>
                                  </span>
                                  <div class="flex-card-content">
@@ -349,6 +349,9 @@
                                           data-chainhome-target="totalTransactions">
                                           {{int64Comma .TotalTransactions}}
                                        </span>
+                                       <span class="stats-subinfo">
+                                          {{commaWithDecimal .UseRingctRate 2}} % use ringct
+                                       </span>
                                     </div>
                                  </div>
                               </div>
@@ -364,6 +367,22 @@
                                        <span class="new-network-stats-content d-inline-block"
                                           data-chainhome-target="totalAddresses">
                                           {{int64Comma .TotalAddresses}}
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           {{else}}
+                           <div class="col-12 col-sm-8 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">
+                                    Total Inputs (Key Images)
+                                 </span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block"
+                                          data-chainhome-target="totalInputs">
+                                          {{int64Comma .TotalInputs}}
                                        </span>
                                     </div>
                                  </div>
@@ -396,6 +415,22 @@
                                        <span class="new-network-stats-content d-inline-block"
                                           data-chainhome-target="onlineNodes">
                                           {{int64Comma .Nodes}}
+                                       </span>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                           {{else}}
+                           <div class="col-12 col-sm-8 card-content-box">
+                              <div class="new-network-stats-block flex-column-card">
+                                 <span class="new-network-stats-title">
+                                    Total Ring Members
+                                 </span>
+                                 <div class="flex-card-content">
+                                    <div>
+                                       <span class="new-network-stats-content d-inline-block"
+                                          data-chainhome-target="totalRingMembers">
+                                          {{int64Comma .TotalRingSize}}
                                        </span>
                                     </div>
                                  </div>
@@ -437,6 +472,24 @@
                                     </div>
                                  </div>
                               </div>
+                              {{if eq $ChainType "xmr"}}
+                              <div class="col-12 card-content-box">
+                                 <div class="new-network-stats-block flex-column-card">
+                                    <span class="new-network-stats-title">
+                                       Inputs (Key Images)
+                                    </span>
+                                    <div class="flex-card-content">
+                                       <div>
+                                          <span class="new-network-stats-content d-inline-block pt-1">
+                                             <span data-chainhome-target="memInputCount">
+                                                {{int64Comma .InputsCount}}
+                                             </span>
+                                          </span>
+                                       </div>
+                                    </div>
+                                 </div>
+                              </div>
+                              {{end}}
                               <div class="col-12 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
                                     <span class="new-network-stats-title">
@@ -773,7 +826,7 @@
                                                 <div>
                                                    <span class="new-network-stats-content d-inline-block">
                                                       <span data-chainhome-target="blockReward">
-                                                         {{toMulFloat64Amount .BlockReward $ChainType}}
+                                                         {{template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount .BlockReward $ChainType) 8 true)}}
                                                       </span>
                                                       <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                                    </span>

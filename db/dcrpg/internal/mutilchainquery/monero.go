@@ -78,6 +78,8 @@ const (
 
 	DeleteMoneroKeyImagesWithMinFirstSeenBlHeight = `DELETE FROM monero_key_images WHERE first_seen_block_height > $1`
 
+	SelectTotalXmrInputs = `SELECT COUNT(*) FROM monero_key_images;`
+
 	CheckAndRemoveDuplicateMoneroKeyImageRows = `WITH duplicates AS (
   		SELECT id, row_number() OVER (PARTITION BY key_image ORDER BY id) AS rn
   		FROM public.monero_key_images
@@ -118,6 +120,8 @@ const (
 		USING duplicates d
 		WHERE m.id = d.id
   		AND d.rn > 1;`
+
+	SelectTotalXmrRingMembers = `SELECT COUNT(*) FROM monero_ring_members;`
 
 	SelectRingMemberSummary = `WITH per_input AS (
   		SELECT

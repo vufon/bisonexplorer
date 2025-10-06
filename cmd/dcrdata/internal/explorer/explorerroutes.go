@@ -681,8 +681,8 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	commonData.IsHomepage = true
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
 	if conversions != nil && mempoolInfo != nil && xcBot != nil {
-		conversions.MempoolSent = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalOut).ToBTC(), chainType)
-		conversions.MempoolFees = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalFee).ToBTC(), chainType)
+		conversions.MempoolSent = xcBot.MutilchainConversion(mempoolInfo.TotalOut, chainType)
+		conversions.MempoolFees = xcBot.MutilchainConversion(mempoolInfo.TotalFee, chainType)
 	}
 	volume24h := homeInfo.Volume24hFloat
 	str, err := exp.templates.exec("chain_home", struct {
