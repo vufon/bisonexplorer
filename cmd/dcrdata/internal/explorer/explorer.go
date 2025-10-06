@@ -1264,6 +1264,7 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.TotalInputs = simpleSummaryInfo.TotalInputs
 	p.HomeInfo.UseRingctRate = simpleSummaryInfo.UseRingCtRate
 	p.HomeInfo.TotalRingSize = simpleSummaryInfo.TotalRingMembers
+	p.HomeInfo.FeesPerBlock = simpleSummaryInfo.AvgFeePerBlock
 	p.HomeInfo.Nodes = nodes
 	p.HomeInfo.Volume24hFloat = volume24h
 	p.HomeInfo.Volume24h = volume24hInt
@@ -1284,6 +1285,9 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEXMR)
 		p.Lock()
 		if err24h == nil {
+			if summary24h.Blocks <= 720 {
+				summary24h.OrphanRate = 100 * float64(720-summary24h.Blocks) / float64(720)
+			}
 			p.HomeInfo.Block24hInfo = summary24h
 		} else {
 			log.Errorf("Sync XMR 24h Metrics Failed: %v", err24h)

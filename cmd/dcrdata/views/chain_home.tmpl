@@ -942,6 +942,86 @@
                                              </div>
                                           </div>
                                        </div>
+                                       {{else}}
+                                       <div class="col-12 card-content-box">
+                                          <div class="new-network-stats-block flex-column-card">
+                                             <span class="new-network-stats-title">
+                                                Base Reward (Emission)
+                                             </span>
+                                             <div class="flex-card-content">
+                                                <div>
+                                                   <span class="new-network-stats-content d-inline-block">
+                                                      <span>
+                                                         0.6
+                                                      </span>
+                                                      <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                                   </span>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                       <div class="col-12 card-content-box">
+                                          <div class="new-network-stats-block flex-column-card">
+                                             <span class="new-network-stats-title">
+                                                Fees Per Block
+                                             </span>
+                                             <div class="flex-card-content">
+                                                <div>
+                                                   <span class="new-network-stats-content d-inline-block">
+                                                      <span>
+                                                         {{template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount .FeesPerBlock $ChainType) 8 true)}}
+                                                      </span>
+                                                      <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
+                                                   </span>
+                                                   {{if $conv -}}
+                                                   <span class="stats-subinfo">
+                                                      {{threeSigFigs $conv.FeesPerBlock.Value}}
+                                                      {{$conv.FeesPerBlock.Index}}, last 1000 blocks
+                                                   </span>
+                                                   {{end}}
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                       <div class="col-12 card-content-box">
+                                          <div class="new-network-stats-block flex-column-card">
+                                             <span class="new-network-stats-title">
+                                                Average Block Time
+                                             </span>
+                                             <div class="flex-card-content">
+                                                <div>
+                                                   <span class="new-network-stats-content d-inline-block">
+                                                      <span>
+                                                         {{.TargetTimePerBlock}}
+                                                      </span>
+                                                      <span class="new-info-line-2-sub">s</span>
+                                                   </span>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                       {{if .Block24hInfo}}
+                                       <div class="col-12 card-content-box">
+                                          <div class="new-network-stats-block flex-column-card">
+                                             <span class="new-network-stats-title">
+                                                Orphan Rate
+                                             </span>
+                                             <div class="flex-card-content">
+                                                <div>
+                                                   <span class="new-network-stats-content d-inline-block">
+                                                      <span>
+                                                         {{printf "%.2f" .Block24hInfo.OrphanRate}}
+                                                      </span>
+                                                      <span class="new-info-line-2-sub">%</span>
+                                                   </span>
+                                                   <span class="stats-subinfo">
+                                                      estimated on the last day
+                                                   </span>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                       {{end}}
                                        {{end}}
                                     </div>
                                  </div>

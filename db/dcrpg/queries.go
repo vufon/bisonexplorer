@@ -1844,6 +1844,11 @@ func retrieveXMRRingMembersCount(ctx context.Context, db *sql.DB) (ringMemberCou
 	return
 }
 
+func retrieveXMRAvgFeeWith1000Blocks(ctx context.Context, db *sql.DB) (avgFees int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectAvgFeesLast100Blocks).Scan(&avgFees)
+	return
+}
+
 func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
 	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }

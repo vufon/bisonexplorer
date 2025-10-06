@@ -2398,26 +2398,27 @@ type TreasuryBalance struct {
 }
 
 type Block24hInfo struct {
-	Blocks                int64 `json:"blocks"`
-	Spent24h              int64 `json:"spent24h"`
-	Sent24h               int64 `json:"sent24h"`
-	Fees24h               int64 `json:"fees24h"`
-	NumTx24h              int64 `json:"numTx24h"`
-	NumVin24h             int64 `json:"numVin24h"`
-	NumVout24h            int64 `json:"numVout24h"`
-	AtomicSwapAmount      int64 `json:"atomicSwapAmount"`
-	SwapRedeemCount       int64 `json:"swapRedeemCount"`
-	SwapRefundCount       int64 `json:"swapRefundCount"`
-	ActiveAddresses       int64 `json:"activeAddresses"`
-	TotalPowReward        int64 `json:"totalPowReward"`
-	DCRSupply             int64 `json:"dcrSupply"`
-	StakedDCR             int64 `json:"stakedDCR"`
-	NumTickets            int64 `json:"numTickets"`
-	PosReward             int64 `json:"posReward"`
-	Voted                 int64 `json:"voted"`
-	Missed                int64 `json:"missed"`
-	TreasuryBalanceChange int64 `json:"treasuryBalanceChange"`
-	BisonWalletVol        int64 `json:"bisonWalletVol"`
+	Blocks                int64   `json:"blocks"`
+	Spent24h              int64   `json:"spent24h"`
+	Sent24h               int64   `json:"sent24h"`
+	Fees24h               int64   `json:"fees24h"`
+	NumTx24h              int64   `json:"numTx24h"`
+	NumVin24h             int64   `json:"numVin24h"`
+	NumVout24h            int64   `json:"numVout24h"`
+	AtomicSwapAmount      int64   `json:"atomicSwapAmount"`
+	SwapRedeemCount       int64   `json:"swapRedeemCount"`
+	SwapRefundCount       int64   `json:"swapRefundCount"`
+	ActiveAddresses       int64   `json:"activeAddresses"`
+	TotalPowReward        int64   `json:"totalPowReward"`
+	DCRSupply             int64   `json:"dcrSupply"`
+	StakedDCR             int64   `json:"stakedDCR"`
+	NumTickets            int64   `json:"numTickets"`
+	PosReward             int64   `json:"posReward"`
+	Voted                 int64   `json:"voted"`
+	Missed                int64   `json:"missed"`
+	TreasuryBalanceChange int64   `json:"treasuryBalanceChange"`
+	BisonWalletVol        int64   `json:"bisonWalletVol"`
+	OrphanRate            float64 `json:"orphanRate"`
 }
 
 // AddressTransactions collects the transactions for an address as AddressTx

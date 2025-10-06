@@ -222,6 +222,14 @@ ORDER BY a.height ASC;`
 		USING duplicates d
 		WHERE t.id = d.id
   		AND d.rn > 1;`
+
+	SelectAvgFeesLast100Blocks = `SELECT AVG(fees)::bigint AS avg_fees
+		FROM (
+    	SELECT fees
+    	FROM xmrblocks_all
+    	ORDER BY height DESC
+    	LIMIT 1000
+	) AS recent_blocks`
 )
 
 func MakeSelectBlockAllStats(chainType string) string {

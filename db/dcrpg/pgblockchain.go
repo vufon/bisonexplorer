@@ -11923,11 +11923,17 @@ func (pgb *ChainDB) GetXMRSummaryInfo() (*exptypes.MoneroSimpleSummaryInfo, erro
 	if err != nil {
 		return nil, err
 	}
+	// get fees/block with last 1000 block
+	last1000BlocksFeeAvg, err := retrieveXMRAvgFeeWith1000Blocks(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
 	return &exptypes.MoneroSimpleSummaryInfo{
 		TotalOutputs:     outputsCount,
 		TotalInputs:      inputsCount,
 		UseRingCtRate:    useRingctRate,
 		TotalRingMembers: ringMembersCount,
+		AvgFeePerBlock:   last1000BlocksFeeAvg,
 	}, nil
 }
 
