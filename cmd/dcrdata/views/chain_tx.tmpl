@@ -131,7 +131,7 @@
                   {{else}}
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">RingCT/type:</td>
                   <td class="text-start py-1">
-                     {{.RingCT}}{{if .RingCT}}/{{.Rct.RctType}}{{end}}
+                     {{if .RingCT}}yes/{{.Rct.RctType}}{{else}}no{{end}}
                   </td>
                   {{end}}
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Time:</td>
@@ -142,6 +142,10 @@
                   <td class="text-start py-1">{{.Version}}</td>
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Size:</td>
                   <td class="text-start py-1">{{.FormattedSize}}</td>
+               </tr>
+               <tr>
+                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Ring Size:</td>
+                  <td class="text-start py-1" colspan="3">{{.RingSize}}</td>
                </tr>
                {{if eq $isMempool false}}
                <tr>

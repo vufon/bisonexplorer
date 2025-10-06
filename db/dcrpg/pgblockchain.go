@@ -9944,7 +9944,6 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 	numVout := 0
 	txSent := int64(0)
 	var ringSizes []int
-	var ringSize int
 	var parsedExtra *exptypes.XmrTxExtra
 	// var hexExtra string
 	outputs := make([]exptypes.XmrOutputInfo, 0)
@@ -10216,6 +10215,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			outputs[idex].GlobalIndex = int64(txData.OutputIndices[idex])
 		}
 	}
+	rSize := utils.AvgOfArrayInt(ringSizes)
 	return &exptypes.TxInfo{
 		XmrTxBasic: &exptypes.XmrTxBasic{
 			XmrFee:         uint64(fees),
@@ -10229,7 +10229,8 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			Rct:            rctData,
 			ExtraParsed:    parsedExtra,
 			UnlockTime:     uint64(lockTime),
-			Mixin:          ringSize - 1,
+			Mixin:          rSize - 1,
+			RingSize:       rSize,
 			ExtraRaw:       parsedExtra.RawHex,
 			RawHex:         txHex,
 			RingCT:         ringCT,

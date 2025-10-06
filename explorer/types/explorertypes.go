@@ -340,6 +340,7 @@ type XmrTxBasic struct {
 	ExtraParsed    *XmrTxExtra
 	UnlockTime     uint64
 	Mixin          int
+	RingSize       int
 	ExtraRaw       string
 	RawHex         string
 	RingCT         bool
