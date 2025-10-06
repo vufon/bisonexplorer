@@ -214,6 +214,7 @@ type MutilchainHomeConversions struct {
 	MempoolFees  *exchanges.Conversion
 	PoWReward    *exchanges.Conversion
 	NextReward   *exchanges.Conversion
+	FeesPerBlock *exchanges.Conversion
 }
 
 type MutilchainHomeInfo struct {
@@ -622,9 +623,11 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	if xcBot != nil {
 		txFeeAvg24h := float64(0)
 		blockReward := float64(0)
+		feePerBlock := float64(0)
 		if chainType == mutilchain.TYPEXMR {
 			txFeeAvg24h = utils.AtomicToXMR(uint64(homeInfo.TxFeeAvg24h))
 			blockReward = utils.AtomicToXMR(uint64(homeInfo.BlockReward))
+			feePerBlock = utils.AtomicToXMR(uint64(homeInfo.FeesPerBlock))
 		} else {
 			txFeeAvg24h = btcutil.Amount(homeInfo.TxFeeAvg24h).ToBTC()
 			blockReward = btcutil.Amount(homeInfo.BlockReward).ToBTC()
@@ -635,6 +638,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 			TxFeeAvg24h:  xcBot.MutilchainConversion(txFeeAvg24h, chainType),
 			PoWReward:    xcBot.MutilchainConversion(blockReward, chainType),
 			NextReward:   xcBot.MutilchainConversion(btcutil.Amount(homeInfo.NBlockSubsidy.Total).ToBTC(), chainType),
+			FeesPerBlock: xcBot.MutilchainConversion(feePerBlock, chainType),
 		}
 
 		if homeInfo.Block24hInfo != nil {
@@ -681,8 +685,8 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	commonData.IsHomepage = true
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
 	if conversions != nil && mempoolInfo != nil && xcBot != nil {
-		conversions.MempoolSent = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalOut).ToBTC(), chainType)
-		conversions.MempoolFees = xcBot.MutilchainConversion(btcutil.Amount(mempoolInfo.TotalFee).ToBTC(), chainType)
+		conversions.MempoolSent = xcBot.MutilchainConversion(mempoolInfo.TotalOut, chainType)
+		conversions.MempoolFees = xcBot.MutilchainConversion(mempoolInfo.TotalFee, chainType)
 	}
 	volume24h := homeInfo.Volume24hFloat
 	str, err := exp.templates.exec("chain_home", struct {
@@ -821,7 +825,13 @@ func (exp *ExplorerUI) MultichainVisualBlocks(w http.ResponseWriter, r *http.Req
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(chainType, int(height)-MultichainHomepageBlocksMaxCount, int(height))
 	// Safely retrieve the inventory pointer, which can be reset in StoreMPData.
 	mempoolInfo := exp.MutilchainMempoolInfo(chainType)
-	mempoolInfo.BlockReward = mutilchain.GetCurrentBlockReward(chainType, exp.GetSubsidyReductionInterval(chainType), int32(height+1))
+	if chainType == mutilchain.TYPEXMR {
+		if exp.XmrPageData.HomeInfo != nil {
+			mempoolInfo.BlockReward = exp.XmrPageData.HomeInfo.BlockReward
+		}
+	} else {
+		mempoolInfo.BlockReward = mutilchain.GetCurrentBlockReward(chainType, exp.GetSubsidyReductionInterval(chainType), int32(height+1))
+	}
 	mempoolInfo.RLock()
 	str, err := exp.templates.exec("chain_visualblocks", struct {
 		*CommonPageData

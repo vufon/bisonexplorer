@@ -209,94 +209,53 @@ func (db *ChainDB) SyncBTCChainDB(client *btcClient.Client, quit chan struct{},
 	return int64(nodeHeight), err
 }
 
-func (pgb *ChainDB) IsLTC20BlocksSyncing() bool {
-	return pgb.LTC20BlocksSyncing
-}
-
-func (pgb *ChainDB) IsBTC20BlocksSyncing() bool {
-	return pgb.BTC20BlocksSyncing
-}
-
 func (pgb *ChainDB) SyncLast20BTCBlocks(nodeHeight int32) error {
-	if pgb.BTC20BlocksSyncing {
-		return fmt.Errorf("BTC: There is another sync task running")
-	}
-	pgb.BTC20BlocksSyncing = true
+	pgb.btc20BlocksSyncMtx.Lock()
+	defer pgb.btc20BlocksSyncMtx.Unlock()
 	//preprocessing, check from DB
 	// Total and rate statistics
 	var totalTxs, totalVins, totalVouts int64
-	var lastTxs, lastVins, lastVouts int64
 	startHeight := nodeHeight - 25
 	//Delete all blocks data and blocks related data older than start block
 	//Delete vins, vouts
 	err := DeleteVinsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
 	if err != nil {
-		pgb.BTC20BlocksSyncing = false
 		return err
 	}
 	err = DeleteVoutsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
 	if err != nil {
-		pgb.BTC20BlocksSyncing = false
 		return err
 	}
-	//delete txs
-	// err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
-	// if err != nil {
-	// 	pgb.BTC20BlocksSyncing = false
-	// 	return err
-	// }
-	//delete blocks
-	// err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(startHeight))
-	// if err != nil {
-	// 	pgb.BTC20BlocksSyncing = false
-	// 	return err
-	// }
-	tickTime := 20 * time.Second
-	ticker := time.NewTicker(tickTime)
-	startTime := time.Now()
-	o := sync.Once{}
-	speedReporter := func() {
-		ticker.Stop()
-		totalElapsed := time.Since(startTime).Seconds()
-		if int64(totalElapsed) == 0 {
-			return
-		}
-		totalVoutPerSec := totalVouts / int64(totalElapsed)
-		totalTxPerSec := totalTxs / int64(totalElapsed)
-		log.Infof("BTC: Avg. speed: %d tx/s, %d vout/s", totalTxPerSec, totalVoutPerSec)
-	}
-	speedReport := func() { o.Do(speedReporter) }
-	defer speedReport()
-	lastBlock := startHeight
 	// Start rebuilding
 	for ib := startHeight; ib <= nodeHeight; ib++ {
-		//check exist on DB
-		exist, err := CheckBlockExistOnDB(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(ib))
-		if err != nil || exist {
-			continue
-		}
-		select {
-		case <-ticker.C:
-			blocksPerSec := float64(ib-lastBlock) / tickTime.Seconds()
-			txPerSec := float64(totalTxs-lastTxs) / tickTime.Seconds()
-			vinsPerSec := float64(totalVins-lastVins) / tickTime.Seconds()
-			voutPerSec := float64(totalVouts-lastVouts) / tickTime.Seconds()
-			log.Infof("BTC: (%3d blk/s,%5d tx/s,%5d vin/sec,%5d vout/s)", int64(blocksPerSec),
-				int64(txPerSec), int64(vinsPerSec), int64(voutPerSec))
-			lastBlock, lastTxs = ib, totalTxs
-			lastVins, lastVouts = totalVins, totalVouts
-		default:
-		}
-
 		block, blockHash, err := btcrpcutils.GetBlock(int64(ib), pgb.BtcClient)
 		if err != nil {
-			pgb.BTC20BlocksSyncing = false
 			return fmt.Errorf("BTC: GetBlock failed (%s): %v", blockHash, err)
 		}
 		var numVins, numVouts int64
-		if numVins, numVouts, err = pgb.StoreBTCBlockInfo(pgb.BtcClient, block.MsgBlock(), int64(ib), false); err != nil {
-			pgb.BTC20BlocksSyncing = false
-			return fmt.Errorf("BTC StoreBlock failed: %v", err)
+		//check exist on DB
+		exist, err := CheckBlockExistOnDB(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(ib))
+		if err != nil {
+			return fmt.Errorf("BTC: Check exist block (%d) on db failed: %v", ib, err)
+		}
+		if exist {
+			// sync and update for block
+			dbBlockInfo, err := RetrieveBlockInfo(pgb.ctx, pgb.db, mutilchain.TYPEBTC, int64(ib))
+			if err != nil {
+				return fmt.Errorf("BTC: Get block detail (%d) on db failed: %v", ib, err)
+			}
+			// if have summary info, ignore
+			if dbBlockInfo.TxCount > 0 || dbBlockInfo.Inputs > 0 || dbBlockInfo.Outputs > 0 {
+				continue
+			}
+			// if don't have any info, update summary info
+			if numVins, numVouts, err = pgb.UpdateStoreBTCBlockInfo(pgb.BtcClient, block.MsgBlock(), int64(ib), false); err != nil {
+				return fmt.Errorf("BTC UpdateStoreBlock failed: %v", err)
+			}
+		} else {
+			if numVins, numVouts, err = pgb.StoreBTCBlockInfo(pgb.BtcClient, block.MsgBlock(), int64(ib), false); err != nil {
+				return fmt.Errorf("BTC StoreBlock failed: %v", err)
+			}
 		}
 		totalVins += numVins
 		totalVouts += numVouts
@@ -304,98 +263,62 @@ func (pgb *ChainDB) SyncLast20BTCBlocks(nodeHeight int32) error {
 		totalTxs += numRTx
 		// update height, the end condition for the loop
 		if _, nodeHeight, err = pgb.BtcClient.GetBestBlock(); err != nil {
-			pgb.BTC20BlocksSyncing = false
 			return fmt.Errorf("BTC: GetBestBlock failed: %v", err)
 		}
 	}
 
-	speedReport()
-
 	log.Debugf("BTC: Sync last 20 Blocks of BTC finished at height %d. Delta: %d blocks, %d transactions, %d ins, %d outs",
 		nodeHeight, int64(nodeHeight)-int64(startHeight)+1, totalTxs, totalVins, totalVouts)
-	pgb.BTC20BlocksSyncing = false
 	return err
 }
 
 func (pgb *ChainDB) SyncLast20LTCBlocks(nodeHeight int32) error {
-	if pgb.LTC20BlocksSyncing {
-		return fmt.Errorf("LTC: There is another sync task running")
-	}
-	pgb.LTC20BlocksSyncing = true
+	pgb.ltc20BlocksSyncMtx.Lock()
+	defer pgb.ltc20BlocksSyncMtx.Unlock()
 	// Total and rate statistics
 	var totalTxs, totalVins, totalVouts int64
-	var lastTxs, lastVins, lastVouts int64
 	startHeight := nodeHeight - 25
 	//Delete all blocks data and blocks related data older than start block
 	//Delete vins, vouts
 	err := DeleteVinsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
 	if err != nil {
-		pgb.LTC20BlocksSyncing = false
 		return err
 	}
 	err = DeleteVoutsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
 	if err != nil {
-		pgb.LTC20BlocksSyncing = false
 		return err
 	}
-	//delete txs
-	// err = DeleteTxsOfOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
-	// if err != nil {
-	// 	pgb.LTC20BlocksSyncing = false
-	// 	return err
-	// }
-	//delete blocks
-	// err = DeleteOlderThan20Blocks(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(startHeight))
-	// if err != nil {
-	// 	pgb.LTC20BlocksSyncing = false
-	// 	return err
-	// }
-	tickTime := 20 * time.Second
-	ticker := time.NewTicker(tickTime)
-	startTime := time.Now()
-	o := sync.Once{}
-	speedReporter := func() {
-		ticker.Stop()
-		totalElapsed := time.Since(startTime).Seconds()
-		if int64(totalElapsed) == 0 {
-			return
-		}
-		totalVoutPerSec := totalVouts / int64(totalElapsed)
-		totalTxPerSec := totalTxs / int64(totalElapsed)
-		log.Infof("LTC: Avg. speed: %d tx/s, %d vout/s", totalTxPerSec, totalVoutPerSec)
-	}
-	speedReport := func() { o.Do(speedReporter) }
-	defer speedReport()
-	lastBlock := startHeight
 	// Start rebuilding
 	for ib := startHeight; ib <= nodeHeight; ib++ {
-		//check exist on DB
-		exist, err := CheckBlockExistOnDB(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(ib))
-		if err != nil || exist {
-			continue
-		}
-		select {
-		case <-ticker.C:
-			blocksPerSec := float64(ib-lastBlock) / tickTime.Seconds()
-			txPerSec := float64(totalTxs-lastTxs) / tickTime.Seconds()
-			vinsPerSec := float64(totalVins-lastVins) / tickTime.Seconds()
-			voutPerSec := float64(totalVouts-lastVouts) / tickTime.Seconds()
-			log.Infof("LTC: (%3d blk/s,%5d tx/s,%5d vin/sec,%5d vout/s)", int64(blocksPerSec),
-				int64(txPerSec), int64(vinsPerSec), int64(voutPerSec))
-			lastBlock, lastTxs = ib, totalTxs
-			lastVins, lastVouts = totalVins, totalVouts
-		default:
-		}
-
 		block, blockHash, err := ltcrpcutils.GetBlock(int64(ib), pgb.LtcClient)
 		if err != nil {
-			pgb.LTC20BlocksSyncing = false
 			return fmt.Errorf("LTC: GetBlock failed (%s): %v", blockHash, err)
 		}
 		var numVins, numVouts int64
-		if numVins, numVouts, err = pgb.StoreLTCBlockInfo(pgb.LtcClient, block.MsgBlock(), int64(ib), false); err != nil {
-			pgb.LTC20BlocksSyncing = false
-			return fmt.Errorf("LTC StoreBlock failed: %v", err)
+		//check exist on DB
+		exist, err := CheckBlockExistOnDB(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(ib))
+		if err != nil {
+			return fmt.Errorf("LTC: Check exist block (%d) on db failed: %v", ib, err)
+		}
+		// if exist
+		if exist {
+			// sync and update for block
+			dbBlockInfo, err := RetrieveBlockInfo(pgb.ctx, pgb.db, mutilchain.TYPELTC, int64(ib))
+			if err != nil {
+				return fmt.Errorf("LTC: Get block detail (%d) on db failed: %v", ib, err)
+			}
+			// if have summary info, ignore
+			if dbBlockInfo.TxCount > 0 || dbBlockInfo.Inputs > 0 || dbBlockInfo.Outputs > 0 {
+				continue
+			}
+			// if don't have any info, update summary info
+			if numVins, numVouts, err = pgb.UpdateStoreLTCBlockInfo(pgb.LtcClient, block.MsgBlock(), int64(ib), false); err != nil {
+				return fmt.Errorf("LTC UpdateStoreBlock failed: %v", err)
+			}
+		} else {
+			if numVins, numVouts, err = pgb.StoreLTCBlockInfo(pgb.LtcClient, block.MsgBlock(), int64(ib), false); err != nil {
+				return fmt.Errorf("LTC StoreBlock failed: %v", err)
+			}
 		}
 		totalVins += numVins
 		totalVouts += numVouts
@@ -403,16 +326,11 @@ func (pgb *ChainDB) SyncLast20LTCBlocks(nodeHeight int32) error {
 		totalTxs += numRTx
 		// update height, the end condition for the loop
 		if _, nodeHeight, err = pgb.LtcClient.GetBestBlock(); err != nil {
-			pgb.LTC20BlocksSyncing = false
 			return fmt.Errorf("LTC: GetBestBlock failed: %v", err)
 		}
 	}
-
-	speedReport()
-
 	log.Debugf("LTC: Sync last 20 Blocks of LTC finished at height %d. Delta: %d blocks, %d transactions, %d ins, %d outs",
 		nodeHeight, int64(nodeHeight)-int64(startHeight)+1, totalTxs, totalVins, totalVouts)
-	pgb.LTC20BlocksSyncing = false
 	return err
 }
 
@@ -634,8 +552,8 @@ func (pgb *ChainDB) StoreBTCBlockInfo(client *btcClient.Client, msgBlock *btcwir
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeBTCTxns(client, dbBlock, msgBlock,
-			pgb.btcChainParams, &dbBlock.TxDbIDs, false, false, allSync)
+		resChanReg <- pgb.getBTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.btcChainParams)
 	}()
 	errReg := <-resChanReg
 	dbBlock.NumVins = uint32(errReg.numVins)
@@ -650,6 +568,63 @@ func (pgb *ChainDB) StoreBTCBlockInfo(client *btcClient.Client, msgBlock *btcwir
 		log.Error("BTC: InsertBlock:", err)
 		return
 	}
+	log.Infof("BTC: Finish sync block info. Height: %d", height)
+	return
+}
+
+func (pgb *ChainDB) UpdateStoreBTCBlockInfo(client *btcClient.Client, msgBlock *btcwire.MsgBlock, height int64, allSync bool) (numVins int64, numVouts int64, err error) {
+	log.Infof("BTC: Start update sync block info. Height: %d", height)
+	// Convert the wire.MsgBlock to a dbtypes.Block
+	dbBlock := dbtypes.MsgBTCBlockToDBBlock(client, msgBlock, pgb.btcChainParams)
+	// regular transactions
+	resChanReg := make(chan storeTxnsResult)
+	go func() {
+		resChanReg <- pgb.getBTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.btcChainParams)
+	}()
+
+	errReg := <-resChanReg
+	dbBlock.NumVins = uint32(errReg.numVins)
+	dbBlock.NumVouts = uint32(errReg.numVouts)
+	dbBlock.Fees = uint64(errReg.fees)
+	numVins = errReg.numVins
+	numVouts = errReg.numVouts
+	dbBlock.TotalSent = uint64(errReg.totalSent)
+	// Store the block now that it has all it's transaction PK IDs
+	_, err = UpdateMutilchainBlock(pgb.db, dbBlock, true, mutilchain.TYPEBTC)
+	if err != nil {
+		log.Errorf("BTC: UpdateBlock failed: %v", err)
+		return
+	}
+	log.Infof("BTC: Finish update sync block info. Height: %d", height)
+	return
+}
+
+func (pgb *ChainDB) UpdateStoreLTCBlockInfo(client *ltcClient.Client, msgBlock *wire.MsgBlock, height int64, allSync bool) (numVins int64, numVouts int64, err error) {
+	log.Infof("LTC: Start update sync block info. Height: %d", height)
+	// Convert the wire.MsgBlock to a dbtypes.Block
+	dbBlock := dbtypes.MsgLTCBlockToDBBlock(client, msgBlock, pgb.ltcChainParams)
+	// regular transactions
+	resChanReg := make(chan storeTxnsResult)
+	go func() {
+		resChanReg <- pgb.getLTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.ltcChainParams)
+	}()
+
+	errReg := <-resChanReg
+	dbBlock.NumVins = uint32(errReg.numVins)
+	dbBlock.NumVouts = uint32(errReg.numVouts)
+	dbBlock.Fees = uint64(errReg.fees)
+	numVins = errReg.numVins
+	numVouts = errReg.numVouts
+	dbBlock.TotalSent = uint64(errReg.totalSent)
+	// Store the block now that it has all it's transaction PK IDs
+	_, err = UpdateMutilchainBlock(pgb.db, dbBlock, true, mutilchain.TYPELTC)
+	if err != nil {
+		log.Errorf("LTC: UpdateBlock failed: %v", err)
+		return
+	}
+	log.Infof("LTC: Finish update sync block info. Height: %d", height)
 	return
 }
 
@@ -661,8 +636,8 @@ func (pgb *ChainDB) StoreLTCBlockInfo(client *ltcClient.Client, msgBlock *wire.M
 	// regular transactions
 	resChanReg := make(chan storeTxnsResult)
 	go func() {
-		resChanReg <- pgb.storeLTCTxns(client, dbBlock, msgBlock,
-			pgb.ltcChainParams, &dbBlock.TxDbIDs, false, false, allSync)
+		resChanReg <- pgb.getLTCTxnsInfo(client, dbBlock, msgBlock,
+			pgb.ltcChainParams)
 	}()
 
 	errReg := <-resChanReg
@@ -678,6 +653,7 @@ func (pgb *ChainDB) StoreLTCBlockInfo(client *ltcClient.Client, msgBlock *wire.M
 		log.Error("LTC: InsertBlock:", err)
 		return
 	}
+	log.Infof("LTC: Finish sync block info. Height: %d", height)
 	return
 }
 
@@ -1108,6 +1084,34 @@ func (pgb *ChainDB) storeBTCTxns(client *btcClient.Client, block *dbtypes.Block,
 				txRes.numAddresses += numAddressRowsSet
 			}
 		}
+	}
+	return txRes
+}
+
+func (pgb *ChainDB) getBTCTxnsInfo(client *btcClient.Client, block *dbtypes.Block, msgBlock *btcwire.MsgBlock,
+	chainParams *btcchaincfg.Params) storeTxnsResult {
+	dbTransactions := dbtypes.ExtractBTCBlockTransactionsSimpleInfo(client, block,
+		msgBlock, chainParams)
+	var txRes storeTxnsResult
+	for _, dbtx := range dbTransactions {
+		txRes.numVouts += int64(dbtx.NumVout)
+		txRes.totalSent += dbtx.Sent
+		txRes.numVins += int64(dbtx.NumVin)
+		txRes.fees += dbtx.Fees
+	}
+	return txRes
+}
+
+func (pgb *ChainDB) getLTCTxnsInfo(client *ltcClient.Client, block *dbtypes.Block, msgBlock *wire.MsgBlock,
+	chainParams *chaincfg.Params) storeTxnsResult {
+	dbTransactions := dbtypes.ExtractLTCBlockTransactionsSimpleInfo(client, block,
+		msgBlock, chainParams)
+	var txRes storeTxnsResult
+	for _, dbtx := range dbTransactions {
+		txRes.numVouts += int64(dbtx.NumVout)
+		txRes.totalSent += dbtx.Sent
+		txRes.numVins += int64(dbtx.NumVin)
+		txRes.fees += dbtx.Fees
 	}
 	return txRes
 }

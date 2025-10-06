@@ -108,6 +108,17 @@ const (
 		chart_synced BOOLEAN DEFAULT FALSE
 	);`
 
+	RetrieveXmrBlockSimpleInfo = `SELECT 
+		time,
+		height,
+		COALESCE(total_sent, 0)		AS amount_sent,
+		COALESCE(fees, 0) 			AS total_fees,
+		COALESCE(numtx, 0) 			AS total_tx_count,
+		COALESCE(num_vins, 0) 		AS total_num_vins,
+		COALESCE(num_vouts, 0) 		AS total_num_vouts,
+		COALESCE(reward, 0) 		AS bl_reward
+		FROM xmrblocks_all WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
+
 	// SelectBlocksAllWithTimeRange = `SELECT height FROM %sblocks_all WHERE time >= $1 AND time <= $2`
 
 	SelectBlocksAllUnsynchoronized = `SELECT height FROM %sblocks_all WHERE synced IS NOT TRUE ORDER BY height`
@@ -211,6 +222,14 @@ ORDER BY a.height ASC;`
 		USING duplicates d
 		WHERE t.id = d.id
   		AND d.rn > 1;`
+
+	SelectAvgFeesLast100Blocks = `SELECT AVG(fees)::bigint AS avg_fees
+		FROM (
+    	SELECT fees
+    	FROM xmrblocks_all
+    	ORDER BY height DESC
+    	LIMIT 1000
+	) AS recent_blocks;`
 )
 
 func MakeSelectBlockAllStats(chainType string) string {

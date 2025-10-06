@@ -1836,10 +1836,11 @@ export default class extends Controller {
       })
       this.setBinSelection()
     }
-    const depthDisabled = !validDepthExchange(settings.xc)
-    this.depthOnlyTargets.forEach(option => {
-      option.disabled = depthDisabled
-    })
+
+    // const depthDisabled = !validDepthExchange(settings.xc)
+    // this.depthOnlyTargets.forEach(option => {
+    //   option.disabled = depthDisabled
+    // })
     if (settings.xc === aggregatedKey && settings.chart === depth) {
       this.aggStackTarget.classList.remove('d-hide')
       settings.stack = aggStacking ? 1 : 0
@@ -1876,15 +1877,25 @@ export default class extends Controller {
   }
 
   changeExchangeSetting () {
-    const selectedExchanges = this.getSelectedExchanges().join(',')
+    const selectedExchangeList = this.getSelectedExchanges()
+    const selectedExchanges = selectedExchangeList.join(',')
+    let availableCandleStick = false
     if (settings.chart === 'history' || settings.chart === 'volume') {
       settings.xcs = selectedExchanges
+      availableCandleStick = true
+      selectedExchangeList.forEach((selectedToken) => {
+        if (!availableCandlesticks[selectedToken]) {
+          availableCandleStick = false
+        }
+      })
+      console.log('availableCaneldestick: ', availableCandleStick)
     } else {
       settings.xc = selectedExchanges
+      availableCandleStick = availableCandlesticks[settings.xc]
     }
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
-      if (!availableCandlesticks[settings.xc]) {
+      if (!availableCandleStick) {
         // exchange does not have candlestick data
         // show the depth chart.
         settings.chart = depth
@@ -1941,7 +1952,7 @@ export default class extends Controller {
     }
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
-      if (settings.xc !== 'aggregated') {
+      if (settings.chart === candlestick && settings.xc !== 'aggregated') {
         if (!availableCandlesticks[settings.xc]) {
           settings.chart = depth
         }

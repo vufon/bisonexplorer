@@ -33,6 +33,8 @@ const (
 	WHERE  hash = $1
 	LIMIT  1;`
 
+	updateBlockRow = `UPDATE %sblocks SET size = $2, is_valid = $3, version = $4, numtx = $5, nonce = $6, difficulty = $7, num_vins = $8, num_vouts = $9, fees = $10, total_sent = $11 WHERE height = $1 RETURNING id;`
+
 	UpdateLastBlockValid = `UPDATE %sblocks SET is_valid = $2 WHERE id = $1;`
 
 	CreateBlockTable = `CREATE TABLE IF NOT EXISTS %sblocks (  
@@ -104,8 +106,24 @@ const (
 
 	RetrieveBestBlock       = `SELECT * FROM %sblocks ORDER BY height DESC LIMIT 0, 1;`
 	RetrieveBestBlockHeight = `SELECT id, hash, height FROM %sblocks ORDER BY height DESC LIMIT 1;`
-	RetrieveBlockInfoData   = `SELECT time,height,total_sent,fees,numtx,num_vins,num_vouts FROM %sblocks WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
-	RetrieveBlockDetail     = `SELECT time,height,total_sent,fees,numtx,num_vins,num_vouts FROM %sblocks WHERE height = $1;`
+	RetrieveBlockInfoData   = `SELECT 
+		time,
+		height,
+		COALESCE(total_sent, 0)		AS amount_sent,
+		COALESCE(fees, 0) 			AS total_fees,
+		COALESCE(numtx, 0) 			AS total_tx_count,
+		COALESCE(num_vins, 0) 		AS total_num_vins,
+		COALESCE(num_vouts, 0) 		AS total_num_vouts
+	FROM %sblocks WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
+	RetrieveBlockDetail = `SELECT 
+		time,
+		height,
+		COALESCE(total_sent, 0)		AS amount_sent,
+		COALESCE(fees, 0) 			AS total_fees,
+		COALESCE(numtx, 0) 			AS total_tx_count,
+		COALESCE(num_vins, 0) 		AS total_num_vins,
+		COALESCE(num_vouts, 0) 		AS total_num_vouts
+		FROM %sblocks WHERE height = $1;`
 	// block_chain, with primary key that is not a SERIAL
 	CreateBlockPrevNextTable = `CREATE TABLE IF NOT EXISTS %sblock_chain (
 		block_db_id INT8 PRIMARY KEY,
@@ -266,4 +284,8 @@ func UpdateLastBlockValidStatement(chainType string) string {
 
 func UpdateBlockNextStatement(chainType string) string {
 	return fmt.Sprintf(UpdateBlockNext, chainType)
+}
+
+func MakeUpdateBlockRowStatement(chainType string) string {
+	return fmt.Sprintf(updateBlockRow, chainType)
 }

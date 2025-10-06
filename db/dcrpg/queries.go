@@ -1829,6 +1829,26 @@ func retrieveXMROutputsCount(ctx context.Context, db *sql.DB) (outputsCount int6
 	return
 }
 
+func retrieveXMRUseRingCtRate(ctx context.Context, db *sql.DB) (rate float64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectXmrUseRingCtTxsRate).Scan(&rate)
+	return
+}
+
+func retrieveXMRInputsCount(ctx context.Context, db *sql.DB) (inputsCount int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectTotalXmrInputs).Scan(&inputsCount)
+	return
+}
+
+func retrieveXMRRingMembersCount(ctx context.Context, db *sql.DB) (ringMemberCount int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectTotalXmrRingMembers).Scan(&ringMemberCount)
+	return
+}
+
+func retrieveXMRAvgFeeWith1000Blocks(ctx context.Context, db *sql.DB) (avgFees int64, err error) {
+	err = db.QueryRowContext(ctx, mutilchainquery.SelectAvgFeesLast100Blocks).Scan(&avgFees)
+	return
+}
+
 func RetrieveAddressBalance(ctx context.Context, db *sql.DB, address string) (balance *dbtypes.AddressBalance, err error) {
 	return RetrieveAddressBalancePeriod(ctx, db, address, dbtypes.AddrTxnAll, 0, 0)
 }
@@ -6182,14 +6202,22 @@ func RetrieveLatestBlockSummary(ctx context.Context, db *sql.DB) (*apitypes.Bloc
 
 func RetrieveLastestBlocksInfo(ctx context.Context, db *sql.DB, chainType string, startHeight, endHeight int64) ([]*dbtypes.MutilchainDBBlockInfo, error) {
 	var infoList []*dbtypes.MutilchainDBBlockInfo
-	rows, err := db.QueryContext(ctx, mutilchainquery.MakeRetrieveBlockInfoData(chainType), startHeight, endHeight)
+	queryStmt := mutilchainquery.MakeRetrieveBlockInfoData(chainType)
+	if chainType == mutilchain.TYPEXMR {
+		queryStmt = mutilchainquery.RetrieveXmrBlockSimpleInfo
+	}
+	rows, err := db.QueryContext(ctx, queryStmt, startHeight, endHeight)
 	if err != nil {
 		return infoList, err
 	}
 	defer closeRows(rows)
 	for rows.Next() {
 		var blockInfo dbtypes.MutilchainDBBlockInfo
-		err := rows.Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs)
+		if chainType == mutilchain.TYPEXMR {
+			err = rows.Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs, &blockInfo.Reward)
+		} else {
+			err = rows.Scan(&blockInfo.Time, &blockInfo.Height, &blockInfo.Total, &blockInfo.Fees, &blockInfo.TxCount, &blockInfo.Inputs, &blockInfo.Outputs)
+		}
 		if err != nil {
 			return infoList, err
 		}

@@ -332,8 +332,6 @@ type ChainDB struct {
 	SyncChainDBFlag        bool
 	XmrSyncFlag            bool
 	OkLinkAPIKey           string
-	BTC20BlocksSyncing     bool
-	LTC20BlocksSyncing     bool
 	AddressSummarySyncing  bool
 	TreasurySummarySyncing bool
 	lastExplorerBlock      struct {
@@ -379,6 +377,8 @@ type ChainDB struct {
 	btcWholeSyncMtx           sync.Mutex
 	ltcWholeSyncMtx           sync.Mutex
 	xmrWholeSyncMtx           sync.Mutex
+	btc20BlocksSyncMtx        sync.Mutex
+	ltc20BlocksSyncMtx        sync.Mutex
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -5786,6 +5786,15 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 		// 	log.Errorf("LTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
 		// 	return err
 		// }
+	} else {
+		go func() {
+			err := pgb.SyncLast20LTCBlocks(blockData.Header.Height)
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Infof("Sync last 20 LTC Blocks successfully")
+			}
+		}()
 	}
 	//update best ltc block
 	pgb.LtcBestBlock.Hash = blockData.Header.Hash
@@ -5834,17 +5843,14 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 		// 	return err
 		// }
 	} else {
-		if !pgb.BTC20BlocksSyncing {
-			go func() {
-				err := pgb.SyncLast20BTCBlocks(blockData.Header.Height)
-				if err != nil {
-					log.Error(err)
-				} else {
-					log.Infof("Sync last 20 BTC Blocks successfully")
-				}
-				pgb.BTC20BlocksSyncing = false
-			}()
-		}
+		go func() {
+			err := pgb.SyncLast20BTCBlocks(blockData.Header.Height)
+			if err != nil {
+				log.Error(err)
+			} else {
+				log.Infof("Sync last 20 BTC Blocks successfully")
+			}
+		}()
 	}
 
 	//update best ltc block
@@ -11696,6 +11702,10 @@ func (pgb *ChainDB) GetMutilchainExplorerFullBlocks(chainType string, start, end
 		return result
 	}
 	for _, blockInfo := range blockInfos {
+		blReward := blockInfo.Reward
+		if chainType != mutilchain.TYPEXMR {
+			blReward = mutilchain.GetCurrentBlockReward(chainType, pgb.GetSubsidyReductionInterval(chainType), int32(blockInfo.Height))
+		}
 		resItem := &exptypes.BlockInfo{
 			BlockBasic: &exptypes.BlockBasic{
 				Height:        blockInfo.Height,
@@ -11707,7 +11717,7 @@ func (pgb *ChainDB) GetMutilchainExplorerFullBlocks(chainType string, start, end
 			FeesSats:      blockInfo.Fees,
 			TotalInputs:   blockInfo.Inputs,
 			TotalOutputs:  blockInfo.Outputs,
-			BlockReward:   mutilchain.GetCurrentBlockReward(chainType, pgb.GetSubsidyReductionInterval(chainType), int32(blockInfo.Height)),
+			BlockReward:   blReward,
 		}
 		result = append(result, resItem)
 	}
@@ -11892,12 +11902,39 @@ func (pgb *ChainDB) GetDecredTotalTransactions() int64 {
 	return txcount
 }
 
-func (pgb *ChainDB) GetXMRTotalOutputs() int64 {
+func (pgb *ChainDB) GetXMRSummaryInfo() (*exptypes.MoneroSimpleSummaryInfo, error) {
+	// get total outputs count
 	outputsCount, err := retrieveXMROutputsCount(pgb.ctx, pgb.db)
 	if err != nil {
-		return 0
+		return nil, err
 	}
-	return outputsCount
+	// get useRingctRate
+	useRingctRate, err := retrieveXMRUseRingCtRate(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
+	// get total inputs count
+	inputsCount, err := retrieveXMRInputsCount(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
+	// get total ring members count
+	ringMembersCount, err := retrieveXMRRingMembersCount(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
+	// get fees/block with last 1000 block
+	last1000BlocksFeeAvg, err := retrieveXMRAvgFeeWith1000Blocks(pgb.ctx, pgb.db)
+	if err != nil {
+		return nil, err
+	}
+	return &exptypes.MoneroSimpleSummaryInfo{
+		TotalOutputs:     outputsCount,
+		TotalInputs:      inputsCount,
+		UseRingCtRate:    useRingctRate,
+		TotalRingMembers: ringMembersCount,
+		AvgFeePerBlock:   last1000BlocksFeeAvg,
+	}, nil
 }
 
 func (pgb *ChainDB) MutilchainDifficulty(timestamp int64, chainType string) float64 {
