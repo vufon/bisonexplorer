@@ -1836,10 +1836,11 @@ export default class extends Controller {
       })
       this.setBinSelection()
     }
-    const depthDisabled = !validDepthExchange(settings.xc)
-    this.depthOnlyTargets.forEach(option => {
-      option.disabled = depthDisabled
-    })
+
+    // const depthDisabled = !validDepthExchange(settings.xc)
+    // this.depthOnlyTargets.forEach(option => {
+    //   option.disabled = depthDisabled
+    // })
     if (settings.xc === aggregatedKey && settings.chart === depth) {
       this.aggStackTarget.classList.remove('d-hide')
       settings.stack = aggStacking ? 1 : 0
@@ -1879,8 +1880,6 @@ export default class extends Controller {
     const selectedExchangeList = this.getSelectedExchanges()
     const selectedExchanges = selectedExchangeList.join(',')
     let availableCandleStick = false
-    console.log('before chart: ', settings.chart)
-    console.log('selected exchanged: ', selectedExchanges)
     if (settings.chart === 'history' || settings.chart === 'volume') {
       settings.xcs = selectedExchanges
       availableCandleStick = true
@@ -1903,7 +1902,6 @@ export default class extends Controller {
       } else {
         this.justifyBins()
       }
-      console.log('after chart: ', settings.chart)
     }
     this.setButtons()
   }
@@ -1954,7 +1952,7 @@ export default class extends Controller {
     }
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
-      if (settings.xc !== 'aggregated') {
+      if (settings.chart === candlestick && settings.xc !== 'aggregated') {
         if (!availableCandlesticks[settings.xc]) {
           settings.chart = depth
         }

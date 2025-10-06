@@ -350,7 +350,7 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 				err := voutstmt.QueryRow(txHash, idx, xmrhelper.NullInt64ToInterface(globalIndex), outPk, nil, amountKnown, xmrhelper.NullInt64ToInterface(amount)).Scan(&mvoutid)
 				// insert into monero_outputs
 				if err != nil {
-					return nil, fmt.Errorf("XMR: insertMoneroOutput failed: %v", err)
+					log.Warnf("XMR: insertMoneroOutput - Looks like duplicate on db, ignore: %v", err)
 				}
 			}
 		}
@@ -388,7 +388,7 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 						var id uint64
 						err = ringMemberStmt.QueryRow(txHash, vinIdx, pos, gi).Scan(&id)
 						if err != nil {
-							return nil, fmt.Errorf("XMR: insertRingMember failed: %v", err)
+							log.Warnf("XMR: insertRingMember - Looks like duplicate on db, ignore: %v", err)
 						}
 					}
 					if !isCoinbase {
@@ -411,7 +411,7 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 						var id uint64
 						err = keyImgStmt.QueryRow(ki, nil, nil, txHash, blockHeight, time.Now().Unix()).Scan(&id)
 						if err != nil {
-							return nil, fmt.Errorf("XMR: insertKeyImage failed: %v", err)
+							log.Warnf("XMR: insertKeyImage - Looks like duplicate on db, ignore: %v", err)
 						}
 					}
 				}
@@ -439,7 +439,7 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 		err = rctDataStmt.QueryRow(txHash, rctJSON, xmrhelper.NullStringToInterface(rctPrunableHash), xmrhelper.NullIntToInterfaceInt(rctType)).Scan(&rctId)
 		// insert into monero_outputs
 		if err != nil {
-			return nil, fmt.Errorf("XMR: insertRctData failed: %v", err)
+			log.Warnf("XMR: insertRctData - Looks like duplicate on db, ignore: %v", err)
 		}
 	}
 	// done
@@ -665,8 +665,7 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 		xmrhelper.NullIntToInterface(rctType), xmrhelper.NullStringToInterface(txPubKey),
 		prunableSize, lockTime, expiry, size, spent, sent, fees, numVin, pq.Array(vins), numVout).Scan(&id)
 	if err != nil {
-		log.Errorf("XMR: Insert to transactions table unsuccessfully. Txhash: %s", txHash)
-		return 0, 0, 0, err
+		log.Warnf("XMR: InsertXMRTxn - Looks like duplicate on db, ignore: %v", err)
 	}
 	return id, fees, size, nil
 }

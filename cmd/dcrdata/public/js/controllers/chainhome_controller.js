@@ -240,17 +240,19 @@ export default class extends Controller {
   }
 
   disconnect () {
-    switch (this.chainType) {
-      case 'ltc':
-        globalEventBus.off('LTC_BLOCK_RECEIVED', this.processBlock)
-        break
-      case 'btc':
-        globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBlock)
+    if (this.chainType !== 'xmr') {
+      switch (this.chainType) {
+        case 'ltc':
+          globalEventBus.off('LTC_BLOCK_RECEIVED', this.processBlock)
+          break
+        case 'btc':
+          globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBlock)
+      }
+      globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
+      this.ws.close()
+      window.removeEventListener('resize', this.resizeEvent)
+      window.removeEventListener('load', this.loadEvent)
     }
-    globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
-    this.ws.close()
-    window.removeEventListener('resize', this.resizeEvent)
-    window.removeEventListener('load', this.loadEvent)
   }
 
   _processBlock (blockData) {
