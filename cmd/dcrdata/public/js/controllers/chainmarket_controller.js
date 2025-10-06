@@ -1876,21 +1876,34 @@ export default class extends Controller {
   }
 
   changeExchangeSetting () {
-    const selectedExchanges = this.getSelectedExchanges().join(',')
+    const selectedExchangeList = this.getSelectedExchanges()
+    const selectedExchanges = selectedExchangeList.join(',')
+    let availableCandleStick = false
+    console.log('before chart: ', settings.chart)
+    console.log('selected exchanged: ', selectedExchanges)
     if (settings.chart === 'history' || settings.chart === 'volume') {
       settings.xcs = selectedExchanges
+      availableCandleStick = true
+      selectedExchangeList.forEach((selectedToken) => {
+        if (!availableCandlesticks[selectedToken]) {
+          availableCandleStick = false
+        }
+      })
+      console.log('availableCaneldestick: ', availableCandleStick)
     } else {
       settings.xc = selectedExchanges
+      availableCandleStick = availableCandlesticks[settings.xc]
     }
     this.setExchangeName()
     if (usesCandlesticks(settings.chart)) {
-      if (!availableCandlesticks[settings.xc]) {
+      if (!availableCandleStick) {
         // exchange does not have candlestick data
         // show the depth chart.
         settings.chart = depth
       } else {
         this.justifyBins()
       }
+      console.log('after chart: ', settings.chart)
     }
     this.setButtons()
   }

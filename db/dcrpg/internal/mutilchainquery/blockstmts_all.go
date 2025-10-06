@@ -229,7 +229,7 @@ ORDER BY a.height ASC;`
     	FROM xmrblocks_all
     	ORDER BY height DESC
     	LIMIT 1000
-	) AS recent_blocks`
+	) AS recent_blocks;`
 )
 
 func MakeSelectBlockAllStats(chainType string) string {

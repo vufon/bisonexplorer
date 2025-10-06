@@ -372,13 +372,14 @@ type ExplorerUI struct {
 	displaySyncStatusPage atomic.Value
 	politeiaURL           string
 
-	invsMtx         sync.RWMutex
-	invs            *types.MempoolInfo
-	LtcMempoolInfo  *types.MutilchainMempoolInfo
-	BtcMempoolInfo  *types.MutilchainMempoolInfo
-	premine         int64
-	CoinCaps        []string
-	CoinCapDataList []*dbtypes.MarketCapData
+	invsMtx             sync.RWMutex
+	invs                *types.MempoolInfo
+	LtcMempoolInfo      *types.MutilchainMempoolInfo
+	BtcMempoolInfo      *types.MutilchainMempoolInfo
+	premine             int64
+	CoinCaps            []string
+	CoinCapDataList     []*dbtypes.MarketCapData
+	startSyncXMRSummary bool
 }
 
 // AreDBsSyncing is a thread-safe way to fetch the boolean in dbsSyncing.
@@ -1177,6 +1178,61 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 	return nil
 }
 
+func (exp *ExplorerUI) handlerUpdateXMRSummaryData() {
+	lastBlockHeight := exp.dataSource.MutilchainHeight(mutilchain.TYPEXMR)
+	log.Infof("XMR: Start update Monero explorer summary data. Last block height: %d", lastBlockHeight)
+	simpleSummaryInfo, err := exp.dataSource.GetXMRSummaryInfo()
+	if err == nil {
+		p := exp.XmrPageData
+		p.Lock()
+		p.HomeInfo.TotalOutputs = simpleSummaryInfo.TotalOutputs
+		p.HomeInfo.TotalInputs = simpleSummaryInfo.TotalInputs
+		p.HomeInfo.UseRingctRate = simpleSummaryInfo.UseRingCtRate
+		p.HomeInfo.TotalRingSize = simpleSummaryInfo.TotalRingMembers
+		p.HomeInfo.FeesPerBlock = simpleSummaryInfo.AvgFeePerBlock
+		p.Unlock()
+	} else {
+		log.Errorf("XMR: Get summary info failed: %v", err)
+	}
+	sumTxFees24h, avgTxFees24h, err := exp.dataSource.GetMultichain24hSumAndAvgTxFee(mutilchain.TYPEXMR)
+	if err != nil {
+		log.Errorf("XMR: Get 24h tx fees SUM/AVG failed. Error: %v", err)
+	} else {
+		p := exp.XmrPageData
+		p.Lock()
+		p.HomeInfo.TxFeeAvg24h = avgTxFees24h
+		p.HomeInfo.TxFeeSum24h = sumTxFees24h
+		p.Unlock()
+	}
+	log.Infof("XMR: Finish update Monero explorer summary data. Last block height: %d", lastBlockHeight)
+}
+
+// Generate xmr summary update each 30 minute
+func (exp *ExplorerUI) UpdateXMRSummaryData(stop <-chan struct{}) error {
+	xmrMempoolUpdateInterval := 30 * time.Minute
+	ticker := time.NewTicker(xmrMempoolUpdateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			exp.handlerUpdateXMRSummaryData()
+			// TODO: send to websocket
+			// go func() {
+			// 	select {
+			// 	case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewXMRBlock}:
+			// 	case <-time.After(time.Second * 20):
+			// 		log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
+			// 	}
+			// }()
+
+		case <-stop:
+			log.Infof("XMR: Stop update xmr summary data")
+			return nil
+		}
+	}
+}
+
 func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	// // Retrieve block data for the passed block hash.
 	newBlockData := exp.dataSource.GetXMRExplorerBlock(int64(blockData.Header.Height))
@@ -1212,16 +1268,11 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	coinValueSupply := utils.AtomicToXMR(coinSupply)
 	hashrate := difficulty / targetTimePerBlock
 	totalTransactionCount := blockchainInfo.TxCount
-	simpleSummaryInfo, err := exp.dataSource.GetXMRSummaryInfo()
-	if err != nil {
-		return err
-	}
 	// get multichain stats from blockchair
 	totalAddresses := int64(0)
 	volume24h := float64(0)
 	volume24hInt := int64(0)
 	nodes := int64(0)
-	avgTxFees24h := int64(0)
 	if exp.xcBot != nil && exp.xcBot.State() != nil {
 		volumeUSDFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPEXMR)
 		price24h := exp.xcBot.State().XMRPrice
@@ -1230,9 +1281,13 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 			volume24hInt = utils.XMRToAtomic(volume24h)
 		}
 	}
-	sumTxFees24h, avgTxFees24h, err := exp.dataSource.GetMultichain24hSumAndAvgTxFee(mutilchain.TYPEXMR)
-	if err != nil {
-		log.Warnf("XMR: Get 24h tx fees SUM/AVG failed. Error: %v", err)
+	// start for sync summary data (only first time)
+	if !exp.startSyncXMRSummary {
+		exp.startSyncXMRSummary = true
+		// call first time for update xmr summary data
+		exp.handlerUpdateXMRSummaryData()
+		// call for ticker (update after every 30 minutes)
+		go exp.UpdateXMRSummaryData(make(chan struct{}))
 	}
 	blocks := exp.dataSource.GetMutilchainExplorerFullBlocks(mutilchain.TYPEXMR, int(newBlockData.Height)-MultichainHomepageBlocksMaxCount, int(newBlockData.Height))
 	// nodes = chainStats.Nodes
@@ -1260,16 +1315,9 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.BlockReward = int64(blockData.Header.Reward)
 	// p.HomeInfo.SubsidyInterval = int64(exp.LtcChainParams.SubsidyReductionInterval)
 	p.HomeInfo.TotalAddresses = totalAddresses
-	p.HomeInfo.TotalOutputs = simpleSummaryInfo.TotalOutputs
-	p.HomeInfo.TotalInputs = simpleSummaryInfo.TotalInputs
-	p.HomeInfo.UseRingctRate = simpleSummaryInfo.UseRingCtRate
-	p.HomeInfo.TotalRingSize = simpleSummaryInfo.TotalRingMembers
-	p.HomeInfo.FeesPerBlock = simpleSummaryInfo.AvgFeePerBlock
 	p.HomeInfo.Nodes = nodes
 	p.HomeInfo.Volume24hFloat = volume24h
 	p.HomeInfo.Volume24h = volume24hInt
-	p.HomeInfo.TxFeeAvg24h = avgTxFees24h
-	p.HomeInfo.TxFeeSum24h = sumTxFees24h
 	p.HomeInfo.TargetTimePerBlock = targetTimePerBlock
 	p.BlockDetails = blocks
 	p.Unlock()
@@ -1525,14 +1573,14 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 			exp.XmrPageData.MempoolData = &mp
 			exp.XmrPageData.Unlock()
 
-			// send to websocket
-			go func() {
-				select {
-				case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewLTCBlock}:
-				case <-time.After(time.Second * 20):
-					log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
-				}
-			}()
+			// TODO: send to websocket
+			// go func() {
+			// 	select {
+			// 	case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewLTCBlock}:
+			// 	case <-time.After(time.Second * 20):
+			// 		log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
+			// 	}
+			// }()
 
 		case <-stop:
 			log.Infof("XMR: Stop polling mempool")
