@@ -91,6 +91,10 @@
   cursor: pointer;
   font-weight: 600;
   font-size: 15px;
+
+  :hover {
+    background: #5ea7d1;
+  }
 }
 
 .btn-explorer[disabled] {

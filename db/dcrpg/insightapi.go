@@ -422,6 +422,8 @@ func (pgb *ChainDB) SpendDetailsForFundingTx(fundHash string) ([]*apitypes.Spend
 }
 
 func (pgb *ChainDB) MoneroDecodeOutputs(txid, address, viewkey string) (*xmrclient.DecodedTx, error) {
+	pgb.xmrDecodeMutex.Lock()
+	defer pgb.xmrDecodeMutex.Unlock()
 	// get tx object
 	txs, err := pgb.XmrClient.GetTransactions([]string{txid}, true)
 	if err != nil {
@@ -438,6 +440,8 @@ func (pgb *ChainDB) MoneroDecodeOutputs(txid, address, viewkey string) (*xmrclie
 }
 
 func (pgb *ChainDB) MoneroProveOutputs(txid, address, txkey string) (*xmrclient.ProveByTxKeyResult, error) {
+	pgb.xmrProveMutex.Lock()
+	defer pgb.xmrProveMutex.Unlock()
 	tempWalletName := "prove_wallet"
 	return xmrclient.ProveByTxKey(pgb.ctx, pgb.xmrWalletCfg.xmrProveRpc, pgb.xmrWalletCfg.xmrProveAuth, pgb.xmrWalletCfg.xmrProveDir, tempWalletName, txid, txkey, address)
 }

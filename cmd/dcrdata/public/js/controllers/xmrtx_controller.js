@@ -1,6 +1,16 @@
 import { Controller } from '@hotwired/stimulus'
 import { requestJSON } from '../helpers/http'
 
+async function requestWithTimeout (url, ms = 90_000) {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), ms)
+  try {
+    return await requestJSON(url, { signal: ctrl.signal })
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export default class extends Controller {
   static get targets () {
     return ['inputAddress', 'inputViewKey', 'inputTxPrivateKey',
@@ -80,8 +90,27 @@ export default class extends Controller {
     this.decodePanelTarget.classList.add('tag-loading')
     // call api
     const url = `/api/xmr/decode-output?txid=${this.txid}&address=${address}&viewkey=${viewkey}`
-    const response = await requestJSON(url)
+    let response
+    try {
+      response = await requestWithTimeout(url, 120_000)
+    } catch (err) {
+      this.decodePanelTarget.classList.remove('tag-loading')
+      if (err.name === 'AbortError') {
+        this.decodeOuputsMsgTarget.classList.remove('d-none')
+        this.decodeOuputsMsgTarget.textContent = 'The request timed out or failed. Please check or try again.'
+        return
+      } else {
+        this.decodeOuputsMsgTarget.classList.remove('d-none')
+        this.decodeOuputsMsgTarget.textContent = 'an error occurred.'
+        return
+      }
+    }
     this.decodePanelTarget.classList.remove('tag-loading')
+    if (!response) {
+      this.decodeOuputsMsgTarget.classList.remove('d-none')
+      this.decodeOuputsMsgTarget.textContent = 'get response from api failed'
+      return
+    }
     if (response.err) {
       this.decodeOuputsMsgTarget.classList.remove('d-none')
       this.decodeOuputsMsgTarget.textContent = response.msg
@@ -113,8 +142,27 @@ export default class extends Controller {
     this.provePanelTarget.classList.add('tag-loading')
     // call api
     const url = `/api/xmr/prove-tx?txid=${this.txid}&address=${address}&txkey=${txkey}`
-    const response = await requestJSON(url)
+    let response
+    try {
+      response = await requestWithTimeout(url, 120_000)
+    } catch (err) {
+      this.provePanelTarget.classList.remove('tag-loading')
+      if (err.name === 'AbortError') {
+        this.proveTxMsgTarget.classList.remove('d-none')
+        this.proveTxMsgTarget.textContent = 'The request timed out or failed. Please check or try again.'
+        return
+      } else {
+        this.proveTxMsgTarget.classList.remove('d-none')
+        this.proveTxMsgTarget.textContent = 'an error occurred.'
+        return
+      }
+    }
     this.provePanelTarget.classList.remove('tag-loading')
+    if (!response) {
+      this.proveTxMsgTarget.classList.remove('d-none')
+      this.proveTxMsgTarget.textContent = 'get response from api failed'
+      return
+    }
     if (response.err) {
       this.proveTxMsgTarget.classList.remove('d-none')
       this.proveTxMsgTarget.textContent = response.msg
