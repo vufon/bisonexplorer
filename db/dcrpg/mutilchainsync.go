@@ -2279,6 +2279,10 @@ func (pgb *ChainDB) SyncBulkXMRBlockSummaryData() {
 		log.Errorf("XMR: Get remaining blocks height list for sync block summary failed: %v", err)
 		return
 	}
+	if len(remaingHeights) <= 0 {
+		log.Infof("XMR: No remaining blocks for sync summary data")
+		return
+	}
 	currentHeight := remaingHeights[0]
 	// handler for each block
 	for _, syncHeight := range remaingHeights {

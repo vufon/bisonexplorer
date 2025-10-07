@@ -23,6 +23,7 @@ import (
 	"github.com/decred/dcrdata/v8/db/dbtypes/internal"
 	"github.com/decred/dcrdata/v8/mutilchain"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/utils"
 )
 
 var scriptClassNames map[string]ScriptClass
@@ -2585,6 +2586,8 @@ func GetMutilchainCoinAmount(amount int64, chainType string) float64 {
 		return btcutil.Amount(amount).ToBTC()
 	case mutilchain.TYPELTC:
 		return ltcutil.Amount(amount).ToBTC()
+	case mutilchain.TYPEXMR:
+		return utils.AtomicToXMR(uint64(amount))
 	default:
 		return dcrutil.Amount(amount).ToCoin()
 	}
@@ -2604,6 +2607,8 @@ func GetMutilchainUnitAmount(coinAmount float64, chainType string) int64 {
 			return 0
 		}
 		return int64(amount)
+	case mutilchain.TYPEXMR:
+		return utils.XMRToAtomic(coinAmount)
 	default:
 		amount, err := dcrutil.NewAmount(coinAmount)
 		if err != nil {

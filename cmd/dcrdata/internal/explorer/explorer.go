@@ -1623,6 +1623,8 @@ func (exp *ExplorerUI) GetMutilchainChartData(chainType string) *cache.Mutilchai
 		return exp.BtcChartSource
 	case mutilchain.TYPELTC:
 		return exp.LtcChartSource
+	case mutilchain.TYPEXMR:
+		return exp.XmrChartSource
 	default:
 		return nil
 	}

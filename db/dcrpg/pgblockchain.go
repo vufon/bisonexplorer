@@ -370,6 +370,7 @@ type ChainDB struct {
 		// commonly retrieved when the explorer block is updated.
 		difficulties map[int64]float64
 	}
+	xmrWalletCfg              *XmrWalletRpcCfg
 	coinAgeSync               sync.Mutex
 	utxoHistorySync           sync.Mutex
 	multichainBtcMetaInfoSync sync.Mutex
@@ -379,6 +380,17 @@ type ChainDB struct {
 	xmrWholeSyncMtx           sync.Mutex
 	btc20BlocksSyncMtx        sync.Mutex
 	ltc20BlocksSyncMtx        sync.Mutex
+	xmrDecodeMutex            sync.Mutex
+	xmrProveMutex             sync.Mutex
+}
+
+type XmrWalletRpcCfg struct {
+	xmrWalletRpc string
+	xmrProveRpc  string
+	xmrRpcAuth   string
+	xmrProveAuth string
+	xmrWalletDir string
+	xmrProveDir  string
 }
 
 // ChainDeployments is mutex-protected blockchain deployment data.
@@ -571,6 +583,12 @@ type ChainDBCfg struct {
 	SyncChainDBFlag                   bool
 	XmrSyncFlag                       bool
 	OkLinkAPIKey                      string
+	XmrWalletRpc                      string
+	XmrProveRpc                       string
+	XmrRpcAuth                        string
+	XmrProveAuth                      string
+	XmrWalletDir                      string
+	XmrProveDir                       string
 }
 
 // The minimum required PostgreSQL version in integer format as returned by
@@ -860,6 +878,14 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		SyncChainDBFlag:    cfg.SyncChainDBFlag,
 		XmrSyncFlag:        cfg.XmrSyncFlag,
 		OkLinkAPIKey:       cfg.OkLinkAPIKey,
+		xmrWalletCfg: &XmrWalletRpcCfg{
+			xmrWalletRpc: cfg.XmrWalletRpc,
+			xmrProveRpc:  cfg.XmrProveRpc,
+			xmrRpcAuth:   cfg.XmrRpcAuth,
+			xmrProveAuth: cfg.XmrProveAuth,
+			xmrWalletDir: cfg.XmrWalletDir,
+			xmrProveDir:  cfg.XmrProveDir,
+		},
 	}
 	chainDB.lastExplorerBlock.difficulties = make(map[int64]float64)
 	// Update the current chain state in the ChainDB
@@ -1506,6 +1532,8 @@ func (pgb *ChainDB) MutilchainBestBlockTime(chainType string) int64 {
 		return pgb.LtcBestBlock.MutilchainTime()
 	case mutilchain.TYPEBTC:
 		return pgb.BtcBestBlock.MutilchainTime()
+	case mutilchain.TYPEXMR:
+		return pgb.XmrBestBlock.MutilchainTime()
 	default:
 		return 0
 	}
@@ -4221,6 +4249,12 @@ func (pgb *ChainDB) GetMutilchainHashHeight(chainType string) (hash string, heig
 		}
 		hash = chainHash.String()
 		height = ltcheight
+	case mutilchain.TYPEXMR:
+		if pgb.XmrBestBlock.Hash == "" {
+			return "", 0
+		}
+		hash = pgb.XmrBestBlock.Hash
+		height = pgb.XmrBestBlock.Height
 	default:
 		chainHash, dcrheight := pgb.BestBlock()
 		hash = chainHash.String()
@@ -9944,7 +9978,6 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 	numVout := 0
 	txSent := int64(0)
 	var ringSizes []int
-	var ringSize int
 	var parsedExtra *exptypes.XmrTxExtra
 	// var hexExtra string
 	outputs := make([]exptypes.XmrOutputInfo, 0)
@@ -10216,6 +10249,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			outputs[idex].GlobalIndex = int64(txData.OutputIndices[idex])
 		}
 	}
+	rSize := utils.AvgOfArrayInt(ringSizes)
 	return &exptypes.TxInfo{
 		XmrTxBasic: &exptypes.XmrTxBasic{
 			XmrFee:         uint64(fees),
@@ -10229,7 +10263,8 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			Rct:            rctData,
 			ExtraParsed:    parsedExtra,
 			UnlockTime:     uint64(lockTime),
-			Mixin:          ringSize - 1,
+			Mixin:          rSize - 1,
+			RingSize:       rSize,
 			ExtraRaw:       parsedExtra.RawHex,
 			RawHex:         txHex,
 			RingCT:         ringCT,

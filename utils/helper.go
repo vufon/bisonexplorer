@@ -282,3 +282,15 @@ func BTCToSatoshi(btcAmount float64) int64 {
 func GetCirculatingSupplyXMR(height uint64) float64 {
 	return float64(GetCirculatingSupply(height)) / float64(XmrAtomicUnit)
 }
+
+func AvgOfArrayInt(array []int) int {
+	if len(array) == 0 {
+		return 0
+	}
+	sum := int(0)
+	for _, item := range array {
+		sum += item
+	}
+	res := int(math.Round(float64(sum) / float64(len(array))))
+	return res
+}

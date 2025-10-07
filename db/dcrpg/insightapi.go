@@ -6,6 +6,7 @@ package dcrpg
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/decred/dcrdata/v8/mutilchain/btcrpcutils"
 	"github.com/decred/dcrdata/v8/mutilchain/ltcrpcutils"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/xmr/xmrclient"
 )
 
 // GetLTCTransactionByHash gets a wire.MsgTx for the specified transaction hash.
@@ -247,6 +249,12 @@ func (pgb *ChainDB) MutilchainValidBlockhash(hash string, chainType string) bool
 		return btcrpcutils.IsValidBlockHash(pgb.BtcClient, hash)
 	case mutilchain.TYPELTC:
 		return ltcrpcutils.IsValidBlockHash(pgb.LtcClient, hash)
+	case mutilchain.TYPEXMR:
+		bh, err := pgb.XmrClient.GetBlockHeaderByHash(hash)
+		if err != nil || bh.Hash == "" {
+			return false
+		}
+		return true
 	default:
 		return false
 	}
@@ -258,6 +266,12 @@ func (pgb *ChainDB) MutilchainValidTxhash(hash string, chainType string) bool {
 		return btcrpcutils.IsValidTxHash(pgb.BtcClient, hash)
 	case mutilchain.TYPELTC:
 		return ltcrpcutils.IsValidTxHash(pgb.LtcClient, hash)
+	case mutilchain.TYPEXMR:
+		txsData, err := pgb.XmrClient.GetTransactions([]string{hash}, true)
+		if err != nil || len(txsData.Txs) <= 0 {
+			return false
+		}
+		return true
 	default:
 		return false
 	}
@@ -417,4 +431,29 @@ func (pgb *ChainDB) SpendDetailsForFundingTx(fundHash string) ([]*apitypes.Spend
 		return nil, pgb.replaceCancelError(err)
 	}
 	return addrRow, nil
+}
+
+func (pgb *ChainDB) MoneroDecodeOutputs(txid, address, viewkey string) (*xmrclient.DecodedTx, error) {
+	pgb.xmrDecodeMutex.Lock()
+	defer pgb.xmrDecodeMutex.Unlock()
+	// get tx object
+	txs, err := pgb.XmrClient.GetTransactions([]string{txid}, true)
+	if err != nil {
+		return nil, err
+	}
+	if len(txs.Txs) == 0 {
+		return nil, fmt.Errorf("XMR: txs result is empty")
+	}
+	txData := txs.Txs[0]
+	restoreBlock := txData.BlockHeight
+	// call decode outputs function
+	return xmrclient.DecodeOutputs(pgb.ctx, pgb.xmrWalletCfg.xmrWalletRpc, pgb.xmrWalletCfg.xmrRpcAuth, pgb.xmrWalletCfg.xmrWalletDir,
+		address, viewkey, txid, uint64(restoreBlock), 10, 90*time.Second)
+}
+
+func (pgb *ChainDB) MoneroProveOutputs(txid, address, txkey string) (*xmrclient.ProveByTxKeyResult, error) {
+	pgb.xmrProveMutex.Lock()
+	defer pgb.xmrProveMutex.Unlock()
+	tempWalletName := "prove_wallet"
+	return xmrclient.ProveByTxKey(pgb.ctx, pgb.xmrWalletCfg.xmrProveRpc, pgb.xmrWalletCfg.xmrProveAuth, pgb.xmrWalletCfg.xmrProveDir, tempWalletName, txid, txkey, address)
 }
