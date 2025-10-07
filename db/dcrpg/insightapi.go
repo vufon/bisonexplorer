@@ -249,6 +249,12 @@ func (pgb *ChainDB) MutilchainValidBlockhash(hash string, chainType string) bool
 		return btcrpcutils.IsValidBlockHash(pgb.BtcClient, hash)
 	case mutilchain.TYPELTC:
 		return ltcrpcutils.IsValidBlockHash(pgb.LtcClient, hash)
+	case mutilchain.TYPEXMR:
+		bh, err := pgb.XmrClient.GetBlockHeaderByHash(hash)
+		if err != nil || bh.Hash == "" {
+			return false
+		}
+		return true
 	default:
 		return false
 	}
@@ -260,6 +266,12 @@ func (pgb *ChainDB) MutilchainValidTxhash(hash string, chainType string) bool {
 		return btcrpcutils.IsValidTxHash(pgb.BtcClient, hash)
 	case mutilchain.TYPELTC:
 		return ltcrpcutils.IsValidTxHash(pgb.LtcClient, hash)
+	case mutilchain.TYPEXMR:
+		txsData, err := pgb.XmrClient.GetTransactions([]string{hash}, true)
+		if err != nil || len(txsData.Txs) <= 0 {
+			return false
+		}
+		return true
 	default:
 		return false
 	}

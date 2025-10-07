@@ -1532,6 +1532,8 @@ func (pgb *ChainDB) MutilchainBestBlockTime(chainType string) int64 {
 		return pgb.LtcBestBlock.MutilchainTime()
 	case mutilchain.TYPEBTC:
 		return pgb.BtcBestBlock.MutilchainTime()
+	case mutilchain.TYPEXMR:
+		return pgb.XmrBestBlock.MutilchainTime()
 	default:
 		return 0
 	}
@@ -4247,6 +4249,12 @@ func (pgb *ChainDB) GetMutilchainHashHeight(chainType string) (hash string, heig
 		}
 		hash = chainHash.String()
 		height = ltcheight
+	case mutilchain.TYPEXMR:
+		if pgb.XmrBestBlock.Hash == "" {
+			return "", 0
+		}
+		hash = pgb.XmrBestBlock.Hash
+		height = pgb.XmrBestBlock.Height
 	default:
 		chainHash, dcrheight := pgb.BestBlock()
 		hash = chainHash.String()
