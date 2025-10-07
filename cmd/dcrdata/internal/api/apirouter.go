@@ -311,6 +311,11 @@ func NewAPIRouter(app *appContext, JSONIndent string, useRealIP, compressLarge b
 		r.Get("/", app.broadcastTx)
 	})
 
+	mux.Route("/xmr", func(r chi.Router) {
+		r.Get("/decode-output", app.MoneroDecodeOutputs)
+		r.Get("/prove-tx", app.MoneroProveTx)
+	})
+
 	mux.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, r.URL.RequestURI()+" ain't no country I've ever heard of! (404)", http.StatusNotFound)
 	})

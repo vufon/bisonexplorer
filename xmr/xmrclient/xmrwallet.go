@@ -16,9 +16,9 @@ import (
 )
 
 type ProveByTxKeyResult struct {
-	Received      uint64 // atomic units (piconero)
-	InPool        bool
-	Confirmations uint64
+	Received      uint64 `json:"received"`
+	InPool        bool   `json:"inPool"`
+	Confirmations uint64 `json:"confirmations"`
 }
 
 type DecodedTx struct {
@@ -58,6 +58,46 @@ func ProveByTxKey(
 	if walletFilesDir == "" {
 		return nil, errors.New("walletFilesDir is required and must match monero-wallet-rpc --wallet-dir")
 	}
+
+	allowWipeHome := false
+	cleanup := func() error {
+		abs, err := filepath.Abs(walletFilesDir)
+		if err != nil {
+			return fmt.Errorf("cleanup: cannot resolve abs path: %w", err)
+		}
+		if abs == "/" {
+			return fmt.Errorf("cleanup: refusing to wipe root '/'")
+		}
+		if home, _ := os.UserHomeDir(); !allowWipeHome && home != "" && abs == home {
+			return fmt.Errorf("cleanup: refusing to wipe user home directory %q (set allowWipeHome=true to override)", home)
+		}
+		if len(abs) < 4 {
+			return fmt.Errorf("cleanup: path %q too short, refusing to wipe", abs)
+		}
+
+		// best-effort close wallet so files can be removed
+		shortCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "close_wallet", nil)
+
+		entries, err := os.ReadDir(abs)
+		if err != nil {
+			return fmt.Errorf("cleanup: ReadDir failed for %q: %w", abs, err)
+		}
+		for _, e := range entries {
+			p := filepath.Join(abs, e.Name())
+			if err := os.RemoveAll(p); err != nil {
+				return fmt.Errorf("cleanup: RemoveAll failed for %q: %w", p, err)
+			}
+		}
+		// ensure dir exists (recreate if necessary)
+		if err := os.MkdirAll(abs, 0700); err != nil {
+			return fmt.Errorf("cleanup: MkdirAll failed for %q: %w", abs, err)
+		}
+		log.Printf("cleanup: wiped contents of %q", abs)
+		return nil
+	}
+
 	// Ensure cleanup runs synchronously before function returns and errors are propagated.
 	var retErr error
 	// Ensure wallet open using walletFilesDir context (this helper uses open/create RPCs).
@@ -65,9 +105,29 @@ func ProveByTxKey(
 		walletName = "prove_wallet"
 	}
 
-	if err := ensureWalletOpenWithDir(ctx, rpcURL, rpcAuth, walletFilesDir, walletName); err != nil {
-		retErr = fmt.Errorf("ensure wallet open failed: %v", err)
-		return nil, retErr
+	existsBefore := walletFilesExist(walletFilesDir, walletName)
+	if existsBefore {
+		_, _ = callWalletRPC(ctx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{"filename": walletName, "password": ""})
+	} else {
+		if cerr := cleanup(); cerr != nil {
+			return nil, cerr
+		}
+		_, createErr := callWalletRPC(ctx, rpcURL, rpcAuth, "create_wallet", map[string]interface{}{
+			"filename": walletName,
+			"password": "",
+			"language": "English",
+		})
+		if createErr != nil {
+			return nil, fmt.Errorf("create_wallet failed: %v", createErr)
+		}
+		// create_wallet normally opens it; still call open to be safe
+		_, openErr := callWalletRPC(ctx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{
+			"filename": walletName,
+			"password": "",
+		})
+		if openErr != nil {
+			return nil, fmt.Errorf("open_wallet after create failed: %v", openErr)
+		}
 	}
 
 	// give wallet-rpc a short settle time
@@ -462,68 +522,6 @@ func makeWatchWalletFilename(address, viewKey string) string {
 		shortAddr = shortAddr[:12]
 	}
 	return fmt.Sprintf("watch_%s_%s", shortAddr, shortHash)
-}
-
-func ensureWalletOpenWithDir(ctx context.Context, rpcURL, rpcAuth, walletFilesDir, walletName string) error {
-	if walletName == "" {
-		return errors.New("walletName required to ensure wallet open")
-	}
-	if walletFilesDir == "" {
-		return errors.New("walletFilesDir required")
-	}
-
-	// If the file appears to be present on disk, prefer open_wallet; else try create_wallet.
-	// Note: open_wallet uses filename relative to wallet-dir configured in monero-wallet-rpc.
-	existsOnDisk := false
-	// quick check: look for any file that starts with walletName in walletFilesDir
-	pattern := filepath.Join(walletFilesDir, walletName+"*")
-	if matches, _ := filepath.Glob(pattern); len(matches) > 0 {
-		existsOnDisk = true
-	}
-
-	// Try open_wallet first
-	_, err := callWalletRPC(ctx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{
-		"filename": walletName,
-		"password": "",
-	})
-	if err == nil {
-		return nil
-	}
-	errStr := strings.ToLower(err.Error())
-
-	// treat "already open" as OK
-	if strings.Contains(errStr, "is open in another process") || strings.Contains(errStr, "wallet is already open") {
-		return nil
-	}
-
-	// if file not found or not exists — try create_wallet
-	if strings.Contains(errStr, "file not found") ||
-		strings.Contains(errStr, "no such file") ||
-		strings.Contains(errStr, "wallet file not found") ||
-		strings.Contains(errStr, "wallet file does not exist") || !existsOnDisk {
-
-		// create_wallet (will create under the wallet-dir configured in the RPC)
-		_, createErr := callWalletRPC(ctx, rpcURL, rpcAuth, "create_wallet", map[string]interface{}{
-			"filename": walletName,
-			"password": "",
-			"language": "English",
-		})
-		if createErr != nil {
-			return fmt.Errorf("create_wallet failed: %v (original open error: %v)", createErr, err)
-		}
-		// create_wallet normally opens it; still call open to be safe
-		_, openErr := callWalletRPC(ctx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{
-			"filename": walletName,
-			"password": "",
-		})
-		if openErr != nil {
-			return fmt.Errorf("open_wallet after create failed: %v", openErr)
-		}
-		return nil
-	}
-
-	// otherwise return original error
-	return fmt.Errorf("open_wallet failed: %v", err)
 }
 
 func parseUintFromInterface(v interface{}) (uint64, error) {
