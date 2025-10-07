@@ -45,6 +45,351 @@ type rpcResponse struct {
 	} `json:"error,omitempty"`
 }
 
+func ProveByTxKey(
+	ctx context.Context,
+	rpcURL, rpcAuth, walletFilesDir, walletName,
+	txid, txKey, address string,
+) (*ProveByTxKeyResult, error) {
+
+	// basic validation
+	if txid == "" || txKey == "" || address == "" {
+		return nil, errors.New("txid, txKey and address are required")
+	}
+	if walletFilesDir == "" {
+		return nil, errors.New("walletFilesDir is required and must match monero-wallet-rpc --wallet-dir")
+	}
+	// Ensure cleanup runs synchronously before function returns and errors are propagated.
+	var retErr error
+	// Ensure wallet open using walletFilesDir context (this helper uses open/create RPCs).
+	if walletName == "" {
+		walletName = "prove_wallet"
+	}
+
+	if err := ensureWalletOpenWithDir(ctx, rpcURL, rpcAuth, walletFilesDir, walletName); err != nil {
+		retErr = fmt.Errorf("ensure wallet open failed: %v", err)
+		return nil, retErr
+	}
+
+	// give wallet-rpc a short settle time
+	time.Sleep(200 * time.Millisecond)
+
+	// prepare params & call check_tx_key (like before)
+	params := map[string]interface{}{
+		"txid":    txid,
+		"tx_key":  txKey,
+		"address": address,
+	}
+
+	raw, err := callWalletRPC(ctx, rpcURL, rpcAuth, "check_tx_key", params)
+	if err != nil {
+		retErr = fmt.Errorf("check_tx_key rpc error: %w", err)
+		return nil, retErr
+	}
+
+	// parse result
+	var m map[string]interface{}
+	if err := json.Unmarshal(raw, &m); err != nil {
+		retErr = fmt.Errorf("failed to unmarshal check_tx_key result: %w", err)
+		return nil, retErr
+	}
+
+	var res ProveByTxKeyResult
+	if v, ok := m["received"]; ok {
+		if val, err := parseUintFromInterface(v); err == nil {
+			res.Received = val
+		}
+	}
+	if v, ok := m["in_pool"]; ok {
+		res.InPool = safeBool(v)
+	}
+	if v, ok := m["confirmations"]; ok {
+		if val, err := parseUintFromInterface(v); err == nil {
+			res.Confirmations = val
+		}
+	}
+	return &res, nil
+}
+
+func DecodeOutputs(
+	ctx context.Context,
+	rpcURL, rpcAuth, walletFilesDir,
+	address, viewKey, txid string,
+	txHeight, margin uint64,
+	pollTimeout time.Duration,
+) (result *DecodedTx, retErr error) {
+
+	// Named returns used so defer cleanup can append errors.
+	// Basic validation
+	if address == "" || viewKey == "" {
+		return nil, errors.New("address and viewKey are required")
+	}
+	if txid == "" {
+		return nil, errors.New("txid is required")
+	}
+	if walletFilesDir == "" {
+		return nil, errors.New("walletFilesDir is required and must match monero-wallet-rpc --wallet-dir")
+	}
+
+	allowWipeHome := false
+	cleanup := func() error {
+		abs, err := filepath.Abs(walletFilesDir)
+		if err != nil {
+			return fmt.Errorf("cleanup: cannot resolve abs path: %w", err)
+		}
+		if abs == "/" {
+			return fmt.Errorf("cleanup: refusing to wipe root '/'")
+		}
+		if home, _ := os.UserHomeDir(); !allowWipeHome && home != "" && abs == home {
+			return fmt.Errorf("cleanup: refusing to wipe user home directory %q (set allowWipeHome=true to override)", home)
+		}
+		if len(abs) < 4 {
+			return fmt.Errorf("cleanup: path %q too short, refusing to wipe", abs)
+		}
+
+		// best-effort close wallet so files can be removed
+		shortCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "close_wallet", nil)
+
+		entries, err := os.ReadDir(abs)
+		if err != nil {
+			return fmt.Errorf("cleanup: ReadDir failed for %q: %w", abs, err)
+		}
+		for _, e := range entries {
+			p := filepath.Join(abs, e.Name())
+			if err := os.RemoveAll(p); err != nil {
+				return fmt.Errorf("cleanup: RemoveAll failed for %q: %w", p, err)
+			}
+		}
+		// ensure dir exists (recreate if necessary)
+		if err := os.MkdirAll(abs, 0700); err != nil {
+			return fmt.Errorf("cleanup: MkdirAll failed for %q: %w", abs, err)
+		}
+		log.Printf("cleanup: wiped contents of %q", abs)
+		return nil
+	}
+
+	walletFilename := makeWatchWalletFilename(address, viewKey)
+
+	// compute restore_height safely
+	var restoreHeight uint64
+	if txHeight == 0 {
+		restoreHeight = 0
+	} else {
+		if margin > 10000 {
+			margin = 100
+		}
+		if txHeight <= margin {
+			restoreHeight = 0
+		} else {
+			restoreHeight = txHeight - margin
+		}
+	}
+
+	// short context for open/generate attempts
+	shortCtx, cancelShort := context.WithTimeout(ctx, 10*time.Second)
+	defer cancelShort()
+	// Try open or generate (we don't fail hard here)
+	existsBefore := walletFilesExist(walletFilesDir, walletFilename)
+	if existsBefore {
+		_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{"filename": walletFilename, "password": ""})
+	} else {
+		if cerr := cleanup(); cerr != nil {
+			return nil, cerr
+		}
+		genParams := map[string]interface{}{
+			"restore_height": restoreHeight,
+			"filename":       walletFilename,
+			"address":        address,
+			"view_key":       viewKey,
+			"viewkey":        viewKey,
+			"spend_key":      "",
+			"password":       "",
+		}
+		if _, genErr := callWalletRPC(shortCtx, rpcURL, rpcAuth, "generate_from_keys", genParams); genErr != nil {
+			low := strings.ToLower(genErr.Error())
+			if strings.Contains(low, "file already exists") || strings.Contains(low, "already exists") {
+				_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{"filename": walletFilename, "password": ""})
+			} else {
+				// best-effort open even if generate errors (some wrappers return non-fatal errors)
+				_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{"filename": walletFilename, "password": ""})
+			}
+		}
+	}
+
+	// Give the wallet-rpc a brief moment to start scanning after open/generate.
+	// This reduces "Transaction not found" spuriously returned while scan hasn't started.
+	select {
+	case <-time.After(1500 * time.Millisecond):
+	case <-ctx.Done():
+		retErr = ctx.Err()
+		return nil, retErr
+	}
+
+	// Poll get_transfer_by_txid until found / timeout
+	getParams := map[string]interface{}{"txid": txid}
+	deadline := time.Now().Add(pollTimeout)
+	first := true
+
+	for {
+		raw, rpcErr := callWalletRPC(ctx, rpcURL, rpcAuth, "get_transfer_by_txid", getParams)
+
+		// If RPC returned an immediate error that indicates missing wallet file -> fail fast
+		if rpcErr != nil {
+			low := strings.ToLower(rpcErr.Error())
+			if strings.Contains(low, "no wallet file") || strings.Contains(low, "wallet file not found") {
+				retErr = rpcErr
+				return nil, retErr
+			}
+			// For other errors (including "transaction not found"), do NOT treat them as definitive:
+			// wallet may still be scanning or transient RPC state. We'll log and retry until timeout.
+			log.Printf("get_transfer_by_txid transient error (will retry): %v", rpcErr)
+		} else {
+			// Try to detect top-level "error" in the RPC response. If present and not the typical "transaction not found" message,
+			// consider it fatal. But be conservative: many wrappers embed transient msg inside "error" too.
+			var top map[string]json.RawMessage
+			if err := json.Unmarshal(raw, &top); err == nil {
+				if eRaw, ok := top["error"]; ok && len(eRaw) > 0 && string(eRaw) != "null" {
+					// inspect the error payload textually
+					el := strings.ToLower(strings.TrimSpace(string(eRaw)))
+					// If it's definitely not a transient "transaction not found", return it.
+					if !strings.Contains(el, "transaction not found") && !strings.Contains(el, "not found") {
+						retErr = fmt.Errorf("wallet rpc error: %s", strings.TrimSpace(string(eRaw)))
+						return nil, retErr
+					}
+					// otherwise treat as transient and continue retrying
+					log.Printf("get_transfer_by_txid reported not-found (will retry): %s", strings.TrimSpace(string(eRaw)))
+				}
+			}
+
+			// Parse into map[string]json.RawMessage to extract transfer/transfers
+			var mm map[string]json.RawMessage
+			if err := json.Unmarshal(raw, &mm); err != nil {
+				// If parsing fails, that's likely fatal
+				retErr = fmt.Errorf("failed to parse get_transfer_by_txid result: %v", err)
+				return nil, retErr
+			}
+
+			var transferRaw json.RawMessage
+			if v, ok := mm["transfer"]; ok && len(v) > 0 && string(v) != "null" {
+				transferRaw = v
+			} else if v, ok := mm["transfers"]; ok && len(v) > 0 {
+				var arr []json.RawMessage
+				if err := json.Unmarshal(v, &arr); err == nil && len(arr) > 0 {
+					transferRaw = arr[0]
+				}
+			} else {
+				transferRaw = nil
+			}
+
+			if len(transferRaw) > 0 {
+				// unmarshal minimal fields into DecodedTx
+				var t DecodedTx
+				if err := json.Unmarshal(transferRaw, &t); err != nil {
+					// if numeric types mismatch, try intermediate map extraction as fallback
+					var im map[string]interface{}
+					if err2 := json.Unmarshal(transferRaw, &im); err2 != nil {
+						retErr = fmt.Errorf("failed to parse transfer payload: %v; fallback parse error: %v", err, err2)
+						return nil, retErr
+					}
+					// extract carefully
+					if s, ok := im["txid"].(string); ok {
+						t.Txid = s
+					}
+					if v, ok := im["fee"].(float64); ok {
+						t.Fee = uint64(v)
+					} else if v, ok := im["fee"].(json.Number); ok {
+						if u, e := v.Int64(); e == nil {
+							t.Fee = uint64(u)
+						}
+					}
+					if v, ok := im["amount"].(float64); ok {
+						t.Amount = uint64(v)
+					}
+					if v, ok := im["confirmations"].(float64); ok {
+						t.Confirmations = uint64(v)
+					}
+				}
+				result = &t
+				return result, nil
+			}
+			// else: no transfer in response -> continue polling
+		}
+
+		// Breaking conditions / wait
+		if pollTimeout == 0 && !first {
+			break
+		}
+		first = false
+		if pollTimeout == 0 || time.Now().After(deadline) {
+			break
+		}
+		select {
+		case <-time.After(2 * time.Second):
+		case <-ctx.Done():
+			retErr = ctx.Err()
+			return nil, retErr
+		}
+	}
+
+	// final attempt
+	rawLast, lastErr := callWalletRPC(ctx, rpcURL, rpcAuth, "get_transfer_by_txid", getParams)
+	if lastErr != nil {
+		retErr = fmt.Errorf("get_transfer_by_txid final attempt failed: %v", lastErr)
+		return nil, retErr
+	}
+	// parse final
+	var mm map[string]json.RawMessage
+	if err := json.Unmarshal(rawLast, &mm); err != nil {
+		retErr = fmt.Errorf("failed to parse final get_transfer_by_txid result: %v", err)
+		return nil, retErr
+	}
+	var transferRaw json.RawMessage
+	if v, ok := mm["transfer"]; ok && len(v) > 0 && string(v) != "null" {
+		transferRaw = v
+	} else if v, ok := mm["transfers"]; ok && len(v) > 0 {
+		var arr []json.RawMessage
+		if err := json.Unmarshal(v, &arr); err == nil && len(arr) > 0 {
+			transferRaw = arr[0]
+		}
+	}
+	if len(transferRaw) == 0 {
+		// Try direct unmarshal into DecodedTx
+		var direct DecodedTx
+		if err := json.Unmarshal(rawLast, &direct); err == nil && direct.Txid != "" {
+			result = &direct
+			return result, nil
+		}
+		retErr = fmt.Errorf("final result contains no transfer")
+		return nil, retErr
+	}
+
+	var t DecodedTx
+	if err := json.Unmarshal(transferRaw, &t); err != nil {
+		// fallback map extraction
+		var im map[string]interface{}
+		if err2 := json.Unmarshal(transferRaw, &im); err2 != nil {
+			retErr = fmt.Errorf("failed to parse final transfer payload: %v; fallback error: %v", err, err2)
+			return nil, retErr
+		}
+		if s, ok := im["txid"].(string); ok {
+			t.Txid = s
+		}
+		if v, ok := im["fee"].(float64); ok {
+			t.Fee = uint64(v)
+		}
+		if v, ok := im["amount"].(float64); ok {
+			t.Amount = uint64(v)
+		}
+		if v, ok := im["confirmations"].(float64); ok {
+			t.Confirmations = uint64(v)
+		}
+	}
+
+	result = &t
+	return result, nil
+}
+
 func walletFilesExist(walletFilesDir, walletFilename string) bool {
 	// check <walletFilename>.keys (the keys file always created)
 	keysPath := filepath.Join(walletFilesDir, walletFilename+".keys")
@@ -116,7 +461,7 @@ func makeWatchWalletFilename(address, viewKey string) string {
 	if len(shortAddr) > 12 {
 		shortAddr = shortAddr[:12]
 	}
-	return fmt.Sprintf("watch_%s_%s_%d", shortAddr, shortHash, time.Now().UnixNano())
+	return fmt.Sprintf("watch_%s_%s", shortAddr, shortHash)
 }
 
 func ensureWalletOpenWithDir(ctx context.Context, rpcURL, rpcAuth, walletFilesDir, walletName string) error {
@@ -225,396 +570,4 @@ func safeBool(v interface{}) bool {
 	default:
 		return false
 	}
-}
-
-func DecodeOutputs(
-	ctx context.Context,
-	rpcURL, rpcAuth, walletFilesDir,
-	address, viewKey, txid string,
-	txHeight, margin uint64,
-	pollTimeout time.Duration,
-) (result *DecodedTx, retErr error) {
-
-	// Named returns used so defer cleanup can append errors.
-	// Basic validation
-	if address == "" || viewKey == "" {
-		return nil, errors.New("address and viewKey are required")
-	}
-	if txid == "" {
-		return nil, errors.New("txid is required")
-	}
-	if walletFilesDir == "" {
-		return nil, errors.New("walletFilesDir is required and must match monero-wallet-rpc --wallet-dir")
-	}
-
-	walletFilename := makeWatchWalletFilename(address, viewKey)
-
-	// compute restore_height safely
-	var restoreHeight uint64
-	if txHeight == 0 {
-		restoreHeight = 0
-	} else {
-		if margin > 10000 {
-			margin = 100
-		}
-		if txHeight <= margin {
-			restoreHeight = 0
-		} else {
-			restoreHeight = txHeight - margin
-		}
-	}
-
-	// Cleanup function: wipe ALL CONTENTS under walletFilesDir (but not the dir itself).
-	allowWipeHome := false // set true only if you really want to allow wiping $HOME
-	cleanup := func() error {
-		abs, err := filepath.Abs(walletFilesDir)
-		if err != nil {
-			return fmt.Errorf("cleanup: cannot resolve abs path: %w", err)
-		}
-		// safety guards
-		if abs == "/" {
-			return fmt.Errorf("cleanup: refusing to wipe root '/'")
-		}
-		if home, _ := os.UserHomeDir(); !allowWipeHome && home != "" && abs == home {
-			return fmt.Errorf("cleanup: refusing to wipe user home directory %q (set allowWipeHome=true to override)", home)
-		}
-		if len(abs) < 4 {
-			return fmt.Errorf("cleanup: path %q too short, refusing to wipe", abs)
-		}
-
-		// best-effort close_wallet
-		shortCtx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel2()
-		_, _ = callWalletRPC(shortCtx2, rpcURL, rpcAuth, "close_wallet", nil)
-
-		// Remove all entries in dir
-		entries, err := os.ReadDir(abs)
-		if err != nil {
-			return fmt.Errorf("cleanup: ReadDir failed for %q: %w", abs, err)
-		}
-		for _, e := range entries {
-			p := filepath.Join(abs, e.Name())
-			if err := os.RemoveAll(p); err != nil {
-				return fmt.Errorf("cleanup: RemoveAll failed for %q: %w", p, err)
-			}
-		}
-		// ensure dir exists
-		if err := os.MkdirAll(abs, 0700); err != nil {
-			return fmt.Errorf("cleanup: MkdirAll failed for %q: %w", abs, err)
-		}
-		log.Printf("cleanup: wiped contents of %q", abs)
-		return nil
-	}
-
-	// Ensure cleanup runs before function returns and merges errors properly.
-	defer func() {
-		if cerr := cleanup(); cerr != nil {
-			if retErr != nil {
-				retErr = fmt.Errorf("%v; cleanup error: %v", retErr, cerr)
-			} else {
-				retErr = fmt.Errorf("cleanup error: %v", cerr)
-			}
-		}
-	}()
-
-	// short context for open/generate attempts
-	shortCtx, cancelShort := context.WithTimeout(ctx, 10*time.Second)
-	defer cancelShort()
-
-	// Try open or generate (we don't fail hard here)
-	existsBefore := walletFilesExist(walletFilesDir, walletFilename)
-	if existsBefore {
-		_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{"filename": walletFilename, "password": ""})
-	} else {
-		genParams := map[string]interface{}{
-			"restore_height": restoreHeight,
-			"filename":       walletFilename,
-			"address":        address,
-			"view_key":       viewKey,
-			"viewkey":        viewKey,
-			"spend_key":      "",
-			"password":       "",
-		}
-		if _, genErr := callWalletRPC(shortCtx, rpcURL, rpcAuth, "generate_from_keys", genParams); genErr != nil {
-			low := strings.ToLower(genErr.Error())
-			if strings.Contains(low, "file already exists") || strings.Contains(low, "already exists") {
-				_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{"filename": walletFilename, "password": ""})
-			} else {
-				_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "open_wallet", map[string]interface{}{"filename": walletFilename, "password": ""})
-			}
-		}
-	}
-
-	// Poll get_transfer_by_txid until found / timeout
-	getParams := map[string]interface{}{"txid": txid}
-	deadline := time.Now().Add(pollTimeout)
-	first := true
-
-	for {
-		raw, rpcErr := callWalletRPC(ctx, rpcURL, rpcAuth, "get_transfer_by_txid", getParams)
-		if rpcErr == nil {
-			// Parse into map[string]json.RawMessage to extract transfer/transfers
-			var mm map[string]json.RawMessage
-			if err := json.Unmarshal(raw, &mm); err != nil {
-				retErr = fmt.Errorf("failed to parse get_transfer_by_txid result: %v", err)
-				return nil, retErr
-			}
-
-			var transferRaw json.RawMessage
-			if v, ok := mm["transfer"]; ok && len(v) > 0 && string(v) != "null" {
-				transferRaw = v
-			} else if v, ok := mm["transfers"]; ok && len(v) > 0 {
-				// try to take first element of transfers array
-				var arr []json.RawMessage
-				if err := json.Unmarshal(v, &arr); err == nil && len(arr) > 0 {
-					transferRaw = arr[0]
-				}
-			} else {
-				// no transfer found yet -> keep polling
-				// but if response has other shape, try to fallback by unmarshalling top-level into DecodedTx
-				// (rare) -> attempt direct unmarshal
-				var direct DecodedTx
-				if err := json.Unmarshal(raw, &direct); err == nil && direct.Txid != "" {
-					result = &direct
-					return result, nil
-				}
-				// otherwise continue polling
-				transferRaw = nil
-			}
-
-			if len(transferRaw) > 0 {
-				// unmarshal minimal fields into DecodedTx
-				var t DecodedTx
-				if err := json.Unmarshal(transferRaw, &t); err != nil {
-					// if numeric types mismatch, try intermediate map extraction as fallback
-					var im map[string]interface{}
-					if err2 := json.Unmarshal(transferRaw, &im); err2 != nil {
-						retErr = fmt.Errorf("failed to parse transfer payload: %v; fallback parse error: %v", err, err2)
-						return nil, retErr
-					}
-					// extract carefully
-					if s, ok := im["txid"].(string); ok {
-						t.Txid = s
-					}
-					if v, ok := im["fee"].(float64); ok {
-						t.Fee = uint64(v)
-					} else if v, ok := im["fee"].(json.Number); ok {
-						if u, e := v.Int64(); e == nil {
-							t.Fee = uint64(u)
-						}
-					}
-					if v, ok := im["amount"].(float64); ok {
-						t.Amount = uint64(v)
-					}
-					if v, ok := im["confirmations"].(float64); ok {
-						t.Confirmations = uint64(v)
-					}
-				}
-				result = &t
-				return result, nil
-			}
-		} else {
-			low := strings.ToLower(rpcErr.Error())
-			if strings.Contains(low, "no wallet file") || strings.Contains(low, "wallet file not found") {
-				retErr = rpcErr
-				return nil, retErr
-			}
-			// else swallow and retry
-		}
-
-		if pollTimeout == 0 && !first {
-			break
-		}
-		first = false
-		if pollTimeout == 0 || time.Now().After(deadline) {
-			break
-		}
-		select {
-		case <-time.After(2 * time.Second):
-		case <-ctx.Done():
-			retErr = ctx.Err()
-			return nil, retErr
-		}
-	}
-
-	// final attempt
-	rawLast, lastErr := callWalletRPC(ctx, rpcURL, rpcAuth, "get_transfer_by_txid", getParams)
-	if lastErr != nil {
-		retErr = fmt.Errorf("get_transfer_by_txid final attempt failed: %v", lastErr)
-		return nil, retErr
-	}
-	// parse final
-	var mm map[string]json.RawMessage
-	if err := json.Unmarshal(rawLast, &mm); err != nil {
-		retErr = fmt.Errorf("failed to parse final get_transfer_by_txid result: %v", err)
-		return nil, retErr
-	}
-	var transferRaw json.RawMessage
-	if v, ok := mm["transfer"]; ok && len(v) > 0 && string(v) != "null" {
-		transferRaw = v
-	} else if v, ok := mm["transfers"]; ok && len(v) > 0 {
-		var arr []json.RawMessage
-		if err := json.Unmarshal(v, &arr); err == nil && len(arr) > 0 {
-			transferRaw = arr[0]
-		}
-	}
-	if len(transferRaw) == 0 {
-		// Try direct unmarshal into DecodedTx
-		var direct DecodedTx
-		if err := json.Unmarshal(rawLast, &direct); err == nil && direct.Txid != "" {
-			result = &direct
-			return result, nil
-		}
-		retErr = fmt.Errorf("final result contains no transfer")
-		return nil, retErr
-	}
-
-	var t DecodedTx
-	if err := json.Unmarshal(transferRaw, &t); err != nil {
-		// fallback map extraction
-		var im map[string]interface{}
-		if err2 := json.Unmarshal(transferRaw, &im); err2 != nil {
-			retErr = fmt.Errorf("failed to parse final transfer payload: %v; fallback error: %v", err, err2)
-			return nil, retErr
-		}
-		if s, ok := im["txid"].(string); ok {
-			t.Txid = s
-		}
-		if v, ok := im["fee"].(float64); ok {
-			t.Fee = uint64(v)
-		}
-		if v, ok := im["amount"].(float64); ok {
-			t.Amount = uint64(v)
-		}
-		if v, ok := im["confirmations"].(float64); ok {
-			t.Confirmations = uint64(v)
-		}
-	}
-
-	result = &t
-	return result, nil
-}
-
-func ProveByTxKey(
-	ctx context.Context,
-	rpcURL, rpcAuth, walletFilesDir,
-	txid, txKey, address string,
-) (*ProveByTxKeyResult, error) {
-
-	// basic validation
-	if txid == "" || txKey == "" || address == "" {
-		return nil, errors.New("txid, txKey and address are required")
-	}
-	if walletFilesDir == "" {
-		return nil, errors.New("walletFilesDir is required and must match monero-wallet-rpc --wallet-dir")
-	}
-
-	walletName := makeWatchWalletFilename(address, txKey)
-	// walletName may be empty -> fallback to env/default inside ensureWalletOpenWithDir
-
-	// cleanup function: wipes ALL CONTENTS under walletFilesDir (synchronous)
-	// safety: refuse to wipe "/" or $HOME unless allowWipeHome=true
-	allowWipeHome := false
-	cleanup := func() error {
-		abs, err := filepath.Abs(walletFilesDir)
-		if err != nil {
-			return fmt.Errorf("cleanup: cannot resolve abs path: %w", err)
-		}
-		if abs == "/" {
-			return fmt.Errorf("cleanup: refusing to wipe root '/'")
-		}
-		if home, _ := os.UserHomeDir(); !allowWipeHome && home != "" && abs == home {
-			return fmt.Errorf("cleanup: refusing to wipe user home directory %q (set allowWipeHome=true to override)", home)
-		}
-		if len(abs) < 4 {
-			return fmt.Errorf("cleanup: path %q too short, refusing to wipe", abs)
-		}
-
-		// best-effort close wallet so files can be removed
-		shortCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_, _ = callWalletRPC(shortCtx, rpcURL, rpcAuth, "close_wallet", nil)
-
-		entries, err := os.ReadDir(abs)
-		if err != nil {
-			return fmt.Errorf("cleanup: ReadDir failed for %q: %w", abs, err)
-		}
-		for _, e := range entries {
-			p := filepath.Join(abs, e.Name())
-			if err := os.RemoveAll(p); err != nil {
-				return fmt.Errorf("cleanup: RemoveAll failed for %q: %w", p, err)
-			}
-		}
-		// ensure dir exists (recreate if necessary)
-		if err := os.MkdirAll(abs, 0700); err != nil {
-			return fmt.Errorf("cleanup: MkdirAll failed for %q: %w", abs, err)
-		}
-		log.Printf("cleanup: wiped contents of %q", abs)
-		return nil
-	}
-
-	// Ensure cleanup runs synchronously before function returns and errors are propagated.
-	var retErr error
-	defer func() {
-		if cerr := cleanup(); cerr != nil {
-			if retErr != nil {
-				retErr = fmt.Errorf("%v; cleanup error: %v", retErr, cerr)
-			} else {
-				retErr = fmt.Errorf("cleanup error: %v", cerr)
-			}
-		}
-	}()
-
-	// Ensure wallet open using walletFilesDir context (this helper uses open/create RPCs).
-	if walletName == "" {
-		// fallback: env var or default name
-		walletName = os.Getenv("MONERO_WALLET_PROVE_NAME")
-		if walletName == "" {
-			walletName = "prove_wallet"
-		}
-	}
-
-	if err := ensureWalletOpenWithDir(ctx, rpcURL, rpcAuth, walletFilesDir, walletName); err != nil {
-		retErr = fmt.Errorf("ensure wallet open failed: %v", err)
-		return nil, retErr
-	}
-
-	// give wallet-rpc a short settle time
-	time.Sleep(250 * time.Millisecond)
-
-	// prepare params & call check_tx_key (like before)
-	params := map[string]interface{}{
-		"txid":    txid,
-		"tx_key":  txKey,
-		"address": address,
-	}
-
-	raw, err := callWalletRPC(ctx, rpcURL, rpcAuth, "check_tx_key", params)
-	if err != nil {
-		retErr = fmt.Errorf("check_tx_key rpc error: %w", err)
-		return nil, retErr
-	}
-
-	// parse result
-	var m map[string]interface{}
-	if err := json.Unmarshal(raw, &m); err != nil {
-		retErr = fmt.Errorf("failed to unmarshal check_tx_key result: %w", err)
-		return nil, retErr
-	}
-
-	var res ProveByTxKeyResult
-	if v, ok := m["received"]; ok {
-		if val, err := parseUintFromInterface(v); err == nil {
-			res.Received = val
-		}
-	}
-	if v, ok := m["in_pool"]; ok {
-		res.InPool = safeBool(v)
-	}
-	if v, ok := m["confirmations"]; ok {
-		if val, err := parseUintFromInterface(v); err == nil {
-			res.Confirmations = val
-		}
-	}
-	return &res, nil
 }

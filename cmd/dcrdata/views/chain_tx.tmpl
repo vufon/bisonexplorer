@@ -22,13 +22,10 @@
          <div class="card-pointer pointer-bottom d-xl-none"></div>
          <div class="pb-1 ps-1 d-flex ai-center">
             <img src="/images/{{$ChainType}}-icons.png" width="20" height="20">
-            <div class="d-inline-block confirmations-box mx-2 fs14" 
-               {{if ne $ChainType "xmr"}}
-                  data-controller="newblock"
-                  data-newblock-target="confirmations" data-tx-target="confirmations"
-                  data-confirmations="{{.Confirmations}}" data-yes="# confirmation@" data-no="unconfirmed"
-                  data-confirmation-block-height="{{if eq .Confirmations 0}}-1{{else}}{{.BlockHeight}}{{end}}"
-               {{end}}>
+            <div class="d-inline-block confirmations-box mx-2 fs14" {{if ne $ChainType "xmr" }}
+               data-controller="newblock" data-newblock-target="confirmations" data-tx-target="confirmations"
+               data-confirmations="{{.Confirmations}}" data-yes="# confirmation@" data-no="unconfirmed"
+               data-confirmation-block-height="{{if eq .Confirmations 0}}-1{{else}}{{.BlockHeight}}{{end}}" {{end}}>
                {{.Confirmations}} confirmations
             </div>
             {{if $.SwapsFound}}
@@ -173,6 +170,45 @@
          <span></span>{{/* dummy for flex alignment */}}
       </div>
    </div>
+   {{if eq $ChainType "xmr"}}
+   <div class="row px-1 my-2" data-controller="xmrtx" data-xmrtx-txid="{{.TxID}}">
+      <div class="tx-tools common-card">
+         <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="active"><a href="#decode-outputs" aria-controls="decode-outputs" role="tab"
+                  data-toggle="tab">Decode outputs</a></li>
+            <li role="presentation" class=""><a href="#prove-sending" aria-controls="prove-sending" role="tab"
+                  data-toggle="tab">Prove sending</a></li>
+         </ul>
+         <div class="tab-content">
+            <div role="tabpanel" class="tab-pane active" id="decode-outputs">
+               <p class="fs-16 mb-0">Check which outputs belong to given Monero address and viewkey</p>
+               <div class="mt-2">
+                  <input type="text" data-xmrtx-target="inputAddress" placeholder="Monero address"
+                     name="xmr_address">
+               </div>
+               <div class="mt-2">
+                  <input type="text" data-xmrtx-target="inputViewKey" placeholder="View key" name="viewkey">
+               </div>
+               <button type="button" data-action="click->xmrtx#handlerDecodeOutputs" class="btn btn-explorer mt-2">Decode outputs</button>
+            </div>
+            <div role="tabpanel" class="tab-pane" id="prove-sending">
+               <p class="fs-16 mb-0">Prove to someone that you send them Monero in this transaction</p>
+               <p class="fs-13 my-0">Tx private key can be obtained using <i>get_tx_key</i>
+                  command in <i>monero-wallet-cli</i> command line tool</p>
+               <div class="mt-2">
+                  <input type="text" data-xmrtx-target="inputTxPrivateKey" placeholder="Tx private key"
+                     name="txprvkey">
+               </div>
+               <div class="mt-2">
+                  <input type="text" data-xmrtx-target="inputReceiptAddress"
+                     placeholder="Recipient's Monero address" name="repaddress">
+               </div>
+               <button type="button" data-action="click->xmrtx#handlerProveTx" class="btn btn-explorer mt-2">Prove</button>
+            </div>
+         </div>
+      </div>
+   </div>
+   {{end}}
    {{if ne $ChainType "xmr"}}
    <div class="row mb-3">
       <div class="col-lg-12 mt-4 mb-2">
