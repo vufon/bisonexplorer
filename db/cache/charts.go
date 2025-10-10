@@ -389,6 +389,7 @@ type ZoomSet struct {
 	PoolValue         ChartUints
 	BlockSize         ChartUints
 	TxCount           ChartUints
+	TxPerBlock        ChartUints
 	APIBlockchainSize ChartUints
 	APITxAverage      ChartUints
 	APIMinedBlocks    ChartUints
@@ -546,6 +547,7 @@ type ChartGobject struct {
 	FeeRate           ChartUints
 	AverageTxSize     ChartUints
 	MoneroDecoyBands  MoneroDecoyBands
+	TxPerBlock        ChartUints
 }
 
 // The chart data is cached with the current cacheID of the zoomSet or windowSet.

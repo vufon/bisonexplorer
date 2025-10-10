@@ -4348,6 +4348,7 @@ func appendXmrChartBlocks(charts *cache.MutilchainChartData, rows *sql.Rows) err
 		blocks.Height = append(blocks.Height, height)
 		blocks.BlockSize = append(blocks.BlockSize, size)
 		blocks.TxCount = append(blocks.TxCount, count)
+		blocks.TxPerBlock = append(blocks.TxPerBlock, count)
 		blocks.Time = append(blocks.Time, timeInt)
 		blocks.Difficulty = append(blocks.Difficulty, difficult)
 		hashrate := float64(0)
