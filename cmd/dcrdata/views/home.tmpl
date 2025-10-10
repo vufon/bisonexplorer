@@ -1,6 +1,7 @@
 {{define "home" -}}
 <!DOCTYPE html>
 {{- $botState := .XcState -}}
+{{- $ChainType := .XcState -}}
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Mutilple Blockchains Explorer by bisonexplorer.com"}}
 {{ template "top_navbar" . }}
@@ -787,7 +788,13 @@
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">RetargetAdjustmentFactor</td>
                            {{range .ParamsList}}
-                           <td class="mono">{{.RetargetAdjustmentFactor}}</td>
+                           <td class="mono">
+                              {{if eq .ChainType "xmr"}}
+                              N/A
+                              {{else}}
+                              {{.RetargetAdjustmentFactor}}
+                              {{end}}
+                           </td>
                            {{end}}
                            <td>Adjustment factor used to limit the minimum and maximum amount of adjustment that can
                               occur between difficulty retargets</td>
@@ -803,8 +810,7 @@
                            <td class="mono text-start pe-2 nowrap p03rem0">NextBlockReward</td>
                            {{range .ParamsList}}
                            <td class="mono">
-                              {{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase
-                              .ChainType}}
+                              {{template "decimalParts" (amountMulAsDecimalParts .NextBlockReward true .ChainType)}} {{toUpperCase .ChainType}}
                            </td>
                            {{end}}
                            <td>Next Block Reward (Estimate)</td>
@@ -812,7 +818,12 @@
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">RemainingBlocks</td>
                            {{range .ParamsList}}
-                           <td class="mono">{{.RemainingBlocks}}</td>
+                           <td class="mono">
+                              {{if eq .ChainType "xmr"}}
+                              N/A
+                              {{else}}
+                              {{.RemainingBlocks}}
+                              {{end}}</td>
                            {{end}}
                            <td>Remaining Blocks for next reward reduction</td>
                         </tr>
@@ -826,7 +837,13 @@
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">SubsidyReductionInterval</td>
                            {{range .ParamsList}}
-                           <td class="mono">{{.SubsidyReductionInterval}} blocks</td>
+                           <td class="mono">
+                              {{if eq .ChainType "xmr"}}
+                              N/A
+                              {{else}}
+                              {{.SubsidyReductionInterval}} blocks
+                              {{end}}
+                           </td>
                            {{end}}
                            <td>Reduction interval in blocks</td>
                         </tr>

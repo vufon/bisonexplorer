@@ -3546,9 +3546,21 @@ func (exp *ExplorerUI) CreateMutilchainParameters(chainType string) *types.Chain
 		return exp.GetLitecoinParamsData()
 	case mutilchain.TYPEBTC:
 		return exp.GetBitcoinParamsData()
+	case mutilchain.TYPEXMR:
+		res := &types.ChainParamData{
+			ChainType:         mutilchain.TYPEXMR,
+			GenerateSupported: true,
+			CoinbaseMaturity: 60,
+		}
+		if exp.XmrPageData.HomeInfo != nil {
+			targetTimePerBlock := exp.XmrPageData.HomeInfo.TargetTimePerBlock
+			res.TargetTimePerBlock = time.Duration(targetTimePerBlock) * time.Second
+			res.NextBlockReward = exp.XmrPageData.HomeInfo.BlockReward
+		}
+		return res
 	}
 	return &types.ChainParamData{
-		ChainType: mutilchain.TYPEXMR,
+		ChainType: mutilchain.TYPEDCR,
 	}
 }
 
