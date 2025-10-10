@@ -41,8 +41,8 @@ const (
 
 	UpdateLastBlockAllValid = `UPDATE %sblocks_all SET is_valid = $2 WHERE id = $1;`
 
-	UpdateXMRBlockSummaryWithHeight = `UPDATE xmrblocks_all SET ring_size = $1, avg_ring_size = $2, fee_per_kb = $3, avg_tx_size = $4,
-		decoy_03 = $5, decoy_47 = $6, decoy_811 = $7, decoy_1214 = $8, decoy_gt15 = $9, chart_synced = $10  WHERE height = $11;`
+	UpdateXMRBlockSummaryWithHeight = `UPDATE xmrblocks_all SET ring_size = $1, avg_ring_size = $2, fees = $3, fee_per_kb = $4, size = $5, avg_tx_size = $6,
+		decoy_03 = $7, decoy_47 = $8, decoy_811 = $9, decoy_1214 = $10, decoy_gt15 = $11, chart_synced = $12, total_sent = $13, numtx = $14, num_vins = $15, num_vouts = $16  WHERE height = $17;`
 
 	CreateBlockAllTable = `CREATE TABLE IF NOT EXISTS %sblocks_all (  
 		id SERIAL PRIMARY KEY,
@@ -171,37 +171,26 @@ ORDER BY a.height ASC;`
 		WHERE height > $1
 		ORDER BY height;`
 
-	SelectXmrBlockAllStats = `WITH tx_sizes AS (
-    	SELECT 
-        	block_height, 
-        SUM(size) AS tx_total_size
-    	FROM xmrtransactions
-    	WHERE block_height > $1
-    	GROUP BY block_height
-		)
-	SELECT
-    	b.height,
-		b.size,
-    	b.size + COALESCE(t.tx_total_size, 0) AS total_size,
-    	b.time,
-    	b.numtx,
-    	b.difficulty,
-    	b.fees,
-    	b.reward,
-  		COALESCE(b.ring_size, 0)       AS ring_size,
-  		COALESCE(b.avg_ring_size, 0)   AS avg_ring_size,
-  		COALESCE(b.fee_per_kb, 0)      AS fee_per_kb,
-  		COALESCE(b.avg_tx_size, 0)     AS avg_tx_size,
-  		COALESCE(b.decoy_03, 0.0)        AS decoy_03,
-  		COALESCE(b.decoy_47, 0.0)        AS decoy_47,
-  		COALESCE(b.decoy_811, 0.0)       AS decoy_811,
-  		COALESCE(b.decoy_1214, 0.0)      AS decoy_1214,
-  		COALESCE(b.decoy_gt15, 0.0)      AS decoy_gt15
-	FROM xmrblocks_all b
-	LEFT JOIN tx_sizes t
-    ON b.height = t.block_height
-	WHERE b.height > $1
-	ORDER BY b.height;`
+	SelectXmrBlockAllStats = `SELECT
+    	height,
+		size,
+    	time,
+    	numtx,
+    	difficulty,
+    	fees,
+    	reward,
+  		COALESCE(ring_size, 0)       AS ring_size,
+  		COALESCE(avg_ring_size, 0)   AS avg_ring_size,
+  		COALESCE(fee_per_kb, 0)      AS fee_per_kb,
+  		COALESCE(avg_tx_size, 0)     AS avg_tx_size,
+  		COALESCE(decoy_03, 0.0)        AS decoy_03,
+  		COALESCE(decoy_47, 0.0)        AS decoy_47,
+  		COALESCE(decoy_811, 0.0)       AS decoy_811,
+  		COALESCE(decoy_1214, 0.0)      AS decoy_1214,
+  		COALESCE(decoy_gt15, 0.0)      AS decoy_gt15
+	FROM xmrblocks_all
+	WHERE height > $1
+	ORDER BY height;`
 
 	SelectRemainingNotSyncedChartSummary = `SELECT height
 		FROM xmrblocks_all

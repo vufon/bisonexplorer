@@ -406,10 +406,14 @@ func ParseAndStoreTxJSON(dbtx *sql.Tx, txHash string, blockHeight uint64, txJSON
 							parseRes.decoy03Num++
 						}
 					}
+					vinamount := int64(0)
+					if a, amok := keyObj["amount"].(float64); amok {
+						vinamount = int64(a)
+					}
 					// key image k_image (if present)
 					if ki, ok5 := keyObj["k_image"].(string); ok5 && ki != "" {
 						var id uint64
-						err = keyImgStmt.QueryRow(ki, nil, nil, txHash, blockHeight, time.Now().Unix()).Scan(&id)
+						err = keyImgStmt.QueryRow(ki, nil, nil, txHash, blockHeight, time.Now().Unix(), vinamount).Scan(&id)
 						if err != nil {
 							log.Warnf("XMR: insertKeyImage - Looks like duplicate on db, ignore: %v", err)
 						}
@@ -530,11 +534,12 @@ func GetXmrTxParseJSONSimpleData(txJSONStr string) (xmrParseTxResult, error) {
 	if parseRes.fees == 0 && !isRingCt {
 		parseRes.fees = sumIn - sumOut
 	}
+	parseRes.totalSent = sumOut
 	// done
 	return parseRes, nil
 }
 
-func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txHash, txHex, txJSONStr string, checked bool) (uint64, int64, int, error) {
+func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txHash, txHex, txJSONStr string, checked, isCoinbase bool) (uint64, int64, int, error) {
 	stmt, err := dbtx.Prepare(mutilchainquery.MakeTxInsertStatement(checked, mutilchain.TYPEXMR))
 	if err != nil {
 		log.Errorf("%s: Txns INSERT prepare: %v", mutilchain.TYPEXMR, err)
@@ -574,12 +579,11 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 		size = len(txHex) / 2
 	}
 	spent := int64(0)
-	sent := int64(0)
 	fees := int64(0)
 	numVin := 0
 	vins := []string{}
 	numVout := 0
-
+	var sumOut int64 = 0
 	// parse some common fields from txExtra (tx JSON)
 	if txExtra != nil {
 		switch v := txExtra.(type) {
@@ -600,7 +604,6 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 				}
 			}
 			var sumIn int64 = 0
-			var sumOut int64 = 0
 			// vins/vouts length
 			if vinsIf, ok := v["vin"].([]interface{}); ok {
 				numVin = len(vinsIf)
@@ -608,7 +611,7 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 				for _, vi := range vinsIf {
 					bs, _ := json.Marshal(vi)
 					vins = append(vins, string(bs))
-					if !isRingCT {
+					if !isRingCT && !isCoinbase {
 						if vinMap, ok := vi.(map[string]interface{}); ok {
 							// coinbase tx có "gen" thay vì "key" -> skip
 							if keyObj, ok := vinMap["key"].(map[string]interface{}); ok {
@@ -622,7 +625,7 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 			}
 			if voutsIf, ok := v["vout"].([]interface{}); ok {
 				numVout = len(voutsIf)
-				if !isRingCT {
+				if !isRingCT && !isCoinbase {
 					for _, vo := range voutsIf {
 						if voutMap, ok := vo.(map[string]interface{}); ok {
 							if a, ok := voutMap["amount"].(float64); ok {
@@ -663,7 +666,7 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 		hash, height, blockTime, timeField,
 		0, version, tree, txHash, txBlob, txExtraJSON, blockIndex, isRingCT,
 		xmrhelper.NullIntToInterface(rctType), xmrhelper.NullStringToInterface(txPubKey),
-		prunableSize, lockTime, expiry, size, spent, sent, fees, numVin, pq.Array(vins), numVout).Scan(&id)
+		prunableSize, lockTime, expiry, size, spent, sumOut, fees, numVin, pq.Array(vins), numVout, isCoinbase).Scan(&id)
 	if err != nil {
 		log.Warnf("XMR: InsertXMRTxn - Looks like duplicate on db, ignore: %v", err)
 	}
@@ -773,7 +776,7 @@ func InsertXMRWholeBlock(dbtx *sql.Tx, dbBlock *dbtypes.Block, blobBytes []byte,
 	}
 	var id uint64
 	err = stmt.QueryRow(dbBlock.Hash, dbBlock.Height, blobBytes,
-		dbBlock.Size, isValid, dbBlock.Version,
+		txsParseRes.totalSize, isValid, dbBlock.Version,
 		dbBlock.NumTx, dbBlock.Time.UNIX(),
 		dbBlock.Nonce, dbBlock.PoolSize, dbBlock.Bits,
 		dbBlock.Difficulty, dbBlock.DifficultyNum, dbBlock.CumulativeDifficulty,

@@ -7043,14 +7043,14 @@ func (pgb *ChainDB) UpdateLastBlock(msgBlock *wire.MsgBlock, isMainchain bool) e
 // storeTxnsResult is the type of object sent back from the goroutines wrapping
 // storeBlockTxnTree in StoreBlock.
 type storeTxnsResult struct {
-	numVins, numVouts, numAddresses, fees, totalSent int64
-	ringSize, avgRingSize, feePerKb, avgTxSize       int64
-	decoy03, decoy47, decoy811, decoy1214, decoyGe15 float64
-	txDbIDs                                          []uint64
-	err                                              error
-	addresses                                        map[string]struct{}
-	mixSetDelta                                      int64
-	addressesSynced                                  bool
+	numVins, numVouts, numAddresses, fees, totalSent, totalSize, txCount int64
+	ringSize, avgRingSize, feePerKb, avgTxSize                           int64
+	decoy03, decoy47, decoy811, decoy1214, decoyGe15                     float64
+	txDbIDs                                                              []uint64
+	err                                                                  error
+	addresses                                                            map[string]struct{}
+	mixSetDelta                                                          int64
+	addressesSynced                                                      bool
 }
 
 type xmrParseTxResult struct {
@@ -10234,7 +10234,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 	isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
 	feePerKB := float64(0)
 	if size > 0 {
-		feePerKB = float64(fees / (int64(size) / 1024.0))
+		feePerKB = float64(fees) / (float64(size) / float64(1024.0))
 	}
 	ringCT := false
 	if rctData != nil {
@@ -10584,7 +10584,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 		totalSent += txSent
 		feePerKB := float64(0)
 		if size > 0 {
-			feePerKB = float64(fees / (int64(size) / 1024.0))
+			feePerKB = float64(fees) / (float64(size) / float64(1024.0))
 		}
 		totalFees += fees
 		totalVinsNum += int64(numVin)
