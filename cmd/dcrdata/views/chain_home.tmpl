@@ -459,10 +459,14 @@
                               <div class="col-12 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
                                     <span class="new-network-stats-title">
+                                       {{if eq $ChainType "xmr"}}
+                                       Transactions
+                                       {{else}}
                                        <a class="link-hover-underline" data-turbolinks="false"
                                           href="/{{$ChainType}}/charts?chart=mempool-txs">
                                           Transactions
                                        </a>
+                                       {{end}}
                                     </span>
                                     <div class="flex-card-content">
                                        <div>
@@ -576,10 +580,14 @@
                               <div class="col-12 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
                                     <span class="new-network-stats-title">
+                                       {{if eq $ChainType "xmr"}}
+                                       Size
+                                       {{else}}
                                        <a class="link-hover-underline" data-turbolinks="false"
                                           href="/{{$ChainType}}/charts?chart=mempool-size">
                                           Size
                                        </a>
+                                       {{end}}
                                     </span>
                                     <div class="flex-card-content">
                                        <div>
