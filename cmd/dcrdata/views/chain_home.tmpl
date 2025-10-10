@@ -96,8 +96,8 @@
                         class="submenu-list__item-link w-100">
                         <div class="submenu-list__item-wrapper">
                            <div class="submenu-list__item-icon">
-                              <img src="/images/bison-wallet.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="bison wallet">
+                              <img src="/images/visual-block.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="visual blocks">
                            </div>
                            <div>
                               <span class="submenu-list__item-title">Visual Blocks</span>
@@ -146,6 +146,7 @@
                         </div>
                      </a>
                   </li>
+                  {{if ne $ChainType "xmr"}}
                   <li class="submenu-list__item has-submenu active">
                      <a href="/{{$ChainType}}/parameters" data-turbolinks="false" class="submenu-list__item-link w-100">
                         <div class="submenu-list__item-wrapper">
@@ -160,6 +161,7 @@
                         </div>
                      </a>
                   </li>
+                  {{end}}
                   <li class="submenu-list__item has-submenu">
                      <a href="/whatsnew" data-turbolinks="false" class="submenu-list__item-link w-100">
                         <div class="submenu-list__item-wrapper">
