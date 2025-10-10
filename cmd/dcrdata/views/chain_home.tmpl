@@ -296,7 +296,7 @@
                                  <span class="new-network-stats-title">
                                     <a class="link-hover-underline" data-turbolinks="false"
                                        href="/{{$ChainType}}/charts?chart=coin-supply">
-                                       Coin Supply (of 21 mil)
+                                       Coin Supply {{if ne $ChainType "xmr"}}(of {{if eq $ChainType "btc"}}21{{else}}84{{end}} mil){{end}}
                                     </a>
                                  </span>
                                  <div class="flex-card-content">
@@ -424,7 +424,10 @@
                            <div class="col-12 col-sm-8 card-content-box">
                               <div class="new-network-stats-block flex-column-card">
                                  <span class="new-network-stats-title">
-                                    Total Ring Members
+                                    <a class="link-hover-underline" data-turbolinks="false"
+                                       href="/{{$ChainType}}/charts?chart=total-ring-size">
+                                       Total Ring Members
+                                    </a>
                                  </span>
                                  <div class="flex-card-content">
                                     <div>
