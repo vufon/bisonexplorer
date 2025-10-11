@@ -294,3 +294,12 @@ func AvgOfArrayInt(array []int) int {
 	res := int(math.Round(float64(sum) / float64(len(array))))
 	return res
 }
+
+func IndexOf(slice []string, target string) int {
+	for i, v := range slice {
+		if v == target {
+			return i
+		}
+	}
+	return -1
+}

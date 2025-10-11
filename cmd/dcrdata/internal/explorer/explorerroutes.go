@@ -512,16 +512,18 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if allXcState != nil {
+		volumeOrderedExs, orderedExchanges := allXcState.MutilchainVolumeOrderedExchanges(mutilchain.TYPEBTC)
 		// default create xcState for bitcoin
 		xcState = &exchanges.ExchangeBotStateContent{
-			BtcIndex:      allXcState.BtcIndex,
-			BtcPrice:      allXcState.BtcPrice,
-			Price:         allXcState.GetMutilchainPrice(mutilchain.TYPEBTC),
-			Volume:        allXcState.GetMutilchainVolumn(mutilchain.TYPEBTC),
-			ExchangeState: allXcState.GetMutilchainExchangeState(mutilchain.TYPEBTC),
-			FiatIndices:   allXcState.FiatIndices,
-			VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(mutilchain.TYPEBTC),
-			Change24h:     allXcState.GetMutilchainPriceChange(mutilchain.TYPEBTC),
+			BtcIndex:        allXcState.BtcIndex,
+			BtcPrice:        allXcState.BtcPrice,
+			Price:           allXcState.GetMutilchainPrice(mutilchain.TYPEBTC),
+			Volume:          allXcState.GetMutilchainVolumn(mutilchain.TYPEBTC),
+			ExchangeState:   allXcState.GetMutilchainExchangeState(mutilchain.TYPEBTC),
+			FiatIndices:     allXcState.FiatIndices,
+			VolumnOrdered:   volumeOrderedExs,
+			ExchangeOrdered: orderedExchanges,
+			Change24h:       allXcState.GetMutilchainPriceChange(mutilchain.TYPEBTC),
 		}
 	}
 
@@ -678,17 +680,19 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	var xcState *exchanges.ExchangeBotStateContent
 	if allXcState != nil {
 		lowPrice, highPrice := allXcState.GetMutilchainLowHighPrice(chainType)
+		volumeOrderedExs, orderedExchanges := allXcState.MutilchainVolumeOrderedExchanges(chainType)
 		xcState = &exchanges.ExchangeBotStateContent{
-			BtcIndex:      allXcState.BtcIndex,
-			BtcPrice:      allXcState.BtcPrice,
-			Price:         allXcState.GetMutilchainPrice(chainType),
-			Volume:        allXcState.GetMutilchainVolumn(chainType),
-			ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
-			FiatIndices:   allXcState.FiatIndices,
-			VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
-			Change24h:     allXcState.GetMutilchainPriceChange(chainType),
-			LowPrice:      lowPrice,
-			HighPrice:     highPrice,
+			BtcIndex:        allXcState.BtcIndex,
+			BtcPrice:        allXcState.BtcPrice,
+			Price:           allXcState.GetMutilchainPrice(chainType),
+			Volume:          allXcState.GetMutilchainVolumn(chainType),
+			ExchangeState:   allXcState.GetMutilchainExchangeState(chainType),
+			FiatIndices:     allXcState.FiatIndices,
+			VolumnOrdered:   volumeOrderedExs,
+			ExchangeOrdered: orderedExchanges,
+			Change24h:       allXcState.GetMutilchainPriceChange(chainType),
+			LowPrice:        lowPrice,
+			HighPrice:       highPrice,
 		}
 	}
 
@@ -4540,6 +4544,7 @@ func (exp *ExplorerUI) StatsPage(w http.ResponseWriter, r *http.Request) {
 func (exp *ExplorerUI) MarketPage(w http.ResponseWriter, r *http.Request) {
 	xcState := exp.getExchangeState()
 	xcState.VolumnOrdered = xcState.VolumeOrderedExchanges()
+	xcState.ExchangeOrdered = xcState.DecredOrderedExchanges()
 	var conversions *homeConversions
 	xcBot := exp.xcBot
 	var coinValueSupply float64
@@ -4584,17 +4589,19 @@ func (exp *ExplorerUI) MutilchainMarketPage(w http.ResponseWriter, r *http.Reque
 	}
 	allXcState := exp.getExchangeState()
 	lowPrice, highPrice := allXcState.GetMutilchainLowHighPrice(chainType)
+	volumeOrderedExs, orderedExchanges := allXcState.MutilchainVolumeOrderedExchanges(chainType)
 	xcState := exchanges.ExchangeBotStateContent{
-		BtcIndex:      allXcState.BtcIndex,
-		BtcPrice:      allXcState.BtcPrice,
-		Price:         allXcState.GetMutilchainPrice(chainType),
-		Volume:        allXcState.GetMutilchainVolumn(chainType),
-		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
-		FiatIndices:   allXcState.FiatIndices,
-		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
-		Change24h:     allXcState.GetMutilchainPriceChange(chainType),
-		LowPrice:      lowPrice,
-		HighPrice:     highPrice,
+		BtcIndex:        allXcState.BtcIndex,
+		BtcPrice:        allXcState.BtcPrice,
+		Price:           allXcState.GetMutilchainPrice(chainType),
+		Volume:          allXcState.GetMutilchainVolumn(chainType),
+		ExchangeState:   allXcState.GetMutilchainExchangeState(chainType),
+		FiatIndices:     allXcState.FiatIndices,
+		VolumnOrdered:   volumeOrderedExs,
+		ExchangeOrdered: orderedExchanges,
+		Change24h:       allXcState.GetMutilchainPriceChange(chainType),
+		LowPrice:        lowPrice,
+		HighPrice:       highPrice,
 	}
 	var conversions *MutilchainHomeConversions
 	xcBot := exp.xcBot

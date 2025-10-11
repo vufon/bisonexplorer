@@ -204,7 +204,7 @@
                 data-action="click->submarket#changeExchange">
                     <label>Exchange</label>
                     <div class="btn-group" data-submarket-target="exchangeBtnArea">
-                        {{range $index, $exchange := $botState.VolumnOrdered}}
+                        {{range $index, $exchange := $botState.ExchangeOrdered}}
                         <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}} data-exchangeindex="{{$index}}" data-sticks="1" data-bins="{{$exchange.State.StickList}}"{{end}} {{if $exchange.State.HasDepth}} data-depth="1" {{end}}
                            class="tab-button exchange-tab-button home-chart-toggle-btn white c-txt-main">{{xcDisplayName $exchange.Token}}</button>
                         {{end}}

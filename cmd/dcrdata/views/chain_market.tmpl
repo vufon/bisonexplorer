@@ -172,7 +172,7 @@
                         data-chainsubmarket-target="exchanges" data-action="click->chainsubmarket#changeExchange">
                         <label>Exchange</label>
                         <div class="btn-group" data-chainsubmarket-target="exchangeBtnArea">
-                            {{range $index, $exchange := $botState.VolumnOrdered}}
+                            {{range $index, $exchange := $botState.ExchangeOrdered}}
                             <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}}
                                 data-exchangeindex="{{$index}}" data-sticks="1"
                                 data-bins="{{$exchange.State.StickList}}" {{end}} {{if $exchange.State.HasDepth}}
