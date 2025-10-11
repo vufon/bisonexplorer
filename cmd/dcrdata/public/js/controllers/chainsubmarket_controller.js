@@ -811,6 +811,9 @@ export default class extends Controller {
       }
       selectOptions += '<button name="aggregated" data-chainmarket-target="aggOption" data-depth="1" ' +
         'class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>'
+      if (exchangeBefore.includes('aggregated')) {
+        selectedExchange.push('aggregated')
+      }
       this.exchangeBtnAreaTarget.innerHTML = selectOptions
       this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
       availableCandlesticks = {}
@@ -843,7 +846,7 @@ export default class extends Controller {
     const res = []
     for (let i = 0; i < this.exchangesButtons.length; i++) {
       const exBtn = this.exchangesButtons[i]
-      if (selectedExchanges.indexOf(exBtn) >= 0 && !exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none')) {
+      if (selectedExchanges.indexOf(exBtn.name) >= 0 && !exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none')) {
         res.push(exBtn)
       }
     }
