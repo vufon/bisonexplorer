@@ -1,7 +1,6 @@
 {{define "home" -}}
 <!DOCTYPE html>
 {{- $botState := .XcState -}}
-{{- $ChainType := .XcState -}}
 <html lang="en">
 {{ template "html-head" headData .CommonPageData "Mutilple Blockchains Explorer by bisonexplorer.com"}}
 {{ template "top_navbar" . }}
@@ -183,7 +182,7 @@
                                                    </td>
                                                    <td></td>
                                                 </tr>
-                                                {{range $botState.VolumeOrderedExchanges}}
+                                                {{range $botState.VolumnOrdered}}
                                                 <tr class="fs hover-row" data-chainmarket-target="xcRow"
                                                    data-action="click->chainmarket#setExchange" data-token="{{.Token}}">
                                                    <td class="py-2 fs16 fw-bold ta-left">
@@ -328,7 +327,7 @@
                                                 data-action="click->chainmarket#changeExchange">
                                                 <label>Exchange</label>
                                                 <div class="btn-group" data-chainmarket-target="exchangeBtnArea">
-                                                   {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
+                                                   {{range $index, $exchange := $botState.VolumnOrdered}}
                                                    <button name="{{$exchange.Token}}" {{if
                                                       $exchange.State.HasCandlesticks}} data-sticks="1"
                                                       data-bins="{{$exchange.State.StickList}}" {{end}} {{if

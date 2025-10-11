@@ -421,6 +421,8 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 	homeChainInfoList := make([]MutilchainHomeInfo, 0)
 	paramsList := make([]*types.ChainParamData, 0)
 	var tpSize uint32
+	var xcState *exchanges.ExchangeBotStateContent
+	allXcState := exp.getExchangeState()
 	for _, chainType := range chainList {
 		disabled, exist := exp.ChainDisabledMap[chainType]
 		if !exist || disabled {
@@ -457,7 +459,6 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		}
 		var homeInfo *types.HomeInfo
 		var volume24h float64
-		allXcState := exp.getExchangeState()
 		switch chainType {
 		case mutilchain.TYPEBTC:
 			exp.BtcPageData.RLock()
@@ -481,7 +482,9 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			exp.pageData.RLock()
 			homeInfo = exp.pageData.HomeInfo
 			homeInfo.TotalTransactions = exp.pageData.SummaryInfo.TotalTransactions
-			volume24h = allXcState.Volume
+			if allXcState != nil {
+				volume24h = allXcState.Volume
+			}
 			tpSize = exp.pageData.HomeInfo.PoolInfo.Target
 			exp.pageData.RUnlock()
 		}
@@ -499,11 +502,27 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 			BestBlock:    bestBlock,
 			HomeInfo:     homeInfo,
 		}
-		chainHomeInfo.Price = allXcState.GetMutilchainPrice(chainType)
+		if allXcState != nil {
+			chainHomeInfo.Price = allXcState.GetMutilchainPrice(chainType)
+		}
 		chainHomeInfo.Volumn = volume24h
 		chainHomeInfo.VolumeUSD = volume24h * chainHomeInfo.Price
 		chainHomeInfo.MarketCap = chainHomeInfo.Price * chainHomeInfo.HomeInfo.CoinValueSupply
 		homeChainInfoList = append(homeChainInfoList, chainHomeInfo)
+	}
+
+	if allXcState != nil {
+		// default create xcState for bitcoin
+		xcState = &exchanges.ExchangeBotStateContent{
+			BtcIndex:      allXcState.BtcIndex,
+			BtcPrice:      allXcState.BtcPrice,
+			Price:         allXcState.GetMutilchainPrice(mutilchain.TYPEBTC),
+			Volume:        allXcState.GetMutilchainVolumn(mutilchain.TYPEBTC),
+			ExchangeState: allXcState.GetMutilchainExchangeState(mutilchain.TYPEBTC),
+			FiatIndices:   allXcState.FiatIndices,
+			VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(mutilchain.TYPEBTC),
+			Change24h:     allXcState.GetMutilchainPriceChange(mutilchain.TYPEBTC),
+		}
 	}
 
 	var commonData = exp.commonData(r)
@@ -531,7 +550,7 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		*CommonPageData
 		HomeInfoList                []MutilchainHomeInfo
 		ParamsList                  []*types.ChainParamData
-		XcState                     *exchanges.ExchangeBotState
+		XcState                     *exchanges.ExchangeBotStateContent
 		ActiveChain                 string
 		ChainListTargetTimePerBlock []TargetTimeData
 		Premine                     int64
@@ -540,7 +559,7 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		CommonPageData:              commonData,
 		HomeInfoList:                homeChainInfoList,
 		ParamsList:                  paramsList,
-		XcState:                     exp.getExchangeState(),
+		XcState:                     xcState,
 		ActiveChain:                 strings.Join(chainStrList, ","),
 		ChainListTargetTimePerBlock: targetsTimeArr,
 		Premine:                     exp.premine,
@@ -656,22 +675,24 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	allXcState := exp.getExchangeState()
-	lowPrice, highPrice := allXcState.GetMutilchainLowHighPrice(chainType)
-	xcState := exchanges.ExchangeBotStateContent{
-		BtcIndex:      allXcState.BtcIndex,
-		BtcPrice:      allXcState.BtcPrice,
-		Price:         allXcState.GetMutilchainPrice(chainType),
-		Volume:        allXcState.GetMutilchainVolumn(chainType),
-		ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
-		FiatIndices:   allXcState.FiatIndices,
-		VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
-		Change24h:     allXcState.GetMutilchainPriceChange(chainType),
-		LowPrice:      lowPrice,
-		HighPrice:     highPrice,
+	var xcState *exchanges.ExchangeBotStateContent
+	if allXcState != nil {
+		lowPrice, highPrice := allXcState.GetMutilchainLowHighPrice(chainType)
+		xcState = &exchanges.ExchangeBotStateContent{
+			BtcIndex:      allXcState.BtcIndex,
+			BtcPrice:      allXcState.BtcPrice,
+			Price:         allXcState.GetMutilchainPrice(chainType),
+			Volume:        allXcState.GetMutilchainVolumn(chainType),
+			ExchangeState: allXcState.GetMutilchainExchangeState(chainType),
+			FiatIndices:   allXcState.FiatIndices,
+			VolumnOrdered: allXcState.MutilchainVolumeOrderedExchanges(chainType),
+			Change24h:     allXcState.GetMutilchainPriceChange(chainType),
+			LowPrice:      lowPrice,
+			HighPrice:     highPrice,
+		}
 	}
 
 	var marketCap *dbtypes.MarketCapData
-
 	if exp.CoinCapDataList != nil {
 		for _, capData := range exp.CoinCapDataList {
 			if capData.Symbol == dbtypes.ChainSymbolMap[chainType] {
@@ -696,7 +717,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 		BestBlock          *types.BlockBasic
 		Blocks             []*types.BlockBasic
 		Conversions        *MutilchainHomeConversions
-		XcState            exchanges.ExchangeBotStateContent
+		XcState            *exchanges.ExchangeBotStateContent
 		PercentChange      float64
 		ChainType          string
 		TargetTimePerBlock float64
@@ -3550,7 +3571,7 @@ func (exp *ExplorerUI) CreateMutilchainParameters(chainType string) *types.Chain
 		res := &types.ChainParamData{
 			ChainType:         mutilchain.TYPEXMR,
 			GenerateSupported: true,
-			CoinbaseMaturity: 60,
+			CoinbaseMaturity:  60,
 		}
 		if exp.XmrPageData.HomeInfo != nil {
 			targetTimePerBlock := exp.XmrPageData.HomeInfo.TargetTimePerBlock
