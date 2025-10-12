@@ -1111,11 +1111,11 @@ func (exp *ExplorerUI) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btc
 		log.Debugf("BTC: Get Multichain stats successfully")
 	}
 	if exp.xcBot != nil && exp.xcBot.State() != nil {
-		volumeUSDFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPEBTC)
+		volumeBaseFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPEBTC)
 		price24h := exp.xcBot.State().BTCPrice
 		if price24h > 0 {
-			volume24h = volumeUSDFloat / price24h
-			volume24hInt = utils.BTCToSatoshi(volume24h)
+			volume24h = volumeBaseFloat
+			volume24hInt = utils.BTCToSatoshi(volumeBaseFloat)
 		}
 	}
 	// Update pageData with block data and chain (home) info.
@@ -1274,11 +1274,11 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	volume24hInt := int64(0)
 	nodes := int64(0)
 	if exp.xcBot != nil && exp.xcBot.State() != nil {
-		volumeUSDFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPEXMR)
+		volumeBaseFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPEXMR)
 		price24h := exp.xcBot.State().XMRPrice
 		if price24h > 0 {
-			volume24h = volumeUSDFloat / price24h
-			volume24hInt = utils.XMRToAtomic(volume24h)
+			volume24h = volumeBaseFloat
+			volume24hInt = utils.XMRToAtomic(volumeBaseFloat)
 		}
 	}
 	// start for sync summary data (only first time)
@@ -1431,11 +1431,11 @@ func (exp *ExplorerUI) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltc
 		log.Debugf("LTC: Get Multichain stats successfully")
 	}
 	if exp.xcBot != nil && exp.xcBot.State() != nil {
-		volumeUSDFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPELTC)
+		volumeBaseFloat := exp.xcBot.State().GetMutilchainVolumn(mutilchain.TYPELTC)
 		price24h := exp.xcBot.State().LTCPrice
 		if price24h > 0 {
-			volume24h = volumeUSDFloat / price24h
-			volume24hInt = utils.BTCToSatoshi(volume24h)
+			volume24h = volumeBaseFloat
+			volume24hInt = utils.BTCToSatoshi(volumeBaseFloat)
 		}
 	}
 	// Update pageData with block data and chain (home) info.
