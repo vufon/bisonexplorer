@@ -1005,6 +1005,10 @@ export default class extends Controller {
       case 'fees': // block fee graph
         d = zip2D(data, data.fees, unitToCoin(this.chainType))
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (' + globalChainType.toUpperCase() + ')', true, false))
+        yFormatter = customYFormatter(y => {
+          if (y == null || isNaN(y)) return '–'
+          return y.toFixed(8) + ' ' + globalChainType.toUpperCase()
+        })
         break
 
       case 'duration-btw-blocks': // Duration between blocks graph
