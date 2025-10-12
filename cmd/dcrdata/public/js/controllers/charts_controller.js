@@ -22,6 +22,7 @@ const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const modeScales = ['ticket-price']
+const binDisabled = ['coin-age-bands']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
@@ -115,6 +116,10 @@ function usesHybridUnits (chart) {
 
 function isScaleDisabled (chart) {
   return lineScales.indexOf(chart) > -1
+}
+
+function isBinDisabled (chart) {
+  return binDisabled.indexOf(chart) > -1
 }
 
 function isModeEnabled (chart) {
@@ -1444,6 +1449,8 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
+      this.settings.scale = ''
+      this.setActiveOptionBtn('linear', this.scaleTypeTargets)
       this.hideMultiTargets(this.scaleSelectorTargets)
       this.showMultiTargets(this.vSelectorTargets)
     } else {
@@ -1453,6 +1460,13 @@ export default class extends Controller {
       this.showMultiTargets(this.modeSelectorTargets)
     } else {
       this.hideMultiTargets(this.modeSelectorTargets)
+    }
+    if (isBinDisabled(selection)) {
+      this.settings.bin = 'day'
+      this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+      this.hideMultiTargets(this.binSelectorTargets)
+    } else {
+      this.showMultiTargets(this.binSelectorTargets)
     }
     if (hasMultipleVisibility(selection)) {
       this.showMultiTargets(this.vSelectorTargets)
@@ -1475,7 +1489,7 @@ export default class extends Controller {
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.hideMultiTargets(this.binSelectorTargets)
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(selection)) {
         this.showMultiTargets(this.binSelectorTargets)
         this.settings.bin = this.selectedBin()
         const _this = this

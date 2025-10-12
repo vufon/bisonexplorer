@@ -24,6 +24,7 @@ const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days', 'decoy-bands']
 const modeScales = ['ticket-price']
+const binDisabled = ['decoy-bands', 'coin-age-bands']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
@@ -259,6 +260,10 @@ function usesHybridUnits (chart) {
 
 function isScaleDisabled (chart) {
   return lineScales.indexOf(chart) > -1
+}
+
+function isBinDisabled (chart) {
+  return binDisabled.indexOf(chart) > -1
 }
 
 function isModeEnabled (chart) {
@@ -2036,6 +2041,13 @@ export default class extends Controller {
     } else {
       this.modeSelectorTarget.classList.add('d-hide')
     }
+    if (isBinDisabled(this.settings.chart)) {
+      this.settings.bin = 'day'
+      this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+      this.binSelectorTarget.classList.add('d-hide')
+    } else if (this.chainType === 'dcr' || this.chainType === 'xmr') {
+      this.binSelectorTarget.classList.remove('d-hide')
+    }
     if (hasMultipleVisibility(this.settings.chart)) {
       this.vSelectorTarget.classList.remove('d-hide')
       this.updateVSelector(this.settings.chart)
@@ -2055,9 +2067,9 @@ export default class extends Controller {
       if (usesWindowUnits(this.settings.chart) && !usesHybridUnits(this.settings.chart)) {
         this.binSelectorTarget.classList.add('d-hide')
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(this.settings.chart)) {
         this.settings.bin = this.selectedBin()
-        if (this.chainType === 'dcr') {
+        if (this.chainType === 'dcr' || this.chainType === 'xmr') {
           this.binSelectorTarget.classList.remove('d-hide')
           this.binButtons.forEach(btn => {
             if (btn.name !== 'window') return
@@ -2072,6 +2084,8 @@ export default class extends Controller {
             }
           })
         } else {
+          this.settings.bin = 'day'
+          this.setActiveToggleBtn(this.settings.bin, this.binButtons)
           this.binSelectorTarget.classList.add('d-hide')
         }
       }
@@ -2265,8 +2279,9 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
+      this.settings.scale = ''
+      this.setActiveToggleBtn('linear', this.scaleButtons)
       this.scaleSelectorTarget.classList.add('d-hide')
-      this.vSelectorTarget.classList.remove('d-hide')
     } else {
       this.scaleSelectorTarget.classList.remove('d-hide')
     }
@@ -2274,6 +2289,13 @@ export default class extends Controller {
       this.modeSelectorTarget.classList.remove('d-hide')
     } else {
       this.modeSelectorTarget.classList.add('d-hide')
+    }
+    if (isBinDisabled(selection)) {
+      this.settings.bin = 'day'
+      this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+      this.binSelectorTarget.classList.add('d-hide')
+    } else if (this.chainType === 'dcr' || this.chainType === 'xmr') {
+      this.binSelectorTarget.classList.remove('d-hide')
     }
     if (hasMultipleVisibility(selection)) {
       this.vSelectorTarget.classList.remove('d-hide')
@@ -2294,10 +2316,10 @@ export default class extends Controller {
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.binSelectorTarget.classList.add('d-hide')
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(selection)) {
         this.settings.bin = this.selectedBin()
         const _this = this
-        if (this.chainType === 'dcr') {
+        if (this.chainType === 'dcr' || this.chainType === 'xmr') {
           this.binSelectorTarget.classList.remove('d-hide')
           this.binButtons.forEach(btn => {
             if (btn.name !== 'window') return
@@ -2312,6 +2334,8 @@ export default class extends Controller {
             }
           })
         } else {
+          this.settings.bin = 'day'
+          this.setActiveToggleBtn(this.settings.bin, this.binButtons)
           this.binSelectorTarget.classList.add('d-hide')
         }
       }

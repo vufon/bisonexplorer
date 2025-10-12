@@ -22,6 +22,7 @@ const windowScales = ['ticket-price', 'missed-votes']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation', 'decoy-bands']
 const modeScales = ['ticket-price']
+const binDisabled = ['decoy-bands']
 const decoyBandsLabels = ['none', 'No Tx', 'Decoys 0-3', 'Decoys 4-7', 'Decoys 8-11', 'Decoys 12-14', 'Decoys > 15', 'Mixin']
 const decoyBandsColors = [
   '#e9baa6',
@@ -87,6 +88,10 @@ function usesHybridUnits (chart) {
 
 function isScaleDisabled (chart) {
   return lineScales.indexOf(chart) > -1
+}
+
+function isBinDisabled (chart) {
+  return binDisabled.indexOf(chart) > -1
 }
 
 function isModeEnabled (chart) {
@@ -1122,6 +1127,14 @@ export default class extends Controller {
       this.hideMultiTargets(this.modeSelectorTargets)
     }
 
+    if (isBinDisabled(selection)) {
+      this.settings.bin = 'day'
+      this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+      this.hideMultiTargets(this.binSelectorTargets)
+    } else if (this.chainType === 'xmr') {
+      this.showMultiTargets(this.binSelectorTargets)
+    }
+
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
       this.settings.axis !== this.selectedAxis()) {
       let url = `/api/chainchart/${this.chainType}/` + selection
@@ -1129,26 +1142,32 @@ export default class extends Controller {
         // this.binSelectorTarget.classList.add('d-hide')
         this.hideMultiTargets(this.binSelectorTargets)
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(selection)) {
+        if (this.chainType === 'xmr') {
         // this.binSelectorTarget.classList.remove('d-hide')
-        this.showMultiTargets(this.binSelectorTargets)
-        this.settings.bin = this.selectedBin()
-        const _this = this
-        this.binSizeTargets.forEach(el => {
-          if (_this.exitCond(el)) {
-            return
-          }
-          if (el.dataset.option !== 'window') return
-          if (usesHybridUnits(selection)) {
-            el.classList.remove('d-hide')
-          } else {
-            el.classList.add('d-hide')
-            if (this.settings.bin === 'window') {
-              this.settings.bin = 'day'
-              this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+          this.showMultiTargets(this.binSelectorTargets)
+          this.settings.bin = this.selectedBin()
+          const _this = this
+          this.binSizeTargets.forEach(el => {
+            if (_this.exitCond(el)) {
+              return
             }
-          }
-        })
+            if (el.dataset.option !== 'window') return
+            if (usesHybridUnits(selection)) {
+              el.classList.remove('d-hide')
+            } else {
+              el.classList.add('d-hide')
+              if (this.settings.bin === 'window') {
+                this.settings.bin = 'day'
+                this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+              }
+            }
+          })
+        } else {
+          this.settings.bin = 'day'
+          this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+          this.hideMultiTargets(this.binSelectorTargets)
+        }
       }
       url += `?bin=${this.settings.bin}`
 
