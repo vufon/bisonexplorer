@@ -915,7 +915,7 @@ export default class extends Controller {
     switch (chartName) {
       case 'block-size': // block size graph
         d = zip2D(data, data.size)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', true, false))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', false, true))
         break
       case 'blockchain-size': // blockchain size graph
         d = zip2D(data, data.size)
@@ -930,7 +930,7 @@ export default class extends Controller {
       case 'tx-per-block': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg TXs Per Block'], false,
-          'Avg TXs Per Block', false, false))
+          'Avg TXs Per Block', true, false))
         break
       case 'mined-blocks': // tx per block graph
         d = zip2D(data, data.count)
@@ -958,9 +958,9 @@ export default class extends Controller {
         break
       case 'coin-supply': // supply graph
         if (this.settings.bin === 'day') {
-          d = zip2D(data, data.supply, 1e-6)
-          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply (' + globalChainType.toUpperCase() + ')'], false,
-            'Coins Supply (Millions ' + globalChainType.toUpperCase() + ')', false, false))
+          d = zip2D(data, data.supply)
+          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply (' + globalChainType.toUpperCase() + ')'], true,
+            'Coins Supply (' + globalChainType.toUpperCase() + ')', true, false))
           yFormatter = (div, data, i) => {
             addLegendEntryFmt(div, data.series[0], y => intComma(y * 1e6) + ' ' + globalChainType.toUpperCase())
           }
@@ -1070,7 +1070,7 @@ export default class extends Controller {
           // zoomCallback: this.depthZoomCallback,
           axes: {
             y2: {
-              valueRange: [0, 1000000],
+              valueRange: [0, 2000000],
               axisLabelFormatter: (y) => Math.round(y),
               axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['decoy-bands'] : yAxisLabelWidth.y2['decoy-bands'] + 15
             }
