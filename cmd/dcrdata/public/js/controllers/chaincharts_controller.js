@@ -20,7 +20,7 @@ const atomsToDCR = 1e-8
 const picoToXmr = 1e-12
 const windowScales = ['ticket-price', 'missed-votes']
 const hybridScales = ['privacy-participation']
-const lineScales = ['ticket-price', 'privacy-participation']
+const lineScales = ['ticket-price', 'privacy-participation', 'decoy-bands']
 const modeScales = ['ticket-price']
 const decoyBandsLabels = ['none', 'No Tx', 'Decoys 0-3', 'Decoys 4-7', 'Decoys 8-11', 'Decoys 12-14', 'Decoys > 15', 'Mixin']
 const decoyBandsColors = [
@@ -1109,8 +1109,10 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
+      // If the mode was previously log, change it back to default.
+      this.settings.scale = ''
+      this.setActiveOptionBtn('linear', this.scaleTypeTargets)
       this.hideMultiTargets(this.scaleSelectorTargets)
-      this.showMultiTargets(this.vSelectorTargets)
     } else {
       this.showMultiTargets(this.scaleSelectorTargets)
     }

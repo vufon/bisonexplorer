@@ -22,7 +22,7 @@ const picoToXmr = 1e-12
 const windowScales = ['ticket-price', 'missed-votes']
 const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
-const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days', 'decoy-bands']
 const modeScales = ['ticket-price']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
@@ -2025,6 +2025,8 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(this.settings.chart)) {
+      this.settings.scale = ''
+      this.setActiveToggleBtn('linear', this.scaleButtons)
       this.scaleSelectorTarget.classList.add('d-hide')
     } else {
       this.scaleSelectorTarget.classList.remove('d-hide')
