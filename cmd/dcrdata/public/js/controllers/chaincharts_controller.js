@@ -1070,7 +1070,7 @@ export default class extends Controller {
           // zoomCallback: this.depthZoomCallback,
           axes: {
             y2: {
-              valueRange: [0, 2000000],
+              valueRange: [0, 3500000],
               axisLabelFormatter: (y) => Math.round(y),
               axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['decoy-bands'] : yAxisLabelWidth.y2['decoy-bands'] + 15
             }
