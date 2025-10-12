@@ -182,7 +182,7 @@
                                                    </td>
                                                    <td></td>
                                                 </tr>
-                                                {{range $botState.VolumeOrderedExchanges}}
+                                                {{range $botState.VolumnOrdered}}
                                                 <tr class="fs hover-row" data-chainmarket-target="xcRow"
                                                    data-action="click->chainmarket#setExchange" data-token="{{.Token}}">
                                                    <td class="py-2 fs16 fw-bold ta-left">
@@ -327,7 +327,7 @@
                                                 data-action="click->chainmarket#changeExchange">
                                                 <label>Exchange</label>
                                                 <div class="btn-group" data-chainmarket-target="exchangeBtnArea">
-                                                   {{range $index, $exchange := $botState.VolumeOrderedExchanges}}
+                                                   {{range $index, $exchange := $botState.ExchangeOrdered}}
                                                    <button name="{{$exchange.Token}}" {{if
                                                       $exchange.State.HasCandlesticks}} data-sticks="1"
                                                       data-bins="{{$exchange.State.StickList}}" {{end}} {{if
@@ -787,7 +787,13 @@
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">RetargetAdjustmentFactor</td>
                            {{range .ParamsList}}
-                           <td class="mono">{{.RetargetAdjustmentFactor}}</td>
+                           <td class="mono">
+                              {{if eq .ChainType "xmr"}}
+                              N/A
+                              {{else}}
+                              {{.RetargetAdjustmentFactor}}
+                              {{end}}
+                           </td>
                            {{end}}
                            <td>Adjustment factor used to limit the minimum and maximum amount of adjustment that can
                               occur between difficulty retargets</td>
@@ -803,8 +809,7 @@
                            <td class="mono text-start pe-2 nowrap p03rem0">NextBlockReward</td>
                            {{range .ParamsList}}
                            <td class="mono">
-                              {{template "decimalParts" (amountAsDecimalParts .NextBlockReward true)}} {{toUpperCase
-                              .ChainType}}
+                              {{template "decimalParts" (amountMulAsDecimalParts .NextBlockReward true .ChainType)}} {{toUpperCase .ChainType}}
                            </td>
                            {{end}}
                            <td>Next Block Reward (Estimate)</td>
@@ -812,7 +817,12 @@
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">RemainingBlocks</td>
                            {{range .ParamsList}}
-                           <td class="mono">{{.RemainingBlocks}}</td>
+                           <td class="mono">
+                              {{if eq .ChainType "xmr"}}
+                              N/A
+                              {{else}}
+                              {{.RemainingBlocks}}
+                              {{end}}</td>
                            {{end}}
                            <td>Remaining Blocks for next reward reduction</td>
                         </tr>
@@ -826,7 +836,13 @@
                         <tr>
                            <td class="mono text-start pe-2 nowrap p03rem0">SubsidyReductionInterval</td>
                            {{range .ParamsList}}
-                           <td class="mono">{{.SubsidyReductionInterval}} blocks</td>
+                           <td class="mono">
+                              {{if eq .ChainType "xmr"}}
+                              N/A
+                              {{else}}
+                              {{.SubsidyReductionInterval}} blocks
+                              {{end}}
+                           </td>
                            {{end}}
                            <td>Reduction interval in blocks</td>
                         </tr>

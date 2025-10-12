@@ -561,6 +561,12 @@ func makeTemplateFuncMap(params *chaincfg.Params) template.FuncMap {
 		"amountAsDecimalParts": func(v int64, useCommas bool) []string {
 			return float64Formatting(dcrutil.Amount(v).ToCoin(), 8, useCommas)
 		},
+		"amountMulAsDecimalParts": func(v int64, useCommas bool, chainType string) []string {
+			if chainType != mutilchain.TYPEXMR {
+				return float64Formatting(dcrutil.Amount(v).ToCoin(), 8, useCommas)
+			}
+			return float64Formatting(utils.AtomicToXMR(uint64(v)), 8, useCommas)
+		},
 		"toFloat64Amount": func(intAmount int64) float64 {
 			return dcrutil.Amount(intAmount).ToCoin()
 		},

@@ -811,6 +811,9 @@ export default class extends Controller {
       }
       selectOptions += '<button name="aggregated" data-chainmarket-target="aggOption" data-depth="1" ' +
         'class="tab-button home-chart-toggle-btn white c-txt-main">Aggregated</button>'
+      if (exchangeBefore.includes('aggregated')) {
+        selectedExchange.push('aggregated')
+      }
       this.exchangeBtnAreaTarget.innerHTML = selectOptions
       this.exchangesButtons = this.exchangesTarget.querySelectorAll('button')
       availableCandlesticks = {}
@@ -843,7 +846,7 @@ export default class extends Controller {
     const res = []
     for (let i = 0; i < this.exchangesButtons.length; i++) {
       const exBtn = this.exchangesButtons[i]
-      if (selectedExchanges.indexOf(exBtn) >= 0 && !exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none')) {
+      if (selectedExchanges.indexOf(exBtn.name) >= 0 && !exBtn.classList.contains('d-hide') && !exBtn.classList.contains('d-none')) {
         res.push(exBtn)
       }
     }
@@ -1876,14 +1879,33 @@ export default class extends Controller {
     this.setButtons()
   }
 
-  setExchange (e) {
+  async setExchange (e) {
     let node = e.target || e.srcElement
     while (node && node.nodeName !== 'TR') node = node.parentNode
     if (!node || !node.dataset || !node.dataset.token) return
-    if (usesCandlesticks(settings.chart) && node.dataset.token === aggregatedKey) {
+    // If it is a single exchange, it will only display for that exchange.
+    const exchange = node.dataset.token
+    // Check if only this exchange is being displayed?
+    const selectedExchanges = this.getSelectedExchanges()
+    if (selectedExchanges && selectedExchanges.length === 1 && selectedExchanges[0] === exchange) {
       return
     }
-    this.handlerExchange(node.dataset.token)
+    // handler for aggregated
+    if (node.dataset.token === aggregatedKey) {
+      this.handlerExchange(node.dataset.token)
+      return
+    }
+    settings.xcs = exchange
+    settings.xc = exchange
+    this.justifyBins()
+    this.setButtons()
+    this.setExchangeName()
+    depthOrderZoom = undefined
+    orderZoom = undefined
+    await this.fetchChart()
+    await this.fetchDepthChart()
+    this.resetZoom()
+    this.resetDepthZoom()
   }
 
   changeBin (e) {

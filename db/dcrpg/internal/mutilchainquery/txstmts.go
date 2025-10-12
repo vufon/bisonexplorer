@@ -26,13 +26,13 @@ const (
 		tx_extra, block_index, is_ringct, rct_type,
 		tx_public_key, prunable_size,
 		lock_time, expiry, size, spent, sent, fees, 
-		num_vin, vins, num_vout)
+		num_vin, vins, num_vout, coinbase)
 	VALUES (
 		$1, $2, $3, $4, 
 		$5, $6, $7, $8, $9,
 		$10, $11, $12, $13, $14, $15,
 		$16, $17, $18,
-		$19, $20, $21, $22, $23, $24)`
+		$19, $20, $21, $22, $23, $24, $25)`
 	insertTxRow           = insertTxRow0 + ` RETURNING id;`
 	insertTxRowChecked    = insertTxRow0 + ` ON CONFLICT (tx_hash) DO NOTHING RETURNING id;`
 	insertXmrTxRow        = insertXmrTxRow0 + ` RETURNING id;`
@@ -64,6 +64,7 @@ const (
 		fees INT8,
 		num_vin INT4,
 		vins TEXT,
+		coinbase BOOLEAN DEFAULT FALSE,
 		vin_db_ids INT8[],
 		num_vout INT4,
 		vouts %svout_t[],

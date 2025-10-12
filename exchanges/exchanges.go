@@ -50,6 +50,8 @@ const (
 	Kraken       = "kraken"
 )
 
+var exchangeOrders = []string{Binance, Hotcoin, Pionex, Mexc, KuCoin, Xt, Huobi, Coinex, Gemini, Bitfinex, Kraken, BTCCoinex, BTCBinance}
+
 // A few candlestick bin sizes.
 type candlestickKey string
 

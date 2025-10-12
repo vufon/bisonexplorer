@@ -3611,7 +3611,7 @@ func (c *appContext) getExchangeData(w http.ResponseWriter, r *http.Request) {
 	if !c.ChainDisabledMap[mutilchain.TYPEDCR] {
 		result = append(result, ExchangeStateMap{
 			ChainType: mutilchain.TYPEDCR,
-			Exchanges: c.xcBot.State().VolumeOrderedExchanges(),
+			Exchanges: c.xcBot.State().DecredOrderedExchanges(),
 		})
 	}
 
@@ -3619,9 +3619,10 @@ func (c *appContext) getExchangeData(w http.ResponseWriter, r *http.Request) {
 		if c.ChainDisabledMap[chain] {
 			continue
 		}
+		_, orderedExchagnes := c.xcBot.State().MutilchainVolumeOrderedExchanges(chain)
 		result = append(result, ExchangeStateMap{
 			ChainType: chain,
-			Exchanges: c.xcBot.State().MutilchainVolumeOrderedExchanges(chain),
+			Exchanges: orderedExchagnes,
 		})
 	}
 	writeJSON(w, result, m.GetIndentCtx(r))

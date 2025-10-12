@@ -70,8 +70,9 @@ func (charts *MutilchainChartData) Lengthen() error {
 	var err error
 	if charts.ChainType == mutilchain.TYPEXMR {
 		shortest, err = ValidateLengths(blocks.Height, blocks.Time,
-			blocks.BlockSize, blocks.TotalSize, blocks.TxCount, blocks.Fees, blocks.Difficulty,
-			blocks.Hashrate, blocks.Reward, blocks.TotalRingSize, blocks.AverageRingSize, blocks.FeeRate, blocks.AverageTxSize, blocks.MoneroDecoyBands)
+			blocks.BlockSize, blocks.TxCount, blocks.TxPerBlock, blocks.Fees, blocks.Difficulty,
+			blocks.Hashrate, blocks.Reward, blocks.TotalRingSize, blocks.AverageRingSize,
+			blocks.FeeRate, blocks.AverageTxSize, blocks.MoneroDecoyBands)
 	} else {
 		shortest, err = ValidateLengths(blocks.Height, blocks.Time,
 			blocks.BlockSize, blocks.TxCount, blocks.Fees, blocks.Difficulty,
@@ -139,12 +140,12 @@ func (charts *MutilchainChartData) Lengthen() error {
 			days.Height = append(days.Height, uint64(interval[1]-1))
 			days.BlockSize = append(days.BlockSize, blocks.BlockSize.Sum(interval[0], interval[1]))
 			if charts.ChainType == mutilchain.TYPEXMR {
-				days.TotalSize = append(days.TotalSize, blocks.TotalSize.Sum(interval[0], interval[1]))
 				days.TotalRingSize = append(days.TotalRingSize, blocks.TotalRingSize.Sum(interval[0], interval[1]))
 				days.AverageRingSize = append(days.AverageRingSize, blocks.AverageRingSize.Avg(interval[0], interval[1]))
 				days.FeeRate = append(days.FeeRate, blocks.FeeRate.Avg(interval[0], interval[1]))
 				days.AverageTxSize = append(days.AverageTxSize, blocks.AverageTxSize.Avg(interval[0], interval[1]))
 				days.MoneroDecoyBands = append(days.MoneroDecoyBands, blocks.MoneroDecoyBands.Avg(interval[0], interval[1]))
+				days.TxPerBlock = append(days.TxPerBlock, blocks.TxPerBlock.Avg(interval[0], interval[1]))
 			}
 			days.TxCount = append(days.TxCount, blocks.TxCount.Sum(interval[0], interval[1]))
 			days.Reward = append(days.Reward, blocks.Reward.Sum(interval[0], interval[1]))
@@ -158,7 +159,7 @@ func (charts *MutilchainChartData) Lengthen() error {
 	var daysLen int
 	if charts.ChainType == mutilchain.TYPEXMR {
 		daysLen, err = ValidateLengths(days.Height, days.Time,
-			days.BlockSize, days.TotalSize, days.TxCount, days.Reward,
+			days.BlockSize, days.TxCount, days.TxPerBlock, days.Reward,
 			days.Fees, days.Difficulty, days.Hashrate, days.TotalRingSize,
 			days.AverageRingSize, days.FeeRate, days.AverageTxSize, days.MoneroDecoyBands)
 	} else {
@@ -264,10 +265,10 @@ func (charts *MutilchainChartData) readCacheFile(filePath string) error {
 	if charts.ChainType == mutilchain.TYPEXMR {
 		charts.Blocks.TotalRingSize = gobject.TotalRingSize
 		charts.Blocks.AverageRingSize = gobject.AverageRingSize
-		charts.Blocks.TotalSize = gobject.TotalSize
 		charts.Blocks.FeeRate = gobject.FeeRate
 		charts.Blocks.AverageTxSize = gobject.AverageTxSize
 		charts.Blocks.MoneroDecoyBands = gobject.MoneroDecoyBands
+		charts.Blocks.TxPerBlock = gobject.TxPerBlock
 	}
 
 	charts.mtx.Unlock()
@@ -333,7 +334,6 @@ func (charts *MutilchainChartData) gobject() *ChartGobject {
 		Height:           charts.Blocks.Height,
 		Time:             charts.Blocks.Time,
 		BlockSize:        charts.Blocks.BlockSize,
-		TotalSize:        charts.Blocks.TotalSize,
 		TxCount:          charts.Blocks.TxCount,
 		Reward:           charts.Blocks.Reward,
 		Fees:             charts.Blocks.Fees,
@@ -344,6 +344,7 @@ func (charts *MutilchainChartData) gobject() *ChartGobject {
 		FeeRate:          charts.Blocks.FeeRate,
 		AverageTxSize:    charts.Blocks.AverageTxSize,
 		MoneroDecoyBands: charts.Blocks.MoneroDecoyBands,
+		TxPerBlock:       charts.Blocks.TxPerBlock,
 	}
 }
 
@@ -711,12 +712,12 @@ func xmrBlockchainSizeChart(charts *MutilchainChartData, bin binLevel, axis axis
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				sizeKey: accumulate(charts.Blocks.TotalSize),
+				sizeKey: accumulate(charts.Blocks.BlockSize),
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey: charts.Blocks.Time,
-				sizeKey: accumulate(charts.Blocks.TotalSize),
+				sizeKey: accumulate(charts.Blocks.BlockSize),
 			}, seed)
 		}
 	case DayBin:
@@ -724,12 +725,12 @@ func xmrBlockchainSizeChart(charts *MutilchainChartData, bin binLevel, axis axis
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey: charts.Days.Height,
-				sizeKey:   accumulate(charts.Days.TotalSize),
+				sizeKey:   accumulate(charts.Days.BlockSize),
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey: charts.Days.Time,
-				sizeKey: accumulate(charts.Days.TotalSize),
+				sizeKey: accumulate(charts.Days.BlockSize),
 			}, seed)
 		}
 	}
@@ -971,12 +972,12 @@ func xmrTxsPerBlockChart(charts *MutilchainChartData, bin binLevel, axis axisTyp
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				countKey: charts.Blocks.TxCount,
+				countKey: charts.Blocks.TxPerBlock,
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey:  charts.Blocks.Time,
-				countKey: charts.Blocks.TxCount,
+				countKey: charts.Blocks.TxPerBlock,
 			}, seed)
 		}
 	case DayBin:
@@ -984,12 +985,12 @@ func xmrTxsPerBlockChart(charts *MutilchainChartData, bin binLevel, axis axisTyp
 		case HeightAxis:
 			return encode(lengtherMap{
 				heightKey: charts.Days.Height,
-				countKey:  charts.Days.TxCount,
+				countKey:  charts.Days.TxPerBlock,
 			}, seed)
 		default:
 			return encode(lengtherMap{
 				timeKey:  charts.Days.Time,
-				countKey: charts.Days.TxCount,
+				countKey: charts.Days.TxPerBlock,
 			}, seed)
 		}
 	}

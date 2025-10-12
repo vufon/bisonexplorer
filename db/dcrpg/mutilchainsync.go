@@ -879,9 +879,9 @@ func (pgb *ChainDB) SaveXMRBlockSummaryData(height int64) error {
 
 func (pgb *ChainDB) updateXMRBlockSummary(height int64, txsParseRes storeTxnsResult) error {
 	_, err := pgb.db.Exec(mutilchainquery.UpdateXMRBlockSummaryWithHeight, txsParseRes.ringSize,
-		txsParseRes.avgRingSize, txsParseRes.feePerKb, txsParseRes.avgTxSize,
+		txsParseRes.avgRingSize, txsParseRes.fees, txsParseRes.feePerKb, txsParseRes.totalSize, txsParseRes.avgTxSize,
 		txsParseRes.decoy03, txsParseRes.decoy47, txsParseRes.decoy811,
-		txsParseRes.decoy1214, txsParseRes.decoyGe15, true, height)
+		txsParseRes.decoy1214, txsParseRes.decoyGe15, true, txsParseRes.totalSent, txsParseRes.txCount, txsParseRes.numVins, txsParseRes.numVouts, height)
 	if err != nil {
 		log.Errorf("XMR: Update xmr block summary failed: %v", err)
 		return err
@@ -937,7 +937,7 @@ func (pgb *ChainDB) StoreXMRWholeBlock(client *xmrclient.XMRClient, checked, upd
 			blobBytes = b
 		}
 	}
-
+	txRes.totalSize += int64(dbBlock.Size)
 	// Store the block now that it has all it's transaction PK IDs
 	_, err = InsertXMRWholeBlock(dbtx, dbBlock, blobBytes, true, checked, txRes)
 	if err != nil {
@@ -1205,34 +1205,15 @@ func (pgb *ChainDB) storeBTCWholeTxns(client *btcClient.Client, block *dbtypes.B
 
 func (pgb *ChainDB) retrieveXmrTxsWithHeight(blockHeight int64) (storeTxnsResult, error) {
 	var txRes storeTxnsResult
-	// rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.SelectXMRTxsByBlockHeight, blockHeight)
-	// if err != nil {
-	// 	return txRes, err
-	// }
-	// defer rows.Close()
-	// txs := make([]*dbtypes.XmrTxSummaryInfo, 0)
-	// for rows.Next() {
-	// 	var txHash string
-	// 	var fees, size int64
-	// 	if err = rows.Scan(&txHash, &fees, &size); err != nil {
-	// 		log.Errorf("retrieveXmrTxsWithHeight failed: %v", err)
-	// 		return txRes, err
-	// 	}
-	// 	txs = append(txs, &dbtypes.XmrTxSummaryInfo{
-	// 		Txid: txHash,
-	// 		Fees: fees,
-	// 		Size: size,
-	// 	})
-	// 	txids = append(txids, txHash)
-	// }
-
 	br, berr := pgb.XmrClient.GetBlock(uint64(blockHeight))
 	if berr != nil {
 		log.Errorf("XMR: GetBlock(%d) failed: %v", blockHeight, berr)
 		return txRes, berr
 	}
 
+	blockSize := xmrhelper.GetXMRBlockSize(br)
 	txids := br.TxHashes
+	txRes.txCount = int64(len(txids))
 	var totalTxSize, totalRingSize, totalDecoy03, totalDecoy47, totalDecoy811, totalDecoy1214, totalDecoyGe15 int64
 	if len(txids) > 0 {
 		blTxsData, blTxserr := pgb.XmrClient.GetTransactions(txids, true)
@@ -1290,6 +1271,7 @@ func (pgb *ChainDB) retrieveXmrTxsWithHeight(blockHeight int64) (storeTxnsResult
 	if len(txids) > 0 {
 		txRes.avgTxSize = totalTxSize / int64(len(txids))
 	}
+	txRes.totalSize = totalTxSize + blockSize
 	return txRes, nil
 }
 
@@ -1316,7 +1298,7 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 		}
 		// insert transaction row
 		// Get the tx PK IDs for storage in the blocks table
-		_, fees, txSize, err := InsertXMRTxn(dbtx, block.Height, block.Hash, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked)
+		_, fees, txSize, err := InsertXMRTxn(dbtx, block.Height, block.Hash, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked, isCoinbaseTx)
 		if err != nil && err != sql.ErrNoRows {
 			log.Error("XMR: InsertTxn: %v", err)
 			txRes.err = err
@@ -1369,6 +1351,7 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 			txRes.avgTxSize = totalTxSize / int64(txsLength)
 		}
 	}
+	txRes.totalSize = totalTxSize
 	// set address synced flag
 	// txRes.addressesSynced = true
 	return txRes

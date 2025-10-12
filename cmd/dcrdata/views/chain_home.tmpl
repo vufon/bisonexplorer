@@ -96,8 +96,8 @@
                         class="submenu-list__item-link w-100">
                         <div class="submenu-list__item-wrapper">
                            <div class="submenu-list__item-icon">
-                              <img src="/images/bison-wallet.svg" width="25" height="25" class="home-menu-icon"
-                                 alt="bison wallet">
+                              <img src="/images/visual-block.svg" width="25" height="25" class="home-menu-icon"
+                                 alt="visual blocks">
                            </div>
                            <div>
                               <span class="submenu-list__item-title">Visual Blocks</span>
@@ -146,6 +146,7 @@
                         </div>
                      </a>
                   </li>
+                  {{if ne $ChainType "xmr"}}
                   <li class="submenu-list__item has-submenu active">
                      <a href="/{{$ChainType}}/parameters" data-turbolinks="false" class="submenu-list__item-link w-100">
                         <div class="submenu-list__item-wrapper">
@@ -160,6 +161,7 @@
                         </div>
                      </a>
                   </li>
+                  {{end}}
                   <li class="submenu-list__item has-submenu">
                      <a href="/whatsnew" data-turbolinks="false" class="submenu-list__item-link w-100">
                         <div class="submenu-list__item-wrapper">
@@ -296,7 +298,7 @@
                                  <span class="new-network-stats-title">
                                     <a class="link-hover-underline" data-turbolinks="false"
                                        href="/{{$ChainType}}/charts?chart=coin-supply">
-                                       Coin Supply (of 21 mil)
+                                       Coin Supply {{if ne $ChainType "xmr"}}(of {{if eq $ChainType "btc"}}21{{else}}84{{end}} mil){{end}}
                                     </a>
                                  </span>
                                  <div class="flex-card-content">
@@ -424,7 +426,10 @@
                            <div class="col-12 col-sm-8 card-content-box">
                               <div class="new-network-stats-block flex-column-card">
                                  <span class="new-network-stats-title">
-                                    Total Ring Members
+                                    <a class="link-hover-underline" data-turbolinks="false"
+                                       href="/{{$ChainType}}/charts?chart=total-ring-size">
+                                       Total Ring Members
+                                    </a>
                                  </span>
                                  <div class="flex-card-content">
                                     <div>
@@ -456,10 +461,14 @@
                               <div class="col-12 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
                                     <span class="new-network-stats-title">
+                                       {{if eq $ChainType "xmr"}}
+                                       Transactions
+                                       {{else}}
                                        <a class="link-hover-underline" data-turbolinks="false"
                                           href="/{{$ChainType}}/charts?chart=mempool-txs">
                                           Transactions
                                        </a>
+                                       {{end}}
                                     </span>
                                     <div class="flex-card-content">
                                        <div>
@@ -573,10 +582,14 @@
                               <div class="col-12 card-content-box">
                                  <div class="new-network-stats-block flex-column-card">
                                     <span class="new-network-stats-title">
+                                       {{if eq $ChainType "xmr"}}
+                                       Size
+                                       {{else}}
                                        <a class="link-hover-underline" data-turbolinks="false"
                                           href="/{{$ChainType}}/charts?chart=mempool-size">
                                           Size
                                        </a>
+                                       {{end}}
                                     </span>
                                     <div class="flex-card-content">
                                        <div>
@@ -1321,7 +1334,7 @@
                                  data-chainmarket-target="exchanges" data-action="click->chainmarket#changeExchange">
                                  <label>Exchange</label>
                                  <div class="btn-group exchange-group" data-chainmarket-target="exchangeBtnArea">
-                                    {{range $index, $exchange := $botState.VolumnOrdered}}
+                                    {{range $index, $exchange := $botState.ExchangeOrdered}}
                                     <button name="{{$exchange.Token}}" {{if $exchange.State.HasCandlesticks}}
                                        data-exchangeindex="{{$index}}" data-sticks="1"
                                        data-bins="{{$exchange.State.StickList}}" {{end}} {{if $exchange.State.HasDepth}}

@@ -639,7 +639,7 @@ export default class extends Controller {
     if (!this.isHomepage) {
       this.query.update(settings)
     } else {
-      settings.chart = 'history'
+      settings.chart = history
       let hasBinance = false
       this.exchangesButtons.forEach(button => {
         if (button.name === 'binance') {
@@ -714,7 +714,7 @@ export default class extends Controller {
       this.setAggRowData(true)
     }
     // if chart is history, set to xcs
-    if ((settings.chart === 'history' || settings.chart === 'volume') && (!settings.xcs || settings.xcs === null)) {
+    if ((settings.chart === history || settings.chart === volume) && (!settings.xcs || settings.xcs === null)) {
       settings.xcs = settings.xc
     }
     this.handlerExchangesDisplay()
@@ -862,7 +862,7 @@ export default class extends Controller {
     const chart = settings.chart
     const oldZoom = this.graph.xAxisRange()
     if (usesCandlesticks(chart)) {
-      if (settings.chart !== 'history' && settings.chart !== 'volume') {
+      if (settings.chart !== history && settings.chart !== volume) {
         if (!(xc in availableCandlesticks)) {
           console.warn('invalid candlestick exchange:', xc)
           return
@@ -888,7 +888,7 @@ export default class extends Controller {
     this.chartLoaderTarget.classList.add('loading')
     let response
     const xcResponseMap = new Map()
-    if (settings.chart === 'history' || settings.chart === 'volume') {
+    if (settings.chart === history || settings.chart === volume) {
       const xcs = settings.xcs && settings.xcs !== null ? settings.xcs : settings.xc
       const xcList = xcs.split(',')
       if (xcList.length > 0) {
@@ -951,9 +951,9 @@ export default class extends Controller {
       context.clearRect(0, 0, canvas.width, canvas.height)
     }
     this.graph.updateOptions(chartResetOpts, true)
-    if (settings.chart === 'history') {
+    if (settings.chart === history) {
       this.graph.updateOptions(this.processors.xchistory(xcResponseMap))
-    } else if (settings.chart === 'volume') {
+    } else if (settings.chart === volume) {
       this.graph.updateOptions(this.processors.xcvolume(xcResponseMap))
     } else {
       this.graph.updateOptions(this.processors[chart](response))
@@ -1387,7 +1387,7 @@ export default class extends Controller {
 
   justifyBins () {
     let bins = []
-    if (settings.chart === 'history' || settings.chart === 'volume') {
+    if (settings.chart === history || settings.chart === volume) {
       if (!settings.xcs || settings.xcs === '') {
         settings.xcs = settings.xc === 'aggregated' ? this.exchangesButtons[0].name : settings.xc
       }
@@ -1425,7 +1425,7 @@ export default class extends Controller {
         lastExchangeBtn = exchangeBtn
       }
     })
-    const xsList = settings.chart === 'history' || settings.chart === 'volume' ? settings.xcs.split(',') : settings.xc.split(',')
+    const xsList = settings.chart === history || settings.chart === volume ? settings.xcs.split(',') : settings.xc.split(',')
     this.setActiveExchanges(xsList)
     if (usesOrderbook(settings.chart)) {
       this.binTarget.classList.add('d-hide')
@@ -1438,7 +1438,7 @@ export default class extends Controller {
       this.aggOptionTarget.classList.add('d-hide')
       lastExchangeBtn.classList.add('last-toggle-btn')
       let bins
-      if (settings.chart === 'history' || settings.chart === 'volume') {
+      if (settings.chart === history || settings.chart === volume) {
         bins = this.getHistoryChartAvailableBins()
       } else {
         bins = availableCandlesticks[settings.xc]
@@ -1513,7 +1513,7 @@ export default class extends Controller {
     const activeExchange = this.getSelectedExchanges()
     const afterActiveExchange = []
     const _this = this
-    if (settings.chart === 'history' || settings.chart === 'volume') {
+    if (settings.chart === history || settings.chart === volume) {
       if (activeExchange.length > 0) {
         activeExchange.forEach((activeEx) => {
           if (activeEx !== aggregatedKey && ((isBTCPair && useBTCPair(activeEx)) || (!isBTCPair && useUSDPair(activeEx)))) {
@@ -1525,19 +1525,33 @@ export default class extends Controller {
         afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
       }
       settings.xcs = afterActiveExchange.join(',')
+    } else if (settings.chart === candlestick) {
+      if (activeExchange.length > 0) {
+        // check if is only aggregated
+        let hasAggregated = false
+        activeExchange.forEach((aExc) => {
+          if (aExc === aggregatedKey) {
+            hasAggregated = true
+          }
+        })
+        if (hasAggregated) {
+          settings.xc = _this.getFirstExchangeButton(isBTCPair)
+        } else {
+          settings.xc = activeExchange[0]
+        }
+      } else {
+        settings.xc = _this.getFirstExchangeButton(isBTCPair)
+      }
     } else {
       if (activeExchange.length <= 0) {
-        afterActiveExchange.push(usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair))
+        settings.xc = usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair)
       } else {
         const exc = activeExchange[0]
         if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
-          afterActiveExchange.push(exc)
+          settings.xc = exc
         } else {
-          afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+          settings.xc = _this.getFirstExchangeButton(isBTCPair)
         }
-      }
-      if (afterActiveExchange.length > 0) {
-        settings.xc = afterActiveExchange.join(',')
       }
     }
   }
@@ -1622,7 +1636,7 @@ export default class extends Controller {
 
   setExchange (e) {
     // not handle if is history or volume chart
-    if (settings.chart === 'history' || settings.chart === 'volume') {
+    if (settings.chart === history || settings.chart === volume) {
       return
     }
     let node = e.target || e.srcElement
@@ -1635,7 +1649,7 @@ export default class extends Controller {
   }
 
   handlerExchange (token) {
-    if (settings.chart === 'history' || settings.chart === 'volume') {
+    if (settings.chart === history || settings.chart === volume) {
       const xcs = settings.xcs.split(',')
       if (xcs.indexOf(token) < 0) {
         xcs.push(token)
@@ -1716,7 +1730,7 @@ export default class extends Controller {
   }
 
   setExchangeName () {
-    if (settings.chart === 'history' || settings.chart === 'volume') {
+    if (settings.chart === history || settings.chart === volume) {
       this.xcLogoTarget.classList.add('d-hide')
       this.actionsTarget.classList.add('d-hide')
       // exchange name

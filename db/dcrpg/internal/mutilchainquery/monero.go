@@ -56,10 +56,11 @@ const (
   		first_seen_tx_hash TEXT,          -- tx where this key image appeared
   		first_seen_block_height BIGINT,
   		first_seen_time BIGINT,
+		amount INT8, -- Use for non-ringCT transactions
   		created_at TIMESTAMPTZ DEFAULT now()
 	);`
-	InsertMoneroKeyImagesV0 = `INSERT INTO monero_key_images (key_image, spent_tx_hash, spent_block_height, first_seen_tx_hash, first_seen_block_height, first_seen_time)
-	VALUES ($1,$2,$3,$4,$5,$6)`
+	InsertMoneroKeyImagesV0 = `INSERT INTO monero_key_images (key_image, spent_tx_hash, spent_block_height, first_seen_tx_hash, first_seen_block_height, first_seen_time, amount)
+	VALUES ($1,$2,$3,$4,$5,$6,$7)`
 
 	InsertMoneroKeyImages = InsertMoneroKeyImagesV0 + ` RETURNING id;`
 	UpsertMoneroKeyImages = InsertMoneroKeyImagesV0 + ` ON CONFLICT (key_image) DO UPDATE SET first_seen_tx_hash = COALESCE(monero_key_images.first_seen_tx_hash, EXCLUDED.first_seen_tx_hash) RETURNING id;`

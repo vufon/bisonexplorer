@@ -154,8 +154,9 @@ type ExchangeBotState struct {
 	XmrUsd map[string]*ExchangeState `json:"xmr_usd_exchanges"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
-	FiatIndices   map[string]*ExchangeState `json:"btc_indices"`
-	VolumnOrdered []*TokenedExchange
+	FiatIndices     map[string]*ExchangeState `json:"btc_indices"`
+	VolumnOrdered   []*TokenedExchange
+	ExchangeOrdered []*TokenedExchange
 }
 
 type ExchangeBotStateContent struct {
@@ -169,8 +170,9 @@ type ExchangeBotStateContent struct {
 	ExchangeState map[string]*ExchangeState `json:"exchange_state"`
 	// FiatIndices:
 	// TODO: We only really need the BaseState for the fiat indices.
-	FiatIndices   map[string]*ExchangeState `json:"btc_indices"`
-	VolumnOrdered []*TokenedExchange
+	FiatIndices     map[string]*ExchangeState `json:"btc_indices"`
+	VolumnOrdered   []*TokenedExchange
+	ExchangeOrdered []*TokenedExchange
 }
 
 func (state ExchangeBotStateContent) BtcToFiat(btc float64) float64 {
@@ -229,21 +231,14 @@ func (state *ExchangeBotState) VolumeOrderedExchanges() []*TokenedExchange {
 		})
 	}
 	sort.Slice(xcList, func(i, j int) bool {
-		if xcList[i].Token == "binance" {
-			return true
-		}
-		if xcList[j].Token == "binance" {
-			return false
-		}
 		return xcList[i].State.Volume > xcList[j].State.Volume
 	})
 	return xcList
 }
 
-func (state *ExchangeBotState) MutilchainVolumeOrderedExchanges(chainType string) []*TokenedExchange {
-	currentChainState := state.GetMutilchainExchangeState(chainType)
-	xcList := make([]*TokenedExchange, 0, len(currentChainState))
-	for token, state := range currentChainState {
+func (state *ExchangeBotState) DecredOrderedExchanges() []*TokenedExchange {
+	xcList := make([]*TokenedExchange, 0, len(state.DcrBtc))
+	for token, state := range state.DcrBtc {
 		state.Sticks = state.StickList()
 		xcList = append(xcList, &TokenedExchange{
 			Token: token,
@@ -251,15 +246,39 @@ func (state *ExchangeBotState) MutilchainVolumeOrderedExchanges(chainType string
 		})
 	}
 	sort.Slice(xcList, func(i, j int) bool {
-		if xcList[i].Token == "binance" {
-			return true
-		}
-		if xcList[j].Token == "binance" {
-			return false
-		}
-		return xcList[i].State.Volume > xcList[j].State.Volume
+		iObjIndex := indexOf(exchangeOrders, xcList[i].Token)
+		jObjIndex := indexOf(exchangeOrders, xcList[j].Token)
+		return iObjIndex < jObjIndex
 	})
 	return xcList
+}
+
+func (state *ExchangeBotState) MutilchainVolumeOrderedExchanges(chainType string) ([]*TokenedExchange, []*TokenedExchange) {
+	currentChainState := state.GetMutilchainExchangeState(chainType)
+	xcList := make([]*TokenedExchange, 0, len(currentChainState))
+	volumeOrdered := make([]*TokenedExchange, 0)
+	exchangeOrdered := make([]*TokenedExchange, 0)
+	for token, state := range currentChainState {
+		state.Sticks = state.StickList()
+		xcList = append(xcList, &TokenedExchange{
+			Token: token,
+			State: state,
+		})
+	}
+	volumeOrdered = append(volumeOrdered, xcList...)
+	exchangeOrdered = append(exchangeOrdered, xcList...)
+	// sort with volume
+	sort.Slice(volumeOrdered, func(i, j int) bool {
+		return volumeOrdered[i].State.Volume > volumeOrdered[j].State.Volume
+	})
+	// sort with exchanges
+	sort.Slice(exchangeOrdered, func(i, j int) bool {
+		// get index in exchange orders array
+		iObjIndex := indexOf(exchangeOrders, exchangeOrdered[i].Token)
+		jObjIndex := indexOf(exchangeOrders, exchangeOrdered[j].Token)
+		return iObjIndex < jObjIndex
+	})
+	return volumeOrdered, exchangeOrdered
 }
 
 func (state *ExchangeBotState) GetMutilchainPrice(chainType string) float64 {
