@@ -1650,7 +1650,7 @@ export default class extends Controller {
       case 'pow-difficulty': // difficulty graph
         d = powDiffFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
-        if (_this.settings.range !== 'before' && _this.settings.range !== 'after') {
+        if (_this.chainType === 'dcr' && _this.settings.range !== 'before' && _this.settings.range !== 'after') {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
         break
@@ -1726,7 +1726,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
-        if (_this.settings.range !== 'before' && _this.settings.range !== 'after') {
+        if (_this.chainType === 'dcr' && _this.settings.range !== 'before' && _this.settings.range !== 'after') {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
         break
