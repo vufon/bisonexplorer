@@ -898,10 +898,11 @@ export default class extends Controller {
 
   plotGraph (chartName, data) {
     let d = []
+    const logScale = isScaleDisabled(chartName) ? false : this.settings.scale === 'log'
     let gOptions = {
       zoomCallback: null,
       drawCallback: null,
-      logscale: this.settings.scale === 'log',
+      logscale: logScale,
       valueRange: [null, null],
       visibility: null,
       y2label: null,
@@ -1053,6 +1054,7 @@ export default class extends Controller {
         gOptions = {
           labels: labels,
           file: d,
+          logscale: false,
           colors: decoyBandsColors,
           ylabel: 'Decoys (%)',
           y2label: 'Mixin',
@@ -1118,9 +1120,6 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
-      // If the mode was previously log, change it back to default.
-      this.settings.scale = ''
-      this.setActiveOptionBtn('linear', this.scaleTypeTargets)
       this.hideMultiTargets(this.scaleSelectorTargets)
     } else {
       this.showMultiTargets(this.scaleSelectorTargets)
@@ -1152,6 +1151,7 @@ export default class extends Controller {
           this.showMultiTargets(this.binSelectorTargets)
           this.settings.bin = this.selectedBin()
           const _this = this
+          // handler for option window only
           this.binSizeTargets.forEach(el => {
             if (_this.exitCond(el)) {
               return
@@ -1167,10 +1167,25 @@ export default class extends Controller {
               }
             }
           })
+          // if bin is blocks, hide option 'All' in zoom
+          if (this.settings.bin === 'block') {
+            // if zoom is all, change to year
+            const selectedZoom = this.selectedZoom()
+            if (!selectedZoom || selectedZoom === '' || selectedZoom === 'all') {
+              this.settings.zoom = ''
+              this.setActiveOptionBtn('year', this.zoomOptionTargets)
+            }
+            // hide 'All' option
+            this.hideOptionBtn('all', this.zoomOptionTargets)
+          } else {
+            // else, show 'All' option in zoom
+            this.showOptionBtn('all', this.zoomOptionTargets)
+          }
         } else {
           this.settings.bin = 'day'
           this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
           this.hideMultiTargets(this.binSelectorTargets)
+          this.showOptionBtn('all', this.zoomOptionTargets)
         }
       }
       url += `?bin=${this.settings.bin}`
@@ -1455,6 +1470,30 @@ export default class extends Controller {
         li.classList.add('active')
       } else {
         li.classList.remove('active')
+      }
+    })
+  }
+
+  hideOptionBtn (opt, optTargets) {
+    const _this = this
+    optTargets.forEach(li => {
+      if (_this.exitCond(li)) {
+        return
+      }
+      if (li.dataset.option === opt) {
+        li.classList.add('d-hide')
+      }
+    })
+  }
+
+  showOptionBtn (opt, optTargets) {
+    const _this = this
+    optTargets.forEach(li => {
+      if (_this.exitCond(li)) {
+        return
+      }
+      if (li.dataset.option === opt) {
+        li.classList.remove('d-hide')
       }
     })
   }

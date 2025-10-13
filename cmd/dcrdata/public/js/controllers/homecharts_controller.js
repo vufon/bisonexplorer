@@ -1524,10 +1524,11 @@ export default class extends Controller {
 
   plotGraph (chartName, data) {
     let d = []
+    const logScale = isScaleDisabled(chartName) ? false : this.settings.scale === 'log'
     let gOptions = {
       zoomCallback: null,
       drawCallback: null,
-      logscale: this.settings.scale === 'log',
+      logscale: logScale,
       valueRange: [null, null],
       visibility: null,
       y2label: null,
@@ -1839,6 +1840,7 @@ export default class extends Controller {
         gOptions = {
           labels: labels,
           file: d,
+          logscale: false,
           colors: coinAgeBandsColors,
           ylabel: 'HODL Wave (%)',
           y2label: 'Decred Price (USD)',
@@ -1918,6 +1920,7 @@ export default class extends Controller {
         gOptions = {
           labels: labels,
           file: d,
+          logscale: false,
           colors: decoyBandsColors,
           ylabel: 'Decoys (%)',
           y2label: 'Mixin',
@@ -2030,8 +2033,6 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(this.settings.chart)) {
-      this.settings.scale = ''
-      this.setActiveToggleBtn('linear', this.scaleButtons)
       this.scaleSelectorTarget.classList.add('d-hide')
     } else {
       this.scaleSelectorTarget.classList.remove('d-hide')
@@ -2071,6 +2072,7 @@ export default class extends Controller {
         this.settings.bin = this.selectedBin()
         if (this.chainType === 'dcr' || this.chainType === 'xmr') {
           this.binSelectorTarget.classList.remove('d-hide')
+          // handler for option window only
           this.binButtons.forEach(btn => {
             if (btn.name !== 'window') return
             if (usesHybridUnits(_this.settings.chart)) {
@@ -2083,10 +2085,46 @@ export default class extends Controller {
               }
             }
           })
+          // if bin is blocks (xmr), hide option 'All' in zoom
+          if (this.chainType === 'xmr' && this.settings.bin === 'block') {
+            // if zoom is all, change to year
+            const selectedZoom = this.zoomSelectorTarget.value
+            // hide 'All' option
+            const optionHtml = `<option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            if (!selectedZoom || selectedZoom === '' || selectedZoom === 'all') {
+              this.settings.zoom = ''
+              this.zoomSelectorTarget.value = 'year'
+            } else {
+              this.zoomSelectorTarget.value = selectedZoom
+            }
+          } else {
+            const selectedZoom = this.zoomSelectorTarget.value
+            // else, show 'All' option in zoom
+            const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            this.zoomSelectorTarget.value = selectedZoom
+          }
         } else {
           this.settings.bin = 'day'
           this.setActiveToggleBtn(this.settings.bin, this.binButtons)
           this.binSelectorTarget.classList.add('d-hide')
+          const selectedZoom = this.zoomSelectorTarget.value
+          // else, show 'All' option in zoom
+          const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+          this.zoomSelectorTarget.innerHTML = optionHtml
+          this.zoomSelectorTarget.value = selectedZoom
         }
       }
       url += `?bin=${this.settings.bin}`
@@ -2279,8 +2317,6 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
-      this.settings.scale = ''
-      this.setActiveToggleBtn('linear', this.scaleButtons)
       this.scaleSelectorTarget.classList.add('d-hide')
     } else {
       this.scaleSelectorTarget.classList.remove('d-hide')
@@ -2321,6 +2357,7 @@ export default class extends Controller {
         const _this = this
         if (this.chainType === 'dcr' || this.chainType === 'xmr') {
           this.binSelectorTarget.classList.remove('d-hide')
+          // handler for option window only
           this.binButtons.forEach(btn => {
             if (btn.name !== 'window') return
             if (usesHybridUnits(selection)) {
@@ -2333,10 +2370,46 @@ export default class extends Controller {
               }
             }
           })
+          // if bin is blocks (xmr), hide option 'All' in zoom
+          if (this.chainType === 'xmr' && this.settings.bin === 'block') {
+            // if zoom is all, change to year
+            const selectedZoom = this.zoomSelectorTarget.value
+            // hide 'All' option
+            const optionHtml = `<option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            if (!selectedZoom || selectedZoom === '' || selectedZoom === 'all') {
+              this.settings.zoom = ''
+              this.zoomSelectorTarget.value = 'year'
+            } else {
+              this.zoomSelectorTarget.value = selectedZoom
+            }
+          } else {
+            const selectedZoom = this.zoomSelectorTarget.value
+            // else, show 'All' option in zoom
+            const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            this.zoomSelectorTarget.value = selectedZoom
+          }
         } else {
           this.settings.bin = 'day'
           this.setActiveToggleBtn(this.settings.bin, this.binButtons)
           this.binSelectorTarget.classList.add('d-hide')
+          const selectedZoom = this.zoomSelectorTarget.value
+          // else, show 'All' option in zoom
+          const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+          this.zoomSelectorTarget.innerHTML = optionHtml
+          this.zoomSelectorTarget.value = selectedZoom
         }
       }
       url += `?bin=${this.settings.bin}`
@@ -2654,6 +2727,22 @@ export default class extends Controller {
         button.classList.add('active')
       } else {
         button.classList.remove('active')
+      }
+    })
+  }
+
+  hideToggleBtn (opt, optTargets) {
+    optTargets.forEach(button => {
+      if (button.name === opt) {
+        button.classList.add('d-hide')
+      }
+    })
+  }
+
+  showToggleBtn (opt, optTargets) {
+    optTargets.forEach(button => {
+      if (button.name === opt) {
+        button.classList.remove('d-hide')
       }
     })
   }
