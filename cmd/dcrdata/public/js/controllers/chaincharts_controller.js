@@ -1019,7 +1019,7 @@ export default class extends Controller {
       case 'duration-btw-blocks': // Duration between blocks graph
         d = zip2D(data, data.duration, 1, 1)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Duration Between Blocks'], false,
-          'Duration Between Blocks (seconds)', false, false))
+          'Duration Between Blocks (seconds)', true, false))
         break
 
       case 'hashrate': // Total chainwork over time

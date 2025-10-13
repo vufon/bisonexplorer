@@ -1121,7 +1121,7 @@ export default class extends Controller {
       case 'tx-count': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Number of Transactions'], false,
-          '# of Transactions', false, false))
+          '# of Transactions', true, false))
         break
 
       case 'pow-difficulty': // difficulty graph
@@ -1195,7 +1195,7 @@ export default class extends Controller {
       case 'duration-btw-blocks': // Duration between blocks graph
         d = zip2D(data, data.duration, 1, 1)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Duration Between Blocks'], false,
-          'Duration Between Blocks (seconds)', false, false))
+          'Duration Between Blocks (seconds)', true, false))
         break
 
       case 'chainwork': // Total chainwork over time
