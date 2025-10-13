@@ -315,18 +315,40 @@ func (charts *MutilchainChartData) Dump(dumpPath string) {
 
 // TriggerUpdate triggers (*ChartData).Update.
 func (charts *MutilchainChartData) TriggerUpdate(_ string, _ uint32) error {
-	// Check the sync interval between 2 times. If less than 1 day, ignore
-	now := time.Now()
-	// Get 1 day before
-	oneDayBefore := now.AddDate(0, 0, -1)
-	if charts.LastUpdatedTime.After(oneDayBefore) {
+	if err := charts.MultichainUpdate(); err != nil {
+		// Only log errors from ChartsData.Update. TODO: make this more severe.
+		log.Errorf("%s: (*ChartData).Update failed: %v", charts.ChainType, err)
+	}
+	return nil
+}
+
+func (charts *MutilchainChartData) XmrTriggerUpdate(_ string, height uint32) error {
+	// trigger every 10 blocks
+	if height%10 != 0 {
 		return nil
 	}
 	if err := charts.Update(); err != nil {
 		// Only log errors from ChartsData.Update. TODO: make this more severe.
-		log.Errorf("(*ChartData).Update failed: %v", err)
+		log.Errorf("%s: (*ChartData).Update failed: %v", charts.ChainType, err)
 	}
 	return nil
+}
+
+func (charts *MutilchainChartData) MultichainChartsUpdateThread(stop <-chan struct{}) error {
+	// update each 12 hour
+	chartsUpdateInterval := 12 * time.Hour
+	ticker := time.NewTicker(chartsUpdateInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			// handler triggerupdate multichain charts (bitcoin/litecoin)
+			charts.TriggerUpdate("", 0)
+		case <-stop:
+			log.Infof("%s: Stop update chart data", charts.ChainType)
+			return nil
+		}
+	}
 }
 
 func (charts *MutilchainChartData) gobject() *ChartGobject {
@@ -433,7 +455,7 @@ func (charts *MutilchainChartData) Update() error {
 	defer charts.updateMtx.Unlock()
 
 	t := time.Now()
-	log.Debugf("Running charts updaters for data at height %d...", charts.Height())
+	log.Debugf("%s: Running charts updaters for data at height %d...", charts.ChainType, charts.Height())
 
 	for _, updater := range charts.updaters {
 		ti := time.Now()
@@ -442,15 +464,15 @@ func (charts *MutilchainChartData) Update() error {
 		// nolint:rowserrcheck
 		rows, cancel, err := updater.Fetcher(charts)
 		if err != nil {
-			err = fmt.Errorf("error encountered during charts %s update. aborting update: %v", updater.Tag, err)
+			err = fmt.Errorf("%s: error encountered during charts %s update. aborting update: %v", charts.ChainType, updater.Tag, err)
 		} else {
 			charts.mtx.Lock()
 			if !charts.validState(stateID) {
-				err = fmt.Errorf("state change detected during charts %s update. aborting update", updater.Tag)
+				err = fmt.Errorf("%s: state change detected during charts %s update. aborting update", charts.ChainType, updater.Tag)
 			} else {
 				err = updater.Appender(charts, rows)
 				if err != nil {
-					err = fmt.Errorf("error detected during charts %s append. aborting update: %v", updater.Tag, err)
+					err = fmt.Errorf("%s: error detected during charts %s append. aborting update: %v", charts.ChainType, updater.Tag, err)
 				}
 			}
 			charts.mtx.Unlock()
@@ -459,16 +481,56 @@ func (charts *MutilchainChartData) Update() error {
 		if err != nil {
 			return err
 		}
-		log.Tracef(" - Chart updater %q completed in %f seconds.",
+		log.Tracef("%s - Chart updater %q completed in %f seconds.", charts.ChainType,
 			updater.Tag, time.Since(ti).Seconds())
 	}
-	log.Debugf("Charts updaters complete at height %d in %f seconds.",
+	log.Debugf("%s: Charts updaters complete at height %d in %f seconds.", charts.ChainType,
 		charts.Height(), time.Since(t).Seconds())
 	charts.LastUpdatedTime = time.Now()
 	// Since the charts db data query is complete. Update chart.Days derived dataset.
 	if err := charts.Lengthen(); err != nil {
-		return fmt.Errorf("(*ChartData).Lengthen failed: %v", err)
+		return fmt.Errorf("%s: (*ChartData).Lengthen failed: %v", charts.ChainType, err)
 	}
+	return nil
+}
+
+func (charts *MutilchainChartData) MultichainUpdate() error {
+	// Block simultaneous updates.
+	charts.updateMtx.Lock()
+	defer charts.updateMtx.Unlock()
+
+	t := time.Now()
+	log.Debugf("%s: Running charts updaters for data", charts.ChainType)
+
+	for _, updater := range charts.updaters {
+		ti := time.Now()
+		stateID := charts.StateID()
+		// The Appender checks rows.Err
+		// nolint:rowserrcheck
+		rows, cancel, err := updater.Fetcher(charts)
+		if err != nil {
+			err = fmt.Errorf("%s: error encountered during charts %s update. aborting update: %v", charts.ChainType, updater.Tag, err)
+		} else {
+			charts.mtx.Lock()
+			if !charts.validState(stateID) {
+				err = fmt.Errorf("%s: state change detected during charts %s update. aborting update", charts.ChainType, updater.Tag)
+			} else {
+				err = updater.Appender(charts, rows)
+				if err != nil {
+					err = fmt.Errorf("%s: error detected during charts %s append. aborting update: %v", charts.ChainType, updater.Tag, err)
+				}
+			}
+			charts.mtx.Unlock()
+		}
+		cancel()
+		if err != nil {
+			return err
+		}
+		log.Tracef("%s - Chart updater %q completed in %f seconds.", charts.ChainType,
+			updater.Tag, time.Since(ti).Seconds())
+	}
+	log.Debugf("%s: Charts updaters complete in %f seconds.", charts.ChainType, time.Since(t).Seconds())
+	charts.LastUpdatedTime = time.Now()
 	return nil
 }
 
