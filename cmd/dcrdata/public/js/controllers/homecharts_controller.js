@@ -19,7 +19,9 @@ const aDay = 86400 * 1000 // in milliseconds
 const aMonth = 30 // in days
 const atomsToDCR = 1e-8
 const picoToXmr = 1e-12
-const windowScales = ['ticket-price', 'missed-votes']
+const commonWindowScales = ['ticket-price', 'missed-votes']
+const decredWindowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
+let windowScales
 const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days', 'decoy-bands']
@@ -1138,7 +1140,7 @@ export default class extends Controller {
     avgBlockTime = parseInt(this.data.get(this.chainType + 'BlockTime')) * 1000
     globalChainType = this.chainType
     legendElement = this.labelsTarget
-
+    windowScales = commonWindowScales
     // Prepare the legend element generators.
     const lm = this.legendMarkerTarget
     lm.remove()
@@ -1654,7 +1656,7 @@ export default class extends Controller {
           'Active Addresses', true, false))
         break
       case 'pow-difficulty': // difficulty graph
-        d = powDiffFunc(data)
+        d = _this.chainType === 'dcr' ? powDiffFunc(data) : zip2D(data, data.diff)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
         if (_this.chainType === 'dcr' && _this.settings.range !== 'before' && _this.settings.range !== 'after') {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
@@ -2019,6 +2021,7 @@ export default class extends Controller {
     reinitChartType = this.chainType === 'dcr' || chain === 'dcr' || this.chainType === 'xmr' || chain === 'xmr'
     this.chainType = chain
     globalChainType = chain
+    windowScales = chain === 'dcr' ? decredWindowScales : commonWindowScales
     // reinit
     if (reinitChartType) {
       this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()

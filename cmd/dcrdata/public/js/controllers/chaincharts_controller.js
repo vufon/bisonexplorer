@@ -191,21 +191,6 @@ function nightModeOptions (nightModeOn) {
   }
 }
 
-function zipWindowHvY (ys, winSize, yMult, offset) {
-  yMult = yMult || 1
-  offset = offset || 0
-  return ys.map((y, i) => {
-    return [i * winSize + offset, y * yMult]
-  })
-}
-
-function zipWindowTvY (times, ys, yMult) {
-  yMult = yMult || 1
-  return times.map((t, i) => {
-    return [new Date(t * 1000), ys[i] * yMult]
-  })
-}
-
 function zipTvY (times, ys, yMult) {
   yMult = yMult || 1
   return times.map((t, i) => {
@@ -236,11 +221,6 @@ function zip2D (data, ys, yMult, offset) {
     return zipHvY(data.h, ys, yMult, offset)
   }
   return zipTvY(data.t, ys, yMult)
-}
-
-function powDiffFunc (data) {
-  if (data.t) return zipWindowTvY(data.t, data.diff)
-  return zipWindowHvY(data.diff, data.window)
 }
 
 function circulationFunc (chartData, chainType) {
@@ -963,7 +943,7 @@ export default class extends Controller {
           'Active Addresses', true, false))
         break
       case 'pow-difficulty': // difficulty graph
-        d = powDiffFunc(data)
+        d = zip2D(data, data.diff)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
         break
       case 'coin-supply': // supply graph
