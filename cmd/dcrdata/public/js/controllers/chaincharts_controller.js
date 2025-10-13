@@ -657,7 +657,11 @@ export default class extends Controller {
     this.supplyPage = this.data.get('supplyPage')
     globalChainType = this.chainType
     legendElement = this.labelsTarget
-
+    if (this.chainType === 'xmr') {
+      $('#chainChartFooterRow').removeClass('d-hide')
+    } else {
+      $('#chainChartFooterRow').addClass('d-hide')
+    }
     // Prepare the legend element generators.
     const lm = this.legendMarkerTarget
     lm.remove()

@@ -1270,7 +1270,7 @@ export default class extends Controller {
 
   setDisplayChainChartFooter () {
     const chain = this.chainType
-    if (chain === 'dcr') {
+    if (chain === 'dcr' || chain === 'xmr') {
       $('#chainChartFooterRow').removeClass('d-hide')
     } else {
       $('#chainChartFooterRow').addClass('d-hide')
