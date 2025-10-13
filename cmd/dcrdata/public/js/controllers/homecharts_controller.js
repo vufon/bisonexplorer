@@ -72,6 +72,7 @@ let ticketPoolSizeTarget, premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
 let yFormatter, legendEntry, legendMarker, legendColorMaker, legendElement
+let rangeOption = ''
 const yAxisLabelWidth = {
   y1: {
     'ticket-price': 40,
@@ -161,11 +162,55 @@ function isCoinAgeChart (chart) {
 }
 
 function hashrateTimePlotter (e) {
-  hashrateLegendPlotter(e, 1693612800000)
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 1546339611000, 197, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 1652266011000, 150, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 1693612800000, 0, lines, 'right')
+  }
 }
 
 function hashrateBlockPlotter (e) {
-  hashrateLegendPlotter(e, 794429)
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 306247, 197, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 658518, 150, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 794429, 0, lines, 'right')
+  }
+}
+
+function difficultyTimePlotter (e) {
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 1546339611000, 11500000000, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 1652266011000, 10000000000, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 1693612800000, 0, lines, 'right')
+  }
+}
+
+function difficultyBlockPlotter (e) {
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 306247, 11500000000, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 658518, 10000000000, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 794429, 0, lines, 'right')
+  }
 }
 
 $(document).mouseup(function (e) {
@@ -180,12 +225,12 @@ $(document).mouseup(function (e) {
 function makePt (x, y) { return { x, y } }
 
 // Legend plotter processing for hashrate chart for blake3 algorithm transition
-function hashrateLegendPlotter (e, midGapValue) {
+function hashrateLegendPlotter (e, midGapValue, startY, lines, direct) {
   Dygraph.Plotters.fillPlotter(e)
   Dygraph.Plotters.linePlotter(e)
   const area = e.plotArea
   const ctx = e.drawingContext
-  const mg = e.dygraph.toDomCoords(midGapValue, 0)
+  const mg = e.dygraph.toDomCoords(midGapValue, startY)
   const midGap = makePt(mg[0], mg[1])
   const fontSize = 13
   const dark = darkEnabled()
@@ -193,16 +238,10 @@ function hashrateLegendPlotter (e, midGapValue) {
   ctx.textBaseline = 'top'
   ctx.font = `${fontSize}px arial`
   ctx.lineWidth = 1
-  ctx.strokeStyle = dark ? '#ffffff' : '#23562f'
+  ctx.strokeStyle = dark ? '#ffffff' : '#259331'
   const boxColor = dark ? '#1e2b39' : '#ffffff'
-
-  const line1 = 'Milestone'
-  const line2 = '- Transition of the'
-  const line3 = 'algorithm to BLAKE3'
-  const line4 = '- Change block reward'
-  const line5 = 'subsidy split to 1/89/10'
   let boxW = 0
-  const txts = [line1, line2, line3, line4, line5]
+  const txts = [...lines]
   txts.forEach(txt => {
     const w = ctx.measureText(txt).width
     if (w > boxW) boxW = w
@@ -211,16 +250,17 @@ function hashrateLegendPlotter (e, midGapValue) {
   const rowPad = (rowHeight - fontSize) / 3
   const boxPad = rowHeight / 5
   let y = fontSize
-  y += area.h / 4
+  y += midGap.y - 2 * area.h / 3
   // Label the gap size.
   rowHeight -= 2 // just looks better
   ctx.fillStyle = boxColor
-  const rect = makePt(midGap.x + boxPad, y - boxPad)
-  const dims = makePt(boxW + boxPad * 3, rowHeight * 5 + boxPad * 2)
+  const reactX = direct === 'left' ? midGap.x - boxW - boxPad * 2 : midGap.x + boxPad
+  const rect = makePt(reactX, y - boxPad)
+  const dims = makePt(boxW + boxPad * 3, rowHeight * lines.length + boxPad * 2)
   ctx.fillRect(rect.x, rect.y, dims.x, dims.y)
   ctx.strokeRect(rect.x, rect.y, dims.x, dims.y)
-  ctx.fillStyle = dark ? '#ffffff' : '#23562f'
-  const centerX = midGap.x + boxW / 2 + 8
+  ctx.fillStyle = dark ? '#ffffff' : '#259331'
+  const centerX = direct === 'left' ? midGap.x - boxW / 2 - 4 : midGap.x + boxW / 2 + 8
   const write = s => {
     const cornerX = centerX - (ctx.measureText(s).width / 2)
     ctx.fillText(s, cornerX + rowPad, y + rowPad)
@@ -228,16 +268,13 @@ function hashrateLegendPlotter (e, midGapValue) {
   }
 
   ctx.save()
-  ctx.font = `bold ${fontSize + 2}px arial`
-  write(line1)
-  ctx.restore()
-  write(line2)
-  write(line3)
-  write(line4)
-  write(line5)
+  lines.forEach((line) => {
+    write(line)
+  })
   // Draw a line from the box to the gap
+  const lineToX = direct === 'left' ? midGap.x - boxW / 2 : midGap.x + boxW / 2
   drawLine(ctx,
-    makePt(midGap.x + boxW / 2, y),
+    makePt(lineToX, y),
     makePt(midGap.x, midGap.y - boxPad))
 }
 
@@ -1658,8 +1695,8 @@ export default class extends Controller {
       case 'pow-difficulty': // difficulty graph
         d = _this.chainType === 'dcr' ? powDiffFunc(data) : zip2D(data, data.diff)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
-        if (_this.chainType === 'dcr' && _this.settings.range !== 'before' && _this.settings.range !== 'after') {
-          gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
+        if (_this.chainType === 'dcr' && _this.settings.range !== 'after') {
+          gOptions.plotter = _this.settings.axis === 'height' ? difficultyBlockPlotter : difficultyTimePlotter
         }
         break
       case 'missed-votes':
@@ -1737,7 +1774,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
-        if (_this.chainType === 'dcr' && _this.settings.range !== 'before' && _this.settings.range !== 'after') {
+        if (_this.chainType === 'dcr' && _this.settings.range !== 'after') {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
         break
@@ -2344,9 +2381,11 @@ export default class extends Controller {
     }
     if (useRange(selection) && this.chainType === 'dcr') {
       this.settings.range = this.selectedRange()
+      rangeOption = this.settings.range
       this.rangeSelectorTarget.classList.remove('d-hide')
     } else {
       this.settings.range = ''
+      rangeOption = ''
       this.rangeSelectorTarget.classList.add('d-hide')
     }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
