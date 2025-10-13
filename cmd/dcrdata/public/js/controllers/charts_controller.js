@@ -938,7 +938,7 @@ export default class extends Controller {
 
         legendWrapper.innerHTML = legendFormatter({
           x: x,
-          xHTML: Dygraph.dateString_(new Date(x)),
+          xHTML: x,
           dygraph: _this.chartsView,
           points: points,
           series: points.map(p => {
