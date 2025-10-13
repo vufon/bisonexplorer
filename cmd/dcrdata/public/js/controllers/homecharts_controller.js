@@ -1084,6 +1084,7 @@ function circulationFunc (chartData) {
   const heights = chartData.h
   const times = chartData.t
   const supplies = chartData.supply
+  const anonymitySet = chartData.anonymitySet
   const isHeightAxis = chartData.axis === 'height'
   let xFunc, hFunc
   if (chartData.bin === 'day') {
@@ -1099,7 +1100,7 @@ function circulationFunc (chartData) {
     const height = hFunc(i)
     addDough(height)
     inflation.push(yMax)
-    return [xFunc(i), supplies[i] * atomsToDCR, null, 0]
+    return [xFunc(i), supplies[i] * atomsToDCR, null, anonymitySet[i] * atomsToDCR]
   })
 
   const dailyBlocks = aDay / avgBlockTime
@@ -1733,13 +1734,11 @@ export default class extends Controller {
             addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' ' + globalChainType.toUpperCase())
             let change = 0
             if (i < d.inflation.length) {
-              if (selectedType === 'dcr') {
-                const supply = data.series[0].y
-                if (this.anonymitySetTarget.checked) {
-                  const mixed = data.series[2].y
-                  const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
-                  div.appendChild(legendEntry(`${legendColorMaker('#17b080ff')} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
-                }
+              const supply = data.series[0].y
+              if (this.anonymitySetTarget.checked) {
+                const mixed = data.series[2].y
+                const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
+                div.appendChild(legendEntry(`${legendColorMaker('#17b080ff')} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
               }
               const predicted = d.inflation[i]
               const unminted = predicted - data.series[0].y
