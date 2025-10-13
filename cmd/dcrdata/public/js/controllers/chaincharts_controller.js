@@ -43,24 +43,24 @@ let baseSubsidy, subsidyInterval, subsidyExponent, avgBlockTime
 let yFormatter, legendEntry, legendMarker, legendElement
 const yAxisLabelWidth = {
   y1: {
-    'block-size': 45,
+    'block-size': 50,
     'blockchain-size': 50,
     'tx-count': 45,
     'tx-per-block': 50,
     'duration-btw-blocks': 40,
     'address-number': 45,
-    'pow-difficulty': 40,
+    'pow-difficulty': 50,
     hashrate: 50,
     'mined-blocks': 40,
     'mempool-size': 40,
     'mempool-txs': 50,
-    'coin-supply': 30,
+    'coin-supply': 40,
     'total-ring-size': 40,
-    'avg-ring-size': 30,
+    'avg-ring-size': 40,
     'fee-rate': 50,
     'avg-tx-size': 40,
     fees: 50,
-    'decoy-bands': 30
+    'decoy-bands': 40
   },
   y2: {
     'decoy-bands': 50
@@ -947,12 +947,12 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
         break
       case 'coin-supply': // supply graph
-        if (this.settings.bin === 'day') {
+        if (this.chainType !== 'dcr') {
           d = zip2D(data, data.supply)
           assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply (' + globalChainType.toUpperCase() + ')'], true,
             'Coins Supply (' + globalChainType.toUpperCase() + ')', true, false))
           yFormatter = (div, data, i) => {
-            addLegendEntryFmt(div, data.series[0], y => intComma(y * 1e6) + ' ' + globalChainType.toUpperCase())
+            addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' ' + globalChainType.toUpperCase())
           }
           break
         }

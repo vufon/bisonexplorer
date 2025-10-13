@@ -51,34 +51,34 @@ let yFormatter, legendEntry, legendMarker, legendColorMaker, legendElement
 let rangeOption = ''
 const yAxisLabelWidth = {
   y1: {
-    'ticket-price': 30,
-    'ticket-pool-size': 30,
-    'ticket-pool-value': 30,
-    'stake-participation': 30,
+    'ticket-price': 40,
+    'ticket-pool-size': 40,
+    'ticket-pool-value': 40,
+    'stake-participation': 40,
     'privacy-participation': 40,
-    'missed-votes': 30,
-    'block-size': 35,
-    'blockchain-size': 30,
+    'missed-votes': 40,
+    'block-size': 50,
+    'blockchain-size': 50,
     'tx-count': 45,
     'duration-btw-blocks': 40,
-    'pow-difficulty': 40,
+    'pow-difficulty': 50,
     chainwork: 35,
-    hashrate: 40,
-    'coin-supply': 30,
-    fees: 35,
+    hashrate: 50,
+    'coin-supply': 40,
+    fees: 50,
     'avg-age-days': 50,
     'coin-days-destroyed': 50,
-    'coin-age-bands': 30,
+    'coin-age-bands': 40,
     'mean-coin-age': 50,
     'total-coin-days': 50
   },
   y2: {
     'ticket-price': 45,
-    'avg-age-days': 30,
-    'coin-days-destroyed': 30,
-    'coin-age-bands': 30,
-    'mean-coin-age': 30,
-    'total-coin-days': 30
+    'avg-age-days': 40,
+    'coin-days-destroyed': 40,
+    'coin-age-bands': 40,
+    'mean-coin-age': 40,
+    'total-coin-days': 40
   }
 }
 

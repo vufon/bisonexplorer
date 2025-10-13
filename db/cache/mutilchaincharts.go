@@ -660,7 +660,7 @@ func xmrCoinSupplyChart(charts *MutilchainChartData, bin binLevel, axis axisType
 		switch axis {
 		case HeightAxis:
 			return encode(lengtherMap{
-				heightKey: charts.Days.Reward,
+				heightKey: charts.Days.Height,
 				supplyKey: accumulateFloat(charts.Days.Reward),
 			}, seed)
 		default:
