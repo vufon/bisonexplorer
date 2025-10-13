@@ -27,7 +27,9 @@ const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days', 'decoy-bands']
 const modeScales = ['ticket-price']
 const binDisabled = ['decoy-bands', 'coin-age-bands']
-const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+let multiYAxisChart = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const decredMultiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const chainMultiYAxisChart = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
 const coinAgeBandsColors = [
@@ -1178,6 +1180,7 @@ export default class extends Controller {
     globalChainType = this.chainType
     legendElement = this.labelsTarget
     windowScales = commonWindowScales
+    multiYAxisChart = chainMultiYAxisChart
     // Prepare the legend element generators.
     const lm = this.legendMarkerTarget
     lm.remove()
@@ -2059,6 +2062,7 @@ export default class extends Controller {
     this.chainType = chain
     globalChainType = chain
     windowScales = chain === 'dcr' ? decredWindowScales : commonWindowScales
+    multiYAxisChart = chain === 'dcr' ? decredMultiYAxisChart : chainMultiYAxisChart
     // reinit
     if (reinitChartType) {
       this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
