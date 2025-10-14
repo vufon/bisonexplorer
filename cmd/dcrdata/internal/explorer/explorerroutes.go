@@ -1228,7 +1228,7 @@ func (exp *ExplorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) 
 	case mutilchain.TYPELTC:
 		summaries = exp.dataSource.GetLTCExplorerBlocks(int(height), end)
 	case mutilchain.TYPEXMR:
-		summaries, err = exp.dataSource.GetXMRDBExplorerBasicBlocks(height, int64(end))
+		summaries, err = exp.dataSource.GetXMRDBExplorerBasicBlocks(height, int64(end)+1)
 		if err != nil {
 			log.Errorf("%s: Unable to get blocks: height=%d&rows=%d. Error: %v", chainType, height, rows, err)
 			exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
