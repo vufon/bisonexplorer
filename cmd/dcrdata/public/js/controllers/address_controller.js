@@ -286,8 +286,14 @@ export default class extends Controller {
     return `/${root}?txntype=${txType}&n=${count}&start=${offset}${time && time !== '' ? '&time=' + time : ''}`
   }
 
-  changePageSize () {
-    this.fetchTableWithPeriod(this.txnType, this.pageSize, this.paginationParams.offset, this.time)
+  changePageSize (e) {
+    const psize = this.pageSize
+    const maxrows = e.target.dataset.maxrows
+    if (maxrows && Number(maxrows) === Number(psize)) {
+      // set offset is 0
+      this.paginationParams.offset = 0
+    }
+    this.fetchTableWithPeriod(this.txnType, psize, this.paginationParams.offset, this.time)
   }
 
   changeTxType () {

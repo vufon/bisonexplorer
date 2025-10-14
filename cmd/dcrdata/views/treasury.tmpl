@@ -226,22 +226,25 @@
               <div class="d-inline-block text-end">
                 <label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
                 <select name="pagesize" id="pagesize" data-address-target="pagesize"
+                  data-maxrows="{{$TxnCount}}"
                   data-action="change->address#changePageSize"
                   class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $TxnCount 20}}disabled{{end}}"
                   {{- if lt $TxnCount 20}} disabled{{end}}>
                   {{- $Txlen := len .Transactions}}
-                  <option {{if eq $Txlen 20}}selected {{end}}value="20" {{if lt $TxnCount 20}} disabled{{end}}>20
-                  </option>
-                  <option {{if eq $Txlen 40}}selected {{end}}value="40" {{if lt $TxnCount 40}} disabled{{end}}>40
-                  </option>
-                  <option {{if eq $Txlen 80}}selected {{end}}value="80" {{if lt $TxnCount 80}} disabled{{end}}>80
-                  </option>
-                  {{- if lt $TxnCount 160}}
-                  <option {{if eq $Txlen $TxnCount}}selected {{end}}value="{{$TxnCount}}" {{if le $TxnCount 160}}
-                    disabled{{end}}>{{$TxnCount}}</option>
-                  {{- else}}
-                  <option {{if ge $Txlen 160}}selected {{end}}value="160">160</option>
-                  {{- end}}
+                    <option {{if eq $Txlen 20}}selected {{end}}value="20"{{if lt $TxnCount 20}} disabled{{end}}>20</option>
+                    {{if ge $TxnCount 40}} 
+                    <option {{if eq .Limit 40}}selected {{end}}value="40">40</option>
+                    {{end}}
+                    {{if ge $TxnCount 80}}
+                    <option {{if eq .Limit 80}}selected {{end}}value="80">80</option>
+                    {{end}}
+                    {{if and (gt $TxnCount 20) (and (ne $TxnCount 40) (ne $TxnCount 80))}}
+                    {{- if lt $TxnCount 160}}
+                    <option {{if eq $Txlen $TxnCount}}selected {{end}}value="{{$TxnCount}}">{{$TxnCount}}</option>
+                    {{- else}}
+                    <option {{if ge $Txlen 160}}selected {{end}}value="160">160</option>
+                    {{- end}}
+                    {{end}}      
                 </select>
               </div>
             </div>

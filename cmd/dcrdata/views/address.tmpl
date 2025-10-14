@@ -268,6 +268,7 @@
                         name="pagesize"
                         id="pagesize"
                         data-address-target="pagesize"
+                        data-maxrows="{{$TxnCount}}"
                         data-action="change->address#changePageSize"
                         class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $TxnCount 20}}disabled{{end}}"
                         {{- if lt $TxnCount 20}} disabled{{end}}
@@ -275,10 +276,10 @@
                         {{- $Txlen := len .Transactions}}
                         <option {{if eq $Txlen 20}}selected {{end}}value="20"{{if lt $TxnCount 20}} disabled{{end}}>20</option>
                         {{if ge $TxnCount 40}} 
-                           <option {{if eq $Txlen 40}}selected {{end}}value="40">40</option>
+                           <option {{if eq .Limit 40}}selected {{end}}value="40">40</option>
                         {{end}}
                         {{if ge $TxnCount 80}}
-                           <option {{if eq $Txlen 80}}selected {{end}}value="80">80</option>
+                           <option {{if eq .Limit 80}}selected {{end}}value="80">80</option>
                         {{end}}
                         {{if and (gt $TxnCount 20) (and (ne $TxnCount 40) (ne $TxnCount 80))}}
                         {{- if lt $TxnCount 160}}

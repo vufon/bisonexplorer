@@ -208,8 +208,8 @@
 			</div>
 			{{if len $Pages}}
 			<div class="text-end mt-2 pe-3">
-				{{if ge $Offset $Rows}}
-				<a href="/{{$ChainType}}/block/{{$Hash}}?rows={{$Rows}}"
+				{{if ge $Offset $LimitN}}
+				<a href="/{{$ChainType}}/block/{{$Hash}}?rows={{$LimitN}}"
 					class="d-inline-block dcricon-arrow-left pagination-number pagination-narrow m-1 fs20"></a>
 				{{end}}
 				{{range $index, $page := $Pages}}
@@ -220,8 +220,8 @@
 					class="fs18 pager pagination-number {{if $page.Active}} active{{end}}">{{.Str}}</a>
 				{{end}}
 				{{end}}
-				{{if lt (add $Offset (int64 $Rows)) $TotalRows}}
-				<a href="/{{$ChainType}}/block/{{$Hash}}?start={{$LastStart}}&rows={{$Rows}}"
+				{{if lt (add $Offset (int64 $LimitN)) $TotalRows}}
+				<a href="/{{$ChainType}}/block/{{$Hash}}?start={{$LastStart}}&rows={{$LimitN}}"
 					class="d-inline-block pagination-number pagination-narrow dcricon-arrow-right m-1 fs20"></a>
 				{{end}}
 			</div>
