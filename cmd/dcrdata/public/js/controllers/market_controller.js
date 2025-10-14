@@ -156,9 +156,9 @@ let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#a5b7cf'
-const binList = ['5m', '30m', '1h', '4h', '1d', '1w', '1mo']
+const binList = ['5m', '30m', '1h', '4h', '1d', '1mo']
 let settings = {}
-const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12']
+const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12', '#1148b6ff', '#0a88a7ff', '#7b8123ff']
 
 let colorNumerator = 0
 let colorDenominator = 1
@@ -1392,8 +1392,8 @@ export default class extends Controller {
         settings.xcs = settings.xc === 'aggregated' ? this.exchangesButtons[0].name : settings.xc
       }
       bins = this.getHistoryChartAvailableBins()
-    } else {
-      if (settings.xc === 'aggregated' && settings.chart === 'candlestick') {
+    } else if (settings.chart === candlestick) {
+      if (settings.xc === 'aggregated') {
         settings.xc = this.exchangesButtons[0].name
       }
       bins = availableCandlesticks[settings.xc]
@@ -1445,9 +1445,11 @@ export default class extends Controller {
       }
       this.binButtons.forEach(button => {
         if (bins.indexOf(button.name) >= 0) {
-          button.classList.remove('d-hide')
+          button.disabled = false
+          button.classList.remove('btn-disabled')
         } else {
-          button.classList.add('d-hide')
+          button.disabled = true
+          button.classList.add('btn-disabled')
         }
       })
       this.setBinSelection()
@@ -1464,7 +1466,7 @@ export default class extends Controller {
       settings.stack = null
     }
     this.handlerRadiusForBtnGroup(this.exchangesButtons)
-    this.handlerRadiusForBtnGroup(this.binButtons)
+    // this.handlerRadiusForBtnGroup(this.binButtons)
   }
 
   getHistoryChartAvailableBins () {
@@ -1476,6 +1478,9 @@ export default class extends Controller {
     bins.push(...binList)
     xcs.forEach((xc) => {
       const itemBins = availableCandlesticks[xc]
+      if (!itemBins) {
+        return
+      }
       for (let i = bins.length - 1; i >= 0; i--) {
         if (itemBins.indexOf(bins[i]) < 0) {
           bins.splice(i, 1)
@@ -1499,58 +1504,151 @@ export default class extends Controller {
   changeGraph (e) {
     const target = e.target || e.srcElement
     settings.chart = target.value
+    this.reactiveExchanges()
     if (usesCandlesticks(settings.chart)) {
       this.justifyBins()
     }
-    this.reorderExchanges()
     this.setButtons()
     this.setExchangeName()
     this.fetchChart()
   }
 
-  reorderExchanges () {
+  reactiveExchanges () {
     const isBTCPair = settings.pair === 'btc'
-    const activeExchange = this.getSelectedExchanges()
     const afterActiveExchange = []
     const _this = this
+    // if is history, volume type (use xcs)
     if (settings.chart === history || settings.chart === volume) {
-      if (activeExchange.length > 0) {
-        activeExchange.forEach((activeEx) => {
-          if (activeEx !== aggregatedKey && ((isBTCPair && useBTCPair(activeEx)) || (!isBTCPair && useUSDPair(activeEx)))) {
-            afterActiveExchange.push(activeEx)
+      // check xcs param before
+      if (settings.xcs && settings.xcs !== '') {
+        const xcsList = settings.xcs.split(',')
+        xcsList.forEach((xcOld) => {
+          // check if xcOld valid on new chart type
+          if (xcOld !== aggregatedKey && ((isBTCPair && useBTCPair(xcOld)) || (!isBTCPair && useUSDPair(xcOld)))) {
+            afterActiveExchange.push(xcOld)
           }
         })
-      }
-      if (afterActiveExchange.length <= 0) {
-        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
-      }
-      settings.xcs = afterActiveExchange.join(',')
-    } else if (settings.chart === candlestick) {
-      if (activeExchange.length > 0) {
-        // check if is only aggregated
-        let hasAggregated = false
-        activeExchange.forEach((aExc) => {
-          if (aExc === aggregatedKey) {
-            hasAggregated = true
-          }
-        })
-        if (hasAggregated) {
-          settings.xc = _this.getFirstExchangeButton(isBTCPair)
-        } else {
-          settings.xc = activeExchange[0]
+        // if after exs is empty, set for first exchange button
+        if (afterActiveExchange.length <= 0) {
+          afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
         }
+        settings.xcs = afterActiveExchange.join(',')
+      // if xcs empty, set first xc for xcs
       } else {
-        settings.xc = _this.getFirstExchangeButton(isBTCPair)
+        afterActiveExchange.push(_this.getFirstExchangeButton(isBTCPair))
+        settings.xcs = afterActiveExchange.join(',')
       }
-    } else {
-      if (activeExchange.length <= 0) {
-        settings.xc = usesOrderbook(settings.chart) ? aggregatedKey : _this.getFirstExchangeButton(isBTCPair)
+    // if candlestick
+    } else if (settings.chart === candlestick) {
+      // if xc param is not empty, and not aggregated
+      if (settings.xc && settings.xc !== '' && settings.xc !== aggregatedKey) {
+        // if not valid xc, set for first exchange
+        if (!((isBTCPair && useBTCPair(settings.xc)) || (!isBTCPair && useUSDPair(settings.xc)))) {
+          let hasValidExs = false
+          // check on xcs
+          if (settings.xcs && settings.xcs !== '') {
+            const xcsList = settings.xcs.split(',')
+            // check valid xc
+            xcsList.forEach((xcItem) => {
+              if (hasValidExs) {
+                return
+              }
+              // if has first valid xc in xcs, set for settings.xc
+              if (xcItem !== aggregatedKey && ((isBTCPair && useBTCPair(xcItem)) || (!isBTCPair && useUSDPair(xcItem)))) {
+                hasValidExs = true
+                settings.xc = xcItem
+              }
+            })
+          }
+          // if hasn't valid xc. set for first exchange
+          if (!hasValidExs) {
+            settings.xc = _this.getFirstExchangeButton(isBTCPair)
+          }
+        }
+      // if old xc is invalid, check xcs and set, or set first exchange
       } else {
-        const exc = activeExchange[0]
-        if ((isBTCPair && useBTCPair(exc)) || (!isBTCPair && useUSDPair(exc))) {
-          settings.xc = exc
-        } else {
+        let hasValidExs = false
+        // check on xcs
+        if (settings.xcs && settings.xcs !== '') {
+          const xcsList = settings.xcs.split(',')
+          // check valid xc
+          xcsList.forEach((xcItem) => {
+            if (hasValidExs) {
+              return
+            }
+            // if has first valid xc in xcs, set for settings.xc
+            if (xcItem !== aggregatedKey && ((isBTCPair && useBTCPair(xcItem)) || (!isBTCPair && useUSDPair(xcItem)))) {
+              hasValidExs = true
+              settings.xc = xcItem
+            }
+          })
+        }
+        // if hasn't valid xc. set for first exchange
+        if (!hasValidExs) {
           settings.xc = _this.getFirstExchangeButton(isBTCPair)
+        }
+      }
+    // if depthchart
+    } else {
+      // if settings.xc is aggregated, ignore settup
+      if (settings.xc !== aggregatedKey) {
+        // if settings.xc is not empty
+        if (settings.xc && settings.xc !== '') {
+          // check valid exchange, if not valid, setup
+          if (!((isBTCPair && useBTCPair(settings.xc)) || (!isBTCPair && useUSDPair(settings.xc)))) {
+            let hasValidExs = false
+            // check on xcs setting up
+            if (settings.xcs && settings.xcs !== '') {
+              const xcsList = settings.xcs.split(',')
+              // check valid xc
+              xcsList.forEach((xcItem) => {
+                if (hasValidExs) {
+                  return
+                }
+                if (xcItem === aggregatedKey) {
+                  settings.xc = aggregatedKey
+                  hasValidExs = true
+                  return
+                }
+                // if has first valid xc in xcs, set for settings.xc
+                if ((isBTCPair && useBTCPair(xcItem)) || (!isBTCPair && useUSDPair(xcItem))) {
+                  hasValidExs = true
+                  settings.xc = xcItem
+                }
+              })
+            }
+            // if hasn't valid xc. set for first exchange
+            if (!hasValidExs) {
+              settings.xc = _this.getFirstExchangeButton(isBTCPair)
+            }
+          }
+        // else if settings.xc is empty
+        } else {
+          let hasValidExs = false
+          // check on xcs setting up
+          if (settings.xcs && settings.xcs !== '') {
+            const xcsList = settings.xcs.split(',')
+            // check valid xc
+            xcsList.forEach((xcItem) => {
+              if (hasValidExs) {
+                return
+              }
+              if (xcItem === aggregatedKey) {
+                settings.xc = aggregatedKey
+                hasValidExs = true
+                return
+              }
+              // if has first valid xc in xcs, set for settings.xc
+              if ((isBTCPair && useBTCPair(xcItem)) || (!isBTCPair && useUSDPair(xcItem))) {
+                hasValidExs = true
+                settings.xc = xcItem
+              }
+            })
+          }
+          // if hasn't valid xc. set for first exchange
+          if (!hasValidExs) {
+            settings.xc = _this.getFirstExchangeButton(isBTCPair)
+          }
         }
       }
     }
@@ -1593,7 +1691,7 @@ export default class extends Controller {
         }
       }
     })
-    this.reorderExchanges()
+    this.reactiveExchanges()
     for (let i = 0; i < this.xcRowTargets.length; i++) {
       const xcRow = this.xcRowTargets[i]
       const token = xcRow.dataset.token

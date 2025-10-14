@@ -111,9 +111,9 @@ let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#a5b7cf'
-const binList = ['5m', '30m', '1h', '4h', '1d', '1w', '1mo']
+const binList = ['5m', '30m', '1h', '4h', '1d', '1mo']
 let settings = {}
-const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12']
+const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12', '#1148b6ff', '#0a88a7ff', '#7b8123ff']
 
 let colorNumerator = 0
 let colorDenominator = 1
@@ -1789,34 +1789,13 @@ export default class extends Controller {
       } else {
         bins = availableCandlesticks[settings.xc]
       }
-      let lastBinIndex = 0
-      let firstBinIndex = binList.length
-      bins.forEach((bin) => {
-        const indexOfBin = binList.indexOf(bin)
-        if (indexOfBin >= 0) {
-          if (indexOfBin > lastBinIndex) {
-            lastBinIndex = indexOfBin
-          }
-          if (indexOfBin < firstBinIndex) {
-            firstBinIndex = indexOfBin
-          }
-        }
-      })
       this.binButtons.forEach(button => {
         if (bins.indexOf(button.name) >= 0) {
-          button.classList.remove('d-hide')
-          if (button.name === binList[lastBinIndex]) {
-            button.classList.add('last-toggle-btn')
-          } else {
-            button.classList.remove('last-toggle-btn')
-          }
-          if (button.name === binList[firstBinIndex]) {
-            button.classList.add('first-toggle-btn')
-          } else {
-            button.classList.remove('first-toggle-btn')
-          }
+          button.disabled = false
+          button.classList.remove('btn-disabled')
         } else {
-          button.classList.add('d-hide')
+          button.disabled = true
+          button.classList.add('btn-disabled')
         }
       })
       this.setBinSelection()

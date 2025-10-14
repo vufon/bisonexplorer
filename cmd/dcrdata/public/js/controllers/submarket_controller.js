@@ -165,9 +165,9 @@ let chartStroke = lightStroke
 let conversionFactor = 1
 let btcPrice, fiatCode
 const gridColor = '#a5b7cf'
-const binList = ['5m', '30m', '1h', '4h', '1d', '1w', '1mo']
+const binList = ['5m', '30m', '1h', '4h', '1d', '1mo']
 let settings = {}
-const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12']
+const xcColors = [chartStroke, '#ed6d47', '#41be53', '#9228a7', '#dece12', '#1148b6ff', '#0a88a7ff', '#7b8123ff']
 
 let colorNumerator = 0
 let colorDenominator = 1
@@ -1600,9 +1600,11 @@ export default class extends Controller {
       }
       this.binButtons.forEach(button => {
         if (bins.indexOf(button.name) >= 0) {
-          button.classList.remove('d-hide')
+          button.disabled = false
+          button.classList.remove('btn-disabled')
         } else {
-          button.classList.add('d-hide')
+          button.disabled = true
+          button.classList.add('btn-disabled')
         }
       })
       this.setBinSelection()

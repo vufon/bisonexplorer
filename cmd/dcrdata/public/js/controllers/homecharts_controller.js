@@ -19,12 +19,17 @@ const aDay = 86400 * 1000 // in milliseconds
 const aMonth = 30 // in days
 const atomsToDCR = 1e-8
 const picoToXmr = 1e-12
-const windowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
+const commonWindowScales = ['ticket-price', 'missed-votes']
+const decredWindowScales = ['ticket-price', 'pow-difficulty', 'missed-votes']
+let windowScales
 const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
-const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days', 'decoy-bands']
 const modeScales = ['ticket-price']
-const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const binDisabled = ['decoy-bands', 'coin-age-bands']
+let multiYAxisChart = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const decredMultiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
+const chainMultiYAxisChart = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
 const coinAgeBandsColors = [
@@ -69,22 +74,23 @@ let ticketPoolSizeTarget, premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
 let yFormatter, legendEntry, legendMarker, legendColorMaker, legendElement
+let rangeOption = ''
 const yAxisLabelWidth = {
   y1: {
     'ticket-price': 40,
     'ticket-pool-size': 40,
-    'ticket-pool-value': 30,
-    'stake-participation': 30,
+    'ticket-pool-value': 40,
+    'stake-participation': 40,
     'privacy-participation': 40,
-    'missed-votes': 30,
-    'block-size': 45,
+    'missed-votes': 40,
+    'block-size': 50,
     'blockchain-size': 50,
     'tx-count': 45,
     'duration-btw-blocks': 40,
-    'pow-difficulty': 40,
+    'pow-difficulty': 50,
     chainwork: 35,
     hashrate: 50,
-    'coin-supply': 30,
+    'coin-supply': 40,
     fees: 50,
     'tx-per-block': 50,
     'address-number': 45,
@@ -93,22 +99,22 @@ const yAxisLabelWidth = {
     'mempool-txs': 50,
     'avg-age-days': 50,
     'coin-days-destroyed': 50,
-    'coin-age-bands': 30,
+    'coin-age-bands': 40,
     'mean-coin-age': 50,
     'total-coin-days': 50,
     'total-ring-size': 40,
-    'avg-ring-size': 30,
+    'avg-ring-size': 40,
     'fee-rate': 50,
     'avg-tx-size': 40,
-    'decoy-bands': 30
+    'decoy-bands': 40
   },
   y2: {
-    'ticket-price': 40,
-    'avg-age-days': 30,
-    'coin-days-destroyed': 30,
-    'coin-age-bands': 30,
-    'mean-coin-age': 30,
-    'total-coin-days': 30,
+    'ticket-price': 45,
+    'avg-age-days': 40,
+    'coin-days-destroyed': 40,
+    'coin-age-bands': 40,
+    'mean-coin-age': 40,
+    'total-coin-days': 40,
     'decoy-bands': 50
   }
 }
@@ -158,11 +164,55 @@ function isCoinAgeChart (chart) {
 }
 
 function hashrateTimePlotter (e) {
-  hashrateLegendPlotter(e, 1693612800000)
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 1546339611000, 197, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 1652266011000, 150, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 1693612800000, 0, lines, 'right')
+  }
 }
 
 function hashrateBlockPlotter (e) {
-  hashrateLegendPlotter(e, 794429)
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 306247, 197, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 658518, 150, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 794429, 0, lines, 'right')
+  }
+}
+
+function difficultyTimePlotter (e) {
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 1546339611000, 11500000000, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 1652266011000, 10000000000, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 1693612800000, 0, lines, 'right')
+  }
+}
+
+function difficultyBlockPlotter (e) {
+  // ASIC miners get turned on
+  const asicLines = ['● ASIC miners', 'get turned on']
+  hashrateLegendPlotter(e, 306247, 11500000000, asicLines, 'left')
+  // Miner reward change 60% to 10%
+  const minerLines = ['● Miner reward', 'change 60% to 10%']
+  hashrateLegendPlotter(e, 658518, 10000000000, minerLines, 'right')
+  if (rangeOption !== 'before' || rangeOption !== 'after') {
+    const lines = ['● Transition of the', 'algorithm to BLAKE3', '● Miner reward', 'change 10% to 1%']
+    hashrateLegendPlotter(e, 794429, 0, lines, 'right')
+  }
 }
 
 $(document).mouseup(function (e) {
@@ -177,12 +227,12 @@ $(document).mouseup(function (e) {
 function makePt (x, y) { return { x, y } }
 
 // Legend plotter processing for hashrate chart for blake3 algorithm transition
-function hashrateLegendPlotter (e, midGapValue) {
+function hashrateLegendPlotter (e, midGapValue, startY, lines, direct) {
   Dygraph.Plotters.fillPlotter(e)
   Dygraph.Plotters.linePlotter(e)
   const area = e.plotArea
   const ctx = e.drawingContext
-  const mg = e.dygraph.toDomCoords(midGapValue, 0)
+  const mg = e.dygraph.toDomCoords(midGapValue, startY)
   const midGap = makePt(mg[0], mg[1])
   const fontSize = 13
   const dark = darkEnabled()
@@ -190,16 +240,10 @@ function hashrateLegendPlotter (e, midGapValue) {
   ctx.textBaseline = 'top'
   ctx.font = `${fontSize}px arial`
   ctx.lineWidth = 1
-  ctx.strokeStyle = dark ? '#ffffff' : '#23562f'
+  ctx.strokeStyle = dark ? '#ffffff' : '#259331'
   const boxColor = dark ? '#1e2b39' : '#ffffff'
-
-  const line1 = 'Milestone'
-  const line2 = '- Transition of the'
-  const line3 = 'algorithm to BLAKE3'
-  const line4 = '- Change block reward'
-  const line5 = 'subsidy split to 1/89/10'
   let boxW = 0
-  const txts = [line1, line2, line3, line4, line5]
+  const txts = [...lines]
   txts.forEach(txt => {
     const w = ctx.measureText(txt).width
     if (w > boxW) boxW = w
@@ -208,16 +252,17 @@ function hashrateLegendPlotter (e, midGapValue) {
   const rowPad = (rowHeight - fontSize) / 3
   const boxPad = rowHeight / 5
   let y = fontSize
-  y += area.h / 4
+  y += midGap.y - 2 * area.h / 3
   // Label the gap size.
   rowHeight -= 2 // just looks better
   ctx.fillStyle = boxColor
-  const rect = makePt(midGap.x + boxPad, y - boxPad)
-  const dims = makePt(boxW + boxPad * 3, rowHeight * 5 + boxPad * 2)
+  const reactX = direct === 'left' ? midGap.x - boxW - boxPad * 2 : midGap.x + boxPad
+  const rect = makePt(reactX, y - boxPad)
+  const dims = makePt(boxW + boxPad * 3, rowHeight * lines.length + boxPad * 2)
   ctx.fillRect(rect.x, rect.y, dims.x, dims.y)
   ctx.strokeRect(rect.x, rect.y, dims.x, dims.y)
-  ctx.fillStyle = dark ? '#ffffff' : '#23562f'
-  const centerX = midGap.x + boxW / 2 + 8
+  ctx.fillStyle = dark ? '#ffffff' : '#259331'
+  const centerX = direct === 'left' ? midGap.x - boxW / 2 - 4 : midGap.x + boxW / 2 + 8
   const write = s => {
     const cornerX = centerX - (ctx.measureText(s).width / 2)
     ctx.fillText(s, cornerX + rowPad, y + rowPad)
@@ -225,16 +270,13 @@ function hashrateLegendPlotter (e, midGapValue) {
   }
 
   ctx.save()
-  ctx.font = `bold ${fontSize + 2}px arial`
-  write(line1)
-  ctx.restore()
-  write(line2)
-  write(line3)
-  write(line4)
-  write(line5)
+  lines.forEach((line) => {
+    write(line)
+  })
   // Draw a line from the box to the gap
+  const lineToX = direct === 'left' ? midGap.x - boxW / 2 : midGap.x + boxW / 2
   drawLine(ctx,
-    makePt(midGap.x + boxW / 2, y),
+    makePt(lineToX, y),
     makePt(midGap.x, midGap.y - boxPad))
 }
 
@@ -259,6 +301,10 @@ function usesHybridUnits (chart) {
 
 function isScaleDisabled (chart) {
   return lineScales.indexOf(chart) > -1
+}
+
+function isBinDisabled (chart) {
+  return binDisabled.indexOf(chart) > -1
 }
 
 function isModeEnabled (chart) {
@@ -1038,6 +1084,7 @@ function circulationFunc (chartData) {
   const heights = chartData.h
   const times = chartData.t
   const supplies = chartData.supply
+  const anonymitySet = chartData.anonymitySet
   const isHeightAxis = chartData.axis === 'height'
   let xFunc, hFunc
   if (chartData.bin === 'day') {
@@ -1053,7 +1100,7 @@ function circulationFunc (chartData) {
     const height = hFunc(i)
     addDough(height)
     inflation.push(yMax)
-    return [xFunc(i), supplies[i] * atomsToDCR, null, 0]
+    return [xFunc(i), supplies[i] * atomsToDCR, null, anonymitySet[i] * atomsToDCR]
   })
 
   const dailyBlocks = aDay / avgBlockTime
@@ -1133,7 +1180,8 @@ export default class extends Controller {
     avgBlockTime = parseInt(this.data.get(this.chainType + 'BlockTime')) * 1000
     globalChainType = this.chainType
     legendElement = this.labelsTarget
-
+    windowScales = commonWindowScales
+    multiYAxisChart = chainMultiYAxisChart
     // Prepare the legend element generators.
     const lm = this.legendMarkerTarget
     lm.remove()
@@ -1265,7 +1313,7 @@ export default class extends Controller {
 
   setDisplayChainChartFooter () {
     const chain = this.chainType
-    if (chain === 'dcr') {
+    if (chain === 'dcr' || chain === 'xmr') {
       $('#chainChartFooterRow').removeClass('d-hide')
     } else {
       $('#chainChartFooterRow').addClass('d-hide')
@@ -1433,7 +1481,7 @@ export default class extends Controller {
 
         legendWrapper.innerHTML = legendFormatter({
           x: x,
-          xHTML: Dygraph.dateString_(new Date(x)),
+          xHTML: x,
           dygraph: _this.chartsView,
           points: points,
           series: points.map(p => {
@@ -1519,10 +1567,11 @@ export default class extends Controller {
 
   plotGraph (chartName, data) {
     let d = []
+    const logScale = isScaleDisabled(chartName) ? false : this.settings.scale === 'log'
     let gOptions = {
       zoomCallback: null,
       drawCallback: null,
-      logscale: this.settings.scale === 'log',
+      logscale: logScale,
       valueRange: [null, null],
       visibility: null,
       y2label: null,
@@ -1610,7 +1659,7 @@ export default class extends Controller {
         break
       case 'block-size': // block size graph
         d = zip2D(data, data.size)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', true, false))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', false, true))
         break
       case 'blockchain-size': // blockchain size graph
         d = zip2D(data, data.size)
@@ -1620,22 +1669,22 @@ export default class extends Controller {
       case 'tx-count': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Transactions'], false,
-          'Total Transactions', false, false))
+          'Total Transactions', true, false))
         break
       case 'tx-per-block': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg TXs Per Block'], false,
-          'Avg TXs Per Block', false, false))
+          'Avg TXs Per Block', true, false))
         break
       case 'mined-blocks': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mined Blocks'], false,
-          'Mined Blocks', false, false))
+          'Mined Blocks', true, false))
         break
       case 'mempool-txs': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Mempool Transactions'], false,
-          'Mempool Transactions', false, false))
+          'Mempool Transactions', true, false))
         break
       case 'mempool-size': // blockchain size graph
         d = zip2D(data, data.size)
@@ -1645,13 +1694,13 @@ export default class extends Controller {
       case 'address-number': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Active Addresses'], false,
-          'Active Addresses', false, false))
+          'Active Addresses', true, false))
         break
       case 'pow-difficulty': // difficulty graph
-        d = powDiffFunc(data)
+        d = _this.chainType === 'dcr' ? powDiffFunc(data) : zip2D(data, data.diff)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
-        if (_this.settings.range !== 'before' && _this.settings.range !== 'after') {
-          gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
+        if (_this.chainType === 'dcr' && _this.settings.range !== 'after') {
+          gOptions.plotter = _this.settings.axis === 'height' ? difficultyBlockPlotter : difficultyTimePlotter
         }
         break
       case 'missed-votes':
@@ -1685,13 +1734,11 @@ export default class extends Controller {
             addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' ' + globalChainType.toUpperCase())
             let change = 0
             if (i < d.inflation.length) {
-              if (selectedType === 'dcr') {
-                const supply = data.series[0].y
-                if (this.anonymitySetTarget.checked) {
-                  const mixed = data.series[2].y
-                  const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
-                  div.appendChild(legendEntry(`${legendColorMaker('#17b080ff')} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
-                }
+              const supply = data.series[0].y
+              if (this.anonymitySetTarget.checked) {
+                const mixed = data.series[2].y
+                const mixedPercentage = ((mixed / supply) * 100).toFixed(2)
+                div.appendChild(legendEntry(`${legendColorMaker('#17b080ff')} Mixed: ${intComma(mixed)} DCR (${mixedPercentage}%)`))
               }
               const predicted = d.inflation[i]
               const unminted = predicted - data.series[0].y
@@ -1701,8 +1748,11 @@ export default class extends Controller {
           }
         } else {
           d = zip2D(data, data.supply)
-          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply'], false,
-            'Coins Supply', false, false))
+          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply (' + globalChainType.toUpperCase() + ')'], true,
+            'Coins Supply (' + globalChainType.toUpperCase() + ')', true, false))
+          yFormatter = (div, data, i) => {
+            addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' ' + globalChainType.toUpperCase())
+          }
         }
         break
 
@@ -1718,7 +1768,7 @@ export default class extends Controller {
       case 'duration-btw-blocks': // Duration between blocks graph
         d = zip2D(data, data.duration, 1, 1)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Duration Between Blocks'], false,
-          'Duration Between Blocks (seconds)', false, false))
+          'Duration Between Blocks (seconds)', true, false))
         break
 
       case 'hashrate': // Total chainwork over time
@@ -1726,7 +1776,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
-        if (_this.settings.range !== 'before' && _this.settings.range !== 'after') {
+        if (_this.chainType === 'dcr' && _this.settings.range !== 'after') {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
         break
@@ -1831,6 +1881,7 @@ export default class extends Controller {
         gOptions = {
           labels: labels,
           file: d,
+          logscale: false,
           colors: coinAgeBandsColors,
           ylabel: 'HODL Wave (%)',
           y2label: 'Decred Price (USD)',
@@ -1910,6 +1961,7 @@ export default class extends Controller {
         gOptions = {
           labels: labels,
           file: d,
+          logscale: false,
           colors: decoyBandsColors,
           ylabel: 'Decoys (%)',
           y2label: 'Mixin',
@@ -1936,7 +1988,7 @@ export default class extends Controller {
           // zoomCallback: this.depthZoomCallback,
           axes: {
             y2: {
-              valueRange: [0, 1000000],
+              valueRange: [0, 3500000],
               axisLabelFormatter: (y) => Math.round(y),
               axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['decoy-bands'] : yAxisLabelWidth.y2['decoy-bands'] + 15
             }
@@ -2008,6 +2060,8 @@ export default class extends Controller {
     reinitChartType = this.chainType === 'dcr' || chain === 'dcr' || this.chainType === 'xmr' || chain === 'xmr'
     this.chainType = chain
     globalChainType = chain
+    windowScales = chain === 'dcr' ? decredWindowScales : commonWindowScales
+    multiYAxisChart = chain === 'dcr' ? decredMultiYAxisChart : chainMultiYAxisChart
     // reinit
     if (reinitChartType) {
       this.chartSelectTarget.innerHTML = this.chainType === 'dcr' ? this.getDecredChartOptsHtml() : this.getMutilchainChartOptsHtml()
@@ -2031,6 +2085,13 @@ export default class extends Controller {
     } else {
       this.modeSelectorTarget.classList.add('d-hide')
     }
+    if (isBinDisabled(this.settings.chart)) {
+      this.settings.bin = 'day'
+      this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+      this.binSelectorTarget.classList.add('d-hide')
+    } else if (this.chainType === 'dcr' || this.chainType === 'xmr') {
+      this.binSelectorTarget.classList.remove('d-hide')
+    }
     if (hasMultipleVisibility(this.settings.chart)) {
       this.vSelectorTarget.classList.remove('d-hide')
       this.updateVSelector(this.settings.chart)
@@ -2050,10 +2111,11 @@ export default class extends Controller {
       if (usesWindowUnits(this.settings.chart) && !usesHybridUnits(this.settings.chart)) {
         this.binSelectorTarget.classList.add('d-hide')
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(this.settings.chart)) {
         this.settings.bin = this.selectedBin()
-        if (this.chainType === 'dcr') {
+        if (this.chainType === 'dcr' || this.chainType === 'xmr') {
           this.binSelectorTarget.classList.remove('d-hide')
+          // handler for option window only
           this.binButtons.forEach(btn => {
             if (btn.name !== 'window') return
             if (usesHybridUnits(_this.settings.chart)) {
@@ -2066,8 +2128,46 @@ export default class extends Controller {
               }
             }
           })
+          // if bin is blocks (xmr), hide option 'All' in zoom
+          if (this.chainType === 'xmr' && this.settings.bin === 'block') {
+            // if zoom is all, change to year
+            const selectedZoom = this.zoomSelectorTarget.value
+            // hide 'All' option
+            const optionHtml = `<option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            if (!selectedZoom || selectedZoom === '' || selectedZoom === 'all') {
+              this.settings.zoom = ''
+              this.zoomSelectorTarget.value = 'year'
+            } else {
+              this.zoomSelectorTarget.value = selectedZoom
+            }
+          } else {
+            const selectedZoom = this.zoomSelectorTarget.value
+            // else, show 'All' option in zoom
+            const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            this.zoomSelectorTarget.value = selectedZoom
+          }
         } else {
+          this.settings.bin = 'day'
+          this.setActiveToggleBtn(this.settings.bin, this.binButtons)
           this.binSelectorTarget.classList.add('d-hide')
+          const selectedZoom = this.zoomSelectorTarget.value
+          // else, show 'All' option in zoom
+          const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+          this.zoomSelectorTarget.innerHTML = optionHtml
+          this.zoomSelectorTarget.value = selectedZoom
         }
       }
       url += `?bin=${this.settings.bin}`
@@ -2261,7 +2361,6 @@ export default class extends Controller {
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
       this.scaleSelectorTarget.classList.add('d-hide')
-      this.vSelectorTarget.classList.remove('d-hide')
     } else {
       this.scaleSelectorTarget.classList.remove('d-hide')
     }
@@ -2269,6 +2368,13 @@ export default class extends Controller {
       this.modeSelectorTarget.classList.remove('d-hide')
     } else {
       this.modeSelectorTarget.classList.add('d-hide')
+    }
+    if (isBinDisabled(selection)) {
+      this.settings.bin = 'day'
+      this.setActiveToggleBtn(this.settings.bin, this.binButtons)
+      this.binSelectorTarget.classList.add('d-hide')
+    } else if (this.chainType === 'dcr' || this.chainType === 'xmr') {
+      this.binSelectorTarget.classList.remove('d-hide')
     }
     if (hasMultipleVisibility(selection)) {
       this.vSelectorTarget.classList.remove('d-hide')
@@ -2278,9 +2384,11 @@ export default class extends Controller {
     }
     if (useRange(selection) && this.chainType === 'dcr') {
       this.settings.range = this.selectedRange()
+      rangeOption = this.settings.range
       this.rangeSelectorTarget.classList.remove('d-hide')
     } else {
       this.settings.range = ''
+      rangeOption = ''
       this.rangeSelectorTarget.classList.add('d-hide')
     }
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
@@ -2289,11 +2397,12 @@ export default class extends Controller {
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.binSelectorTarget.classList.add('d-hide')
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(selection)) {
         this.settings.bin = this.selectedBin()
         const _this = this
-        if (this.chainType === 'dcr') {
+        if (this.chainType === 'dcr' || this.chainType === 'xmr') {
           this.binSelectorTarget.classList.remove('d-hide')
+          // handler for option window only
           this.binButtons.forEach(btn => {
             if (btn.name !== 'window') return
             if (usesHybridUnits(selection)) {
@@ -2306,8 +2415,46 @@ export default class extends Controller {
               }
             }
           })
+          // if bin is blocks (xmr), hide option 'All' in zoom
+          if (this.chainType === 'xmr' && this.settings.bin === 'block') {
+            // if zoom is all, change to year
+            const selectedZoom = this.zoomSelectorTarget.value
+            // hide 'All' option
+            const optionHtml = `<option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            if (!selectedZoom || selectedZoom === '' || selectedZoom === 'all') {
+              this.settings.zoom = ''
+              this.zoomSelectorTarget.value = 'year'
+            } else {
+              this.zoomSelectorTarget.value = selectedZoom
+            }
+          } else {
+            const selectedZoom = this.zoomSelectorTarget.value
+            // else, show 'All' option in zoom
+            const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+            this.zoomSelectorTarget.innerHTML = optionHtml
+            this.zoomSelectorTarget.value = selectedZoom
+          }
         } else {
+          this.settings.bin = 'day'
+          this.setActiveToggleBtn(this.settings.bin, this.binButtons)
           this.binSelectorTarget.classList.add('d-hide')
+          const selectedZoom = this.zoomSelectorTarget.value
+          // else, show 'All' option in zoom
+          const optionHtml = `<option value="all">All</option>
+                                <option value="year">Year</option>
+                                <option value="month">Month</option>
+                                <option value="week">Week</option>
+                                <option value="day">Day</option>`
+          this.zoomSelectorTarget.innerHTML = optionHtml
+          this.zoomSelectorTarget.value = selectedZoom
         }
       }
       url += `?bin=${this.settings.bin}`
@@ -2625,6 +2772,22 @@ export default class extends Controller {
         button.classList.add('active')
       } else {
         button.classList.remove('active')
+      }
+    })
+  }
+
+  hideToggleBtn (opt, optTargets) {
+    optTargets.forEach(button => {
+      if (button.name === opt) {
+        button.classList.add('d-hide')
+      }
+    })
+  }
+
+  showToggleBtn (opt, optTargets) {
+    optTargets.forEach(button => {
+      if (button.name === opt) {
+        button.classList.remove('d-hide')
       }
     })
   }

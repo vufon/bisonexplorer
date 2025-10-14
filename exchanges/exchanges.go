@@ -267,9 +267,11 @@ var (
 		// width of zero.
 		Depth: "https://api.huobi.pro/market/depth?symbol=%susdt&type=step0",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=60min&size=2000",
-			dayKey:   "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=1day&size=2000",
-			monthKey: "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=1mon&size=2000",
+			fiveMinKey:  "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=5min&size=2000",
+			halfHourKey: "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=30min&size=2000",
+			hourKey:     "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=60min&size=2000",
+			dayKey:      "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=1day&size=2000",
+			monthKey:    "https://api.huobi.pro/market/history/kline?symbol=%susdt&period=1mon&size=2000",
 		},
 	}
 
@@ -279,9 +281,11 @@ var (
 		// width of zero.
 		Depth: "https://api.huobi.pro/market/depth?symbol=dcrusdt&type=step0",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=60min&size=2000",
-			dayKey:   "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=1day&size=2000",
-			monthKey: "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=1mon&size=2000",
+			fiveMinKey:  "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=5min&size=2000",
+			halfHourKey: "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=30min&size=2000",
+			hourKey:     "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=60min&size=2000",
+			dayKey:      "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=1day&size=2000",
+			monthKey:    "https://api.huobi.pro/market/history/kline?symbol=dcrusdt&period=1mon&size=2000",
 		},
 	}
 	PoloniexURLs = URLs{
@@ -312,9 +316,13 @@ var (
 		// is the entire order book at least sometimes.
 		Depth: "https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=DCR-USDT",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=DCR-USDT",
-			dayKey:   "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=DCR-USDT",
-			monthKey: "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=DCR-USDT",
+			fiveMinKey:  "https://api.kucoin.com/api/v1/market/candles?type=5min&symbol=DCR-USDT",
+			halfHourKey: "https://api.kucoin.com/api/v1/market/candles?type=30min&symbol=DCR-USDT",
+			hourKey:     "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=DCR-USDT",
+			fourHourKey: "https://api.kucoin.com/api/v1/market/candles?type=4hour&symbol=DCR-USDT",
+			dayKey:      "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=DCR-USDT",
+			weekKey:     "https://api.kucoin.com/api/v1/market/candles?type=1week&symbol=DCR-USDT",
+			monthKey:    "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=DCR-USDT",
 		},
 	}
 
@@ -324,9 +332,13 @@ var (
 		// is the entire order book at least sometimes.
 		Depth: "https://api.kucoin.com/api/v1/market/orderbook/level2_100?symbol=%s-USDT",
 		Candlesticks: map[candlestickKey]string{
-			hourKey:  "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=%s-USDT",
-			dayKey:   "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=%s-USDT",
-			monthKey: "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=%s-USDT",
+			fiveMinKey:  "https://api.kucoin.com/api/v1/market/candles?type=5min&symbol=%s-USDT",
+			halfHourKey: "https://api.kucoin.com/api/v1/market/candles?type=30min&symbol=%s-USDT",
+			hourKey:     "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=%s-USDT",
+			fourHourKey: "https://api.kucoin.com/api/v1/market/candles?type=4hour&symbol=%s-USDT",
+			dayKey:      "https://api.kucoin.com/api/v1/market/candles?type=1day&symbol=%s-USDT",
+			weekKey:     "https://api.kucoin.com/api/v1/market/candles?type=1week&symbol=%s-USDT",
+			monthKey:    "https://api.kucoin.com/api/v1/market/candles?type=1month&symbol=%s-USDT",
 		},
 	}
 

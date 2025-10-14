@@ -1791,7 +1791,7 @@ func _main(ctx context.Context) error {
 		xmrBlockDataSavers = append(xmrBlockDataSavers, blockdataxmr.BlockTrigger{
 			Async: true,
 			Saver: func(hash string, height uint32) error {
-				return xmrCharts.TriggerUpdate(hash, height)
+				return xmrCharts.XmrTriggerUpdate(hash, height)
 			},
 		})
 		xmrBdChainMonitor := blockdataxmr.NewChainMonitor(ctx, xmrCollector, xmrBlockDataSavers)
@@ -1873,6 +1873,7 @@ func _main(ctx context.Context) error {
 		if err = ltcCharts.Load(ltcDumpPath); err != nil {
 			log.Warnf("Failed to load charts data cache: %v", err)
 		}
+		go ltcCharts.MultichainChartsUpdateThread(make(chan struct{}))
 		// Dump the cache charts data into a file for future use on system exit.
 		defer ltcCharts.Dump(ltcDumpPath)
 		if !chainDB.ChainDBDisabled {
@@ -1965,14 +1966,6 @@ func _main(ctx context.Context) error {
 		ltcBlockDataSavers = append(ltcBlockDataSavers, chainDB)
 		ltcBlockDataSavers = append(ltcBlockDataSavers, psHub)
 		ltcBlockDataSavers = append(ltcBlockDataSavers, explore)
-		// Add charts saver method after explorer and database stores. This may run
-		// asynchronously.
-		ltcBlockDataSavers = append(ltcBlockDataSavers, blockdataltc.BlockTrigger{
-			Async: true,
-			Saver: func(hash string, height uint32) error {
-				return ltcCharts.TriggerUpdate(hash, height)
-			},
-		})
 		ltcBdChainMonitor := blockdataltc.NewChainMonitor(ctx, ltcCollector, ltcBlockDataSavers,
 			ltcReorgBlockDataSavers)
 
@@ -2023,6 +2016,7 @@ func _main(ctx context.Context) error {
 		if err = btcCharts.Load(btcDumpPath); err != nil {
 			log.Warnf("Failed to load charts data cache: %v", err)
 		}
+		go btcCharts.MultichainChartsUpdateThread(make(chan struct{}))
 		// Dump the cache charts data into a file for future use on system exit.
 		defer btcCharts.Dump(btcDumpPath)
 		if !chainDB.ChainDBDisabled {
@@ -2115,14 +2109,6 @@ func _main(ctx context.Context) error {
 		btcBlockDataSavers = append(btcBlockDataSavers, chainDB)
 		btcBlockDataSavers = append(btcBlockDataSavers, psHub)
 		btcBlockDataSavers = append(btcBlockDataSavers, explore)
-		// Add charts saver method after explorer and database stores. This may run
-		// asynchronously.
-		btcBlockDataSavers = append(btcBlockDataSavers, blockdatabtc.BlockTrigger{
-			Async: true,
-			Saver: func(hash string, height uint32) error {
-				return btcCharts.TriggerUpdate(hash, height)
-			},
-		})
 		btcReorgBlockDataSavers := []blockdatabtc.BlockDataSaver{explore}
 		btcBdChainMonitor := blockdatabtc.NewChainMonitor(ctx, btcCollector, btcBlockDataSavers,
 			btcReorgBlockDataSavers)

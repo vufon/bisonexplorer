@@ -22,6 +22,7 @@ const rangeUse = ['hashrate', 'pow-difficulty']
 const hybridScales = ['privacy-participation']
 const lineScales = ['ticket-price', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const modeScales = ['ticket-price']
+const binDisabled = ['coin-age-bands']
 const multiYAxisChart = ['ticket-price', 'coin-supply', 'privacy-participation', 'avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeCharts = ['avg-age-days', 'coin-days-destroyed', 'coin-age-bands', 'mean-coin-age', 'total-coin-days']
 const coinAgeBandsLabels = ['none', '>7Y', '5-7Y', '3-5Y', '2-3Y', '1-2Y', '6M-1Y', '1-6M', '1W-1M', '1D-1W', '<1D', 'Decred Price']
@@ -50,34 +51,34 @@ let yFormatter, legendEntry, legendMarker, legendColorMaker, legendElement
 let rangeOption = ''
 const yAxisLabelWidth = {
   y1: {
-    'ticket-price': 30,
-    'ticket-pool-size': 30,
-    'ticket-pool-value': 30,
-    'stake-participation': 30,
+    'ticket-price': 40,
+    'ticket-pool-size': 40,
+    'ticket-pool-value': 40,
+    'stake-participation': 40,
     'privacy-participation': 40,
-    'missed-votes': 30,
-    'block-size': 35,
-    'blockchain-size': 30,
+    'missed-votes': 40,
+    'block-size': 50,
+    'blockchain-size': 50,
     'tx-count': 45,
     'duration-btw-blocks': 40,
-    'pow-difficulty': 40,
+    'pow-difficulty': 50,
     chainwork: 35,
-    hashrate: 40,
-    'coin-supply': 30,
-    fees: 35,
+    hashrate: 50,
+    'coin-supply': 40,
+    fees: 50,
     'avg-age-days': 50,
     'coin-days-destroyed': 50,
-    'coin-age-bands': 30,
+    'coin-age-bands': 40,
     'mean-coin-age': 50,
     'total-coin-days': 50
   },
   y2: {
     'ticket-price': 45,
-    'avg-age-days': 30,
-    'coin-days-destroyed': 30,
-    'coin-age-bands': 30,
-    'mean-coin-age': 30,
-    'total-coin-days': 30
+    'avg-age-days': 40,
+    'coin-days-destroyed': 40,
+    'coin-age-bands': 40,
+    'mean-coin-age': 40,
+    'total-coin-days': 40
   }
 }
 
@@ -115,6 +116,10 @@ function usesHybridUnits (chart) {
 
 function isScaleDisabled (chart) {
   return lineScales.indexOf(chart) > -1
+}
+
+function isBinDisabled (chart) {
+  return binDisabled.indexOf(chart) > -1
 }
 
 function isModeEnabled (chart) {
@@ -933,7 +938,7 @@ export default class extends Controller {
 
         legendWrapper.innerHTML = legendFormatter({
           x: x,
-          xHTML: Dygraph.dateString_(new Date(x)),
+          xHTML: x,
           dygraph: _this.chartsView,
           points: points,
           series: points.map(p => {
@@ -1116,7 +1121,7 @@ export default class extends Controller {
       case 'tx-count': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Number of Transactions'], false,
-          '# of Transactions', false, false))
+          '# of Transactions', true, false))
         break
 
       case 'pow-difficulty': // difficulty graph
@@ -1190,7 +1195,7 @@ export default class extends Controller {
       case 'duration-btw-blocks': // Duration between blocks graph
         d = zip2D(data, data.duration, 1, 1)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Duration Between Blocks'], false,
-          'Duration Between Blocks (seconds)', false, false))
+          'Duration Between Blocks (seconds)', true, false))
         break
 
       case 'chainwork': // Total chainwork over time
@@ -1444,6 +1449,8 @@ export default class extends Controller {
     this.customLimits = null
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
+      this.settings.scale = ''
+      this.setActiveOptionBtn('linear', this.scaleTypeTargets)
       this.hideMultiTargets(this.scaleSelectorTargets)
       this.showMultiTargets(this.vSelectorTargets)
     } else {
@@ -1453,6 +1460,13 @@ export default class extends Controller {
       this.showMultiTargets(this.modeSelectorTargets)
     } else {
       this.hideMultiTargets(this.modeSelectorTargets)
+    }
+    if (isBinDisabled(selection)) {
+      this.settings.bin = 'day'
+      this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+      this.hideMultiTargets(this.binSelectorTargets)
+    } else {
+      this.showMultiTargets(this.binSelectorTargets)
     }
     if (hasMultipleVisibility(selection)) {
       this.showMultiTargets(this.vSelectorTargets)
@@ -1475,7 +1489,7 @@ export default class extends Controller {
       if (usesWindowUnits(selection) && !usesHybridUnits(selection)) {
         this.hideMultiTargets(this.binSelectorTargets)
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(selection)) {
         this.showMultiTargets(this.binSelectorTargets)
         this.settings.bin = this.selectedBin()
         const _this = this

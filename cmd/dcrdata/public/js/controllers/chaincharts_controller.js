@@ -20,8 +20,9 @@ const atomsToDCR = 1e-8
 const picoToXmr = 1e-12
 const windowScales = ['ticket-price', 'missed-votes']
 const hybridScales = ['privacy-participation']
-const lineScales = ['ticket-price', 'privacy-participation']
+const lineScales = ['ticket-price', 'privacy-participation', 'decoy-bands']
 const modeScales = ['ticket-price']
+const binDisabled = ['decoy-bands']
 const decoyBandsLabels = ['none', 'No Tx', 'Decoys 0-3', 'Decoys 4-7', 'Decoys 8-11', 'Decoys 12-14', 'Decoys > 15', 'Mixin']
 const decoyBandsColors = [
   '#e9baa6',
@@ -42,24 +43,24 @@ let baseSubsidy, subsidyInterval, subsidyExponent, avgBlockTime
 let yFormatter, legendEntry, legendMarker, legendElement
 const yAxisLabelWidth = {
   y1: {
-    'block-size': 45,
+    'block-size': 50,
     'blockchain-size': 50,
     'tx-count': 45,
     'tx-per-block': 50,
     'duration-btw-blocks': 40,
     'address-number': 45,
-    'pow-difficulty': 40,
+    'pow-difficulty': 50,
     hashrate: 50,
     'mined-blocks': 40,
     'mempool-size': 40,
     'mempool-txs': 50,
-    'coin-supply': 30,
+    'coin-supply': 40,
     'total-ring-size': 40,
-    'avg-ring-size': 30,
+    'avg-ring-size': 40,
     'fee-rate': 50,
     'avg-tx-size': 40,
     fees: 50,
-    'decoy-bands': 30
+    'decoy-bands': 40
   },
   y2: {
     'decoy-bands': 50
@@ -87,6 +88,10 @@ function usesHybridUnits (chart) {
 
 function isScaleDisabled (chart) {
   return lineScales.indexOf(chart) > -1
+}
+
+function isBinDisabled (chart) {
+  return binDisabled.indexOf(chart) > -1
 }
 
 function isModeEnabled (chart) {
@@ -186,21 +191,6 @@ function nightModeOptions (nightModeOn) {
   }
 }
 
-function zipWindowHvY (ys, winSize, yMult, offset) {
-  yMult = yMult || 1
-  offset = offset || 0
-  return ys.map((y, i) => {
-    return [i * winSize + offset, y * yMult]
-  })
-}
-
-function zipWindowTvY (times, ys, yMult) {
-  yMult = yMult || 1
-  return times.map((t, i) => {
-    return [new Date(t * 1000), ys[i] * yMult]
-  })
-}
-
 function zipTvY (times, ys, yMult) {
   yMult = yMult || 1
   return times.map((t, i) => {
@@ -231,11 +221,6 @@ function zip2D (data, ys, yMult, offset) {
     return zipHvY(data.h, ys, yMult, offset)
   }
   return zipTvY(data.t, ys, yMult)
-}
-
-function powDiffFunc (data) {
-  if (data.t) return zipWindowTvY(data.t, data.diff)
-  return zipWindowHvY(data.diff, data.window)
 }
 
 function circulationFunc (chartData, chainType) {
@@ -652,7 +637,11 @@ export default class extends Controller {
     this.supplyPage = this.data.get('supplyPage')
     globalChainType = this.chainType
     legendElement = this.labelsTarget
-
+    if (this.chainType === 'xmr') {
+      $('#chainChartFooterRow').removeClass('d-hide')
+    } else {
+      $('#chainChartFooterRow').addClass('d-hide')
+    }
     // Prepare the legend element generators.
     const lm = this.legendMarkerTarget
     lm.remove()
@@ -799,7 +788,7 @@ export default class extends Controller {
         legendWrapper.style.display = 'block'
         legendWrapper.innerHTML = legendFormatter({
           x: x,
-          xHTML: Dygraph.dateString_(new Date(x)),
+          xHTML: x,
           dygraph: _this.chartsView,
           points: points,
           series: points.map(p => {
@@ -893,10 +882,11 @@ export default class extends Controller {
 
   plotGraph (chartName, data) {
     let d = []
+    const logScale = isScaleDisabled(chartName) ? false : this.settings.scale === 'log'
     let gOptions = {
       zoomCallback: null,
       drawCallback: null,
-      logscale: this.settings.scale === 'log',
+      logscale: logScale,
       valueRange: [null, null],
       visibility: null,
       y2label: null,
@@ -915,7 +905,7 @@ export default class extends Controller {
     switch (chartName) {
       case 'block-size': // block size graph
         d = zip2D(data, data.size)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', true, false))
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Block Size'], false, 'Block Size', false, true))
         break
       case 'blockchain-size': // blockchain size graph
         d = zip2D(data, data.size)
@@ -930,7 +920,7 @@ export default class extends Controller {
       case 'tx-per-block': // tx per block graph
         d = zip2D(data, data.count)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Avg TXs Per Block'], false,
-          'Avg TXs Per Block', false, false))
+          'Avg TXs Per Block', true, false))
         break
       case 'mined-blocks': // tx per block graph
         d = zip2D(data, data.count)
@@ -953,16 +943,16 @@ export default class extends Controller {
           'Active Addresses', true, false))
         break
       case 'pow-difficulty': // difficulty graph
-        d = powDiffFunc(data)
+        d = zip2D(data, data.diff)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
         break
       case 'coin-supply': // supply graph
-        if (this.settings.bin === 'day') {
-          d = zip2D(data, data.supply, 1e-6)
-          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply (' + globalChainType.toUpperCase() + ')'], false,
-            'Coins Supply (Millions ' + globalChainType.toUpperCase() + ')', false, false))
+        if (this.chainType !== 'dcr') {
+          d = zip2D(data, data.supply)
+          assign(gOptions, mapDygraphOptions(d, [xlabel, 'Coins Supply (' + globalChainType.toUpperCase() + ')'], true,
+            'Coins Supply (' + globalChainType.toUpperCase() + ')', true, false))
           yFormatter = (div, data, i) => {
-            addLegendEntryFmt(div, data.series[0], y => intComma(y * 1e6) + ' ' + globalChainType.toUpperCase())
+            addLegendEntryFmt(div, data.series[0], y => intComma(y) + ' ' + globalChainType.toUpperCase())
           }
           break
         }
@@ -1000,12 +990,16 @@ export default class extends Controller {
       case 'fees': // block fee graph
         d = zip2D(data, data.fees, unitToCoin(this.chainType))
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Total Fee'], false, 'Total Fee (' + globalChainType.toUpperCase() + ')', true, false))
+        yFormatter = customYFormatter(y => {
+          if (y == null || isNaN(y)) return '–'
+          return y.toFixed(8) + ' ' + globalChainType.toUpperCase()
+        })
         break
 
       case 'duration-btw-blocks': // Duration between blocks graph
         d = zip2D(data, data.duration, 1, 1)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Duration Between Blocks'], false,
-          'Duration Between Blocks (seconds)', false, false))
+          'Duration Between Blocks (seconds)', true, false))
         break
 
       case 'hashrate': // Total chainwork over time
@@ -1044,6 +1038,7 @@ export default class extends Controller {
         gOptions = {
           labels: labels,
           file: d,
+          logscale: false,
           colors: decoyBandsColors,
           ylabel: 'Decoys (%)',
           y2label: 'Mixin',
@@ -1070,7 +1065,7 @@ export default class extends Controller {
           // zoomCallback: this.depthZoomCallback,
           axes: {
             y2: {
-              valueRange: [0, 1000000],
+              valueRange: [0, 3500000],
               axisLabelFormatter: (y) => Math.round(y),
               axisLabelWidth: isMobile() ? yAxisLabelWidth.y2['decoy-bands'] : yAxisLabelWidth.y2['decoy-bands'] + 15
             }
@@ -1110,7 +1105,6 @@ export default class extends Controller {
     this.chartWrapperTarget.classList.add('loading')
     if (isScaleDisabled(selection)) {
       this.hideMultiTargets(this.scaleSelectorTargets)
-      this.showMultiTargets(this.vSelectorTargets)
     } else {
       this.showMultiTargets(this.scaleSelectorTargets)
     }
@@ -1120,6 +1114,14 @@ export default class extends Controller {
       this.hideMultiTargets(this.modeSelectorTargets)
     }
 
+    if (isBinDisabled(selection)) {
+      this.settings.bin = 'day'
+      this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+      this.hideMultiTargets(this.binSelectorTargets)
+    } else if (this.chainType === 'xmr') {
+      this.showMultiTargets(this.binSelectorTargets)
+    }
+
     if (selectedChart !== selection || this.settings.bin !== this.selectedBin() ||
       this.settings.axis !== this.selectedAxis()) {
       let url = `/api/chainchart/${this.chainType}/` + selection
@@ -1127,26 +1129,48 @@ export default class extends Controller {
         // this.binSelectorTarget.classList.add('d-hide')
         this.hideMultiTargets(this.binSelectorTargets)
         this.settings.bin = 'window'
-      } else {
+      } else if (!isBinDisabled(selection)) {
+        if (this.chainType === 'xmr') {
         // this.binSelectorTarget.classList.remove('d-hide')
-        this.showMultiTargets(this.binSelectorTargets)
-        this.settings.bin = this.selectedBin()
-        const _this = this
-        this.binSizeTargets.forEach(el => {
-          if (_this.exitCond(el)) {
-            return
-          }
-          if (el.dataset.option !== 'window') return
-          if (usesHybridUnits(selection)) {
-            el.classList.remove('d-hide')
-          } else {
-            el.classList.add('d-hide')
-            if (this.settings.bin === 'window') {
-              this.settings.bin = 'day'
-              this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+          this.showMultiTargets(this.binSelectorTargets)
+          this.settings.bin = this.selectedBin()
+          const _this = this
+          // handler for option window only
+          this.binSizeTargets.forEach(el => {
+            if (_this.exitCond(el)) {
+              return
             }
+            if (el.dataset.option !== 'window') return
+            if (usesHybridUnits(selection)) {
+              el.classList.remove('d-hide')
+            } else {
+              el.classList.add('d-hide')
+              if (this.settings.bin === 'window') {
+                this.settings.bin = 'day'
+                this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+              }
+            }
+          })
+          // if bin is blocks, hide option 'All' in zoom
+          if (this.settings.bin === 'block') {
+            // if zoom is all, change to year
+            const selectedZoom = this.selectedZoom()
+            if (!selectedZoom || selectedZoom === '' || selectedZoom === 'all') {
+              this.settings.zoom = ''
+              this.setActiveOptionBtn('year', this.zoomOptionTargets)
+            }
+            // hide 'All' option
+            this.hideOptionBtn('all', this.zoomOptionTargets)
+          } else {
+            // else, show 'All' option in zoom
+            this.showOptionBtn('all', this.zoomOptionTargets)
           }
-        })
+        } else {
+          this.settings.bin = 'day'
+          this.setActiveOptionBtn(this.settings.bin, this.binSizeTargets)
+          this.hideMultiTargets(this.binSelectorTargets)
+          this.showOptionBtn('all', this.zoomOptionTargets)
+        }
       }
       url += `?bin=${this.settings.bin}`
 
@@ -1430,6 +1454,30 @@ export default class extends Controller {
         li.classList.add('active')
       } else {
         li.classList.remove('active')
+      }
+    })
+  }
+
+  hideOptionBtn (opt, optTargets) {
+    const _this = this
+    optTargets.forEach(li => {
+      if (_this.exitCond(li)) {
+        return
+      }
+      if (li.dataset.option === opt) {
+        li.classList.add('d-hide')
+      }
+    })
+  }
+
+  showOptionBtn (opt, optTargets) {
+    const _this = this
+    optTargets.forEach(li => {
+      if (_this.exitCond(li)) {
+        return
+      }
+      if (li.dataset.option === opt) {
+        li.classList.remove('d-hide')
       }
     })
   }
