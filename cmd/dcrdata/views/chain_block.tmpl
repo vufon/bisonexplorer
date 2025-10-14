@@ -5,6 +5,7 @@
 {{$XmrTxs := .XmrTxs}}
 {{$Offset := .Offset}}
 {{$Rows := .Rows}}
+{{$LimitN := .LimitN}}
 {{$TotalRows := .TotalRows}}
 {{$Pages := .Pages}}
 {{$LastStart := .LastStart}}
@@ -117,23 +118,27 @@
 					{{intComma (add $Offset 1)}} &ndash; {{intComma (add $Offset (int64 $Rows))}} of {{intComma
 					$TotalRows}} rows
 				</span>
-				{{$pending := (subtract $TotalRows $Offset)}}
 				<div class="d-inline-block text-end">
 					<label class="mb-0 me-1 ms-2" for="pagesize">Page size</label>
 					<select id="tbPagesize" data-pagenavigation-target="pagesize"
 						data-action="change->pagenavigation#setPageSize" data-offset="{{$Offset}}"
-						data-offsetkey="start"
-						class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $Rows 20}}disabled{{end}}"
-						{{if lt $Rows 20}}disabled="disabled" {{end}}>
-						{{if ge $pending 20}}<option {{if eq $Rows 20}}selected{{end}} value="20">20</option>{{end}}
-						{{if ge $pending 30}}<option {{if eq $Rows 30}}selected{{end}} value="30">30</option>{{end}}
-						{{if ge $pending 50}}<option {{if eq $Rows 50}}selected{{end}} value="50">50</option>{{end}}
-						{{- if lt $TotalRows 160}}
-						<option {{if eq $Rows $TotalRows}}selected {{end}}value="{{$TotalRows}}" {{if le $TotalRows
-							160}} disabled{{end}}>{{$TotalRows}}</option>
-						{{- else}}
-						<option {{if ge $Rows 160}}selected {{end}}value="160">160</option>
-						{{- end}}
+						data-offsetkey="start" data-maxrows="{{$TotalRows}}"
+						class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $TotalRows 20}}disabled{{end}}"
+						{{if lt $TotalRows 20}}disabled="disabled" {{end}}>
+						<option {{if eq $Rows 20}}selected{{end}} value="20"{{if lt $TotalRows 20}} disabled selected{{end}}>20</option>
+						{{if ge $TotalRows 40}} 
+                           <option {{if eq $LimitN 40}}selected {{end}}value="40">40</option>
+                        {{end}}
+						 {{if ge $TotalRows 80}}
+                           <option {{if eq $LimitN 80}}selected {{end}}value="80">80</option>
+                        {{end}}
+						{{if and (gt $TotalRows 20) (and (ne $TotalRows 40) (ne $TotalRows 80))}}
+                        {{- if lt $TotalRows 160}}
+                        <option {{if eq $Rows $TotalRows}}selected {{end}}value="{{$TotalRows}}">{{$TotalRows}}</option>
+                        {{- else}}
+                        <option {{if ge $Rows 160}}selected {{end}}value="160">160</option>
+                        {{- end}}
+                        {{end}}
 					</select>
 				</div>
 			</div>

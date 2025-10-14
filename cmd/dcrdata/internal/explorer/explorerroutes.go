@@ -1756,6 +1756,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 
 	txRows := make([]*types.TrimmedTxInfo, 0)
 	xmrRows := make([]*types.XmrTxFull, 0)
+	displayLength := int(0)
 	if chainType != mutilchain.TYPEXMR {
 		if len(data.Tx) > 0 {
 			if len(data.Tx) > int(offset) {
@@ -1765,6 +1766,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 					txRows = data.Tx[offset : offset+limitN]
 				}
 			}
+			displayLength = len(txRows)
 		}
 	} else {
 		if len(data.XmrTx) > 0 {
@@ -1775,6 +1777,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 					xmrRows = data.XmrTx[offset : offset+limitN]
 				}
 			}
+			displayLength = len(xmrRows)
 		}
 	}
 	linkTemplate := fmt.Sprintf("/block/%s?rows=%d&start=%%d", hash, limitN)
@@ -1797,6 +1800,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 		ChainType string
 		Rows      int
 		Offset    int64
+		LimitN    int
 		TotalRows int64
 		LastStart int64
 		Txs       []*types.TrimmedTxInfo
@@ -1807,8 +1811,9 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 		ChainType:      chainType,
 		Txs:            txRows,
 		XmrTxs:         xmrRows,
-		Rows:           int(limitN),
+		Rows:           displayLength,
 		Offset:         offset,
+		LimitN:         int(limitN),
 		TotalRows:      int64(txLength),
 		LastStart:      int64(lastPageStart),
 		Pages:          pages,
