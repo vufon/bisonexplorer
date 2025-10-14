@@ -1581,7 +1581,7 @@ func (pgb *ChainDB) SyncXMR24hBlockInfo(height int64) {
 			height--
 			continue
 		}
-		blockData := pgb.GetXMRExplorerBlock(height)
+		blockData := pgb.GetDaemonXMRExplorerBlock(height)
 		if blockData == nil {
 			height--
 			continue

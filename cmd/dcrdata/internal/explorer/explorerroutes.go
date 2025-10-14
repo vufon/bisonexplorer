@@ -598,7 +598,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	case mutilchain.TYPELTC:
 		blocks = exp.dataSource.GetLTCExplorerBlocks(int(height), int(height)-8)
 	case mutilchain.TYPEXMR:
-		blockInfo := exp.dataSource.GetXMRExplorerBlock(height)
+		blockInfo := exp.dataSource.GetDaemonXMRExplorerBlock(height)
 		if blockInfo != nil {
 			bestBlock = blockInfo.BlockBasic
 			bestBlock.Total = blockInfo.TotalSent
@@ -1228,12 +1228,18 @@ func (exp *ExplorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) 
 	case mutilchain.TYPELTC:
 		summaries = exp.dataSource.GetLTCExplorerBlocks(int(height), end)
 	case mutilchain.TYPEXMR:
-		summaries = exp.dataSource.GetXMRExplorerBlocks(height, int64(end))
+		summaries, err = exp.dataSource.GetXMRDBExplorerBasicBlocks(height, int64(end))
+		if err != nil {
+			log.Errorf("%s: Unable to get blocks: height=%d&rows=%d. Error: %v", chainType, height, rows, err)
+			exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
+				ExpStatusNotFound)
+			return
+		}
 	default:
 		summaries = exp.dataSource.GetExplorerBlocks(int(height), end)
 	}
-	if summaries == nil {
-		log.Errorf("Unable to get blocks: height=%d&rows=%d", height, rows)
+	if len(summaries) == 0 {
+		log.Errorf("%s: Unable to get blocks: height=%d&rows=%d", chainType, height, rows)
 		exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
 			ExpStatusNotFound)
 		return

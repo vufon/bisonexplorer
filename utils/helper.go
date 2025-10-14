@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/decred/dcrdata/v8/mutilchain"
 )
 
 func ReadCsvFileFromUrl(filePath string) [][]string {
@@ -277,6 +279,17 @@ func XMRToAtomic(xmrAmount float64) int64 {
 
 func BTCToSatoshi(btcAmount float64) int64 {
 	return int64(math.Round(btcAmount * BtcSatoshiUnit))
+}
+
+func SatoshiToBTC(satoshi int64) float64 {
+	return float64(satoshi) / float64(BtcSatoshiUnit)
+}
+
+func MultichainAtomicToCoin(atomicAmount int64, chainType string) float64 {
+	if chainType == mutilchain.TYPEXMR {
+		return AtomicToXMR(uint64(atomicAmount))
+	}
+	return SatoshiToBTC(atomicAmount)
 }
 
 func GetCirculatingSupplyXMR(height uint64) float64 {

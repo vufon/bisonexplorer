@@ -9885,16 +9885,20 @@ func (pgb *ChainDB) GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error) {
 	return pgb.XmrClient.GetInfo()
 }
 
-func (pgb *ChainDB) GetXMRExplorerBlocks(from, to int64) []*exptypes.BlockBasic {
+func (pgb *ChainDB) GetXMRDaemonExplorerBlocks(from, to int64) []*exptypes.BlockBasic {
 	result := make([]*exptypes.BlockBasic, 0)
 	// from > to
 	for height := from; height >= to; height-- {
-		blockInfo := pgb.GetXMRExplorerBlock(height)
+		blockInfo := pgb.GetDaemonXMRExplorerBlock(height)
 		if blockInfo != nil {
 			result = append(result, blockInfo.BlockBasic)
 		}
 	}
 	return result
+}
+
+func (pgb *ChainDB) GetXMRDBExplorerBasicBlocks(max, min int64) ([]*exptypes.BlockBasic, error) {
+	return retrieveMultichainBasicInfoWithHeightRange(pgb.ctx, pgb.db, max, min, mutilchain.TYPEXMR)
 }
 
 func (pgb *ChainDB) GetXMRBlockHeader(height int64) (*xmrutil.BlockHeader, error) {
@@ -10287,7 +10291,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 	}, nil
 }
 
-func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
+func (pgb *ChainDB) GetDaemonXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 	br, berr := pgb.XmrClient.GetBlock(uint64(height))
 	if berr != nil {
 		log.Errorf("XMR: GetBlock(%d) failed: %v", height, berr)

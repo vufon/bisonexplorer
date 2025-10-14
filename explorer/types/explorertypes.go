@@ -140,6 +140,7 @@ type BlockBasic struct {
 	FormattedBytes string  `json:"formatted_bytes"`
 	Total          float64 `json:"total"`
 	BlockTimeUnix  int64   `json:"blocktime_unix"`
+	TotalFees      int64   `json:"totalFees"`
 }
 
 // WebBasicBlock is used for quick DB data without rpc calls

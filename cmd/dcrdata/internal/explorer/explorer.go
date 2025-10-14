@@ -133,7 +133,7 @@ type explorerDataSource interface {
 	GetMutilchainExplorerBlock(hash, chainType string) *types.BlockInfo
 	GetBTCExplorerBlock(hash string) *types.BlockInfo
 	GetLTCExplorerBlock(hash string) *types.BlockInfo
-	GetXMRExplorerBlock(height int64) *types.BlockInfo
+	GetDaemonXMRExplorerBlock(height int64) *types.BlockInfo
 	GetExplorerBlocks(start int, end int) []*types.BlockBasic
 	GetLTCExplorerBlocks(start int, end int) []*types.BlockBasic
 	GetBTCExplorerBlocks(start int, end int) []*types.BlockBasic
@@ -205,7 +205,8 @@ type explorerDataSource interface {
 	GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error)
 	GetXMRSummaryInfo() (*types.MoneroSimpleSummaryInfo, error)
 	GetXMRBasicBlock(height int64) *types.BlockBasic
-	GetXMRExplorerBlocks(from, to int64) []*types.BlockBasic
+	GetXMRDaemonExplorerBlocks(from, to int64) []*types.BlockBasic
+	GetXMRDBExplorerBasicBlocks(from, to int64) ([]*types.BlockBasic, error)
 	GetMultichain24hSumAndAvgTxFee(chainType string) (int64, int64, error)
 	GetXMRBlockHeader(height int64) (*xmrutil.BlockHeader, error)
 }
@@ -1235,7 +1236,7 @@ func (exp *ExplorerUI) UpdateXMRSummaryData(stop <-chan struct{}) error {
 
 func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	// // Retrieve block data for the passed block hash.
-	newBlockData := exp.dataSource.GetXMRExplorerBlock(int64(blockData.Header.Height))
+	newBlockData := exp.dataSource.GetDaemonXMRExplorerBlock(int64(blockData.Header.Height))
 	if newBlockData == nil {
 		return fmt.Errorf("XMR: Get explorer block data failed")
 	}
