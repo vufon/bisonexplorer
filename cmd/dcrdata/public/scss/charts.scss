@@ -825,3 +825,14 @@ body.darkBG {
     var(--arrow-icon) no-repeat right 0.8em center/1.4em,
     linear-gradient(to left, var(--arrow-bg) 3em, var(--select-bg) 3em);
 }
+
+.btn-disabled {
+  color: rgb(191 190 190) !important;
+  cursor: default;
+}
+
+.btn-disabled.tab-button.white:hover {
+  background: none;
+  color: rgb(180 180 180);
+  border-color: var(--c-bg-plain);
+}

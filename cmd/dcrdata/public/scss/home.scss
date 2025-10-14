@@ -584,6 +584,10 @@
   .nav-link:hover {
     background: #eee;
   }
+
+  .nav-link.btn-disabled:hover {
+    background: none !important;
+  }
 }
 
 .banner-input-search::placeholder {
