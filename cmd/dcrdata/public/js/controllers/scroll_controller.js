@@ -43,7 +43,7 @@ export default class extends Controller {
       let chain
       urlArr.forEach((element) => {
         multichainList.forEach((mchain) => {
-          if (element.indexOf(mchain) > -1) {
+          if (element === mchain || element.startsWith(mchain + '?')) {
             chain = mchain
           }
         })
