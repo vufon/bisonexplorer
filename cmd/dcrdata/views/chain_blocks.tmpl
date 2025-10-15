@@ -5,7 +5,7 @@
 {{$ChainType := .ChainType}}
 {{template "html-head" headData .CommonPageData (printf "%s Blocks" (chainName $ChainType))}}
     {{template "mutilchain_navbar" . }}
-    <div class="container px-0" data-controller="time pagenavigation blocklist">
+    <div class="container px-0" data-controller="time pagenavigation blocklist" data-blocklist-chain-type="{{$ChainType}}">
         <nav class="breadcrumbs mt-0">
             <a href="/" class="breadcrumbs__item no-underline ps-2">
                 <span class="homeicon-tags me-1"></span>

@@ -33,6 +33,10 @@ export default class extends Controller {
         case 'btc':
           _this.processBTCBlock = _this._processBTCBlock.bind(_this)
           globalEventBus.on('BTC_BLOCK_RECEIVED', _this.processBTCBlock)
+          break
+        case 'xmr':
+          _this.processXMRBlock = _this._processXMRBlock.bind(_this)
+          globalEventBus.on('XMR_BLOCK_RECEIVED', _this.processXMRBlock)
       }
     })
   }
@@ -52,6 +56,9 @@ export default class extends Controller {
           break
         case 'btc':
           globalEventBus.off('BTC_BLOCK_RECEIVED', _this.processBTCBlock)
+          break
+        case 'xmr':
+          globalEventBus.off('XMR_BLOCK_RECEIVED', _this.processXMRBlock)
       }
     })
   }
@@ -66,6 +73,10 @@ export default class extends Controller {
 
   _processBTCBlock (blockData) {
     this.processMutilchainBlock(blockData, 'btc')
+  }
+
+  _processXMRBlock (blockData) {
+    this.processMutilchainBlock(blockData, 'xmr')
   }
 
   processMutilchainBlock (blockData, chainType) {

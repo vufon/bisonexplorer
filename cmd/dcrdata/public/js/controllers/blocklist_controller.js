@@ -200,6 +200,11 @@ export default class extends Controller {
   }
 
   connect () {
+    this.chainType = this.data.get('chainType')
+    // first, handler only for Decred. TODO: handler for multichain
+    if (this.chainType !== 'dcr') {
+      return
+    }
     this.processBlock = this._processBlock.bind(this)
     globalEventBus.on('BLOCK_RECEIVED', this.processBlock)
     this.pageOffset = this.data.get('initialOffset')
@@ -337,6 +342,9 @@ export default class extends Controller {
   }
 
   disconnect () {
+    if (this.chainType !== 'dcr') {
+      return
+    }
     globalEventBus.off('BLOCK_RECEIVED', this.processBlock)
   }
 

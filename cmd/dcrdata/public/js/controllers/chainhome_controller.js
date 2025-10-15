@@ -56,7 +56,7 @@ export default class extends Controller {
       'nextRewardConverted', 'minedBlock', 'numTx24h', 'sent24h', 'fees24h', 'numVout24h',
       'feeAvg24h', 'blockReward', 'nextBlockReward', 'exchangeRateBottom', 'reward24h',
       'totalInputs', 'totalRingMembers', 'memInputCount', 'reward24hExchange',
-      'fees24hExchange', 'avgTxFee24h']
+      'fees24hExchange', 'avgTxFee24h', 'blockTxCount']
   }
 
   async connect () {
@@ -260,6 +260,7 @@ export default class extends Controller {
         break
       case 'xmr':
         globalEventBus.off('XMR_BLOCK_RECEIVED', this.processBlock)
+        globalEventBus.off('MEMPOOL_XMR_RECEIVED', this.processXmrMempool)
         break
     }
     globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
@@ -275,6 +276,7 @@ export default class extends Controller {
     this.blockTotalTarget.textContent = Number(block.total) > 0 ? humanize.threeSigFigs(block.total) : 'N/A'
     this.blockTimeTarget.dataset.age = block.blocktime_unix
     this.blockTimeTarget.textContent = humanize.timeSince(block.blocktime_unix)
+    this.blockTxCountTarget.textContent = humanize.commaWithDecimal(block.tx, 0)
     // handler extra data
     const extra = blockData.extra
     if (!extra) {
@@ -315,6 +317,9 @@ export default class extends Controller {
   _processXmrMempool (mempoolData) {
     if (this.hasTxCountTarget) {
       const mempool = mempoolData.xmr_mempool
+      if (!mempool || Number(mempool) <= 0 || Number(mempool.inputs_count) <= 0 || Number(mempool.outputs_count) <= 0) {
+        return
+      }
       this.txCountTarget.textContent = humanize.commaWithDecimal(mempool.tx_count, 0)
       this.memInputCountTarget.textContent = humanize.commaWithDecimal(mempool.inputs_count, 0)
       this.txOutCountTarget.textContent = humanize.commaWithDecimal(mempool.outputs_count, 0)
