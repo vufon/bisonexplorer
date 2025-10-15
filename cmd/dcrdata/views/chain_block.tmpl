@@ -197,7 +197,11 @@
 								</span>
 							</td>
 							<td class="mono fs15 text-end">
+								{{if gt .Sent 0}}
 								{{- template "decimalParts" (float64AsDecimalParts (toMulFloat64Amount .Sent $ChainType) 8 false) -}}
+								{{else}}
+								N/A
+								{{end}}
 							</td>
 							<td class="mono fs15 text-end">{{.FormattedSize}}</td>
 						</tr>
