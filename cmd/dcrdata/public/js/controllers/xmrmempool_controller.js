@@ -42,14 +42,12 @@ export default class extends Controller {
     this.minFeeRatevBTarget.textContent = humanize.commaWithDecimal(mempool.min_fee_rate, 0)
     this.maxFeeRatevBTarget.textContent = humanize.commaWithDecimal(mempool.max_fee_rate, 0)
     let memBodyHtml = ''
-    console.log('check txlenght: ', mempool.transactions.length)
     if (!mempool.transactions || mempool.transactions.length <= 0) {
       memBodyHtml = ` <tr class="no-tx-tr">
                               <td colspan="5">No regular transactions in mempool.</td>
                            </tr>`
     } else {
       mempool.transactions.forEach((memtx) => {
-        console.log('check txid: ', memtx.id_hash)
         memBodyHtml += `<tr>
                               <td class="break-word clipboard">
                                  <a class="hash lh1rem" href="/xmr/tx/${memtx.id_hash}">${memtx.id_hash}</a>

@@ -2243,7 +2243,7 @@ func _main(ctx context.Context) error {
 
 	// handler syncing for LTC blockchain on background
 	if !ltcDisabled && ltcdClient != nil && chainDB.SyncChainDBFlag {
-		go chainDB.SyncLTCWholeChain()
+		go chainDB.SyncLTCWholeChain(ltcNewPGIndexes)
 	}
 	//Check BTC enabled
 	if !btcDisabled && btcdClient != nil && !chainDB.ChainDBDisabled {
@@ -2291,7 +2291,7 @@ func _main(ctx context.Context) error {
 		//Finished - BTC Sync handler
 	}
 	if !btcDisabled && btcdClient != nil && chainDB.SyncChainDBFlag {
-		go chainDB.SyncBTCWholeChain()
+		go chainDB.SyncBTCWholeChain(btcNewPGIndexes)
 	}
 	//End mutilchain support
 
