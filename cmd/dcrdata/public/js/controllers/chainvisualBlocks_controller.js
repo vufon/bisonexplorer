@@ -95,24 +95,25 @@ export default class extends Controller {
       mempoolBox.remove()
     }
     // Create best block target
-    const mempoolInnerTarget = '<div class="block-info">' +
-        '<a class="color-code" href="/xmr/mempool">Mempool</a>' +
-        '<div class="mono amount" style="line-height: 1;">' +
-        '<span data-chainvisualBlocks-target="memTotalSent">?</span>' +
-        '<span class="unit">&nbsp;XMR</span>' +
-        '</div><span class="timespan">now</span></div>' +
-        '<div class="block-rows chain-block-rows"><div class="block-rewards px-1 mt-1" style="flex-grow: 1">' +
-        this.memRewardBlockOuter +
-        `<span class="fees right-vs-block-data" style="flex-grow: ${this.fees}" ` +
-        `title='{"object": "Tx Fees", "total": "${this.fees}"}' data-chainvisualBlocks-target="tooltip">` +
-        '<span class="block-element-link"></span></span></div><div class="block-transactions px-1 my-1" style="flex-grow: 1">' +
-        `<span class="chain-block-tx left-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${this.txCount}" title='{"object": "Tx Count", "count": "${this.txCount}"}'>` +
-        '<span class="block-element-link"></span></span>' +
-        `<span class="chain-block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${this.inputsCount}" title='{"object": "Inputs Count", "count": "${this.inputsCount}"}'>` +
-        '<span class="block-element-link"></span></span>' +
-        `<span class="chain-block-tx right-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${this.outputsCount}" title='{"object": "Outputs Count", "count": "${this.outputsCount}"}'>` +
-        '<span class="block-element-link"></span></span></div></div>'
-        // remove old mempool box
+    const mempoolInnerTarget = `<div class="block-info">
+        <a class="color-code" href="/xmr/mempool">Mempool</a>
+        <div class="mono amount" style="line-height: 1;">
+        <span data-chainvisualBlocks-target="memTotalSent">?</span>
+        <span class="unit">&nbsp;XMR</span>
+        </div><span class="timespan">now</span></div>
+        <div class="block-rows chain-block-rows"><div class="block-rewards px-1 mt-1" style="flex-grow: 1">
+        ${this.memRewardBlockOuter}
+        <span id="memFeeSpan" data-value="${this.fees}" class="fees right-vs-block-data" style="flex-grow: ${this.fees}" 
+        title='{"object": "Tx Fees", "total": "${this.fees}"}' data-chainvisualBlocks-target="tooltip">
+        <span class="block-element-link"></span></span></div>
+        <div class="block-transactions px-1 my-1" style="flex-grow: 1">
+        <span id="memTxCount" data-value="${this.txCount}" class="chain-block-tx left-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${this.txCount}" title='{"object": "Tx Count", "count": "${this.txCount}"}'>
+        <span class="block-element-link"></span></span>
+        <span id="memInputCount" data-value="${this.inputsCount}" class="chain-block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${this.inputsCount}" title='{"object": "Inputs Count", "count": "${this.inputsCount}"}'>
+        <span class="block-element-link"></span></span>
+        <span id="memOutputCount" data-value="${this.outputsCount}" class="chain-block-tx right-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${this.outputsCount}" title='{"object": "Outputs Count", "count": "${this.outputsCount}"}'>
+        <span class="block-element-link"></span></span></div></div>`
+    // remove old mempool box
     const theKid = document.createElement('div')
     theKid.setAttribute('data-chainvisualBlocks-target', 'block')
     theKid.id = 'memblocks'
@@ -287,24 +288,25 @@ export default class extends Controller {
         if (mempoolBox) {
           mempoolBox.remove()
         }
-        // Create best block target
-        const mempoolInnerTarget = '<div class="block-info">' +
-        `<a class="color-code" href="/${_this.chainType}/mempool">Mempool</a>` +
-        '<div class="mono amount" style="line-height: 1;">' +
-        `<span>${humanize.threeSigFigs(_this.totalSent)}</span>` +
-        `<span class="unit">&nbsp;${_this.chainType.toUpperCase()}</span>` +
-        '</div><span class="timespan">now</span></div>' +
-        '<div class="block-rows chain-block-rows"><div class="block-rewards px-1 mt-1" style="flex-grow: 1">' +
-        _this.memRewardBlockOuter +
-        `<span class="fees right-vs-block-data" style="flex-grow: ${_this.fees}" ` +
-        `title='{"object": "Tx Fees", "total": "${_this.fees}"}' data-chainvisualBlocks-target="tooltip">` +
-        '<span class="block-element-link"></span></span></div><div class="block-transactions px-1 my-1" style="flex-grow: 1">' +
-        `<span class="chain-block-tx left-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.txCount}" title='{"object": "Tx Count", "count": "${_this.txCount}"}'>` +
-        '<span class="block-element-link"></span></span>' +
-        `<span class="chain-block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.inputsCount}" title='{"object": "Inputs Count", "count": "${_this.inputsCount}"}'>` +
-        '<span class="block-element-link"></span></span>' +
-        `<span class="chain-block-tx right-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.outputsCount}" title='{"object": "Outputs Count", "count": "${_this.outputsCount}"}'>` +
-        '<span class="block-element-link"></span></span></div></div>'
+
+        const mempoolInnerTarget = `<div class="block-info">
+        <a class="color-code" href="/${_this.chainType}/mempool">Mempool</a>
+        <div class="mono amount" style="line-height: 1;">
+        <span data-chainvisualBlocks-target="memTotalSent">${humanize.threeSigFigs(_this.totalSent)}</span>
+        <span class="unit">&nbsp;${_this.chainType.toUpperCase()}</span>
+        </div><span class="timespan">now</span></div>
+        <div class="block-rows chain-block-rows"><div class="block-rewards px-1 mt-1" style="flex-grow: 1">
+        ${_this.memRewardBlockOuter}
+        <span id="memFeeSpan" data-value="${_this.fees}" class="fees right-vs-block-data" style="flex-grow: ${_this.fees}" 
+        title='{"object": "Tx Fees", "total": "${_this.fees}"}' data-chainvisualBlocks-target="tooltip">
+        <span class="block-element-link"></span></span></div>
+        <div class="block-transactions px-1 my-1" style="flex-grow: 1">
+        <span id="memTxCount" data-value="${_this.txCount}" class="chain-block-tx left-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.txCount}" title='{"object": "Tx Count", "count": "${_this.txCount}"}'>
+        <span class="block-element-link"></span></span>
+        <span id="memInputCount" data-value="${_this.inputsCount}" class="chain-block-tx" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.inputsCount}" title='{"object": "Inputs Count", "count": "${_this.inputsCount}"}'>
+        <span class="block-element-link"></span></span>
+        <span id="memOutputCount" data-value="${_this.outputsCount}" class="chain-block-tx right-vs-block-data" data-chainvisualBlocks-target="tooltip" style="flex-grow: ${_this.outputsCount}" title='{"object": "Outputs Count", "count": "${_this.outputsCount}"}'>
+        <span class="block-element-link"></span></span></div></div>`
         // remove old mempool box
         const theKid = document.createElement('div')
         theKid.setAttribute('data-chainvisualBlocks-target', 'block')

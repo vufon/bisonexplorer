@@ -61,9 +61,9 @@ export default class extends Controller {
                                   </span>
                               </td>
                               <td class="mono fs15 text-end">
-                                 ${humanize.decimalParts(Number(mempool.fee) / 1e12, false, 8, 2)}
+                                 ${humanize.decimalParts(Number(memtx.fee) / 1e12, false, 8, 2)}
                               </td>
-                              <td class="mono fs15 text-end">${mempool.formattedSize}</td>
+                              <td class="mono fs15 text-end">${memtx.formattedSize}</td>
                            </tr>`
       })
     }
