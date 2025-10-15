@@ -1322,13 +1322,6 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 	p.HomeInfo.TargetTimePerBlock = targetTimePerBlock
 	p.BlockDetails = blocks
 	p.Unlock()
-	go func() {
-		select {
-		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewXMRBlock}:
-		case <-time.After(time.Second * 10):
-			log.Errorf("sigNewXMRBlock send failed: Timeout waiting for WebsocketHub.")
-		}
-	}()
 	go func(height int64) {
 		p.sync24hMtx.Lock()
 		summary24h, err24h := exp.dataSource.SyncAndGet24hMetricsInfo(height, mutilchain.TYPEXMR)
@@ -1344,6 +1337,11 @@ func (exp *ExplorerUI) XMRStore(blockData *xmrutil.BlockData) error {
 		log.Infof("XMR: Sync 24h metrics completed for height: %d", height)
 		p.Unlock()
 		p.sync24hMtx.Unlock()
+		select {
+		case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewXMRBlock}:
+		case <-time.After(time.Second * 10):
+			log.Errorf("sigNewXMRBlock send failed: Timeout waiting for WebsocketHub.")
+		}
 	}(int64(blockData.Header.Height))
 	return nil
 }
@@ -1574,14 +1572,14 @@ func (exp *ExplorerUI) UpdateXMRMempoolData(xmrClient *xmrclient.XMRClient, stop
 			exp.XmrPageData.MempoolData = &mp
 			exp.XmrPageData.Unlock()
 
-			// TODO: send to websocket
-			// go func() {
-			// 	select {
-			// 	case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigNewLTCBlock}:
-			// 	case <-time.After(time.Second * 20):
-			// 		log.Errorf("sigNewLTCBlock send failed: Timeout waiting for WebsocketHub.")
-			// 	}
-			// }()
+			// send to websocket
+			go func() {
+				select {
+				case exp.WsHub.HubRelay <- pstypes.HubMessage{Signal: sigXmrMempoolStatus}:
+				case <-time.After(time.Second * 20):
+					log.Errorf("sigXmrMempoolStatus send failed: Timeout waiting for WebsocketHub.")
+				}
+			}()
 
 		case <-stop:
 			log.Infof("XMR: Stop polling mempool")

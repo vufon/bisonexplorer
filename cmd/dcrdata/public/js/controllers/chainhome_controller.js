@@ -55,7 +55,8 @@ export default class extends Controller {
       'totalFeesExchange', 'totalSentExchange', 'convertedTxFeesAvg', 'powRewardConverted',
       'nextRewardConverted', 'minedBlock', 'numTx24h', 'sent24h', 'fees24h', 'numVout24h',
       'feeAvg24h', 'blockReward', 'nextBlockReward', 'exchangeRateBottom', 'reward24h',
-      'totalInputs', 'totalRingMembers', 'memInputCount']
+      'totalInputs', 'totalRingMembers', 'memInputCount', 'reward24hExchange',
+      'fees24hExchange', 'avgTxFee24h']
   }
 
   async connect () {
@@ -145,23 +146,30 @@ export default class extends Controller {
         })
       })
     }
+    this.processXcUpdate = this._processXcUpdate.bind(this)
+    globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
+    const rateStr = this.data.get('exchangeRate')
+    this.exchangeRate = 0.0
+    if (rateStr && rateStr !== '') {
+      this.exchangeRate = parseFloat(rateStr)
+    }
+    this.processBlock = this._processBlock.bind(this)
+    this.processXmrMempool = this._processXmrMempool.bind(this)
+    switch (this.chainType) {
+      case 'ltc':
+        globalEventBus.on('LTC_BLOCK_RECEIVED', this.processBlock)
+        break
+      case 'btc':
+        globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBlock)
+        break
+      case 'xmr':
+        globalEventBus.on('XMR_BLOCK_RECEIVED', this.processBlock)
+        globalEventBus.on('MEMPOOL_XMR_RECEIVED', this.processXmrMempool)
+        break
+    }
+    this.ws = null
     if (this.chainType !== 'xmr') {
       this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
-      const rateStr = this.data.get('exchangeRate')
-      this.exchangeRate = 0.0
-      if (rateStr && rateStr !== '') {
-        this.exchangeRate = parseFloat(rateStr)
-      }
-      this.processBlock = this._processBlock.bind(this)
-      switch (this.chainType) {
-        case 'ltc':
-          globalEventBus.on('LTC_BLOCK_RECEIVED', this.processBlock)
-          break
-        case 'btc':
-          globalEventBus.on('BTC_BLOCK_RECEIVED', this.processBlock)
-      }
-      this.processXcUpdate = this._processXcUpdate.bind(this)
-      globalEventBus.on('EXCHANGE_UPDATE', this.processXcUpdate)
       const { bitcoin: { websocket } } = mempoolJS({
         hostname: this.wsHostName
       })
@@ -241,26 +249,30 @@ export default class extends Controller {
 
   disconnect () {
     if (this.chainType !== 'xmr') {
-      switch (this.chainType) {
-        case 'ltc':
-          globalEventBus.off('LTC_BLOCK_RECEIVED', this.processBlock)
-          break
-        case 'btc':
-          globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBlock)
-      }
-      globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
       this.ws.close()
-      window.removeEventListener('resize', this.resizeEvent)
-      window.removeEventListener('load', this.loadEvent)
     }
+    switch (this.chainType) {
+      case 'ltc':
+        globalEventBus.off('LTC_BLOCK_RECEIVED', this.processBlock)
+        break
+      case 'btc':
+        globalEventBus.off('BTC_BLOCK_RECEIVED', this.processBlock)
+        break
+      case 'xmr':
+        globalEventBus.off('XMR_BLOCK_RECEIVED', this.processBlock)
+        break
+    }
+    globalEventBus.off('EXCHANGE_UPDATE', this.processXcUpdate)
+    window.removeEventListener('resize', this.resizeEvent)
+    window.removeEventListener('load', this.loadEvent)
   }
 
   _processBlock (blockData) {
     const block = blockData.block
     this.blockHeightTarget.textContent = block.height
-    this.blockHeightTarget.href = `/block/${block.hash}`
+    this.blockHeightTarget.href = `/${this.chainType}/block/${block.hash}`
     this.blockSizeTarget.textContent = humanize.bytes(block.size)
-    this.blockTotalTarget.textContent = humanize.threeSigFigs(block.total)
+    this.blockTotalTarget.textContent = Number(block.total) > 0 ? humanize.threeSigFigs(block.total) : 'N/A'
     this.blockTimeTarget.dataset.age = block.blocktime_unix
     this.blockTimeTarget.textContent = humanize.timeSince(block.blocktime_unix)
     // handler extra data
@@ -272,7 +284,49 @@ export default class extends Controller {
     this.coinSupplyTarget.textContent = humanize.commaWithDecimal(extra.coin_value_supply, 2)
     if (this.exchangeRate > 0) {
       const exchangeValue = extra.coin_value_supply * this.exchangeRate
-      this.convertedSupplyTarget.textContent = humanize.threeSigFigs(exchangeValue) + 'USD'
+      this.convertedSupplyTarget.textContent = humanize.threeSigFigs(exchangeValue) + ' USD'
+    }
+    // handler for monero
+    if (this.chainType === 'xmr') {
+      // update for 24h metrics info
+      const info24h = extra.block24hInfo
+      if (!info24h) {
+        return
+      }
+      if (this.hasMinedBlockTarget) {
+        this.minedBlockTarget.textContent = info24h.blocks
+        this.numTx24hTarget.textContent = humanize.commaWithDecimal(info24h.numTx24h, 0)
+        const reward24hFloat = Number(info24h.totalPowReward) / 1e12
+        const fee24hFloat = Number(info24h.fees24h) / 1e12
+        const avgTxFee = Number(extra.txFeeAvg24h) / 1e12
+        this.reward24hTarget.innerHTML = humanize.decimalParts(reward24hFloat, false, 8, 2)
+        this.fees24hTarget.innerHTML = humanize.decimalParts(fee24hFloat, false, 8, 2)
+        this.numVout24hTarget.textContent = humanize.commaWithDecimal(info24h.numVout24h, 0)
+        this.feeAvg24hTarget.innerHTML = humanize.decimalParts(avgTxFee, false, 8, 2)
+        if (this.exchangeRate > 0) {
+          this.reward24hExchangeTarget.innerHTML = humanize.threeSigFigs(Number(this.exchangeRate) * reward24hFloat)
+          this.fees24hExchangeTarget.innerHTML = humanize.threeSigFigs(Number(this.exchangeRate) * fee24hFloat)
+          this.avgTxFee24hTarget.innerHTML = humanize.threeSigFigs(Number(this.exchangeRate) * avgTxFee)
+        }
+      }
+    }
+  }
+
+  _processXmrMempool (mempoolData) {
+    if (this.hasTxCountTarget) {
+      const mempool = mempoolData.xmr_mempool
+      this.txCountTarget.textContent = humanize.commaWithDecimal(mempool.tx_count, 0)
+      this.memInputCountTarget.textContent = humanize.commaWithDecimal(mempool.inputs_count, 0)
+      this.txOutCountTarget.textContent = humanize.commaWithDecimal(mempool.outputs_count, 0)
+      const feeFloat = Number(mempool.total_fee) / 1e12
+      this.totalFeeTarget.innerHTML = humanize.decimalParts(feeFloat, false, 8, 2)
+      if (this.exchangeRate > 0) {
+        const convertedFees = Number(this.exchangeRate) * feeFloat
+        this.totalFeesExchangeTarget.innerHTML = humanize.threeSigFigs(convertedFees)
+      }
+      this.minFeeRateTarget.textContent = humanize.commaWithDecimal(mempool.min_fee_rate, 0)
+      this.maxFeeRateTarget.textContent = humanize.commaWithDecimal(mempool.max_fee_rate, 0)
+      this.totalSizeTarget.innerHTML = humanize.bytes(mempool.bytes_total)
     }
   }
 
