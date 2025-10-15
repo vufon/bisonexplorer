@@ -10020,8 +10020,10 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 					if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
 						// --- Key input style (most typical for modern Monero) ---
 						if keyObj, ok3 := vinMap["key"].(map[string]interface{}); ok3 {
+							amountin := int64(0)
 							if a, ok31 := keyObj["amount"].(float64); ok31 {
 								sumIn += int64(a)
+								amountin = int64(a)
 							}
 							// collect offsets (may be absent)
 							var offsets []uint64
@@ -10070,6 +10072,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 									Spent:       true,
 									RingMembers: globalIdxs,
 									RingCtOuts:  ringOuts,
+									AmountIn:    amountin,
 								})
 							}
 						}

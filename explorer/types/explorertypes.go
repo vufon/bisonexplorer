@@ -268,6 +268,7 @@ type XmrKeyImageInfo struct {
 	SeenAtTx    string               `json:"seen_at_tx,omitempty"` // tx hash where first seen
 	SpentAtTx   string               `json:"spent_at_tx,omitempty"`
 	Spent       bool                 `json:"spent"`
+	AmountIn    int64                `json:"amount_in"`
 	TextIsHash  bool                 `json:"text_is_hash"`
 	DisplayText string               `json:"display_text"`
 	RingMembers []uint64             `json:"ring_members"`

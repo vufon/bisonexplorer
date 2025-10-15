@@ -364,7 +364,13 @@
                         <td class="position-relative clipboard">
                            {{$v.DisplayText}}
                         </td>
-                        <td class="mono fs13 text-end shrink-to-fit">N/A</td>
+                        <td class="mono fs13 text-end shrink-to-fit">
+                           {{if gt $v.AmountIn 0}}
+                           {{toMulFloat64Amount $v.AmountIn $ChainType}}
+                           {{else}}
+                           N/A
+                           {{end}}
+                        </td>
                      </tr>
                      {{if gt (len $v.RingCtOuts) 0}}
                      <tr class="d-none" id="ringctOutsTable_{{$i}}">
@@ -423,7 +429,9 @@
                            {{$v.Key}}
                         </td>
                         <td class="fs13 break-word shrink-to-fit">
-                           {{if gt $v.Amount 0}}{{$v.Amount}}{{else}}N/A{{end}}
+                           {{if gt $v.Amount 0}}
+                           {{toMulFloat64Amount $v.Amount $ChainType}}
+                           {{else}}N/A{{end}}
                         </td>
                         <td class="text-end mono fs13">
                            {{$v.GlobalIndex}} of {{$maxGlobalIdx}}
