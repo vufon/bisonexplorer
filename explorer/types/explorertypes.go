@@ -345,6 +345,7 @@ type XmrTxBasic struct {
 	ExtraRaw       string
 	RawHex         string
 	RingCT         bool
+	TotalSent      float64
 }
 
 // TxInfo models data needed for display on the tx page

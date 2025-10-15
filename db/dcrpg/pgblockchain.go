@@ -10274,6 +10274,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			RingCT:         ringCT,
 			MaxGlobalIndex: maxOuputIdx,
 			TxPublicKey:    parsedExtra.TxPublicKey,
+			TotalSent:      utils.AtomicToXMR(uint64(txSent)),
 		},
 		BlockHash:   blockHash,
 		BlockHeight: txData.BlockHeight,

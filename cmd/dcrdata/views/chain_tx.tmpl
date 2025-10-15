@@ -57,13 +57,22 @@
          </div>
          {{end}}
          <div class="row py-2">
-            {{if ne $ChainType "xmr"}}
             <div class="col-8 text-start">
                <span class="text-secondary fs13">Total Sent</span>
                <br>
-               <span class="lh1rem d-inline-block pt-1"><span class="fs18 fs14-decimal fw-bold">{{template
-                     "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}</span><span
-                     class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
+               <span class="lh1rem d-inline-block pt-1">
+                  <span class="fs18 fs14-decimal fw-bold">
+                  {{if eq $ChainType "xmr"}}
+                     {{if gt .TotalSent 0.0}}
+                     {{template "decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}
+                     {{else}}
+                     N/A
+                     {{end}}
+                  {{else}}
+                     {{template "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}
+                  {{end}}
+                  </span>
+                  <span class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
                </span>
                {{if $conv.Total}}
                <br>
@@ -75,7 +84,6 @@
                </div>
                {{end}}
             </div>
-            {{end}}
             <div class="col-8 tx-block-num">
                <span class="text-secondary fs13"><span class="d-none d-sm-inline">Included in Block</span><span
                      class="d-sm-none">Block #</span></span>
