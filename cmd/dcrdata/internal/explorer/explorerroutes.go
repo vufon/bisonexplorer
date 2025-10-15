@@ -3757,7 +3757,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 				} else {
 					redirectURL = "/" + chain + "/block/" + searchStr
 				}
-				resultDisp += "<p class=\"mt-3\"><img src=\"/images/" + chain + "-icon.png\" width=\"25\" height=\"25\" /><span class=\"ms-2 fw-600\">" + strings.ToUpper(chain) + ":</span> <a href=\"" + redirectURL + "\">" + hash + "</a> </p>"
+				resultDisp += "<p class=\"mt-3\"><img src=\"/images/" + chain + "-icon.png\" width=\"25\" height=\"25\" /><span class=\"ms-2 fw-600\">" + strings.ToUpper(chain) + ":</span> <a href=\"" + redirectURL + "\" data-turbolinks=\"false\">" + hash + "</a> </p>"
 			}
 			resultDisp += "</div>"
 			exp.StatusPage(w, "Blocks Search Result", "Search results for blocks: "+searchStr, resultDisp, ExpStatusMutilchain)
