@@ -2675,8 +2675,20 @@ export default class extends Controller {
       return
     }
     this.setActiveToggleBtn(option, this.scaleButtons)
+    const optionUpdate = { logscale: option === 'log' }
+    if (this.chainType === 'dcr' && this.settings.range !== 'after') {
+      if (option === 'log') {
+        optionUpdate.plotter = null
+      } else {
+        if (this.settings.chart === 'pow-difficulty') {
+          optionUpdate.plotter = this.settings.axis === 'height' ? difficultyBlockPlotter : difficultyTimePlotter
+        } else if (this.settings.chart === 'hashrate') {
+          optionUpdate.plotter = this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
+        }
+      }
+    }
     if (this.chartsView) {
-      this.chartsView.updateOptions({ logscale: option === 'log' })
+      this.chartsView.updateOptions(optionUpdate)
     }
     this.settings.scale = option
     if (!this.isHomepage) {

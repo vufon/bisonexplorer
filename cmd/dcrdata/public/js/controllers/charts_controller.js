@@ -1748,9 +1748,22 @@ export default class extends Controller {
     if (!option) return
     this.setActiveOptionBtn(option, this.scaleTypeTargets)
     if (!target) return // Exit if running for the first time.
-    if (this.chartsView) {
-      this.chartsView.updateOptions({ logscale: option === 'log' })
+    const optionUpdate = { logscale: option === 'log' }
+    if (this.settings.range !== 'after') {
+      if (option === 'log') {
+        optionUpdate.plotter = null
+      } else {
+        if (this.settings.chart === 'pow-difficulty') {
+          optionUpdate.plotter = this.settings.axis === 'height' ? difficultyBlockPlotter : difficultyTimePlotter
+        } else if (this.settings.chart === 'hashrate') {
+          optionUpdate.plotter = this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
+        }
+      }
     }
+    if (this.chartsView) {
+      this.chartsView.updateOptions(optionUpdate)
+    }
+
     this.settings.scale = option
     if (!this.isHomepage) {
       this.query.replace(this.settings)
