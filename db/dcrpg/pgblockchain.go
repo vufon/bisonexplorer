@@ -10585,7 +10585,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 			}
 		}
 		isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
-		if isCoinbase {
+		if !isCoinbase {
 			totalSent += txSent
 			totalVinsNum += int64(numVin)
 			totalOutputsNum += int64(numVout)

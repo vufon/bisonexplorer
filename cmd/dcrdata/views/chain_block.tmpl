@@ -9,6 +9,7 @@
 {{$TotalRows := .TotalRows}}
 {{$Pages := .Pages}}
 {{$LastStart := .LastStart}}
+{{$conv := .Conversions}}
 <html lang="en">
 {{template "html-head" headData .CommonPageData (printf "%s Block - %d" (chainName $ChainType) .Data.Height)}}
 {{ template "mutilchain_navbar" . }}
@@ -76,6 +77,17 @@
 						</span>
 						<span class="text-secondary fs14"> {{toUpperCase $ChainType}}</span>
 					</span>
+					<br>
+					{{if $conv}}
+					<span class="text-secondary fs16">
+						{{if gt .TotalSent 0.0}}
+						{{threeSigFigs $conv.TotalSent.Value}}
+						{{else}}
+						N/A
+						{{end}}
+						<span class="fs14">{{$conv.TotalSent.Index}}</span>
+					</span>
+					{{end}}
 				</div>
 				<div class="col-7 col-sm-8 text-start">
 					<span class="text-secondary fs13">Size</span>
@@ -108,8 +120,6 @@
 						<td class="text-start">{{.TotalNumOutputs}}</td>
 					</tr>
 					<tr>
-						<td class="text-end fw-bold text-nowrap pe-2">Total Ring Size: </td>
-						<td class="text-start">{{.TotalRingSize}}</td>
 						<td class="text-end fw-bold text-nowrap pe-2"><span
 								class="d-none d-sm-inline">Difficulty</span><span class="d-sm-none">Diff</span>: </td>
 						<td class="text-start">{{template "decimalParts" (float64AsDecimalParts .Difficulty 0 true)}}
@@ -117,10 +127,12 @@
 						<td class="text-end fw-bold text-nowrap pe-2"><span class="d-none d-sm-inline">Block
 								Version</span><span class="d-sm-none">Blk Ver</span>: </td>
 						<td class="text-start">{{.Version}}</td>
+						<td class="text-end fw-bold text-nowrap pe-2">Nonce: </td>
+						<td class="text-start">{{.Nonce}}</td>
 					</tr>
 					<tr>
-						<td class="text-end fw-bold text-nowrap pe-2">Nonce: </td>
-						<td colspan="5" class="text-start">{{.Nonce}}</td>
+						<td class="text-end fw-bold text-nowrap pe-2">Total Ring Size: </td>
+						<td colspan="5" class="text-start">{{.TotalRingSize}}</td>
 					</tr>
 				</tbody>
 			</table>

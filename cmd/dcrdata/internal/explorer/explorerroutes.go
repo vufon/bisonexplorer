@@ -215,6 +215,7 @@ type MutilchainHomeConversions struct {
 	PoWReward    *exchanges.Conversion
 	NextReward   *exchanges.Conversion
 	FeesPerBlock *exchanges.Conversion
+	TotalSent    *exchanges.Conversion
 }
 
 type MutilchainHomeInfo struct {
@@ -1753,7 +1754,13 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 			ExpStatusNotFound)
 		return
 	}
-
+	var conversions *MutilchainHomeConversions
+	xcBot := exp.xcBot
+	if xcBot != nil {
+		conversions = &MutilchainHomeConversions{
+			TotalSent: xcBot.MutilchainConversion(data.TotalSent, chainType),
+		}
+	}
 	txRows := make([]*types.TrimmedTxInfo, 0)
 	xmrRows := make([]*types.XmrTxFull, 0)
 	displayLength := int(0)
@@ -1795,16 +1802,17 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 	}
 	pageData := struct {
 		*CommonPageData
-		Data      *types.BlockInfo
-		Pages     pageNumbers
-		ChainType string
-		Rows      int
-		Offset    int64
-		LimitN    int
-		TotalRows int64
-		LastStart int64
-		Txs       []*types.TrimmedTxInfo
-		XmrTxs    []*types.XmrTxFull
+		Data        *types.BlockInfo
+		Pages       pageNumbers
+		ChainType   string
+		Rows        int
+		Offset      int64
+		LimitN      int
+		TotalRows   int64
+		LastStart   int64
+		Conversions *MutilchainHomeConversions
+		Txs         []*types.TrimmedTxInfo
+		XmrTxs      []*types.XmrTxFull
 	}{
 		CommonPageData: exp.commonData(r),
 		Data:           data,
@@ -1816,6 +1824,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 		LimitN:         int(limitN),
 		TotalRows:      int64(txLength),
 		LastStart:      int64(lastPageStart),
+		Conversions:    conversions,
 		Pages:          pages,
 	}
 
