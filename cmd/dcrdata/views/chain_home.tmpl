@@ -250,7 +250,12 @@
                                     <div>
                                        <span class="new-network-stats-content d-inline-block">
                                           <span data-chainhome-target="blockTotal">
-                                             {{threeSigFigs .Total}}</span>
+                                             {{if gt .Total 0.0}}
+                                             {{threeSigFigs .Total}}
+                                             {{else}}
+                                             N/A
+                                             {{end}}
+                                          </span>
                                           <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                        </span>
                                     </div>

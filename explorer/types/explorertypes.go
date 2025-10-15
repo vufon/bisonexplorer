@@ -249,7 +249,7 @@ type XmrOutputInfo struct {
 	OutIndex    int    `json:"out_index"`             // index in tx outputs
 	GlobalIndex int64  `json:"global_index"`          // global output index (maps -> monero_outputs)
 	Key         string `json:"key"`                   // tx_out_key / stealth pubkey
-	Amount      uint64 `json:"amount"`                // atomic, 0 if hidden
+	Amount      int64  `json:"amount"`                // atomic, 0 if hidden
 	Owned       bool   `json:"owned"`                 // true if belongs to a scanned view-key
 	ReceivedBy  string `json:"received_by,omitempty"` // optional: derived address label when decoded
 }

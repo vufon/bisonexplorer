@@ -1694,7 +1694,11 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	}
 	// Get a fiat-converted value for the total and the fees.
 	if exp.xcBot != nil {
-		pageData.Conversions.Total = exp.xcBot.MutilchainConversion(tx.Total, chainType)
+		totalSent := tx.Total
+		if chainType == mutilchain.TYPEXMR {
+			totalSent = tx.TotalSent
+		}
+		pageData.Conversions.Total = exp.xcBot.MutilchainConversion(totalSent, chainType)
 		pageData.Conversions.Fees = exp.xcBot.MutilchainConversion(tx.FeeCoin, chainType)
 	}
 

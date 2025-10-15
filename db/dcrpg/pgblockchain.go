@@ -9971,6 +9971,22 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			txExtra = txJSONStr
 		}
 	}
+	// get block result
+	txData := blTxsData.Txs[0]
+	isCoinbase := false
+	blockHash := ""
+	if txData.BlockHeight > 0 {
+		br, err := pgb.XmrClient.GetBlock(uint64(txData.BlockHeight))
+		if err != nil {
+			return nil, err
+		}
+		bh, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(txData.BlockHeight))
+		if err != nil {
+			return nil, err
+		}
+		blockHash = bh.Hash
+		isCoinbase = txhash == br.MinerTxHash
+	}
 	version := 0
 	lockTime := int64(0)
 	size := 0
@@ -10145,7 +10161,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 							OutIndex:    idx,
 							GlobalIndex: globalIndex,
 							Key:         outPk,
-							Amount:      uint64(amount),
+							Amount:      amount,
 							Owned:       amountKnown,
 						})
 					}
@@ -10155,39 +10171,46 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 				fees = sumIn - sumOut
 			}
 			// fees / outputs / total sent: sometimes present in tx JSON
-			var extraHex string
-			if extraIf, ok := v["extra"].([]interface{}); ok {
-				var extraBytes []byte
-				for _, val := range extraIf {
-					switch v := val.(type) {
-					case float64:
-						extraBytes = append(extraBytes, byte(v))
-					case int:
-						extraBytes = append(extraBytes, byte(v))
-					default:
-						log.Warnf("Unexpected type in extra array: %T", v)
-						continue
+			if !isCoinbase {
+				var extraHex string
+				if extraIf, ok := v["extra"].([]interface{}); ok {
+					var extraBytes []byte
+					for _, val := range extraIf {
+						switch v := val.(type) {
+						case float64:
+							extraBytes = append(extraBytes, byte(v))
+						case int:
+							extraBytes = append(extraBytes, byte(v))
+						default:
+							log.Warnf("Unexpected type in extra array: %T", v)
+							continue
+						}
 					}
-				}
-				extraHex = hex.EncodeToString(extraBytes)
-				parsedExtra, parseErr = ParseTxExtra(extraHex)
-				if parseErr != nil {
-					log.Errorf("Failed to parse extra: %v", parseErr)
+					extraHex = hex.EncodeToString(extraBytes)
+					parsedExtra, parseErr = ParseTxExtra(extraHex)
+					if parseErr != nil {
+						log.Errorf("Failed to parse extra: %v", parseErr)
+						return nil, parseErr
+					}
+				} else if extraStr, ok := v["extra"].(string); ok {
+					extraHex = extraStr
+					parsedExtra, parseErr = ParseTxExtra(extraHex)
+					if parseErr != nil {
+						log.Errorf("Failed to parse extra: %v", parseErr)
+						return nil, parseErr
+					}
+				} else {
+					log.Errorf("Failed to parse extra: unexpected type %T", v["extra"])
 					return nil, parseErr
 				}
-			} else if extraStr, ok := v["extra"].(string); ok {
-				extraHex = extraStr
-				parsedExtra, parseErr = ParseTxExtra(extraHex)
-				if parseErr != nil {
-					log.Errorf("Failed to parse extra: %v", parseErr)
-					return nil, parseErr
+				if parsedExtra == nil {
+					return nil, fmt.Errorf("parsed extra data failed")
 				}
 			} else {
-				log.Errorf("Failed to parse extra: unexpected type %T", v["extra"])
-				return nil, parseErr
-			}
-			if parsedExtra == nil {
-				return nil, fmt.Errorf("parsed extra data failed")
+				parsedExtra = &exptypes.XmrTxExtra{
+					RawHex:      "",
+					TxPublicKey: "",
+				}
 			}
 			var rctPrunableHash string
 			// sometimes prunable hash in txMap under "rct_signatures" or "rct_prunable_hash"
@@ -10221,22 +10244,6 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 		}
 	}
 
-	// get block result
-	txData := blTxsData.Txs[0]
-	isCoinbase := false
-	blockHash := ""
-	if txData.BlockHeight > 0 {
-		br, err := pgb.XmrClient.GetBlock(uint64(txData.BlockHeight))
-		if err != nil {
-			return nil, err
-		}
-		bh, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(txData.BlockHeight))
-		if err != nil {
-			return nil, err
-		}
-		blockHash = bh.Hash
-		isCoinbase = txhash == br.MinerTxHash
-	}
 	confirmations := txData.Confirmations
 	isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
 	feePerKB := float64(0)
@@ -10543,7 +10550,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 								OutIndex:    idx,
 								GlobalIndex: globalIndex,
 								Key:         outPk,
-								Amount:      uint64(amount),
+								Amount:      amount,
 								Owned:       amountKnown,
 							})
 						}
