@@ -80,11 +80,7 @@
 					<br>
 					{{if $conv}}
 					<span class="text-secondary fs16">
-						{{if gt .TotalSent 0.0}}
 						{{threeSigFigs $conv.TotalSent.Value}}
-						{{else}}
-						N/A
-						{{end}}
 						<span class="fs14">{{$conv.TotalSent.Index}}</span>
 					</span>
 					{{end}}
@@ -114,10 +110,10 @@
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2">Fees:</td>
 						<td class="text-start">{{toMulFloat64Amount .Fees $ChainType}} {{toUpperCase $ChainType}}</td>
-						<td class="text-end fw-bold text-nowrap pe-2">Key Images:</td>
-						<td class="text-start">{{.TotalNumVins}}</td>
+						<td class="text-end fw-bold text-nowrap pe-2">{{if eq $ChainType "xmr"}}Key Images{{else}}Inputs{{end}}:</td>
+						<td class="text-start">{{.TotalInputs}}</td>
 						<td class="text-end fw-bold text-nowrap pe-2">Outputs: </td>
-						<td class="text-start">{{.TotalNumOutputs}}</td>
+						<td class="text-start">{{.TotalOutputs}}</td>
 					</tr>
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2"><span
@@ -130,10 +126,12 @@
 						<td class="text-end fw-bold text-nowrap pe-2">Nonce: </td>
 						<td class="text-start">{{.Nonce}}</td>
 					</tr>
+					{{if eq $ChainType "xmr"}}
 					<tr>
 						<td class="text-end fw-bold text-nowrap pe-2">Total Ring Size: </td>
 						<td colspan="5" class="text-start">{{.TotalRingSize}}</td>
 					</tr>
+					{{end}}
 				</tbody>
 			</table>
 		</div>
@@ -227,7 +225,7 @@
 							</td>
 							<td class="break-word">
 								<span>
-									{{- if eq .Coinbase false}}Coinbase{{else}}Regular{{end}}
+									{{- if eq .Coinbase true}}Coinbase{{else}}Regular{{end}}
 								</span>
 							</td>
 							<td class="mono fs15 text-end">

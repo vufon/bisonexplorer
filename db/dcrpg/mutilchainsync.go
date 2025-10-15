@@ -1592,7 +1592,7 @@ func (pgb *ChainDB) SyncXMR24hBlockInfo(height int64) {
 		//insert to db
 		var id uint64
 		err = stmt.QueryRow(mutilchain.TYPEXMR, blockData.Hash, blockData.Height, dbtypes.NewTimeDef(blockData.BlockTime.T),
-			0, 0, blockData.Fees, blockData.TxCount, blockData.TotalNumVins, blockData.TotalNumOutputs, blockData.BlockReward).Scan(&id)
+			0, 0, blockData.Fees, blockData.TxCount, blockData.TotalInputs, blockData.TotalOutputs, blockData.BlockReward).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				continue

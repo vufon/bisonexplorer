@@ -30,6 +30,7 @@ export default class extends Controller {
         globalEventBus.on('XMR_BLOCK_RECEIVED', this.processBlock)
         break
     }
+    this.setupTooltips()
     if (this.chainType !== 'xmr') {
       this.wsHostName = this.chainType === 'ltc' ? 'litecoinspace.org' : 'mempool.space'
       const { bitcoin: { websocket } } = mempoolJS({
@@ -39,8 +40,6 @@ export default class extends Controller {
         options: ['blocks', 'stats', 'mempool-blocks', 'live-2h-chart']
       })
       this.mempoolSocketInit()
-    } else {
-      this.setupTooltips()
     }
   }
 

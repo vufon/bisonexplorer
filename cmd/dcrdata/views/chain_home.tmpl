@@ -356,9 +356,11 @@
                                           data-chainhome-target="totalTransactions">
                                           {{int64Comma .TotalTransactions}}
                                        </span>
+                                       {{if eq $ChainType "xmr"}}
                                        <span class="stats-subinfo">
                                           {{commaWithDecimal .UseRingctRate 2}} % use ringct
                                        </span>
+                                       {{end}}
                                     </div>
                                  </div>
                               </div>

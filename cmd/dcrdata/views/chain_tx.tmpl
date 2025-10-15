@@ -138,7 +138,7 @@
                 {{if eq .Coinbase false}}
                   <tr>
                      <td class="text-end medium-sans text-nowrap pe-2 py-2">RingCT/type:</td>
-                     <td class="text-start py-1" {{if .RingCT}}colspan="3"{{end}}>
+                     <td class="text-start py-1" {{if eq .RingCT false}}colspan="3"{{end}}>
                         {{if .RingCT}}yes/{{.Rct.RctType}}{{else}}no{{end}}
                      </td>
                      {{if .RingCT}}
@@ -185,6 +185,7 @@
       </div>
    </div>
    {{if and (eq $ChainType "xmr") (eq .Coinbase false)}}
+   {{if .RingCT}}
    <div class="row px-1 my-2" data-controller="xmrtx" data-xmrtx-txid="{{.TxID}}">
       <div class="tx-tools common-card">
          <ul class="nav nav-tabs" role="tablist">
@@ -246,6 +247,7 @@
          </div>
       </div>
    </div>
+   {{end}}
    {{end}}
    {{if ne $ChainType "xmr"}}
    <div class="row mb-3">
