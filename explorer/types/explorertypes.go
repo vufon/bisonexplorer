@@ -716,6 +716,7 @@ type BlockInfo struct {
 	Subsidy               *chainjson.GetBlockSubsidyResult
 	GroupSwaps            []*dbtypes.AtomicSwapFullData
 	PoolDataList          []*dbtypes.MultichainPoolDataItem // last 5 block pools
+	TotalRingSize         int64
 }
 
 // Conversion is a representation of some amount of DCR in another index.

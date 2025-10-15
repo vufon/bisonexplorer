@@ -66,9 +66,15 @@
 				<div class="col-10 col-sm-8 text-start">
 					<span class="text-secondary fs13">Total Sent</span>
 					<br>
-					<span class="lh1rem d-inline-block pt-1"><span class="fs18 fs14-decimal fw-bold">{{template
-							"decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}</span><span
-							class="text-secondary fs14"> {{toUpperCase $ChainType}}</span>
+					<span class="lh1rem d-inline-block pt-1">
+						<span class="fs18 fs14-decimal fw-bold">
+							{{if gt .TotalSent 0.0}}
+							{{template "decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}
+							{{else}}
+							N/A
+							{{end}}
+						</span>
+						<span class="text-secondary fs14"> {{toUpperCase $ChainType}}</span>
 					</span>
 				</div>
 				<div class="col-7 col-sm-8 text-start">
@@ -94,6 +100,16 @@
 			<table class="w-100 fs14 mt-2 details">
 				<tbody>
 					<tr>
+						<td class="text-end fw-bold text-nowrap pe-2">Fees:</td>
+						<td class="text-start">{{toMulFloat64Amount .Fees $ChainType}} {{toUpperCase $ChainType}}</td>
+						<td class="text-end fw-bold text-nowrap pe-2">Key Images:</td>
+						<td class="text-start">{{.TotalNumVins}}</td>
+						<td class="text-end fw-bold text-nowrap pe-2">Outputs: </td>
+						<td class="text-start">{{.TotalNumOutputs}}</td>
+					</tr>
+					<tr>
+						<td class="text-end fw-bold text-nowrap pe-2">Total Ring Size: </td>
+						<td class="text-start">{{.TotalRingSize}}</td>
 						<td class="text-end fw-bold text-nowrap pe-2"><span
 								class="d-none d-sm-inline">Difficulty</span><span class="d-sm-none">Diff</span>: </td>
 						<td class="text-start">{{template "decimalParts" (float64AsDecimalParts .Difficulty 0 true)}}
@@ -101,8 +117,10 @@
 						<td class="text-end fw-bold text-nowrap pe-2"><span class="d-none d-sm-inline">Block
 								Version</span><span class="d-sm-none">Blk Ver</span>: </td>
 						<td class="text-start">{{.Version}}</td>
-						<td class="d-none d-sm-table-cell text-end fw-bold text-nowrap pe-2">Nonce: </td>
-						<td class="d-none d-sm-table-cell text-start">{{.Nonce}}</td>
+					</tr>
+					<tr>
+						<td class="text-end fw-bold text-nowrap pe-2">Nonce: </td>
+						<td colspan="5" class="text-start">{{.Nonce}}</td>
 					</tr>
 				</tbody>
 			</table>

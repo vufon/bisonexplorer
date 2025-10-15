@@ -10376,7 +10376,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 	totalFees := int64(0)
 	totalVinsNum := int64(0)
 	totalOutputsNum := int64(0)
+	totalRingSize := int64(0)
 	for i, txHash := range clientBlock.Tx {
+		isCoinbase := txHash == br.MinerTxHash
 		var txJSONStr string
 		if i < len(blTxsData.TxsAsJSON) {
 			txJSONStr = blTxsData.TxsAsJSON[i]
@@ -10470,7 +10472,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 								}
 								// convert to global indices if we have offsets (safe with empty slice)
 								globalIdxs := xmrhelper.OffsetsToGlobalIndices(offsets)
-
+								totalRingSize += int64(len(globalIdxs))
 								// insert ring members (if any)
 								for _, gi := range globalIdxs {
 									ringMembers = append(ringMembers, exptypes.XmrRingMemberInfo{
@@ -10582,17 +10584,17 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 				}
 			}
 		}
-
-		isCoinbase := txHash == br.MinerTxHash
 		isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
-		totalSent += txSent
+		if isCoinbase {
+			totalSent += txSent
+			totalVinsNum += int64(numVin)
+			totalOutputsNum += int64(numVout)
+		}
 		feePerKB := float64(0)
 		if size > 0 {
 			feePerKB = float64(fees) / (float64(size) / float64(1024.0))
 		}
 		totalFees += fees
-		totalVinsNum += int64(numVin)
-		totalOutputsNum += int64(numVout)
 		txFull := &exptypes.XmrTxFull{
 			TxHash:        txHash,
 			BlockHeight:   int64(clientBlock.Height),
@@ -10630,6 +10632,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 	block.Fees = totalFees
 	block.TotalNumVins = totalVinsNum
 	block.TotalNumOutputs = totalOutputsNum
+	block.TotalRingSize = totalRingSize
 	sortTx := func(txs []*exptypes.XmrTxFull) {
 		sort.Slice(txs, func(i, j int) bool {
 			return txs[i].Sent > txs[j].Sent
