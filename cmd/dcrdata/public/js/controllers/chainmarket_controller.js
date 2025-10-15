@@ -1532,7 +1532,6 @@ export default class extends Controller {
         }
       }
     })
-    console.log('res array leght: ', resArray.length)
     return {
       file: resArray.map(time => {
         if (timeDataMap.has(time)) {

@@ -42,9 +42,11 @@ export default class extends Controller {
       const urlArr = window.location.href.split('/')
       let chain
       urlArr.forEach((element) => {
-        if (multichainList.includes(element)) {
-          chain = element
-        }
+        multichainList.forEach((mchain) => {
+          if (element.indexOf(mchain) > -1) {
+            chain = mchain
+          }
+        })
       })
       this.coinSelectTarget.value = chain
       this.currentChain = chain
