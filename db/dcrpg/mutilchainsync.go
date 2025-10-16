@@ -1921,32 +1921,6 @@ func (pgb *ChainDB) SyncBTCWholeChain(newIndexes bool) {
 	pgb.btcWholeSyncMtx.Lock()
 	defer pgb.btcWholeSyncMtx.Unlock()
 
-	// config concurrency
-	const maxWorkers = 1
-
-	var totalTxs int64
-	var totalVins int64
-	var totalVouts int64
-	var processedBlocks int64
-
-	tickTime := 20 * time.Second
-	startTime := time.Now()
-
-	// speed (use atomic reads)
-	speedReporter := func() {
-		totalElapsed := time.Since(startTime).Seconds()
-		if totalElapsed < 1.0 {
-			return
-		}
-		tTx := atomic.LoadInt64(&totalTxs)
-		tVouts := atomic.LoadInt64(&totalVouts)
-		totalVoutPerSec := tVouts / int64(totalElapsed)
-		totalTxPerSec := tTx / int64(totalElapsed)
-		log.Infof("BTC: Avg. speed: %d tx/s, %d vout/s", totalTxPerSec, totalVoutPerSec)
-	}
-	var once sync.Once
-	defer once.Do(speedReporter)
-
 	// Get remaining heights
 	btcBestBlockHeight := pgb.BtcBestBlock.Height
 	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.CreateSelectRemainingNotSyncedHeights(mutilchain.TYPEBTC), btcBestBlockHeight)
@@ -1978,144 +1952,61 @@ func (pgb *ChainDB) SyncBTCWholeChain(newIndexes bool) {
 	// 	return
 	// }
 	// }
-
-	// context to cancel on first error
-	ctx, cancel := context.WithCancel(pgb.ctx)
-	defer cancel()
-
-	// worker semaphore & waitgroup
-	sem := make(chan struct{}, maxWorkers)
-	var wg sync.WaitGroup
-
-	// first error storage (atomic.Value to avoid locking complexity)
-	var firstErr atomic.Value // will store error
-
-	// ticker goroutine to log speed with tickTime
-	ticker := time.NewTicker(tickTime)
-	defer ticker.Stop()
-
-	// save local state for logs with tick
-	var lastProcessed int64
-	var lastTxs int64
-	var lastVins int64
-	var lastVouts int64
-
-	// ticker logger goroutine
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				curProcessed := atomic.LoadInt64(&processedBlocks)
-				curTxs := atomic.LoadInt64(&totalTxs)
-				curVins := atomic.LoadInt64(&totalVins)
-				curVouts := atomic.LoadInt64(&totalVouts)
-
-				blocksPerSec := float64(curProcessed-lastProcessed) / tickTime.Seconds()
-				txPerSec := float64(curTxs-lastTxs) / tickTime.Seconds()
-				vinsPerSec := float64(curVins-lastVins) / tickTime.Seconds()
-				voutPerSec := float64(curVouts-lastVouts) / tickTime.Seconds()
-
-				log.Infof("BTC: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
-
-				lastProcessed = curProcessed
-				lastTxs = curTxs
-				lastVins = curVins
-				lastVouts = curVouts
-			}
-		}
-	}()
-
-	// optional: if GetBlock or StoreBTCWholeBlock is NOT thread-safe, uncomment these mutexes and wrap calls.
-	// var getBlockMu sync.Mutex
-	// var storeBlockMu sync.Mutex
-
+	var totalTxs, totalVins, totalVouts int
+	var firstBlock, lastBlock int64
+	countBlock := 0
 	for idx, height := range remaingHeights {
-		// early exit if cancelled
-		if ctx.Err() != nil {
-			break
+		// get block (if GetBlock is NOT thread-safe, guard with getBlockMu)
+		// getBlockMu.Lock()
+		block, _, err := btcrpcutils.GetBlock(height, pgb.BtcClient)
+		// getBlockMu.Unlock()
+		if err != nil {
+			log.Errorf("BTC: GetBlock failed (%d): %v", height, err)
+			return
 		}
-
-		// occasional info logs similar to original behavior
-		if (idx-1)%btcRescanLogBlockChunk == 0 || idx == 0 {
-			if remaingHeights[idx] == 0 {
-				log.Infof("BTC: Scanning genesis block.")
+		// store block (if StoreBTCWholeBlock is NOT thread-safe, guard with storeBlockMu)
+		// storeBlockMu.Lock()
+		retryCount := 0
+		completed := false
+		var numVins, numVouts int64
+		for retryCount < 50 && !completed {
+			numVins, numVouts, err = pgb.StoreBTCWholeBlock(pgb.BtcClient, block.MsgBlock(), checkConflict, false)
+			if err != nil {
+				log.Errorf("BTC StoreBlock failed (height %d): %v. Retrying...", height, err)
+				retryCount++
 			} else {
-				curInd := (idx - 1) / btcRescanLogBlockChunk
-				endRangeBlockIdx := (curInd + 1) * btcRescanLogBlockChunk
-				if endRangeBlockIdx >= len(remaingHeights) {
-					endRangeBlockIdx = len(remaingHeights) - 1
-				}
-				log.Infof("BTC: Processing blocks %d to %d...", height, remaingHeights[endRangeBlockIdx])
+				completed = true
+				break
 			}
 		}
+		// if not completed
+		if !completed {
+			log.Errorf("BTC: Retry 50 times but can't complete. (height %d)", height)
+			return
+		}
+		totalTxs += len(block.Transactions())
+		totalVins += int(numVins)
+		totalVouts += int(numVouts)
 
-		// acquire worker slot
-		select {
-		case sem <- struct{}{}:
-			// got slot
-		case <-ctx.Done():
-			break
+		countBlock++
+		if idx == 0 {
+			firstBlock = height
+		}
+		display := false
+		if countBlock == 200 || idx == len(remaingHeights)-1 {
+			lastBlock = height
+			display = true
 		}
 
-		wg.Add(1)
-		go func(h int64) {
-			defer wg.Done()
-			defer func() { <-sem }()
-
-			// Check cancellation once more
-			if ctx.Err() != nil {
-				return
-			}
-
-			// get block (if GetBlock is NOT thread-safe, guard with getBlockMu)
-			// getBlockMu.Lock()
-			block, _, err := btcrpcutils.GetBlock(h, pgb.BtcClient)
-			// getBlockMu.Unlock()
-			if err != nil {
-				// store first error and cancel
-				if firstErr.Load() == nil {
-					firstErr.Store(err)
-					cancel()
-				}
-				log.Errorf("BTC: GetBlock failed (%d): %v", h, err)
-				return
-			}
-
-			// store block (if StoreBTCWholeBlock is NOT thread-safe, guard with storeBlockMu)
-			// storeBlockMu.Lock()
-			numVins, numVouts, err := pgb.StoreBTCWholeBlock(pgb.BtcClient, block.MsgBlock(), checkConflict, false)
-			// storeBlockMu.Unlock()
-			if err != nil {
-				if firstErr.Load() == nil {
-					firstErr.Store(err)
-					cancel()
-				}
-				log.Errorf("BTC StoreBlock failed (height %d): %v", h, err)
-				return
-			}
-
-			// update atomic counters
-			atomic.AddInt64(&totalVins, numVins)
-			atomic.AddInt64(&totalVouts, numVouts)
-			atomic.AddInt64(&totalTxs, int64(len(block.Transactions())))
-			atomic.AddInt64(&processedBlocks, 1)
-		}(height)
+		if display {
+			log.Infof("BTC: Processed data for blocks from %d to %d. Txs: %d. Vins: %d, Vouts: %d", firstBlock, lastBlock, totalTxs, totalVins, totalVouts)
+			firstBlock = height + 1
+			countBlock = 0
+			totalTxs = 0
+			totalVins = 0
+			totalVouts = 0
+		}
 	}
-
-	// wait worker finish
-	wg.Wait()
-
-	if v := firstErr.Load(); v != nil {
-		err = v.(error)
-		log.Errorf("BTC: sync aborted due to error: %v", err)
-		return
-	}
-
-	// final speed report
-	once.Do(speedReporter)
-
 	// rebuild index
 	// if reindexing {
 	// TODO: Reopen
@@ -2131,9 +2022,8 @@ func (pgb *ChainDB) SyncBTCWholeChain(newIndexes bool) {
 	// }
 	// }
 
-	log.Infof("BTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
-		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
-		atomic.LoadInt64(&processedBlocks), atomic.LoadInt64(&totalTxs), atomic.LoadInt64(&totalVins), atomic.LoadInt64(&totalVouts))
+	log.Infof("BTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d",
+		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
 }
 
 func (pgb *ChainDB) SyncOneBTCWholeBlock(client *btcClient.Client, msgBlock *btcwire.MsgBlock) (err error) {
@@ -2153,32 +2043,6 @@ func (pgb *ChainDB) SyncOneLTCWholeBlock(client *ltcClient.Client, msgBlock *wir
 func (pgb *ChainDB) SyncLTCWholeChain(newIndexes bool) {
 	pgb.ltcWholeSyncMtx.Lock()
 	defer pgb.ltcWholeSyncMtx.Unlock()
-
-	const maxWorkers = 1
-
-	// atomic counters
-	var totalTxs int64
-	var totalVins int64
-	var totalVouts int64
-	var processedBlocks int64
-
-	tickTime := 20 * time.Second
-	startTime := time.Now()
-
-	speedReporter := func() {
-		totalElapsed := time.Since(startTime).Seconds()
-		if totalElapsed < 1.0 {
-			return
-		}
-		tTx := atomic.LoadInt64(&totalTxs)
-		tVouts := atomic.LoadInt64(&totalVouts)
-		totalVoutPerSec := tVouts / int64(totalElapsed)
-		totalTxPerSec := tTx / int64(totalElapsed)
-		log.Infof("LTC: Avg. speed: %d tx/s, %d vout/s", totalTxPerSec, totalVoutPerSec)
-	}
-	var once sync.Once
-	defer once.Do(speedReporter)
-
 	// get remaining heights
 	ltcBestBlockHeight := pgb.LtcBestBlock.Height
 	rows, err := pgb.db.QueryContext(pgb.ctx, mutilchainquery.CreateSelectRemainingNotSyncedHeights(mutilchain.TYPELTC), ltcBestBlockHeight)
@@ -2210,144 +2074,63 @@ func (pgb *ChainDB) SyncLTCWholeChain(newIndexes bool) {
 	// 	}
 	// }
 
-	// context to cancel on first error
-	ctx, cancel := context.WithCancel(pgb.ctx)
-	defer cancel()
-
-	// semaphore to limit concurrency
-	sem := make(chan struct{}, maxWorkers)
-	var wg sync.WaitGroup
-
-	// store first error (atomic.Value)
-	var firstErr atomic.Value
-
-	// ticker for periodic speed logs
-	ticker := time.NewTicker(tickTime)
-	defer ticker.Stop()
-
-	// local last stats for per-tick delta
-	var lastProcessed int64
-	var lastTxs int64
-	var lastVins int64
-	var lastVouts int64
-
-	// ticker goroutine: log per tick
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				curProcessed := atomic.LoadInt64(&processedBlocks)
-				curTxs := atomic.LoadInt64(&totalTxs)
-				curVins := atomic.LoadInt64(&totalVins)
-				curVouts := atomic.LoadInt64(&totalVouts)
-
-				blocksPerSec := float64(curProcessed-lastProcessed) / tickTime.Seconds()
-				txPerSec := float64(curTxs-lastTxs) / tickTime.Seconds()
-				vinsPerSec := float64(curVins-lastVins) / tickTime.Seconds()
-				voutPerSec := float64(curVouts-lastVouts) / tickTime.Seconds()
-
-				log.Infof("LTC: (%.3f blk/s, %.3f tx/s, %.3f vin/s, %.3f vout/s)", blocksPerSec, txPerSec, vinsPerSec, voutPerSec)
-
-				lastProcessed = curProcessed
-				lastTxs = curTxs
-				lastVins = curVins
-				lastVouts = curVouts
-			}
-		}
-	}()
-
-	// If GetBlock or StoreLTCWholeBlock are NOT thread-safe, uncomment mutexes below:
-	// var getBlockMu sync.Mutex
-	// var storeBlockMu sync.Mutex
-
+	var totalTxs, totalVins, totalVouts int
+	var firstBlock, lastBlock int64
+	countBlock := 0
 	// iterate heights and spawn workers
 	for idx, height := range remaingHeights {
-		// early exit if cancelled
-		if ctx.Err() != nil {
-			break
-		}
-
-		// periodic chunk logs to keep parity với code gốc
-		if (idx-1)%ltcRescanLogBlockChunk == 0 || idx == 0 {
-			if remaingHeights[idx] == 0 {
-				log.Infof("LTC: Scanning genesis block.")
-			} else {
-				curInd := (idx - 1) / ltcRescanLogBlockChunk
-				endRangeBlockIdx := (curInd + 1) * ltcRescanLogBlockChunk
-				if endRangeBlockIdx >= len(remaingHeights) {
-					endRangeBlockIdx = len(remaingHeights) - 1
-				}
-				log.Infof("LTC: Processing blocks %d to %d...", height, remaingHeights[endRangeBlockIdx])
-			}
-		}
-
-		// acquire worker slot (or exit if cancelled)
-		select {
-		case sem <- struct{}{}:
-			// acquired
-		case <-ctx.Done():
-			break
-		}
-
-		wg.Add(1)
-		go func(h int64) {
-			defer wg.Done()
-			defer func() { <-sem }()
-
-			if ctx.Err() != nil {
-				return
-			}
-
-			// get block (wrap with mutex if needed)
-			// getBlockMu.Lock()
-			block, _, err := ltcrpcutils.GetBlock(h, pgb.LtcClient)
-			// getBlockMu.Unlock()
-			if err != nil {
-				if firstErr.Load() == nil {
-					firstErr.Store(err)
-					cancel()
-				}
-				log.Errorf("LTC: GetBlock failed (%d): %v", h, err)
-				return
-			}
-
-			// store block (wrap with mutex if needed)
-			// storeBlockMu.Lock()
-			numVins, numVouts, err := pgb.StoreLTCWholeBlock(pgb.LtcClient, block.MsgBlock(), conflictCheck, false)
-			// storeBlockMu.Unlock()
-			if err != nil {
-				if firstErr.Load() == nil {
-					firstErr.Store(err)
-					cancel()
-				}
-				log.Errorf("LTC StoreBlock failed (height %d): %v", h, err)
-				return
-			}
-
-			// update counters
-			atomic.AddInt64(&totalVins, numVins)
-			atomic.AddInt64(&totalVouts, numVouts)
-			atomic.AddInt64(&totalTxs, int64(len(block.Transactions())))
-			atomic.AddInt64(&processedBlocks, 1)
-		}(height)
-	}
-
-	// wait for workers
-	wg.Wait()
-
-	// if any error occurred, log and return
-	if v := firstErr.Load(); v != nil {
-		if err, ok := v.(error); ok && err != nil {
-			log.Errorf("LTC: sync aborted due to error: %v", err)
+		// get block (wrap with mutex if needed)
+		// getBlockMu.Lock()
+		block, _, err := ltcrpcutils.GetBlock(height, pgb.LtcClient)
+		// getBlockMu.Unlock()
+		if err != nil {
+			log.Errorf("LTC: GetBlock failed (%d): %v", height, err)
 			return
 		}
+
+		// store block (wrap with mutex if needed)
+		// storeBlockMu.Lock()
+		retryCount := 0
+		completed := false
+		var numVins, numVouts int64
+		for retryCount < 50 && !completed {
+			numVins, numVouts, err = pgb.StoreLTCWholeBlock(pgb.LtcClient, block.MsgBlock(), conflictCheck, false)
+			if err != nil {
+				log.Errorf("LTC StoreBlock failed (height %d): %v. Retrying...", height, err)
+				retryCount++
+			} else {
+				completed = true
+				break
+			}
+		}
+		// if not completed
+		if !completed {
+			log.Errorf("LTC: Retry 50 times but can't complete. (height %d)", height)
+			return
+		}
+		totalTxs += len(block.Transactions())
+		totalVins += int(numVins)
+		totalVouts += int(numVouts)
+
+		countBlock++
+		if idx == 0 {
+			firstBlock = height
+		}
+		display := false
+		if countBlock == 200 || idx == len(remaingHeights)-1 {
+			lastBlock = height
+			display = true
+		}
+
+		if display {
+			log.Infof("LTC: Processed data for blocks from %d to %d. Txs: %d. Vins: %d, Vouts: %d", firstBlock, lastBlock, totalTxs, totalVins, totalVouts)
+			firstBlock = height + 1
+			countBlock = 0
+			totalTxs = 0
+			totalVins = 0
+			totalVouts = 0
+		}
 	}
-
-	// final speed report
-	once.Do(speedReporter)
-
 	// reindex if needed
 	// if reindexing {
 	// 	// Check and remove duplicate rows if any before recreating index
@@ -2362,9 +2145,8 @@ func (pgb *ChainDB) SyncLTCWholeChain(newIndexes bool) {
 	// 	}
 	// }
 
-	log.Infof("LTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
-		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
-		atomic.LoadInt64(&processedBlocks), atomic.LoadInt64(&totalTxs), atomic.LoadInt64(&totalVins), atomic.LoadInt64(&totalVouts))
+	log.Infof("LTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d",
+		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
 }
 
 func (pgb *ChainDB) SyncBulkXMRBlockSummaryData() {
