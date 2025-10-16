@@ -1922,7 +1922,7 @@ func (pgb *ChainDB) SyncBTCWholeChain(newIndexes bool) {
 	defer pgb.btcWholeSyncMtx.Unlock()
 
 	// config concurrency
-	const maxWorkers = 3
+	const maxWorkers = 2
 
 	var totalTxs int64
 	var totalVins int64
@@ -1965,19 +1965,19 @@ func (pgb *ChainDB) SyncBTCWholeChain(newIndexes bool) {
 	}
 	log.Infof("BTC: Start sync for %d blocks. Minimum height: %d, Maximum height: %d", len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
 
-	reindexing := newIndexes || int64(len(remaingHeights)) > pgb.BtcBestBlock.Height/20
-	checkConflict := true
-	if reindexing {
-		checkConflict = false
-		log.Info("BTC: Large bulk load: Removing indexes")
-		// TODO: Reopen
-		// if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEBTC); err != nil &&
-		// 	!strings.Contains(err.Error(), "does not exist") &&
-		// 	!strings.Contains(err.Error(), "不存在") {
-		// 	log.Errorf("BTC: Deindex for multichain whole table: %v", err)
-		// 	return
-		// }
-	}
+	// reindexing := newIndexes || int64(len(remaingHeights)) > pgb.BtcBestBlock.Height/20
+	checkConflict := false
+	// if reindexing {
+	// 	checkConflict = false
+	// 	log.Info("BTC: Large bulk load: Removing indexes")
+	// TODO: Reopen
+	// if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPEBTC); err != nil &&
+	// 	!strings.Contains(err.Error(), "does not exist") &&
+	// 	!strings.Contains(err.Error(), "不存在") {
+	// 	log.Errorf("BTC: Deindex for multichain whole table: %v", err)
+	// 	return
+	// }
+	// }
 
 	// context to cancel on first error
 	ctx, cancel := context.WithCancel(pgb.ctx)
@@ -2117,19 +2117,19 @@ func (pgb *ChainDB) SyncBTCWholeChain(newIndexes bool) {
 	once.Do(speedReporter)
 
 	// rebuild index
-	if reindexing {
-		// TODO: Reopen
-		// Check and remove duplicate rows if any before recreating index
-		// err = pgb.MultichainCheckAndRemoveDupplicate(mutilchain.TYPEBTC)
-		// if err != nil {
-		// 	log.Errorf("BTC: Check and remove dupplicate rows on all table failed: %v", err)
-		// 	return
-		// }
-		// if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEBTC); err != nil {
-		// 	log.Errorf("BTC: Re-index failed: %v", err)
-		// 	return
-		// }
-	}
+	// if reindexing {
+	// TODO: Reopen
+	// Check and remove duplicate rows if any before recreating index
+	// err = pgb.MultichainCheckAndRemoveDupplicate(mutilchain.TYPEBTC)
+	// if err != nil {
+	// 	log.Errorf("BTC: Check and remove dupplicate rows on all table failed: %v", err)
+	// 	return
+	// }
+	// if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPEBTC); err != nil {
+	// 	log.Errorf("BTC: Re-index failed: %v", err)
+	// 	return
+	// }
+	// }
 
 	log.Infof("BTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
 		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
@@ -2197,18 +2197,18 @@ func (pgb *ChainDB) SyncLTCWholeChain(newIndexes bool) {
 	}
 	log.Infof("LTC: Start sync for %d blocks. Minimum height: %d, Maximum height: %d", len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1])
 
-	reindexing := newIndexes || int64(len(remaingHeights)) > pgb.LtcBestBlock.Height/20
-	conflictCheck := true
-	if reindexing {
-		conflictCheck = false
-		log.Info("LTC: Large bulk load: Removing indexes")
-		if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPELTC); err != nil &&
-			!strings.Contains(err.Error(), "does not exist") &&
-			!strings.Contains(err.Error(), "不存在") {
-			log.Errorf("LTC: Deindex for multichain whole table: %v", err)
-			return
-		}
-	}
+	// reindexing := newIndexes || int64(len(remaingHeights)) > pgb.LtcBestBlock.Height/20
+	conflictCheck := false
+	// if reindexing {
+	// 	conflictCheck = false
+	// 	log.Info("LTC: Large bulk load: Removing indexes")
+	// 	if err = pgb.DeindexMutilchainWholeTable(mutilchain.TYPELTC); err != nil &&
+	// 		!strings.Contains(err.Error(), "does not exist") &&
+	// 		!strings.Contains(err.Error(), "不存在") {
+	// 		log.Errorf("LTC: Deindex for multichain whole table: %v", err)
+	// 		return
+	// 	}
+	// }
 
 	// context to cancel on first error
 	ctx, cancel := context.WithCancel(pgb.ctx)
@@ -2349,18 +2349,18 @@ func (pgb *ChainDB) SyncLTCWholeChain(newIndexes bool) {
 	once.Do(speedReporter)
 
 	// reindex if needed
-	if reindexing {
-		// Check and remove duplicate rows if any before recreating index
-		err = pgb.MultichainCheckAndRemoveDupplicate(mutilchain.TYPELTC)
-		if err != nil {
-			log.Errorf("LTC: Check and remove dupplicate rows on all table failed: %v", err)
-			return
-		}
-		if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPELTC); err != nil {
-			log.Errorf("LTC: Re-index failed: %v", err)
-			return
-		}
-	}
+	// if reindexing {
+	// 	// Check and remove duplicate rows if any before recreating index
+	// 	err = pgb.MultichainCheckAndRemoveDupplicate(mutilchain.TYPELTC)
+	// 	if err != nil {
+	// 		log.Errorf("LTC: Check and remove dupplicate rows on all table failed: %v", err)
+	// 		return
+	// 	}
+	// 	if err := pgb.IndexMutilchainWholeTable(mutilchain.TYPELTC); err != nil {
+	// 		log.Errorf("LTC: Re-index failed: %v", err)
+	// 		return
+	// 	}
+	// }
 
 	log.Infof("LTC: Finish sync for %d blocks. Minimum height: %d, Maximum height: %d (processed %d blocks, %d tx total, %d vin total, %d vout total)",
 		len(remaingHeights), remaingHeights[0], remaingHeights[len(remaingHeights)-1],
