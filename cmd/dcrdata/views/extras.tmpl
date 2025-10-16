@@ -473,7 +473,9 @@
       <ul class="submenu tools-menu-column last-submenu-item">
 		<li><a data-keynav-skip href="/" title="Other blockchains">Other Blockchains</a></li>
 		<li><a data-keynav-skip href="/{{.ChainType}}/supply" title="Next Block Reward Reduction">Supply</a></li>
+		{{if ne .ChainType "xmr"}}
         <li><a data-keynav-skip href="/{{.ChainType}}/parameters" title="Chain Parameters">Parameters</a></li>
+		{{end}}
 		<li><a data-keynav-skip href="/whatsnew" title="What's new">What's New</a></li>
 		<li>
 			<a class="menu-item jsonly col-24 cursor-pointer" data-keynav-skip data-turbolinks="false" id="keynav-toggle">
@@ -493,7 +495,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.108c4bb5e56c4b34.bundle.js"
+	src="/dist/js/app.dd1d240106039b55.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

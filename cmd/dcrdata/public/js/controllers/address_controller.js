@@ -297,7 +297,12 @@ export default class extends Controller {
   }
 
   changeTxType () {
-    this.fetchTableWithPeriod(this.txnType, this.pageSize, 0, this.time)
+    // when change tx type, check current page size and set up
+    let currentPageSize = this.pageSize
+    if (currentPageSize !== 20 && currentPageSize !== 40 && currentPageSize !== 80 && currentPageSize !== 160) {
+      currentPageSize = 20
+    }
+    this.fetchTableWithPeriod(this.txnType, currentPageSize, 0, this.time, true)
   }
 
   nextPage () {
@@ -331,7 +336,7 @@ export default class extends Controller {
     ctrl.fetchTableWithPeriod(txType, count, requestedOffset, time)
   }
 
-  async fetchTableWithPeriod (txType, count, offset, time) {
+  async fetchTableWithPeriod (txType, count, offset, time, isTxTypeChange) {
     ctrl.listLoaderTarget.classList.add('loading')
     const requestCount = count > 20 ? count : 20
     const tableResponse = await requestJSON(ctrl.makeTableUrl(txType, requestCount, offset, time))
@@ -345,7 +350,7 @@ export default class extends Controller {
     ctrl.paginationParams.offset = offset
     ctrl.paginationParams.pagesize = count
     ctrl.paginationParams.txntype = txType
-    ctrl.setPageability()
+    ctrl.setPageability(isTxTypeChange)
     if (ctrl.dcrAddress !== 'treasury') {
       if (txType.indexOf('merged') === -1) {
         this.mergedMsgTarget.classList.add('d-hide')
@@ -369,10 +374,11 @@ export default class extends Controller {
     this.fetchTableWithPeriod(txType, count, offset, '')
   }
 
-  setPageability () {
+  setPageability (isTxTypeChange) {
     const params = ctrl.paginationParams
     const rowMax = params.count
-    const count = ctrl.pageSize
+    const currentPageSize = params.pagesize
+    const count = isTxTypeChange ? currentPageSize : ctrl.pageSize
     if (ctrl.paginationParams.count === 0) {
       ctrl.paginationheaderTarget.classList.add('d-hide')
     } else {
@@ -392,19 +398,49 @@ export default class extends Controller {
     }
     setAbility(ctrl.pageplusTarget, params.offset + count < rowMax)
     setAbility(ctrl.pageminusTarget, params.offset - count >= 0)
-    ctrl.pageSizeOptions.forEach((option) => {
-      if (option.value > 100) {
-        if (rowMax > 100) {
-          option.disabled = false
-          option.text = option.value = Math.min(rowMax, maxAddrRows)
-        } else {
-          option.disabled = true
-          option.text = option.value = maxAddrRows
-        }
+
+    if (isTxTypeChange) {
+    // page size setting up
+      // recreate options for select
+      if (rowMax < 20) {
+        ctrl.pagesizeTarget.classList.add('disabled')
+        ctrl.pagesizeTarget.disabled = true
       } else {
-        option.disabled = rowMax <= option.value
+        ctrl.pagesizeTarget.classList.remove('disabled')
+        ctrl.pagesizeTarget.disabled = false
       }
-    })
+      ctrl.pagesizeTarget.dataset.maxrows = rowMax
+      let optionHtml = `<option ${currentPageSize === 20 ? 'selected' : ''} value="20">20</option>`
+      if (rowMax >= 40) {
+        optionHtml += `<option ${currentPageSize === 40 ? 'selected' : ''} value="40">40</option>`
+      }
+      if (rowMax >= 80) {
+        optionHtml += `<option ${currentPageSize === 80 ? 'selected' : ''} value="80">80</option>`
+      }
+      if (rowMax > 20 && rowMax !== 40 && rowMax !== 80) {
+        if (rowMax < 160) {
+          optionHtml += `<option ${rowMax === currentPageSize ? 'selected' : ''} value="${rowMax}">${rowMax}</option>`
+        } else {
+          optionHtml += `<option ${currentPageSize === 160 ? 'selected' : ''} value="160">160</option>`
+        }
+      }
+      // set for pageSize target
+      ctrl.pagesizeTarget.innerHTML = optionHtml
+    } else {
+      ctrl.pageSizeOptions.forEach((option) => {
+        if (option.value > 160) {
+          if (rowMax > 160) {
+            option.disabled = false
+            option.text = option.value = Math.min(rowMax, maxAddrRows)
+          } else {
+            option.disabled = true
+            option.text = option.value = maxAddrRows
+          }
+        } else {
+          option.disabled = rowMax < option.value
+        }
+      })
+    }
     setAbility(ctrl.pagesizeTarget, rowMax > 20)
     const suffix = rowMax > 1 ? 's' : ''
     let rangeEnd = Number(params.offset) + Number(count)

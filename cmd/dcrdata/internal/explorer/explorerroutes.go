@@ -549,6 +549,12 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		targetsTimeArr = append(targetsTimeArr, newTargetData)
 	}
 
+	// add decred time per block
+	targetsTimeArr = append(targetsTimeArr, TargetTimeData{
+		ChainType:          mutilchain.TYPEDCR,
+		TargetTimePerBlock: exp.ChainParams.TargetTimePerBlock.Seconds(),
+	})
+
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
 		HomeInfoList                []MutilchainHomeInfo
@@ -2917,88 +2923,90 @@ func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 
 // AddressPage is the page handler for the "/address" path.
 func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
-	// AddressPageData is the data structure passed to the HTML template
-	if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
-	type AddressPageData struct {
-		*CommonPageData
-		Data      *dbtypes.AddressInfo
-		Type      txhelpers.AddressType
-		Pages     []pageNumber
-		ChainType string
-		Maintain  bool
-	}
-
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
 	}
+	// Temporarily displays a status page about the page being maintained. TODO: remove
+	exp.StatusPage(w, "Under maintenance", fmt.Sprintf("The %s address page is currently under maintenance for an upgrade. We will reopen it as soon as the upgrade is complete. Thank you for your patience and understanding.", utils.GetBlockchainName(chainType)),
+		"", ExpStatusSyncing)
+	// // AddressPageData is the data structure passed to the HTML template
+	// if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
+	// 	return
+	// }
+	// type AddressPageData struct {
+	// 	*CommonPageData
+	// 	Data      *dbtypes.AddressInfo
+	// 	Type      txhelpers.AddressType
+	// 	Pages     []pageNumber
+	// 	ChainType string
+	// 	Maintain  bool
+	// }
 
-	// Grab the URL query parameters
-	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
-	if err != nil {
-		exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
-		return
-	}
-	//Check address here
-	var addrErr error
-	switch chainType {
-	case mutilchain.TYPEBTC:
-		_, addrErr = btcutil.DecodeAddress(address, exp.BtcChainParams)
-	case mutilchain.TYPELTC:
-		_, addrErr = ltcutil.DecodeAddress(address, exp.LtcChainParams)
-	default:
-		_, addrErr = stdaddr.DecodeAddress(address, exp.ChainParams)
-	}
-	if addrErr != nil {
-		return
-	}
-	// Retrieve address information from the DB and/or RPC.
-	var addrData *dbtypes.AddressInfo
-	addrData, err = exp.MutilchainAddressListData(address, txnType, limitN, offsetAddrOuts, chainType)
-	if exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
-		return
-	} else if err != nil {
-		exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
-		return
-	}
+	// // Grab the URL query parameters
+	// address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
+	// if err != nil {
+	// 	exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
+	// 	return
+	// }
+	// //Check address here
+	// var addrErr error
+	// switch chainType {
+	// case mutilchain.TYPEBTC:
+	// 	_, addrErr = btcutil.DecodeAddress(address, exp.BtcChainParams)
+	// case mutilchain.TYPELTC:
+	// 	_, addrErr = ltcutil.DecodeAddress(address, exp.LtcChainParams)
+	// default:
+	// 	_, addrErr = stdaddr.DecodeAddress(address, exp.ChainParams)
+	// }
+	// if addrErr != nil {
+	// 	return
+	// }
+	// // Retrieve address information from the DB and/or RPC.
+	// var addrData *dbtypes.AddressInfo
+	// addrData, err = exp.MutilchainAddressListData(address, txnType, limitN, offsetAddrOuts, chainType)
+	// if exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
+	// 	return
+	// } else if err != nil {
+	// 	exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
+	// 	return
+	// }
 
-	// Set page parameters.
-	addrData.Path = r.URL.Path
+	// // Set page parameters.
+	// addrData.Path = r.URL.Path
 
-	if limitN == 0 {
-		limitN = 20
-	}
+	// if limitN == 0 {
+	// 	limitN = 20
+	// }
 
-	linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
-	linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
-	if time != "" {
-		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
-	}
-	addrData.ChainType = chainType
-	// Execute the HTML template.
-	pageData := AddressPageData{
-		CommonPageData: exp.commonData(r),
-		Data:           addrData,
-		ChainType:      chainType,
-		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
-		Maintain:       true,
-	}
-	str, err := exp.templates.exec("chain_address", pageData)
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
+	// linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
+	// linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
+	// if time != "" {
+	// 	linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
+	// }
+	// addrData.ChainType = chainType
+	// // Execute the HTML template.
+	// pageData := AddressPageData{
+	// 	CommonPageData: exp.commonData(r),
+	// 	Data:           addrData,
+	// 	ChainType:      chainType,
+	// 	Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
+	// 	Maintain:       true,
+	// }
+	// str, err := exp.templates.exec("chain_address", pageData)
+	// if err != nil {
+	// 	log.Errorf("Template execute failure: %v", err)
+	// 	exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+	// 	return
+	// }
 
-	log.Tracef(`"address" template HTML size: %.2f kiB (%s, %v, %d)`,
-		float64(len(str))/1024.0, address, txnType, addrData.NumTransactions)
+	// log.Tracef(`"address" template HTML size: %.2f kiB (%s, %v, %d)`,
+	// 	float64(len(str))/1024.0, address, txnType, addrData.NumTransactions)
 
-	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str)
+	// w.Header().Set("Content-Type", "text/html")
+	// w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
+	// w.WriteHeader(http.StatusOK)
+	// io.WriteString(w, str)
 }
 
 // AddressTable is the page handler for the "/addresstable" path.

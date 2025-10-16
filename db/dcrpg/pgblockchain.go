@@ -10211,7 +10211,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 					}
 				}
 			}
-			if fees == 0 && !isRingCt {
+			if fees == 0 && !isRingCt && !isCoinbase {
 				fees = sumIn - sumOut
 			}
 			// fees / outputs / total sent: sometimes present in tx JSON
@@ -10600,7 +10600,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 						}
 					}
 				}
-				if fees == 0 && !isRingCT {
+				if fees == 0 && !isRingCT && !isCoinbase {
 					fees = sumIn - sumOut
 				}
 				// fees / outputs / total sent: sometimes present in tx JSON

@@ -316,3 +316,18 @@ func IndexOf(slice []string, target string) int {
 	}
 	return -1
 }
+
+func GetBlockchainName(chainType string) string {
+	switch chainType {
+	case mutilchain.TYPEBTC:
+		return "Bitcoin"
+	case  mutilchain.TYPELTC:
+		return "Litecoin"
+	case mutilchain.TYPEXMR:
+		return "Monero"
+	case mutilchain.TYPEDCR:
+		return "Decred"
+	default:
+		return "Unknown"
+	}
+}

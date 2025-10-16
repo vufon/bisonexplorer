@@ -69,12 +69,14 @@ const xmrChartOpts = ['block-size', 'blockchain-size', 'tx-count', 'tx-per-block
 let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
-const hashrateUnits = ['Th/s', 'Ph/s', 'Eh/s']
+const hashrateUnits = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s']
 let ticketPoolSizeTarget, premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, windowSize, avgBlockTime
 let rawCoinSupply, rawPoolValue
 let yFormatter, legendEntry, legendMarker, legendColorMaker, legendElement
 let rangeOption = ''
+const chainList = ['dcr', 'btc', 'ltc', 'xmr']
+const targetTimePerBlock = [0, 0, 0, 0]
 const yAxisLabelWidth = {
   y1: {
     'ticket-price': 40,
@@ -1177,7 +1179,16 @@ export default class extends Controller {
     subsidyInterval = parseInt(this.data.get('sri'))
     subsidyExponent = parseFloat(this.data.get('mulSubsidy')) / parseFloat(this.data.get('divSubsidy'))
     this.chainType = 'btc'
-    avgBlockTime = parseInt(this.data.get(this.chainType + 'BlockTime')) * 1000
+    // init for avgBlockTime
+    const _this = this
+    chainList.forEach((chain, idx) => {
+      const chainAvgBT = _this.data.get(chain + 'Blocktime')
+      if (chainAvgBT) {
+        // set for array
+        targetTimePerBlock[idx] = parseInt(chainAvgBT) * 1000
+      }
+    })
+    avgBlockTime = targetTimePerBlock[chainList.indexOf(this.chainType)]
     globalChainType = this.chainType
     legendElement = this.labelsTarget
     windowScales = commonWindowScales
@@ -1218,7 +1229,6 @@ export default class extends Controller {
     this.limits = null
     this.lastZoom = null
     this.visibility = []
-    const _this = this
     this.setRange(this.settings.range ? this.settings.range : 'after')
     if (this.settings.visibility) {
       this.settings.visibility.split('-', -1).forEach(s => {
@@ -1772,10 +1782,10 @@ export default class extends Controller {
         break
 
       case 'hashrate': // Total chainwork over time
-        d = this.chainType === 'dcr' ? (isHeightBlock ? zipHvY(data.h, data.rate, 1e-3, data.offset) : zip2D(data, data.rate, 1e-3, data.offset)) : zip2D(data, data.rate, 1e-3, data.offset)
+        d = this.chainType === 'dcr' ? (isHeightBlock ? zipHvY(data.h, data.rate, 1, data.offset) : zip2D(data, data.rate, 1, data.offset)) : zip2D(data, data.rate, 1, data.offset)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
-          false, 'Network Hashrate (petahash/s)', true, false))
-        yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
+          false, 'Network Hashrate', false, true))
+        yFormatter = customYFormatter(y => withBigUnits(y, hashrateUnits))
         if (_this.chainType === 'dcr' && _this.settings.range !== 'after' && _this.settings.scale !== 'log') {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
@@ -2060,6 +2070,7 @@ export default class extends Controller {
     reinitChartType = this.chainType === 'dcr' || chain === 'dcr' || this.chainType === 'xmr' || chain === 'xmr'
     this.chainType = chain
     globalChainType = chain
+    avgBlockTime = targetTimePerBlock[chainList.indexOf(this.chainType)]
     windowScales = chain === 'dcr' ? decredWindowScales : commonWindowScales
     multiYAxisChart = chain === 'dcr' ? decredMultiYAxisChart : chainMultiYAxisChart
     // reinit
