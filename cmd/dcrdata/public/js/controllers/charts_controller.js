@@ -1127,7 +1127,7 @@ export default class extends Controller {
       case 'pow-difficulty': // difficulty graph
         d = powDiffFunc(data)
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Difficulty'], true, 'Difficulty', true, false))
-        if (_this.settings.range !== 'after') {
+        if (_this.settings.range !== 'after' && _this.settings.scale !== 'log') {
           gOptions.plotter = _this.settings.axis === 'height' ? difficultyBlockPlotter : difficultyTimePlotter
         }
         break
@@ -1360,7 +1360,7 @@ export default class extends Controller {
         assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
           false, 'Network Hashrate (petahash/s)', true, false))
         yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
-        if (_this.settings.range !== 'after') {
+        if (_this.settings.range !== 'after' && _this.settings.scale !== 'log') {
           gOptions.plotter = _this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
         }
         break
@@ -1748,9 +1748,22 @@ export default class extends Controller {
     if (!option) return
     this.setActiveOptionBtn(option, this.scaleTypeTargets)
     if (!target) return // Exit if running for the first time.
-    if (this.chartsView) {
-      this.chartsView.updateOptions({ logscale: option === 'log' })
+    const optionUpdate = { logscale: option === 'log' }
+    if (this.settings.range !== 'after') {
+      if (option === 'log') {
+        optionUpdate.plotter = null
+      } else {
+        if (this.settings.chart === 'pow-difficulty') {
+          optionUpdate.plotter = this.settings.axis === 'height' ? difficultyBlockPlotter : difficultyTimePlotter
+        } else if (this.settings.chart === 'hashrate') {
+          optionUpdate.plotter = this.settings.axis === 'height' ? hashrateBlockPlotter : hashrateTimePlotter
+        }
+      }
     }
+    if (this.chartsView) {
+      this.chartsView.updateOptions(optionUpdate)
+    }
+
     this.settings.scale = option
     if (!this.isHomepage) {
       this.query.replace(this.settings)

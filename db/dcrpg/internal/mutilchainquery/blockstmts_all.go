@@ -158,8 +158,8 @@ ORDER BY a.height ASC;`
 
 	RetrieveBestBlockAll       = `SELECT * FROM %sblocks_all ORDER BY height DESC LIMIT 0, 1;`
 	RetrieveBestBlockAllHeight = `SELECT id, hash, height FROM %sblocks_all ORDER BY height DESC LIMIT 1;`
-	RetrieveBlockAllInfoData   = `SELECT time,height,total_sent,fees,numtx,num_vins,num_vouts FROM %sblocks_all WHERE height >= $1 AND height <= $2 ORDER BY height DESC;`
-	RetrieveBlockAllDetail     = `SELECT time,height,total_sent,fees,numtx,num_vins,num_vouts FROM %sblocks_all WHERE height = $1;`
+	RetrieveBlockAllInfoData   = `SELECT time,hash,height,version,total_sent,fees,numtx,num_vins,num_vouts,size FROM %sblocks_all WHERE height <= $1 AND height >= $2 ORDER BY height DESC;`
+	RetrieveBlockAllDetail     = `SELECT time,hash,height,version,total_sent,fees,numtx,num_vins,num_vouts,size FROM %sblocks_all WHERE height = $1;`
 	SelectBlockAllDiffByTime   = `SELECT difficulty
 		FROM %sblocks_all
 		WHERE time >= $1

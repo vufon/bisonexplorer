@@ -49,7 +49,7 @@
             <div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.TxID}}{{template
                "copyTextIcon"}}</div>
          </div>
-         {{if eq $ChainType "xmr"}}
+         {{if and (eq $ChainType "xmr") (ne .TxPublicKey "")}}
          <div class="text-start lh1rem py-2">
             <div class="fs13 text-secondary pb-1">Tx public key</div>
             <div class="d-inline-block fs14 break-word rounded medium-sans clipboard">{{.TxPublicKey}}{{template
@@ -57,13 +57,22 @@
          </div>
          {{end}}
          <div class="row py-2">
-            {{if ne $ChainType "xmr"}}
             <div class="col-8 text-start">
                <span class="text-secondary fs13">Total Sent</span>
                <br>
-               <span class="lh1rem d-inline-block pt-1"><span class="fs18 fs14-decimal fw-bold">{{template
-                     "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}</span><span
-                     class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
+               <span class="lh1rem d-inline-block pt-1">
+                  <span class="fs18 fs14-decimal fw-bold">
+                  {{if eq $ChainType "xmr"}}
+                     {{if gt .TotalSent 0.0}}
+                     {{template "decimalParts" (float64AsDecimalParts .TotalSent 8 true 2)}}
+                     {{else}}
+                     N/A
+                     {{end}}
+                  {{else}}
+                     {{template "decimalParts" (float64AsDecimalParts .Total 8 true 2)}}
+                  {{end}}
+                  </span>
+                  <span class="text-secondary fs14">&nbsp;{{toUpperCase $ChainType}}</span>
                </span>
                {{if $conv.Total}}
                <br>
@@ -75,7 +84,6 @@
                </div>
                {{end}}
             </div>
-            {{end}}
             <div class="col-8 tx-block-num">
                <span class="text-secondary fs13"><span class="d-none d-sm-inline">Included in Block</span><span
                      class="d-sm-none">Block #</span></span>
@@ -116,33 +124,39 @@
          <div class="h6 d-inline-block my-2 ps-3">Transaction Details</div>
          <table class="w-100 fs14 my-1 mb-xl-3">
             <tbody>
-               <tr>
-                  {{if ne $ChainType "xmr"}}
-                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Raw Tx:</td>
-                  <td class="text-start py-1">
-                     <a href="/api/tx/decoded/{{$ChainType}}/{{.TxID}}?indent=true" class="c-green"
+                {{if ne $ChainType "xmr"}}
+                  <tr>
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Raw Tx:</td>
+                     <td class="text-start py-1" colspan="3">
+                        <a href="/api/tx/decoded/{{$ChainType}}/{{.TxID}}?indent=true" class="c-green"
                         data-turbolinks="false">decoded</a>
                      &middot;
-                     <a href="/api/tx/hex/{{$ChainType}}/{{.TxID}}" class="c-green" data-turbolinks="false">hex</a>
-                  </td>
-                  {{else}}
-                  <td class="text-end medium-sans text-nowrap pe-2 py-2">RingCT/type:</td>
-                  <td class="text-start py-1">
-                     {{if .RingCT}}yes/{{.Rct.RctType}}{{else}}no{{end}}
-                  </td>
-                  {{end}}
+                        <a href="/api/tx/hex/{{$ChainType}}/{{.TxID}}" class="c-green" data-turbolinks="false">hex</a>
+                     </td>
+                  </tr>
+                {{else}}
+                {{if eq .Coinbase false}}
+                  <tr>
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">RingCT/type:</td>
+                     <td class="text-start py-1" {{if eq .RingCT false}}colspan="3"{{end}}>
+                        {{if .RingCT}}yes/{{.Rct.RctType}}{{else}}no{{end}}
+                     </td>
+                     {{if .RingCT}}
+                     <td class="text-end medium-sans text-nowrap pe-2 py-2">Ring Size:</td>
+                     <td class="text-start py-1">{{.RingSize}}</td>
+                     {{end}}
+                  </tr>
+                {{end}}
+                {{end}}
+               <tr>
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Time:</td>
                   <td class="text-start py-1" data-tx-target="formattedAge">{{.Time.String}}</td>
-               </tr>
-               <tr>
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Version:</td>
                   <td class="text-start py-1">{{.Version}}</td>
-                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Size:</td>
-                  <td class="text-start py-1">{{.FormattedSize}}</td>
                </tr>
                <tr>
-                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Ring Size:</td>
-                  <td class="text-start py-1" colspan="3">{{.RingSize}}</td>
+                  <td class="text-end medium-sans text-nowrap pe-2 py-2">Size:</td>
+                  <td class="text-start py-1" colspan="3">{{.FormattedSize}}</td>
                </tr>
                {{if eq $isMempool false}}
                <tr>
@@ -150,7 +164,7 @@
                   <td class="text-start py-1" colspan="3">{{.BlockHash}}</td>
                </tr>
                {{end}}
-               {{if eq $ChainType "xmr"}}
+               {{if and (eq $ChainType "xmr") (ne .ExtraRaw "")}}
                <tr>
                   <td class="text-end medium-sans text-nowrap pe-2 py-2">Extra:</td>
                   <td class="text-start break-word py-1" colspan="3">{{.ExtraRaw}}</td>
@@ -170,7 +184,8 @@
          <span></span>{{/* dummy for flex alignment */}}
       </div>
    </div>
-   {{if eq $ChainType "xmr"}}
+   {{if and (eq $ChainType "xmr") (eq .Coinbase false)}}
+   {{if .RingCT}}
    <div class="row px-1 my-2" data-controller="xmrtx" data-xmrtx-txid="{{.TxID}}">
       <div class="tx-tools common-card">
          <ul class="nav nav-tabs" role="tablist">
@@ -232,6 +247,7 @@
          </div>
       </div>
    </div>
+   {{end}}
    {{end}}
    {{if ne $ChainType "xmr"}}
    <div class="row mb-3">
@@ -350,13 +366,32 @@
                      </tr>
                   </thead>
                   <tbody class="bgc-white">
+                     {{if eq .Coinbase true}}
+                     <tr>
+                        <td class="shrink-to-fit">0</td>
+                        <td>Coinbase</td>
+                        <td class="mono fs13 text-end shrink-to-fit">
+                            {{if gt .TotalSent 0.0}}
+                            {{.TotalSent}}
+                            {{else}}
+                            N/A
+                            {{end}}
+                        </td>
+                     </tr>
+                     {{else}}
                      {{range $i, $v := .KeyImages}}
                      <tr class="row-hover cursor-pointer" data-idx="{{$i}}" data-action="click->tx#keyImageRowClick">
                         <td class="shrink-to-fit">{{$i}}</td>
                         <td class="position-relative clipboard">
                            {{$v.DisplayText}}
                         </td>
-                        <td class="mono fs13 text-end shrink-to-fit">N/A</td>
+                        <td class="mono fs13 text-end shrink-to-fit">
+                           {{if gt $v.AmountIn 0}}
+                           {{toMulFloat64Amount $v.AmountIn $ChainType}}
+                           {{else}}
+                           N/A
+                           {{end}}
+                        </td>
                      </tr>
                      {{if gt (len $v.RingCtOuts) 0}}
                      <tr class="d-none" id="ringctOutsTable_{{$i}}">
@@ -388,6 +423,7 @@
                      </tr>
                      {{end}}
                      {{end}}
+                      {{end}}
                   </tbody>
                </table>
             </div>
@@ -415,7 +451,9 @@
                            {{$v.Key}}
                         </td>
                         <td class="fs13 break-word shrink-to-fit">
-                           {{if gt $v.Amount 0}}{{$v.Amount}}{{else}}N/A{{end}}
+                           {{if gt $v.Amount 0}}
+                           {{toMulFloat64Amount $v.Amount $ChainType}}
+                           {{else}}N/A{{end}}
                         </td>
                         <td class="text-end mono fs13">
                            {{$v.GlobalIndex}} of {{$maxGlobalIdx}}

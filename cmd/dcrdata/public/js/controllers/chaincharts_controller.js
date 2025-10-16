@@ -37,7 +37,7 @@ const decoyBandsColors = [
 let globalChainType = ''
 // index 0 represents y1 and 1 represents y2 axes.
 const yValueRanges = { 'ticket-price': [1] }
-const hashrateUnits = ['Th/s', 'Ph/s', 'Eh/s']
+const hashrateUnits = ['H/s', 'KH/s', 'MH/s', 'GH/s', 'TH/s', 'PH/s', 'EH/s']
 let premine, stakeValHeight, stakeShare
 let baseSubsidy, subsidyInterval, subsidyExponent, avgBlockTime
 let yFormatter, legendEntry, legendMarker, legendElement
@@ -1003,10 +1003,10 @@ export default class extends Controller {
         break
 
       case 'hashrate': // Total chainwork over time
-        d = zip2D(data, data.rate, 1e-3, data.offset)
-        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate (petahash/s)'],
-          false, 'Network Hashrate (petahash/s)', true, false))
-        yFormatter = customYFormatter(y => withBigUnits(y * 1e3, hashrateUnits))
+        d = zip2D(data, data.rate, 1, data.offset)
+        assign(gOptions, mapDygraphOptions(d, [xlabel, 'Network Hashrate'],
+          false, 'Network Hashrate', false, true))
+        yFormatter = customYFormatter(y => withBigUnits(y, hashrateUnits))
         break
       case 'total-ring-size': // total ring-size for monero
         d = zip2D(data, data.ringSize)

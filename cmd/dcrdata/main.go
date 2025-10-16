@@ -1686,7 +1686,7 @@ func _main(ctx context.Context) error {
 		if err = xmrCharts.Load(xmrDumpPath); err != nil {
 			log.Warnf("XMR: Failed to load charts data cache: %v", err)
 		}
-		defer xmrCharts.Dump(xmrDumpPath)
+		// defer xmrCharts.Dump(xmrDumpPath)
 
 		//start handler ltc chart data
 		// ltcCharts := cache.NewLTCChartData(ctx, uint32(ltcHeightFromDB), ltcActiveChain, int64(ltcHeight), chainDB.ChainDBDisabled)
@@ -1875,7 +1875,7 @@ func _main(ctx context.Context) error {
 		}
 		go ltcCharts.MultichainChartsUpdateThread(make(chan struct{}))
 		// Dump the cache charts data into a file for future use on system exit.
-		defer ltcCharts.Dump(ltcDumpPath)
+		// defer ltcCharts.Dump(ltcDumpPath)
 		if !chainDB.ChainDBDisabled {
 			//finish handler ltc chart data
 			ltcBlocksBehind := int64(ltcHeight) - int64(ltcHeightFromDB)
@@ -2018,7 +2018,7 @@ func _main(ctx context.Context) error {
 		}
 		go btcCharts.MultichainChartsUpdateThread(make(chan struct{}))
 		// Dump the cache charts data into a file for future use on system exit.
-		defer btcCharts.Dump(btcDumpPath)
+		// defer btcCharts.Dump(btcDumpPath)
 		if !chainDB.ChainDBDisabled {
 			//finish handler btc chart data
 			btcBlocksBehind := int64(btcHeight) - int64(btcHeightFromDB)
@@ -2243,7 +2243,7 @@ func _main(ctx context.Context) error {
 
 	// handler syncing for LTC blockchain on background
 	if !ltcDisabled && ltcdClient != nil && chainDB.SyncChainDBFlag {
-		go chainDB.SyncLTCWholeChain()
+		go chainDB.SyncLTCWholeChain(ltcNewPGIndexes)
 	}
 	//Check BTC enabled
 	if !btcDisabled && btcdClient != nil && !chainDB.ChainDBDisabled {
@@ -2291,7 +2291,7 @@ func _main(ctx context.Context) error {
 		//Finished - BTC Sync handler
 	}
 	if !btcDisabled && btcdClient != nil && chainDB.SyncChainDBFlag {
-		go chainDB.SyncBTCWholeChain()
+		go chainDB.SyncBTCWholeChain(btcNewPGIndexes)
 	}
 	//End mutilchain support
 

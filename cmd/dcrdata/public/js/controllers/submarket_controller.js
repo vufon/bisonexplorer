@@ -1874,7 +1874,7 @@ export default class extends Controller {
       settings.xcs = xcsList.join(',')
     }
     if (usesCandlesticks(settings.chart)) {
-      if (settings.xc !== 'aggregated') {
+      if (settings.chart === candlestick && settings.xc !== 'aggregated') {
         if (!availableCandlesticks[settings.xc]) {
           settings.chart = depth
         }

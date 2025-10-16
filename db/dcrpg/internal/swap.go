@@ -79,7 +79,7 @@ const (
         	WHEN EXISTS (SELECT 1 FROM ltc_swaps WHERE secret_hash = $1) THEN 'ltc'
         	ELSE ''
     	END AS found;`
-	Select24hSwapSummary = `SELECT SUM(value), 
+	Select24hSwapSummary = `SELECT COALESCE(SUM(value), 0), 
 		COUNT(*) FILTER (WHERE is_refund = FALSE) AS redeemed_count,
 		COUNT(*) FILTER (WHERE is_refund = TRUE) AS refund_count
 		FROM swaps 

@@ -62,24 +62,32 @@
 
                         {{$count := (int64 (len .Proposals))}}
                         {{$oldest := (add .Offset $count)}}
-                        {{$pending := (subtract $.TotalCount .Offset)}}
-
                         <span class="fs12 nowrap text-end">
                             <label class="mb-0 me-1" for="tbPagesize">Page Size</label>
                             <select
                                 id="tbPagesize"
                                 data-pagenavigation-target="pagesize"
                                 data-action="change->pagenavigation#setPageSize"
+                                data-maxrows="{{$.TotalCount}}"
                                 data-offset="{{$.Offset}}"
                                 data-offsetkey="offset"
-                                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $pending 20}}disabled{{end}}"
-                                {{if lt $pending 20}}disabled="disabled"{{end}}
+                                class="form-control-sm mb-2 me-sm-2 mb-sm-0 border-plain border-radius-8 {{if lt $.TotalCount 20}}disabled{{end}}"
+                                {{if lt $.TotalCount 20}} disabled{{end}}
                             >
-                            {{if ge $pending 20}}<option {{if eq $count 20}}selected{{end}} value="20">20</option>{{end}}
-                            {{if ge $pending 30}}<option {{if eq $count 30}}selected{{end}} value="30">30</option>{{end}}
-                            {{if ge $pending 50}}<option {{if eq $count 50}}selected{{end}} value="50">50</option>{{end}}
-                            {{if eq $.TotalCount $count 20 30 50}}{{else}}<option value="{{$.TotalCount}}">{{$.TotalCount}}</option>{{end}}
-                            {{if eq $count 20 30 50}}{{else}}<option selected value="{{$count}}">{{$count}}</option>{{end}}
+                            <option {{if eq $count 20}}selected {{end}}value="20"{{if lt $.TotalCount 20}} disabled{{end}}>20</option>
+                            {{if ge $.TotalCount 30}} 
+                            <option {{if eq .Limit 30}}selected {{end}}value="30">30</option>
+                            {{end}}
+                            {{if ge $.TotalCount 50}}
+                            <option {{if eq .Limit 50}}selected {{end}}value="50">50</option>
+                            {{end}}
+                            {{if and (gt $.TotalCount 20) (and (ne $.TotalCount 30) (ne $.TotalCount 50))}}
+                            {{- if lt $.TotalCount 150}}
+                            <option {{if eq $count $.TotalCount}}selected {{end}}value="{{$.TotalCount}}">{{$.TotalCount}}</option>
+                            {{- else}}
+                            <option {{if ge $count 150}}selected {{end}}value="150">150</option>
+                            {{- end}}
+                            {{end}}
                             </select>
                         </span>
                         <span class="fs12 nowrap text-end form-control-sm mb-2 me-sm-2 mb-sm-0">

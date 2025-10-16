@@ -250,7 +250,12 @@
                                     <div>
                                        <span class="new-network-stats-content d-inline-block">
                                           <span data-chainhome-target="blockTotal">
-                                             {{threeSigFigs .Total}}</span>
+                                             {{if gt .Total 0.0}}
+                                             {{threeSigFigs .Total}}
+                                             {{else}}
+                                             N/A
+                                             {{end}}
+                                          </span>
                                           <span class="new-info-line-2-sub">{{toUpperCase $ChainType}}</span>
                                        </span>
                                     </div>
@@ -351,9 +356,11 @@
                                           data-chainhome-target="totalTransactions">
                                           {{int64Comma .TotalTransactions}}
                                        </span>
+                                       {{if eq $ChainType "xmr"}}
                                        <span class="stats-subinfo">
                                           {{commaWithDecimal .UseRingctRate 2}} % use ringct
                                        </span>
+                                       {{end}}
                                     </div>
                                  </div>
                               </div>
@@ -554,8 +561,8 @@
                                                 {{if $conv -}}
                                                 <span data-chainhome-target="totalFeesExchange">
                                                    {{threeSigFigs $conv.MempoolFees.Value}}
-                                                   {{$conv.MempoolFees.Index}}
                                                 </span>
+                                                 {{$conv.MempoolFees.Index}}
                                                 {{- end}}
                                              </span>
                                           </span>
@@ -569,10 +576,11 @@
                                     <div class="flex-card-content">
                                        <div>
                                           <span class="new-network-stats-content d-inline-block pt-1">
-                                             <span data-chainhome-target="minFeeRate">{{template "decimalParts"
-                                                (float64AsDecimalParts .MinFeeRatevB 0 false)}}</span> -
-                                             <span data-chainhome-target="maxFeeRate">{{template "decimalParts"
-                                                (float64AsDecimalParts .MaxFeeRatevB 0 false)}}</span>
+                                             <span data-chainhome-target="minFeeRate">
+                                                {{template "decimalParts" (float64AsDecimalParts .MinFeeRatevB 0 true)}}
+                                             </span> -
+                                             <span data-chainhome-target="maxFeeRate">
+                                                {{template "decimalParts" (float64AsDecimalParts .MaxFeeRatevB 0 true)}}</span>
                                              {{if eq $ChainType "ltc"}}lit{{else}}{{if eq $ChainType "xmr"}}pico{{else}}sat{{end}}{{end}}/vB
                                           </span>
                                        </div>
@@ -690,7 +698,9 @@
                                        </span>
                                        {{if $conv -}}
                                        <span class="stats-subinfo">
+                                          <span data-chainhome-target="reward24hExchange">
                                           {{threeSigFigs $conv.Reward24h.Value}}
+                                          </span>
                                           {{$conv.Reward24h.Index}}
                                        </span>
                                        {{end}}
@@ -716,7 +726,9 @@
                                        </span>
                                        {{if $conv -}}
                                        <span class="stats-subinfo">
+                                          <span data-chainhome-target="fees24hExchange">
                                           {{threeSigFigs $conv.Fees24h.Value}}
+                                          </span>
                                           {{$conv.Fees24h.Index}}
                                        </span>
                                        {{end}}
@@ -755,7 +767,9 @@
                                        </span>
                                        {{if $conv -}}
                                        <span class="stats-subinfo" data-chainhome-target="convertedTxFeesAvg">
+                                          <span data-chainhome-target="avgTxFee24h">
                                           {{threeSigFigs $conv.TxFeeAvg24h.Value}}
+                                          </span>
                                           {{$conv.TxFeeAvg24h.Index}}
                                        </span>
                                        {{end}}

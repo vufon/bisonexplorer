@@ -215,6 +215,7 @@ type MutilchainHomeConversions struct {
 	PoWReward    *exchanges.Conversion
 	NextReward   *exchanges.Conversion
 	FeesPerBlock *exchanges.Conversion
+	TotalSent    *exchanges.Conversion
 }
 
 type MutilchainHomeInfo struct {
@@ -548,6 +549,12 @@ func (exp *ExplorerUI) Home(w http.ResponseWriter, r *http.Request) {
 		targetsTimeArr = append(targetsTimeArr, newTargetData)
 	}
 
+	// add decred time per block
+	targetsTimeArr = append(targetsTimeArr, TargetTimeData{
+		ChainType:          mutilchain.TYPEDCR,
+		TargetTimePerBlock: exp.ChainParams.TargetTimePerBlock.Seconds(),
+	})
+
 	str, err := exp.templates.exec("home", struct {
 		*CommonPageData
 		HomeInfoList                []MutilchainHomeInfo
@@ -598,7 +605,7 @@ func (exp *ExplorerUI) MutilchainHome(w http.ResponseWriter, r *http.Request) {
 	case mutilchain.TYPELTC:
 		blocks = exp.dataSource.GetLTCExplorerBlocks(int(height), int(height)-8)
 	case mutilchain.TYPEXMR:
-		blockInfo := exp.dataSource.GetXMRExplorerBlock(height)
+		blockInfo := exp.dataSource.GetDaemonXMRExplorerBlock(height)
 		if blockInfo != nil {
 			bestBlock = blockInfo.BlockBasic
 			bestBlock.Total = blockInfo.TotalSent
@@ -1228,12 +1235,18 @@ func (exp *ExplorerUI) MutilchainBlocks(w http.ResponseWriter, r *http.Request) 
 	case mutilchain.TYPELTC:
 		summaries = exp.dataSource.GetLTCExplorerBlocks(int(height), end)
 	case mutilchain.TYPEXMR:
-		summaries = exp.dataSource.GetXMRExplorerBlocks(height, int64(end))
+		summaries, err = exp.dataSource.GetXMRDBExplorerBasicBlocks(height, int64(end)+1)
+		if err != nil {
+			log.Errorf("%s: Unable to get blocks: height=%d&rows=%d. Error: %v", chainType, height, rows, err)
+			exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
+				ExpStatusNotFound)
+			return
+		}
 	default:
 		summaries = exp.dataSource.GetExplorerBlocks(int(height), end)
 	}
-	if summaries == nil {
-		log.Errorf("Unable to get blocks: height=%d&rows=%d", height, rows)
+	if len(summaries) == 0 {
+		log.Errorf("%s: Unable to get blocks: height=%d&rows=%d", chainType, height, rows)
 		exp.StatusPage(w, defaultErrorCode, "could not find those blocks", "",
 			ExpStatusNotFound)
 		return
@@ -1687,7 +1700,11 @@ func (exp *ExplorerUI) MutilchainTxPage(w http.ResponseWriter, r *http.Request) 
 	}
 	// Get a fiat-converted value for the total and the fees.
 	if exp.xcBot != nil {
-		pageData.Conversions.Total = exp.xcBot.MutilchainConversion(tx.Total, chainType)
+		totalSent := tx.Total
+		if chainType == mutilchain.TYPEXMR {
+			totalSent = tx.TotalSent
+		}
+		pageData.Conversions.Total = exp.xcBot.MutilchainConversion(totalSent, chainType)
 		pageData.Conversions.Fees = exp.xcBot.MutilchainConversion(tx.FeeCoin, chainType)
 	}
 
@@ -1747,9 +1764,16 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 			ExpStatusNotFound)
 		return
 	}
-
+	var conversions *MutilchainHomeConversions
+	xcBot := exp.xcBot
+	if xcBot != nil {
+		conversions = &MutilchainHomeConversions{
+			TotalSent: xcBot.MutilchainConversion(data.TotalSent, chainType),
+		}
+	}
 	txRows := make([]*types.TrimmedTxInfo, 0)
 	xmrRows := make([]*types.XmrTxFull, 0)
+	displayLength := int(0)
 	if chainType != mutilchain.TYPEXMR {
 		if len(data.Tx) > 0 {
 			if len(data.Tx) > int(offset) {
@@ -1759,6 +1783,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 					txRows = data.Tx[offset : offset+limitN]
 				}
 			}
+			displayLength = len(txRows)
 		}
 	} else {
 		if len(data.XmrTx) > 0 {
@@ -1769,6 +1794,7 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 					xmrRows = data.XmrTx[offset : offset+limitN]
 				}
 			}
+			displayLength = len(xmrRows)
 		}
 	}
 	linkTemplate := fmt.Sprintf("/block/%s?rows=%d&start=%%d", hash, limitN)
@@ -1786,25 +1812,29 @@ func (exp *ExplorerUI) MutilchainBlockDetail(w http.ResponseWriter, r *http.Requ
 	}
 	pageData := struct {
 		*CommonPageData
-		Data      *types.BlockInfo
-		Pages     pageNumbers
-		ChainType string
-		Rows      int
-		Offset    int64
-		TotalRows int64
-		LastStart int64
-		Txs       []*types.TrimmedTxInfo
-		XmrTxs    []*types.XmrTxFull
+		Data        *types.BlockInfo
+		Pages       pageNumbers
+		ChainType   string
+		Rows        int
+		Offset      int64
+		LimitN      int
+		TotalRows   int64
+		LastStart   int64
+		Conversions *MutilchainHomeConversions
+		Txs         []*types.TrimmedTxInfo
+		XmrTxs      []*types.XmrTxFull
 	}{
 		CommonPageData: exp.commonData(r),
 		Data:           data,
 		ChainType:      chainType,
 		Txs:            txRows,
 		XmrTxs:         xmrRows,
-		Rows:           int(limitN),
+		Rows:           displayLength,
 		Offset:         offset,
+		LimitN:         int(limitN),
 		TotalRows:      int64(txLength),
 		LastStart:      int64(lastPageStart),
+		Conversions:    conversions,
 		Pages:          pages,
 	}
 
@@ -2893,88 +2923,90 @@ func (exp *ExplorerUI) AddressPage(w http.ResponseWriter, r *http.Request) {
 
 // AddressPage is the page handler for the "/address" path.
 func (exp *ExplorerUI) MutilchainAddressPage(w http.ResponseWriter, r *http.Request) {
-	// AddressPageData is the data structure passed to the HTML template
-	if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
-		return
-	}
-	type AddressPageData struct {
-		*CommonPageData
-		Data      *dbtypes.AddressInfo
-		Type      txhelpers.AddressType
-		Pages     []pageNumber
-		ChainType string
-		Maintain  bool
-	}
-
 	chainType := chi.URLParam(r, "chaintype")
 	if chainType == "" {
 		return
 	}
+	// Temporarily displays a status page about the page being maintained. TODO: remove
+	exp.StatusPage(w, "Under maintenance", fmt.Sprintf("The %s address page is currently under maintenance for an upgrade. We will reopen it as soon as the upgrade is complete. Thank you for your patience and understanding.", utils.GetBlockchainName(chainType)),
+		"", ExpStatusSyncing)
+	// // AddressPageData is the data structure passed to the HTML template
+	// if exp.IsCrawlerUserAgent(r.UserAgent(), externalapi.GetIP(r)) {
+	// 	return
+	// }
+	// type AddressPageData struct {
+	// 	*CommonPageData
+	// 	Data      *dbtypes.AddressInfo
+	// 	Type      txhelpers.AddressType
+	// 	Pages     []pageNumber
+	// 	ChainType string
+	// 	Maintain  bool
+	// }
 
-	// Grab the URL query parameters
-	address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
-	if err != nil {
-		exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
-		return
-	}
-	//Check address here
-	var addrErr error
-	switch chainType {
-	case mutilchain.TYPEBTC:
-		_, addrErr = btcutil.DecodeAddress(address, exp.BtcChainParams)
-	case mutilchain.TYPELTC:
-		_, addrErr = ltcutil.DecodeAddress(address, exp.LtcChainParams)
-	default:
-		_, addrErr = stdaddr.DecodeAddress(address, exp.ChainParams)
-	}
-	if addrErr != nil {
-		return
-	}
-	// Retrieve address information from the DB and/or RPC.
-	var addrData *dbtypes.AddressInfo
-	addrData, err = exp.MutilchainAddressListData(address, txnType, limitN, offsetAddrOuts, chainType)
-	if exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
-		return
-	} else if err != nil {
-		exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
-		return
-	}
+	// // Grab the URL query parameters
+	// address, txnType, limitN, offsetAddrOuts, time, err := parseAddressParams(r)
+	// if err != nil {
+	// 	exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
+	// 	return
+	// }
+	// //Check address here
+	// var addrErr error
+	// switch chainType {
+	// case mutilchain.TYPEBTC:
+	// 	_, addrErr = btcutil.DecodeAddress(address, exp.BtcChainParams)
+	// case mutilchain.TYPELTC:
+	// 	_, addrErr = ltcutil.DecodeAddress(address, exp.LtcChainParams)
+	// default:
+	// 	_, addrErr = stdaddr.DecodeAddress(address, exp.ChainParams)
+	// }
+	// if addrErr != nil {
+	// 	return
+	// }
+	// // Retrieve address information from the DB and/or RPC.
+	// var addrData *dbtypes.AddressInfo
+	// addrData, err = exp.MutilchainAddressListData(address, txnType, limitN, offsetAddrOuts, chainType)
+	// if exp.timeoutErrorPage(w, err, "TicketsPriceByHeight") {
+	// 	return
+	// } else if err != nil {
+	// 	exp.StatusPage(w, defaultErrorCode, err.Error(), address, ExpStatusError)
+	// 	return
+	// }
 
-	// Set page parameters.
-	addrData.Path = r.URL.Path
+	// // Set page parameters.
+	// addrData.Path = r.URL.Path
 
-	if limitN == 0 {
-		limitN = 20
-	}
+	// if limitN == 0 {
+	// 	limitN = 20
+	// }
 
-	linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
-	linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
-	if time != "" {
-		linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
-	}
-	addrData.ChainType = chainType
-	// Execute the HTML template.
-	pageData := AddressPageData{
-		CommonPageData: exp.commonData(r),
-		Data:           addrData,
-		ChainType:      chainType,
-		Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
-		Maintain:       true,
-	}
-	str, err := exp.templates.exec("chain_address", pageData)
-	if err != nil {
-		log.Errorf("Template execute failure: %v", err)
-		exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
-		return
-	}
+	// linkTemplate := fmt.Sprintf("/address/%s?start=%%d&n=%d&txntype=%v", addrData.Address, limitN, txnType)
+	// linkTemplate = fmt.Sprintf("/%s%s", chainType, linkTemplate)
+	// if time != "" {
+	// 	linkTemplate = fmt.Sprintf("%s&time=%s", linkTemplate, time)
+	// }
+	// addrData.ChainType = chainType
+	// // Execute the HTML template.
+	// pageData := AddressPageData{
+	// 	CommonPageData: exp.commonData(r),
+	// 	Data:           addrData,
+	// 	ChainType:      chainType,
+	// 	Pages:          calcPages(int(addrData.TxnCount), int(limitN), int(offsetAddrOuts), linkTemplate),
+	// 	Maintain:       true,
+	// }
+	// str, err := exp.templates.exec("chain_address", pageData)
+	// if err != nil {
+	// 	log.Errorf("Template execute failure: %v", err)
+	// 	exp.StatusPage(w, defaultErrorCode, defaultErrorMessage, "", ExpStatusError)
+	// 	return
+	// }
 
-	log.Tracef(`"address" template HTML size: %.2f kiB (%s, %v, %d)`,
-		float64(len(str))/1024.0, address, txnType, addrData.NumTransactions)
+	// log.Tracef(`"address" template HTML size: %.2f kiB (%s, %v, %d)`,
+	// 	float64(len(str))/1024.0, address, txnType, addrData.NumTransactions)
 
-	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, str)
+	// w.Header().Set("Content-Type", "text/html")
+	// w.Header().Set("Turbolinks-Location", r.URL.RequestURI())
+	// w.WriteHeader(http.StatusOK)
+	// io.WriteString(w, str)
 }
 
 // AddressTable is the page handler for the "/addresstable" path.
@@ -3733,7 +3765,7 @@ func (exp *ExplorerUI) Search(w http.ResponseWriter, r *http.Request) {
 				} else {
 					redirectURL = "/" + chain + "/block/" + searchStr
 				}
-				resultDisp += "<p class=\"mt-3\"><img src=\"/images/" + chain + "-icon.png\" width=\"25\" height=\"25\" /><span class=\"ms-2 fw-600\">" + strings.ToUpper(chain) + ":</span> <a href=\"" + redirectURL + "\">" + hash + "</a> </p>"
+				resultDisp += "<p class=\"mt-3\"><img src=\"/images/" + chain + "-icon.png\" width=\"25\" height=\"25\" /><span class=\"ms-2 fw-600\">" + strings.ToUpper(chain) + ":</span> <a href=\"" + redirectURL + "\" data-turbolinks=\"false\">" + hash + "</a> </p>"
 			}
 			resultDisp += "</div>"
 			exp.StatusPage(w, "Blocks Search Result", "Search results for blocks: "+searchStr, resultDisp, ExpStatusMutilchain)

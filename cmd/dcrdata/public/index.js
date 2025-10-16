@@ -99,6 +99,14 @@ async function createWebSocket (loc) {
     globalEventBus.publish('XMR_BLOCK_RECEIVED', newBlock)
   }
 
+  const updateXmrMempoolData = function (event) {
+    const newMempool = JSON.parse(event)
+    if (window.loggingDebug) {
+      console.log('XMR Mempool received:', newMempool)
+    }
+    globalEventBus.publish('MEMPOOL_XMR_RECEIVED', newMempool)
+  }
+
   const updateLtcMempoolData = function (event) {
     const newMempool = JSON.parse(event)
     if (window.loggingDebug) {
@@ -123,6 +131,7 @@ async function createWebSocket (loc) {
   ws.registerEvtHandler('newbtcmempool', updateBtcMempoolData)
   ws.registerEvtHandler('summaryinfo', updateSummaryData)
   ws.registerEvtHandler('summary24h', update24hData)
+  ws.registerEvtHandler('xmrMempoolStatus', updateXmrMempoolData)
   ws.registerEvtHandler('exchange', e => {
     globalEventBus.publish('EXCHANGE_UPDATE', JSON.parse(e))
   })

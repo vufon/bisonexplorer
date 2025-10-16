@@ -112,8 +112,14 @@ export default class extends Controller {
     return `/${root}?txntype=${txType}&n=${count}&start=${offset}`
   }
 
-  changePageSize () {
-    this.fetchTableWithPeriod('all', this.pageSize, this.paginationParams.offset)
+  changePageSize (e) {
+    const psize = this.pageSize
+    const maxrows = e.target.dataset.maxrows
+    if (maxrows && Number(maxrows) === Number(psize)) {
+      // set offset is 0
+      this.paginationParams.offset = 0
+    }
+    this.fetchTableWithPeriod('all', psize, this.paginationParams.offset)
   }
 
   nextPage () {

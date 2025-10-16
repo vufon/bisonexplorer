@@ -14,6 +14,11 @@ export default class extends Controller {
     delete q.height
     q[this.pagesizeTarget.dataset.offsetkey] = this.pagesizeTarget.dataset.offset
     q.rows = this.pagesizeTarget.selectedOptions[0].value
+    const maxrows = this.pagesizeTarget.dataset.maxrows
+    if (maxrows && Number(maxrows) === Number(this.pagesizeTarget.selectedOptions[0].value)) {
+      // set offset is 0
+      q[this.pagesizeTarget.dataset.offsetkey] = 0
+    }
     if (this.hasVotestatusTarget) {
       q.byvotestatus = this.votestatusTarget.selectedOptions[0].value
     }

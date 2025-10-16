@@ -69,9 +69,9 @@ func MsgXMRBlockToDBBlock(client *xmrclient.XMRClient, bldata *xmrutil.BlockResu
 		Size:    uint32(GetXMRBlockSize(bldata)),
 		Height:  uint32(height),
 		Version: uint32(version),
-		NumTx:   uint32(len(allHashes)),
+		NumTx:   uint32(len(bldata.TxHashes)),
 		// nil []int64 for TxDbIDs
-		NumRegTx:             uint32(len(allHashes)),
+		NumRegTx:             uint32(len(bldata.TxHashes)),
 		Tx:                   allHashes,
 		Time:                 dbtypes.NewTimeDef(time.Unix(int64(blheader.Timestamp), 0)),
 		Nonce:                blheader.Nonce,

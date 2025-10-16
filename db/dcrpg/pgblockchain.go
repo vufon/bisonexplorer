@@ -5814,7 +5814,7 @@ func (pgb *ChainDB) LTCStore(blockData *blockdataltc.BlockData, msgBlock *ltcwir
 			return err
 		}
 		if pgb.SyncChainDBFlag {
-			go pgb.SyncOneLTCWholeBlock(pgb.LtcClient, msgBlock)
+			// TODO: go pgb.SyncOneLTCWholeBlock(pgb.LtcClient, msgBlock)
 		}
 		// if err != nil {
 		// 	log.Errorf("LTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
@@ -5870,7 +5870,7 @@ func (pgb *ChainDB) BTCStore(blockData *blockdatabtc.BlockData, msgBlock *btcwir
 			return err
 		}
 		if pgb.SyncChainDBFlag {
-			go pgb.SyncOneBTCWholeBlock(pgb.BtcClient, msgBlock)
+			// TODO: go pgb.SyncOneBTCWholeBlock(pgb.BtcClient, msgBlock)
 		}
 		// if err != nil {
 		// 	log.Errorf("BTC: sync for whole block failed. Height: %d. Err: %v", blockData.Header.Height, err)
@@ -9324,24 +9324,68 @@ func makeExplorerTxBasic(data *chainjson.TxRawResult, ticketPrice int64, msgTx *
 	return tx, txType
 }
 
-func makeBTCExplorerTxBasic(data *btcjson.TxRawResult) *exptypes.TxBasic {
+func makeBTCExplorerTxBasic(client *btcClient.Client, data *btcjson.TxRawResult, msgTx *btcwire.MsgTx) *exptypes.TxBasic {
+	isCoinbase := len(data.Vin) > 0 && data.Vin[0].IsCoinBase()
+	sent := txhelpers.TotalBTCVout(data.Vout).ToBTC()
+	fees := float64(0)
+	if !isCoinbase {
+		spent := BTCTotalTotalSpentVin(client, msgTx)
+		spentCoin := utils.MultichainAtomicToCoin(spent, mutilchain.TYPEBTC)
+		fees = spentCoin - sent
+	}
 	tx := &exptypes.TxBasic{
 		TxID:          data.Txid,
 		Version:       int32(data.Version),
 		FormattedSize: humanize.Bytes(uint64(len(data.Hex) / 2)),
-		Total:         txhelpers.TotalBTCVout(data.Vout).ToBTC(),
+		Total:         sent,
+		Coinbase:      isCoinbase,
+		FeeCoin:       fees,
 	}
 	return tx
 }
 
-func makeLTCExplorerTxBasic(data *ltcjson.TxRawResult) *exptypes.TxBasic {
+func BTCTotalTotalSpentVin(client *btcClient.Client, msgTx *btcwire.MsgTx) int64 {
+	var spent int64
+	for _, txin := range msgTx.TxIn {
+		txInResult, txinErr := btcrpcutils.GetRawTransactionByTxidStr(client, txin.PreviousOutPoint.Hash.String())
+		if txinErr == nil {
+			unitAmount := dbtypes.GetBTCValueInFromRawTransction(txInResult, txin)
+			spent += unitAmount
+		}
+	}
+	return spent
+}
+
+func makeLTCExplorerTxBasic(client *ltcClient.Client, data *ltcjson.TxRawResult, msgTx *ltcwire.MsgTx) *exptypes.TxBasic {
+	isCoinbase := len(data.Vin) > 0 && data.Vin[0].IsCoinBase()
+	sent := txhelpers.TotalLTCVout(data.Vout).ToBTC()
+	fees := float64(0)
+	if !isCoinbase {
+		spent := LTCTotalTotalSpentVin(client, msgTx)
+		spentCoin := utils.MultichainAtomicToCoin(spent, mutilchain.TYPELTC)
+		fees = spentCoin - sent
+	}
 	tx := &exptypes.TxBasic{
 		TxID:          data.Txid,
 		Version:       int32(data.Version),
 		FormattedSize: humanize.Bytes(uint64(len(data.Hex) / 2)),
-		Total:         txhelpers.TotalLTCVout(data.Vout).ToBTC(),
+		Total:         sent,
+		Coinbase:      isCoinbase,
+		FeeCoin:       fees,
 	}
 	return tx
+}
+
+func LTCTotalTotalSpentVin(client *ltcClient.Client, msgTx *ltcwire.MsgTx) int64 {
+	var spent int64
+	for _, txin := range msgTx.TxIn {
+		txInResult, txinErr := ltcrpcutils.GetRawTransactionByTxidStr(client, txin.PreviousOutPoint.Hash.String())
+		if txinErr == nil {
+			unitAmount := dbtypes.GetLTCValueInFromRawTransction(txInResult, txin)
+			spent += unitAmount
+		}
+	}
+	return spent
 }
 
 func trimmedTxInfoFromMsgTx(txraw *chainjson.TxRawResult, ticketPrice int64, msgTx *wire.MsgTx, params *chaincfg.Params) (*exptypes.TrimmedTxInfo, stake.TxType) {
@@ -9362,8 +9406,8 @@ func trimmedTxInfoFromMsgTx(txraw *chainjson.TxRawResult, ticketPrice int64, msg
 	return tx, txType
 }
 
-func trimmedBTCTxInfoFromMsgTx(txraw *btcjson.TxRawResult, msgTx *btcwire.MsgTx, params *btc_chaincfg.Params) *exptypes.TrimmedTxInfo {
-	txBasic := makeBTCExplorerTxBasic(txraw)
+func trimmedBTCTxInfoFromMsgTx(client *btcClient.Client, txraw *btcjson.TxRawResult, msgTx *btcwire.MsgTx, params *btc_chaincfg.Params) *exptypes.TrimmedTxInfo {
+	txBasic := makeBTCExplorerTxBasic(client, txraw, msgTx)
 
 	tx := &exptypes.TrimmedTxInfo{
 		TxBasic:   txBasic,
@@ -9373,8 +9417,8 @@ func trimmedBTCTxInfoFromMsgTx(txraw *btcjson.TxRawResult, msgTx *btcwire.MsgTx,
 	return tx
 }
 
-func trimmedLTCTxInfoFromMsgTx(txraw *ltcjson.TxRawResult, msgTx *ltcwire.MsgTx, params *ltc_chaincfg.Params) *exptypes.TrimmedTxInfo {
-	txBasic := makeLTCExplorerTxBasic(txraw)
+func trimmedLTCTxInfoFromMsgTx(client *ltcClient.Client, txraw *ltcjson.TxRawResult, msgTx *ltcwire.MsgTx, params *ltc_chaincfg.Params) *exptypes.TrimmedTxInfo {
+	txBasic := makeLTCExplorerTxBasic(client, txraw, msgTx)
 
 	tx := &exptypes.TrimmedTxInfo{
 		TxBasic:   txBasic,
@@ -9885,16 +9929,20 @@ func (pgb *ChainDB) GetXMRBlockchainInfo() (*xmrutil.BlockchainInfo, error) {
 	return pgb.XmrClient.GetInfo()
 }
 
-func (pgb *ChainDB) GetXMRExplorerBlocks(from, to int64) []*exptypes.BlockBasic {
+func (pgb *ChainDB) GetXMRDaemonExplorerBlocks(from, to int64) []*exptypes.BlockBasic {
 	result := make([]*exptypes.BlockBasic, 0)
 	// from > to
 	for height := from; height >= to; height-- {
-		blockInfo := pgb.GetXMRExplorerBlock(height)
+		blockInfo := pgb.GetDaemonXMRExplorerBlock(height)
 		if blockInfo != nil {
 			result = append(result, blockInfo.BlockBasic)
 		}
 	}
 	return result
+}
+
+func (pgb *ChainDB) GetXMRDBExplorerBasicBlocks(max, min int64) ([]*exptypes.BlockBasic, error) {
+	return retrieveMultichainBasicInfoWithHeightRange(pgb.ctx, pgb.db, max, min, mutilchain.TYPEXMR)
 }
 
 func (pgb *ChainDB) GetXMRBlockHeader(height int64) (*xmrutil.BlockHeader, error) {
@@ -9967,6 +10015,22 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			txExtra = txJSONStr
 		}
 	}
+	// get block result
+	txData := blTxsData.Txs[0]
+	isCoinbase := false
+	blockHash := ""
+	if txData.BlockHeight > 0 {
+		br, err := pgb.XmrClient.GetBlock(uint64(txData.BlockHeight))
+		if err != nil {
+			return nil, err
+		}
+		bh, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(txData.BlockHeight))
+		if err != nil {
+			return nil, err
+		}
+		blockHash = bh.Hash
+		isCoinbase = txhash == br.MinerTxHash
+	}
 	version := 0
 	lockTime := int64(0)
 	size := 0
@@ -10016,8 +10080,10 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 					if vinMap, ok2 := vinItem.(map[string]interface{}); ok2 {
 						// --- Key input style (most typical for modern Monero) ---
 						if keyObj, ok3 := vinMap["key"].(map[string]interface{}); ok3 {
+							amountin := int64(0)
 							if a, ok31 := keyObj["amount"].(float64); ok31 {
 								sumIn += int64(a)
+								amountin = int64(a)
 							}
 							// collect offsets (may be absent)
 							var offsets []uint64
@@ -10066,6 +10132,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 									Spent:       true,
 									RingMembers: globalIdxs,
 									RingCtOuts:  ringOuts,
+									AmountIn:    amountin,
 								})
 							}
 						}
@@ -10138,49 +10205,56 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 							OutIndex:    idx,
 							GlobalIndex: globalIndex,
 							Key:         outPk,
-							Amount:      uint64(amount),
+							Amount:      amount,
 							Owned:       amountKnown,
 						})
 					}
 				}
 			}
-			if fees == 0 && !isRingCt {
+			if fees == 0 && !isRingCt && !isCoinbase {
 				fees = sumIn - sumOut
 			}
 			// fees / outputs / total sent: sometimes present in tx JSON
-			var extraHex string
-			if extraIf, ok := v["extra"].([]interface{}); ok {
-				var extraBytes []byte
-				for _, val := range extraIf {
-					switch v := val.(type) {
-					case float64:
-						extraBytes = append(extraBytes, byte(v))
-					case int:
-						extraBytes = append(extraBytes, byte(v))
-					default:
-						log.Warnf("Unexpected type in extra array: %T", v)
-						continue
+			if !isCoinbase {
+				var extraHex string
+				if extraIf, ok := v["extra"].([]interface{}); ok {
+					var extraBytes []byte
+					for _, val := range extraIf {
+						switch v := val.(type) {
+						case float64:
+							extraBytes = append(extraBytes, byte(v))
+						case int:
+							extraBytes = append(extraBytes, byte(v))
+						default:
+							log.Warnf("Unexpected type in extra array: %T", v)
+							continue
+						}
 					}
-				}
-				extraHex = hex.EncodeToString(extraBytes)
-				parsedExtra, parseErr = ParseTxExtra(extraHex)
-				if parseErr != nil {
-					log.Errorf("Failed to parse extra: %v", parseErr)
+					extraHex = hex.EncodeToString(extraBytes)
+					parsedExtra, parseErr = ParseTxExtra(extraHex)
+					if parseErr != nil {
+						log.Errorf("Failed to parse extra: %v", parseErr)
+						return nil, parseErr
+					}
+				} else if extraStr, ok := v["extra"].(string); ok {
+					extraHex = extraStr
+					parsedExtra, parseErr = ParseTxExtra(extraHex)
+					if parseErr != nil {
+						log.Errorf("Failed to parse extra: %v", parseErr)
+						return nil, parseErr
+					}
+				} else {
+					log.Errorf("Failed to parse extra: unexpected type %T", v["extra"])
 					return nil, parseErr
 				}
-			} else if extraStr, ok := v["extra"].(string); ok {
-				extraHex = extraStr
-				parsedExtra, parseErr = ParseTxExtra(extraHex)
-				if parseErr != nil {
-					log.Errorf("Failed to parse extra: %v", parseErr)
-					return nil, parseErr
+				if parsedExtra == nil {
+					return nil, fmt.Errorf("parsed extra data failed")
 				}
 			} else {
-				log.Errorf("Failed to parse extra: unexpected type %T", v["extra"])
-				return nil, parseErr
-			}
-			if parsedExtra == nil {
-				return nil, fmt.Errorf("parsed extra data failed")
+				parsedExtra = &exptypes.XmrTxExtra{
+					RawHex:      "",
+					TxPublicKey: "",
+				}
 			}
 			var rctPrunableHash string
 			// sometimes prunable hash in txMap under "rct_signatures" or "rct_prunable_hash"
@@ -10214,22 +10288,6 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 		}
 	}
 
-	// get block result
-	txData := blTxsData.Txs[0]
-	isCoinbase := false
-	blockHash := ""
-	if txData.BlockHeight > 0 {
-		br, err := pgb.XmrClient.GetBlock(uint64(txData.BlockHeight))
-		if err != nil {
-			return nil, err
-		}
-		bh, err := pgb.XmrClient.GetBlockHeaderByHeight(uint64(txData.BlockHeight))
-		if err != nil {
-			return nil, err
-		}
-		blockHash = bh.Hash
-		isCoinbase = txhash == br.MinerTxHash
-	}
 	confirmations := txData.Confirmations
 	isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
 	feePerKB := float64(0)
@@ -10270,6 +10328,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 			RingCT:         ringCT,
 			MaxGlobalIndex: maxOuputIdx,
 			TxPublicKey:    parsedExtra.TxPublicKey,
+			TotalSent:      utils.AtomicToXMR(uint64(txSent)),
 		},
 		BlockHash:   blockHash,
 		BlockHeight: txData.BlockHeight,
@@ -10287,7 +10346,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 	}, nil
 }
 
-func (pgb *ChainDB) GetXMRExplorerBlock(height int64) *exptypes.BlockInfo {
+func (pgb *ChainDB) GetDaemonXMRExplorerBlock(height int64) *exptypes.BlockInfo {
 	br, berr := pgb.XmrClient.GetBlock(uint64(height))
 	if berr != nil {
 		log.Errorf("XMR: GetBlock(%d) failed: %v", height, berr)
@@ -10372,7 +10431,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 	totalFees := int64(0)
 	totalVinsNum := int64(0)
 	totalOutputsNum := int64(0)
+	totalRingSize := int64(0)
 	for i, txHash := range clientBlock.Tx {
+		isCoinbase := txHash == br.MinerTxHash
 		var txJSONStr string
 		if i < len(blTxsData.TxsAsJSON) {
 			txJSONStr = blTxsData.TxsAsJSON[i]
@@ -10466,7 +10527,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 								}
 								// convert to global indices if we have offsets (safe with empty slice)
 								globalIdxs := xmrhelper.OffsetsToGlobalIndices(offsets)
-
+								totalRingSize += int64(len(globalIdxs))
 								// insert ring members (if any)
 								for _, gi := range globalIdxs {
 									ringMembers = append(ringMembers, exptypes.XmrRingMemberInfo{
@@ -10533,13 +10594,13 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 								OutIndex:    idx,
 								GlobalIndex: globalIndex,
 								Key:         outPk,
-								Amount:      uint64(amount),
+								Amount:      amount,
 								Owned:       amountKnown,
 							})
 						}
 					}
 				}
-				if fees == 0 && !isRingCT {
+				if fees == 0 && !isRingCT && !isCoinbase {
 					fees = sumIn - sumOut
 				}
 				// fees / outputs / total sent: sometimes present in tx JSON
@@ -10578,17 +10639,17 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 				}
 			}
 		}
-
-		isCoinbase := txHash == br.MinerTxHash
 		isConfirmed := (isCoinbase && confirmations >= 60) || (!isCoinbase && confirmations >= 10)
-		totalSent += txSent
+		if !isCoinbase {
+			totalSent += txSent
+			totalVinsNum += int64(numVin)
+			totalOutputsNum += int64(numVout)
+		}
 		feePerKB := float64(0)
 		if size > 0 {
 			feePerKB = float64(fees) / (float64(size) / float64(1024.0))
 		}
 		totalFees += fees
-		totalVinsNum += int64(numVin)
-		totalOutputsNum += int64(numVout)
 		txFull := &exptypes.XmrTxFull{
 			TxHash:        txHash,
 			BlockHeight:   int64(clientBlock.Height),
@@ -10624,8 +10685,9 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 	block.XmrTx = txs
 	block.Txids = txids
 	block.Fees = totalFees
-	block.TotalNumVins = totalVinsNum
-	block.TotalNumOutputs = totalOutputsNum
+	block.TotalInputs = totalVinsNum
+	block.TotalOutputs = totalOutputsNum
+	block.TotalRingSize = totalRingSize
 	sortTx := func(txs []*exptypes.XmrTxFull) {
 		sort.Slice(txs, func(i, j int) bool {
 			return txs[i].Sent > txs[j].Sent
@@ -10755,6 +10817,10 @@ func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 
 	txs := make([]*exptypes.TrimmedTxInfo, 0, block.Transactions)
 	txids := make([]string, 0)
+	totalSent := float64(0)
+	totalFees := float64(0)
+	totalNumVins := int64(0)
+	totalNumVouts := int64(0)
 	for i := range data.RawTx {
 		tx := &data.RawTx[i]
 		msgTx, err := txhelpers.MsgLTCTxFromHex(tx.Hex, int32(tx.Version))
@@ -10762,8 +10828,11 @@ func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 			log.Errorf("Unknown transaction %s: %v", tx.Txid, err)
 			return nil
 		}
-
-		exptx := trimmedLTCTxInfoFromMsgTx(tx, msgTx, pgb.ltcChainParams) // maybe pass tree
+		exptx := trimmedLTCTxInfoFromMsgTx(pgb.LtcClient, tx, msgTx, pgb.ltcChainParams) // maybe pass tree
+		totalSent += exptx.Total
+		totalFees += exptx.FeeCoin
+		totalNumVins += int64(exptx.VinCount)
+		totalNumVouts += int64(exptx.VoutCount)
 		txs = append(txs, exptx)
 		txids = append(txids, exptx.TxID)
 	}
@@ -10774,20 +10843,11 @@ func (pgb *ChainDB) GetLTCExplorerBlock(hash string) *exptypes.BlockInfo {
 			return txs[i].Total > txs[j].Total
 		})
 	}
-
 	sortTx(block.Tx)
-
-	getTotalSent := func(txs []*exptypes.TrimmedTxInfo) (total ltcutil.Amount) {
-		for _, tx := range txs {
-			amt, err := ltcutil.NewAmount(tx.Total)
-			if err != nil {
-				continue
-			}
-			total += amt
-		}
-		return
-	}
-	block.TotalSent = getTotalSent(block.Tx).ToBTC()
+	block.TotalSent = totalSent
+	block.Fees = utils.BTCToSatoshi(totalFees)
+	block.TotalInputs = totalNumVins
+	block.TotalOutputs = totalNumVouts
 
 	pgb.ltcLastExplorerBlock.Lock()
 	pgb.ltcLastExplorerBlock.hash = hash
@@ -10876,6 +10936,10 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 
 	txs := make([]*exptypes.TrimmedTxInfo, 0, block.Transactions)
 	txIds := make([]string, 0)
+	totalSent := float64(0)
+	totalFees := float64(0)
+	totalNumVins := int64(0)
+	totalNumVouts := int64(0)
 	for i := range data.RawTx {
 		tx := &data.RawTx[i]
 		msgTx, err := txhelpers.MsgBTCTxFromHex(tx.Hex, int32(tx.Version))
@@ -10883,8 +10947,11 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 			log.Errorf("Unknown transaction %s: %v", tx.Txid, err)
 			return nil
 		}
-
-		exptx := trimmedBTCTxInfoFromMsgTx(tx, msgTx, pgb.btcChainParams) // maybe pass tree
+		exptx := trimmedBTCTxInfoFromMsgTx(pgb.BtcClient, tx, msgTx, pgb.btcChainParams) // maybe pass tree
+		totalSent += exptx.Total
+		totalFees += exptx.FeeCoin
+		totalNumVins += int64(exptx.VinCount)
+		totalNumVouts += int64(exptx.VoutCount)
 		txs = append(txs, exptx)
 		txIds = append(txIds, exptx.TxID)
 	}
@@ -10897,19 +10964,10 @@ func (pgb *ChainDB) GetBTCExplorerBlock(hash string) *exptypes.BlockInfo {
 	}
 
 	sortTx(block.Tx)
-
-	getTotalSent := func(txs []*exptypes.TrimmedTxInfo) (total btcutil.Amount) {
-		for _, tx := range txs {
-			amt, err := btcutil.NewAmount(tx.Total)
-			if err != nil {
-				continue
-			}
-			total += amt
-		}
-		return
-	}
-	block.TotalSent = getTotalSent(block.Tx).ToBTC()
-
+	block.TotalSent = totalSent
+	block.Fees = utils.BTCToSatoshi(totalFees)
+	block.TotalInputs = totalNumVins
+	block.TotalOutputs = totalNumVouts
 	pgb.btcLastExplorerBlock.Lock()
 	pgb.btcLastExplorerBlock.hash = hash
 	pgb.btcLastExplorerBlock.blockInfo = block
@@ -11084,7 +11142,7 @@ func (pgb *ChainDB) GetLTCExplorerTx(txid string) *exptypes.TxInfo {
 		return nil
 	}
 
-	txBasic := makeLTCExplorerTxBasic(txraw)
+	txBasic := makeLTCExplorerTxBasic(pgb.LtcClient, txraw, msgTx)
 	tx := &exptypes.TxInfo{
 		TxBasic:       txBasic,
 		BlockHash:     txraw.BlockHash,
@@ -11238,7 +11296,7 @@ func (pgb *ChainDB) GetBTCExplorerTx(txid string) *exptypes.TxInfo {
 		return nil
 	}
 
-	txBasic := makeBTCExplorerTxBasic(txraw)
+	txBasic := makeBTCExplorerTxBasic(pgb.BtcClient, txraw, msgTx)
 	tx := &exptypes.TxInfo{
 		TxBasic:       txBasic,
 		BlockHash:     txraw.BlockHash,

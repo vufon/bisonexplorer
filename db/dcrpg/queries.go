@@ -6255,3 +6255,65 @@ func DeleteDumpMultichainSwapData(db *sql.DB, chainType string) (int64, error) {
 	execErrPrefix := fmt.Sprintf("failed to delete %s swap dump data: ", chainType)
 	return sqlExec(db, fmt.Sprintf(internal.Delete24hSwapData, chainType), execErrPrefix)
 }
+
+func retrieveMultichainBasicInfoWithHeightRange(ctx context.Context, db *sql.DB, max, min int64, chainType string) ([]*exptypes.BlockBasic, error) {
+	// Create the query statement and retrieve rows
+	rows, err := db.QueryContext(ctx, mutilchainquery.MakeRetrieveBlockAllInfoData(chainType), max, min)
+	if err != nil {
+		return nil, err
+	}
+	defer closeRows(rows)
+	blockBasics := make([]*exptypes.BlockBasic, 0)
+	for rows.Next() {
+		var timeInt, height, totalSent, fees, numtx, numvins, numvouts, size int64
+		var version int
+		var hash string
+		err = rows.Scan(&timeInt, &hash, &height, &version, &totalSent, &fees, &numtx, &numvins, &numvouts, &size)
+		if err != nil {
+			return nil, fmt.Errorf("%s: retrieveMultichainBasicInfoWithHeightRange failed: %w", chainType, err)
+		}
+		blockBasics = append(blockBasics, &exptypes.BlockBasic{
+			Height:         height,
+			Hash:           hash,
+			Version:        int32(version),
+			Size:           int32(size),
+			Transactions:   int(numtx),
+			TxCount:        uint32(numtx),
+			MainChain:      true,
+			Valid:          true,
+			BlockTime:      exptypes.NewTimeDefFromUNIX(timeInt),
+			BlockTimeUnix:  timeInt,
+			FormattedBytes: humanize.Bytes(uint64(size)),
+			Total:          utils.MultichainAtomicToCoin(totalSent, chainType),
+			TotalFees:      fees,
+		})
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return blockBasics, nil
+}
+
+func retrieveMultichainBasicBlockInfo(ctx context.Context, db *sql.DB, blHeight int64, chainType string) (*exptypes.BlockBasic, error) {
+	var timeInt, height, totalSent, fees, numtx, numvins, numvouts, size int64
+	var version int
+	var hash string
+	err := db.QueryRowContext(ctx, mutilchainquery.MakeRetrieveBlockAllDetail(chainType), blHeight).Scan(&timeInt, &hash, &height, &version, &totalSent, &fees, &numtx, &numvins, &numvouts, &size)
+	if err != nil {
+		return nil, err
+	}
+	return &exptypes.BlockBasic{
+		Height:         height,
+		Hash:           hash,
+		Version:        int32(version),
+		Size:           int32(size),
+		Transactions:   int(numtx),
+		TxCount:        uint32(numtx),
+		MainChain:      true,
+		Valid:          true,
+		BlockTime:      exptypes.NewTimeDefFromUNIX(timeInt),
+		BlockTimeUnix:  timeInt,
+		FormattedBytes: humanize.Bytes(uint64(size)),
+	}, nil
+}

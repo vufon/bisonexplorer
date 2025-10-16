@@ -52,7 +52,7 @@
 	<link rel="preload" href="/images/themes/light/logo.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/connected.svg?x=65tv3" as="image" type="image/svg+xml" />
 	<link rel="preload" href="/images/disconnected.svg?x=65tv3" as="image" type="image/svg+xml" />
-	<link href="/dist/css/style.9b96f4653bf73087.css" rel="stylesheet">
+	<link href="/dist/css/style.7c9778de7c2bde45.css" rel="stylesheet">
 	<script src="/js/vendor/jquery.min.js"></script>
 	<script src="/js/vendor/turbolinks.min.js?v=65DCG"></script>
 </head>
@@ -100,6 +100,7 @@
 				role="search"
 				id="search-form"
 				action="/search"
+				data-turbolinks="false"
 				data-controller="search"
 				data-action="submit->search#execute"
 				>
@@ -158,6 +159,7 @@
    id="search-form"
    action="/search"
    data-controller="search"
+   data-turbolinks="false"
    data-action="submit->search#execute"
    >
    <input
@@ -225,6 +227,7 @@
 					id="search-form"
 					action="/search"
 					data-controller="search"
+					data-turbolinks="false"
 					data-action="submit->search#execute"
 					>
 					<input
@@ -296,6 +299,7 @@
 					id="search-form"
 					action="/search"
 					data-controller="search"
+					data-turbolinks="false"
 					data-action="submit->search#execute"
 					>
 					<input
@@ -367,6 +371,7 @@
 				id="search-form"
 				action="/search"
 				data-controller="search"
+				data-turbolinks="false"
 				data-action="submit->search#execute"
 				>
 				<input
@@ -468,7 +473,9 @@
       <ul class="submenu tools-menu-column last-submenu-item">
 		<li><a data-keynav-skip href="/" title="Other blockchains">Other Blockchains</a></li>
 		<li><a data-keynav-skip href="/{{.ChainType}}/supply" title="Next Block Reward Reduction">Supply</a></li>
+		{{if ne .ChainType "xmr"}}
         <li><a data-keynav-skip href="/{{.ChainType}}/parameters" title="Chain Parameters">Parameters</a></li>
+		{{end}}
 		<li><a data-keynav-skip href="/whatsnew" title="What's new">What's New</a></li>
 		<li>
 			<a class="menu-item jsonly col-24 cursor-pointer" data-keynav-skip data-turbolinks="false" id="keynav-toggle">
@@ -488,7 +495,7 @@
 	data-turbolinks-suppress-warning
 ></script>
 <script
-	src="/dist/js/app.55a973efc0bed39a.bundle.js"
+	src="/dist/js/app.dd1d240106039b55.bundle.js"
 	data-turbolinks-eval="false"
 	data-turbolinks-suppress-warning
 ></script>

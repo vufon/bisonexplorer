@@ -1532,7 +1532,6 @@ export default class extends Controller {
         }
       }
     })
-    console.log('res array leght: ', resArray.length)
     return {
       file: resArray.map(time => {
         if (timeDataMap.has(time)) {
@@ -1962,10 +1961,37 @@ export default class extends Controller {
     let node = e.target || e.srcElement
     while (node && node.nodeName !== 'TR') node = node.parentNode
     if (!node || !node.dataset || !node.dataset.token) return
-    if (usesCandlesticks(settings.chart) && node.dataset.token === aggregatedKey) {
+
+    // If it is a single exchange, it will only display for that exchange.
+    const exchange = node.dataset.token
+    const selectedExchanges = this.getSelectedExchanges()
+    if (selectedExchanges && selectedExchanges.length === 1 && selectedExchanges[0] === exchange) {
       return
     }
-    this.handlerExchange(node.dataset.token)
+    // if aggregated on history/volume/candlesticks, return
+    if (node.dataset.token === aggregatedKey && usesCandlesticks(settings.chart)) {
+      return
+    }
+
+    // handler for aggregated with depth/orderbook
+    if (node.dataset.token === aggregatedKey) {
+      this.handlerExchange(node.dataset.token)
+      return
+    }
+    settings.xcs = exchange
+    settings.xc = exchange
+    if (usesCandlesticks(settings.chart)) {
+      if (settings.chart === candlestick && settings.xc !== 'aggregated') {
+        if (!availableCandlesticks[settings.xc]) {
+          settings.chart = depth
+        }
+      }
+      this.justifyBins()
+    }
+    this.setButtons()
+    this.setExchangeName()
+    this.fetchChart()
+    this.resetZoom()
   }
 
   changeBin (e) {

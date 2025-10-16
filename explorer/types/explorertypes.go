@@ -140,6 +140,7 @@ type BlockBasic struct {
 	FormattedBytes string  `json:"formatted_bytes"`
 	Total          float64 `json:"total"`
 	BlockTimeUnix  int64   `json:"blocktime_unix"`
+	TotalFees      int64   `json:"totalFees"`
 }
 
 // WebBasicBlock is used for quick DB data without rpc calls
@@ -248,7 +249,7 @@ type XmrOutputInfo struct {
 	OutIndex    int    `json:"out_index"`             // index in tx outputs
 	GlobalIndex int64  `json:"global_index"`          // global output index (maps -> monero_outputs)
 	Key         string `json:"key"`                   // tx_out_key / stealth pubkey
-	Amount      uint64 `json:"amount"`                // atomic, 0 if hidden
+	Amount      int64  `json:"amount"`                // atomic, 0 if hidden
 	Owned       bool   `json:"owned"`                 // true if belongs to a scanned view-key
 	ReceivedBy  string `json:"received_by,omitempty"` // optional: derived address label when decoded
 }
@@ -267,6 +268,7 @@ type XmrKeyImageInfo struct {
 	SeenAtTx    string               `json:"seen_at_tx,omitempty"` // tx hash where first seen
 	SpentAtTx   string               `json:"spent_at_tx,omitempty"`
 	Spent       bool                 `json:"spent"`
+	AmountIn    int64                `json:"amount_in"`
 	TextIsHash  bool                 `json:"text_is_hash"`
 	DisplayText string               `json:"display_text"`
 	RingMembers []uint64             `json:"ring_members"`
@@ -344,6 +346,7 @@ type XmrTxBasic struct {
 	ExtraRaw       string
 	RawHex         string
 	RingCT         bool
+	TotalSent      float64
 }
 
 // TxInfo models data needed for display on the tx page
@@ -710,11 +713,10 @@ type BlockInfo struct {
 	BlockReward           int64
 	StakeValidationHeight int64
 	Fees                  int64
-	TotalNumVins          int64
-	TotalNumOutputs       int64
 	Subsidy               *chainjson.GetBlockSubsidyResult
 	GroupSwaps            []*dbtypes.AtomicSwapFullData
 	PoolDataList          []*dbtypes.MultichainPoolDataItem // last 5 block pools
+	TotalRingSize         int64
 }
 
 // Conversion is a representation of some amount of DCR in another index.

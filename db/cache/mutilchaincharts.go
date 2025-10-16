@@ -576,11 +576,6 @@ func NewXMRChartData(ctx context.Context, xmrClient *xmrclient.XMRClient, height
 		log.Errorf("XMR: Get genesis block failed: %v", err)
 		return nil
 	}
-	info, err := xmrClient.GetInfo()
-	if err != nil {
-		log.Errorf("XMR: Get blockchain info failed: %v", err)
-		return nil
-	}
 	size := int(height * 5 / 4)
 	days := int(time.Since(time.Unix(int64(genesisBl.Timestamp), 0))/time.Hour/24)*5/4 + 1 // at least one day
 
@@ -590,7 +585,7 @@ func NewXMRChartData(ctx context.Context, xmrClient *xmrclient.XMRClient, height
 		Days:            newDaySet(days),
 		cache:           make(map[string]*cachedChart),
 		updaters:        make([]ChartMutilchainUpdater, 0),
-		TimePerBlocks:   float64(info.Target),
+		TimePerBlocks:   float64(120),
 		ChainType:       mutilchain.TYPEXMR,
 		LastBlockHeight: lastBlockHeight,
 		// UseSyncDB:       !disabledDBSync,
