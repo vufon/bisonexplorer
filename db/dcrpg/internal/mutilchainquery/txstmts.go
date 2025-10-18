@@ -10,35 +10,29 @@ const (
 	// Insert
 	insertTxRow0 = `INSERT INTO %stransactions (
 		block_hash, block_height, block_time, time,
-		tx_type, version, tree, tx_hash, block_index, 
-		lock_time, expiry, size, spent, sent, fees, 
-		num_vin, vin_db_ids,
-		num_vout, vout_db_ids)
+		tx_type, version, tx_hash, block_index, 
+		lock_time, size, spent, sent, fees, 
+		num_vin, num_vout)
 	VALUES (
 		$1, $2, $3, $4, 
 		$5, $6, $7, $8, $9,
-		$10, $11, $12, $13, $14, $15,
-		$16, $17, $18,
-		$19) `
+		$10, $11, $12, $13, $14, $15) `
 	insertXmrTxRow0 = `INSERT INTO xmrtransactions (
 		block_hash, block_height, block_time, time,
-		tx_type, version, tree, tx_hash, tx_blob,
-		tx_extra, block_index, is_ringct, rct_type,
-		tx_public_key, prunable_size,
-		lock_time, expiry, size, spent, sent, fees, 
-		num_vin, vins, num_vout, coinbase)
+		tx_type, version, tx_hash, block_index, is_ringct, rct_type,
+		tx_public_key, prunable_size, size, spent, sent, fees, 
+		num_vin, num_vout, coinbase)
 	VALUES (
 		$1, $2, $3, $4, 
 		$5, $6, $7, $8, $9,
 		$10, $11, $12, $13, $14, $15,
-		$16, $17, $18,
-		$19, $20, $21, $22, $23, $24, $25)`
+		$16, $17, $18, $19)`
 	insertTxRow           = insertTxRow0 + ` RETURNING id;`
 	insertTxRowChecked    = insertTxRow0 + ` ON CONFLICT (tx_hash) DO NOTHING RETURNING id;`
 	insertXmrTxRow        = insertXmrTxRow0 + ` RETURNING id;`
 	insertXmrTxRowChecked = insertXmrTxRow0 + ` ON CONFLICT (tx_hash) DO NOTHING RETURNING id;`
 
-	CreateTransactionTable = `CREATE TABLE IF NOT EXISTS %stransactions (
+	CreateXmrTransactionTable = `CREATE TABLE IF NOT EXISTS xmrtransactions (
 		id SERIAL8 PRIMARY KEY,
 		/*block_db_id INT4,*/
 		block_hash TEXT,
@@ -47,41 +41,51 @@ const (
 		time INT8,
 		tx_type INT4,
 		version INT4,
-		tree INT2,
 		tx_hash TEXT,
-		tx_blob BYTEA,
-		tx_extra JSONB,
 		block_index INT4,
 		is_ringct BOOLEAN DEFAULT FALSE,
 		rct_type INT,
 		tx_public_key TEXT,
 		prunable_size INT,
-		lock_time INT4,
-		expiry INT4,
 		size INT4,
 		spent INT8,
 		sent INT8,
 		fees INT8,
 		num_vin INT4,
-		vins TEXT,
 		coinbase BOOLEAN DEFAULT FALSE,
-		vin_db_ids INT8[],
-		num_vout INT4,
-		vouts %svout_t[],
-		vout_db_ids INT8[]
+		num_vout INT4
 	);`
+
+	CreateTransactionTable = `CREATE TABLE IF NOT EXISTS %stransactions (
+		id SERIAL8 PRIMARY KEY,
+		block_hash TEXT,
+		block_height INT8,
+		block_time INT8,
+		time INT8,
+		tx_type INT4,
+		version INT4,
+		tx_hash TEXT,
+		block_index INT4,
+		lock_time INT4,
+		size INT4,
+		spent INT8,
+		sent INT8,
+		fees INT8,
+		num_vin INT4,
+		num_vout INT4
+	);`
+
 	SelectTotalTransaction    = `SELECT count(*) FROM %stransactions;`
-	SelectTxByHash            = `SELECT id, block_hash, block_index, tree FROM %stransactions WHERE tx_hash = $1;`
-	SelectTxsByBlockHash      = `SELECT id, tx_hash, block_index, tree FROM %stransactions WHERE block_hash = $1;`
+	SelectTxByHash            = `SELECT id, block_hash, block_index FROM %stransactions WHERE tx_hash = $1;`
+	SelectTxsByBlockHash      = `SELECT id, tx_hash, block_index FROM %stransactions WHERE block_hash = $1;`
 	SelectXMRTxsByBlockHeight = `SELECT tx_hash, fees, size FROM xmrtransactions WHERE block_height = $1;`
 
 	SelectFullTxByHash = `SELECT id, block_hash, block_height, block_time, 
-		time, tx_type, version, tree, tx_hash, block_index, lock_time, expiry, 
-		size, spent, sent, fees, num_vin, vin_db_ids, num_vout, vout_db_ids 
+		time, tx_type, version, tx_hash, block_index, lock_time, 
+		size, spent, sent, fees, num_vin, num_vout 
 		FROM %stransactions WHERE tx_hash = $1;`
 
-	SelectRegularTxByHash = `SELECT id, block_hash, block_index FROM %stransactions WHERE tx_hash = $1 and tree=0;`
-	SelectStakeTxByHash   = `SELECT id, block_hash, block_index FROM %stransactions WHERE tx_hash = $1 and tree=1;`
+	SelectRegularTxByHash = `SELECT id, block_hash, block_index FROM %stransactions WHERE tx_hash = $1;`
 
 	SelectTxsBlocks = `SELECT block_height, block_hash, block_index
 		FROM %stransactions
@@ -115,9 +119,6 @@ const (
 	// 	FROM  transactions txs, unnest(txs.vouts) vo
 	// 	WHERE txs.id = $1;`
 	// RetrieveVoutValue = `SELECT vouts[$2].value FROM transactions WHERE id = $1;`
-
-	RetrieveVoutDbIDs             = `SELECT unnest(vout_db_ids) FROM %stransactions WHERE id = $1;`
-	RetrieveVoutDbID              = `SELECT vout_db_ids[$2] FROM %stransactions WHERE id = $1;`
 	SelectFeesPerBlockAboveHeight = `
 	SELECT block_height, SUM(fees) AS fees
 	FROM %stransactions

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -189,10 +188,9 @@ func InsertMutilchainTxns(sqlTx *sql.Tx, dbTxns []*dbtypes.Tx, checked bool, cha
 		//TODO: uncomment lock_time
 		err := stmt.QueryRow(
 			tx.BlockHash, tx.BlockHeight, tx.BlockTime.UNIX(), tx.Time.UNIX(),
-			tx.TxType, tx.Version, tx.Tree, tx.TxID, tx.BlockIndex,
-			0, tx.Expiry, tx.Size, tx.Spent, tx.Sent, tx.Fees,
-			tx.NumVin, dbtypes.UInt64Array(tx.VinDbIds),
-			tx.NumVout, dbtypes.UInt64Array(tx.VoutDbIds)).Scan(&id)
+			tx.TxType, tx.Version, tx.TxID, tx.BlockIndex,
+			tx.Locktime, tx.Size, tx.Spent, tx.Sent, tx.Fees,
+			tx.NumVin, tx.NumVout).Scan(&id)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				log.Errorf("%s: Insert to transactions table unsuccessfully. Height: %d", chainType, tx.BlockHeight)
@@ -518,20 +516,13 @@ func GetXmrTxParseJSONSimpleData(txJSONStr string) (xmrParseTxResult, error) {
 	return parseRes, nil
 }
 
-func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txHash, txHex, txJSONStr string, checked, isCoinbase bool) (uint64, int64, int, error) {
+func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime, blockIndex int64, txHash, txHex, txJSONStr string, checked, isCoinbase bool) (uint64, int64, int, error) {
 	stmt, err := dbtx.Prepare(mutilchainquery.MakeTxInsertStatement(checked, mutilchain.TYPEXMR))
 	if err != nil {
 		log.Errorf("%s: Txns INSERT prepare: %v", mutilchain.TYPEXMR, err)
 		return 0, 0, 0, err
 	}
 	defer stmt.Close()
-	var txBlob []byte
-	if txHex != "" {
-		b, err := hex.DecodeString(txHex)
-		if err == nil {
-			txBlob = b
-		}
-	}
 	var txExtra interface{}
 	if txJSONStr != "" {
 		// store parsed JSONB for easier queries
@@ -545,24 +536,20 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 	}
 	timeField := int64(0)
 	version := 0
-	tree := int16(0)
-	blockIndex := 0
 	isRingCT := false
 	rctType := sql.NullInt64{}
 	txPubKey := sql.NullString{}
 	prunableSize := sql.NullInt64{}
-	lockTime := int64(0)
-	expiry := int64(0)
 	size := 0
 	if txHex != "" {
 		size = len(txHex) / 2
 	}
-	spent := int64(0)
 	fees := int64(0)
 	numVin := 0
 	vins := []string{}
 	numVout := 0
 	var sumOut int64 = 0
+	var sumIn int64 = 0
 	// parse some common fields from txExtra (tx JSON)
 	if txExtra != nil {
 		switch v := txExtra.(type) {
@@ -582,7 +569,6 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 					fees = int64(feeIf)
 				}
 			}
-			var sumIn int64 = 0
 			// vins/vouts length
 			if vinsIf, ok := v["vin"].([]interface{}); ok {
 				numVin = len(vinsIf)
@@ -635,17 +621,12 @@ func InsertXMRTxn(dbtx *sql.Tx, height uint32, hash string, blockTime int64, txH
 			}
 		}
 	}
-
-	var txExtraJSON []byte
-	if txJSONStr != "" {
-		txExtraJSON = []byte(txJSONStr)
-	}
 	var id uint64
 	err = stmt.QueryRow(
 		hash, height, blockTime, timeField,
-		0, version, tree, txHash, txBlob, txExtraJSON, blockIndex, isRingCT,
+		0, version, txHash, blockIndex, isRingCT,
 		xmrhelper.NullIntToInterface(rctType), xmrhelper.NullStringToInterface(txPubKey),
-		prunableSize, lockTime, expiry, size, spent, sumOut, fees, numVin, pq.Array(vins), numVout, isCoinbase).Scan(&id)
+		prunableSize, size, sumIn, sumOut, fees, numVin, numVout, isCoinbase).Scan(&id)
 	if err != nil {
 		log.Warnf("XMR: InsertXMRTxn - Looks like duplicate on db, ignore: %v", err)
 	}
@@ -774,7 +755,7 @@ func InsertMutilchainWholeBlock(dbtx *sql.Tx, dbBlock *dbtypes.Block, isValid, c
 	return id, nil
 }
 
-func InsertXMRWholeBlock(dbtx *sql.Tx, dbBlock *dbtypes.Block, blobBytes []byte, isValid, checked bool, txsParseRes storeTxnsResult) (uint64, error) {
+func InsertXMRWholeBlock(dbtx *sql.Tx, dbBlock *dbtypes.Block, isValid, checked bool, txsParseRes storeTxnsResult) (uint64, error) {
 	insertStatement := mutilchainquery.MakeBlockAllInsertStatement(checked, mutilchain.TYPEXMR)
 	stmt, err := dbtx.Prepare(insertStatement)
 	if err != nil {
@@ -782,7 +763,7 @@ func InsertXMRWholeBlock(dbtx *sql.Tx, dbBlock *dbtypes.Block, blobBytes []byte,
 		return 0, err
 	}
 	var id uint64
-	err = stmt.QueryRow(dbBlock.Hash, dbBlock.Height, blobBytes,
+	err = stmt.QueryRow(dbBlock.Hash, dbBlock.Height,
 		txsParseRes.totalSize, isValid, dbBlock.Version,
 		dbBlock.NumTx, dbBlock.Time.UNIX(),
 		dbBlock.Nonce, dbBlock.PoolSize, dbBlock.Bits,

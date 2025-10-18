@@ -14,14 +14,14 @@ const (
 		difficulty, previous_hash, num_vins, num_vouts, fees, total_sent)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`
 	insertXmrBlockAllRow0 = `INSERT INTO xmrblocks_all (
-		hash, height, block_blob, size, is_valid, version,
+		hash, height, size, is_valid, version,
 		numtx, time, nonce, pool_size, bits, 
 		difficulty, difficulty_num, cumulative_difficulty, 
 		pow_algo, previous_hash, num_vins, num_vouts, fees, 
 		total_sent, reward, 
 		ring_size, avg_ring_size, fee_per_kb, avg_tx_size, 
 		decoy_03, decoy_47, decoy_811, decoy_1214, decoy_gt15, chart_synced)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)`
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)`
 
 	insertBlockAllRow           = insertBlockAllRow0 + ` RETURNING id;`
 	insertBlockAllRowChecked    = insertBlockAllRow0 + ` ON CONFLICT (height) DO NOTHING RETURNING id;`
@@ -48,7 +48,6 @@ const (
 		id SERIAL PRIMARY KEY,
 		hash TEXT NOT NULL, -- UNIQUE
 		height INT4,
-		block_blob BYTEA,
 		size INT4,
 		is_valid BOOLEAN,
 		version INT4,
@@ -75,7 +74,6 @@ const (
 		id SERIAL PRIMARY KEY,
 		hash TEXT NOT NULL, -- UNIQUE
 		height INT4,
-		block_blob BYTEA,
 		size INT4,
 		is_valid BOOLEAN,
 		version INT4,

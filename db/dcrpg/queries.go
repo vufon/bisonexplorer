@@ -3925,20 +3925,17 @@ func RetrieveDbTxByHash(ctx context.Context, db *sql.DB, txHash string) (id uint
 
 func RetrieveMutilchainDbTxByHash(ctx context.Context, db *sql.DB, txHash string, chainType string) (id uint64, dbTx *dbtypes.Tx, err error) {
 	dbTx = new(dbtypes.Tx)
-	vinDbIDs := dbtypes.UInt64Array(dbTx.VinDbIds)
-	voutDbIDs := dbtypes.UInt64Array(dbTx.VoutDbIds)
+	// vinDbIDs := dbtypes.UInt64Array(dbTx.VinDbIds)
+	// voutDbIDs := dbtypes.UInt64Array(dbTx.VoutDbIds)
 	var blockTime int64
 	var txTime int64
 	err = db.QueryRowContext(ctx, mutilchainquery.MakeSelectFullTxByHash(chainType), txHash).Scan(&id,
 		&dbTx.BlockHash, &dbTx.BlockHeight, &blockTime, &txTime,
-		&dbTx.TxType, &dbTx.Version, &dbTx.Tree, &dbTx.TxID, &dbTx.BlockIndex,
-		&dbTx.Locktime, &dbTx.Expiry, &dbTx.Size, &dbTx.Spent, &dbTx.Sent,
-		&dbTx.Fees, &dbTx.NumVin, &vinDbIDs,
-		&dbTx.NumVout, &voutDbIDs)
+		&dbTx.TxType, &dbTx.Version, &dbTx.TxID, &dbTx.BlockIndex,
+		&dbTx.Locktime, &dbTx.Size, &dbTx.Spent, &dbTx.Sent,
+		&dbTx.Fees, &dbTx.NumVin, &dbTx.NumVout)
 	dbTx.BlockTime = dbtypes.NewTimeDef(time.Unix(blockTime, 0))
 	dbTx.Time = dbtypes.NewTimeDef(time.Unix(txTime, 0))
-	dbTx.VinDbIds = vinDbIDs
-	dbTx.VoutDbIds = voutDbIDs
 	return
 }
 
