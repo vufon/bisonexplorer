@@ -379,7 +379,7 @@ ORDER BY spend_blk.height;`
 		COALESCE(SUM(spent),0) AS total_spent,
 		COALESCE(SUM(sent),0) AS total_sent,
 		COALESCE(SUM(num_vin),0) AS total_num_vin,
-		COALESCE(SUM(num_vout),0) AS total_num_vout,
+		COALESCE(SUM(num_vout),0) AS total_num_vout
 		FROM transactions WHERE block_height=$1 AND tx_type=0`
 
 	SelectTotalTransactions = `SELECT COUNT(*) FROM transactions WHERE is_valid AND is_mainchain;`
