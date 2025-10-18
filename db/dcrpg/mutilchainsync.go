@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"strings"
@@ -1026,16 +1025,9 @@ func (pgb *ChainDB) StoreXMRWholeBlock(client *xmrclient.XMRClient, checked, upd
 	dbBlock.NumVouts = uint32(numVouts)
 	dbBlock.Fees = uint64(txRes.fees)
 	dbBlock.TotalSent = uint64(txRes.totalSent)
-	var blobBytes []byte
-	if br.Blob != "" {
-		b, err := hex.DecodeString(br.Blob)
-		if err == nil {
-			blobBytes = b
-		}
-	}
 	txRes.totalSize += int64(dbBlock.Size)
 	// Store the block now that it has all it's transaction PK IDs
-	_, err = InsertXMRWholeBlock(dbtx, dbBlock, blobBytes, true, checked, txRes)
+	_, err = InsertXMRWholeBlock(dbtx, dbBlock, true, checked, txRes)
 	if err != nil {
 		log.Error("XMR: InsertBlock:", err)
 		return
@@ -1414,7 +1406,7 @@ func (pgb *ChainDB) storeXMRWholeTxns(dbtx *sql.Tx, client *xmrclient.XMRClient,
 		}
 		// insert transaction row
 		// Get the tx PK IDs for storage in the blocks table
-		_, fees, txSize, err := InsertXMRTxn(dbtx, block.Height, block.Hash, block.Time.T.Unix(), txHash, txHex, txJSONStr, checked, isCoinbaseTx)
+		_, fees, txSize, err := InsertXMRTxn(dbtx, block.Height, block.Hash, block.Time.T.Unix(), int64(i), txHash, txHex, txJSONStr, checked, isCoinbaseTx)
 		if err != nil && err != sql.ErrNoRows {
 			log.Error("XMR: InsertTxn: %v", err)
 			txRes.err = err
