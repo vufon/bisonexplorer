@@ -27,6 +27,22 @@ type XMRClient struct {
 	MaxRetries int           // optional: retry num
 }
 
+type XmrTxExtra struct {
+	RawHex             string
+	TxPublicKey        string
+	AdditionalPubkeys  []string           // []hex (each 32 bytes) (tag 0x04)
+	ExtraNonce         []byte             // raw bytes (tag 0x02)
+	PaymentID          string             // decrypted/unencrypted payment id (hex) if found inside extra nonce
+	EncryptedPaymentID string             // short (8B) encrypted payment id (hex) if present
+	MergeMining        *XmrMergeMiningTag // optional struct
+	UnknownFields      map[byte][]byte    // store other tag => raw bytes
+}
+
+type XmrMergeMiningTag struct {
+	Depth      uint8
+	MerkleRoot []byte
+}
+
 // NewXMRClient preserves previous signature and uses 60s timeout.
 func NewXMRClient(endpoint string) *XMRClient {
 	return NewXMRClientWithTimeout(endpoint, 10*time.Minute)

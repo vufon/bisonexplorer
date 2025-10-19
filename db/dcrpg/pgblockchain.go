@@ -838,6 +838,8 @@ func NewChainDB(ctx context.Context, cfg *ChainDBCfg, stakeDB *stakedb.StakeData
 		cfg.AddrCacheUTXOByteCap)
 	addrCache.ProjectAddress = projectFundAddress
 
+	// init on xmrclient
+	xmrclient.Init()
 	//init ltc address cache
 	chainDB := &ChainDB{
 		ctx:                ctx,
@@ -10042,7 +10044,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 	numVout := 0
 	txSent := int64(0)
 	var ringSizes []int
-	var parsedExtra *exptypes.XmrTxExtra
+	var parsedExtra *xmrclient.XmrTxExtra
 	// var hexExtra string
 	outputs := make([]exptypes.XmrOutputInfo, 0)
 	// vinsObjects := make([]exptypes.XmrVinInfo, 0)
@@ -10231,14 +10233,14 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 						}
 					}
 					extraHex = hex.EncodeToString(extraBytes)
-					parsedExtra, parseErr = ParseTxExtra(extraHex)
+					parsedExtra, parseErr = xmrclient.ParseTxExtra(extraHex)
 					if parseErr != nil {
 						log.Errorf("Failed to parse extra: %v", parseErr)
 						return nil, parseErr
 					}
 				} else if extraStr, ok := v["extra"].(string); ok {
 					extraHex = extraStr
-					parsedExtra, parseErr = ParseTxExtra(extraHex)
+					parsedExtra, parseErr = xmrclient.ParseTxExtra(extraHex)
 					if parseErr != nil {
 						log.Errorf("Failed to parse extra: %v", parseErr)
 						return nil, parseErr
@@ -10251,7 +10253,7 @@ func (pgb *ChainDB) GetXMRExplorerTx(txhash string) (*exptypes.TxInfo, error) {
 					return nil, fmt.Errorf("parsed extra data failed")
 				}
 			} else {
-				parsedExtra = &exptypes.XmrTxExtra{
+				parsedExtra = &xmrclient.XmrTxExtra{
 					RawHex:      "",
 					TxPublicKey: "",
 				}
@@ -10466,7 +10468,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 		txSent := int64(0)
 		var ringSizes []int
 		var ringSize int
-		var parsedExtra *exptypes.XmrTxExtra
+		var parsedExtra *xmrclient.XmrTxExtra
 		var hexExtra string
 		outputs := make([]exptypes.XmrOutputInfo, 0)
 		// vinsObjects := make([]exptypes.XmrVinInfo, 0)
@@ -10605,7 +10607,7 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 				}
 				// fees / outputs / total sent: sometimes present in tx JSON
 				if extraHex, ok := v["extra"].(string); ok {
-					parsedExtra, _ = ParseTxExtra(extraHex)
+					parsedExtra, _ = xmrclient.ParseTxExtra(extraHex)
 					hexExtra = extraHex
 				}
 				var rctPrunableHash string
@@ -10701,89 +10703,6 @@ func (pgb *ChainDB) GetXMRExplorerBlockWithBlockResult(br *xmrutil.BlockResult, 
 	pgb.xmrLastExplorerBlock.difficulties = make(map[int64]float64) // used by the Difficulty method
 	pgb.xmrLastExplorerBlock.Unlock()
 	return block
-}
-
-func ParseTxExtra(hexExtra string) (*exptypes.XmrTxExtra, error) {
-	b, err := hex.DecodeString(hexExtra)
-	if err != nil {
-		return nil, err
-	}
-	te := &exptypes.XmrTxExtra{
-		RawHex:        hexExtra,
-		UnknownFields: make(map[byte][]byte),
-	}
-
-	i := 0
-	n := len(b)
-	for i < n {
-		tag := b[i]
-		i++
-		switch tag {
-		case 0x00: // padding: skip single byte (or consecutive padding bytes)
-			// do nothing (padding may be many 0x00 bytes)
-		case 0x01: // tx pubkey (32 bytes)
-			if i+32 > n {
-				return nil, errors.New("tx extra: pubkey truncated")
-			}
-			te.TxPublicKey = hex.EncodeToString(b[i : i+32])
-			i += 32
-		case 0x02: // extra nonce: next byte is length
-			if i >= n {
-				return nil, errors.New("tx extra: nonce length missing")
-			}
-			L := int(b[i])
-			i++
-			if i+L > n {
-				return nil, errors.New("tx extra: nonce truncated")
-			}
-			nonce := b[i : i+L]
-			te.ExtraNonce = nonce
-			// parse inner nonce tags (simple parse: check first byte)
-			if L > 0 {
-				subtag := nonce[0]
-				switch subtag {
-				case 0x00: // long payment id (32 bytes) deprecated
-					if len(nonce) >= 1+32 {
-						te.PaymentID = hex.EncodeToString(nonce[1 : 1+32])
-					}
-				case 0x01: // encrypted short payment id (8 bytes)
-					if len(nonce) >= 1+8 {
-						te.EncryptedPaymentID = hex.EncodeToString(nonce[1 : 1+8])
-					}
-				default:
-					// could be miner pool nonce etc — store raw
-					te.UnknownFields[0x02] = nonce
-				}
-			}
-			i += L
-		case 0x04: // additional pubkeys: next byte = count
-			if i >= n {
-				return nil, errors.New("tx extra: additional pubkeys count missing")
-			}
-			cnt := int(b[i])
-			i++
-			needed := cnt * 32
-			if i+needed > n {
-				return nil, fmt.Errorf("tx extra: additional pubkeys truncated (need %d bytes)", needed)
-			}
-			arr := make([]string, 0, cnt)
-			for k := 0; k < cnt; k++ {
-				arr = append(arr, hex.EncodeToString(b[i:i+32]))
-				i += 32
-			}
-			te.AdditionalPubkeys = arr
-		case 0x03: // merge-mining tag (implementation-dependent)
-			// simple approach: store raw — real parsing needs format knowledge
-			// read next byte len? (core code uses structured tag)
-			te.UnknownFields[0x03] = nil // placeholder
-		default:
-			// unknown tag: it's safer to try to skip if next byte indicates length (but not all tags follow same rule)
-			// store single-byte unknown for visibility
-			te.UnknownFields[tag] = nil
-		}
-	}
-
-	return te, nil
 }
 
 // GetLTCExplorerBlock gets a *exptypes.Blockinfo for the specified ltc block.

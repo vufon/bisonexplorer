@@ -54,6 +54,7 @@ require (
 	decred.org/dcrdex v0.6.1 // indirect
 	decred.org/dcrwallet v1.7.0 // indirect
 	decred.org/dcrwallet/v2 v2.0.11 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect

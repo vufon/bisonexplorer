@@ -26,6 +26,7 @@ import (
 	"github.com/decred/dcrdata/v8/db/dbtypes"
 	"github.com/decred/dcrdata/v8/mutilchain/externalapi"
 	"github.com/decred/dcrdata/v8/txhelpers"
+	"github.com/decred/dcrdata/v8/xmr/xmrclient"
 	"github.com/decred/dcrdata/v8/xmr/xmrutil"
 )
 
@@ -225,8 +226,8 @@ type XmrTxFull struct {
 	Rct *XmrRctData `json:"rct,omitempty"`
 
 	// Extra & parsed data
-	ExtraRaw    string      `json:"extra_raw,omitempty"`    // hex
-	ExtraParsed *XmrTxExtra `json:"extra_parsed,omitempty"` // parsed fields: tx pubkey, short/long pid, tx notes
+	ExtraRaw    string                `json:"extra_raw,omitempty"`    // hex
+	ExtraParsed *xmrclient.XmrTxExtra `json:"extra_parsed,omitempty"` // parsed fields: tx pubkey, short/long pid, tx notes
 
 	// Derived / view-key related
 	// NOTE: decoded outputs only available if you have wallet view-key scanning done.
@@ -284,22 +285,6 @@ type XmrRctData struct {
 	PrunableHash string `json:"prunable_hash,omitempty"`
 }
 
-type XmrTxExtra struct {
-	RawHex             string
-	TxPublicKey        string
-	AdditionalPubkeys  []string           // []hex (each 32 bytes) (tag 0x04)
-	ExtraNonce         []byte             // raw bytes (tag 0x02)
-	PaymentID          string             // decrypted/unencrypted payment id (hex) if found inside extra nonce
-	EncryptedPaymentID string             // short (8B) encrypted payment id (hex) if present
-	MergeMining        *XmrMergeMiningTag // optional struct
-	UnknownFields      map[byte][]byte    // store other tag => raw bytes
-}
-
-type XmrMergeMiningTag struct {
-	Depth      uint8
-	MerkleRoot []byte
-}
-
 func AtomicToXMRString(a uint64) string {
 	ai := new(big.Int).SetUint64(a)
 	intPart := new(big.Int).Div(ai, atomicPerXMR)
@@ -339,7 +324,7 @@ type XmrTxBasic struct {
 	RingMembers    []XmrRingMemberInfo
 	MaxGlobalIndex uint64
 	Rct            *XmrRctData
-	ExtraParsed    *XmrTxExtra
+	ExtraParsed    *xmrclient.XmrTxExtra
 	UnlockTime     uint64
 	Mixin          int
 	RingSize       int
