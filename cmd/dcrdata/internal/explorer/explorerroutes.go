@@ -5254,8 +5254,19 @@ func (exp *ExplorerUI) VerifyMessageHandler(w http.ResponseWriter, r *http.Reque
 	displayPage("", true)
 }
 
-// IsCrawlerUserAgent return if is crawler user agent
 func (exp *ExplorerUI) IsCrawlerUserAgent(userAgent, ip string) bool {
+	if strings.Contains(userAgent, "facebookexternalhit") {
+		return true
+	}
+	//check isCrawler
+	if crawlerdetect.IsCrawler(userAgent) {
+		return true
+	}
+	return agents.IsCrawler(userAgent)
+}
+
+// IsCrawlerUserAgent return if is crawler user agent
+func (exp *ExplorerUI) IsCrawlerUserAgentAdvance(userAgent, ip string) bool {
 	if strings.Contains(userAgent, "facebookexternalhit") {
 		return true
 	}
