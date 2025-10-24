@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -609,6 +610,266 @@ func moneroVarint(x uint64) []byte {
 	return out
 }
 
+func debugDumpTxExtraTags(hexExtra string) {
+	b, _ := hex.DecodeString(hexExtra)
+	n := len(b)
+	i := 0
+	readVar := func() (int, error) {
+		val, shift := 0, 0
+		for {
+			if i >= n {
+				return 0, fmt.Errorf("varint truncated")
+			}
+			c := int(b[i])
+			i++
+			val |= (c & 0x7F) << shift
+			if (c & 0x80) == 0 {
+				break
+			}
+			shift += 7
+		}
+		return val, nil
+	}
+	fmt.Printf("tx_extra len=%d\n", n)
+	for i < n {
+		tag := b[i]
+		i++
+		switch tag {
+		case 0x00:
+			fmt.Println("tag 00 (padding)")
+		case 0x01:
+			if i+32 > n {
+				fmt.Println("tag 01 truncated")
+				return
+			}
+			fmt.Printf("tag 01 tx_pubkey=%x\n", b[i:i+32])
+			i += 32
+		case 0x02:
+			L, err := readVar()
+			if err != nil {
+				fmt.Println("tag 02 varint err:", err)
+				return
+			}
+			if i+L > n {
+				fmt.Println("tag 02 truncated")
+				return
+			}
+			fmt.Printf("tag 02 extra_nonce len=%d (first=%02x)\n", L, b[i])
+			i += L
+		case 0x03:
+			L, err := readVar()
+			if err != nil {
+				fmt.Println("tag 03 varint err:", err)
+				return
+			}
+			if i+L > n {
+				fmt.Println("tag 03 truncated")
+				return
+			}
+			fmt.Printf("tag 03 merge-mining len=%d\n", L)
+			i += L
+		case 0x04:
+			L, err := readVar()
+			if err != nil {
+				fmt.Println("tag 04 varint err:", err)
+				return
+			}
+			if i+L > n {
+				fmt.Println("tag 04 truncated")
+				return
+			}
+			cnt := L / 32
+			fmt.Printf("tag 04 additional_pubkeys bytes=%d cnt=%d\n", L, cnt)
+			for k := 0; k < cnt; k++ {
+				fmt.Printf("  R[%d]=%x\n", k, b[i+k*32:i+(k+1)*32])
+			}
+			i += L
+		default:
+			L, err := readVar()
+			if err != nil {
+				fmt.Printf("tag %02x varint err: %v\n", tag, err)
+				return
+			}
+			if i+L > n {
+				fmt.Printf("tag %02x truncated need %d\n", tag, L)
+				return
+			}
+			fmt.Printf("tag %02x len=%d (skipped)\n", tag, L)
+			i += L
+		}
+	}
+}
+
+func tryMatchWithB(
+	te *XmrTxExtra,
+	outOneTimeKeys []string, // list of vout public keys (P)
+	Rcands []*edwards25519.Point,
+	B *edwards25519.Point, // public spend key (standard or subaddress)
+	a *edwards25519.Scalar, // private view key
+	debug bool,
+) ([]ownedOut, int, error) {
+
+	var owned []ownedOut
+
+	// Try 3 derivation variants
+	for variant := 1; variant <= 3; variant++ {
+		owned = owned[:0] // reset
+
+		for i, Phex := range outOneTimeKeys {
+			Pb, err := hex.DecodeString(Phex)
+			if err != nil || len(Pb) != 32 {
+				continue
+			}
+			P, err := bytesToPoint(Pb)
+			if err != nil {
+				continue
+			}
+
+			var derivedP *edwards25519.Point
+			var Rused *edwards25519.Point
+			var found bool
+
+			switch variant {
+			case 1: // Standard: P = Hs(R || i) * B + a*G
+				for _, R := range Rcands {
+					derived := deriveOneTimeKeyV1(R, B, a, uint64(i))
+					if derived.Equal(P) == 1 {
+						derivedP = derived
+						Rused = R
+						found = true
+						break
+					}
+				}
+			case 2: // Subaddress V2: P = Hs(a*R || i) * G + B
+				for _, R := range Rcands {
+					derived := deriveOneTimeKeyV2(R, B, a, uint64(i))
+					if derived.Equal(P) == 1 {
+						derivedP = derived
+						Rused = R
+						found = true
+						break
+					}
+				}
+			case 3: // Subaddress V3 (rare): P = Hs(R || a*B || i) * G + B
+				for _, R := range Rcands {
+					derived := deriveOneTimeKeyV3(R, B, a, uint64(i))
+					if derived.Equal(P) == 1 {
+						derivedP = derived
+						Rused = R
+						found = true
+						break
+					}
+				}
+			}
+
+			if found {
+				owned = append(owned, ownedOut{
+					Index:    i,
+					RUsed:    Rused,
+					DerivedP: derivedP,
+				})
+				if debug {
+					fmt.Printf("  [variant %d] MATCH vout[%d] with R=%s\n", variant, i, hex.EncodeToString(Rused.Bytes()))
+				}
+			}
+		}
+
+		if len(owned) > 0 {
+			return owned, variant, nil
+		}
+	}
+
+	return nil, 0, fmt.Errorf("no output matched with any derivation variant")
+}
+
+func deriveOneTimeKeyV2(R, B *edwards25519.Point, a *edwards25519.Scalar, outputIndex uint64) *edwards25519.Point {
+	// P = Hs(a*R || index) * G + B
+
+	// 1. aR = a * R
+	var aR edwards25519.Point
+	aR.ScalarMult(a, R)
+
+	// 2. Hs(aR ||#index)
+	var buf [40]byte
+	copy(buf[:32], aR.Bytes())
+	binary.LittleEndian.PutUint64(buf[32:], outputIndex)
+	h := keccak256(buf[:])
+
+	var hs edwards25519.Scalar
+	hs.SetBytesWithClamping(h)
+
+	// 3. hs * G
+	var term1 edwards25519.Point
+	term1.ScalarBaseMult(&hs)
+
+	// 4. P = term1 + B
+	var result edwards25519.Point
+	result.Add(&term1, B)
+
+	return &result
+}
+
+func deriveOneTimeKeyV3(R, B *edwards25519.Point, a *edwards25519.Scalar, outputIndex uint64) *edwards25519.Point {
+	// P = Hs(R || a*B || index) * G + B
+
+	// 1. aB = a * B
+	var aB edwards25519.Point
+	aB.ScalarMult(a, B)
+
+	// 2. Hs(R || aB || index)
+	var buf [72]byte
+	copy(buf[:32], R.Bytes())
+	copy(buf[32:64], aB.Bytes())
+	binary.LittleEndian.PutUint64(buf[64:], outputIndex)
+	h := keccak256(buf[:])
+
+	var hs edwards25519.Scalar
+	hs.SetBytesWithClamping(h)
+
+	// 3. hs * G
+	var term1 edwards25519.Point
+	term1.ScalarBaseMult(&hs)
+
+	// 4. P = term1 + B
+	var result edwards25519.Point
+	result.Add(&term1, B)
+
+	return &result
+}
+
+func deriveOneTimeKeyV1(R, B *edwards25519.Point, a *edwards25519.Scalar, outputIndex uint64) *edwards25519.Point {
+	// P = Hs(R || output_index) * B + a * G
+
+	// 1. Hs(R || index)
+	var buf [40]byte
+	copy(buf[:32], R.Bytes())
+	binary.LittleEndian.PutUint64(buf[32:], outputIndex)
+	h := keccak256(buf[:])
+
+	var hs edwards25519.Scalar
+	hs.SetBytesWithClamping(h)
+
+	// 2. term1 = hs * B
+	var term1 edwards25519.Point
+	term1.ScalarMult(&hs, B)
+
+	// 3. term2 = a * G
+	var term2 edwards25519.Point
+	term2.ScalarBaseMult(a)
+
+	// 4. P = term1 + term2
+	var result edwards25519.Point
+	result.Add(&term1, &term2)
+
+	return &result
+}
+
+type ownedOut struct {
+	Index    int
+	RUsed    *edwards25519.Point
+	DerivedP *edwards25519.Point
+}
+
 func DecodeOutputs(
 	ctx context.Context,
 	rpcURL, rpcAuth, walletFilesDir,
@@ -943,13 +1204,21 @@ func DecodeOutputs(
 	// --- Lấy vật liệu RingCT + xác định outputs thuộc về bạn + giải mã amount từng output ---
 	extraHex, outOneTimeKeys, ecdhAmtC, ecdhMaskC, parseErr := fetchTxFromDaemon(txJSONStr)
 	if parseErr != nil {
-		// Không có ciphertext => không thể giải mã per-output; vẫn trả tổng từ wallet-rpc
 		fmt.Println("warn: cannot extract RingCT ciphertext from txJSONStr: ", parseErr)
 		return result, nil
 	}
 
 	fmt.Println("check out keys: ", outOneTimeKeys)
+	fmt.Printf("ecdh arrays: amt=%d mask=%d\n", len(ecdhAmtC), len(ecdhMaskC))
+	if len(outOneTimeKeys) == 0 {
+		fmt.Println("warn: no vout one-time keys in txJSONStr")
+		return result, nil
+	}
 
+	// 1) Dump tx_extra theo tag để chắc chắn parser không lệch (đặc biệt 0x04)
+	debugDumpTxExtraTags(extraHex)
+
+	// 2) Parse tx_extra “chính thống” (dùng varint cho 0x02/0x04)
 	te, err := ParseTxExtra(extraHex)
 	if err != nil {
 		return nil, fmt.Errorf("ParseTxExtra: %w", err)
@@ -958,70 +1227,151 @@ func DecodeOutputs(
 	if len(te.AdditionalPubkeys) > 0 {
 		fmt.Println("R[0]:", te.AdditionalPubkeys[0])
 	}
-	// --- Chọn Bused ---
-	var Bused *edwards25519.Point
+
+	// 3) Chuẩn bị danh sách R_used candidates
+	Rcands := make([]*edwards25519.Point, 0, 1+len(te.AdditionalPubkeys))
+	if te.TxPublicKey != "" {
+		if rb, _ := hex.DecodeString(te.TxPublicKey); len(rb) == 32 {
+			if p, e := bytesToPoint(rb); e == nil {
+				Rcands = append(Rcands, p) // base R
+			} else {
+				fmt.Println("warn: txpub base SetBytes:", e)
+			}
+		}
+	}
+	for _, h := range te.AdditionalPubkeys {
+		if b, _ := hex.DecodeString(h); len(b) == 32 {
+			if p, e := bytesToPoint(b); e == nil {
+				Rcands = append(Rcands, p) // additional R_i
+			} else {
+				fmt.Println("warn: addl R SetBytes:", e)
+			}
+		}
+	}
+	fmt.Printf("R candidates count = %d (base + addls)\n", len(Rcands))
+	if len(Rcands) == 0 {
+		fmt.Println("warn: no R candidates; cannot match outputs")
+		return result, nil
+	}
+
+	// 4) Chuẩn bị danh sách B_used candidates (theo ưu tiên)
+	getBFromAddr := func(addr string) *edwards25519.Point {
+		ap, e := ParseAddress(addr)
+		if e != nil {
+			fmt.Println("getBFromAddr ParseAddress err:", e)
+			return nil
+		}
+		p, e2 := bytesToPoint(ap.PublicSpendKey)
+		if e2 != nil {
+			fmt.Println("getBFromAddr bytesToPoint err:", e2)
+			return nil
+		}
+		return p
+	}
+	isStandard := func(addr string) bool { return len(addr) > 0 && addr[0] == '4' }
+	isSubAddr := func(addr string) bool { return len(addr) > 0 && addr[0] == '8' }
+
+	type Bcand struct {
+		Label string
+		B     *edwards25519.Point
+	}
+	var Bcands []Bcand
+
 	if len(te.AdditionalPubkeys) == 0 {
-		// Dùng địa chỉ CHUẨN (bắt đầu 4...) để lấy B main
-		apMain, err := ParseAddress(address) // truyền vào địa chỉ chuẩn tương ứng giao dịch này
-		if err == nil {
-			if Bm, e := bytesToPoint(apMain.PublicSpendKey); e == nil {
-				Bused = Bm
-				fmt.Println("using B from STANDARD address (no additional_pubkeys in extra)")
+		// Không có 0x04 → khả năng cao KHÔNG gửi subaddress; ưu tiên standard
+		if isStandard(address) {
+			if b := getBFromAddr(address); b != nil {
+				Bcands = append(Bcands, Bcand{"B from PARAM standard address", b})
+			}
+		}
+		if result.Address != "" && isStandard(result.Address) {
+			if b := getBFromAddr(result.Address); b != nil {
+				Bcands = append(Bcands, Bcand{"B from t.Address standard", b})
+			}
+		}
+		if b := getBFromAddr(address); b != nil {
+			Bcands = append(Bcands, Bcand{"B main (fallback)", b})
+		}
+		if result.SubaddrMajor != 0 || result.SubaddrMinor != 0 {
+			if mainP := getBFromAddr(address); mainP != nil {
+				if bp, e := computeSubaddressSpendKey(mainP, a, uint64(result.SubaddrMajor), uint64(result.SubaddrMinor)); e == nil {
+					Bcands = append(Bcands, Bcand{fmt.Sprintf("B' computed (%d,%d)", result.SubaddrMajor, result.SubaddrMinor), bp})
+				} else {
+					fmt.Println("warn: computeSubaddressSpendKey:", e)
+				}
 			}
 		}
 	} else {
-		// 3.1) Nếu wallet-rpc trả address nhận (subaddress)
-		// (bạn đã parse vào t.Address nếu có)
-		if result.Address != "" {
-			// ưu tiên parse chính địa chỉ này để lấy đúng B' (đỡ phải tự compute)
-			ap, perr := ParseAddress(result.Address)
-			if perr == nil {
-				bp, perr2 := bytesToPoint(ap.PublicSpendKey)
-				if perr2 == nil {
-					Bused = bp
-					fmt.Println("using B from t.Address (subaddress)")
+		// Có 0x04 → thường là subaddress; ưu tiên B' từ t.Address hoặc compute
+		if result.Address != "" && isSubAddr(result.Address) {
+			if b := getBFromAddr(result.Address); b != nil {
+				Bcands = append(Bcands, Bcand{"B' from t.Address (subaddress)", b})
+			}
+		}
+		if result.SubaddrMajor != 0 || result.SubaddrMinor != 0 {
+			if mainP := getBFromAddr(address); mainP != nil {
+				if bp, e := computeSubaddressSpendKey(mainP, a, uint64(result.SubaddrMajor), uint64(result.SubaddrMinor)); e == nil {
+					Bcands = append(Bcands, Bcand{fmt.Sprintf("B' computed (%d,%d)", result.SubaddrMajor, result.SubaddrMinor), bp})
+				} else {
+					fmt.Println("warn: computeSubaddressSpendKey:", e)
 				}
 			}
 		}
-
-		// 3.2) Nếu có subaddr_index (major, minor), tự compute B'
-		if Bused == nil && (result.SubaddrMajor != 0 || result.SubaddrMinor != 0) {
-			// Parse B main từ address đầu vào
-			mainParsed, perr := ParseAddress(address)
-			if perr == nil {
-				Bmain, perr2 := bytesToPoint(mainParsed.PublicSpendKey)
-				if perr2 == nil {
-					Bp, perr3 := computeSubaddressSpendKey(Bmain, a, uint64(result.SubaddrMajor), uint64(result.SubaddrMinor))
-					if perr3 == nil {
-						Bused = Bp
-						fmt.Printf("using computed B' for subaddr (%d,%d)\n", result.SubaddrMajor, result.SubaddrMinor)
-					}
-				}
-			}
-		}
-
-		// 3.3) Fallback: dùng B main
-		if Bused == nil {
-			mainParsed, perr := ParseAddress(address)
-			if perr != nil {
-				fmt.Println("warn: ParseAddress(main): ", perr)
-				return result, nil
-			}
-			Bmain, perr2 := bytesToPoint(mainParsed.PublicSpendKey)
-			if perr2 != nil {
-				fmt.Println("warn: B main invalid: ", perr2)
-				return result, nil
-			}
-			Bused = Bmain
-			fmt.Println("using main address B")
+		if b := getBFromAddr(address); b != nil {
+			Bcands = append(Bcands, Bcand{"B main (fallback)", b})
 		}
 	}
 
-	ownedOuts, ownErr := MatchOwnedOutputsWithB(te, extraHex, outOneTimeKeys, Bused, a)
-	if ownErr != nil {
-		fmt.Println("warn: cannot match owned outputs: ", ownErr)
+	// Khử trùng lặp B
+	seenB := make(map[string]struct{})
+	uniq := make([]Bcand, 0, len(Bcands))
+	for _, c := range Bcands {
+		if c.B == nil {
+			continue
+		}
+		k := hex.EncodeToString(c.B.Bytes())
+		if _, ok := seenB[k]; ok {
+			continue
+		}
+		seenB[k] = struct{}{}
+		uniq = append(uniq, c)
+	}
+	Bcands = uniq
+	fmt.Printf("B candidates count = %d\n", len(Bcands))
+	if len(Bcands) == 0 {
+		fmt.Println("warn: no B candidates; cannot match outputs")
 		return result, nil
 	}
+
+	// 5) Thử match với từng B; try 3 biến thể derivation (V1/V2/V3) để debug
+	var (
+		ownedOuts       []ownedOut
+		derivVariantHit int // 1,2,3
+		bChosenLabel    string
+	)
+	for _, bc := range Bcands {
+		fmt.Println("trying match with", bc.Label)
+		outs, usedVariant, errTry := tryMatchWithB(te, outOneTimeKeys, Rcands, bc.B, a, true /*debug per-index*/)
+		if errTry != nil {
+			fmt.Println("warn: match error:", errTry)
+			continue
+		}
+		if len(outs) > 0 {
+			fmt.Println("matched with", bc.Label, " n=", len(outs), " variant=", usedVariant)
+			ownedOuts = outs
+			derivVariantHit = usedVariant
+			bChosenLabel = bc.Label
+			break
+		}
+	}
+	if len(ownedOuts) == 0 {
+		fmt.Println("warn: owned outputs not found with any B-candidate")
+		return result, nil
+	}
+
+	fmt.Println("B chosen:", bChosenLabel, "deriv variant:", derivVariantHit)
+
+	// 6) Cập nhật indices
 	indices := make([]int, 0, len(ownedOuts))
 	for _, o := range ownedOuts {
 		indices = append(indices, o.Index)
@@ -1029,7 +1379,7 @@ func DecodeOutputs(
 	result.OwnedOutputIndices = indices
 	fmt.Println("Check output array: ", result.OwnedOutputIndices)
 
-	// --- Giải mã amount cho từng output đã xác định (DÙNG viewKey + R_used + ecdh ciphertext) ---
+	// 7) Giải mã amount từng output đã xác định
 	per := make(map[int]uint64, len(ownedOuts))
 	var sumDecoded uint64
 	for _, o := range ownedOuts {
@@ -1037,6 +1387,10 @@ func DecodeOutputs(
 		if i >= len(ecdhAmtC) || i >= len(ecdhMaskC) {
 			fmt.Println("warn: missing ecdhInfo for vout[", i)
 			continue
+		}
+		// CẢNH BÁO nếu variant match ≠ 1 mà hàm decode của bạn đang dùng V1
+		if derivVariantHit != 1 {
+			fmt.Println("warn: match used derivation variant", derivVariantHit, "but ringCTDecodeAmountForIndex likely uses V1; consider aligning it.")
 		}
 		amt, derr := ringCTDecodeAmountForIndex(a, o.RUsed, i, ecdhAmtC[i], ecdhMaskC[i])
 		if derr != nil {
@@ -1053,6 +1407,13 @@ func DecodeOutputs(
 	fmt.Println("Check output amount lenght:  ", len(result.PerOutputAmounts))
 	for key, value := range result.PerOutputAmounts {
 		fmt.Println("Check amoutn output map: Key: ", key, ". Value: ", value)
+	}
+	if result.Amount > 0 && sumDecoded > 0 {
+		if result.Amount != sumDecoded {
+			fmt.Printf("WARNING: RPC amount (%d) != decoded sum (%d)\n", result.Amount, sumDecoded)
+		} else {
+			fmt.Println("OK: RPC amount matches decoded sum")
+		}
 	}
 	return result, nil
 }
@@ -1077,11 +1438,6 @@ func computeSubaddressSpendKey(B *edwards25519.Point, a *edwards25519.Scalar, ma
 	return Bprime, nil
 }
 
-type ownedOut struct {
-	Index int
-	RUsed *edwards25519.Point // đúng R cho i
-}
-
 func keccak256(parts ...[]byte) []byte {
 	h := sha3.NewLegacyKeccak256()
 	for _, p := range parts {
@@ -1090,36 +1446,53 @@ func keccak256(parts ...[]byte) []byte {
 	return h.Sum(nil)
 }
 
+// chuyển 32-byte little-endian -> big.Int (big-endian internal)
+func le32ToBigInt(le []byte) *big.Int {
+	// le length must be 32
+	if len(le) != 32 {
+		// pad/truncate an toàn nếu cần
+		buf := make([]byte, 32)
+		copy(buf, le)
+		le = buf
+	}
+	// đảo thành big-endian để SetBytes hiểu
+	be := make([]byte, 32)
+	for i := 0; i < 32; i++ {
+		be[i] = le[31-i]
+	}
+	return new(big.Int).SetBytes(be)
+}
+
+// ghi big.Int (0 <= x < ℓ) thành 32-byte little-endian
+func bigIntToLE32(x *big.Int) []byte {
+	be := x.Bytes() // big-endian
+	le := make([]byte, 32)
+	// copy ngược sang LE, phần còn lại zero-pad
+	for i := 0; i < len(be) && i < 32; i++ {
+		le[i] = be[len(be)-1-i]
+	}
+	return le
+}
+
 func hashToScalarHs(data []byte) *edwards25519.Scalar {
 	// 1) Keccak-256
 	h := sha3.NewLegacyKeccak256()
 	_, _ = h.Write(data)
-	sum := h.Sum(nil) // 32 bytes
+	sum := h.Sum(nil) // 32 bytes (Monero coi đây là LE input cho sc_reduce32)
 
-	// 2) interpret little-endian rồi reduce mod l
-	// (Keccak trả big-endian bytestream, nhưng Monero coi đầu vào scalar là LE.
-	// Ở đây để an toàn: đảo sang LE cho đúng cách đọc của Scalar.Bytes()).
-	le := make([]byte, 32)
-	// sum là big-endian; đảo để được little-endian
-	for i := 0; i < 32; i++ {
-		le[i] = sum[31-i]
-	}
-	n := new(big.Int).SetBytes(le) // n (big-endian interpret of LE bytes)
+	// 2) interpret sum như 256-bit little-endian, reduce mod ℓ
+	n := le32ToBigInt(sum)
 	n.Mod(n, ed25519Order)
 
-	// 3) encode n thành 32 byte little-endian canonical
-	canon := make([]byte, 32)
-	nb := n.Bytes() // big-endian
-	// copy sang LE
-	for i := 0; i < len(nb); i++ {
-		canon[i] = nb[len(nb)-1-i]
-	}
+	// 3) encode về 32B little-endian canonical
+	canonLE := bigIntToLE32(n)
 
 	// 4) set scalar
 	s := edwards25519.NewScalar()
-	if _, err := s.SetCanonicalBytes(canon); err != nil {
-		// không nên xảy ra vì đã reduce < l
-		panic("SetCanonicalBytes failed: " + err.Error())
+	if _, err := s.SetCanonicalBytes(canonLE); err != nil {
+		// cực kỳ hiếm khi xảy ra vì đã mod < ℓ; trả scalar 0 cho an toàn
+		// (hoặc đổi sang panic nếu bạn muốn fail fast trong dev)
+		return new(edwards25519.Scalar)
 	}
 	return s
 }
@@ -1136,45 +1509,46 @@ func bytesToPoint(b []byte) (*edwards25519.Point, error) {
 }
 
 func ringCTDecodeAmountForIndex(
-	a *edwards25519.Scalar, Rused *edwards25519.Point, outIndex int,
-	eAmtHex, eMaskHex string, // eMaskHex vẫn truyền vào nhưng không dùng
+	a *edwards25519.Scalar,
+	R *edwards25519.Point,
+	outputIndex int,
+	amountCipher, maskCipher string,
 ) (uint64, error) {
-	Dpoint := new(edwards25519.Point).ScalarMult(a, Rused)
 
-	// eight = 8
-	var eightBytes [32]byte
-	eightBytes[0] = 8
-	eight := edwards25519.NewScalar()
-	if _, err := eight.SetCanonicalBytes(eightBytes[:]); err != nil {
-		return 0, fmt.Errorf("set scalar 8: %w", err)
+	// Derive shared secret: r = Hs(a * R)
+	var shared edwards25519.Point
+	shared.ScalarMult(a, R)
+	secret := keccak256(shared.Bytes())
+
+	amtB, _ := hex.DecodeString(amountCipher)
+	maskB, _ := hex.DecodeString(maskCipher)
+
+	if len(amtB) != 8 || len(maskB) != 32 {
+		return 0, fmt.Errorf("invalid ecdhInfo size")
 	}
 
-	// D8 = 8 * (a * Rused)
-	D8 := new(edwards25519.Point).ScalarMult(eight, Dpoint)
-	Dbytes := D8.Bytes()
+	var mask [32]byte
+	copy(mask[:], maskB)
+	var encryptedAmt [8]byte
+	copy(encryptedAmt[:], amtB)
 
-	payload := append(Dbytes, moneroVarint(uint64(outIndex))...)
-
-	// s2 khuyến nghị: Hs( Keccak(payload) )
-	// nếu không ra, thử Hs(payload)
-	s2 := hashToScalarHs(keccak256(payload))
-
-	ab, err := hex.DecodeString(eAmtHex)
-	if err != nil || len(ab) != 32 {
-		return 0, errors.New("bad ecdh.amount")
-	}
-	Ea := edwards25519.NewScalar()
-	if _, err := Ea.SetCanonicalBytes(ab); err != nil {
-		return 0, err
+	// XOR mask
+	var derivedMask [32]byte
+	for i := 0; i < 32; i++ {
+		derivedMask[i] = mask[i] ^ secret[i]
 	}
 
-	Ad := edwards25519.NewScalar().Subtract(Ea, s2) // amount_dec = Ea - s2
-	b := Ad.Bytes()
-	var amt uint64
+	// Derive amount mask (first 8 bytes of derivedMask)
+	var amountMask [8]byte
+	copy(amountMask[:], derivedMask[:8])
+
+	// Decrypt amount
+	var amount uint64
 	for i := 0; i < 8; i++ {
-		amt |= uint64(b[i]) << (8 * uint(i))
+		amount |= uint64(encryptedAmt[i]^amountMask[i]) << (8 * i)
 	}
-	return amt, nil
+
+	return amount, nil
 }
 
 func walletFilesExist(walletFilesDir, walletFilename string) bool {
@@ -1418,4 +1792,253 @@ func ParseTxExtra(hexExtra string) (*XmrTxExtra, error) {
 		}
 	}
 	return te, nil
+}
+
+func DecodeOutputs2(
+	address, viewKey, txid, txJSONStr string,
+) (*DecodedTx, error) {
+
+	if address == "" || viewKey == "" || txid == "" {
+		return nil, errors.New("address, viewKey, txid required")
+	}
+
+	// === 1. Parse view key ===
+	vk, err := hex.DecodeString(viewKey)
+	if err != nil || len(vk) != 32 {
+		return nil, errors.New("invalid viewKey")
+	}
+	var a edwards25519.Scalar
+	if _, err := a.SetCanonicalBytes(vk); err != nil {
+		return nil, errors.New("viewKey not canonical")
+	}
+
+	// === 2. Parse tx JSON (chỉ lấy extra, vout.key, ecdhInfo) ===
+	extraHex, voutKeys, ecdhAmt, ecdhMask, err := parseRingCTTx(txJSONStr)
+	if err != nil {
+		return nil, fmt.Errorf("parse tx: %w", err)
+	}
+	if len(voutKeys) == 0 {
+		return nil, errors.New("no vout")
+	}
+	if len(ecdhAmt) != len(voutKeys) || len(ecdhMask) != len(voutKeys) {
+		return nil, errors.New("ecdhInfo length mismatch")
+	}
+
+	// === 3. Parse tx_extra ===
+	te, err := ParseTxExtra(extraHex)
+	if err != nil {
+		return nil, fmt.Errorf("parse extra: %w", err)
+	}
+
+	// === 4. Build R candidates (tx_pub + additional_pubkeys) ===
+	Rcands := buildRcands(te)
+	if len(Rcands) == 0 {
+		return nil, errors.New("no R public key")
+	}
+
+	// === 5. Build B candidates (standard + subaddress) ===
+	Bcands := buildBcands(address, te)
+	if len(Bcands) == 0 {
+		return nil, errors.New("no B candidate")
+	}
+
+	// === 6. Match outputs using view key + derivation ===
+	var owned []ownedOut
+	var variant int
+	var bLabel string
+
+	for _, bc := range Bcands {
+		outs, v, err := tryMatchWithB2(voutKeys, Rcands, bc.B, &a)
+		if err != nil || len(outs) == 0 {
+			continue
+		}
+		owned = outs
+		variant = v
+		bLabel = bc.Label
+		break
+	}
+
+	if len(owned) == 0 {
+		return &DecodedTx{Txid: txid}, nil // không có output nào thuộc về bạn
+	}
+
+	// === 7. Decode amount cho từng output ===
+	per := make(map[int]uint64)
+	var total uint64
+	for _, o := range owned {
+		i := o.Index
+		amt, err := ringCTDecodeAmount(&a, o.RUsed, ecdhAmt[i], ecdhMask[i])
+		if err != nil {
+			continue
+		}
+		per[i] = amt
+		total += amt
+	}
+
+	// === 8. Kết quả ===
+	result := &DecodedTx{
+		Txid:               txid,
+		Amount:             total,
+		OwnedOutputIndices: make([]int, len(owned)),
+		PerOutputAmounts:   per,
+	}
+	for i, o := range owned {
+		result.OwnedOutputIndices[i] = o.Index
+	}
+
+	fmt.Printf("[DECODED] tx=%s, outputs=%v, total=%d piconero, variant=%d, B=%s\n",
+		txid[:8], result.OwnedOutputIndices, total, variant, bLabel)
+	return result, nil
+}
+
+func parseRingCTTx(jsonStr string) (extraHex string, voutKeys, ecdhAmt, ecdhMask []string, err error) {
+	var tx struct {
+		Extra string `json:"extra"`
+		Vout  []struct {
+			Target struct {
+				Key string `json:"key"`
+			} `json:"target"`
+		} `json:"vout"`
+		RctSignatures struct {
+			EcdhInfo []struct {
+				Amount string `json:"amount"`
+				Mask   string `json:"mask"`
+			} `json:"ecdhInfo"`
+		} `json:"rct_signatures"`
+	}
+
+	if err := json.Unmarshal([]byte(jsonStr), &tx); err != nil {
+		return "", nil, nil, nil, err
+	}
+
+	extraHex = tx.Extra
+	for _, v := range tx.Vout {
+		voutKeys = append(voutKeys, v.Target.Key)
+	}
+	for _, e := range tx.RctSignatures.EcdhInfo {
+		ecdhAmt = append(ecdhAmt, e.Amount)
+		ecdhMask = append(ecdhMask, e.Mask)
+	}
+
+	return extraHex, voutKeys, ecdhAmt, ecdhMask, nil
+}
+
+func buildRcands(te *XmrTxExtra) []*edwards25519.Point {
+	var cands []*edwards25519.Point
+	if te.TxPublicKey != "" {
+		if p := hexToPoint(te.TxPublicKey); p != nil {
+			cands = append(cands, p)
+		}
+	}
+	for _, k := range te.AdditionalPubkeys {
+		if p := hexToPoint(k); p != nil {
+			cands = append(cands, p)
+		}
+	}
+	return cands
+}
+
+// buildBcands: ưu tiên subaddress → standard
+func buildBcands(addr string, te *XmrTxExtra) []struct {
+	Label string
+	B     *edwards25519.Point
+} {
+	var cands []struct {
+		Label string
+		B     *edwards25519.Point
+	}
+
+	// 1. Subaddress: nếu có additional_pubkeys
+	if len(te.AdditionalPubkeys) > 0 {
+		if ap, err := ParseAddress(addr); err == nil {
+			if p, err := bytesToPoint(ap.PublicSpendKey); err == nil {
+				cands = append(cands, struct {
+					Label string
+					B     *edwards25519.Point
+				}{"subaddress", p})
+			}
+		}
+	}
+
+	// 2. Standard address
+	if ap, err := ParseAddress(addr); err == nil {
+		if p, terr := bytesToPoint(ap.PublicSpendKey); terr == nil {
+			cands = append(cands, struct {
+				Label string
+				B     *edwards25519.Point
+			}{"standard", p})
+		}
+	}
+
+	return cands
+}
+
+// tryMatchWithB: chỉ dùng V1 và V2 (V3 hiếm)
+func tryMatchWithB2(voutKeys []string, Rcands []*edwards25519.Point, B *edwards25519.Point, a *edwards25519.Scalar) ([]ownedOut, int, error) {
+	for variant := 1; variant <= 2; variant++ {
+		var owned []ownedOut
+		for i, key := range voutKeys {
+			P := hexToPoint(key)
+			if P == nil {
+				continue
+			}
+
+			for _, R := range Rcands {
+				var derived *edwards25519.Point
+				if variant == 1 {
+					derived = deriveOneTimeKeyV1(R, B, a, uint64(i))
+				} else {
+					derived = deriveOneTimeKeyV2(R, B, a, uint64(i))
+				}
+				if derived != nil && derived.Equal(P) == 1 {
+					owned = append(owned, ownedOut{Index: i, RUsed: R})
+					break
+				}
+			}
+		}
+		if len(owned) > 0 {
+			return owned, variant, nil
+		}
+	}
+	return nil, 0, errors.New("no match")
+}
+
+// ringCTDecodeAmount: dùng shared secret = Hs(a*R)
+func ringCTDecodeAmount(a *edwards25519.Scalar, R *edwards25519.Point, amtHex, maskHex string) (uint64, error) {
+	amtB, _ := hex.DecodeString(amtHex)
+	maskB, _ := hex.DecodeString(maskHex)
+	if len(amtB) != 8 || len(maskB) != 32 {
+		return 0, errors.New("invalid ecdh")
+	}
+
+	// shared = Hs(a*R)
+	var shared edwards25519.Point
+	shared.ScalarMult(a, R)
+	secret := keccak256(shared.Bytes())
+
+	// XOR mask
+	var derivedMask [32]byte
+	for i := 0; i < 32; i++ {
+		derivedMask[i] = maskB[i] ^ secret[i]
+	}
+
+	// amount = amt XOR derivedMask[:8]
+	var amount uint64
+	for i := 0; i < 8; i++ {
+		amount |= uint64(amtB[i]^derivedMask[i]) << (8 * i)
+	}
+	return amount, nil
+}
+
+func hexToPoint(h string) *edwards25519.Point {
+	b, _ := hex.DecodeString(h)
+	if len(b) != 32 {
+		return nil
+	}
+	var p edwards25519.Point
+	_, err := p.SetBytes(b)
+	if err != nil {
+		return nil
+	}
+	return &p
 }

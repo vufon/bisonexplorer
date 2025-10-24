@@ -451,6 +451,7 @@ func (pgb *ChainDB) MoneroDecodeOutputs(txid, address, viewkey string) (*xmrclie
 	// call decode outputs function
 	return xmrclient.DecodeOutputs(pgb.ctx, pgb.xmrWalletCfg.xmrWalletRpc, pgb.xmrWalletCfg.xmrRpcAuth, pgb.xmrWalletCfg.xmrWalletDir,
 		address, viewkey, txid, txJSONStr, uint64(restoreBlock), 10, 90*time.Second)
+	// return xmrclient.DecodeOutputs2(address, viewkey, txid, txJSONStr)
 }
 
 func (pgb *ChainDB) MoneroProveOutputs(txid, address, txkey string) (*xmrclient.ProveByTxKeyResult, error) {
